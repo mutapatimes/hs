@@ -1,460 +1,249 @@
-# Broad fashion-stylist DIRECTORY (Moda Database, letters A-E so far).
-# Tier 2 / corroboration-only: many entries are common names, so a match here
-# NEVER surfaces a customer on its own (see SUPPORTING_SIGNALS in combine.py) --
-# it only adds weight when a stronger wealth signal has also fired. 'Possible stylist'.
-# Curated Tier-1 names (fashion_stylists.csv) are excluded to avoid double-flagging.
+# Fashion-stylists-ONLY directory (Moda Database artist-type/fashion-stylists),
+# pages 1-21 of 532 (the more prominent stylists; excludes hair & make-up artists).
+# Tier 2 / corroboration-only: a match here NEVER surfaces a customer on its own
+# (see SUPPORTING_SIGNALS in combine.py) -- it only adds weight when a stronger
+# wealth signal has also fired. Curated Tier-1 names are excluded. 'Possible stylist'.
 name
-Aya Komatsu
-Aurelia Donaldson
+Robert Flood
+Sandra Okerulu
 Ashlee Muhammad
-Avo Yermagyan
-Alastair McKimm
-Anastasia Barbieri
-Aryeh Lappin
-Allan Avendaño
-Alexandra Mandelkorn
-Adam Ballheim
-Abhilasha Devnani
-Anthony Campbell
-Ashley Furnival
-Annie Psaltiras
-Amanda Lim
-Andrew Gelwicks
-Ade Samuel
-Angga Mitra
-Ashley Pruitt
-Alicia Lombardini
-Aimée Croysdill
-Anna Su
-Agata Belcen
-Alba Melendo
-Alex Harrington
-Adriana Popovic
-Andrew Gallimore
-Aurore Donguy
-Ana Tess
-Angel Terrazas
-Annabel Lucey
-Anders Sølvsten Thomsen
-Astrid Doil
-Allan Kennedy
-Anna Carraro
-Audrey Brianne
-Alizé Demange
-Anita Patrickson
-Anya Ziourova
-Ashley Zohar
-Alexandra French
-Aleksandra Woroniecka
-Ali Mullin
-Apuje Kalu
-Angela Esteban-Librero
-Alexis Roche
-Anna Pesonen
-Amarsana Gendunova
-Amber Jackson
-Alejandra Hernandez
-Anthony Bermudez
-Amber Watkins
-Anthony Turner
-Audrey L. Anzures
-Anne Christensen
-Adrian Clark
-Alison Hernon
-Aastha Sharma
-Amy Chance
-Akki Shirakawa
-Asami Matsuda
-Andrea Mennella
-Andrew Holden
-Adele Cany
-Avena Gallagher
-Ambika Sanjana
-Alexandra Carl
-Abby Arad
-Anna Katsanis
-Ally Macrae
-Andre Austin
-Autumn Moultrie
-Abena Ofei
-Amy Lu
-Asaniya Nazrin
-Anastasya K.
-Anne-Marie Curtis
-Ash K Holm
-Aaron Smith Henrikson
-Anastasiia Yatsenko
-Ale Duprat
-Abby Bennett
-Ariana Velazquez
-Ashlee Barrett-Bourmier
-Aya Kanai
-Anthony Nguyen
-Brian Coats
-Bradley Kenneth
-Beau Nelson
-Brana Wolf
-Bridget Brager
-Barbara Baumel
-Belen Casadevall
-Brittany Taylor
-Beat Bolliger
-Ben Skervin
-Bay Garnett
-Bill Mullen
-Bobette Cohn
-Baek Heung Kwon
-Brie Welch
-Bora Choi
-Belen Antolin
-Barbara Loison
-Bobby Wesley
-Brandon Fogel
-Brandon Nicholas
-Bernhard Tamme
-Browne Andrews
-Brandon Garr
-Belma Kang
-Britt Mccamey
-Barbara Farman
-Blake Erik
-Benjamin Holtrop
-Barbara Zach
-Bob Recine
-Bruno Lima
-Brandon Williams
-Blair Cannon
-Britty Morrison
-Benjamin Mohapi
-Brandon Salazar Tan
-Bradley Irion
-Beoncia Dunn
-Benoit Moeyaert
-Britton Litow
-Bridget Bell
-Beth Fenton
-Blandine Desgraz
-Brady Lea
-Brittany Sullivan
-Brent Lawler
-Brad Homes
-Becky Thompson
-Brian Magallones
-Brian D. Robinson
-Bev Nates
-Benjamin Sturgill
-Brooke Pearson
-Bastien Zorzetto
-Barbara Lorenz
-Brendan Robertson
-Benjamin Muller
-Berta Álvarez
-Brandon Laughton
-Brigitte Reiss-Andersen
-Bárbara Vélez
-Beagy Zielinski
-Barbara Ikkache
-Bobby Eliot
-Bekki Mitchell
-Baïa Ali
-Bruno Silvani
-Benjamin Puckey
-Brittany Whitfield
-Bleu
-Bridie Gilbert
-Beatriz Moreno de la Cova
-Bukonla Ebiesuwa
-Beau Quillian
-Britani Cato
-Barthélémy Joris
-Ben Jones
-Bernat Buscato
-Bok-Hee
-Britt Dannert
-Billy Tempest-Radford
-Bhisan Rai
-Bjorn Krischker
-Bradley Leake
-Bárbara Garralda
-Brian Conway
-Brian Hin
-Brittan White
-Becca Alexis
-Buster Knight
-Christina Pacelli
-Chloe Delgadillo
-Charlotte Collet
-Camille Bidault-Waddington
-Cat Pope
-Christian Classen
-Clayton Hawkins
-Cheryl Konteh
-Charles Varenne
-Cara Gordon
-Claudia Sinclair
-Caroline Newell
-Charlotte Roberts
-Charlotte Adsett
-Clare Richardson
-Caroline Tran
-Catherine Hahn
-Christine Nelli
-Chloe Hartstein
-Charlie G. Ward
-Christopher Brown
-Courtney Geree Jones
-Chèrie Kilchrist
-Christian Stroble
-Corey Stokes
-Chris McMillan
-Chad Burton
-Christian Wood
-Cathy Highland
-Charlotte Rose Coleman
-Christelle Cocquet
-Cathy Kasterine
-Christopher Campbell
-Caitlin Moriarty
-Christine Baker
-César DeLeön Ramîrez
-Candice Lambert McAndrews
-Cassie Anderson
-Connie Berg
-Claire Sibille
-Christine Cherbonnier
-Charlie Green
-Caile Noble
-Charlotte Stockdale
-Carola Gonzalez
-Christy Coleman
-Celia Azoulay
-Candice Bailey
-Carol Roquete
-Cameron Rains
-Claudia Hofmann
-Carolina Orrico
-Chloé Dugast
-Corey Castellano
-Clarissa Luna
-Chiara Tiso
-Caterina Ospina Buitrago
-Carlos Ortiz
-Clyde Haygood
-Carla Vermaak
-Camille Naomi Franke
-Chichi Saito
-Carlos Pereira
-Cash Lawless
-Christiaan Houtenbos
-Colin Anderson
-Cedric Haddad
-Claudia Englmann
-Chris Dylan
-Carissa Ferreri
-Coquito Cassibba
-Caprice Conners
-Christian Mcculloch
-Charlotte Hayward
-Collette Emily
-Cyndle Komarovski
-Catherine Newell-Hanson
-Carolina Dali
-Columbine Smille
-Christine Corbel
-Carla Aguilar
-Casey Geren
-Chloe Louise
-Cary Robinson
-Chrisna De Bruyn
-Cyndia Harvey
-Carlee Wallace
-Chiara Totire
-Collier Strong
-Claudio Belizario
-Carol Beadle
-Ceylan Atınç
-DiAndre Tristan
-Dianne Garcia
-Danyul Brown
-Dayaruci
-Dena Neustadter Giannini
-Deborah Ferguson
-Danilo
-Delphine Danhier
-Dimitris Giannetos
-David Thomas
-Denika Bedrossian
-Daniela Viviana Romero
-Danielle Whiteman
-Dotti
-Dani Kamel
-Derek Yuen
-DJ Quintero
-Dan May
-Deborah Afshani
-Deborah Watson
-Daniela Jung
-Danielle Priano
-Daniela Correia
-David Gangel
-Darryl Glover
-Dani Davilla
-Dean Pardue
-Daniela Gutiérrez
-Dominick Pucciarello
-Danielle O'Connell
-Danasia Sutton
-Douglas VanLaningham
-Debi Dumas
-Dani Charlton
-Dinalva Barros
-Daniel Gaines
-David Craig Forrest
-David Vandewal
-David Casavant
-Daniel Edley
-Damien Boissinot
-Danny Santiago
-Debbie Harper
-Deanna Melluso
-Darlene Jacobs
-Daniella Gurtner
-Dennis Bailey
-Donatella Musco
-Daniel Obasi
-Davey Sutton
-Damaris Flores
-Duffy
-Desirae Cherie
-David Cox
-Dennis Gots
-Dawn Broussard
-Daniel Sallstrom
-Danyl Geneciran
-Davis Carrasquillo
-Diego Miranda
-Deep Kailey
-Dina Gregg
+Priyankka Castelinno
+Toyin Lawani
+Sana Anver
 Dolly Mungai
-Dean Banowetz
-Daniela Gil
-David Von Cannon
-Darcy Backlar
-David Velasquez
-Diego Larez
-Dijana Žeravica
-Donna Lisa
-Des Lewis
-Donald Mikula
-David Nolan
-Dillon Peña
-Dan Duran
-DaVian Lain
-Daniella Capelouto Gershoni
-Deborah Altizio
-Dean DiCriscio
-Doria Santlofer
-Dolly Pratt Lanvin
-Diego Da Silva
-Dritan Vushaj
-Dana Gibbs
-David Jones
-Danielle Van Camp
-Dominic Apenteng
-Devin Duckworth
-Danielle Behan
-Daniel Martin
-David Harborow
-Enrique Melendez
-Etienne Ortega
-Eric Archibald
-Elodie David-Touboul
-Elizabeth Saltzman
-Emilie Kareh
-Emily Tighe
-EJ King
-Elizabeth Sulcer
-Emily Lafitte
-Eric McNeal
-Ellie Grace Cumming
-Erin Parsons
-Elizabeth Cabral
-Eric Niemand
-Evet Sanchez
-Eka Lakhani
-Eric Nicholson
-Ellie Witt
-Ernesto Casillas
-Elissa Santisi
-Emily Cheng
-Enzo Angileri
-Ece Öğütoğulları Altın
-Elin Svahn
-Emma Cotterill
-Edgar Balseca Almagor
-Ece Birsen
-Erin Ayanian Monroe
-Emily Lee
-Edem Dossou
-Emma Kalfus
-Eduardo Ponce
-Eric Owes
-Elisabetta Massari
-Emily Barnes
-Eva Kim
-Edwin Ortega
-Eilidh Greig
-Ellie Lines
-Erica Mer
-Elie Maalouf
-Ella Gaskell
-Emily Sanchez
-Edna Pedraza
+Namratha Jauni
+Diana Chanzu
+Alvin McQueen
+Meagan Concessio
+Jeremiah Ogbodo
+Abhilasha Devnani
+Deni Todorovič
+Sonali Jain
+Kim Balko
+Pranay Jaitly
+Shounak Amonkar
+Mohit Rai
+Daniel Obasi
+Rachel Fanconi
+Alizé Demange
+Rain Dagala
+Paul Burgo
+Asaniya Nazrin
+Bobby Wesley
+Priyanka Shahani
+Kazim Delhiwala
+Shravya Varma
+Rawan Kattoa
+Clémentine MacNeice
+Liz Uy
+Lana Wilkinson
+Isha Bhansali
+Gayle Rinkoff
+Jessica Mulroney
+Mikiel Benyamin
 Ebony Brown
+JenniLee
+Andie Sobrato
+Maneka Harisinghani
+Lakshmi Lehr
+Mimi Linda Yina
+Gemma Sheppard
+Radhika Mehra
+Tyler Minor
+Amber Jackson
+Karl Willett
+Danielle Whiteman
+Angie Smith
+Fiona Fagan
+Jeremy Haynes
+Icon Billingsley
+Avon Dorsey
+Iván Poshenko
+Mandy Maher
+Khalil Zein
+Urbana Chappa Lawrence
+Wayne Scot Lukas
+Ashley Rebello
+Ken Ferns
+Lauren Cunningham
+Candy Holladay
+Caitlin Jaymes
+Jess Pecoraro
+Tim B.
+Carrie Cramer
+Chèrie Kilchrist
+London Wilmot
+Kat Gosik
+Jan-Michael Quammie
+Dylan Weller
+Ramona Tabita
+Rebecca Baglini
+Susanna Ausoni
+Simone Furlan
+Nicolò Cerioni
+Richa Ranawat
+Tanya Tamburin
+Briana Andalore
+Anjali Phougat
+Ryan Kay
+Justine King
+Raúl Alvarez
+Chandni Sareen
+Chandani Mehta
+Mark Heyes
+Neerajaa Kona
+KJ Moody
+Ayishat Akanbi
+Karen Binns
+Madeleine Bowden
+Rachel Zoe
+Natalie Robinson
+Akshay Tyagi
+Zeena Shah
+Rochelle White
+Kosh Hewage
+Anisha Gandhi
+Jana Scalzitti
+Eka Lakhani
+Rita Melssen
+Brandon Williams
+Daniela Benaim
+Joanna Angeles
+Soneca Guadara
+Rachel Garrett
+Suchita Golecha
+Grace Woodward
+Victor Maina
+Emily Loftiss
+Sabrina Forscutt
+Memsor Kamarake
+Nandita Mahtani
+Joseph Hobbs
+Abby Arad
+Lindsay Brooke Weiss
+Tiffany Piñero
+Beverly Osemwenkhae
+Liv Schreiber
+Christina Stein
+Kara Allan
+Chloe Markham
+Laura Jordan
+Emily O'Donnell
+Rebecca Rose
+Aideen Feely
+Lorna Weightman
 Eshaa Amiin
-Emily Dawn
-Eva Bernal
-Emma Lane
-Ellie Walker
-Eryka Clayton
-Ece Sükan
-Elise Sandvik
-Ellie Łazarczyk
-Emi Kaneko
-Esther Langham
-Elgar Johnson
-Eus Cantó
-Earl Simms
-Emma White Turle
-Etienne Jeanson
-Ericka Verrett
-Emma Read
-Ekaterina Budanova
-Emily Current
-Elena Dini Silvera
-Erich Al Amin
-Edward Lampley
-Eleonora Gaspari
-Emma Alix Wyman
-Ella Lucia
-Elisa Nalin
-Evy Drew
-Eric Williams
-Enyer Diaz
-Elvira Abramczuk
-Elżbieta Gasz
-Emine Sander
-Emily Mazur
-Emmanuelle Ramos
-Elsa Durrens
-Erika Guerrisi
-Eliza Conlon
-Esther Matilla
-Eva Silatsa
-Enrico Bompani
-Elena Pivetta
-Elodie Gabrielle Purcell
-Erin Lee Smith
-Elias Hove
-Eliot McQueen
-Elena Vasilevsky
+Sanjana Batra
+Aastha Sharma
+Victoria Bain
+Allia Al Rufai
+Nikita Jaisinghani
+Nitasha Gaurav
+Jacqueline Zenere
+Maggie Greene
+Kat Cruz-Villanueva
+Youngjin Kim
+Wook Kim
+Minhee Park
+Kyoung Eun Rhee
+Fwanwook Jung
+Kyungwon Choi
+Chaca Ibrohim
+Marco Rodriguez
+Liat Bitan
+Brynna Eclesia Christiandy
+Alyssa On
+Eunyoung Sohn
+Erina Ohama
+Paris Mitchell Temple
+Danielle Clausen
+Maël Naitchalal
+Charlotte Neuwels
+Sivan Himy
+Vivian Racks
+Stefanie Klopf
+Selvar Nguyen
+María Cuntín
+Rebeca Sueiro
+Carlos Marán
+Whitney Anne Moore
+Amanda O'Connor
+Ariella Masjedi
+Anastasia Tumanova
+Camille Céleste Paradis
+Marlond Samedy
+Samuel Joubert
+Álvaro Delgado
+Tanus Lewis
+Monia Pedretti
+Luisa Hoyer
+Leila Bani
+Rhea Fey
+Benjamin Aerts
+Valerie Zehethofer
+Nastya Klychkova
+Chumi Polak
+Beñat Yanci
+Parker Harwood
+Kwame Seko
+Énigma Rassi Hufudottir
+Julia Philippitsch
+Jessica Harris
+Peli Lam
+Gerard López Pie
+Katija Hirsch
+Seannita Parmer
+Bea Hansson
+Julia Häggblom
+Marta Achini
+Tanja Martin
+Bertie Taylor-Smith
+Andreas Peter Krings
+Christopher Brown
+Alexandria Montague
+Minji Kim-Lee
+Isabelle Sabel
+Miriam Mira
+Justine Lee
+Sam Sam
+Anderson Tsui
+Olivia Magdaleno
+Aly Cooper
+Emily Rae Rose
+Michelle Laine
+Oana Diaconu
+Alex Levey
+Sierra Rae
+Camilla Staerk
+Nesha Rae
+Jardine Hammond
+Alexis Zipp Goldsmith
+Alana Vandera
+Lauren Delaine
+Isabel Bonner
+Kate Emerick
+Lor-e Phillips
+Sybil Haagen
+Hafize Celikturk
+Laura Sueiro
+Lucia Cuesta
+Cristina Garcia Vivanco
+Calyann Barnett
+Anna Sjunnesson
+Jazmine Gandhi
+Zoe Jervoise Graham
+Carlos Freixeda
+Nick Royal
+James Yardley
+Yvonne Wigger
+Debbie Harper
+Nora Bordjah
+Ashley Sean Thomas
+Nuntaporn Munkit
+Laura Spriet
+Elke Dostal
+Chloe Takayanagi
+Ashley Stephens
+Ilanka Verhoeven
+Konstantin Spachis
+Pia Leonie Knoll

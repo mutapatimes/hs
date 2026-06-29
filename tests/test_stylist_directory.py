@@ -24,14 +24,14 @@ def test_registered_as_supporting():
 
 def test_directory_only_does_not_surface():
     # A bare directory name with no other signal contributes nothing.
-    s = score_customers(pd.DataFrame([{"Name": "Emily Lee", "EMAIL_ADDR": "emily@gmail.com",
+    s = score_customers(pd.DataFrame([{"Name": "Rachel Zoe", "EMAIL_ADDR": "rz@gmail.com",
                                        "Spent": 300}]))
     assert s.iloc[0]["signal_count"] == 0
 
 
 def test_directory_corroborates_when_another_signal_fires():
-    s = score_customers(pd.DataFrame([{"Name": "Emily Lee",
-                                       "EMAIL_ADDR": "emily@goldmansachs.com", "Spent": 300}]))
+    s = score_customers(pd.DataFrame([{"Name": "Rachel Zoe",
+                                       "EMAIL_ADDR": "rz@goldmansachs.com", "Spent": 300}]))
     row = s.iloc[0]
     assert row["signal_count"] >= 2 and "Possible stylist" in row["reasons"]
 
