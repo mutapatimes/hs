@@ -717,55 +717,72 @@ const settingsEl=document.getElementById("settings");
 function closeSettings(){settingsEl.style.display="none";}
 function openSettings(){
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
-  function rows(){return tmpl.map((t,i)=>`<div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px">
-      <input data-tn="${i}" value="${esc(t.name)}" placeholder="Template name" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--line);border-radius:7px;margin-bottom:7px;font:13px system-ui">
-      <input data-ts="${i}" value="${esc(t.subject)}" placeholder="Subject" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--line);border-radius:7px;margin-bottom:7px;font:13px system-ui">
-      <textarea data-tb="${i}" rows="5" placeholder="Body — use {first_name} and {sender}" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--line);border-radius:7px;font:13px system-ui;resize:vertical">${esc(t.body)}</textarea>
-      <button data-td="${i}" style="margin-top:6px;border:none;background:none;color:#b54;font-size:12.5px;cursor:pointer">Delete</button></div>`).join("");}
+  function rows(){return tmpl.map((t,i)=>`<div style="border:1px solid #e3e3e3;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafafa">
+      <input data-tn="${i}" value="${esc(t.name)}" placeholder="Template name" style="width:100%;${I};margin-bottom:8px">
+      <input data-ts="${i}" value="${esc(t.subject)}" placeholder="Subject" style="width:100%;${I};margin-bottom:8px">
+      <textarea data-tb="${i}" rows="5" placeholder="Body — use {first_name} and {sender}" style="width:100%;${I};resize:vertical">${esc(t.body)}</textarea>
+      <button data-td="${i}" style="margin-top:8px;background:none;border:none;color:#8e1f0b;font:600 12.5px system-ui;cursor:pointer;padding:0">Delete</button></div>`).join("");}
   function collect(){
     settingsEl.querySelectorAll("[data-tn]").forEach(el=>tmpl[+el.dataset.tn].name=el.value);
     settingsEl.querySelectorAll("[data-ts]").forEach(el=>tmpl[+el.dataset.ts].subject=el.value);
     settingsEl.querySelectorAll("[data-tb]").forEach(el=>tmpl[+el.dataset.tb].body=el.value);
   }
-  const inp="box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px system-ui";
+  const I="box-sizing:border-box;padding:8px 12px;border:1px solid #8a8a8a;border-radius:8px;font:14px system-ui;color:#303030;background:#fff";
+  const C="background:#fff;border:1px solid #e3e3e3;border-radius:12px;padding:18px 20px;margin-bottom:16px";
+  const H="font:650 14px system-ui;color:#303030;margin:0 0 4px";
+  const P="font:13px/1.5 system-ui;color:#616161;margin:0 0 14px";
+  const BP="background:#303030;color:#fff;border:none;border-radius:8px;padding:11px 20px;font:600 13px system-ui;cursor:pointer";
+  const BS="background:#fff;color:#303030;border:1px solid #999;border-radius:8px;padding:9px 15px;font:600 13px system-ui;cursor:pointer";
+  const LBL="font:500 12px system-ui;color:#616161;margin-bottom:5px";
+  const kv=SETTINGS.klaviyo_connected;
   function render(){
     settingsEl.innerHTML=`
-     <div style="position:fixed;inset:0;background:var(--bg);z-index:300;overflow:auto">
-      <div style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:13px 28px;display:flex;align-items:center;gap:14px;z-index:1">
-        <button class="dbtn" id="sback" style="border:1px solid var(--line);background:#fff">← Back</button>
-        <h2 style="margin:0;font-family:'Fraunces',serif;font-weight:500;font-size:20px">Settings</h2>
-      </div>
-      <div style="max-width:720px;margin:0 auto;padding:26px 28px 90px">
-        <div class="dlabel">Klaviyo connection</div>
-        <div style="font-size:13px;color:${SETTINGS.klaviyo_connected?'var(--brand)':'var(--soft)'};margin-bottom:8px">${SETTINGS.klaviyo_connected?"✓ Connected":"Not connected"}</div>
-        <div style="display:flex;gap:8px;margin-bottom:6px">
-          <input id="setKvKey" type="password" placeholder="pk_live_… (paste to connect or replace)" style="flex:1;${inp}">
-          <button class="dbtn" id="setKvConnect">Connect</button>
-        </div>
-        ${SETTINGS.klaviyo_connected?`<button id="setKvDisc" style="border:none;background:none;color:#b54;font-size:12.5px;cursor:pointer">Disconnect Klaviyo</button>`:""}
+     <div style="position:fixed;inset:0;background:#f1f1f1;z-index:300;overflow:auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+      <div style="max-width:800px;margin:0 auto;padding:18px 16px 100px">
+        <button id="sback" style="display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:#616161;font:600 13px system-ui;cursor:pointer;padding:6px 0">← Back to dashboard</button>
+        <h1 style="margin:2px 0 20px;font:650 22px/1.2 system-ui;color:#303030">Settings</h1>
 
-        <div class="dlabel" style="margin-top:26px">Hidden-VIC spend threshold (£)</div>
-        <input id="setThreshold" type="number" min="0" value="${esc(SETTINGS.vic_threshold)}" style="width:180px;${inp}">
-        <p style="font-size:12.5px;color:var(--soft);margin:6px 0 0">Clients who spend below this and show wealth signals are surfaced as hidden VICs. Saving re-scores your store.</p>
-
-        <div class="dlabel" style="margin-top:26px">Latent-value benchmarks</div>
-        <p style="font-size:12.5px;color:var(--soft);margin:0 0 12px">Your own numbers, so the latent estimate is real. We grow each client from their spend toward your ceiling — the higher of your top lifetime client or AOV × max orders — scaled by their Halia score.</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-          <div><div style="font-size:12px;color:var(--soft);margin-bottom:4px">Average order value (£)</div><input id="setAov" type="number" min="0" value="${esc(SETTINGS.aov)}" style="width:100%;${inp}"></div>
-          <div><div style="font-size:12px;color:var(--soft);margin-bottom:4px">Most orders from one client</div><input id="setMaxOrders" type="number" min="0" value="${esc(SETTINGS.max_orders)}" style="width:100%;${inp}"></div>
-          <div><div style="font-size:12px;color:var(--soft);margin-bottom:4px">Highest lifetime client (£)</div><input id="setHighestLt" type="number" min="0" value="${esc(SETTINGS.highest_lt)}" style="width:100%;${inp}"></div>
+        <div style="${C}">
+          <div style="${H}">Klaviyo connection</div>
+          <p style="${P}">Connect your Klaviyo <b>private</b> API key (pk_…) to push grades, build segments, and email clients.</p>
+          <div style="font:600 13px system-ui;color:${kv?'#0f7b4f':'#616161'};margin-bottom:10px">${kv?"● Connected":"○ Not connected"}</div>
+          <div style="display:flex;gap:8px;max-width:540px">
+            <input id="setKvKey" type="password" placeholder="pk_live_… (paste to connect or replace)" style="flex:1;${I}">
+            <button id="setKvConnect" style="${BS}">Connect</button>
+          </div>
+          ${kv?`<div style="margin-top:12px"><button id="setKvDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect Klaviyo</button></div>`:""}
         </div>
 
-        <div class="dlabel" style="margin-top:26px">Email sign-off name</div>
-        <input id="setSender" value="${esc(SETTINGS.sender_name)}" placeholder="e.g. The Aubin London team" style="width:100%;${inp}">
-        <p style="font-size:12.5px;color:var(--soft);margin:6px 0 0">Inserted wherever a template uses {sender}.</p>
+        <div style="${C}">
+          <div style="${H}">Hidden-VIC spend threshold (£)</div>
+          <p style="${P}">Clients who spend below this and show wealth signals are surfaced as hidden VICs. Saving re-scores your store.</p>
+          <input id="setThreshold" type="number" min="0" value="${esc(SETTINGS.vic_threshold)}" style="width:200px;${I}">
+        </div>
 
-        <div class="dlabel" style="margin-top:26px">Email templates</div>
-        <p style="font-size:12.5px;color:var(--soft);margin:0 0 10px">Use {first_name} and {sender}. These power the per-client “Email ▾” menu.</p>
-        <div id="tmplList">${rows()}</div>
-        <button id="addTmpl" class="dbtn" style="border:1px dashed var(--line-strong);background:#fff">+ Add template</button>
+        <div style="${C}">
+          <div style="${H}">Latent-value benchmarks</div>
+          <p style="${P}">Your own numbers, so the latent estimate is real. We grow each client from their spend toward your ceiling — the higher of your top lifetime client or AOV × max orders — scaled by their Halia score.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+            <div><div style="${LBL}">Average order value (£)</div><input id="setAov" type="number" min="0" value="${esc(SETTINGS.aov)}" style="width:100%;${I}"></div>
+            <div><div style="${LBL}">Most orders from one client</div><input id="setMaxOrders" type="number" min="0" value="${esc(SETTINGS.max_orders)}" style="width:100%;${I}"></div>
+            <div><div style="${LBL}">Highest lifetime client (£)</div><input id="setHighestLt" type="number" min="0" value="${esc(SETTINGS.highest_lt)}" style="width:100%;${I}"></div>
+          </div>
+        </div>
 
-        <div style="margin-top:26px"><button class="dbtn primary" id="saveSettings">Save settings</button></div>
+        <div style="${C}">
+          <div style="${H}">Email sign-off name</div>
+          <p style="${P}">Inserted wherever a template uses {sender}.</p>
+          <input id="setSender" value="${esc(SETTINGS.sender_name)}" placeholder="e.g. The Aubin London team" style="width:100%;max-width:440px;${I}">
+        </div>
+
+        <div style="${C}">
+          <div style="${H}">Email templates</div>
+          <p style="${P}">Use {first_name} and {sender}. These power the per-client “Email ▾” menu.</p>
+          <div id="tmplList">${rows()}</div>
+          <button id="addTmpl" style="${BS};margin-top:4px">+ Add template</button>
+        </div>
+
+        <button id="saveSettings" style="${BP}">Save settings</button>
       </div>
      </div>`;
     document.getElementById("sback").onclick=closeSettings;
