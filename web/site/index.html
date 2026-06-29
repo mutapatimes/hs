@@ -277,6 +277,27 @@
     .dept-grid,.sol-grid{grid-template-columns:1fr 1fr}
     .hero .block{margin:0}
   }
+  /* light (cream) sections */
+  .light{background:#f4f1ea;color:#13110c;
+    --ink:#13110c;--mute:#6b6557;--faint:#9a9385;--line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.08);--bg:#f4f1ea;--bg-2:#ece7dc}
+  .light .eyebrow{color:#7a7363}
+  .light em{color:#13110c}
+  .light .btn{background:#13110c;color:#f4f1ea;border-color:#13110c}
+  .light .btn:hover{background:transparent;color:#13110c}
+  .light .btn.ghost{background:transparent;color:#13110c;border-color:rgba(20,18,12,.22)}
+  .light .btn.ghost:hover{border-color:#13110c}
+  /* message mock + moments */
+  .msgcard{background:#fff;border:1px solid rgba(20,18,12,.12);border-radius:14px;padding:26px 28px;box-shadow:0 30px 70px -42px rgba(20,18,12,.3)}
+  .msgcard .mm{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#9a9385;border-bottom:1px solid rgba(20,18,12,.1);padding-bottom:14px;margin-bottom:18px}
+  .msgcard .mb{font-family:var(--serif);font-weight:300;font-size:19px;line-height:1.5;color:#2a2722}
+  .msgcard .mt{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(20,18,12,.1)}
+  .msgcard .mt .chip{font:500 12.5px var(--sans);color:#6b6557;border:1px solid rgba(20,18,12,.16);border-radius:999px;padding:6px 12px}
+  .msgcard .mt .chip.on{background:#13110c;color:#f4f1ea;border-color:#13110c}
+  .moment{padding:24px 0;border-top:1px solid rgba(20,18,12,.12)}.moment:first-child{border-top:0;padding-top:0}
+  .moment .mi{font-family:var(--serif);font-size:15px;color:#9a9385}
+  .moment h3{font-family:var(--sans);font-weight:600;font-size:17px;margin:6px 0;color:#13110c}
+  .moment p{color:#6b6557;font-size:15px;margin:0;max-width:44ch}
+
   @media(prefers-reduced-motion:reduce){
     .reveal{opacity:1;transform:none;transition:none}.scroll-cue .ln,.conn .dot{animation:none}
   }
@@ -463,6 +484,32 @@
   <p class="lede reveal d1" style="text-align:center;max-width:48ch;margin:36px auto 0">Open any client for the full picture: the signals that fired, their score and latent value, and a recommended approach ready to send.</p>
 </div></section>
 
+<!-- WHITE: from insight to action -->
+<section class="pad light"><div class="wrap">
+  <div class="sig-head reveal" style="max-width:38ch">
+    <div class="eyebrow" style="margin-bottom:20px">From insight to action</div>
+    <h2 class="h2">Finding them is half of it.<br>Halia does the other half.</h2>
+  </div>
+  <div class="split" style="align-items:start">
+    <div class="msgcard reveal">
+      <div class="mm">To a new VIC · Personal welcome</div>
+      <div class="mb">Dear Amara,<br><br>A new arrival came in that reminded me of your taste, and I have
+        set one aside in case you would like to see it. No obligation at all, it would simply be a
+        pleasure to look after you.<br><br>Warmly,<br>The Aubin London team</div>
+      <div class="mt"><span class="chip on">Personal welcome</span><span class="chip">New arrival</span><span class="chip">Concierge check-in</span><span class="chip">Win-back</span></div>
+    </div>
+    <div class="reveal d1">
+      <p style="color:#6b6557;font-size:17px;max-width:42ch;margin:0 0 30px">The hard part is usually the next
+        move. Halia hands your team a ready one: predefined, editable templates and messages built for the
+        moment, so the right client gets the right note in your own voice.</p>
+      <div class="moment"><div class="mi">01</div><h3>At the point of sale</h3><p>A grade on the customer in front of you, so the right people get recognition in the moment, not a week later.</p></div>
+      <div class="moment"><div class="mi">02</div><h3>The first reach-out</h3><p>A personal welcome the instant a hidden VIC appears, ready to send. Recognition, never a discount code.</p></div>
+      <div class="moment"><div class="mi">03</div><h3>Lapsed and at risk</h3><p>Ready-to-shoot win-back notes for the high-value clients who have quietly gone quiet, before they are gone for good.</p></div>
+      <div style="margin-top:24px;color:#9a9385;font-size:14px">Every message is yours to edit in Settings.</div>
+    </div>
+  </div>
+</div></section>
+
 <!-- BLEED -->
 <section class="bleed">
   <img src="img/databases.jpg" alt="" loading="lazy" style="object-position:center">
@@ -516,7 +563,7 @@
 </div></section>
 
 <!-- HIDDEN POTENTIAL → clienteling -->
-<section class="pad"><div class="wrap split">
+<section class="pad light"><div class="wrap split">
   <div class="media reveal"><img src="img/clientimage.jpg" alt="Finding and connecting with hidden VICs" loading="lazy"></div>
   <div class="copy reveal d1">
     <div class="eyebrow">Hidden potential</div>
