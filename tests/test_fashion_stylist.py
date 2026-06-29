@@ -16,7 +16,7 @@ def test_matches_whole_name():
 
 def test_accent_insensitive():
     out = flag_fashion_stylist(pd.DataFrame({"Name": ["Julian Rios"]}), people=PEOPLE)
-    assert out[FLAG_COL][0] is True or bool(out[FLAG_COL][0]) is True
+    assert bool(out[FLAG_COL][0])
 
 
 def test_no_partial_match():
@@ -27,7 +27,7 @@ def test_no_partial_match():
 
 def test_missing_name_column():
     out = flag_fashion_stylist(pd.DataFrame({"EMAIL_ADDR": ["a@b.com"]}), people=PEOPLE)
-    assert out[FLAG_COL][0] is False
+    assert not out[FLAG_COL][0]
 
 
 def test_real_reference_loads():
