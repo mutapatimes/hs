@@ -76,6 +76,7 @@ def test_fulfilment_view_renders(client):
     assert "Fulfilment pick list" in html and "coffee" in html
 
 
-def test_embedded_home_without_token_shows_open_from_admin():
+def test_embedded_home_without_token_serves_marketing_site():
+    # A public visitor (no Shopify session token) gets the marketing site, not the app.
     r = TestClient(app).get("/")
-    assert r.status_code == 200 and "Open this app from your Shopify admin" in r.text
+    assert r.status_code == 200 and "Connect your store" in r.text and "Halia" in r.text

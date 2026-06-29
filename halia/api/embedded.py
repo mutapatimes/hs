@@ -45,6 +45,19 @@ _OPEN_FROM_ADMIN = (
     "so it can load securely.</p></body>"
 )
 
+# Public marketing site — served at the root to any visitor who isn't an authenticated
+# Shopify admin (i.e. the general public). Falls back to the stub if the file is missing.
+from config import ROOT as _ROOT  # noqa: E402
+
+_SITE_FILE = _ROOT / "web" / "site" / "index.html"
+
+
+def _marketing() -> str:
+    try:
+        return _SITE_FILE.read_text(encoding="utf-8")
+    except OSError:
+        return _OPEN_FROM_ADMIN
+
 
 def _csp(shop: str) -> str:
     return f"frame-ancestors https://{shop} https://admin.shopify.com;"
@@ -76,7 +89,7 @@ def register(app) -> None:
             session_token = token_for_request(request)
             shop = verify_session_token(session_token)
         except Exception:
-            return HTMLResponse(_OPEN_FROM_ADMIN)  # not loaded from admin (no valid token)
+            return HTMLResponse(_marketing())  # public visitor → the marketing site
 
         head = _head()
         try:
