@@ -16,14 +16,16 @@ _RANK = {"A1": 0, "A": 0, "B": 1, "C": 2}
 
 
 def score_shop(shop: str, token: str):
-    """Live: fetch + aggregate + score one shop's customers. Returns (scored_df, orders)."""
+    """Live: fetch + aggregate + score one shop's customers (using its VIC threshold)."""
+    from halia.api.settings import settings_for
     from scoring.combine import score_customers
     from scoring.shopify import orders_to_customers
     from scoring.shopify_fetch import fetch_orders, http_transport
 
     orders = fetch_orders(http_transport(shop, token))
     customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
-    return score_customers(customers), orders
+    threshold = settings_for(shop)["vic_threshold"]
+    return score_customers(customers, vic_threshold=threshold), orders
 
 
 def _history(orders: list[dict]) -> dict:

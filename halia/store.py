@@ -30,6 +30,12 @@ _TABLES = [
         api_key      TEXT,
         connected_at TEXT
     )""",
+    # Merchant configuration (VIC threshold, email templates, sign-off) — NOT customer
+    # data and NOT secret, so stored as plain JSON.
+    """CREATE TABLE IF NOT EXISTS settings (
+        shop TEXT PRIMARY KEY,
+        data TEXT
+    )""",
 ]
 # Earlier versions cached customer PII in these tables. Drop them so any deploy purges it.
 _DROP_LEGACY = [
@@ -115,8 +121,23 @@ class ShopStore(_DB):
                         {"shop": shop}, fetch="one")
         return crypto.decrypt(row["api_key"]) if row else None
 
+    def delete_klaviyo(self, shop: str) -> None:
+        self._run("DELETE FROM klaviyo WHERE shop = :shop", {"shop": shop})
+
+    # ── merchant settings (plain JSON: threshold, email templates, sign-off) ────
+    def save_settings(self, shop: str, data_json: str) -> None:
+        self._run(
+            """INSERT INTO settings (shop, data) VALUES (:shop, :data)
+               ON CONFLICT(shop) DO UPDATE SET data=excluded.data""",
+            {"shop": shop, "data": data_json})
+
+    def get_settings_raw(self, shop: str) -> str | None:
+        row = self._run("SELECT data FROM settings WHERE shop = :shop", {"shop": shop}, fetch="one")
+        return row["data"] if row else None
+
     # ── deletion (shop/redact + app/uninstalled) ───────────────────────────────
     def delete_shop(self, shop: str) -> None:
-        """Erase everything we hold for a shop — its token and Klaviyo key."""
+        """Erase everything we hold for a shop — token, Klaviyo key, and settings."""
         self._run("DELETE FROM shops WHERE shop = :shop", {"shop": shop})
         self._run("DELETE FROM klaviyo WHERE shop = :shop", {"shop": shop})
+        self._run("DELETE FROM settings WHERE shop = :shop", {"shop": shop})
