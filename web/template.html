@@ -633,7 +633,35 @@ function toast(msg){
   toastT=setTimeout(()=>t.classList.remove("show"),3200);
 }
 
-renderChips();renderRows();
+// Klaviyo connect banner — shown until the merchant has connected their key.
+function initKlaviyo(){
+  fetch("/v1/klaviyo/status").then(r=>r.json()).then(d=>{
+    if(!d || d.connected) return;
+    const wrap=document.querySelector(".wrap"); if(!wrap) return;
+    const div=document.createElement("div"); div.id="kv-banner";
+    div.style.cssText="margin:0 0 18px;padding:14px 16px;background:#fff;border:1px solid #d8c79a;"
+      +"border-left:3px solid var(--brand);border-radius:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+    div.innerHTML='<div style="flex:1;min-width:240px"><b>Connect Klaviyo</b> '
+      +'<span style="color:var(--soft)">— paste your Klaviyo <b>private</b> API key (pk_…) to push grades, '
+      +'build grade segments, and email clients.</span></div>'
+      +'<input id="kv-key" type="password" placeholder="pk_live_…" autocomplete="off" '
+      +'style="flex:0 0 220px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px system-ui">'
+      +'<button id="kv-connect" class="dbtn primary" style="border:none">Connect</button>';
+    wrap.insertBefore(div, wrap.firstChild);
+    document.getElementById("kv-connect").onclick=()=>{
+      const key=document.getElementById("kv-key").value.trim();
+      const btn=document.getElementById("kv-connect"); btn.disabled=true; btn.textContent="Connecting…";
+      fetch("/v1/klaviyo/connect",{method:"POST",headers:{"content-type":"application/json"},
+          body:JSON.stringify({api_key:key})})
+        .then(r=>r.json().then(d=>({ok:r.ok,d})))
+        .then(({ok,d})=>{ if(!ok) throw new Error(d.detail||"failed");
+          div.remove(); toast("Klaviyo connected — default Halia segments created."); })
+        .catch(e=>{ toast("Connect failed: "+e.message); btn.disabled=false; btn.textContent="Connect"; });
+    };
+  }).catch(()=>{});
+}
+
+renderChips();renderRows();initKlaviyo();
 </script>
 </body>
 </html>
