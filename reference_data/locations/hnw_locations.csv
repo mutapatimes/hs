@@ -1,0 +1,68 @@
+location,type,country
+# HNW locations: wealthy residential areas AND common HNW vacation spots.
+# Matched (whole-phrase) against an IP-resolved city/region (ip_city, ip_region),
+# so a checkout from Aspen or Beverly Hills is flagged. Editable; '#' = comment.
+# Keep entries distinctive (prefer multi-word) to avoid common-town false hits.
+#
+# --- USA: residential ultra-prime ---
+Beverly Hills,residential,United States
+Bel Air,residential,United States
+Holmby Hills,residential,United States
+Malibu,both,United States
+Pacific Palisades,residential,United States
+Montecito,both,United States
+Atherton,residential,United States
+Hillsborough,residential,United States
+Greenwich,residential,United States
+New Canaan,residential,United States
+Fisher Island,residential,United States
+Indian Creek,residential,United States
+Star Island,residential,United States
+Coral Gables,residential,United States
+# --- USA: the Hamptons ---
+East Hampton,both,United States
+Southampton,both,United States
+Bridgehampton,both,United States
+Sagaponack,both,United States
+Sag Harbor,both,United States
+Water Mill,both,United States
+# --- USA: resort / vacation ---
+Aspen,vacation,United States
+Vail,vacation,United States
+Telluride,vacation,United States
+Jackson Hole,vacation,United States
+Park City,vacation,United States
+Sun Valley,vacation,United States
+Nantucket,vacation,United States
+Martha's Vineyard,vacation,United States
+Palm Beach,both,United States
+Jupiter Island,both,United States
+Naples,both,United States
+Wailea,vacation,United States
+# --- UK: prime residential ---
+Mayfair,residential,United Kingdom
+Belgravia,residential,United Kingdom
+Knightsbridge,residential,United Kingdom
+Chelsea,residential,United Kingdom
+Notting Hill,residential,United Kingdom
+Hampstead,residential,United Kingdom
+Sandbanks,both,United Kingdom
+Virginia Water,residential,United Kingdom
+# --- Global vacation / playgrounds ---
+Monaco,both,Monaco
+Saint-Tropez,vacation,France
+Courchevel,vacation,France
+Megeve,vacation,France
+Gstaad,vacation,Switzerland
+Verbier,vacation,Switzerland
+St Moritz,vacation,Switzerland
+Zermatt,vacation,Switzerland
+Porto Cervo,vacation,Italy
+Portofino,vacation,Italy
+Capri,vacation,Italy
+Lake Como,vacation,Italy
+Mykonos,vacation,Greece
+Ibiza,vacation,Spain
+Marbella,vacation,Spain
+Mustique,vacation,Saint Vincent and the Grenadines
+Saint Barthelemy,vacation,France

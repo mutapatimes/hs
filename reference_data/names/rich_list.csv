@@ -1,0 +1,21 @@
+name,note
+# STARTER sample of publicly-named wealthy individuals (Sunday Times Rich List /
+# Forbes style). Replace/expand with the real list. Matched as a whole-phrase
+# against the customer name. NOTE: name collisions are common, so this signal is
+# weighted LOW in the combiner ("flag all, rank low") - it's a supporting tell,
+# strongest when another signal also fires.
+Evgeny Chichvarkin,Hedonism Wines founder
+Lakshmi Mittal,steel
+James Dyson,inventor / Dyson
+Jim Ratcliffe,Ineos
+Leonard Blavatnik,Access Industries
+Guy Hands,Terra Firma
+Bernie Ecclestone,Formula 1
+Charlene de Carvalho-Heineken,Heineken
+Mohamed Mansour,Mansour Group
+Anders Holch Povlsen,Bestseller
+Lakshmi Niwas Mittal,steel
+Simon Reuben,Reuben Brothers
+David Reuben,Reuben Brothers
+Idan Ofer,shipping / Quantum Pacific
+Kirsten Rausing,Tetra Pak

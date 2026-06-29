@@ -1,0 +1,123 @@
+domain,organisation,category
+# Work-email domains that signal wealth (the customer's email is at one of these firms).
+# Matched against the domain part of EMAIL_ADDR. Subdomains match too (e.g. emea.gs.com -> gs.com).
+# EDIT THIS FILE to add more. Lines starting with # are ignored.
+# category is free text; suggested values: banking, private_equity, hedge_fund,
+# wealth_management, family_office.
+#
+# --- Banking / investment banking ---
+goldmansachs.com,Goldman Sachs,banking
+gs.com,Goldman Sachs,banking
+jpmorgan.com,J.P. Morgan,banking
+morganstanley.com,Morgan Stanley,banking
+db.com,Deutsche Bank,banking
+barclays.com,Barclays,banking
+ubs.com,UBS,banking
+credit-suisse.com,Credit Suisse,banking
+citi.com,Citi,banking
+bofa.com,Bank of America,banking
+hsbc.com,HSBC,banking
+lazard.com,Lazard,banking
+rothschildandco.com,Rothschild & Co,banking
+evercore.com,Evercore,banking
+jefferies.com,Jefferies,banking
+# --- Private equity / venture capital ---
+blackstone.com,Blackstone,private_equity
+kkr.com,KKR,private_equity
+carlyle.com,The Carlyle Group,private_equity
+apollo.com,Apollo Global Management,private_equity
+cvc.com,CVC Capital Partners,private_equity
+eqtpartners.com,EQT,private_equity
+permira.com,Permira,private_equity
+bridgepoint.com,Bridgepoint,private_equity
+warburgpincus.com,Warburg Pincus,private_equity
+tpg.com,TPG,private_equity
+baincapital.com,Bain Capital,private_equity
+silverlake.com,Silver Lake,private_equity
+generalatlantic.com,General Atlantic,private_equity
+cinven.com,Cinven,private_equity
+apax.com,Apax Partners,private_equity
+calculuscapital.com,Calculus Capital,private_equity
+sparkcapital.com,Spark Capital,private_equity
+# --- Venture capital (top-tier) ---
+sequoiacap.com,Sequoia Capital,venture_capital
+a16z.com,Andreessen Horowitz,venture_capital
+benchmark.com,Benchmark,venture_capital
+greylock.com,Greylock Partners,venture_capital
+accel.com,Accel,venture_capital
+kpcb.com,Kleiner Perkins,venture_capital
+foundersfund.com,Founders Fund,venture_capital
+gv.com,GV (Google Ventures),venture_capital
+lightspeedvp.com,Lightspeed Venture Partners,venture_capital
+indexventures.com,Index Ventures,venture_capital
+ggvc.com,GGV Capital,venture_capital
+nea.com,New Enterprise Associates,venture_capital
+bvp.com,Bessemer Venture Partners,venture_capital
+generalcatalyst.com,General Catalyst,venture_capital
+insightpartners.com,Insight Partners,venture_capital
+tigerglobal.com,Tiger Global,venture_capital
+coatue.com,Coatue,venture_capital
+khoslaventures.com,Khosla Ventures,venture_capital
+thrivecap.com,Thrive Capital,venture_capital
+redpoint.com,Redpoint Ventures,venture_capital
+battery.com,Battery Ventures,venture_capital
+firstround.com,First Round Capital,venture_capital
+# --- Hedge funds ---
+citadel.com,Citadel,hedge_fund
+millennium.com,Millennium Management,hedge_fund
+point72.com,Point72,hedge_fund
+bridgewater.com,Bridgewater Associates,hedge_fund
+man.com,Man Group,hedge_fund
+brevanhoward.com,Brevan Howard,hedge_fund
+marshallwace.com,Marshall Wace,hedge_fund
+twosigma.com,Two Sigma,hedge_fund
+deshaw.com,D. E. Shaw,hedge_fund
+aqr.com,AQR Capital,hedge_fund
+balyasny.com,Balyasny Asset Management,hedge_fund
+carlsoncapital.com,Carlson Capital,hedge_fund
+# --- Wealth management / private banking ---
+juliusbaer.com,Julius Baer,wealth_management
+pictet.com,Pictet,wealth_management
+lombardodier.com,Lombard Odier,wealth_management
+vontobel.com,Vontobel,wealth_management
+rathbones.com,Rathbones,wealth_management
+brewin.co.uk,Brewin Dolphin,wealth_management
+sjp.co.uk,St. James's Place,wealth_management
+brooksmacdonald.com,Brooks Macdonald,wealth_management
+quilter.com,Quilter,wealth_management
+coutts.com,Coutts,wealth_management
+cazenovecapital.com,Cazenove Capital,wealth_management
+# --- Private / family offices ---
+stonehagefleming.com,Stonehage Fleming,family_office
+iconiqcapital.com,Iconiq Capital,family_office
+sandaire.com,Sandaire,family_office
+# --- Sovereign wealth funds ---
+adia.ae,Abu Dhabi Investment Authority,sovereign_wealth
+mubadala.ae,Mubadala,sovereign_wealth
+pif.gov.sa,Public Investment Fund,sovereign_wealth
+qia.qa,Qatar Investment Authority,sovereign_wealth
+kia.gov.kw,Kuwait Investment Authority,sovereign_wealth
+gic.com.sg,GIC,sovereign_wealth
+temasek.com.sg,Temasek,sovereign_wealth
+# --- Magic-circle / elite law ---
+linklaters.com,Linklaters,law
+freshfields.com,Freshfields,law
+cliffordchance.com,Clifford Chance,law
+slaughterandmay.com,Slaughter and May,law
+aoshearman.com,A&O Shearman,law
+# --- Talent agencies ---
+caa.com,Creative Artists Agency,talent_agency
+wmeagency.com,WME,talent_agency
+unitedtalent.com,United Talent Agency,talent_agency
+# --- Royal household ---
+royal.uk,Royal Household,royal_household
+# --- Luxury concierge / lifestyle management (buyer is a proxy for a UHNW client) ---
+quintessentially.com,Quintessentially,luxury_concierge
+johnpaul.com,John Paul,luxury_concierge
+tengroup.com,Ten Lifestyle Group,luxury_concierge
+knightsbridgecircle.com,Knightsbridge Circle,luxury_concierge
+velocity.black,Velocity Black,luxury_concierge
+innerplace.co.uk,Innerplace,luxury_concierge
+bonvivant.co.uk,Bon Vivant,luxury_concierge
+# NOTE: personal-shopping / VIP-styling agencies moved to styling_services.csv
+# (the dedicated B2B trade-account signal).

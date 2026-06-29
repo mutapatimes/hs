@@ -1,0 +1,64 @@
+surname,family
+# Rare, DISTINCTIVE wealth-dynasty / aristocratic surnames. Matched as a whole
+# word against the customer's name. A shared, factual marker of a documented
+# wealth family — NOT a judgement that a name "sounds" posh.
+#
+# DESIGN RULE (per Clark et al., "The Son Also Rises"): only RARE, distinctive
+# surnames belong here. Common surnames (Spencer, Howard, Russell, Hamilton,
+# Morgan, Whitney, Forbes, Warren, Parker, Carter, Duke, Belmont...) are
+# DELIBERATELY EXCLUDED — they collide with millions of unrelated people and have
+# long regressed to average status. Weighted low (collisions remain), and grouped
+# with the other name signals so name tells don't stack.
+#
+# --- US Gilded Age / dynasties ---
+Vanderbilt,Vanderbilt (US Gilded Age dynasty)
+Astor,Astor (US/UK dynasty)
+Rockefeller,Rockefeller (US dynasty)
+Guggenheim,Guggenheim (US dynasty)
+Carnegie,Carnegie (US dynasty)
+Frick,Frick (US dynasty)
+DuPont,du Pont (US dynasty)
+Biddle,Biddle (US old money)
+Widener,Widener (US dynasty)
+Phipps,Phipps (US dynasty)
+Pulitzer,Pulitzer (US dynasty)
+Schermerhorn,Schermerhorn (US old NY)
+Stuyvesant,Stuyvesant (US old NY)
+Auchincloss,Auchincloss (US old money)
+Harriman,Harriman (US dynasty)
+Flagler,Flagler (US dynasty)
+Drexel,Drexel (US banking dynasty)
+Vanderlip,Vanderlip (US banking)
+Roosevelt,Roosevelt (US dynasty)
+# --- British aristocratic / dynasties ---
+Rothschild,Rothschild (banking dynasty)
+Cavendish,Cavendish (Dukes of Devonshire)
+Cholmondeley,Cholmondeley (Marquesses)
+Fitzwilliam,Fitzwilliam (Earls)
+Grosvenor,Grosvenor (Dukes of Westminster)
+Sackville,Sackville (aristocracy)
+Pakenham,Pakenham (Earls of Longford)
+Wodehouse,Wodehouse (Earls of Kimberley)
+Wedgwood,Wedgwood (industrial dynasty)
+Mountbatten,Mountbatten (royal-adjacent)
+Guinness,Guinness (brewing dynasty)
+Curzon,Curzon (aristocracy)
+Lascelles,Lascelles (Earls of Harewood)
+Cadogan,Cadogan (Earls)
+Greville,Greville (aristocracy)
+Bowes-Lyon,Bowes-Lyon (royal-adjacent)
+Marjoribanks,Marjoribanks (aristocracy)
+Featherstonhaugh,Featherstonhaugh (gentry)
+# --- European dynasties ---
+Agnelli,Agnelli (Italian industrial dynasty)
+Niarchos,Niarchos (Greek shipping)
+Onassis,Onassis (Greek shipping)
+Esterhazy,Esterhazy (Hungarian nobility)
+Borghese,Borghese (Roman nobility)
+Medici,Medici (Florentine dynasty)
+Krupp,Krupp (German industrial dynasty)
+Thyssen,Thyssen (German industrial dynasty)
+Wallenberg,Wallenberg (Swedish dynasty)
+Habsburg,Habsburg (royal house)
+Hohenzollern,Hohenzollern (royal house)
+Wittelsbach,Wittelsbach (royal house)

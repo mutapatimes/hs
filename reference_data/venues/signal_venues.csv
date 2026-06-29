@@ -1,0 +1,122 @@
+venue,signal_type,aliases
+# Named venues whose appearance in a DELIVERY address is a wealth signal.
+# 'aliases' is a ;-separated list of phrases to look for (case-insensitive,
+# punctuation-insensitive, whole-phrase / word-boundary match).
+# Pick aliases that are SPECIFIC enough not to collide with streets/buildings:
+#   good:  "MANDARIN ORIENTAL"     bad: "MANDARIN"  (-> Mandarin Plaza)
+#   good:  "FOUR SEASONS HOTEL"    bad: "FOUR SEASONS"  (-> Four Seasons Park)
+# EDIT THIS FILE to add more. Lines starting with # are ignored.
+#
+# --- Luxury hotels ---
+The Lanesborough,luxury_hotel,LANESBOROUGH
+The Berkeley,luxury_hotel,THE BERKELEY;BERKELEY HOTEL;BERKLEY HOTEL
+Bulgari Hotel London,luxury_hotel,BULGARI HOTEL;BULGARI RESIDENCES;BULGARI APARTMENT
+The Connaught,luxury_hotel,THE CONNAUGHT;CONNAUGHT HOTEL
+Claridge's,luxury_hotel,CLARIDGE
+The Dorchester,luxury_hotel,THE DORCHESTER;DORCHESTER HOTEL
+The Savoy,luxury_hotel,THE SAVOY;SAVOY HOTEL
+The Ritz London,luxury_hotel,THE RITZ;RITZ HOTEL;RITZ LONDON;RITZ CARLTON
+Mandarin Oriental,luxury_hotel,MANDARIN ORIENTAL
+The Peninsula,luxury_hotel,THE PENINSULA;PENINSULA HOTEL
+Four Seasons,luxury_hotel,FOUR SEASONS HOTEL
+Shangri-La,luxury_hotel,SHANGRI LA
+Corinthia,luxury_hotel,CORINTHIA HOTEL;CORINTHIA LONDON
+Rosewood London,luxury_hotel,ROSEWOOD LONDON;ROSEWOOD HOTEL
+The Langham,luxury_hotel,THE LANGHAM;LANGHAM HOTEL
+The Emory,luxury_hotel,THE EMORY;EMORY HOTEL
+Royal Garden Hotel,luxury_hotel,ROYAL GARDEN HOTEL
+The Meydan Hotel,luxury_hotel,MEYDAN HOTEL
+# --- Football training grounds (aliases incl. the facility's exact postcode) ---
+Reading FC Training Ground,football_training_ground,READING FC TRAINING GROUND;BEARWOOD PARK
+Manchester City (City Football Academy),football_training_ground,CITY FOOTBALL ACADEMY;ETIHAD CAMPUS;M11 4TQ
+Manchester United (Carrington),football_training_ground,CARRINGTON TRAINING;TRAFFORD TRAINING CENTRE;AON TRAINING COMPLEX;M31 4BH
+Liverpool FC (AXA Training Centre),football_training_ground,AXA TRAINING CENTRE;AXA TRAINING CENTER;L33 5XB
+Arsenal (London Colney),football_training_ground,LONDON COLNEY;SOBHA REALTY TRAINING;ARSENAL TRAINING CENTRE;AL2 1BZ
+Chelsea FC (Cobham),football_training_ground,COBHAM TRAINING;CHELSEA FC TRAINING;KT11 3PT
+Tottenham (Hotspur Way),football_training_ground,HOTSPUR WAY;TOTTENHAM TRAINING;EN2 9AP
+Real Madrid (Ciudad Real Madrid),football_training_ground,CIUDAD REAL MADRID;ALFREDO DI STEFANO
+FC Barcelona (Joan Gamper),football_training_ground,CIUTAT ESPORTIVA JOAN GAMPER;JOAN GAMPER
+# --- Private-jet FBOs / business-aviation terminals ---
+Farnborough Airport,private_jet_fbo,FARNBOROUGH AIRPORT;SIGNATURE FARNBOROUGH;TAG FARNBOROUGH
+Biggin Hill Airport,private_jet_fbo,BIGGIN HILL AIRPORT;SIGNATURE BIGGIN HILL
+Luton (Signature),private_jet_fbo,LUTON AIRPORT;SIGNATURE LUTON;HARRODS AVIATION LUTON
+London Oxford Airport,private_jet_fbo,LONDON OXFORD AIRPORT
+RAF Northolt,private_jet_fbo,RAF NORTHOLT
+Le Bourget,private_jet_fbo,LE BOURGET
+# US private aviation - South Florida (aliases avoid the real cities Opa-locka / Palm Beach)
+Miami-Opa Locka Executive Airport,private_jet_fbo,OPA LOCKA EXECUTIVE;OPA LOCKA AIRPORT
+Miami Executive Airport,private_jet_fbo,MIAMI EXECUTIVE AIRPORT
+Fort Lauderdale Executive Airport,private_jet_fbo,FORT LAUDERDALE EXECUTIVE
+Palm Beach International Airport,private_jet_fbo,PALM BEACH INTERNATIONAL AIRPORT
+# US private aviation - New York Metro (require AIRPORT so the county/town don't match)
+Teterboro Airport,private_jet_fbo,TETERBORO AIRPORT;TETERBORO
+Westchester County Airport,private_jet_fbo,WESTCHESTER COUNTY AIRPORT;WESTCHESTER AIRPORT
+Republic Airport (Farmingdale),private_jet_fbo,REPUBLIC AIRPORT;FARMINGDALE AIRPORT
+# US private aviation - Las Vegas (require EXECUTIVE / full name so the city doesn't match)
+Harry Reid International Airport,private_jet_fbo,HARRY REID INTERNATIONAL AIRPORT;MCCARRAN
+Henderson Executive Airport,private_jet_fbo,HENDERSON EXECUTIVE
+North Las Vegas Airport,private_jet_fbo,NORTH LAS VEGAS AIRPORT
+# --- NBA training facilities (US zips omitted as aliases - 5-digit numbers collide) ---
+Boston Celtics (Auerbach Center),basketball_training_facility,AUERBACH CENTER
+New York Knicks (MSG Training Center),basketball_training_facility,MSG TRAINING CENTER;MSG TRAINING CENTRE
+Brooklyn Nets (HSS Training Center),basketball_training_facility,HSS TRAINING CENTER;HSS TRAINING CENTRE
+Los Angeles Lakers (UCLA Health Training Center),basketball_training_facility,UCLA HEALTH TRAINING CENTER;UCLA HEALTH TRAINING CENTRE
+Golden State Warriors (Chase Center),basketball_training_facility,BIOFREEZE PERFORMANCE CENTER;CHASE CENTER
+LA Clippers (Intuit Dome),basketball_training_facility,INTUIT DOME
+Phoenix Suns (Verizon 5G Performance Center),basketball_training_facility,VERIZON 5G PERFORMANCE CENTER;VERIZON 5G PERFORMANCE CENTRE
+# --- Motorsport circuits (F1) ---
+Silverstone Circuit,motorsport_circuit,SILVERSTONE CIRCUIT;NN12 8TN
+Circuit de Monaco,motorsport_circuit,CIRCUIT DE MONACO;AUTOMOBILE CLUB DE MONACO
+Autodromo Nazionale Monza,motorsport_circuit,AUTODROMO NAZIONALE MONZA;MONZA CIRCUIT
+Circuit de Spa-Francorchamps,motorsport_circuit,SPA FRANCORCHAMPS;CIRCUIT DE SPA
+Circuit of the Americas,motorsport_circuit,CIRCUIT OF THE AMERICAS;CIRCUIT OF AMERICAS
+Las Vegas Grand Prix Circuit,motorsport_circuit,LAS VEGAS GRAND PRIX
+Suzuka International Racing Course,motorsport_circuit,SUZUKA INTERNATIONAL RACING;SUZUKA CIRCUIT
+# --- Private members' clubs ---
+5 Hertford Street,members_club,5 HERTFORD STREET;FIVE HERTFORD STREET
+Annabel's,members_club,ANNABELS
+Mark's Club,members_club,MARKS CLUB
+Oswald's,members_club,OSWALDS
+George (Mayfair),members_club,GEORGE CLUB
+Lansdowne Club,members_club,LANSDOWNE CLUB
+Metropolitan Club,members_club,METROPOLITAN CLUB
+The Core Club,members_club,THE CORE CLUB
+Arts Club Dubai,members_club,ARTS CLUB DUBAI
+Hong Kong Club,members_club,HONG KONG CLUB
+Union Interalliee,members_club,UNION INTERALLIEE
+# --- Elite golf / country clubs ---
+Wentworth Club,golf_club,WENTWORTH CLUB
+Shinnecock Hills Golf Club,golf_club,SHINNECOCK HILLS
+Atlantic Golf Club,golf_club,ATLANTIC GOLF CLUB
+Singapore Island Country Club,golf_club,SINGAPORE ISLAND COUNTRY CLUB
+Keppel Club,golf_club,KEPPEL CLUB
+Montgomerie Golf Club,golf_club,MONTGOMERIE GOLF
+Els Club Dubai,golf_club,ELS CLUB
+Hong Kong Golf Club,golf_club,HONG KONG GOLF CLUB
+Aberdeen Marina Club,golf_club,ABERDEEN MARINA CLUB
+CordeValle,golf_club,CORDEVALLE
+Racing Club de France,golf_club,RACING CLUB DE FRANCE
+# --- Ultra-premium hotels (global) ---
+Aman New York,luxury_hotel,AMAN NEW YORK
+The Carlyle,luxury_hotel,THE CARLYLE;CARLYLE HOTEL
+The Lana Dubai,luxury_hotel,THE LANA;LANA DORCHESTER
+Raffles Singapore,luxury_hotel,RAFFLES HOTEL;RAFFLES SINGAPORE
+Capella Singapore,luxury_hotel,CAPELLA SINGAPORE;CAPELLA HOTEL
+Cheval Blanc,luxury_hotel,CHEVAL BLANC
+Hotel de Crillon,luxury_hotel,HOTEL DE CRILLON;LE CRILLON
+Rosewood Hong Kong,luxury_hotel,ROSEWOOD HONG KONG;VICTORIA DOCKSIDE
+The Upper House,luxury_hotel,THE UPPER HOUSE
+Rosewood Sand Hill,luxury_hotel,ROSEWOOD SAND HILL
+Jumeirah Al Naseem,luxury_hotel,JUMEIRAH AL NASEEM
+# --- Marinas / superyacht berths ---
+Port Hercule (Monaco),marina,PORT HERCULE
+Port Vauban (Antibes),marina,PORT VAUBAN
+Puerto Banus,marina,PUERTO BANUS
+Port de Saint-Tropez,marina,PORT DE SAINT TROPEZ
+Marina di Portofino,marina,MARINA DI PORTOFINO
+Marina de Ibiza,marina,MARINA DE IBIZA
+Gustavia (St Barth),marina,GUSTAVIA
+Albany Marina,marina,ALBANY MARINA
+Miami Beach Marina,marina,MIAMI BEACH MARINA
+Yas Marina,marina,YAS MARINA
+ONE15 Marina,marina,ONE15 MARINA

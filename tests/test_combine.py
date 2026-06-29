@@ -1,0 +1,117 @@
+"""Tests for the signal combiner.
+
+Uses a small synthetic DataFrame with the columns the signals read, so the
+scoring is deterministic and independent of the real data file.
+"""
+import pandas as pd
+
+from scoring.combine import (
+    COUNT_COL,
+    HIDDEN_COL,
+    REASONS_COL,
+    SCORE_COL,
+    SIGNAL_WEIGHTS,
+    score_customers,
+    top_hidden_vics,
+)
+
+
+def _blank_row(**overrides):
+    row = {
+        "Name": "x",
+        "Spent": 0,
+        "SEGMENT": "Final Client",
+        "EMAIL_ADDR": "x@gmail.com",
+        "LATEST_BILLING_ZIP": "E14 9GU",
+        "LATEST_BILLING_ADDRESS4": "United Kingdom",
+        "LATEST_SHIPPING_ADDRESS1": "1 Nowhere Road",
+        "LATEST_SHIPPING_ADDRESS2": None,
+        "LATEST_SHIPPING_ADDRESS3": "London",
+        "LATEST_SHIPPING_ADDRESS4": "United Kingdom",
+        "LATEST_SHIPPING_ZIP": "E14 9GU",
+    }
+    row.update(overrides)
+    return row
+
+
+def _frame(rows):
+    return pd.DataFrame([_blank_row(**r) for r in rows])
+
+
+def test_no_signals_scores_zero_and_not_hidden():
+    out = score_customers(_frame([{}]))
+    assert out.loc[0, SCORE_COL] == 0
+    assert out.loc[0, COUNT_COL] == 0
+    assert out.loc[0, REASONS_COL] == ""
+    assert not out.loc[0, HIDDEN_COL]
+
+
+def test_single_signal_scores_its_weight():
+    out = score_customers(_frame([{"EMAIL_ADDR": "ceo@carlsoncapital.com"}]))
+    assert out.loc[0, COUNT_COL] == 1
+    assert out.loc[0, SCORE_COL] == SIGNAL_WEIGHTS["work_email"]
+    assert "Work email: Carlson Capital (hedge_fund)" in out.loc[0, REASONS_COL]
+    assert out.loc[0, HIDDEN_COL]
+
+
+def test_correlated_geo_signals_get_diminishing_returns():
+    out = score_customers(_frame([{
+        "EMAIL_ADDR": "x@calculuscapital.com",      # work_email (own group), w=3
+        "LATEST_BILLING_ZIP": "SW10 9SJ",           # hnwi_postcode (geo), w=3
+        "LATEST_BILLING_ADDRESS4": "Qatar",         # gcc_billing (geo), w=2
+    }]))
+    # All 3 fire, but the two GEO tells don't fully stack:
+    #   work_email 3  +  geo[ hnwi 3 (full) + gcc 2 x 0.5 ]  = 3 + 4.0 = 7.0
+    # (naive additive would have been 3 + 3 + 2 = 8).
+    assert out.loc[0, COUNT_COL] == 3
+    assert out.loc[0, SCORE_COL] == 7.0
+    reasons = out.loc[0, REASONS_COL]
+    assert "Work email" in reasons and "HNWI postcode" in reasons and "GCC billing" in reasons
+
+
+def test_three_correlated_geo_tells_score_below_their_raw_sum():
+    # Phone +971 (UAE), billing country UAE, billing in a GCC -> all 'geo'.
+    out = score_customers(_frame([{
+        "PHONE": "+971 50 123 4567",                # phone_country (geo), w=1
+        "LATEST_BILLING_ADDRESS4": "United Arab Emirates",   # gcc_billing (geo), w=2
+        "LATEST_SHIPPING_ADDRESS4": "United Arab Emirates",
+    }]))
+    # geo[ gcc 2 (full) + phone 1 x 0.5 ] = 2.5, not 3 — redundant location discounted.
+    assert out.loc[0, COUNT_COL] == 2
+    assert out.loc[0, SCORE_COL] == 2.5
+
+
+def test_gate_is_spend_not_segment():
+    # Same firing signal (HNWI postcode); only spend decides "hidden". The old
+    # VIP/VIC SEGMENT tag must NOT gate anymore.
+    out = score_customers(_frame([
+        {"Name": "big", "Spent": 50000, "LATEST_BILLING_ZIP": "SW10 9SJ"},
+        {"Name": "small", "Spent": 100, "LATEST_BILLING_ZIP": "SW10 9SJ"},
+        {"Name": "tagged_but_poor", "SEGMENT": "VIP", "Spent": 50,
+         "LATEST_BILLING_ZIP": "SW10 9SJ"},
+    ]))
+    hidden = out.set_index("Name")[HIDDEN_COL]
+    assert not hidden["big"]              # already above threshold -> known
+    assert hidden["small"]               # below threshold + signal -> hidden VIC
+    assert hidden["tagged_but_poor"]     # SEGMENT no longer suppresses
+
+
+def test_threshold_is_configurable():
+    rows = [{"Name": "mid", "Spent": 3000, "LATEST_BILLING_ZIP": "SW10 9SJ"}]
+    assert score_customers(_frame(rows), vic_threshold=2000).loc[0, HIDDEN_COL] is False \
+        or not score_customers(_frame(rows), vic_threshold=2000).loc[0, HIDDEN_COL]
+    assert score_customers(_frame(rows), vic_threshold=5000).loc[0, HIDDEN_COL]
+
+
+def test_top_hidden_vics_sorted_by_score_then_spend():
+    out = score_customers(_frame([
+        {"Name": "low", "Spent": 5000},                                   # 0 signals
+        {"Name": "one", "Spent": 100, "LATEST_BILLING_ADDRESS4": "Qatar"},  # 1 signal (w=2)
+        {"Name": "three", "Spent": 1,
+         "EMAIL_ADDR": "x@calculuscapital.com",
+         "LATEST_BILLING_ZIP": "SW10 9SJ",
+         "LATEST_BILLING_ADDRESS4": "Kuwait"},                            # 3 signals
+    ]))
+    ranked = top_hidden_vics(out, n=10)
+    assert ranked.iloc[0]["Name"] == "three"   # highest score wins despite £1 spend
+    assert list(ranked["Name"]) == ["three", "one"]   # "low" excluded (no signal)

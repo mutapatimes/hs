@@ -1,0 +1,17 @@
+bin_prefix,issuer,tier
+# Premium / private-bank card BINs.
+#
+# The BIN is the first 6-8 digits of a card. In Shopify it comes from the ORDER
+# TRANSACTIONS endpoint (transaction.payment_details.credit_card_bin) - NOT from
+# the order object itself, which only lists payment_gateway_names.
+#
+# IMPORTANT: BIN -> issuer/tier mappings must come from a licensed BIN database
+# and they change over time. The rows below are EXAMPLES that show the format
+# only - VERIFY and REPLACE them against a real BIN list before relying on them.
+# Matching is longest-prefix, so an 8-digit entry beats a 6-digit one.
+#
+# bin_prefix (digits) , issuer , tier (private_bank | ultra_premium | premium)
+475110,Example - Coutts (VERIFY),private_bank
+531840,Example - Private Bank (VERIFY),private_bank
+552350,Example - World Elite Mastercard (VERIFY),ultra_premium
+379920,Example - Amex Centurion (VERIFY),ultra_premium

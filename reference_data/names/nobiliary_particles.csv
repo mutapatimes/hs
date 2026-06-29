@@ -1,0 +1,23 @@
+particle
+# Nobiliary / aristocratic name particles ("particule"). Used as a LOW-WEIGHT,
+# CORROBORATION-ONLY signal (see scoring/signals/nobiliary_particle.py): a
+# particle NEVER surfaces a client on its own — it only sharpens the rank of a
+# client who already fired a stronger wealth signal. This is deliberate: bare
+# particles are national-origin markers and would otherwise score ordinary
+# customers (Hispanic "de la", Dutch "van", Portuguese "dos") as heritage wealth.
+#
+# Default = French + German aristocratic particles (highest signal, e.g.
+# "de Bouchony", "von und zu ..."). Multi-word entries match consecutive tokens.
+# EDIT freely. Noisy/origin-heavy ones (van, van der, di, dos, das, de los) are
+# left OUT by default — add a line below to include them.
+de
+du
+des
+de la
+von
+vom
+zu
+zur
+von der
+von dem
+von und zu

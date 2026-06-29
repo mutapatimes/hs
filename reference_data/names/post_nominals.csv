@@ -1,0 +1,27 @@
+honour,meaning
+# Post-nominal honours / orders that appear AFTER a name (e.g. "John Smith CBE",
+# "Sir Tim Berners-Lee KBE FRS"). Matched case-insensitively as a standalone name
+# token. A factual marker of membership of an order of chivalry / learned body —
+# not a judgement of how a name sounds. Rarely typed into a checkout name field,
+# but a strong tell when present. Only distinctive honours are listed, to limit
+# collisions with stray initials. EDIT to add more.
+OBE,Order of the British Empire
+MBE,Order of the British Empire
+CBE,Order of the British Empire
+KBE,Knight Commander of the British Empire
+DBE,Dame Commander of the British Empire
+GBE,Knight/Dame Grand Cross of the British Empire
+GCB,Knight Grand Cross of the Bath
+KCB,Knight Commander of the Bath
+GCMG,Order of St Michael and St George
+KCMG,Order of St Michael and St George
+GCVO,Royal Victorian Order
+KCVO,Royal Victorian Order
+DSO,Distinguished Service Order
+QC,Queen's Counsel
+KC,King's Counsel
+FRS,Fellow of the Royal Society
+FBA,Fellow of the British Academy
+FRCP,Fellow of the Royal College of Physicians
+FRCS,Fellow of the Royal College of Surgeons
+FREng,Fellow of the Royal Academy of Engineering

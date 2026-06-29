@@ -1,0 +1,30 @@
+domain,organisation,category
+# Ivy League / elite-university alumni & graduate-school email domains. Alumni
+# who keep and use these addresses skew older and established. Matched like
+# work-email (domain + subdomain). Listed as ALUMNI-specific subdomains where
+# possible so current undergrads at the bare .edu aren't swept in. EDIT to extend.
+# --- Ivy League alumni ---
+post.harvard.edu,Harvard (alumni),ivy_alumni
+alumni.harvard.edu,Harvard (alumni),ivy_alumni
+aya.yale.edu,Yale (alumni),ivy_alumni
+alumni.yale.edu,Yale (alumni),ivy_alumni
+alumni.princeton.edu,Princeton (alumni),ivy_alumni
+alumni.columbia.edu,Columbia (alumni),ivy_alumni
+wharton.upenn.edu,Wharton, UPenn,ivy_alumni
+alumni.upenn.edu,University of Pennsylvania (alumni),ivy_alumni
+alumni.cornell.edu,Cornell (alumni),ivy_alumni
+alumni.brown.edu,Brown (alumni),ivy_alumni
+alumni.dartmouth.edu,Dartmouth (alumni),ivy_alumni
+# --- Other elite universities (alumni) ---
+alum.mit.edu,MIT (alumni),elite_alumni
+alumni.stanford.edu,Stanford (alumni),elite_alumni
+stanfordalumni.org,Stanford (alumni),elite_alumni
+alumni.ox.ac.uk,Oxford (alumni),elite_alumni
+alumni.cam.ac.uk,Cambridge (alumni),elite_alumni
+# --- Elite graduate / business schools ---
+hbs.edu,Harvard Business School,business_school
+gsb.stanford.edu,Stanford GSB,business_school
+london.edu,London Business School,business_school
+insead.edu,INSEAD,business_school
+chicagobooth.edu,Chicago Booth,business_school
+kellogg.northwestern.edu,Kellogg,business_school

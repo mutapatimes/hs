@@ -1,0 +1,18 @@
+keyword,category
+# Keywords in the COMPANY_NAME field that suggest a wealth-linked entity
+# (finance / investment / family business owner). Matched as whole words.
+# EDIT to add more. '#' lines ignored.
+CAPITAL,finance
+HOLDINGS,holding company
+FAMILY OFFICE,family office
+PRIVATE OFFICE,family office
+VENTURES,investment
+INVESTMENTS,investment
+INVESTMENT,investment
+PRIVATE EQUITY,private equity
+ASSET MANAGEMENT,asset management
+WEALTH,wealth management
+PARTNERS,partnership/finance
+LLP,partnership
+ADVISORS,advisory
+ADVISERS,advisory

@@ -1,0 +1,83 @@
+"""FastAPI surface: stateless score, shop-scoped reads via session token, embedded entry."""
+import time
+
+import jwt
+import pytest
+from fastapi.testclient import TestClient
+
+from halia.api.app import app
+from halia.schema import ScoreResult
+from halia.store import ScoreStore
+
+SECRET = "test-app-secret"
+KEY = "test-api-key"
+SHOP = "acme.myshopify.com"
+
+
+def _token(secret=SECRET, aud=KEY, dest=f"https://{SHOP}"):
+    return jwt.encode(
+        {"iss": f"https://{SHOP}/admin", "dest": dest, "aud": aud, "sub": "1",
+         "exp": int(time.time()) + 3600}, secret, algorithm="HS256")
+
+
+@pytest.fixture()
+def client(tmp_path, monkeypatch):
+    monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", KEY)
+    monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
+    store = ScoreStore(db_path=tmp_path / "api.db")
+    store.upsert_many(
+        [ScoreResult(matched=True, flagged=True, tier="A1", grade="A*", score=99,
+                     is_priority=True, signal_count=2, signals=["Work email"],
+                     reasons="Work email: GS", gesture="coffee", spend=400.0,
+                     hidden_vic=True, customer_id="c1", email="vic@x.com", phone=None)],
+        shop=SHOP)
+    store.upsert_orders([{"order_id": "o1", "customer_id": "c1", "email": "vic@x.com",
+                          "created_at": "2026-06-01"}], shop=SHOP)
+    app.state.store = store
+    c = TestClient(app)
+    c.headers.update({"Authorization": f"Bearer {_token()}"})  # default: authed as SHOP
+    yield c
+    app.state.store = None
+
+
+def test_health_is_open(client):
+    assert TestClient(app).get("/health").json() == {"status": "ok"}
+
+
+def test_post_score_is_stateless_and_open(client):
+    r = TestClient(app).post("/v1/score", json={
+        "CUST_ID": "x", "Name": "Sir A B", "EMAIL_ADDR": "a@gs.com",
+        "LATEST_BILLING_ZIP": "SW1X 7XL", "LATEST_BILLING_ADDRESS4": "United Kingdom",
+        "Spent": 400})
+    assert r.status_code == 200 and r.json()["grade"] == "A*"
+
+
+def test_reads_require_session_token(client):
+    # No Authorization header -> 401.
+    assert TestClient(app).get("/v1/hidden-vics").status_code == 401
+
+
+def test_shop_scoped_reads(client):
+    assert client.get("/v1/score", params={"id": "c1"}).json()["grade"] == "A*"
+    assert client.get("/v1/score", params={"email": "vic@x.com"}).json()["customer_id"] == "c1"
+    assert client.get("/v1/orders/o1/score").json()["grade"] == "A*"
+    hv = client.get("/v1/hidden-vics", params={"limit": 5}).json()
+    assert len(hv) == 1 and hv[0]["customer_id"] == "c1"
+
+
+def test_other_shop_sees_nothing(client):
+    other = jwt.encode(
+        {"iss": "https://rival.myshopify.com/admin", "dest": "https://rival.myshopify.com",
+         "aud": KEY, "sub": "1", "exp": int(time.time()) + 3600}, SECRET, algorithm="HS256")
+    r = TestClient(app).get("/v1/hidden-vics", headers={"Authorization": f"Bearer {other}"})
+    assert r.status_code == 200 and r.json() == []  # isolated from SHOP's data
+
+
+def test_fulfilment_view_renders(client):
+    html = client.get("/fulfilment").text
+    assert "Fulfilment pick list" in html and "coffee" in html
+
+
+def test_embedded_home_without_token_shows_open_from_admin():
+    r = TestClient(app).get("/")
+    assert r.status_code == 200 and "Open this app from your Shopify admin" in r.text

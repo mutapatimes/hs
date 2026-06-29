@@ -1,0 +1,49 @@
+# ──────────────────────────────────────────────────────────────
+# LOCAL-ONLY DATA — never commit customer / PII data to GitHub
+# ──────────────────────────────────────────────────────────────
+# Ignore the entire sample data folder and everything in it.
+sample_data/
+# ...but keep the folder present in the repo via a README placeholder.
+!sample_data/README.md
+
+# Generated exports — contain customer PII, never commit.
+output/
+
+# GeoIP database (MaxMind licence — do not redistribute).
+geoip/
+*.mmdb
+
+# Defense-in-depth: ignore raw data file types anywhere in the repo,
+# in case a data file is ever dropped outside sample_data/ by mistake.
+*.xlsx
+*.xls
+*.csv
+*.parquet
+*.json.gz
+*.db
+*.sqlite
+
+# Exception: reference lists are curated, non-PII data and SHOULD be tracked.
+# Re-include everything under reference_data/ despite the rules above.
+!reference_data/
+!reference_data/**
+
+# Secrets / credentials
+.env
+.env.*
+*.pem
+*.key
+secrets.*
+
+# macOS / editor junk
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/

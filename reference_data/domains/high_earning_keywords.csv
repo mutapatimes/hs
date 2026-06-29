@@ -1,0 +1,31 @@
+keyword
+# High-earning / UHNW-correlated INDUSTRY keywords found in custom email domains.
+# A custom domain containing one of these (e.g. "mercury-capital.com",
+# "andersenpartners.com", "x@redwoodequity.com") signals a finance / investment /
+# professional-services employer or owner — far higher-earning than a generic
+# vanity domain. Fires ONLY on custom domains (not free/premium/known-employer),
+# at weight 2, grouped with custom_email so the two don't double-count.
+# Matched as a substring of the domain label. EDIT freely.
+capital
+ventures
+venture
+equity
+equities
+partners
+holdings
+advisors
+advisory
+advisers
+wealth
+asset
+assets
+assetmanagement
+securities
+investment
+investments
+privateequity
+familyoffice
+hedge
+bancorp
+securities
+trading

@@ -1,0 +1,12 @@
+country,aliases
+# GCC (Gulf Cooperation Council) member states. A customer whose billing
+# country is one of these gets the GCC signal.
+# 'aliases' is a ;-separated list of spellings/abbreviations to accept.
+# Matching is whole-field / word-boundary, so "Romania" never matches "Oman".
+# EDIT THIS FILE to add spellings (or other countries). '#' lines are ignored.
+Saudi Arabia,SAUDI ARABIA;KSA;KINGDOM OF SAUDI ARABIA
+United Arab Emirates,UNITED ARAB EMIRATES;UAE;U A E
+Qatar,QATAR;STATE OF QATAR
+Kuwait,KUWAIT;STATE OF KUWAIT
+Bahrain,BAHRAIN;KINGDOM OF BAHRAIN
+Oman,OMAN;SULTANATE OF OMAN

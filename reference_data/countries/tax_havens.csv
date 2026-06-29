@@ -1,0 +1,32 @@
+country,aliases
+# Tax-haven / offshore financial-centre countries. A customer whose BILLING or
+# SHIPPING country is one of these gets the tax-haven signal. Same format and
+# whole-word matching as gcc_countries.csv. '#' lines ignored.
+# The lower group (Switzerland, Luxembourg, HK, Singapore) is debatable / broad —
+# prune if it over-flags for you.
+#
+# --- Crown dependencies ---
+Jersey,JERSEY
+Guernsey,GUERNSEY
+Isle of Man,ISLE OF MAN
+# --- European micro-states / low-tax ---
+Monaco,MONACO
+Liechtenstein,LIECHTENSTEIN
+Andorra,ANDORRA
+San Marino,SAN MARINO
+Gibraltar,GIBRALTAR
+Malta,MALTA
+Cyprus,CYPRUS
+# --- Caribbean / Atlantic offshore ---
+Cayman Islands,CAYMAN ISLANDS;CAYMAN
+British Virgin Islands,BRITISH VIRGIN ISLANDS;BVI
+Bermuda,BERMUDA
+Bahamas,BAHAMAS;THE BAHAMAS
+Turks and Caicos,TURKS AND CAICOS
+Panama,PANAMA
+# --- Other offshore centres ---
+Mauritius,MAURITIUS
+Seychelles,SEYCHELLES
+# --- Broad / debatable (prune if noisy) ---
+Switzerland,SWITZERLAND
+Luxembourg,LUXEMBOURG

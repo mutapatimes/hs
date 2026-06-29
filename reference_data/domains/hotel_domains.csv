@@ -1,0 +1,82 @@
+domain,hotel
+# Luxury hotel email domains. An order from one of these is almost always a
+# CONCIERGE / guest-services desk buying on behalf of a UHNW guest — its own
+# signal so it reads "Hotel concierge", not "Work email". EDIT to add more.
+corinthia.com,Corinthia
+claridges.co.uk,Claridge's
+the-berkeley.co.uk,The Berkeley
+the-connaught.co.uk,The Connaught
+maybourne.com,Maybourne
+dorchestercollection.com,Dorchester Collection
+mandarinoriental.com,Mandarin Oriental
+fourseasons.com,Four Seasons
+ritzcarlton.com,Ritz-Carlton
+ritzparis.com,Ritz Paris
+theritzlondon.com,The Ritz London
+peninsula.com,The Peninsula
+rosewoodhotels.com,Rosewood
+aman.com,Aman
+belmond.com,Belmond
+oetkercollection.com,Oetker Collection
+raffles.com,Raffles
+capellahotels.com,Capella
+shangri-la.com,Shangri-La
+stregis.com,St. Regis
+bulgarihotels.com,Bulgari Hotels
+faena.com,Faena
+thelanesborough.com,The Lanesborough
+jumeirah.com,Jumeirah
+chevalblanc.com,Cheval Blanc
+# NOTE: marriott.com / hyatt.com / hilton.com deliberately EXCLUDED — they span
+# mid-market chains, so they'd flag hundreds of thousands of ordinary staff.
+# Only uniformly-luxury brand/group/individual domains below.
+# --- Luxury groups & brands ---
+langhamhotels.com,The Langham
+roccofortehotels.com,Rocco Forte
+oneandonlyresorts.com,One&Only
+aubergeresorts.com,Auberge Resorts
+theroyalportfolio.com,The Royal Portfolio
+soneva.com,Soneva
+singita.com,Singita
+tajhotels.com,Taj Hotels
+oberoihotels.com,The Oberoi
+comohotels.com,COMO
+kempinski.com,Kempinski
+waldorfastoria.com,Waldorf Astoria
+hoshinoya.com,Hoshino Resorts
+miravalresorts.com,Miraval
+chableresorts.com,Chable
+wildernessdestinations.com,Wilderness
+# --- Individual luxury hotels & resorts ---
+thegoring.com,The Goring
+montecarlosbm.com,Monte-Carlo SBM
+marinabaysands.com,Marina Bay Sands
+atlantis.com,Atlantis
+themarkhotel.com,The Mark
+theplazany.com,The Plaza
+baccarathotels.com,Baccarat
+lagonissiresort.gr,Grand Resort Lagonissi
+sirenuse.it,Le Sirenuse
+airelles.com,Airelles
+exvitt.it,Excelsior Vittoria
+villadeste.com,Villa d'Este
+hotelilpellicano.com,Il Pellicano
+badruttspalace.com,Badrutt's Palace
+thechediandermatt.com,The Chedi Andermatt
+hotelhasslerroma.com,Hassler Roma
+luuraparos.com,Luura Paros
+postranchinn.com,Post Ranch Inn
+thelittlenell.com,The Little Nell
+jademountain.com,Jade Mountain
+islandparadise.com,Cayo Espanto
+imperialhotel.co.jp,Imperial Hotel
+velaaprivateisland.com,Velaa Private Island
+kudadoo.com,Kudadoo
+nihi.com,Nihi Sumba
+royalmansour.com,Royal Mansour
+mamounia.com,La Mamounia
+gondwanagr.co.za,Gondwana Game Reserve
+kokomoislandfiji.com,Kokomo
+savasisuites.com,Savasi Island
+thebrando.com,The Brando
+southernoceanlodge.com.au,Southern Ocean Lodge

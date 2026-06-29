@@ -1,0 +1,43 @@
+venue,signal_type,aliases
+# Trophy buildings / branded residences. Matched against the BILLING address
+# (where they live), reusing the venue matcher. Same format as signal_venues.csv.
+# Use distinctive aliases so an ordinary "Grosvenor ..." street doesn't match.
+One Hyde Park,prime_residence,ONE HYDE PARK
+Chelsea Barracks,prime_residence,CHELSEA BARRACKS
+The OWO Residences,prime_residence,OWO RESIDENCES;THE OWO RESIDENCES
+20 Grosvenor Square,prime_residence,20 GROSVENOR SQUARE
+The Lancasters,prime_residence,THE LANCASTERS
+Holland Park Villas,prime_residence,HOLLAND PARK VILLAS
+Lillie Square,prime_residence,LILLIE SQUARE
+The Whiteley,prime_residence,THE WHITELEY
+Eaton Square,prime_residence,EATON SQUARE
+Mandarin Oriental Residences,prime_residence,MANDARIN ORIENTAL RESIDENCES
+# --- US trophy buildings / branded residences ---
+15 Central Park West,prime_residence,15 CENTRAL PARK WEST
+432 Park Avenue,prime_residence,432 PARK AVENUE
+220 Central Park South,prime_residence,220 CENTRAL PARK SOUTH
+One57,prime_residence,ONE57
+111 West 57th Street,prime_residence,111 WEST 57TH;STEINWAY TOWER
+740 Park Avenue,prime_residence,740 PARK AVENUE
+520 Park Avenue,prime_residence,520 PARK AVENUE
+The Dakota,prime_residence,THE DAKOTA
+Faena House,prime_residence,FAENA HOUSE
+One Thousand Museum,prime_residence,ONE THOUSAND MUSEUM
+Porsche Design Tower,prime_residence,PORSCHE DESIGN TOWER
+The Setai Residences,prime_residence,SETAI RESIDENCES
+Sierra Towers,prime_residence,SIERRA TOWERS
+The Century,prime_residence,THE CENTURY;CENTURY CITY RESIDENCES
+Millennium Tower,prime_residence,MILLENNIUM TOWER
+Central Park Tower,prime_residence,CENTRAL PARK TOWER;225 WEST 57TH
+1 Mayfair,prime_residence,1 MAYFAIR
+The Heron,prime_residence,THE HERON
+South Bank Tower,prime_residence,SOUTH BANK TOWER
+Tour Odeon,prime_residence,TOUR ODEON
+Wallich Residence,prime_residence,WALLICH RESIDENCE
+The Royal Atlantis Residences,prime_residence,ROYAL ATLANTIS
+No.1 Grosvenor Square,prime_residence,1 GROSVENOR SQUARE
+Les Maisons Nassim,prime_residence,LES MAISONS NASSIM
+One Za'abeel,prime_residence,ONE ZA'ABEEL
+Opus Hong Kong,prime_residence,OPUS HONG KONG
+The Pacific (SF),prime_residence,2121 WEBSTER STREET
+2006 Washington Street,prime_residence,2006 WASHINGTON STREET

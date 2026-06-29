@@ -1,0 +1,59 @@
+zip,area,notes
+# Ultra-prime US ZIP codes (HNWI signal). Matched against the billing ZIP.
+# US ZIPs are 5 digits, so this is a separate signal from the UK postcode list.
+# ZIP+4 (e.g. 90210-1234) is reduced to the 5-digit prefix before matching.
+# EDIT THIS FILE to add more. Lines starting with # are ignored.
+10007,Tribeca NY
+10013,Tribeca / Hudson Square NY
+10021,Upper East Side NY
+10065,Lenox Hill NY
+10075,Upper East Side NY
+10024,Upper West Side NY
+10282,Battery Park City NY
+11962,Sagaponack NY
+11932,Bridgehampton NY
+11976,Water Mill NY
+11975,Wainscott NY
+06830,Greenwich CT
+06831,Greenwich CT
+06870,Old Greenwich CT
+90210,Beverly Hills CA
+90265,Malibu CA
+90402,Santa Monica CA
+90077,Bel Air CA
+90049,Brentwood CA
+94027,Atherton CA
+94022,Los Altos Hills CA
+94301,Palo Alto CA
+94957,Ross CA
+33109,Fisher Island FL
+33480,Palm Beach FL
+33156,Pinecrest FL
+33139,Miami Beach FL
+81611,Aspen CO
+81656,Woody Creek CO
+83025,Teton Village WY
+98039,Medina WA
+60043,Kenilworth IL
+60022,Glencoe IL
+02199,Back Bay Boston MA
+02108,Beacon Hill Boston MA
+07620,Alpine NJ
+20815,Chevy Chase MD
+22066,Great Falls VA
+89413,Glenbrook NV
+
+# --- Mountain West / PNW / Southwest / Texas / Midwest / NE (added) ---
+81615,Snowmass Village CO
+83014,Wilson / Jackson Hole WY
+85253,Paradise Valley AZ
+75205,Highland Park (Dallas) TX
+75225,University Park (Dallas) TX
+77019,River Oaks (Houston) TX
+76262,Westlake TX
+60093,Winnetka IL
+63124,Ladue (St. Louis) MO
+93108,Montecito CA
+92067,Rancho Santa Fe CA
+02481,Wellesley MA
+02493,Weston MA

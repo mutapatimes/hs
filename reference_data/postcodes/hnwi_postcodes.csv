@@ -1,0 +1,37 @@
+prefix,area,notes
+# Ultra-prime UK postcodes (HNWI signal). EDIT THIS FILE to add more.
+# The 'prefix' column is matched against each customer's billing postcode.
+# You can be as broad or precise as you like — granularity is automatic:
+#   SW10 9SJ  -> matches that exact unit only
+#   SW10 9    -> matches the whole sector (SW10 9AA, SW10 9SJ, ...)
+#   SW10      -> matches the whole district (any SW10 ...)
+# Lines starting with # are comments and are ignored.
+# --- Specific units (listed first so they win as the most precise reason) ---
+SW10 9RX,The Boltons / Chelsea,London ultra-prime (>=£10m)
+SW10 9RY,The Boltons / Chelsea,London ultra-prime (>=£10m)
+SW10 9SA,The Boltons / Chelsea,London ultra-prime (>=£10m)
+SW10 9SJ,The Boltons / Chelsea,London ultra-prime (>=£10m)
+SW10 9SN,The Boltons / Chelsea,London ultra-prime (>=£10m)
+# --- Whole districts ---
+SW10,Chelsea / West Brompton,London ultra-prime district
+BH13,Sandbanks / Poole,Ultra-prime district (Sandbanks)
+# --- Prime central London districts ---
+W1K,Mayfair,London ultra-prime
+W1J,Mayfair,London ultra-prime
+W1S,Mayfair,London ultra-prime
+SW1X,Belgravia / Knightsbridge,London ultra-prime
+SW1W,Belgravia,London ultra-prime
+SW1A,St James's,London ultra-prime
+SW3,Chelsea,London ultra-prime
+SW7,South Kensington / Knightsbridge,London ultra-prime
+W8,Kensington,London ultra-prime
+W11,Notting Hill / Holland Park,London prime
+NW8,St John's Wood,London prime
+NW3,Hampstead,London prime
+# --- Home Counties / regional prime ---
+KT11,Cobham (Surrey golden triangle),prime
+KT13,Weybridge (Surrey golden triangle),prime
+KT10,Esher (Surrey golden triangle),prime
+GU25,Virginia Water,prime
+SL5,Ascot,prime
+SK9,Alderley Edge / Wilmslow (Cheshire golden triangle),prime

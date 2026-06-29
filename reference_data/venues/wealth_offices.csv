@@ -1,0 +1,109 @@
+venue,signal_type,city,aliases
+# Head offices of major banks, PE firms, hedge funds & asset managers. A customer
+# billed at / shipping to one likely works there (senior) — a tell that genuinely
+# works (a Deutsche Bank associate billing to "21 Moorfields, London").
+#
+# CITY-GUARDED: a match needs a distinctive building token AND the firm's city in
+# the same address, so a same-named street in another city ("4 Brookfield Place,
+# Southampton") does NOT match. 'city' and 'aliases' are ;-separated.
+
+# --- London ---
+Goldman Sachs,investment_bank,LONDON,PLUMTREE COURT
+Deutsche Bank,investment_bank,LONDON,21 MOORFIELDS;MOORFIELDS
+Barclays,investment_bank,LONDON,ONE CHURCHILL PLACE
+HSBC,investment_bank,LONDON,8 CANADA SQUARE
+Citi,investment_bank,LONDON,25 CANADA SQUARE;CITIGROUP CENTRE
+Man Group,hedge_fund,LONDON,RIVERBANK HOUSE
+UBS,investment_bank,LONDON,5 BROADGATE
+Bank of America,investment_bank,LONDON,2 KING EDWARD STREET
+Brevan Howard,hedge_fund,LONDON,55 BAKER STREET
+JPMorgan,investment_bank,LONDON,25 BANK STREET
+Morgan Stanley,investment_bank,LONDON,20 BANK STREET;25 CABOT SQUARE
+BlackRock,asset_manager,LONDON,DRAPERS GARDENS
+Brookfield,asset_manager,LONDON;NEW YORK;NY,BROOKFIELD PLACE
+
+# --- New York ---
+Goldman Sachs,investment_bank,NEW YORK;NY,200 WEST STREET
+Morgan Stanley,investment_bank,NEW YORK;NY,1585 BROADWAY
+JPMorgan,investment_bank,NEW YORK;NY,270 PARK AVENUE;383 MADISON AVENUE
+BlackRock,asset_manager,NEW YORK;NY,50 HUDSON YARDS
+Blackstone,private_equity,NEW YORK;NY,345 PARK AVENUE
+KKR,private_equity,NEW YORK;NY,30 HUDSON YARDS
+Apollo Global,private_equity,NEW YORK;NY,9 WEST 57TH STREET
+Citadel,hedge_fund,NEW YORK;NY,425 PARK AVENUE
+Millennium Management,hedge_fund,NEW YORK;NY,399 PARK AVENUE
+Two Sigma,hedge_fund,NEW YORK;NY,100 AVENUE OF THE AMERICAS
+
+# --- Other US ---
+Carlyle Group,private_equity,WASHINGTON,1001 PENNSYLVANIA AVENUE
+Citadel,hedge_fund,MIAMI,830 BRICKELL
+Point72,hedge_fund,STAMFORD,72 CUMMINGS POINT ROAD
+Bridgewater Associates,hedge_fund,WESTPORT,ONE GLENDINNING PLACE
+Vista Equity Partners,private_equity,SAN FRANCISCO,4 EMBARCADERO CENTER
+
+# --- London: Mayfair / St James's (single-firm HQs — precise) ---
+Blackstone London,private_equity,LONDON,LANSDOWNE HOUSE
+30 Berkeley Square,hedge_fund,LONDON,30 BERKELEY SQUARE
+8 St James's Square,family_office,LONDON,8 ST JAMES'S SQUARE
+1 Knightsbridge,wealth_management,LONDON,1 KNIGHTSBRIDGE
+# --- London: City & Canary Wharf financial towers (broader — mixed tenancy) ---
+Bloomberg,financial_hub,LONDON,3 QUEEN VICTORIA STREET;BLOOMBERG ARCADE
+Leadenhall Building,financial_hub,LONDON,122 LEADENHALL STREET;LEADENHALL BUILDING;CHEESEGRATER
+22 Bishopsgate,financial_hub,LONDON,22 BISHOPSGATE
+Heron Tower,financial_hub,LONDON,110 BISHOPSGATE;HERON TOWER;SALESFORCE TOWER
+EBRD,investment_bank,LONDON,5 BANK STREET;FIVE BANK STREET
+
+# --- New York: Billionaires' Row / Midtown (in addition to those above) ---
+Point72 NY,hedge_fund,NEW YORK;NY,55 HUDSON YARDS
+200 Park Avenue,financial_hub,NEW YORK;NY,200 PARK AVENUE;METLIFE BUILDING
+277 Park Avenue,financial_hub,NEW YORK;NY,277 PARK AVENUE
+
+# --- Paris: Triangle d'Or (8e) ---
+Groupe Artemis,family_office,PARIS,12 RUE FRANCOIS 1ER
+Financiere Agache,family_office,PARIS,11 RUE FRANCOIS 1ER
+Peugeot Invest,family_office,NEUILLY,66 AVENUE CHARLES DE GAULLE
+Place Vendome,financial_hub,PARIS,PLACE VENDOME
+Boulevard Haussmann,financial_hub,PARIS,BOULEVARD HAUSSMANN
+
+# --- Singapore: Marina Bay / Downtown ---
+Marina Bay Financial Centre,financial_hub,SINGAPORE,MARINA BAY FINANCIAL CENTRE;MARINA BAY FINANCIAL CENTER
+OUE Bayfront,family_office,SINGAPORE,OUE BAYFRONT;50 COLLYER QUAY
+Asia Square,financial_hub,SINGAPORE,ASIA SQUARE
+
+# --- Hong Kong: Central ---
+Two IFC,investment_bank,HONG KONG,TWO IFC;8 FINANCE STREET;INTERNATIONAL FINANCE CENTRE
+Cheung Kong Center,private_equity,HONG KONG,CHEUNG KONG CENTER;CHEUNG KONG CENTRE
+Exchange Square,financial_hub,HONG KONG,EXCHANGE SQUARE
+The Henderson,family_office,HONG KONG,THE HENDERSON;2 MURRAY ROAD
+
+# --- Tokyo: Otemachi / Marunouchi / Roppongi ---
+Otemachi Financial City,financial_hub,TOKYO,OTEMACHI FINANCIAL CITY
+Mori Tower,financial_hub,TOKYO,MORI TOWER;ROPPONGI HILLS MORI
+Marunouchi Building,financial_hub,TOKYO,MARUNOUCHI BUILDING
+Toranomon Hills,financial_hub,TOKYO,TORANOMON HILLS
+
+# --- Dubai (DIFC) ---
+ICD Brookfield Place,financial_hub,DUBAI,ICD BROOKFIELD PLACE
+The Gate District,financial_hub,DUBAI,THE GATE DISTRICT;GATE DISTRICT;DIFC
+
+# --- San Francisco / Silicon Valley ---
+Sand Hill Road,venture_capital,MENLO PARK,SAND HILL ROAD
+Salesforce Tower SF,financial_hub,SAN FRANCISCO,SALESFORCE TOWER;415 MISSION STREET
+
+# --- Luxury concierge HQs (an order here is a proxy for a UHNW principal) ---
+Quintessentially,concierge,LONDON,29 PORTLAND PLACE
+John Paul,concierge,PARIS,66 RUE DES ARCHIVES
+Ten Lifestyle Group,concierge,LONDON,355 EUSTON ROAD
+Knightsbridge Circle,concierge,LONDON,4 MONTPELIER STREET
+Velocity Black,concierge,LONDON,20 GROSVENOR PLACE
+Innerplace,concierge,LONDON,14 HANOVER SQUARE
+Bon Vivant,concierge,LONDON,152 CITY ROAD;160 CITY ROAD
+
+# --- Personal shopping / VIP styling HQs ---
+Next Level Wardrobe,stylist,NEW YORK;NY,447 BROADWAY
+Deni Kiro Style,stylist,LONDON,15 BASIL STREET
+BU Style,stylist,NEW YORK;NY,244 5TH AVENUE;244 FIFTH AVENUE
+By Constance Rose,stylist,LONDON,49 STEWARTS GROVE
+Styled Sharp,stylist,NEW YORK;NY,1460 BROADWAY
+Nick Hems Style,stylist,LONDON,32 THREADNEEDLE STREET
+One of a Style,stylist,LONDON,30 GREAT GUILDFORD STREET;METAL BOX FACTORY

@@ -1,0 +1,122 @@
+country,prefix,area
+# International ultra-prime postcodes, matched against billing/shipping ZIP and
+# GUARDED by the address country (digit-prefixes collide across countries, e.g.
+# Tokyo 100-xxxx vs Beijing 100xxx). ZIP is reduced to digits before matching.
+# 'country' is substring-matched against the address country (English names).
+# EDIT to extend. Note: UAE/Qatar lack usable postcodes — use hnw_areas.csv there.
+
+# --- France ---
+France,75116,Paris 16e
+France,75008,Paris 8e
+France,75007,Paris 7e
+France,75001,Paris 1er
+France,75004,Paris Marais
+France,92200,Neuilly-sur-Seine
+France,06400,Cannes
+France,06600,Antibes
+France,06230,Cap Ferrat
+France,06310,Beaulieu-sur-Mer
+France,83990,Saint-Tropez
+France,73120,Courchevel
+France,74120,Megeve
+France,73150,Val d'Isere
+
+# --- Italy ---
+Italy,20121,Milan centro
+Italy,20122,Milan
+Italy,20123,Milan
+Italy,00187,Rome centro
+Italy,00197,Rome Parioli
+Italy,16034,Portofino
+Italy,55042,Forte dei Marmi
+Italy,07021,Porto Cervo
+Italy,80073,Capri
+Italy,22021,Bellagio
+Italy,32043,Cortina d'Ampezzo
+
+# --- Switzerland ---
+Switzerland,8001,Zurich
+Switzerland,8008,Zurich Seefeld
+Switzerland,8700,Kusnacht
+Switzerland,1201,Geneva
+Switzerland,1206,Geneva Champel
+Switzerland,1223,Cologny
+Switzerland,3780,Gstaad
+Switzerland,7500,St Moritz
+Switzerland,6300,Zug
+Switzerland,1936,Verbier
+Switzerland,3920,Zermatt
+
+# --- Luxembourg ---
+Luxembourg,1009,Luxembourg City
+Luxembourg,2017,Luxembourg City
+Luxembourg,1840,Luxembourg City
+Luxembourg,1660,Luxembourg City
+
+# --- Germany ---
+Germany,80331,Munich Altstadt
+Germany,80539,Munich Lehel
+Germany,81675,Munich Bogenhausen
+Germany,10117,Berlin Mitte
+Germany,14193,Berlin Grunewald
+Germany,20354,Hamburg
+Germany,20148,Hamburg Rotherbaum
+Germany,22587,Hamburg Blankenese
+Germany,60322,Frankfurt Westend
+Germany,82319,Starnberg
+Germany,25999,Sylt Kampen
+
+# --- China ---
+China,100004,Beijing
+China,100600,Beijing Chaoyang
+China,200031,Shanghai Xuhui
+China,200120,Shanghai Pudong
+China,200040,Shanghai Jingan
+China,518000,Shenzhen
+China,510000,Guangzhou
+China,310000,Hangzhou
+
+# --- Japan ---
+Japan,1060032,Roppongi (Minato)
+Japan,1060045,Azabu (Minato)
+Japan,1060047,Minami-Azabu
+Japan,1070052,Akasaka
+Japan,1080072,Shirokane
+Japan,1500046,Shoto (Shibuya)
+Japan,1580083,Den-en-chofu
+Japan,1070062,Minami-Aoyama
+
+# --- Monaco ---
+Monaco,98000,Monaco
+
+# --- GCC (limited; postcodes scarce) ---
+Saudi Arabia,11693,Riyadh Diplomatic Quarter
+Saudi Arabia,11564,Riyadh
+Kuwait,13001,Kuwait City
+
+# --- Spain (Ibiza) ---
+Spain,07800,Ibiza Town
+Spain,07819,Jesus / Ibiza
+Spain,07817,Cala Jondal / Sant Jordi
+Spain,07840,Santa Eularia
+Spain,07829,Sant Josep
+# --- Greece (Mykonos) ---
+Greece,84600,Mykonos
+# --- Italy (Milan) ---
+Italy,20121,Milan Centro / Quadrilatero
+Italy,20122,Milan San Babila
+Italy,20123,Milan Magenta
+Italy,20144,Milan Magenta
+Italy,20145,Milan Sempione
+# --- Saint-Barthelemy ---
+France,97133,Saint-Barthelemy
+Barth,97133,Saint-Barthelemy
+
+# --- Australia (4-digit numeric) ---
+Australia,2028,Double Bay
+Australia,2023,Bellevue Hill
+Australia,2030,Vaucluse / Dover Heights
+Australia,2027,Point Piper / Darling Point
+Australia,3944,Portsea
+Australia,3142,Toorak / Hawksburn
+Australia,6011,Peppermint Grove / Cottesloe

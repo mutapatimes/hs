@@ -1,0 +1,15 @@
+domain,provider,notes
+# Premium / paid "luxury ESP" email providers — a mild affluence / early-adopter
+# tell. Matched against the domain part of EMAIL_ADDR. EDIT THIS FILE to add more.
+# NOTE on Superhuman: it's a premium email *client* layered over Gmail/custom
+# domains, so it is NOT detectable from an address except @superhuman.com (staff).
+# Included for completeness; expect near-zero hits.
+mac.com,Apple .Mac (legacy paid),Had a paid .Mac/MobileMe account pre-2012
+me.com,Apple MobileMe (legacy),Legacy MobileMe-era account — early paid Apple adopter
+hey.com,HEY,Paid premium email ($99/yr)
+fastmail.com,Fastmail,Paid email provider
+fastmail.fm,Fastmail,Paid email provider
+pobox.com,Pobox (Fastmail),Paid vanity address
+superhuman.com,Superhuman,Premium email — only catches Superhuman staff (see note)
+hushmail.com,Hushmail,Paid private email
+mailbox.org,Mailbox.org,Paid private email

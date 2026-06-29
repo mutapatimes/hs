@@ -1,0 +1,289 @@
+venue,signal_type,aliases
+# International HNW neighbourhoods / towns / districts, matched by NAME against
+# the billing AND shipping address (robust where postcodes differ or are unused,
+# e.g. the GCC). signal_type = country (shown as the reason's country tag).
+# Use distinctive aliases so ordinary streets don't false-fire. EDIT to extend.
+
+# --- Monaco ---
+Monte Carlo,Monaco,MONTE CARLO;MONACO
+La Rousse,Monaco,LA ROUSSE;MONTE CARLO
+
+# --- France ---
+Saint-Tropez,France,SAINT TROPEZ;ST TROPEZ
+Cap d'Antibes,France,CAP D ANTIBES;CAP DANTIBES
+Cap Ferrat,France,SAINT JEAN CAP FERRAT;CAP FERRAT
+Courchevel,France,COURCHEVEL
+Megeve,France,MEGEVE
+Val d'Isere,France,VAL D ISERE;VAL DISERE
+Neuilly-sur-Seine,France,NEUILLY SUR SEINE
+Avenue Foch,France,AVENUE FOCH
+Avenue Montaigne,France,AVENUE MONTAIGNE
+Ile Saint-Louis,France,ILE SAINT LOUIS
+Ramatuelle,France,RAMATUELLE
+
+# --- Italy ---
+Portofino,Italy,PORTOFINO
+Forte dei Marmi,Italy,FORTE DEI MARMI
+Porto Cervo,Italy,PORTO CERVO
+Capri,Italy,CAPRI
+Cortina d'Ampezzo,Italy,CORTINA D AMPEZZO;CORTINA DAMPEZZO
+Bellagio,Italy,BELLAGIO
+Lake Como,Italy,LAKE COMO;LAGO DI COMO
+Via Montenapoleone,Italy,VIA MONTENAPOLEONE;MONTENAPOLEONE
+Positano,Italy,POSITANO
+Taormina,Italy,TAORMINA
+
+# --- Switzerland ---
+Gstaad,Switzerland,GSTAAD
+St Moritz,Switzerland,ST MORITZ;SANKT MORITZ;SAINT MORITZ
+Cologny,Switzerland,COLOGNY
+Kusnacht,Switzerland,KUSNACHT;KUSSNACHT
+Verbier,Switzerland,VERBIER
+Zermatt,Switzerland,ZERMATT
+Andermatt,Switzerland,ANDERMATT
+Crans-Montana,Switzerland,CRANS MONTANA
+
+# --- Luxembourg ---
+Belair,Luxembourg,BELAIR
+Limpertsberg,Luxembourg,LIMPERTSBERG
+Kirchberg,Luxembourg,KIRCHBERG
+Weimershof,Luxembourg,WEIMERSHOF
+
+# --- Germany ---
+Grunwald,Germany,GRUNWALD;GRUENWALD
+Bogenhausen,Germany,BOGENHAUSEN
+Starnberg,Germany,STARNBERG
+Sylt,Germany,SYLT;KAMPEN
+Blankenese,Germany,BLANKENESE
+Harvestehude,Germany,HARVESTEHUDE
+Dahlem,Germany,DAHLEM
+Grunewald,Germany,GRUNEWALD
+Tegernsee,Germany,TEGERNSEE
+
+# --- China ---
+Tomson Riviera,China,TOMSON RIVIERA;TOMSON GOLF
+Lujiazui,China,LUJIAZUI
+Xintiandi,China,XINTIANDI
+Sheshan,China,SHESHAN
+Former French Concession,China,FORMER FRENCH CONCESSION
+Gubei,China,GUBEI
+Chaoyang CBD,China,CHAOYANG
+Shunyi,China,SHUNYI
+Wangfujing,China,WANGFUJING
+Financial Street Beijing,China,FINANCIAL STREET
+Shenzhen Bay,China,SHENZHEN BAY;HOUHAI
+Shekou,China,SHEKOU
+West Lake Hangzhou,China,WEST LAKE;XIHU
+Zhujiang New Town,China,ZHUJIANG NEW TOWN;ZHUJIANG XINCHENG
+Tianhe,China,TIANHE
+Haitang Bay,China,HAITANG BAY
+Yanlord,China,YANLORD
+
+# --- Japan ---
+Roppongi,Japan,ROPPONGI;ROPPONGI HILLS
+Azabu,Japan,AZABU;AZABU JUBAN;MOTO AZABU;MINAMI AZABU
+Hiroo,Japan,HIROO
+Shirokane,Japan,SHIROKANE;SHIROKANEDAI
+Den-en-chofu,Japan,DEN EN CHOFU;DENENCHOFU
+Shoto,Japan,SHOTO
+Akasaka,Japan,AKASAKA
+Aoyama,Japan,AOYAMA;MINAMI AOYAMA
+Omotesando,Japan,OMOTESANDO
+Bancho,Japan,BANCHO;ICHIBANCHO
+Hanzomon,Japan,HANZOMON
+Yoyogi-Uehara,Japan,YOYOGI UEHARA
+Daikanyama,Japan,DAIKANYAMA
+Takanawa,Japan,TAKANAWA
+Ashiya,Japan,ASHIYA
+
+# --- GCC ---
+Palm Jumeirah,UAE,PALM JUMEIRAH
+Emirates Hills,UAE,EMIRATES HILLS
+Jumeirah,UAE,JUMEIRAH
+Downtown Dubai,UAE,BURJ KHALIFA;DOWNTOWN DUBAI
+Dubai Marina,UAE,DUBAI MARINA
+Sheikh Zayed Road,UAE,SHEIKH ZAYED ROAD
+Jumeirah Bay,UAE,JUMEIRAH BAY
+Saadiyat Island,UAE,SAADIYAT
+Al Maryah Island,UAE,AL MARYAH
+Al Bateen,UAE,AL BATEEN
+The Pearl,Qatar,THE PEARL;PEARL QATAR
+Lusail,Qatar,LUSAIL
+Diplomatic Quarter,Saudi Arabia,DIPLOMATIC QUARTER
+Al Nakheel,Saudi Arabia,AL NAKHEEL
+Amwaj Islands,Bahrain,AMWAJ
+
+# --- Globally famous HNW streets / enclaves ---
+Kensington Palace Gardens,UK,KENSINGTON PALACE GARDENS
+The Bishops Avenue,UK,THE BISHOPS AVENUE;BISHOPS AVENUE
+Avenue Princess Grace,Monaco,AVENUE PRINCESSE GRACE;AVENUE PRINCESS GRACE
+Villa Montmorency,France,VILLA MONTMORENCY
+The Peak,Hong Kong,VICTORIA PEAK;THE PEAK
+# NOTE: the two below are GENERIC street names and WILL over-fire on ordinary
+# NYC addresses — kept per request; remove if too noisy.
+Fifth Avenue,USA,FIFTH AVENUE
+Park Avenue,USA,PARK AVENUE
+
+# --- UK prime areas & streets (recover geographic signal where there's no
+# postcode — these names appear in the address LINES). Distinctive streets/
+# squares + small uniformly-prime districts; broad mixed districts kept light. ---
+Belgravia,UK,BELGRAVIA
+Knightsbridge,UK,KNIGHTSBRIDGE
+Mayfair,UK,MAYFAIR
+Eaton Square,UK,EATON SQUARE;EATON PLACE;EATON TERRACE
+Belgrave Square,UK,BELGRAVE SQUARE
+Chester Square,UK,CHESTER SQUARE
+Wilton Crescent,UK,WILTON CRESCENT
+Lowndes Square,UK,LOWNDES SQUARE
+Motcomb Street,UK,MOTCOMB STREET
+Grosvenor Square,UK,GROSVENOR SQUARE
+Berkeley Square,UK,BERKELEY SQUARE
+Mount Street,UK,MOUNT STREET
+Carlos Place,UK,CARLOS PLACE
+South Audley Street,UK,SOUTH AUDLEY STREET
+Curzon Street,UK,CURZON STREET
+Cadogan Square,UK,CADOGAN SQUARE;CADOGAN PLACE;CADOGAN GARDENS
+Sloane Street,UK,SLOANE STREET;SLOANE SQUARE
+Cheyne Walk,UK,CHEYNE WALK;CHEYNE ROW
+The Boltons,UK,THE BOLTONS
+Tite Street,UK,TITE STREET
+Egerton Crescent,UK,EGERTON CRESCENT;EGERTON GARDENS
+Lennox Gardens,UK,LENNOX GARDENS
+Pont Street,UK,PONT STREET
+Kensington Square,UK,KENSINGTON SQUARE
+Phillimore Gardens,UK,PHILLIMORE GARDENS
+Cornwall Gardens,UK,CORNWALL GARDENS
+Ilchester Place,UK,ILCHESTER PLACE
+Vicarage Gate,UK,VICARAGE GATE
+Holland Park,UK,HOLLAND PARK
+Campden Hill,UK,CAMPDEN HILL
+Pelham Crescent,UK,PELHAM CRESCENT
+Thurloe Square,UK,THURLOE SQUARE
+Onslow Square,UK,ONSLOW SQUARE;ONSLOW GARDENS
+Notting Hill,UK,NOTTING HILL
+Hampstead,UK,HAMPSTEAD
+St John's Wood,UK,ST JOHNS WOOD
+Hamilton Terrace,UK,HAMILTON TERRACE
+Primrose Hill,UK,PRIMROSE HILL
+Marylebone,UK,MARYLEBONE
+Cumberland Terrace,UK,CUMBERLAND TERRACE
+Chester Terrace,UK,CHESTER TERRACE
+Hanover Terrace,UK,HANOVER TERRACE
+Heriot Row,UK,HERIOT ROW
+Moray Place,UK,MORAY PLACE
+Ainslie Place,UK,AINSLIE PLACE
+Great Stuart Street,UK,GREAT STUART STREET
+Drummond Place,UK,DRUMMOND PLACE
+St George's Hill,UK,ST GEORGES HILL
+Wentworth Estate,UK,WENTWORTH ESTATE
+Virginia Water,UK,VIRGINIA WATER
+
+# --- More global UHNW residential enclaves ---
+Sentosa Cove,Singapore,SENTOSA COVE
+Nassim Road,Singapore,NASSIM ROAD
+Cluny Road,Singapore,CLUNY ROAD
+Mount Nicholson,Hong Kong,MOUNT NICHOLSON
+Pacific Heights,USA,PACIFIC HEIGHTS
+
+# --- South Africa ---
+Bishopscourt,South Africa,BISHOPSCOURT
+Bantry Bay,South Africa,BANTRY BAY
+Camps Bay,South Africa,CAMPS BAY
+Clifton,South Africa,CLIFTON
+Fresnaye,South Africa,FRESNAYE
+Higgovale,South Africa,HIGGOVALE
+Oranjezicht,South Africa,ORANJEZICHT
+Constantia,South Africa,CONSTANTIA
+Hout Bay,South Africa,HOUT BAY
+Sandhurst,South Africa,SANDHURST
+Sandton,South Africa,SANDTON
+Houghton Estate,South Africa,HOUGHTON ESTATE
+Bryanston,South Africa,BRYANSTON
+Saxonwold,South Africa,SAXONWOLD
+Dainfern,South Africa,DAINFERN
+Steyn City,South Africa,STEYN CITY
+Zimbali,South Africa,ZIMBALI
+Umhlanga,South Africa,UMHLANGA
+Franschhoek,South Africa,FRANSCHHOEK
+Plettenberg Bay,South Africa,PLETTENBERG BAY
+# --- Italy (Milan) ---
+Via Montenapoleone,Italy,VIA MONTENAPOLEONE;MONTENAPOLEONE
+Via della Spiga,Italy,VIA DELLA SPIGA
+Via Sant'Andrea,Italy,VIA SANT ANDREA
+Via Borgospesso,Italy,VIA BORGOSPESSO
+Via Gesu,Italy,VIA GESU
+Brera,Italy,BRERA
+CityLife,Italy,CITYLIFE;CITY LIFE MILANO
+Quadrilatero della Moda,Italy,QUADRILATERO DELLA MODA
+# --- Saudi Arabia ---
+Al Olaya,Saudi Arabia,AL OLAYA
+Hittin,Saudi Arabia,HITTIN;HITTEEN
+Al Malqa,Saudi Arabia,AL MALQA
+Diplomatic Quarter,Saudi Arabia,DIPLOMATIC QUARTER
+King Abdullah Financial District,Saudi Arabia,KAFD;KING ABDULLAH FINANCIAL DISTRICT
+Al Yasmin,Saudi Arabia,AL YASMIN
+Al Muhammadiyah,Saudi Arabia,AL MUHAMMADIYAH
+Al Shati,Saudi Arabia,AL SHATI;ASH SHATI
+Obhur,Saudi Arabia,OBHUR;ABHUR
+Al Nakheel Riyadh,Saudi Arabia,AL NAKHEEL
+# --- Lebanon ---
+Achrafieh,Lebanon,ACHRAFIEH;ASHRAFIEH
+Beirut Central District,Lebanon,SOLIDERE;BEIRUT CENTRAL DISTRICT
+Saifi Village,Lebanon,SAIFI
+Rabieh,Lebanon,RABIEH
+Yarze,Lebanon,YARZE
+Gemmayzeh,Lebanon,GEMMAYZEH
+Ramlet al-Baida,Lebanon,RAMLET AL BAIDA
+Faqra,Lebanon,FAQRA
+# --- Ibiza ---
+Es Cubells,Spain,ES CUBELLS
+Cala Jondal,Spain,CALA JONDAL
+Roca Llisa,Spain,ROCA LLISA
+Talamanca,Spain,TALAMANCA
+Can Furnet,Spain,CAN FURNET
+Cap Martinet,Spain,CAP MARTINET
+Marina Botafoch,Spain,MARINA BOTAFOCH;BOTAFOC
+Porroig,Spain,PORROIG
+# --- Saint-Barthelemy ---
+Gustavia,Saint Barthelemy,GUSTAVIA
+Gouverneur,Saint Barthelemy,GOUVERNEUR
+Pointe Milou,Saint Barthelemy,POINTE MILOU
+Lurin,Saint Barthelemy,LURIN
+Flamands,Saint Barthelemy,FLAMANDS
+Petit Cul-de-Sac,Saint Barthelemy,PETIT CUL DE SAC
+Grand Cul-de-Sac,Saint Barthelemy,GRAND CUL DE SAC
+Toiny,Saint Barthelemy,TOINY
+# --- Mykonos ---
+Psarou,Greece,PSAROU
+Aleomandra,Greece,ALEOMANDRA
+Tourlos,Greece,TOURLOS
+Ornos,Greece,ORNOS
+Kanalia,Greece,KANALIA
+Panormos,Greece,PANORMOS
+Houlakia,Greece,HOULAKIA
+Agios Lavrentis,Greece,AGIOS LAVRENTIS
+# --- Maldives (private-island resorts / atolls) ---
+Baa Atoll,Maldives,BAA ATOLL
+North Male Atoll,Maldives,NORTH MALE ATOLL
+Noonu Atoll,Maldives,NOONU ATOLL
+Kunfunadhoo,Maldives,KUNFUNADHOO
+Landaa Giraavaru,Maldives,LANDAA GIRAAVARU
+
+# --- Canada (FSAs are alphanumeric -> matched by NAME, not postcode) ---
+Forest Hill,Canada,FOREST HILL
+Lawrence Park,Canada,LAWRENCE PARK
+Rosedale Toronto,Canada,ROSEDALE
+Yorkville Toronto,Canada,YORKVILLE
+The Bridle Path,Canada,BRIDLE PATH
+Shaughnessy,Canada,SHAUGHNESSY
+West Point Grey,Canada,WEST POINT GREY
+West Vancouver,Canada,WEST VANCOUVER
+Rockcliffe Park,Canada,ROCKCLIFFE PARK
+Westmount,Canada,WESTMOUNT
+# --- Australia (area-name backup for the postcodes above) ---
+Point Piper,Australia,POINT PIPER
+Toorak,Australia,TOORAK
+Vaucluse,Australia,VAUCLUSE
+Bellevue Hill,Australia,BELLEVUE HILL
+Peppermint Grove,Australia,PEPPERMINT GROVE
+Double Bay,Australia,DOUBLE BAY

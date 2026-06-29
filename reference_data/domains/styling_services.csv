@@ -1,0 +1,25 @@
+domain,company
+# B2B STYLING / PERSONAL-SHOPPING agencies. These buy on behalf of MANY UHNW
+# clients, so an order from one is a recurring-revenue TRADE account — the highest-
+# value thing to spot, not a one-off VIC. Detected by email domain, weighted 3,
+# with its own "open a trade account" recommendation. EDIT freely; CONFIRM the
+# guessed domains (marked) against the agency's real sending domain.
+threadsstyling.com,Threads Styling
+nextlevelwardrobe.com,Next Level Wardrobe
+denikiro.com,Deni Kiro Style
+letsgetyou.com,Let's Get You
+bu.style,BU Style
+byconstancerose.uk,By Constance Rose
+styledsharp.com,Styled Sharp
+nickhemsstyle.co.uk,Nick Hems Style
+oneofastyle.com,One of a Style
+wishi.me,Wishi
+thechapar.com,The Chapar
+# --- domains to CONFIRM (named by merchant / suggested) ---
+thealiststyling.com,The A List Styling
+luminairestyling.com,Luminaire
+catwalkconcierge.com,Catwalk Concierge
+thestylecouncil.com,The Style Council
+wardrobeicons.com,Wardrobe Icons
+sidneyandfriends.com,Sidney & Friends
+fiveinc.co,Five Inc

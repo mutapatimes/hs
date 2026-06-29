@@ -1,0 +1,23 @@
+title,note
+# Honorific / aristocratic / royal titles. Matched only as the LEADING token(s)
+# of a customer's name (a title precedes the name), so trailing surnames like
+# "... Baron" don't false-fire. EDIT to add more. '#' lines ignored.
+#
+# DELIBERATELY EXCLUDED: titles that are also common FIRST NAMES or surnames,
+# because they produce false positives — Duke, Earl, Baron, Count, Lord, Sheikh
+# (all common given names), and "HE" (His/Her Excellency, which collides with the
+# very common Chinese surname "He"). Re-add any if your data genuinely warrants it.
+HRH,royal
+HSH,royal (Serene Highness)
+LADY,UK peerage
+SIR,knighthood
+DAME,damehood
+BARONESS,UK peerage
+VISCOUNT,UK peerage
+VISCOUNTESS,UK peerage
+COUNTESS,nobility
+DUCHESS,UK peerage
+MARQUESS,UK peerage
+MARCHIONESS,UK peerage
+THE HON,honourable
+THE RIGHT HON,right honourable

@@ -1,0 +1,13 @@
+domain,chain
+# Broad hotel CHAINS that span mid-market to luxury. Flagged as a hotel-concierge
+# order ONLY when the email is a concierge / guest-relations ROLE address
+# (concierge@, guestrelations@, butler@...), never a personal name — because
+# these domains also cover hundreds of thousands of ordinary mid-market staff.
+# The role itself ("concierge@marriott.com") implies a luxury property.
+marriott.com,Marriott
+hyatt.com,Hyatt
+hilton.com,Hilton
+accor.com,Accor
+accorhotels.com,Accor
+ihg.com,IHG
+fairmont.com,Fairmont
