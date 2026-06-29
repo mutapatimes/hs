@@ -547,7 +547,7 @@
 
 <!-- BLEED -->
 <section class="bleed">
-  <img src="img/databases.jpg" alt="" loading="lazy" style="object-position:center">
+  <img src="img/databases.jpg" alt="" loading="lazy" data-parallax style="position:absolute;left:0;top:-13%;width:100%;height:126%;object-fit:cover;object-position:center;will-change:transform">
   <div class="veil2" style="background:linear-gradient(90deg,rgba(8,8,9,.82),rgba(8,8,9,.45) 55%,rgba(8,8,9,.15))"></div>
   <div class="wrap"><div class="inner reveal">
     <div class="eyebrow" style="color:#e7e3da">Find them. Fish them.</div>
@@ -631,7 +631,7 @@
 
 <!-- IMAGE STATEMENT (negative space) -->
 <section class="bleed" style="height:80vh;min-height:520px">
-  <img src="img/general.jpg" alt="" loading="lazy">
+  <img src="img/general.jpg" alt="" loading="lazy" data-parallax style="position:absolute;left:0;top:-13%;width:100%;height:126%;object-fit:cover;will-change:transform">
   <div class="veil2" style="background:linear-gradient(90deg,rgba(8,8,9,.6),rgba(8,8,9,.2) 55%,transparent)"></div>
   <div class="wrap"><div class="inner reveal">
     <h2 style="max-width:16ch">A handful of clients are worth more than the rest combined.</h2>
@@ -678,7 +678,8 @@
         style="background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:14px 22px;color:var(--ink);font:500 15px var(--sans);min-width:280px;outline:none">
       <button class="btn" type="submit">See demo now <span class="arrow">→</span></button>
     </form>
-    <div style="margin-top:18px"><a href="/connect" style="color:var(--mute);font-size:14px">Or connect your store →</a></div>
+    <div id="demoErr" style="display:none;color:#d9a79f;font-size:13.5px;margin-top:14px"></div>
+    <div style="margin-top:16px"><a href="/connect" style="color:var(--mute);font-size:14px">Or connect your store →</a></div>
   </div>
 </section>
 
@@ -714,11 +715,23 @@
   var hdr=document.getElementById('hdr');
   addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
 
-  // demo: capture email, then walk straight into the live sample dashboard
-  var df=document.getElementById('demoForm');
+  // demo: work emails only, then walk straight into the live sample dashboard
+  var FREE_EMAIL=new Set(['gmail.com','googlemail.com','yahoo.com','yahoo.co.uk','yahoo.fr','yahoo.de',
+    'yahoo.es','yahoo.it','yahoo.ca','yahoo.com.au','yahoo.co.in','ymail.com','rocketmail.com',
+    'hotmail.com','hotmail.co.uk','hotmail.fr','hotmail.it','hotmail.es','hotmail.de','outlook.com',
+    'outlook.fr','outlook.de','live.com','live.co.uk','msn.com','icloud.com','me.com','mac.com',
+    'aol.com','protonmail.com','proton.me','pm.me','gmx.com','gmx.net','gmx.de','mail.com','mail.ru',
+    'zoho.com','yandex.com','yandex.ru','qq.com','163.com','126.com','sina.com','foxmail.com',
+    'naver.com','daum.net','hey.com','fastmail.com','tutanota.com','hushmail.com','web.de','t-online.de',
+    'orange.fr','free.fr','wanadoo.fr','laposte.net','sky.com','btinternet.com','virginmedia.com',
+    'comcast.net','verizon.net','att.net','sbcglobal.net','ntlworld.com','aim.com','msn.co.uk']);
+  var df=document.getElementById('demoForm'), de=document.getElementById('demoErr');
+  function showErr(m){if(de){de.textContent=m;de.style.display='block';}}
   if(df)df.addEventListener('submit',function(e){e.preventDefault();
-    var em=(document.getElementById('demoEmail').value||'').trim();
-    if(!/.+@.+\..+/.test(em)){document.getElementById('demoEmail').focus();return;}
+    var em=(document.getElementById('demoEmail').value||'').trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){showErr('Please enter a valid email address.');document.getElementById('demoEmail').focus();return;}
+    if(FREE_EMAIL.has(em.split('@')[1])){showErr('Please use your work email. Personal addresses (Gmail, Yahoo, iCloud, etc.) are not accepted.');document.getElementById('demoEmail').focus();return;}
+    if(de)de.style.display='none';
     var b=df.querySelector('button');b.disabled=true;b.textContent='Loading…';
     fetch('/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:em,source:'demo'})})
       .finally(function(){window.location.href='/demo';});
@@ -746,6 +759,26 @@
   });
 
   var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  // parallax on full-bleed images
+  (function(){
+    if(reduce)return;
+    var els=[].slice.call(document.querySelectorAll('[data-parallax]')); if(!els.length)return;
+    var ticking=false;
+    function update(){
+      var vh=innerHeight;
+      els.forEach(function(el){
+        var c=el.parentElement.getBoundingClientRect();
+        if(c.bottom<-80||c.top>vh+80)return;
+        var prog=((c.top+c.height/2)-vh/2)/vh;     // ~ -0.7..0.7 across the viewport
+        el.style.transform='translate3d(0,'+(prog*-56).toFixed(1)+'px,0)';
+      });
+      ticking=false;
+    }
+    addEventListener('scroll',function(){if(!ticking){requestAnimationFrame(update);ticking=true;}},{passive:true});
+    addEventListener('resize',update,{passive:true});
+    update();
+  })();
 
   // hero: clients drifting in the database sea; a glowing few are the VICs
   (function(){
