@@ -301,7 +301,10 @@
           <h1 class="title">Hidden VICs</h1>
           <p class="sub">High-potential clients your spend thresholds miss — surfaced from how they already buy and where they ship.</p>
         </div>
-        <div class="live"><span class="pulse"></span> Scored from your data · <span class="mono">__STAT_SCORED__</span> customers</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+          <div class="live"><span class="pulse"></span> Scored from your data · <span class="mono">__STAT_SCORED__</span> customers</div>
+          <a href="https://www.klaviyo.com/lists-segments" target="_blank" rel="noopener" style="font-size:12.5px;color:var(--brand);font-weight:600;text-decoration:none;white-space:nowrap">Campaign these in Klaviyo ↗</a>
+        </div>
       </div>
 
       <!-- stats -->
@@ -573,11 +576,6 @@ function openDrawer(id){
         ${c.signals.map(s=>`<div class="ev"><span class="badge">${SEGMENTS[s.seg].label}</span><div class="d">${s.d}${s.x?`<small>${s.x}</small>`:""}</div></div>`).join("")}
       </div>
 
-      <div class="reco">
-        <div class="k">Recommended approach</div>
-        <p>${c.reco}</p>
-      </div>
-
       <div class="dlabel">Order history${c.orders&&c.orders.length?` · ${c.orders.length}`:""}</div>
       <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
         ${(c.orders&&c.orders.length)
@@ -591,14 +589,21 @@ function openDrawer(id){
     </div>
     <div class="dactions">
       ${c.shopifyUrl?`<a class="dbtn" href="${c.shopifyUrl}" target="_top">Open in Shopify</a>`:""}
-      <button class="dbtn primary" id="dpush">Sync to Klaviyo</button>
+      <button class="dbtn primary" id="dpush">Email in Klaviyo →</button>
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   document.getElementById("dclose").onclick=closeDrawer;
-  document.getElementById("dpush").onclick=async()=>{
-    const b=document.getElementById("dpush"); b.disabled=true; b.textContent="Syncing…";
-    await haliaPush([c.cid]);
-    b.disabled=false; b.textContent="Sync to Klaviyo";
+  // Ensure the client is in Klaviyo, then jump straight to their profile to action them.
+  document.getElementById("dpush").onclick=()=>{
+    const w=window.open("","_blank");               // open synchronously to dodge popup blockers
+    const b=document.getElementById("dpush"); b.disabled=true; b.textContent="Opening…";
+    fetch("/v1/klaviyo/open",{method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({customer_id:c.cid})})
+      .then(r=>r.json().then(d=>({ok:r.ok,d})))
+      .then(({ok,d})=>{ if(!ok) throw new Error(d.detail||("HTTP "+0));
+        if(w){w.location=d.url}else{window.open(d.url,"_blank")} })
+      .catch(e=>{ if(w)w.close(); toast("Couldn't open in Klaviyo: "+e.message); })
+      .finally(()=>{ b.disabled=false; b.textContent="Email in Klaviyo →"; });
   };
 }
 function closeDrawer(){drawer.classList.remove("show");scrim.classList.remove("show");drawer.setAttribute("aria-hidden","true");}

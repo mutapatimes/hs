@@ -45,6 +45,28 @@ def register(app, get_store) -> None:
             segments = {"warning": str(exc)[:200]}
         return {"connected": True, "segments": segments}
 
+    @app.post("/v1/klaviyo/open")
+    def klaviyo_open(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
+        """Ensure the client is in Klaviyo and return a deep link to their profile —
+        so the merchant lands right where they can email / flow / action them."""
+        key = _key_for(shop)
+        if not key:
+            raise HTTPException(400, "Connect Klaviyo first (add your private API key).")
+        cid = (payload or {}).get("customer_id")
+        result = get_store().get_by_customer_id(shop, cid)
+        if not result or not result.email:
+            raise HTTPException(404, "No emailable customer for that id.")
+        from halia.adapters.klaviyo_sink import KlaviyoError, KlaviyoSink
+
+        try:
+            resp = KlaviyoSink(api_key=key).push_one(result)  # upserts + returns the profile
+        except KlaviyoError as exc:
+            raise HTTPException(502, f"Klaviyo rejected it: {exc}")
+        pid = (resp.get("data") or {}).get("id")
+        if not pid:
+            raise HTTPException(502, "Klaviyo didn't return a profile id.")
+        return {"url": f"https://www.klaviyo.com/profile/{pid}"}
+
     @app.post("/v1/klaviyo/push")
     def klaviyo_push(shop: str = Depends(require_shop), payload: Any = Body(None)) -> dict:
         key = _key_for(shop)
