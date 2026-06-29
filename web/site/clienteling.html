@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The case for clienteling · Halia</title>
+<meta name="description" content="In luxury the 80/20 rule is the business model: a small tier of clients drives most of the revenue. Clienteling is how the great houses find and keep them, and how Halia surfaces the hidden ones.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0a0b;--bg-2:#0e0e10;--ink:#f4f1ea;--mute:#8c887f;--faint:#56534d;--gold:#d8d2c6;
+    --line:rgba(255,255,255,.12);--line-2:rgba(255,255,255,.07);
+    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}::selection{background:var(--gold);color:#1a1408}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 40px}.narrow{max-width:880px}
+  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+  h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.04}
+  .display{font-size:clamp(46px,7.2vw,94px)}.h2{font-size:clamp(32px,4.6vw,58px)}
+  em{font-style:italic;color:var(--gold)}
+  .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);line-height:1.5}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:999px;border:1px solid var(--ink);color:#0a0a0b;background:var(--ink);transition:.25s}
+  .btn:hover{background:transparent;color:var(--ink)}.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
+  .arrow{transition:transform .25s}.btn:hover .arrow{transform:translateX(4px)}
+  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(10,10,11,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px}.brand svg{width:22px;height:22px}
+  .nav-links{display:flex;gap:30px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
+  .nav .right{display:flex;gap:20px;align-items:center}.nav .right .si{font:500 14px var(--sans);color:var(--mute)}
+  @media(max-width:980px){.nav-links{display:none}}
+  section{position:relative}.pad{padding:clamp(80px,11vh,140px) 0}
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity 1s cubic-bezier(.2,.6,.2,1),transform 1s cubic-bezier(.2,.6,.2,1)}.reveal.in{opacity:1;transform:none}.reveal.d1{transition-delay:.1s}.reveal.d2{transition-delay:.2s}
+  .phero{padding:172px 0 40px}.phero h1{margin:18px 0 28px;max-width:15ch}.phero .lede{max-width:56ch}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,7vw,100px);align-items:center;padding:clamp(60px,8vh,100px) 0}
+  .split.rev .media{order:2}
+  .media{border-radius:4px;overflow:hidden;aspect-ratio:4/5}.media img{width:100%;height:100%;object-fit:cover;display:block}
+  .copy h2{margin-bottom:20px}.copy p{color:var(--mute);font-size:17px;max-width:46ch}
+  .big{font-family:var(--serif);font-weight:300;font-size:clamp(40px,8vw,120px);line-height:.9;color:var(--ink)}
+  .big small{font-family:var(--sans);font-weight:500;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);display:block;margin-top:18px}
+  /* Pareto chart */
+  .chartwrap{display:grid;grid-template-columns:1.25fr 1fr;gap:clamp(40px,6vw,80px);align-items:center;margin-top:20px}
+  .pareto{position:relative;width:100%}
+  .pareto svg{width:100%;height:auto;display:block;overflow:visible}
+  .pbar{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);transition:transform .9s cubic-bezier(.2,.7,.2,1)}
+  .pareto.in .pbar{transform:scaleY(1)}
+  .pline{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-dasharray:1;stroke-dashoffset:1;}
+  .pareto.in .pline{transition:stroke-dashoffset 1.7s ease .35s;stroke-dashoffset:0}
+  .pdash{stroke:var(--faint);stroke-width:1;stroke-dasharray:3 4;opacity:0}.pareto.in .pdash{opacity:1;transition:opacity .6s ease .9s}
+  .plabel{font:500 10px var(--sans);fill:var(--faint);letter-spacing:.08em}
+  .pdot{fill:var(--ink);opacity:0}.pareto.in .pdot{opacity:1;transition:opacity .4s ease 1.5s}
+  .chart-side .eyebrow{margin-bottom:18px}.chart-side p{color:var(--mute);font-size:16px;max-width:38ch}
+  /* tiers */
+  .tiers{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
+  .tier{border:1px solid var(--line);border-radius:12px;padding:34px 32px}
+  .tier.vic{border-color:rgba(216,210,198,.32)}
+  .tier .tt{font-family:var(--serif);font-size:26px;margin-bottom:6px}
+  .tier .ts{font:500 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-bottom:18px}
+  .tier p{color:var(--mute);font-size:15.5px;margin:0}
+  /* playbook */
+  .play{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .pcard{border-top:1px solid var(--line);padding-top:22px}
+  .pcard .pn{font-family:var(--serif);font-size:15px;color:var(--faint)}.pcard h3{font-family:var(--sans);font-weight:500;font-size:16px;margin:12px 0 8px}.pcard p{color:var(--mute);font-size:14px;margin:0}
+  .final{text-align:center}.final h2{margin-bottom:18px}
+  footer{border-top:1px solid var(--line);padding:60px 0 44px;margin-top:30px}
+  .foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:var(--faint);font-size:13px}
+  .legal-nav{display:flex;gap:20px;flex-wrap:wrap}.legal-nav a{color:var(--mute)}
+  @media(max-width:900px){.split,.tiers,.play,.chartwrap{grid-template-columns:1fr}.split.rev .media{order:0}.play{grid-template-columns:1fr 1fr}}
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}.pbar{transform:none}.pline{stroke-dashoffset:0}.pdash,.pdot{opacity:1}}
+</style>
+</head>
+<body>
+<header id="hdr"><div class="wrap nav">
+  <a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#d8d2c6"/></svg>Halia</a>
+  <nav class="nav-links"><a href="/#engine">The engine</a><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/security">Security</a></nav>
+  <div class="right"><a class="si" href="/app">Sign in</a><a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a></div>
+</div></header>
+
+<section class="phero"><div class="wrap">
+  <div class="eyebrow reveal in">The case for clienteling</div>
+  <h1 class="display reveal in d1">A handful of clients are worth all the <em>rest.</em></h1>
+  <p class="lede reveal in d1">In luxury, the eighty-twenty rule is not a rule of thumb. It is the business model.
+    A small tier of clients drives most of the revenue, and the very top of that tier drives most of it
+    again. Clienteling is how the great houses find those people and keep them.</p>
+</div></section>
+
+<!-- PARETO -->
+<section class="pad"><div class="wrap">
+  <div class="eyebrow reveal" style="margin-bottom:18px">The eighty-twenty of luxury</div>
+  <h2 class="h2 reveal" style="margin-bottom:14px;max-width:20ch">Twenty percent of clients. Eighty percent of revenue.</h2>
+  <div class="chartwrap">
+    <div class="pareto reveal d1" id="pareto"></div>
+    <div class="chart-side reveal d2">
+      <div class="eyebrow">Why it matters</div>
+      <p>Vilfredo Pareto noticed that eighty percent of Italy's land sat with twenty percent of its
+        people. The same imbalance runs through retail, and in luxury it is sharper still. The top tier
+        can account for well over eighty percent of sales, a resilient base that carries a brand through
+        the downturns the broader market feels first.</p>
+    </div>
+  </div>
+</div></section>
+
+<!-- TIERS -->
+<section class="pad" style="background:var(--bg-2)"><div class="wrap">
+  <div class="eyebrow reveal" style="margin-bottom:18px">Who they are</div>
+  <h2 class="h2 reveal" style="margin-bottom:44px;max-width:18ch">Not every client is the same client.</h2>
+  <div class="tiers">
+    <div class="tier vic reveal"><div class="tt">VICs</div><div class="ts">Very Important Clients · the vital few</div>
+      <p>The true loyalists. Ultra-wealthy, buying across seasons, and placing real value on bespoke
+        service, private events, and made-to-measure. Small in number, vast in value, and largely
+        insulated from the cycles that move everyone else.</p></div>
+    <div class="tier reveal d1"><div class="tt">Aspirational clients</div><div class="ts">The other eighty percent</div>
+      <p>Less frequent, entry-level purchases: small leather goods, fragrance, accessible pieces. More
+        exposed to economic pressure, but the pipeline that brings new blood to a brand, and the tier
+        where tomorrow's VICs are quietly hiding.</p></div>
+  </div>
+</div></section>
+
+<!-- PLAYBOOK -->
+<section class="pad"><div class="wrap">
+  <div class="eyebrow reveal" style="margin-bottom:18px">The clienteling playbook</div>
+  <h2 class="h2 reveal" style="margin-bottom:48px">Recognition, not discounts.</h2>
+  <div class="play">
+    <div class="pcard reveal"><div class="pn">01</div><h3>Invitation-only events</h3><p>Private viewings, trunk shows, and townhouse appointments closed to the public.</p></div>
+    <div class="pcard reveal d1"><div class="pn">02</div><h3>Bespoke and made-to-order</h3><p>Customization and special-order programs for clients who expect the ultimate.</p></div>
+    <div class="pcard reveal d2"><div class="pn">03</div><h3>Dedicated client advisors</h3><p>Not associates, but relationship managers who know a client's taste, history, and milestones.</p></div>
+    <div class="pcard reveal d2"><div class="pn">04</div><h3>Private salons</h3><p>Discreet suites where top clients shop with absolute discretion and personal hospitality.</p></div>
+  </div>
+</div></section>
+
+<!-- HIDDEN A (the Halia thesis) -->
+<div class="wrap"><div class="split reveal">
+  <div class="media"><img src="img/every_record_is_yours.jpg" alt="Hidden value" loading="lazy"></div>
+  <div class="copy">
+    <div class="eyebrow" style="margin-bottom:18px">The part most brands miss</div>
+    <h2 class="h2">Your top twenty percent is <em>not fixed.</em></h2>
+    <p>The mistake is to treat clienteling as a list of your current biggest spenders. Real value hides.
+      A client who looks like a B today can be an A tomorrow, through future spend, a referral, or the
+      great wealth transfer now moving trillions between generations. Some of your most valuable clients
+      have placed a single modest order and are simply waiting to be recognised. Find them early and you
+      do not just keep your twenty percent. You grow it.</p>
+  </div>
+</div></div>
+
+<!-- HALIA -->
+<section class="pad"><div class="wrap narrow" style="text-align:center">
+  <div class="eyebrow reveal" style="margin-bottom:22px">Where Halia comes in</div>
+  <h2 class="h2 reveal" style="margin-bottom:24px">We find the twenty percent<br>hiding in your eighty.</h2>
+  <p class="lede reveal d1" style="margin:0 auto;max-width:50ch">Halia reads the wealth and intent signals already
+    in your customer data and surfaces the hidden VICs, the quiet high-value clients you would otherwise
+    treat like everyone else, so your clienteling reaches the right people first.</p>
+</div></section>
+
+<section class="pad final" style="padding-top:0"><div class="wrap reveal">
+  <a class="btn" href="/connect">Find your hidden VICs <span class="arrow">→</span></a>
+  <div style="margin-top:18px"><a href="/#how" style="color:var(--mute);font-size:14px">See how it works</a></div>
+</div></section>
+
+<footer><div class="wrap foot">
+  <span>© 2026 Halia. All rights reserved.</span>
+  <div class="legal-nav"><a href="/solutions">Solutions</a><a href="/security">Security</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="mailto:hello@halia.app">Contact</a></div>
+</div></footer>
+<script>
+  var hdr=document.getElementById('hdr');addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.14,rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el);});
+
+  // Pareto chart: decile revenue bars + cumulative line; top 20% highlighted.
+  (function(){
+    var host=document.getElementById('pareto'); if(!host) return;
+    var share=[55,25,8,5,3,2,1,0.6,0.3,0.1];           // revenue share per client decile
+    var cum=[],run=0; share.forEach(function(s){run+=s;cum.push(run);});
+    var W=560,H=300,padL=14,padR=14,padT=16,padB=34;
+    var pw=W-padL-padR, ph=H-padT-padB, n=share.length, base=H-padB, max=55*1.06;
+    var bw=pw/n*0.6;
+    var bars="",dots="";
+    for(var i=0;i<n;i++){
+      var cx=padL+(i+0.5)*pw/n, bh=share[i]/max*ph, top=base-bh;
+      var hot=i<2;  // top 20%
+      bars+='<rect class="pbar" x="'+(cx-bw/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+
+        '" height="'+bh.toFixed(1)+'" rx="2" fill="'+(hot?'#f4f1ea':'rgba(255,255,255,.14)')+
+        '" style="transition-delay:'+(i*0.05).toFixed(2)+'s"><title>Decile '+(i+1)+': '+share[i]+'% of revenue</title></rect>';
+      var ly=base-cum[i]/100*ph;
+      dots+='<circle class="pdot" cx="'+cx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="2.4"/>';
+    }
+    var pts=[]; for(var j=0;j<n;j++){var cx=padL+(j+0.5)*pw/n, ly=base-cum[j]/100*ph; pts.push(cx.toFixed(1)+','+ly.toFixed(1));}
+    var y80=base-0.8*ph;
+    var svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Pareto chart: 20% of clients drive 80% of revenue">'
+      +'<line class="pdash" x1="'+padL+'" y1="'+y80.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y80.toFixed(1)+'"/>'
+      +'<text class="plabel" x="'+(W-padR)+'" y="'+(y80-7).toFixed(1)+'" text-anchor="end">80% of revenue</text>'
+      +bars
+      +'<polyline class="pline" points="'+pts.join(' ')+'" pathLength="1"/>'
+      +dots
+      +'<text class="plabel" x="'+(padL+pw*0.1)+'" y="'+(base+20)+'" text-anchor="middle">Top 20%</text>'
+      +'<text class="plabel" x="'+(padL+pw*0.62)+'" y="'+(base+20)+'" text-anchor="middle">Everyone else</text>'
+      +'<text class="plabel" x="'+padL+'" y="'+(base+20)+'" text-anchor="start" style="fill:var(--mute)">Clients, ranked by value →</text>'
+      +'</svg>';
+    host.innerHTML=svg;
+  })();
+</script>
+</body>
+</html>
