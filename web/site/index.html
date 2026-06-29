@@ -156,6 +156,39 @@
     @keyframes flowv{0%{top:-3%;opacity:0}12%{opacity:1}88%{opacity:1}100%{top:103%;opacity:0}}
   }
 
+  /* data: sortable table + charts */
+  .tbl{overflow-x:auto;margin-bottom:84px}
+  table#vicTable{width:100%;border-collapse:collapse;min-width:720px}
+  #vicTable th{font:500 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+    text-align:left;padding:0 18px 16px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none;transition:color .2s}
+  #vicTable th.num{text-align:right}#vicTable th:hover{color:var(--ink)}
+  #vicTable th .ar{font-size:9px;margin-left:6px;color:var(--ink)}
+  #vicTable td{padding:18px;border-bottom:1px solid var(--line-2);font-size:14px;color:var(--mute);vertical-align:middle}
+  #vicTable td.num{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+  #vicTable td.cl{color:var(--ink);font-weight:500}
+  #vicTable tbody tr{transition:background .2s}#vicTable tbody tr:hover{background:rgba(255,255,255,.025)}
+  .gchip{display:inline-block;font:600 11px var(--sans);padding:3px 9px;border-radius:6px}
+  .g-as{background:#f4f1ea;color:#0a0a0b}.g-a{background:rgba(244,241,234,.18);color:var(--ink)}
+  .g-b{background:rgba(255,255,255,.07);color:var(--mute)}.g-c{color:var(--faint)}
+  .stags{display:flex;gap:6px;flex-wrap:wrap}
+  .stag{font:500 11.5px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+  .tbl-hint{font-size:12px;color:var(--faint);margin-top:16px}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:clamp(44px,7vw,96px)}
+  .chart h3{font:500 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 28px}
+  .stack{display:flex;height:14px;border-radius:7px;overflow:hidden;margin-bottom:26px}
+  .stack .seg{transition:filter .25s}.stack .seg:hover{filter:brightness(1.3)}
+  .glegend{display:flex;flex-direction:column;gap:14px}
+  .glegend .gi{display:flex;align-items:center;justify-content:space-between;font-size:14px}
+  .glegend .gi .lab{display:flex;align-items:center;gap:11px;color:var(--mute)}
+  .glegend .gi .sw{width:10px;height:10px;border-radius:3px;flex:none}
+  .glegend .gi .val{color:var(--ink);font-variant-numeric:tabular-nums}
+  .hbar{margin-bottom:20px}
+  .hbar .hl{display:flex;justify-content:space-between;font-size:13.5px;color:var(--mute);margin-bottom:8px}
+  .hbar .hl b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+  .hbar .tr{height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+  .hbar .tr i{display:block;height:100%;width:0;background:var(--ink);border-radius:3px;transition:width 1.2s cubic-bezier(.2,.7,.2,1)}
+  @media(max-width:900px){.charts{grid-template-columns:1fr;gap:60px}}
+
   /* signals */
   .sig-head{max-width:30ch;margin-bottom:60px}
   .sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);
@@ -232,8 +265,8 @@
   <nav class="nav-links">
     <a href="#engine">The engine</a>
     <a href="#how">How it works</a>
-    <a href="#teams">For teams</a>
-    <a href="#security">Security</a>
+    <a href="/solutions">Solutions</a>
+    <a href="/security">Security</a>
   </nav>
   <div class="right">
     <a class="si" href="/app">Sign in</a>
@@ -328,6 +361,36 @@
     customer database sitting on anyone else's servers.</p>
 </div></section>
 
+<!-- INSIDE THE DASHBOARD: interactive table + charts -->
+<section id="dashboard" class="pad"><div class="wrap">
+  <div class="sig-head reveal" style="max-width:34ch">
+    <div class="eyebrow" style="margin-bottom:20px">Inside the dashboard</div>
+    <h2 class="h2">A clear read on<br>every customer.</h2>
+  </div>
+  <div class="tbl reveal d1">
+    <table id="vicTable"><thead><tr>
+      <th data-k="client">Client</th>
+      <th data-k="grade">Grade</th>
+      <th data-k="score" class="num">Score</th>
+      <th data-k="spend" class="num">Spend</th>
+      <th data-k="latent" class="num">Latent value</th>
+      <th data-k="signals">Signals</th>
+    </tr></thead><tbody></tbody></table>
+    <div class="tbl-hint">Sample data. Click a column to sort.</div>
+  </div>
+  <div class="charts reveal d2">
+    <div class="chart">
+      <h3>Grade distribution</h3>
+      <div class="stack" id="gradeStack"></div>
+      <div class="glegend" id="gradeLegend"></div>
+    </div>
+    <div class="chart">
+      <h3>Signals firing most</h3>
+      <div id="sigChart"></div>
+    </div>
+  </div>
+</div></section>
+
 <!-- BLEED -->
 <section class="bleed">
   <img src="img/fish_eagle.jpg" alt="" loading="lazy">
@@ -392,7 +455,18 @@
     <div class="sol reveal d2"><img src="img/jewellery.jpg" alt="Jewellery" loading="lazy"><div class="lab"><h3>Jewellery &amp; Watches</h3><p>Quiet wealth behind a modest order.</p></div></div>
     <div class="sol reveal d3"><img src="img/homeware.jpg" alt="Homeware" loading="lazy"><div class="lab"><h3>Home &amp; Lifestyle</h3><p>The trade and trophy-address clients.</p></div></div>
   </div>
+  <div class="reveal d1" style="margin-top:46px"><a class="btn ghost" href="/solutions">Explore solutions in depth <span class="arrow">→</span></a></div>
 </div></section>
+
+<!-- IMAGE STATEMENT (negative space) -->
+<section class="bleed" style="height:80vh;min-height:520px">
+  <img src="img/general.jpg" alt="" loading="lazy">
+  <div class="veil2" style="background:linear-gradient(90deg,rgba(8,8,9,.6),rgba(8,8,9,.2) 55%,transparent)"></div>
+  <div class="wrap"><div class="inner reveal">
+    <h2 style="max-width:16ch">A handful of clients are worth more than the rest combined.</h2>
+    <p style="max-width:36ch">Halia makes sure you know exactly who they are.</p>
+  </div></div>
+</section>
 
 <!-- SECURITY (deep) -->
 <section id="security" class="pad" style="background:var(--bg-2)"><div class="wrap">
@@ -548,6 +622,58 @@
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
+  })();
+
+  // dashboard: sortable VIC table
+  (function(){
+    var tb=document.querySelector('#vicTable tbody'); if(!tb) return;
+    var VIC=[
+      {client:'A. Okonkwo',grade:'A*',score:96,spend:420,latent:48000,sig:['Work email','Mayfair postcode','Premium card']},
+      {client:'S. Volkov',grade:'A*',score:93,spend:260,latent:50000,sig:['Family office','Honorific','Concierge delivery']},
+      {client:'C. Dubois',grade:'A*',score:91,spend:330,latent:44000,sig:['Wealth domain','Honorific']},
+      {client:'R. Carter',grade:'A',score:82,spend:680,latent:36000,sig:['Fashion stylist','Company billing']},
+      {client:'H. Nakamura',grade:'A',score:78,spend:910,latent:30000,sig:['Premium card','HNW area']},
+      {client:'L. Marchetti',grade:'B',score:64,spend:140,latent:18000,sig:['Premium email','Prime residence']},
+      {client:'P. Karlsson',grade:'B',score:61,spend:200,latent:16000,sig:['Premium email','Foreign currency']},
+      {client:'M. Adeyemi',grade:'B',score:57,spend:75,latent:14000,sig:['Company billing']}
+    ];
+    var ORD={'A*':4,'A':3,'B':2,'C':1};
+    function chip(g){var c=g==='A*'?'g-as':g==='A'?'g-a':g==='B'?'g-b':'g-c';return '<span class="gchip '+c+'">'+g+'</span>';}
+    function money(n){return '£'+(n>=1000?(n/1000).toFixed(n>=10000?0:1)+'k':n);}
+    function render(rows){tb.innerHTML=rows.map(function(r){return '<tr><td class="cl">'+r.client+
+      '</td><td>'+chip(r.grade)+'</td><td class="num">'+r.score+'</td><td class="num">'+money(r.spend)+
+      '</td><td class="num">'+money(r.latent)+'</td><td><div class="stags">'+
+      r.sig.map(function(s){return '<span class="stag">'+s+'</span>';}).join('')+'</div></td></tr>';}).join('');}
+    render(VIC);
+    var dir={};
+    document.querySelectorAll('#vicTable th').forEach(function(th){
+      th.addEventListener('click',function(){
+        var k=th.dataset.k; dir[k]=!dir[k]; var d=dir[k]?1:-1;
+        var rows=VIC.slice().sort(function(a,b){
+          var av=k==='grade'?ORD[a.grade]:a[k], bv=k==='grade'?ORD[b.grade]:b[k];
+          if(k==='signals'){av=a.sig.length;bv=b.sig.length;}
+          return typeof av==='string'?av.localeCompare(bv)*d:(av-bv)*d;});
+        render(rows);
+        document.querySelectorAll('#vicTable th .ar').forEach(function(a){a.remove();});
+        th.insertAdjacentHTML('beforeend','<span class="ar">'+(dir[k]?'▲':'▼')+'</span>');
+      });
+    });
+  })();
+
+  // dashboard: grade distribution (stacked) + top signals (animated bars)
+  (function(){
+    var stack=document.getElementById('gradeStack'), leg=document.getElementById('gradeLegend'),
+        sigc=document.getElementById('sigChart'); if(!stack) return;
+    var G=[{l:'A*',v:0.2,n:'~0.2%',c:'#f4f1ea'},{l:'A',v:1.4,n:'~1.4%',c:'rgba(244,241,234,.55)'},
+           {l:'B',v:18,n:'~18%',c:'rgba(255,255,255,.22)'},{l:'C',v:80.4,n:'~80%',c:'rgba(255,255,255,.1)'}];
+    stack.innerHTML=G.map(function(g){return '<div class="seg" style="width:'+g.v+'%;background:'+g.c+'" title="'+g.l+' '+g.n+'"></div>';}).join('');
+    leg.innerHTML=G.map(function(g){return '<div class="gi"><span class="lab"><span class="sw" style="background:'+g.c+'"></span>Grade '+g.l+'</span><span class="val">'+g.n+'</span></div>';}).join('');
+    var S=[{l:'Custom domain',v:74},{l:'Premium email',v:38},{l:'Company billing',v:22},
+           {l:'HNWI postcode',v:18},{l:'Honorific',v:11},{l:'Fashion stylist',v:6}];
+    sigc.innerHTML=S.map(function(s){return '<div class="hbar"><div class="hl"><span>'+s.l+'</span><b>'+s.v+'%</b></div><div class="tr"><i data-w="'+s.v+'"></i></div></div>';}).join('');
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){
+      sigc.querySelectorAll('i').forEach(function(i){i.style.width=i.dataset.w+'%';});io.disconnect();}});},{threshold:.3});
+    io.observe(sigc);
   })();
 </script>
 </body>

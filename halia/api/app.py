@@ -37,17 +37,18 @@ if _IMG_DIR.is_dir():
 # Static legal / overview pages (Privacy, Terms, Cookies, Security).
 from fastapi.responses import HTMLResponse as _HTML  # noqa: E402
 
-_LEGAL_DIR = _ROOT / "web" / "site" / "legal"
+_SITE_DIR = _ROOT / "web" / "site"
 
 
 def _serve_page(name: str) -> _HTML:
-    f = _LEGAL_DIR / f"{name}.html"
-    if not f.is_file():
-        raise HTTPException(404, "Page not found")
-    return _HTML(f.read_text(encoding="utf-8"))
+    # Marketing pages live in web/site/, plain legal pages in web/site/legal/.
+    for f in (_SITE_DIR / f"{name}.html", _SITE_DIR / "legal" / f"{name}.html"):
+        if f.is_file():
+            return _HTML(f.read_text(encoding="utf-8"))
+    raise HTTPException(404, "Page not found")
 
 
-for _name in ("privacy", "terms", "cookies", "security"):
+for _name in ("solutions", "security", "privacy", "terms", "cookies"):
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
                       methods=["GET"], include_in_schema=False, response_class=_HTML)
 

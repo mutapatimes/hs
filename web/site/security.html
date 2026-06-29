@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security · Halia</title>
+<meta name="description" content="Halia is built zero-retention. Your customers are read in real time, scored in memory, and never stored. The only secret we keep is one encrypted, read-only key.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0a0b;--bg-2:#0e0e10;--ink:#f4f1ea;--mute:#8c887f;--faint:#56534d;--gold:#d8d2c6;
+    --line:rgba(255,255,255,.12);--line-2:rgba(255,255,255,.07);
+    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}::selection{background:var(--gold);color:#1a1408}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 40px}.narrow{max-width:900px}
+  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+  h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.04}
+  .display{font-size:clamp(46px,7.4vw,96px)}.h2{font-size:clamp(32px,4.6vw,56px)}
+  em{font-style:italic;color:var(--gold)}
+  .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);line-height:1.5}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:999px;border:1px solid var(--ink);color:#0a0a0b;background:var(--ink);transition:.25s}
+  .btn:hover{background:transparent;color:var(--ink)}.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
+  .arrow{transition:transform .25s}.btn:hover .arrow{transform:translateX(4px)}
+  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(10,10,11,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px}.brand svg{width:22px;height:22px}
+  .nav-links{display:flex;gap:32px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
+  .nav .right{display:flex;gap:20px;align-items:center}.nav .right .si{font:500 14px var(--sans);color:var(--mute)}
+  @media(max-width:900px){.nav-links{display:none}}
+  section{position:relative}.pad{padding:clamp(80px,11vh,140px) 0}
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity 1s cubic-bezier(.2,.6,.2,1),transform 1s cubic-bezier(.2,.6,.2,1)}.reveal.in{opacity:1;transform:none}.reveal.d1{transition-delay:.1s}.reveal.d2{transition-delay:.2s}
+  .phero{padding:170px 0 30px}.phero h1{margin:18px 0 26px;max-width:15ch}.phero .lede{max-width:54ch}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,7vw,100px);align-items:center;padding:clamp(60px,8vh,100px) 0}
+  .split.rev .media{order:2}
+  .media{border-radius:4px;overflow:hidden;aspect-ratio:4/5}.media img{width:100%;height:100%;object-fit:cover;display:block}
+  .copy h2{margin-bottom:20px}.copy p{color:var(--mute);font-size:17px;max-width:46ch}
+  /* flow diagram */
+  .flow{display:grid;grid-template-columns:1fr auto 1.1fr auto 1fr;align-items:stretch;margin-top:10px}
+  .fnode{border:1px solid var(--line);border-radius:10px;padding:24px 22px;background:var(--bg);display:flex;flex-direction:column;gap:10px;min-height:150px}
+  .fnode.hub{background:linear-gradient(180deg,#16160f,#0c0c0d);border-color:rgba(216,210,198,.34)}
+  .fnode .fh{font-weight:500;font-size:16px}.fnode .fs{color:var(--mute);font-size:13.5px}
+  .fnode .fl{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-top:auto}
+  .conn{position:relative;min-width:60px;align-self:center;height:1px;background:var(--line)}
+  .conn .dot{position:absolute;top:-2.5px;width:6px;height:6px;border-radius:50%;background:var(--ink);box-shadow:0 0 10px rgba(244,241,234,.7);animation:flow 2.6s linear infinite}.conn.d2 .dot{animation-delay:1.3s}
+  @keyframes flow{0%{left:-3%;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:103%;opacity:0}}
+  .nostore{text-align:center;color:var(--faint);font:500 12px var(--sans);letter-spacing:.14em;text-transform:uppercase;margin-top:26px}
+  /* compare */
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
+  .cc{border:1px solid var(--line);border-radius:12px;padding:30px 28px}
+  .cc.no{border-color:rgba(216,210,198,.3)}
+  .cc h3{font-family:var(--sans);font-weight:600;font-size:14px;letter-spacing:.04em;margin:0 0 18px;display:flex;align-items:center;gap:10px}
+  .cc .mk{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex:none}
+  .cc.yes .mk{background:rgba(255,255,255,.1);color:var(--ink)}.cc.no .mk{background:#f4f1ea;color:#0a0a0b}
+  .cc ul{list-style:none;margin:0;padding:0}.cc li{padding:9px 0;border-top:1px solid var(--line-2);color:var(--mute);font-size:14.5px}
+  .cc li:first-child{border-top:0}
+  /* points */
+  .points{display:grid;grid-template-columns:repeat(3,1fr);gap:34px}
+  .pt .pn{font-family:var(--serif);font-size:15px;color:var(--faint)}.pt h3{font-family:var(--sans);font-weight:500;font-size:16px;margin:10px 0 8px}.pt p{color:var(--mute);font-size:14px;margin:0}
+  .final{text-align:center}.final h2{margin-bottom:18px}
+  footer{border-top:1px solid var(--line);padding:60px 0 44px;margin-top:30px}
+  .foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:var(--faint);font-size:13px}
+  .legal-nav{display:flex;gap:20px;flex-wrap:wrap}.legal-nav a{color:var(--mute)}
+  @media(max-width:900px){
+    .split,.compare,.points{grid-template-columns:1fr}.split.rev .media{order:0}
+    .flow{grid-template-columns:1fr;gap:14px}.conn{min-width:0;width:1px;height:28px;justify-self:center}
+    .conn .dot{animation:flowv 2.6s linear infinite;left:-2.5px;top:auto}
+    @keyframes flowv{0%{top:-3%;opacity:0}12%{opacity:1}88%{opacity:1}100%{top:103%;opacity:0}}
+  }
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}.conn .dot{animation:none}}
+</style>
+</head>
+<body>
+<header id="hdr"><div class="wrap nav">
+  <a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#d8d2c6"/></svg>Halia</a>
+  <nav class="nav-links"><a href="/#engine">The engine</a><a href="/#how">How it works</a><a href="/solutions">Solutions</a><a href="/security">Security</a></nav>
+  <div class="right"><a class="si" href="/app">Sign in</a><a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a></div>
+</div></header>
+
+<section class="phero"><div class="wrap">
+  <div class="eyebrow reveal in">Security &amp; data</div>
+  <h1 class="display reveal in d1">Built so we never hold your <em>customers.</em></h1>
+  <p class="lede reveal in d1">The strongest way to keep your customers' data safe is to never hold it.
+    So we do not. Halia reads your customers in real time, scores them in memory, and discards them
+    within minutes. There is no standing copy of your customer base on our side to leak, lose, or be
+    compelled to hand over.</p>
+</div></section>
+
+<!-- ARCHITECTURE -->
+<section class="pad"><div class="wrap">
+  <div class="eyebrow reveal" style="margin-bottom:18px">Zero-retention architecture</div>
+  <h2 class="h2 reveal" style="margin-bottom:48px;max-width:18ch">Your data flows through Halia. It never settles in it.</h2>
+  <div class="flow reveal d1">
+    <div class="fnode"><div class="fh">Your store</div><div class="fs">Shopify or WooCommerce, your data, your servers.</div><div class="fl">Read-only</div></div>
+    <div class="conn"><span class="dot"></span></div>
+    <div class="fnode hub"><div class="fh">Halia</div><div class="fs">Reads customers, scores them in memory, then discards them.</div><div class="fl">Nothing written to disk</div></div>
+    <div class="conn d2"><span class="dot"></span></div>
+    <div class="fnode"><div class="fh">Your tools</div><div class="fs">Grades and segments land in Klaviyo, Mailchimp, or your team's view.</div><div class="fl">You stay in control</div></div>
+  </div>
+  <div class="nostore reveal d2">No customer database is ever created on Halia's side</div>
+</div></section>
+
+<!-- READ ONLY (image) -->
+<div class="wrap"><div class="split reveal">
+  <div class="media"><img src="img/encrypted.jpg" alt="Encrypted" loading="lazy"></div>
+  <div class="copy">
+    <div class="eyebrow" style="margin-bottom:18px">Read-only by design</div>
+    <h2 class="h2">We can look. We cannot touch.</h2>
+    <p>Halia connects to your store with read-only credentials. We can read orders and customers in
+      order to score them. We cannot change, delete, refund, or place anything. The single secret we
+      hold is that read-only key, encrypted at rest. Revoke it and Halia goes dark in the same moment.</p>
+  </div>
+</div></div>
+
+<!-- COMPARE -->
+<section class="pad"><div class="wrap narrow">
+  <div class="eyebrow reveal" style="margin-bottom:18px">What we keep, and what we never do</div>
+  <h2 class="h2 reveal" style="margin-bottom:44px">A short list, by design.</h2>
+  <div class="compare reveal d1">
+    <div class="cc yes"><h3><span class="mk">+</span>What Halia stores</h3>
+      <ul>
+        <li>Your store URL</li>
+        <li>One encrypted, read-only key</li>
+        <li>Your settings: thresholds, templates, sign-off</li>
+        <li>A one-way hash of your access link</li>
+        <li>A contact email you give us</li>
+      </ul></div>
+    <div class="cc no"><h3><span class="mk">−</span>What Halia never stores</h3>
+      <ul>
+        <li>Your customers' names</li>
+        <li>Their email addresses or phone numbers</li>
+        <li>Their billing or delivery addresses</li>
+        <li>Their orders or payment details</li>
+        <li>Any score or profile derived from the above</li>
+      </ul></div>
+  </div>
+</div></section>
+
+<!-- IN MEMORY (image) -->
+<div class="wrap"><div class="split rev reveal">
+  <div class="media"><img src="img/secure_data.jpg" alt="Secure data" loading="lazy"></div>
+  <div class="copy">
+    <div class="eyebrow" style="margin-bottom:18px">Scored in memory</div>
+    <h2 class="h2">Here for minutes, then gone.</h2>
+    <p>When Halia scores your store, customers are processed in memory and never written to a Halia
+      database. A scoring run lasts minutes, and when it ends the data is gone. Because nothing of your
+      customers lives with us, data-subject access and erasure requests are satisfied on our side by
+      design, not by a manual process.</p>
+  </div>
+</div></div>
+
+<!-- POINTS -->
+<section class="pad"><div class="wrap">
+  <div class="eyebrow reveal" style="margin-bottom:40px">The rest of the posture</div>
+  <div class="points reveal d1">
+    <div class="pt"><div class="pn">01</div><h3>Encryption everywhere</h3><p>Secrets encrypted at rest. Every call to your store and your tools runs over encrypted, authenticated channels.</p></div>
+    <div class="pt"><div class="pn">02</div><h3>You are the controller</h3><p>For your customer data you are the controller and Halia is your processor, acting only on your instructions.</p></div>
+    <div class="pt"><div class="pn">03</div><h3>Instant revocation</h3><p>Disconnect or revoke the key and our access ends immediately. There is nothing left of your customers to delete.</p></div>
+    <div class="pt"><div class="pn">04</div><h3>Short subprocessor list</h3><p>Halia runs on a reputable cloud platform. We keep the list of subprocessors short and share it on request.</p></div>
+    <div class="pt"><div class="pn">05</div><h3>GDPR by design</h3><p>No standing customer data means access, portability, and erasure are answered by the architecture itself.</p></div>
+    <div class="pt"><div class="pn">06</div><h3>Responsible disclosure</h3><p>Found something? Email us. We will acknowledge, work with you, and never pursue good-faith research.</p></div>
+  </div>
+</div></section>
+
+<section class="pad final"><div class="wrap reveal">
+  <div class="eyebrow" style="margin-bottom:24px">Talk to us</div>
+  <h2 class="h2">Security questions are welcome.</h2>
+  <p class="lede" style="max-width:36ch;margin:0 auto 34px">We can provide a data processing agreement and our subprocessor list on request.</p>
+  <a class="btn ghost" href="mailto:hello@halia.app?subject=Halia%20security">Contact us <span class="arrow">→</span></a>
+</div></section>
+
+<footer><div class="wrap foot">
+  <span>© 2026 Halia. All rights reserved. Zero-retention by design.</span>
+  <div class="legal-nav"><a href="/solutions">Solutions</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/cookies">Cookies</a><a href="mailto:hello@halia.app">Contact</a></div>
+</div></footer>
+<script>
+  var hdr=document.getElementById('hdr');addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.14,rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el);});
+</script>
+</body>
+</html>
