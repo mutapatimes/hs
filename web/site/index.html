@@ -14,7 +14,7 @@
 <style>
   :root{
     --bg:#0a0a0b; --bg-2:#0e0e10; --ink:#f4f1ea; --mute:#8c887f; --faint:#56534d;
-    --gold:#c8a86b; --line:rgba(255,255,255,.12); --line-2:rgba(255,255,255,.07);
+    --gold:#d8d2c6; --line:rgba(255,255,255,.12); --line-2:rgba(255,255,255,.07);
     --serif:'Cormorant Garamond',Georgia,serif;
     --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   }
@@ -62,7 +62,7 @@
     linear-gradient(180deg,rgba(10,10,11,.45),rgba(10,10,11,.15) 40%,var(--bg))}
   #fish{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
   .hero .wrap{position:relative;z-index:2;width:100%}
-  .hero .block{max-width:640px;margin-left:auto}     /* push to the right */
+  .hero .block{max-width:660px}
   .hero h1{margin-top:22px}
   .hero .lede{max-width:48ch;margin:28px 0 38px}
   .hero .cta{display:flex;gap:16px;flex-wrap:wrap}
@@ -100,27 +100,40 @@
   .meta b{font-family:var(--serif);font-size:40px;font-weight:400;color:var(--ink);display:block;line-height:1}
   .meta span{font:500 12px var(--sans);letter-spacing:.04em;color:var(--mute)}
 
-  /* node graph canvas */
-  .graph{position:relative;border:1px solid var(--line);border-radius:8px;
-    background:radial-gradient(120% 120% at 70% 10%,#13140f,#0b0b0c);aspect-ratio:1/1;overflow:hidden}
+  /* scoring-engine visualiser (transparent) */
+  .graph{position:relative;aspect-ratio:1/1;overflow:visible}
   .graph canvas{position:absolute;inset:0;width:100%;height:100%}
-  .graph .tag{position:absolute;left:18px;bottom:16px;font:500 11px var(--sans);
-    letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+  .score-node{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    text-align:center;z-index:3;pointer-events:none}
+  .score-node .sv{font-family:var(--serif);font-weight:400;font-size:clamp(54px,8vw,76px);
+    line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+  .score-node .sg{font:500 10.5px var(--sans);letter-spacing:.2em;text-transform:uppercase;
+    color:var(--mute);margin-top:9px}
+  .score-node .sg b{color:var(--ink);font-weight:600}
+  .snode{position:absolute;transform:translate(-50%,-50%);z-index:2;display:flex;align-items:center;
+    gap:7px;font:500 12px var(--sans);color:var(--faint);white-space:nowrap;
+    transition:color .35s,opacity .35s;opacity:.55;pointer-events:none}
+  .snode.lft{flex-direction:row-reverse}
+  .snode .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);
+    transition:background .35s,box-shadow .35s;flex:none}
+  .snode.on{color:var(--ink);opacity:1}
+  .snode.on .dot{background:var(--ink);box-shadow:0 0 12px rgba(244,241,234,.75)}
 
-  /* bleed */
-  .bleed{height:94vh;min-height:600px;display:flex;align-items:center;justify-content:center;
-    text-align:center;position:relative;overflow:hidden}
+  /* bleed (left-aligned) */
+  .bleed{height:94vh;min-height:600px;display:flex;align-items:center;justify-content:flex-start;
+    text-align:left;position:relative;overflow:hidden}
   .bleed img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .bleed .veil2{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,18,.5),rgba(8,10,18,.22))}
-  .bleed .inner{position:relative;z-index:2;color:#fff}
+  .bleed .veil2{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,10,18,.62),rgba(8,10,18,.25) 60%,transparent)}
+  .bleed .wrap{position:relative;z-index:2;width:100%}
+  .bleed .inner{color:#fff;max-width:560px}
   .bleed h2{font-size:clamp(40px,6.6vw,90px)}
-  .bleed p{color:rgba(255,255,255,.78);max-width:40ch;margin:24px auto 0;font-size:18px}
+  .bleed p{color:rgba(255,255,255,.8);max-width:42ch;margin:24px 0 0;font-size:18px}
 
   /* architecture / flow */
   .flow{display:grid;grid-template-columns:1fr auto 1.1fr auto 1fr;align-items:stretch;gap:0;margin-top:8px}
   .fnode{border:1px solid var(--line);border-radius:10px;padding:26px 24px;background:var(--bg);
     display:flex;flex-direction:column;gap:12px;min-height:158px}
-  .fnode.hub{background:linear-gradient(180deg,#14140f,#0c0c0d);border-color:rgba(200,168,107,.34)}
+  .fnode.hub{background:linear-gradient(180deg,#14140f,#0c0c0d);border-color:rgba(217,213,203,.34)}
   .fnode .fh{font-family:var(--sans);font-weight:500;font-size:16px}
   .fnode .fs{color:var(--mute);font-size:13.5px;margin-top:-4px}
   .fnode .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto}
@@ -154,12 +167,12 @@
   .tags{display:flex;flex-wrap:wrap;gap:9px}
   .tag{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);
     padding:7px 13px;border-radius:999px;transition:.2s}
-  .scell:hover .tag{border-color:rgba(200,168,107,.4);color:var(--ink)}
+  .scell:hover .tag{border-color:rgba(217,213,203,.4);color:var(--ink)}
 
   /* departments */
   .dept-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
   .dept{border:1px solid var(--line);border-radius:10px;padding:28px;transition:.25s;background:var(--bg)}
-  .dept:hover{border-color:rgba(200,168,107,.4);transform:translateY(-3px)}
+  .dept:hover{border-color:rgba(217,213,203,.4);transform:translateY(-3px)}
   .dept .di{font-family:var(--serif);font-size:15px;color:var(--gold)}
   .dept h3{font-family:var(--sans);font-weight:500;font-size:17px;margin:12px 0 8px}
   .dept p{color:var(--mute);font-size:14.5px;margin:0}
@@ -213,7 +226,7 @@
 <!-- NAV -->
 <header id="hdr"><div class="wrap nav">
   <a class="brand" href="/">
-    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#c8a86b"/></svg>
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#d8d2c6"/></svg>
     Halia
   </a>
   <nav class="nav-links">
@@ -267,17 +280,17 @@
       <div><b>~1hr</b><span>To first results</span></div>
     </div>
   </div>
-  <div class="graph reveal d1"><canvas id="nodes"></canvas><div class="tag">Signals resolving into a score</div></div>
+  <div class="graph reveal d1" id="graph">
+    <canvas id="nodelines"></canvas>
+    <div class="score-node"><div class="sv" id="scoreVal">0</div><div class="sg"><b id="scoreGrade">C</b> &middot; Halia score</div></div>
+  </div>
 </div></section>
 
 <!-- HOW IT WORKS / ARCHITECTURE -->
 <section id="how" class="pad" style="background:var(--bg-2)"><div class="wrap">
-  <div class="sig-head reveal">
+  <div class="sig-head reveal" style="max-width:none">
     <div class="eyebrow" style="margin-bottom:20px">How it works</div>
     <h2 class="h2">Connected to your stack.<br>Acting in real time.</h2>
-    <p class="lede" style="margin-top:20px;max-width:56ch">Halia reads your customers through a read-only
-      connection, scores them the moment they arrive, and pushes the result straight into the tools your
-      team already lives in. No exports, no spreadsheets, no waiting.</p>
   </div>
   <div class="flow reveal d1">
     <div class="fnode">
@@ -309,18 +322,22 @@
     <span class="act">Trigger a Klaviyo or Mailchimp flow</span>
     <span class="act">Brief your store team</span>
   </div>
+  <p class="lede reveal d2" style="margin-top:54px;max-width:none">Halia reads your customers through a
+    read-only connection, scores them the moment they arrive, and pushes the result straight into the
+    tools your team already lives in. No exports, no spreadsheets, no waiting, and no copy of your
+    customer database sitting on anyone else's servers.</p>
 </div></section>
 
 <!-- BLEED -->
 <section class="bleed">
   <img src="img/fish_eagle.jpg" alt="" loading="lazy">
   <div class="veil2"></div>
-  <div class="inner reveal">
-    <div class="eyebrow" style="color:#e9dcc0">Find them. Fish them.</div>
+  <div class="wrap"><div class="inner reveal">
+    <div class="eyebrow" style="color:#e7e3da">Find them. Fish them.</div>
     <h2 style="margin-top:18px">See them first.</h2>
     <p>Your hidden VICs, surfaced and ranked, ready for a personal approach before your
       competitors ever notice they were there.</p>
-  </div>
+  </div></div>
 </section>
 
 <!-- SIGNALS -->
@@ -419,7 +436,7 @@
 <footer><div class="wrap">
   <div class="foot">
     <div>
-      <a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none" style="width:20px;height:20px"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#c8a86b"/></svg>Halia</a>
+      <a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none" style="width:20px;height:20px"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#d8d2c6"/></svg>Halia</a>
       <p class="bio">Halia is hidden-VIC intelligence for considered-purchase retail. We read the wealth
         and intent signals already sitting in your customer data, grade every customer, and surface
         the high-value clients you would otherwise treat like everyone else, then help your teams act
@@ -470,47 +487,67 @@
         if(d2<9000){var f=(9000-d2)/9000*1.4,d=Math.sqrt(d2)||1;p.x+=dx/d*f;p.y+=dy/d*f;}
         if(p.x<-10)p.x=W+10;if(p.x>W+10)p.x=-10;if(p.y<-10)p.y=H+10;if(p.y>H+10)p.y=-10;
         var tw=p.vic?(.6+.4*Math.sin(t/700+p.ph)):.5;x.beginPath();x.arc(p.x,p.y,p.r,0,6.2832);
-        x.fillStyle=p.vic?'rgba(200,168,107,'+tw+')':'rgba(244,241,234,'+(.16*tw+.05)+')';
-        x.shadowColor=p.vic?'rgba(200,168,107,.9)':'transparent';x.shadowBlur=p.vic?12:0;x.fill();}
+        x.fillStyle=p.vic?'rgba(217,213,203,'+tw+')':'rgba(244,241,234,'+(.16*tw+.05)+')';
+        x.shadowColor=p.vic?'rgba(217,213,203,.9)':'transparent';x.shadowBlur=p.vic?12:0;x.fill();}
       x.shadowBlur=0;requestAnimationFrame(tick);}
     requestAnimationFrame(tick);
   })();
 
-  // engine: interactive node graph (interconnected data, reacts to the cursor)
+  // engine: a live scoring-engine visualiser , labelled signals fire, feed a centre score
   (function(){
-    var c=document.getElementById('nodes'); if(!c) return; var x=c.getContext('2d'),W,H,N=[],m={x:-999,y:-999},on=false;
-    function size(){var r=c.getBoundingClientRect();W=c.width=r.width*devicePixelRatio;H=c.height=r.height*devicePixelRatio;x.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);}
-    size(); addEventListener('resize',size,{passive:true});
-    var COUNT=34, w=function(){return W/devicePixelRatio}, h=function(){return H/devicePixelRatio};
-    for(var i=0;i<COUNT;i++){var g=Math.random()<.22;
-      N.push({x:Math.random()*w(),y:Math.random()*h(),vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.28,
-        r:g?3.4:2.1,gold:g});}
-    c.addEventListener('mousemove',function(e){var r=c.getBoundingClientRect();m.x=e.clientX-r.left;m.y=e.clientY-r.top;on=true;});
-    c.addEventListener('mouseleave',function(){on=false;m.x=m.y=-9999;});
-    function tick(){var ww=w(),hh=h();x.clearRect(0,0,ww,hh);
-      for(var i=0;i<N.length;i++){var p=N[i];
-        if(on){var dx=m.x-p.x,dy=m.y-p.y,d=Math.sqrt(dx*dx+dy*dy)||1;
-          if(d<170){p.vx+=dx/d*.015;p.vy+=dy/d*.015;}}      // gently gather toward cursor
-        p.x+=p.vx;p.y+=p.vy;p.vx*=.985;p.vy*=.985;
-        if(p.x<6||p.x>ww-6)p.vx*=-1;if(p.y<6||p.y>hh-6)p.vy*=-1;
-        p.x=Math.max(6,Math.min(ww-6,p.x));p.y=Math.max(6,Math.min(hh-6,p.y));}
-      // links between near nodes
-      for(var a=0;a<N.length;a++)for(var b=a+1;b<N.length;b++){
-        var A=N[a],B=N[b],dx=A.x-B.x,dy=A.y-B.y,d=Math.sqrt(dx*dx+dy*dy);
-        if(d<128){x.globalAlpha=(1-d/128)*.5;x.strokeStyle='rgba(200,168,107,.5)';x.lineWidth=.6;
-          x.beginPath();x.moveTo(A.x,A.y);x.lineTo(B.x,B.y);x.stroke();}}
-      // links to cursor
-      if(on)for(var i=0;i<N.length;i++){var p=N[i],dx=p.x-m.x,dy=p.y-m.y,d=Math.sqrt(dx*dx+dy*dy);
-        if(d<170){x.globalAlpha=(1-d/170)*.7;x.strokeStyle='rgba(244,241,234,.6)';x.lineWidth=.7;
-          x.beginPath();x.moveTo(p.x,p.y);x.lineTo(m.x,m.y);x.stroke();}}
+    var g=document.getElementById('graph'); if(!g) return;
+    var cv=document.getElementById('nodelines'), x=cv.getContext('2d');
+    var sv=document.getElementById('scoreVal'), sg=document.getElementById('scoreGrade');
+    var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+    var SIG=[
+      {l:'HNWI postcode',w:16},{l:'Work email',w:15},{l:'Family office',w:14},
+      {l:'Premium card',w:13},{l:'Prime residence',w:13},{l:'Fashion stylist',w:11},
+      {l:'Honorific',w:9},{l:'Company billing',w:9},{l:'Premium email',w:8},
+      {l:'Concierge delivery',w:8},{l:'Assistant order',w:7},{l:'Heritage surname',w:6}
+    ];
+    var nodes=SIG.map(function(s,i){
+      var d=document.createElement('div'); d.className='snode';
+      d.innerHTML='<span class="dot"></span><span>'+s.l+'</span>'; g.appendChild(d);
+      return {l:s.l,w:s.w,a:(i/SIG.length)*6.2832-1.57,el:d,act:0,pulse:Math.random(),px:0,py:0};
+    });
+    var W,H,cx,cy,R,m={x:-999,y:-999,on:false};
+    function layout(){
+      var r=g.getBoundingClientRect(); W=r.width;H=r.height; cv.width=W*DPR;cv.height=H*DPR;
+      x.setTransform(DPR,0,0,DPR,0,0); cx=W/2;cy=H/2; R=Math.min(W,H)*0.37;
+      nodes.forEach(function(n){ n.px=cx+Math.cos(n.a)*R; n.py=cy+Math.sin(n.a)*R;
+        n.el.style.left=n.px+'px'; n.el.style.top=n.py+'px';
+        n.el.classList.toggle('lft',Math.cos(n.a)<-0.25); });
+    }
+    layout(); addEventListener('resize',layout,{passive:true});
+    g.addEventListener('mousemove',function(e){var r=g.getBoundingClientRect();m.x=e.clientX-r.left;m.y=e.clientY-r.top;m.on=true;});
+    g.addEventListener('mouseleave',function(){m.on=false;});
+    var shown=0, reduce2=matchMedia('(prefers-reduced-motion:reduce)').matches;
+    function grade(s){return s>=90?'A*':s>=75?'A':s>=55?'B':'C';}
+    function frame(t){
+      x.clearRect(0,0,W,H); var sum=0;
+      for(var i=0;i<nodes.length;i++){var n=nodes[i];
+        var near=m.on && Math.hypot(n.px-m.x,n.py-m.y)<76;
+        var amb=!reduce2 && Math.sin(t/1500 + n.a*2.3) > 0.45;   // signals ambiently firing
+        var want=(near||amb)?1:0;
+        n.act += (want-n.act)*0.09; if(n.act<0.001)n.act=0;
+        n.el.classList.toggle('on', n.act>0.5);
+        sum += n.w*n.act;
+        if(n.act>0.04){
+          x.globalAlpha=n.act*0.55; x.strokeStyle='rgba(217,213,203,.8)'; x.lineWidth=1;
+          x.beginPath(); x.moveTo(n.px,n.py); x.lineTo(cx,cy); x.stroke();
+          n.pulse=(n.pulse+0.012)%1;                             // data travelling to the score
+          var px=n.px+(cx-n.px)*n.pulse, py=n.py+(cy-n.py)*n.pulse;
+          x.globalAlpha=n.act; x.fillStyle='rgba(244,241,234,.95)';
+          x.beginPath(); x.arc(px,py,1.9,0,6.2832); x.fill();
+        }
+      }
       x.globalAlpha=1;
-      for(var i=0;i<N.length;i++){var p=N[i];x.beginPath();x.arc(p.x,p.y,p.r,0,6.2832);
-        x.fillStyle=p.gold?'rgba(200,168,107,.95)':'rgba(244,241,234,.7)';
-        x.shadowColor=p.gold?'rgba(200,168,107,.8)':'transparent';x.shadowBlur=p.gold?10:0;x.fill();}
-      x.shadowBlur=0;
-      if(on)for(var i=0;i<N.length;i++){var p=N[i];}  // noop keep
-      raf=requestAnimationFrame(tick);}
-    var raf=requestAnimationFrame(tick);
+      var target=Math.min(99,Math.round(sum));
+      shown += (target-shown)*0.1;
+      sv.textContent=Math.round(shown); sg.textContent=grade(Math.round(shown));
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   })();
 </script>
 </body>
