@@ -82,6 +82,13 @@ def test_app_rejects_bad_token(client):
     assert c.get("/app").status_code == 401
 
 
+def test_newsletter_subscribe(client):
+    c, _ = client
+    assert c.post("/subscribe", json={"email": "jane@halia.app"}).status_code == 200
+    assert c.post("/subscribe", json={"email": "jane@halia.app"}).status_code == 200  # idempotent
+    assert c.post("/subscribe", json={"email": "not-an-email"}).status_code == 422
+
+
 def test_settings_authorised_by_tenant_cookie(client):
     """The same /v1/* routes serve a hosted tenant via the cookie (require_shop fallback)."""
     c, store = client

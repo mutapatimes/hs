@@ -198,6 +198,19 @@
   .hbar .tr i{display:block;height:100%;width:0;background:var(--ink);border-radius:3px;transition:width 1.2s cubic-bezier(.2,.7,.2,1)}
   @media(max-width:900px){.charts{grid-template-columns:1fr;gap:60px}}
 
+  /* pareto chart */
+  .chartwrap{display:grid;grid-template-columns:1.25fr 1fr;gap:clamp(40px,6vw,80px);align-items:center;margin-top:20px}
+  .pareto{position:relative;width:100%}.pareto svg{width:100%;height:auto;display:block;overflow:visible}
+  .pbar{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);transition:transform .9s cubic-bezier(.2,.7,.2,1)}
+  .pareto.in .pbar{transform:scaleY(1)}
+  .pline{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-dasharray:1;stroke-dashoffset:1}
+  .pareto.in .pline{transition:stroke-dashoffset 1.7s ease .35s;stroke-dashoffset:0}
+  .pdash{stroke:var(--faint);stroke-width:1;stroke-dasharray:3 4;opacity:0}.pareto.in .pdash{opacity:1;transition:opacity .6s ease .9s}
+  .plabel{font:500 10px var(--sans);fill:var(--faint);letter-spacing:.08em}
+  .pdot{fill:var(--ink);opacity:0}.pareto.in .pdot{opacity:1;transition:opacity .4s ease 1.5s}
+  .chart-side .eyebrow{margin-bottom:18px}.chart-side p{color:var(--mute);font-size:16px;max-width:38ch}
+  @media(max-width:900px){.chartwrap{grid-template-columns:1fr}}
+
   /* signals */
   .sig-head{max-width:30ch;margin-bottom:60px}
   .sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);
@@ -242,6 +255,12 @@
 
   /* footer */
   footer{border-top:1px solid var(--line);padding:72px 0 46px}
+  .news{display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap;padding-bottom:50px;margin-bottom:50px;border-bottom:1px solid var(--line)}
+  .news h3{font-family:var(--serif);font-weight:300;font-size:clamp(24px,3vw,34px);max-width:16ch;line-height:1.1}
+  .news form{display:flex;gap:10px;flex-wrap:wrap}
+  .news input{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:13px 20px;color:var(--ink);font:500 14px var(--sans);min-width:250px;outline:none}
+  .news input:focus{border-color:rgba(255,255,255,.4)}.news input::placeholder{color:var(--faint)}
+  .news .ok{color:var(--mute);font-size:15px}
   .foot{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr;gap:40px}
   .foot .brand{margin-bottom:16px}
   .foot .bio{color:var(--mute);max-width:42ch;font-size:14px;line-height:1.6}
@@ -306,6 +325,17 @@
 <section class="pad statement"><div class="wrap reveal">
   <p>Every order you have ever taken is an ocean. <span>A few of those customers are worth a private appointment, a personal note, a relationship.</span> Most brands never see them.</p>
 </div></section>
+
+<!-- WHITE: the competitor-spend hook -->
+<section class="pad" style="background:#f4f1ea;color:#13110c;text-align:center">
+  <div class="wrap reveal">
+    <div class="eyebrow" style="color:#7a7363">The number that should worry you</div>
+    <p style="font-family:var(--serif);font-weight:300;font-size:clamp(30px,4.8vw,64px);line-height:1.1;max-width:19ch;margin:24px auto 0;color:#13110c">
+      A client who has spent <em style="color:#13110c">£200</em> with you may be spending
+      <em style="color:#13110c">£10,000</em> with your competitors. Halia tells you which ones.</p>
+    <p style="color:#6b6557;font-size:17px;max-width:42ch;margin:26px auto 0">The signals are already in your data. Most brands never read them, so the relationship, and the revenue, goes to whoever does.</p>
+  </div>
+</section>
 
 <!-- PRODUCT SCREENSHOT -->
 <section class="pad" style="padding-top:clamp(20px,4vh,60px)"><div class="wrap">
@@ -379,6 +409,22 @@
     customer database sitting on anyone else's servers.</p>
 </div></section>
 
+<!-- PARETO 80/20 -->
+<section class="pad" style="background:var(--bg-2)"><div class="wrap">
+  <div class="eyebrow reveal" style="margin-bottom:18px">The eighty-twenty of luxury</div>
+  <h2 class="h2 reveal" style="margin-bottom:14px;max-width:20ch">Twenty percent of clients. Eighty percent of revenue.</h2>
+  <div class="chartwrap">
+    <div class="pareto reveal d1" id="pareto"></div>
+    <div class="chart-side reveal d2">
+      <div class="eyebrow">Why a few matter so much</div>
+      <p>In luxury the imbalance is extreme: a small tier of clients carries most of the revenue,
+        and the very top of it carries most of that. The whole game is finding those people, and the
+        ones about to become them, before anyone else.</p>
+      <a class="btn ghost" href="/clienteling" style="margin-top:24px">The case for clienteling <span class="arrow">→</span></a>
+    </div>
+  </div>
+</div></section>
+
 <!-- INSIDE THE DASHBOARD: interactive table + charts -->
 <section id="dashboard" class="pad"><div class="wrap">
   <div class="sig-head reveal" style="max-width:34ch">
@@ -410,12 +456,17 @@
       <div id="sigChart"></div>
     </div>
   </div>
+  <div class="browser reveal" style="margin:84px 0 0">
+    <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.halia.io  ·  Client</div></div>
+    <img src="img/dashboard_detail.png" alt="A client detail view: signals, score, latent value, recommended approach" style="width:100%;display:block">
+  </div>
+  <p class="lede reveal d1" style="text-align:center;max-width:48ch;margin:36px auto 0">Open any client for the full picture: the signals that fired, their score and latent value, and a recommended approach ready to send.</p>
 </div></section>
 
 <!-- BLEED -->
 <section class="bleed">
-  <img src="img/fish_eagle.jpg" alt="" loading="lazy">
-  <div class="veil2"></div>
+  <img src="img/databases.jpg" alt="" loading="lazy" style="object-position:center">
+  <div class="veil2" style="background:linear-gradient(90deg,rgba(8,8,9,.82),rgba(8,8,9,.45) 55%,rgba(8,8,9,.15))"></div>
   <div class="wrap"><div class="inner reveal">
     <div class="eyebrow" style="color:#e7e3da">Find them. Fish them.</div>
     <h2 style="margin-top:18px">See them first.</h2>
@@ -542,6 +593,13 @@
 
 <!-- FOOTER -->
 <footer><div class="wrap">
+  <div class="news">
+    <h3>The quiet edge in luxury retail, in your inbox.</h3>
+    <form id="newsForm" novalidate>
+      <input id="newsEmail" type="email" placeholder="Your work email" required>
+      <button class="btn" type="submit">Subscribe <span class="arrow">→</span></button>
+    </form>
+  </div>
   <div class="foot">
     <div>
       <a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none" style="width:20px;height:20px"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#d8d2c6"/></svg>Halia</a>
@@ -564,6 +622,17 @@
 <script>
   var hdr=document.getElementById('hdr');
   addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
+
+  // newsletter subscribe
+  var nf=document.getElementById('newsForm');
+  if(nf)nf.addEventListener('submit',function(e){e.preventDefault();
+    var em=(document.getElementById('newsEmail').value||'').trim();
+    if(!/.+@.+\..+/.test(em))return;
+    var b=nf.querySelector('button');b.disabled=true;b.textContent='…';
+    var done=function(){nf.innerHTML='<span class="ok">Thank you. You are on the list.</span>';};
+    fetch('/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:em})})
+      .then(function(r){done();}).catch(function(){done();});
+  });
 
   var io=new IntersectionObserver(function(es){
     es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
@@ -708,6 +777,24 @@
     var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){
       sigc.querySelectorAll('i').forEach(function(i){i.style.width=i.dataset.w+'%';});io.disconnect();}});},{threshold:.3});
     io.observe(sigc);
+  })();
+
+  // Pareto chart (80/20): decile revenue bars + cumulative line, top 20% highlighted.
+  (function(){
+    var host=document.getElementById('pareto'); if(!host) return;
+    var share=[55,25,8,5,3,2,1,0.6,0.3,0.1],cum=[],run=0; share.forEach(function(s){run+=s;cum.push(run);});
+    var W=560,H=300,padL=14,padR=14,padT=16,padB=34,pw=W-padL-padR,ph=H-padT-padB,n=share.length,base=H-padB,max=55*1.06,bw=pw/n*0.6;
+    var bars="",dots="",pts=[];
+    for(var i=0;i<n;i++){var cx=padL+(i+0.5)*pw/n,bh=share[i]/max*ph,top=base-bh,hot=i<2;
+      bars+='<rect class="pbar" x="'+(cx-bw/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="2" fill="'+(hot?'#f4f1ea':'rgba(255,255,255,.14)')+'" style="transition-delay:'+(i*0.05).toFixed(2)+'s"><title>Decile '+(i+1)+': '+share[i]+'% of revenue</title></rect>';
+      var ly=base-cum[i]/100*ph; dots+='<circle class="pdot" cx="'+cx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="2.4"/>'; pts.push(cx.toFixed(1)+','+ly.toFixed(1));}
+    var y80=base-0.8*ph;
+    host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Pareto chart: 20% of clients drive 80% of revenue">'
+      +'<line class="pdash" x1="'+padL+'" y1="'+y80.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y80.toFixed(1)+'"/>'
+      +'<text class="plabel" x="'+(W-padR)+'" y="'+(y80-7).toFixed(1)+'" text-anchor="end">80% of revenue</text>'
+      +bars+'<polyline class="pline" points="'+pts.join(' ')+'" pathLength="1"/>'+dots
+      +'<text class="plabel" x="'+(padL+pw*0.1).toFixed(0)+'" y="'+(base+22)+'" text-anchor="middle" style="fill:var(--mute)">Top 20%</text>'
+      +'<text class="plabel" x="'+(padL+pw*0.6).toFixed(0)+'" y="'+(base+22)+'" text-anchor="middle">Everyone else, ranked by value →</text></svg>';
   })();
 </script>
 </body>

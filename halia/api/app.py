@@ -58,6 +58,18 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+@app.post("/subscribe", include_in_schema=False)
+def subscribe(payload: Any = Body(...)) -> dict:
+    """Marketing-site newsletter signup. Stores just the email."""
+    from halia.api.shopify_auth import shop_store
+
+    email = str((payload or {}).get("email", "")).strip().lower()
+    if "@" not in email or "." not in email.split("@")[-1] or len(email) > 200:
+        raise HTTPException(422, "Enter a valid email address.")
+    shop_store().add_subscriber(email)
+    return {"ok": True}
+
+
 @app.post("/v1/score")
 def score(payload: Any = Body(...)) -> Any:
     """Score a customer record (or list) live — stateless, no shop, nothing stored."""

@@ -54,6 +54,11 @@ _TABLES = [
         consumer_secret TEXT,
         connected_at    TEXT
     )""",
+    # Marketing-site newsletter signups (just an email + when). Not customer data.
+    """CREATE TABLE IF NOT EXISTS subscribers (
+        email        TEXT PRIMARY KEY,
+        subscribed_at TEXT
+    )""",
     # Per-shop Mailchimp connection: encrypted API key (...-dc) + the chosen audience.
     """CREATE TABLE IF NOT EXISTS mailchimp (
         shop         TEXT PRIMARY KEY,
@@ -198,6 +203,13 @@ class ShopStore(_DB):
         return {"store_url": row["store_url"],
                 "consumer_key": crypto.decrypt(row["consumer_key"]),
                 "consumer_secret": crypto.decrypt(row["consumer_secret"])}
+
+    # ── newsletter ──────────────────────────────────────────────────────────────
+    def add_subscriber(self, email: str) -> None:
+        self._run(
+            """INSERT INTO subscribers (email, subscribed_at) VALUES (:e, :at)
+               ON CONFLICT(email) DO NOTHING""",
+            {"e": email, "at": _now()})
 
     # ── per-shop Mailchimp connection (key + chosen audience) ───────────────────
     def save_mailchimp(self, shop: str, api_key: str, list_id: str, list_name: str) -> None:
