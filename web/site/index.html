@@ -3,401 +3,363 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Halia — Find the VIPs hiding in your customer list</title>
-<meta name="description" content="Halia reads 40+ wealth and intent signals across your existing customers to surface the high-value clients you're treating like everyone else. Zero-retention. Works with Shopify, WooCommerce, Klaviyo & Mailchimp.">
+<title>Halia — Find your most valuable clients</title>
+<meta name="description" content="Your most valuable clients are already in your database. Halia reads 40+ wealth and intent signals to find them — and helps you fish them out. Zero-retention.">
+<meta property="og:title" content="Halia — Find your most valuable clients">
+<meta property="og:description" content="A sea of records, and a handful worth the world. Halia finds them.">
+<meta property="og:image" content="/img/find_your_most_valuable_clients.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#0e1411; --ink-2:#141b16; --ink-3:#1b2420;
-    --cream:#f6f3ec; --paper:#ffffff;
-    --t-dark:#1b1a16; --m-dark:#6b675e;
-    --t-light:#f1ece1; --m-light:#9b988d;
-    --gold:#d9b878; --gold-hi:#e8c98a;
-    --green:#2c6b5b; --green-deep:#1f564a;
-    --line-d:rgba(255,255,255,.11); --line-l:rgba(20,20,16,.10);
-    --serif:'Fraunces',Georgia,serif; --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --bg:#0a0a0b; --bg-2:#0e0e10; --ink:#f4f1ea; --mute:#8c887f; --faint:#56534d;
+    --gold:#c8a86b; --line:rgba(255,255,255,.12);
+    --serif:'Cormorant Garamond',Georgia,serif;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;font-family:var(--sans);color:var(--t-dark);background:var(--cream);
-    -webkit-font-smoothing:antialiased;line-height:1.55}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
   a{color:inherit;text-decoration:none}
-  h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-.01em;line-height:1.05;margin:0}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
-  .eyebrow{font:600 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
-  .btn{display:inline-flex;align-items:center;gap:8px;font:600 14px var(--sans);padding:12px 22px;
-    border-radius:999px;cursor:pointer;border:1px solid transparent;transition:.18s;white-space:nowrap}
-  .btn-gold{background:var(--gold);color:#241c0c}
-  .btn-gold:hover{background:var(--gold-hi);transform:translateY(-1px)}
-  .btn-ghost{background:transparent;border-color:var(--line-d);color:var(--t-light)}
-  .btn-ghost:hover{border-color:rgba(255,255,255,.4)}
-  .btn-dark{background:var(--ink);color:var(--t-light)}
-  .btn-dark:hover{background:var(--ink-3)}
+  ::selection{background:var(--gold);color:#1a1408}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 40px}
+  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+  h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.02}
+  .display{font-size:clamp(44px,7vw,104px)}
+  .h2{font-size:clamp(34px,5vw,68px)}
+  em{font-style:italic;color:var(--gold)}
+  .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);font-weight:400;line-height:1.5}
 
-  /* ── Nav ── */
-  header.nav{position:sticky;top:0;z-index:50;background:rgba(14,20,17,.82);
-    backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line-d)}
-  .nav-in{display:flex;align-items:center;justify-content:space-between;height:68px}
-  .logo{display:flex;align-items:center;gap:10px;color:var(--t-light);font-family:var(--serif);
-    font-size:22px;font-weight:600}
-  .logo svg{width:24px;height:24px}
-  .nav-links{display:flex;gap:30px}
-  .nav-links a{color:var(--m-light);font:500 14px var(--sans);transition:.15s}
-  .nav-links a:hover{color:var(--t-light)}
-  .nav-cta{display:flex;align-items:center;gap:14px}
-  .nav-cta .signin{color:var(--m-light);font:500 14px var(--sans)}
-  .nav-cta .signin:hover{color:var(--t-light)}
-  .burger{display:none;background:none;border:0;color:var(--t-light);font-size:24px;cursor:pointer}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);
+    letter-spacing:.02em;padding:14px 26px;border-radius:999px;border:1px solid var(--ink);
+    color:#0a0a0b;background:var(--ink);transition:.25s;cursor:pointer}
+  .btn:hover{background:transparent;color:var(--ink)}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn.ghost:hover{border-color:var(--ink)}
+  .arrow{font-size:16px;transition:transform .25s}
+  .btn:hover .arrow{transform:translateX(4px)}
 
-  /* ── Hero ── */
-  .hero{background:radial-gradient(120% 90% at 80% -10%,#1d2a23 0%,var(--ink) 55%);color:var(--t-light);
-    padding:84px 0 96px;overflow:hidden}
-  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
-  .hero h1{font-size:clamp(40px,5.4vw,68px);color:#fff}
-  .hero h1 em{font-style:italic;color:var(--gold)}
-  .hero p.lead{color:var(--m-light);font-size:19px;max-width:520px;margin:22px 0 30px}
-  .hero-cta{display:flex;gap:14px;flex-wrap:wrap}
-  .hero-note{margin-top:18px;color:var(--m-light);font-size:13.5px}
-  .trust{margin-top:44px;display:flex;gap:34px;flex-wrap:wrap;border-top:1px solid var(--line-d);padding-top:26px}
-  .trust div{display:flex;flex-direction:column}
-  .trust b{font-family:var(--serif);font-size:24px;color:#fff;font-weight:600}
-  .trust span{font-size:12.5px;color:var(--m-light)}
+  /* ── nav ── */
+  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}
+  header.solid{background:rgba(10,10,11,.7);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px;font-weight:400;letter-spacing:.02em}
+  .brand svg{width:22px;height:22px}
+  .nav-links{display:flex;gap:36px}
+  .nav-links a{font:500 14px var(--sans);color:var(--mute);transition:.2s}
+  .nav-links a:hover{color:var(--ink)}
+  .nav .right{display:flex;align-items:center;gap:22px}
+  .nav .right .si{font:500 14px var(--sans);color:var(--mute)}.nav .right .si:hover{color:var(--ink)}
+  @media(max-width:820px){.nav-links{display:none}}
 
-  /* product mock */
-  .mock{background:linear-gradient(180deg,#182019,#10160f);border:1px solid var(--line-d);
-    border-radius:18px;padding:18px;box-shadow:0 40px 80px -30px rgba(0,0,0,.7)}
-  .mock-top{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 14px}
-  .mock-top .ttl{font-family:var(--serif);font-size:16px;color:#fff}
-  .mock-top .pill{font:600 11px var(--sans);color:#7fd6b0;background:rgba(44,107,91,.25);
-    padding:4px 10px;border-radius:999px}
-  .row{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;
-    padding:12px 8px;border-top:1px solid var(--line-d)}
-  .av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    font:600 12px var(--sans);color:#241c0c;background:var(--gold)}
-  .row .nm{font:600 13.5px var(--sans);color:#f1ece1}
-  .row .sig{font-size:11.5px;color:var(--m-light);margin-top:2px}
-  .grade{font-family:var(--serif);font-weight:600;font-size:15px;color:var(--gold);text-align:right}
-  .grade small{display:block;font-family:var(--sans);font-weight:500;font-size:11px;color:var(--m-light)}
+  /* ── hero ── */
+  .hero{position:relative;height:100vh;min-height:680px;display:flex;align-items:center;overflow:hidden}
+  .hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
+  .hero .veil{position:absolute;inset:0;background:
+    radial-gradient(120% 80% at 50% 30%,transparent 0%,rgba(10,10,11,.55) 70%,var(--bg) 100%),
+    linear-gradient(180deg,rgba(10,10,11,.5),rgba(10,10,11,.2) 40%,var(--bg))}
+  #fish{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .hero .wrap{position:relative;z-index:2}
+  .hero h1{max-width:14ch}
+  .hero .lede{max-width:46ch;margin:28px 0 38px}
+  .hero .cta{display:flex;gap:16px;flex-wrap:wrap}
+  .scroll-cue{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:2;
+    font:500 11px var(--sans);letter-spacing:.28em;text-transform:uppercase;color:var(--faint);
+    display:flex;flex-direction:column;align-items:center;gap:10px}
+  .scroll-cue .ln{width:1px;height:46px;background:linear-gradient(var(--faint),transparent);
+    animation:drop 2.4s ease-in-out infinite}
+  @keyframes drop{0%,100%{opacity:.3;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}}
 
-  /* ── Sections ── */
-  section{padding:96px 0}
-  .sec-head{max-width:680px;margin-bottom:54px}
-  .sec-head.center{margin:0 auto 54px;text-align:center}
-  .sec-head h2{font-size:clamp(30px,3.6vw,46px);margin:14px 0 0}
-  .sec-head p{color:var(--m-dark);font-size:18px;margin:16px 0 0}
+  /* ── reveal ── */
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity 1s cubic-bezier(.2,.6,.2,1),transform 1s cubic-bezier(.2,.6,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
 
-  /* feature grid */
-  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-  .card{background:var(--paper);border:1px solid var(--line-l);border-radius:16px;padding:26px;
-    transition:.2s}
-  .card:hover{transform:translateY(-3px);box-shadow:0 24px 50px -28px rgba(20,20,16,.28)}
-  .card .ic{width:42px;height:42px;border-radius:11px;background:var(--cream);display:flex;
-    align-items:center;justify-content:center;margin-bottom:16px;color:var(--green-deep)}
-  .card h3{font-family:var(--sans);font-weight:700;font-size:17px;letter-spacing:0}
-  .card p{color:var(--m-dark);font-size:14.5px;margin:8px 0 0}
+  section{position:relative}
+  .pad{padding:clamp(110px,16vh,200px) 0}
 
-  /* how it works */
-  .how{background:var(--ink);color:var(--t-light)}
-  .how .sec-head h2{color:#fff}
-  .how .sec-head p{color:var(--m-light)}
-  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-  .step{border:1px solid var(--line-d);border-radius:16px;padding:28px;background:linear-gradient(180deg,#151c17,#11160f)}
-  .step .n{font-family:var(--serif);font-size:14px;color:var(--gold);font-weight:600}
-  .step h3{font-family:var(--sans);font-weight:700;font-size:19px;color:#fff;margin:10px 0 8px}
-  .step p{color:var(--m-light);font-size:14.5px;margin:0}
-  .step ul{margin:14px 0 0;padding:0;list-style:none}
-  .step li{color:var(--m-light);font-size:13.5px;padding:6px 0 6px 22px;position:relative}
-  .step li:before{content:"✓";position:absolute;left:0;color:var(--gold)}
+  /* statement */
+  .statement{text-align:center}
+  .statement p{font-family:var(--serif);font-weight:300;font-size:clamp(30px,4.4vw,58px);
+    line-height:1.12;max-width:18ch;margin:0 auto}
+  .statement p span{color:var(--faint)}
 
-  /* signals table */
-  .signals{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  .sgroup{background:var(--paper);border:1px solid var(--line-l);border-radius:16px;padding:24px 26px}
-  .sgroup h3{font-family:var(--sans);font-weight:700;font-size:15px;display:flex;align-items:center;gap:10px}
-  .sgroup h3 span{font:600 11px var(--sans);color:var(--green-deep);background:#eaf1ed;
-    padding:3px 9px;border-radius:999px}
-  .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-  .tag{font:500 13px var(--sans);color:var(--t-dark);background:var(--cream);
-    border:1px solid var(--line-l);padding:6px 12px;border-radius:8px}
+  /* split (image + text) */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,7vw,110px);align-items:center}
+  .split.rev .media{order:2}
+  .media{position:relative;border-radius:4px;overflow:hidden}
+  .media img{width:100%;height:auto;display:block;transition:transform 1.4s cubic-bezier(.2,.6,.2,1)}
+  .media:hover img{transform:scale(1.04)}
+  .copy .eyebrow{margin-bottom:22px}
+  .copy h2{margin-bottom:24px}
+  .copy p{color:var(--mute);max-width:42ch;font-size:17px}
+  .meta{margin-top:34px;display:flex;gap:42px}
+  .meta b{font-family:var(--serif);font-size:40px;font-weight:400;color:var(--ink);display:block;line-height:1}
+  .meta span{font:500 12px var(--sans);letter-spacing:.04em;color:var(--mute)}
+
+  /* full-bleed quote over image */
+  .bleed{height:96vh;min-height:620px;display:flex;align-items:center;justify-content:center;
+    text-align:center;position:relative;overflow:hidden}
+  .bleed img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .bleed .veil2{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,18,.5),rgba(8,10,18,.25))}
+  .bleed .inner{position:relative;z-index:2;color:#fff}
+  .bleed h2{font-size:clamp(40px,6.6vw,92px)}
+  .bleed p{color:rgba(255,255,255,.78);max-width:40ch;margin:24px auto 0;font-size:18px}
+
+  /* signals */
+  .sig-head{max-width:30ch;margin-bottom:64px}
+  .sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .scell{background:var(--bg);padding:38px 40px}
+  .scell .k{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px}
+  .scell h3{font-family:var(--sans);font-weight:500;font-size:15px;letter-spacing:.02em}
+  .scell .num{font-family:var(--serif);font-size:15px;color:var(--faint)}
+  .tags{display:flex;flex-wrap:wrap;gap:9px}
+  .tag{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);
+    padding:7px 13px;border-radius:999px;transition:.2s}
+  .scell:hover .tag{border-color:rgba(200,168,107,.4);color:var(--ink)}
 
   /* solutions */
-  .sol-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-  .sol{border-radius:16px;padding:26px;min-height:230px;display:flex;flex-direction:column;
-    justify-content:flex-end;color:#fff;position:relative;overflow:hidden;border:1px solid var(--line-l)}
-  .sol h3{font-family:var(--sans);font-weight:700;font-size:18px;color:#fff}
-  .sol p{font-size:13px;color:rgba(255,255,255,.82);margin:6px 0 0}
-  .sol.f1{background:linear-gradient(160deg,#3a2e2a,#1c1714)}
-  .sol.f2{background:linear-gradient(160deg,#2e3340,#171a20)}
-  .sol.f3{background:linear-gradient(160deg,#2c3a34,#141b18)}
-  .sol.f4{background:linear-gradient(160deg,#3a3326,#1a1712)}
+  .sol-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:54px;gap:30px;flex-wrap:wrap}
+  .sol-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .sol{position:relative;border-radius:4px;overflow:hidden;aspect-ratio:4/5}
+  .sol img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s cubic-bezier(.2,.6,.2,1);filter:saturate(.92)}
+  .sol:hover img{transform:scale(1.06)}
+  .sol .lab{position:absolute;inset:auto 0 0;padding:22px;background:linear-gradient(transparent,rgba(8,8,9,.85));
+    z-index:2}
+  .sol .lab h3{font-family:var(--sans);font-weight:500;font-size:16px;color:#fff}
+  .sol .lab p{font-size:12.5px;color:rgba(255,255,255,.7);margin-top:4px}
 
-  /* security */
-  .sec-dark{background:linear-gradient(180deg,#11160f,#0e1411);color:var(--t-light)}
-  .sec-dark .sec-head h2{color:#fff}
-  .sec-dark .sec-head p{color:var(--m-light)}
-  .secrow{display:grid;grid-template-columns:repeat(3,1fr);gap:36px;margin-top:10px}
-  .secitem h3{font-family:var(--sans);font-weight:700;font-size:16px;color:#fff;margin-bottom:8px}
-  .secitem p{color:var(--m-light);font-size:14px;margin:0}
-  .secitem .ic{color:var(--gold);margin-bottom:12px}
-
-  /* cta band */
-  .band{background:var(--gold);color:#241c0c;border-radius:24px;padding:64px 48px;text-align:center;
-    margin:0 auto;max-width:1180px}
-  .band h2{font-size:clamp(30px,4vw,48px);color:#241c0c}
-  .band p{font-size:18px;color:#5a4a26;margin:16px auto 28px;max-width:560px}
+  /* final cta */
+  .final{text-align:center}
+  .final h2{font-size:clamp(40px,6.4vw,96px);margin-bottom:20px}
+  .final .lede{margin:0 auto 38px;max-width:34ch}
 
   /* footer */
-  footer{background:var(--ink);color:var(--m-light);padding:72px 0 40px}
-  .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:36px;padding-bottom:48px;
-    border-bottom:1px solid var(--line-d)}
-  .foot-grid h4{font:600 12px var(--sans);letter-spacing:.12em;text-transform:uppercase;
-    color:var(--t-light);margin:0 0 16px}
-  .foot-grid a{display:block;color:var(--m-light);font-size:14px;padding:6px 0;transition:.15s}
-  .foot-grid a:hover{color:var(--t-light)}
-  .foot-blurb{color:var(--m-light);font-size:14px;max-width:280px;margin:14px 0 0}
-  .foot-bot{display:flex;justify-content:space-between;align-items:center;padding-top:26px;
-    font-size:13px;flex-wrap:wrap;gap:12px}
+  footer{border-top:1px solid var(--line);padding:64px 0 46px}
+  .foot{display:flex;justify-content:space-between;align-items:flex-start;gap:40px;flex-wrap:wrap}
+  .foot .brand{margin-bottom:14px}
+  .foot .col h4{font:500 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin:0 0 14px}
+  .foot .col a{display:block;color:var(--mute);font-size:14px;padding:5px 0}
+  .foot .col a:hover{color:var(--ink)}
+  .foot .cols{display:flex;gap:70px;flex-wrap:wrap}
+  .foot-bot{margin-top:54px;padding-top:24px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--faint);font-size:13px}
 
-  @media(max-width:920px){
-    .hero-grid,.features,.steps,.signals,.secrow{grid-template-columns:1fr}
-    .sol-grid{grid-template-columns:1fr 1fr}
-    .foot-grid{grid-template-columns:1fr 1fr}
-    .nav-links{display:none}
-    .hero .mock{margin-top:20px}
+  @media(max-width:820px){
+    .wrap{padding:0 24px}
+    .split,.sol-grid{grid-template-columns:1fr}.split.rev .media{order:0}
+    .sgrid{grid-template-columns:1fr}.sol-grid{grid-template-columns:1fr 1fr}
+    .meta{gap:30px}
   }
-  @media(max-width:560px){.sol-grid,.foot-grid{grid-template-columns:1fr}.band{padding:44px 24px}}
+  @media(prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none}.scroll-cue .ln{animation:none}
+  }
 </style>
 </head>
 <body>
 
 <!-- NAV -->
-<header class="nav"><div class="wrap nav-in">
-  <a class="logo" href="/">
-    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7z" fill="#d9b878"/></svg>
+<header id="hdr"><div class="wrap nav">
+  <a class="brand" href="/">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#c8a86b"/></svg>
     Halia
   </a>
   <nav class="nav-links">
-    <a href="#product">Product</a>
+    <a href="#engine">The engine</a>
     <a href="#signals">Signals</a>
-    <a href="#how">How it works</a>
-    <a href="#security">Security</a>
-    <a href="#pricing">Pricing</a>
+    <a href="#solutions">Solutions</a>
+    <a href="#trust">Trust</a>
   </nav>
-  <div class="nav-cta">
-    <a class="signin" href="/app">Sign in</a>
-    <a class="btn btn-gold" href="/connect">Connect your store</a>
+  <div class="right">
+    <a class="si" href="/app">Sign in</a>
+    <a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a>
   </div>
 </div></header>
 
 <!-- HERO -->
-<section class="hero"><div class="wrap hero-grid">
-  <div>
-    <div class="eyebrow">Hidden-VIC intelligence for retail</div>
-    <h1>The VIPs <em>hiding</em> in your customer list.</h1>
-    <p class="lead">Some of your biggest spenders-in-waiting look ordinary on paper. Halia reads
-      40+ wealth and intent signals across the customers you already have — and surfaces the
-      high-value clients you're treating like everyone else.</p>
-    <div class="hero-cta">
-      <a class="btn btn-gold" href="/connect">Connect your store →</a>
-      <a class="btn btn-ghost" href="#demo">Book a demo</a>
-    </div>
-    <div class="hero-note">Read-only. We never store your customers. Live in under an hour.</div>
-    <div class="trust">
-      <div><b>40+</b><span>Wealth &amp; intent signals</span></div>
-      <div><b>Zero</b><span>Customer data stored</span></div>
-      <div><b>A*–C</b><span>Every customer graded</span></div>
+<section class="hero">
+  <video autoplay muted loop playsinline poster="img/find_your_most_valuable_clients.jpg">
+    <source src="img/hero.mp4" type="video/mp4">
+  </video>
+  <canvas id="fish"></canvas>
+  <div class="veil"></div>
+  <div class="wrap">
+    <div class="eyebrow reveal in">Hidden-VIC intelligence</div>
+    <h1 class="display reveal in d1" style="margin-top:22px">Your most valuable clients are already in your <em>database.</em></h1>
+    <p class="lede reveal in d2">A sea of records, and a handful worth the world. Halia finds them — and helps you fish them out.</p>
+    <div class="cta reveal in d3">
+      <a class="btn" href="/connect">Find them <span class="arrow">→</span></a>
+      <a class="btn ghost" href="#engine">How it works</a>
     </div>
   </div>
-  <div class="mock" aria-hidden="true">
-    <div class="mock-top"><div class="ttl">Hidden VICs</div><div class="pill">● Live</div></div>
-    <div class="row">
-      <div class="av">AO</div>
-      <div><div class="nm">A. Okonkwo</div><div class="sig">Work email · Mayfair postcode · Premium card</div></div>
-      <div class="grade">A*<small>£420 spent</small></div>
-    </div>
-    <div class="row">
-      <div class="av">RC</div>
-      <div><div class="nm">R. Carter</div><div class="sig">Fashion stylist · Company billing</div></div>
-      <div class="grade">A<small>£680 spent</small></div>
-    </div>
-    <div class="row">
-      <div class="av">SV</div>
-      <div><div class="nm">S. Volkov</div><div class="sig">Family office · Honorific · Concierge delivery</div></div>
-      <div class="grade">A*<small>£260 spent</small></div>
-    </div>
-    <div class="row">
-      <div class="av">LM</div>
-      <div><div class="nm">L. Marchetti</div><div class="sig">Premium email · Prime residence</div></div>
-      <div class="grade">B<small>£140 spent</small></div>
+  <div class="scroll-cue"><span>Scroll</span><span class="ln"></span></div>
+</section>
+
+<!-- STATEMENT -->
+<section class="pad statement"><div class="wrap reveal">
+  <p>Every order you've ever taken is an ocean. <span>A few of those customers are worth a private appointment, a personal note, a relationship.</span> Most brands never see them.</p>
+</div></section>
+
+<!-- ENGINE (split: mineral image) -->
+<section id="engine" class="pad"><div class="wrap split">
+  <div class="media reveal"><img src="img/databases.jpg" alt="Your database" loading="lazy"></div>
+  <div class="copy reveal d1">
+    <div class="eyebrow">The engine</div>
+    <h2 class="h2">Forty signals.<br>One quiet score.</h2>
+    <p>Halia reads the tells a great associate would — prime postcodes, premium email domains,
+      the names and companies behind the orders — across every customer you have, and grades
+      each one from A&#42; to C. Explainable, defensible, tuned to your store.</p>
+    <div class="meta">
+      <div><b>40+</b><span>Signals read</span></div>
+      <div><b>A&#42;–C</b><span>Every customer graded</span></div>
+      <div><b>~1hr</b><span>To first results</span></div>
     </div>
   </div>
 </div></section>
 
-<!-- PRODUCT / FEATURES -->
-<section id="product"><div class="wrap">
-  <div class="sec-head">
-    <div class="eyebrow">Why Halia</div>
-    <h2>One quiet engine, working through every customer you have.</h2>
-    <p>Halia scores your entire customer base on the signals that actually predict wealth and
-      intent — then tells your team exactly who to look after, and why.</p>
+<!-- BLEED: the fish/eagle -->
+<section class="bleed">
+  <img src="img/fish_eagle.jpg" alt="" loading="lazy">
+  <div class="veil2"></div>
+  <div class="inner reveal">
+    <div class="eyebrow" style="color:#e9dcc0">Find them. Fish them.</div>
+    <h2 style="margin-top:18px">See them first.</h2>
+    <p>Your hidden VICs, surfaced and ranked — ready for a personal approach before your
+      competitors ever notice they were there.</p>
   </div>
-  <div class="features">
-    <div class="card"><div class="ic">◈</div><h3>The scoring engine</h3>
-      <p>40+ weighted signals combine into a single 0–100 score and an A*–C grade for every
-        customer — defensible, explainable, and tuned to your store.</p></div>
-    <div class="card"><div class="ic">✦</div><h3>Hidden-VIC detection</h3>
-      <p>Surfaces the modest spenders showing real wealth — the clients who'd become your best,
-        if only someone reached out first.</p></div>
-    <div class="card"><div class="ic">↗</div><h3>Latent value</h3>
-      <p>Estimates what each client could be worth, grown from their spend toward your best
-        customer's value — anchored to your own numbers.</p></div>
-    <div class="card"><div class="ic">⟐</div><h3>Your stack, connected</h3>
-      <p>Reads from Shopify or WooCommerce; pushes grades, segments and lists to Klaviyo or
-        Mailchimp. No migration, no new system to learn.</p></div>
-    <div class="card"><div class="ic">⛉</div><h3>Zero-retention by design</h3>
-      <p>Your customers are scored in memory and never written to our database. The only thing
-        we keep is an encrypted, read-only key.</p></div>
-    <div class="card"><div class="ic">✉</div><h3>Clienteling-ready</h3>
-      <p>Build grade segments, create lists from a selection, and brief your team with
-        editable outreach templates — recognition, not discounts.</p></div>
-  </div>
-</div></section>
+</section>
 
 <!-- SIGNALS -->
-<section id="signals" style="background:var(--paper)"><div class="wrap">
-  <div class="sec-head center">
-    <div class="eyebrow">The signal library</div>
-    <h2>Forty ways to spot a quiet VIP.</h2>
-    <p>Halia reads the tells a great sales associate would — at the scale of your whole database,
-      and never on a single weak signal alone.</p>
+<section id="signals" class="pad"><div class="wrap">
+  <div class="sig-head reveal">
+    <div class="eyebrow" style="margin-bottom:20px">What Halia sees</div>
+    <h2 class="h2">The tells of quiet wealth.</h2>
   </div>
-  <div class="signals">
-    <div class="sgroup"><h3>Geography <span>where they are</span></h3>
-      <div class="tags"><span class="tag">Ultra-prime postcodes</span><span class="tag">Prime residences</span>
-        <span class="tag">HNW neighbourhoods</span><span class="tag">Tax-haven billing</span>
-        <span class="tag">GCC &amp; international wealth hubs</span></div></div>
-    <div class="sgroup"><h3>Email &amp; domain <span>how they sign in</span></h3>
-      <div class="tags"><span class="tag">Premium providers</span><span class="tag">Wealth-employer domains</span>
-        <span class="tag">Finance &amp; PE keywords</span><span class="tag">Elite alumni</span>
-        <span class="tag">Family-office addresses</span></div></div>
-    <div class="sgroup"><h3>Identity <span>who they are</span></h3>
-      <div class="tags"><span class="tag">Honorifics</span><span class="tag">Post-nominals</span>
-        <span class="tag">Heritage surnames</span><span class="tag">Nobiliary particles</span>
-        <span class="tag">Celebrity stylists &amp; personal shoppers</span></div></div>
-    <div class="sgroup"><h3>Behaviour &amp; payment <span>how they buy</span></h3>
-      <div class="tags"><span class="tag">Assistant / PA orders</span><span class="tag">Concierge delivery</span>
-        <span class="tag">Premium card BINs</span><span class="tag">Company billing</span>
-        <span class="tag">Foreign-currency spend</span></div></div>
-  </div>
-</div></section>
-
-<!-- HOW IT WORKS -->
-<section id="how" class="how"><div class="wrap">
-  <div class="sec-head">
-    <div class="eyebrow">How it works</div>
-    <h2>From connection to first outreach, in an afternoon.</h2>
-  </div>
-  <div class="steps">
-    <div class="step"><div class="n">STEP 01 · Minutes</div><h3>Connect</h3>
-      <p>Add a read-only key from your store. No code, no migration.</p>
-      <ul><li>Shopify or WooCommerce</li><li>Read-only — we never write to your store</li>
-        <li>Nothing for your team to install</li></ul></div>
-    <div class="step"><div class="n">STEP 02 · Automatic</div><h3>Score</h3>
-      <p>Every customer is graded and your hidden VICs are surfaced, ranked.</p>
-      <ul><li>0–100 score and A*–C grade</li><li>Each score explained by its signals</li>
-        <li>Tuned to your store's economics</li></ul></div>
-    <div class="step"><div class="n">STEP 03 · Ongoing</div><h3>Act</h3>
-      <p>Brief your team and sync segments to your email platform.</p>
-      <ul><li>Grade segments in Klaviyo / Mailchimp</li><li>Outreach templates, ready to send</li>
-        <li>Refreshes as new orders arrive</li></ul></div>
+  <div class="sgrid">
+    <div class="scell reveal"><div class="k"><h3>Geography</h3><span class="num">01</span></div>
+      <div class="tags"><span class="tag">Ultra-prime postcodes</span><span class="tag">Prime residences</span><span class="tag">HNW neighbourhoods</span><span class="tag">International wealth hubs</span></div></div>
+    <div class="scell reveal d1"><div class="k"><h3>Email &amp; domain</h3><span class="num">02</span></div>
+      <div class="tags"><span class="tag">Premium providers</span><span class="tag">Wealth-employer domains</span><span class="tag">Finance &amp; PE keywords</span><span class="tag">Family offices</span></div></div>
+    <div class="scell reveal"><div class="k"><h3>Identity</h3><span class="num">03</span></div>
+      <div class="tags"><span class="tag">Honorifics</span><span class="tag">Post-nominals</span><span class="tag">Heritage surnames</span><span class="tag">Celebrity stylists</span></div></div>
+    <div class="scell reveal d1"><div class="k"><h3>Behaviour &amp; payment</h3><span class="num">04</span></div>
+      <div class="tags"><span class="tag">Assistant orders</span><span class="tag">Concierge delivery</span><span class="tag">Premium cards</span><span class="tag">Company billing</span></div></div>
   </div>
 </div></section>
 
 <!-- SOLUTIONS -->
-<section id="solutions"><div class="wrap">
-  <div class="sec-head center">
-    <div class="eyebrow">Built for considered purchases</div>
-    <h2>Where a single relationship is worth pursuing.</h2>
-    <p>Halia earns its keep wherever one well-treated client is worth more than a thousand
-      one-time buyers.</p>
+<section id="solutions" class="pad" style="background:var(--bg-2)"><div class="wrap">
+  <div class="sol-head">
+    <h2 class="h2 reveal">Built for considered<br>purchases.</h2>
+    <p class="lede reveal d1" style="max-width:34ch">Wherever a single, well-treated client is worth more than a thousand one-time buyers.</p>
   </div>
   <div class="sol-grid">
-    <div class="sol f1"><h3>Fashion &amp; Apparel</h3><p>Find the buyers worth a private appointment.</p></div>
-    <div class="sol f2"><h3>Beauty &amp; Fragrance</h3><p>Turn one-time gifters into house clients.</p></div>
-    <div class="sol f3"><h3>Jewellery &amp; Watches</h3><p>Spot quiet wealth behind a modest first order.</p></div>
-    <div class="sol f4"><h3>Home &amp; Lifestyle</h3><p>Prioritise the trade and trophy-address clients.</p></div>
+    <div class="sol reveal"><img src="img/fashion.jpg" alt="Fashion" loading="lazy"><div class="lab"><h3>Fashion &amp; Apparel</h3><p>Buyers worth a private appointment.</p></div></div>
+    <div class="sol reveal d1"><img src="img/beauty.jpg" alt="Beauty" loading="lazy"><div class="lab"><h3>Beauty &amp; Fragrance</h3><p>One-time gifters into house clients.</p></div></div>
+    <div class="sol reveal d2"><img src="img/jewellery.jpg" alt="Jewellery" loading="lazy"><div class="lab"><h3>Jewellery &amp; Watches</h3><p>Quiet wealth behind a modest order.</p></div></div>
+    <div class="sol reveal d3"><img src="img/homeware.jpg" alt="Homeware" loading="lazy"><div class="lab"><h3>Home &amp; Lifestyle</h3><p>The trade and trophy-address clients.</p></div></div>
   </div>
 </div></section>
 
-<!-- SECURITY -->
-<section id="security" class="sec-dark"><div class="wrap">
-  <div class="sec-head">
+<!-- TRUST (split rev: we keep nothing) -->
+<section id="trust" class="pad"><div class="wrap split rev">
+  <div class="media reveal d1"><img src="img/we_keep_nothing.jpg" alt="Your data stays yours" loading="lazy"></div>
+  <div class="copy reveal">
     <div class="eyebrow">Trust &amp; compliance</div>
-    <h2>Your customers' data never leaves their home.</h2>
-    <p>Halia was built zero-retention from the first line of code — a genuine compliance posture,
-      not a policy page.</p>
-  </div>
-  <div class="secrow">
-    <div class="secitem"><div class="ic">⛉</div><h3>Nothing stored</h3>
-      <p>Customers are fetched, scored in memory, and gone within minutes. We never write your
-        customer data to a database.</p></div>
-    <div class="secitem"><div class="ic">🔑</div><h3>Read-only &amp; encrypted</h3>
-      <p>We hold one thing: a read-only API key, encrypted at rest. Revoke it and Halia goes
-        dark instantly.</p></div>
-    <div class="secitem"><div class="ic">§</div><h3>GDPR-ready</h3>
-      <p>Data-subject and erasure requests are satisfied by design — there's simply nothing of
-        your customers' on our side to return or delete.</p></div>
+    <h2 class="h2">Every record is yours.<br>We keep <em>nothing.</em></h2>
+    <p>Halia was built zero-retention from the first line of code. Your customers are scored in
+      memory and never written to our database — the only thing we hold is one read-only key,
+      encrypted at rest. Revoke it and Halia goes dark instantly. GDPR, satisfied by design.</p>
   </div>
 </div></section>
 
-<!-- PRICING / CTA -->
-<section id="pricing"><div class="wrap">
-  <div class="band" id="demo">
-    <h2>See who you've been missing.</h2>
-    <p>Connect your store and Halia will surface your hidden VICs — usually within the hour.
-      Simple per-store pricing, billed monthly.</p>
-    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
-      <a class="btn btn-dark" href="/connect">Connect your store</a>
-      <a class="btn" style="background:#241c0c;color:var(--gold)" href="mailto:hello@halia.app?subject=Halia%20demo">Book a demo</a>
-    </div>
+<!-- FINAL CTA -->
+<section class="pad final" style="overflow:hidden">
+  <img src="img/find_your_most_valuable_clients.jpg" alt="" loading="lazy"
+       style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.20">
+  <div style="position:absolute;inset:0;background:radial-gradient(75% 80% at 50% 45%,transparent,var(--bg) 88%)"></div>
+  <div class="wrap reveal" style="position:relative;z-index:2">
+    <div class="eyebrow" style="margin-bottom:26px">Begin</div>
+    <h2>Find the clients<br>you're missing.</h2>
+    <p class="lede">Connect your store and Halia will surface your hidden VICs — usually within the hour.</p>
+    <a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a>
   </div>
-</div></section>
+</section>
 
 <!-- FOOTER -->
 <footer><div class="wrap">
-  <div class="foot-grid">
+  <div class="foot">
     <div>
-      <a class="logo" href="/" style="font-size:20px">
-        <svg viewBox="0 0 24 24" fill="none" style="width:22px;height:22px"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7z" fill="#d9b878"/></svg>
-        Halia</a>
-      <p class="foot-blurb">Hidden-VIC intelligence for considered-purchase retail. Find the
-        high-value clients already shopping with you.</p>
+      <a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none" style="width:20px;height:20px"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#c8a86b"/></svg>Halia</a>
+      <p style="color:var(--mute);max-width:30ch;font-size:14px">Hidden-VIC intelligence for considered-purchase retail.</p>
     </div>
-    <div><h4>Product</h4>
-      <a href="#product">Overview</a><a href="#signals">Signal library</a>
-      <a href="#how">How it works</a><a href="/connect">Connect a store</a></div>
-    <div><h4>Solutions</h4>
-      <a href="#solutions">Fashion &amp; apparel</a><a href="#solutions">Beauty &amp; fragrance</a>
-      <a href="#solutions">Jewellery &amp; watches</a><a href="#solutions">Home &amp; lifestyle</a></div>
-    <div><h4>Company</h4>
-      <a href="#security">Security</a><a href="#pricing">Pricing</a>
-      <a href="mailto:hello@halia.app">Contact</a><a href="/app">Sign in</a></div>
+    <div class="cols">
+      <div class="col"><h4>Product</h4><a href="#engine">The engine</a><a href="#signals">Signals</a><a href="#solutions">Solutions</a><a href="/connect">Connect a store</a></div>
+      <div class="col"><h4>Company</h4><a href="#trust">Trust</a><a href="mailto:hello@halia.app">Contact</a><a href="/app">Sign in</a></div>
+    </div>
   </div>
   <div class="foot-bot">
-    <div>© 2026 Halia. All rights reserved.</div>
-    <div>Zero-retention by design · Works with Shopify, WooCommerce, Klaviyo &amp; Mailchimp</div>
+    <span>© 2026 Halia. All rights reserved.</span>
+    <span>Zero-retention by design · Shopify · WooCommerce · Klaviyo · Mailchimp</span>
   </div>
 </div></footer>
 
 <script>
-  // Smooth-close mobile: nothing heavy — anchor links + sticky nav handle it.
+  // sticky nav background
+  var hdr=document.getElementById('hdr');
+  addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
+
+  // scroll reveals
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+  },{threshold:.16,rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el);});
+
+  // smooth anchor scroll
   document.querySelectorAll('a[href^="#"]').forEach(function(a){
-    a.addEventListener('click',function(e){
-      var el=document.querySelector(a.getAttribute('href'));
-      if(el){e.preventDefault();el.scrollIntoView({behavior:'smooth',block:'start'});}
-    });
+    a.addEventListener('click',function(e){var t=document.querySelector(a.getAttribute('href'));
+      if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}});
   });
+
+  // ── hero particles: clients drifting in the database "sea"; a few glow gold (the VICs) ──
+  (function(){
+    if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    var c=document.getElementById('fish'), x=c.getContext('2d'), W,H,P=[],mouse={x:-999,y:-999};
+    function size(){var r=c.parentElement.getBoundingClientRect();W=c.width=r.width;H=c.height=r.height;}
+    size(); addEventListener('resize',size,{passive:true});
+    var N=Math.min(120,Math.floor(W*H/14000));
+    for(var i=0;i<N;i++){
+      var vic=Math.random()<0.12;
+      P.push({x:Math.random()*W,y:Math.random()*H,
+        vx:(Math.random()-.5)*.32,vy:(Math.random()-.5)*.32,
+        r:vic?Math.random()*1.6+1.6:Math.random()*1.1+.5,
+        vic:vic,ph:Math.random()*6.28});
+    }
+    c.addEventListener('mousemove',function(e){var r=c.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;});
+    c.parentElement.addEventListener('mouseleave',function(){mouse.x=mouse.y=-999;});
+    function tick(t){
+      x.clearRect(0,0,W,H);
+      for(var i=0;i<P.length;i++){var p=P[i];
+        // gentle drift + sine sway (like plankton/fish)
+        p.x+=p.vx+Math.sin((t/2600)+p.ph)*.12; p.y+=p.vy;
+        // cursor disturbs the water — particles ease away
+        var dx=p.x-mouse.x, dy=p.y-mouse.y, d2=dx*dx+dy*dy;
+        if(d2<9000){var f=(9000-d2)/9000*1.4, d=Math.sqrt(d2)||1; p.x+=dx/d*f; p.y+=dy/d*f;}
+        if(p.x<-10)p.x=W+10; if(p.x>W+10)p.x=-10; if(p.y<-10)p.y=H+10; if(p.y>H+10)p.y=-10;
+        var tw=p.vic?(.6+.4*Math.sin(t/700+p.ph)):.5;
+        x.beginPath(); x.arc(p.x,p.y,p.r,0,6.2832);
+        x.fillStyle=p.vic?'rgba(200,168,107,'+tw+')':'rgba(244,241,234,'+(0.16*tw+0.05)+')';
+        if(p.vic){x.shadowColor='rgba(200,168,107,.9)';x.shadowBlur=12;}else{x.shadowBlur=0;}
+        x.fill();
+      }
+      x.shadowBlur=0;
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  })();
 </script>
 </body>
 </html>

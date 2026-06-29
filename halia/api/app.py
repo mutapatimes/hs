@@ -26,6 +26,14 @@ from halia.engine import engine
 
 app = FastAPI(title="Halia", version="1.0", summary="Hidden-VIC scoring — embedded Shopify app")
 
+# Serve the marketing site's imagery (water hero video, editorial photography) at /img.
+from config import ROOT as _ROOT  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+_IMG_DIR = _ROOT / "web" / "site" / "img"
+if _IMG_DIR.is_dir():
+    app.mount("/img", StaticFiles(directory=str(_IMG_DIR)), name="img")
+
 
 @app.get("/health")
 def health() -> dict:
