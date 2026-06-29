@@ -32,6 +32,8 @@ def store_slug(url: str) -> str:
 
 
 def main() -> None:
+    from halia import config as _hc  # noqa: F401 — importing loads .env
+
     store = os.environ.get("WOO_STORE_URL")
     if not store or not os.environ.get("WOO_CONSUMER_KEY"):
         raise SystemExit(

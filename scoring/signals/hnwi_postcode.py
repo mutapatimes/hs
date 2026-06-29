@@ -26,6 +26,18 @@ REASON_COL = "hnwi_postcode_reason"
 # UK inward code (the part after the space) is always 3 chars: digit + 2 letters.
 _INWARD_LEN = 3
 
+# Westminster government addresses that real customers never live at — these are the
+# canonical UK placeholder/default postcodes (e.g. PayPal guest checkouts with no
+# postcode shared, or test data). Ignore them so they don't false-fire as ultra-prime.
+PLACEHOLDER_POSTCODES = {
+    "SW1A 0AA",  # Palace of Westminster / House of Commons
+    "SW1A 0PW",  # House of Lords
+    "SW1A 1AA",  # Buckingham Palace (the classic UK test postcode)
+    "SW1A 2AA",  # 10 Downing Street / Cabinet Office
+    "SW1A 2AB",  # Downing Street
+    "EC4N 8AF",  # Bank of England (occasional default)
+}
+
 
 def _normalize(value: object) -> str | None:
     """Upper-case, trim, and collapse internal whitespace. None for blanks."""
@@ -79,7 +91,7 @@ def match_postcode(
 ) -> tuple[bool, str | None]:
     """Return (is_hnwi, matched_prefix). Reason is the prefix that matched."""
     norm = _normalize(postcode)
-    if norm is None:
+    if norm is None or norm in PLACEHOLDER_POSTCODES:
         return False, None
 
     cust_out, cust_in = _split_full(norm)

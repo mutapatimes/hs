@@ -63,3 +63,14 @@ def test_sector_prefix_matches_sector_only():
 def test_blank_postcode_is_not_flagged():
     assert match_postcode(None, ["SW10 9SJ"]) == (False, None)
     assert match_postcode("", ["SW10 9SJ"]) == (False, None)
+
+
+def test_placeholder_postcodes_excluded():
+    """Westminster government defaults (PayPal/guest-checkout placeholders) never match,
+    even though SW1A is a listed ultra-prime district — but a real SW1A unit still does."""
+    prefixes = load_prefixes()
+    for pc in ["SW1A 1AA", "SW1A 2AA", "SW1A 0AA", "sw1a 2aa"]:
+        hit, _ = match_postcode(pc, prefixes)
+        assert not hit, f"{pc} should be treated as a placeholder, not ultra-prime"
+    hit, _ = match_postcode("SW1A 1AB", prefixes)  # a genuine St James's unit
+    assert hit
