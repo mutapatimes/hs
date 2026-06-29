@@ -35,6 +35,8 @@ def test_push_builds_upsert_body_with_properties():
     assert props["Halia Grade"] == "A*" and props["Halia Score"] == 99
     assert props["Halia Hidden VIC"] is True
     assert "Halia Reasons" in props and "Halia Last Scored" in props
+    # Fired signals as a list property (segmentable) + the count.
+    assert props["Halia Signals"] == ["Work email"] and props["Halia Signal Count"] == 2
 
 
 def test_profiles_without_email_are_skipped():

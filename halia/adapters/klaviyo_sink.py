@@ -51,6 +51,10 @@ def _properties(result: ScoreResult, scored_at: str) -> dict:
         "Halia Score": result.score,
         "Halia Tier": result.tier,
         "Halia Reasons": result.reasons,
+        # The individual signals that fired, as a Klaviyo list property — lets the merchant
+        # segment on specific tells ("Halia Signals contains 'Delivery'") on any plan.
+        "Halia Signals": list(result.signals or []),
+        "Halia Signal Count": result.signal_count,
         HIDDEN_VIC_PROPERTY: bool(result.hidden_vic),
         "Halia Last Scored": scored_at,
     }
