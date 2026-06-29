@@ -589,21 +589,20 @@ function openDrawer(id){
     </div>
     <div class="dactions">
       ${c.shopifyUrl?`<a class="dbtn" href="${c.shopifyUrl}" target="_top">Open in Shopify</a>`:""}
-      <button class="dbtn primary" id="dpush">Email in Klaviyo →</button>
+      <button class="dbtn primary" id="dpush">Email this client →</button>
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   document.getElementById("dclose").onclick=closeDrawer;
-  // Ensure the client is in Klaviyo, then jump straight to their profile to action them.
+  // Fire the "Halia VIC Identified" Klaviyo event → the merchant's flow sends the email.
   document.getElementById("dpush").onclick=()=>{
-    const w=window.open("","_blank");               // open synchronously to dodge popup blockers
-    const b=document.getElementById("dpush"); b.disabled=true; b.textContent="Opening…";
-    fetch("/v1/klaviyo/open",{method:"POST",headers:{"content-type":"application/json"},
+    const b=document.getElementById("dpush"); b.disabled=true; b.textContent="Sending…";
+    fetch("/v1/klaviyo/event",{method:"POST",headers:{"content-type":"application/json"},
         body:JSON.stringify({customer_id:c.cid})})
       .then(r=>r.json().then(d=>({ok:r.ok,d})))
       .then(({ok,d})=>{ if(!ok) throw new Error(d.detail||("HTTP "+0));
-        if(w){w.location=d.url}else{window.open(d.url,"_blank")} })
-      .catch(e=>{ if(w)w.close(); toast("Couldn't open in Klaviyo: "+e.message); })
-      .finally(()=>{ b.disabled=false; b.textContent="Email in Klaviyo →"; });
+        toast(`Triggered Klaviyo for ${c.name} — your “Halia VIC Identified” flow will email them.`); })
+      .catch(e=>toast("Couldn't trigger Klaviyo: "+e.message))
+      .finally(()=>{ b.disabled=false; b.textContent="Email this client →"; });
   };
 }
 function closeDrawer(){drawer.classList.remove("show");scrim.classList.remove("show");drawer.setAttribute("aria-hidden","true");}

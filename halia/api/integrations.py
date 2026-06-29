@@ -45,6 +45,26 @@ def register(app, get_store) -> None:
             segments = {"warning": str(exc)[:200]}
         return {"connected": True, "segments": segments}
 
+    @app.post("/v1/klaviyo/event")
+    def klaviyo_event(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
+        """One-click 'email this client': ensure their profile + grade, then fire the
+        'Halia VIC Identified' event so the merchant's Klaviyo flow sends the email."""
+        key = _key_for(shop)
+        if not key:
+            raise HTTPException(400, "Connect Klaviyo first (add your private API key).")
+        result = get_store().get_by_customer_id(shop, (payload or {}).get("customer_id"))
+        if not result or not result.email:
+            raise HTTPException(404, "No emailable customer for that id.")
+        from halia.adapters.klaviyo_events import METRIC, fire_event
+        from halia.adapters.klaviyo_sink import KlaviyoError, KlaviyoSink
+
+        try:
+            KlaviyoSink(api_key=key).push_one(result)  # profile + Halia grade properties
+            fire_event(key, result)                    # trigger the flow
+        except KlaviyoError as exc:
+            raise HTTPException(502, f"Klaviyo rejected it: {exc}")
+        return {"ok": True, "metric": METRIC, "email": result.email}
+
     @app.post("/v1/klaviyo/open")
     def klaviyo_open(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
         """Ensure the client is in Klaviyo and return a deep link to their profile —

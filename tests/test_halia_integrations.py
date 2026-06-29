@@ -46,6 +46,33 @@ def test_routes_require_session_token(client):
     assert client.post("/v1/klaviyo/push", json={}).status_code == 401
 
 
+def test_event_without_key_asks_to_connect(client):
+    r = client.post("/v1/klaviyo/event", json={"customer_id": "c1"}, headers=_auth())
+    assert r.status_code == 400 and "Connect Klaviyo" in r.json()["detail"]
+
+
+def test_fire_event_builds_metric_and_profile():
+    from halia.adapters.klaviyo_events import METRIC, fire_event
+    from halia.schema import ScoreResult
+
+    result = ScoreResult(matched=True, flagged=True, tier="A1", grade="A*", score=99,
+                         is_priority=True, signal_count=1, signals=[], reasons="Work email: GS",
+                         gesture="", spend=400.0, hidden_vic=True, customer_id="c1",
+                         email="vic@x.com", phone=None)
+    cap = {}
+
+    def fake(url, key, rev, body):
+        cap.update(url=url, key=key, body=body)
+        return 202, {}
+
+    fire_event("pk_test", result, transport=fake)
+    attrs = cap["body"]["data"]["attributes"]
+    assert cap["url"].endswith("/api/events") and cap["key"] == "pk_test"
+    assert attrs["metric"]["data"]["attributes"]["name"] == METRIC
+    assert attrs["profile"]["data"]["attributes"]["email"] == "vic@x.com"
+    assert attrs["properties"]["halia_grade"] == "A*" and attrs["value"] == 400.0
+
+
 def test_orders_by_customer_groups_and_sorts():
     orders = [
         {"customer": {"id": "c1"}, "created_at": "2026-03-01T10:00:00Z",
