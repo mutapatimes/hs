@@ -26,6 +26,7 @@ from scoring.signals import (
     foreign_currency,
     gcc_billing,
     hnw_area,
+    fashion_stylist,
     heritage_surname,
     hnwi_postcode,
     honorific,
@@ -72,6 +73,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "foreign_currency": 1,
     "card_brand": 1,
     "rich_list": 1,
+    "fashion_stylist": 2,  # celebrity stylist / personal shopper — high-value, name-match (verify)
     "ip_location": 1,
     "domain_keyword": 2,  # finance/high-earning keyword in a custom domain
     "custom_email": 1,
@@ -123,6 +125,7 @@ SIGNAL_GROUP: dict[str, str] = {
     # Name-based tells are correlated ("their name signals status") — group them
     # so a rich-list + dynasty-surname + name-structure pile-up doesn't stack.
     "rich_list": "name",
+    "fashion_stylist": "name",
     "heritage_surname": "name",
     "name_structure": "name",
     "nobiliary_particle": "name",
@@ -194,6 +197,8 @@ SIGNALS = [
      phone_country.FLAG_COL, lambda r: r[phone_country.REASON_COL]),
     ("rich_list", "Rich list", rich_list.flag_rich_list,
      rich_list.FLAG_COL, lambda r: r[rich_list.REASON_COL]),
+    ("fashion_stylist", "Fashion stylist", fashion_stylist.flag_fashion_stylist,
+     fashion_stylist.FLAG_COL, lambda r: r[fashion_stylist.REASON_COL]),
     ("heritage_surname", "Heritage surname", heritage_surname.flag_heritage_surname,
      heritage_surname.FLAG_COL, lambda r: r[heritage_surname.REASON_COL]),
     ("premium_card", "Premium card", card_bin.flag_card_bin,
