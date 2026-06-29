@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ · Halia</title>
+<meta name="description" content="In-depth answers on how Halia works: the signals and data model, scoring and accuracy, zero-retention privacy, integrations, setup, and pricing.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0a0b;--bg-2:#0e0e10;--ink:#f4f1ea;--mute:#8c887f;--faint:#56534d;--gold:#d8d2c6;
+    --line:rgba(255,255,255,.12);--line-2:rgba(255,255,255,.07);
+    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}::selection{background:var(--gold);color:#1a1408}
+  .wrap{max-width:880px;margin:0 auto;padding:0 40px}.wide{max-width:1180px}
+  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+  h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.04}
+  .display{font-size:clamp(44px,7vw,86px)}
+  .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);line-height:1.5}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:999px;border:1px solid var(--ink);color:#0a0a0b;background:var(--ink);transition:.25s}
+  .btn:hover{background:transparent;color:var(--ink)}.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
+  .arrow{transition:transform .25s}.btn:hover .arrow{transform:translateX(4px)}
+  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(10,10,11,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:78px;max-width:1180px;margin:0 auto;padding:0 40px}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px}.brand svg{width:22px;height:22px}
+  .nav-links{display:flex;gap:30px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
+  .nav .right{display:flex;gap:20px;align-items:center}.nav .right .si{font:500 14px var(--sans);color:var(--mute)}
+  @media(max-width:980px){.nav-links{display:none}}
+  .phero{padding:170px 0 40px}.phero h1{margin:18px 0 24px;max-width:16ch}
+  .toc{display:flex;flex-wrap:wrap;gap:10px;margin:34px 0 0}
+  .toc a{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:8px 15px}
+  .toc a:hover{color:var(--ink);border-color:rgba(255,255,255,.4)}
+  .faq-cat{padding:clamp(54px,8vh,90px) 0;border-top:1px solid var(--line-2)}
+  .faq-cat .ct{font:500 12px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+  .faq-cat h2{font-size:clamp(26px,3.4vw,40px);margin-bottom:18px}
+  details.q{border-top:1px solid var(--line)}
+  details.q:last-child{border-bottom:1px solid var(--line)}
+  details.q summary{list-style:none;cursor:pointer;padding:22px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;font:500 18px var(--sans);color:var(--ink)}
+  details.q summary::-webkit-details-marker{display:none}
+  details.q summary .pl{flex:none;color:var(--faint);font-size:24px;line-height:.9;transition:transform .25s;font-weight:300}
+  details.q[open] summary .pl{transform:rotate(45deg);color:var(--ink)}
+  details.q .a{color:var(--mute);font-size:16px;line-height:1.66;padding:2px 0 26px;max-width:66ch}
+  details.q .a a{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+  .final{text-align:center;padding:clamp(70px,10vh,120px) 0}
+  footer{border-top:1px solid var(--line);padding:60px 0 44px}
+  .foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:var(--faint);font-size:13px;max-width:1180px;margin:0 auto;padding:0 40px}
+  .legal-nav{display:flex;gap:20px;flex-wrap:wrap}.legal-nav a{color:var(--mute)}
+</style>
+</head>
+<body>
+<header id="hdr"><div class="nav">
+  <a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#d8d2c6"/></svg>Halia</a>
+  <nav class="nav-links"><a href="/#how">How it works</a><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/security">Security</a></nav>
+  <div class="right"><a class="si" href="/app">Sign in</a><a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a></div>
+</div></header>
+
+<section class="phero"><div class="wrap">
+  <div class="eyebrow">Frequently asked</div>
+  <h1 class="display">Questions, answered in full.</h1>
+  <p class="lede" style="max-width:52ch">Everything on how Halia works, from the data model to privacy, integrations, and pricing. If something is missing, <a href="mailto:hello@halia.app" style="color:var(--ink);text-decoration:underline;text-underline-offset:3px">just ask</a>.</p>
+  <div class="toc">
+    <a href="#basics">The basics</a><a href="#data">Signals &amp; data</a><a href="#scoring">Scoring &amp; accuracy</a>
+    <a href="#privacy">Privacy &amp; security</a><a href="#integrations">Integrations</a><a href="#setup">Setup</a><a href="#pricing">Pricing</a>
+  </div>
+</div></section>
+
+<div class="wrap">
+
+  <section class="faq-cat" id="basics">
+    <div class="ct">The basics</div><h2>What Halia is, and what it is for.</h2>
+    <details class="q"><summary>What is Halia?<span class="pl">+</span></summary><div class="a">Halia is hidden-VIC intelligence for considered-purchase retail. It reads the wealth and intent signals already sitting in your customer data, grades every customer from A&#42; to C, and surfaces the high-value clients you would otherwise treat like everyone else, then helps your team act on them in the tools you already use.</div></details>
+    <details class="q"><summary>Who is it for?<span class="pl">+</span></summary><div class="a">Luxury and premium retailers where a single, well-treated client is worth more than a thousand one-time buyers: fashion and apparel, beauty and fragrance, jewellery and watches, home and lifestyle. Anywhere relationships, not just transactions, drive the business.</div></details>
+    <details class="q"><summary>What problem does it actually solve?<span class="pl">+</span></summary><div class="a">Most brands reward the spend they can already see. The problem is the spend they cannot: the client who has placed one modest order with you but is spending serious money elsewhere. Halia finds those people from the signals in your own data, so you can build the relationship before a competitor does.</div></details>
+    <details class="q"><summary>How is this different from RFM or spend-based segmentation?<span class="pl">+</span></summary><div class="a">RFM and spend tiers only know what a customer has done with you. They cannot see a future VIC on their first small order. Halia reads who a customer is and what they signal, so it can flag genuine wealth and intent long before spend reveals it. The two are complementary: spend tells you your known VIPs, Halia tells you your hidden ones.</div></details>
+  </section>
+
+  <section class="faq-cat" id="data">
+    <div class="ct">Signals &amp; data</div><h2>The data model.</h2>
+    <details class="q"><summary>What signals does Halia read?<span class="pl">+</span></summary><div class="a">Over forty, across six families. <b>Geography:</b> ultra-prime postcodes, trophy residences, HNW neighbourhoods, international wealth hubs. <b>Delivery destinations:</b> private-jet terminals, superyacht marinas, luxury hotels, members' clubs. <b>Email and domain:</b> wealth-employer and family-office domains, private equity and hedge fund keywords, elite alumni. <b>Identity:</b> honorifics, post-nominals, heritage surnames, celebrity stylists and personal shoppers. <b>Behaviour:</b> assistant and PA orders, concierge delivery, company billing, foreign-currency spend. <b>Payment:</b> premium card ranges, GCC and tax-haven billing.</div></details>
+    <details class="q"><summary>Where does the reference data come from, and how big is it?<span class="pl">+</span></summary><div class="a">Halia maintains curated datasets assembled over years: roughly 1,500 reference points in all. That includes hundreds of prime addresses and HNW areas across the world's wealth capitals, every major private-jet terminal and superyacht marina, dozens of commercial buildings where high-net-worth individuals are known to concentrate, over a hundred wealth-employer and family-office domains, hundreds of celebrity stylists and personal shoppers, premium card ranges, and the naming tells of title and lineage. Each order is checked against all of it, in milliseconds.</div></details>
+    <details class="q"><summary>Could my team not just do this manually?<span class="pl">+</span></summary><div class="a">No. No associate could memorise the world's prime addresses, every private-jet terminal and marina, the buildings where wealth clusters, and the domains of every family office, then check each one against every order, in milliseconds, continuously, for the whole customer base. That is precisely the work Halia exists to do.</div></details>
+    <details class="q"><summary>Do you buy personal data or use data brokers?<span class="pl">+</span></summary><div class="a">No. Halia scores using your own customer data combined with our curated reference datasets of public, non-personal facts: addresses, domains, card ranges, naming conventions. It does not buy, append, or enrich with third-party personal data about your customers.</div></details>
+    <details class="q"><summary>Why do some signals say "verify"?<span class="pl">+</span></summary><div class="a">Names and addresses are shared. A whole-name match to a known stylist, or a rich-list name, is a useful lead but not proof, so Halia presents those as "verify" and lets them corroborate rather than assert. It is "flag and confirm", never "flag and assume".</div></details>
+  </section>
+
+  <section class="faq-cat" id="scoring">
+    <div class="ct">Scoring &amp; accuracy</div><h2>How the score is built.</h2>
+    <details class="q"><summary>How does the score work?<span class="pl">+</span></summary><div class="a">Each signal carries a weight. Halia combines the signals that fire into a single 0 to 100 score and an A&#42; to C grade. Crucially, correlated signals are discounted, so three ways of saying "this client is in Monaco" count as one, and the weakest signals only contribute when stronger ones agree. The result is a score you can defend, not a pile of guesses.</div></details>
+    <details class="q"><summary>What exactly is a "hidden VIC"?<span class="pl">+</span></summary><div class="a">A customer who spends below your VIP threshold today but shows genuine wealth and intent signals: the modest spender who could become one of your best clients with the right attention. You set the threshold in Settings.</div></details>
+    <details class="q"><summary>What is "latent value"?<span class="pl">+</span></summary><div class="a">An estimate of what a client could be worth if nurtured toward your best clients. It grows from their current spend toward your own ceiling, scaled by their score. You provide the inputs in Settings: your average order value, the most orders a single client has placed, and your highest lifetime client. Until you do, it uses a store-AOV fallback.</div></details>
+    <details class="q"><summary>Is the score ever wrong?<span class="pl">+</span></summary><div class="a">No scoring system is infallible, and Halia is guidance for your team, not a verdict. Because signals can collide, weak ones are held back unless corroborated. Treat the multi-signal and A&#42;/A clients as your trustworthy shortlist, and a single weak signal as a hint, not a conclusion.</div></details>
+    <details class="q"><summary>Can I tune the scoring to my store?<span class="pl">+</span></summary><div class="a">Yes. You set your hidden-VIC spend threshold, your latent-value benchmarks, and your email sign-off in Settings, and the store re-scores. Over time we can also calibrate against which of your flagged clients actually converted.</div></details>
+  </section>
+
+  <section class="faq-cat" id="privacy">
+    <div class="ct">Privacy &amp; security</div><h2>What we hold, which is almost nothing.</h2>
+    <details class="q"><summary>Where is my customer data stored?<span class="pl">+</span></summary><div class="a">Nowhere on our side. Halia is zero-retention: your customers are read in real time, scored in memory, and discarded within minutes. We never write your customer data to a database. There is no standing copy of your customer base with us to leak or lose. See our <a href="/security">security overview</a>.</div></details>
+    <details class="q"><summary>So what do you store?<span class="pl">+</span></summary><div class="a">Only your store URL, an encrypted read-only API key, your settings, a one-way hash of your access link, and a contact email you give us. None of that is customer personal data, and the secret is encrypted at rest.</div></details>
+    <details class="q"><summary>Is Halia GDPR compliant?<span class="pl">+</span></summary><div class="a">Yes, by design. For your customer data you are the controller and Halia is your processor. Because no customer data lives with us, data-subject access and erasure requests are satisfied on our side automatically, not by a manual process. We can provide a data processing agreement on request.</div></details>
+    <details class="q"><summary>Can Halia change anything in my store?<span class="pl">+</span></summary><div class="a">No. Access is read-only. Halia can read orders and customers to score them; it cannot edit, delete, refund, or place anything. Revoke the key and access ends in the same moment.</div></details>
+  </section>
+
+  <section class="faq-cat" id="integrations">
+    <div class="ct">Integrations</div><h2>Your stack, connected.</h2>
+    <details class="q"><summary>Which platforms does Halia work with?<span class="pl">+</span></summary><div class="a">Shopify and WooCommerce as data sources, Klaviyo and Mailchimp as destinations. The architecture is source-and-sink agnostic, so further platforms can be added.</div></details>
+    <details class="q"><summary>What does Halia push to my marketing tool?<span class="pl">+</span></summary><div class="a">Grades and scores as profile properties or merge fields, plus tags and segments such as "Halia A&#42;" or "Halia Hidden VIC" that you can segment on or use to trigger a flow or Customer Journey. A hidden VIC can start an automation the moment it is found.</div></details>
+    <details class="q"><summary>Will connecting Halia change my subscribers' consent?<span class="pl">+</span></summary><div class="a">No. New contacts pushed to Mailchimp are added as transactional, never subscribed, so Halia never opts anyone into marketing without consent. It enriches and tags your existing contacts.</div></details>
+  </section>
+
+  <section class="faq-cat" id="setup">
+    <div class="ct">Setup</div><h2>Live in under an hour.</h2>
+    <details class="q"><summary>How long does it take to get started?<span class="pl">+</span></summary><div class="a">Usually under an hour. You connect a read-only key, Halia pulls and scores your customers, and your hidden VICs appear, ranked.</div></details>
+    <details class="q"><summary>Do I need to install anything or change my store?<span class="pl">+</span></summary><div class="a">No. It is a read-only connection with nothing for your team to install and no change to your storefront or checkout.</div></details>
+    <details class="q"><summary>How do I connect?<span class="pl">+</span></summary><div class="a">For WooCommerce, create a read-only REST API key in your admin and paste it with your store URL on the <a href="/connect">connect page</a>. For Shopify, install the app from your admin. Either way, Halia is reading only.</div></details>
+  </section>
+
+  <section class="faq-cat" id="pricing">
+    <div class="ct">Pricing &amp; commercial</div><h2>Simple, per store.</h2>
+    <details class="q"><summary>How is Halia priced?<span class="pl">+</span></summary><div class="a">A per-store subscription, billed monthly. Talk to us for a quote tailored to your size and stack.</div></details>
+    <details class="q"><summary>Is there a contract or lock-in?<span class="pl">+</span></summary><div class="a">Month to month. Disconnect at any time, which revokes our access immediately and deletes the little we store.</div></details>
+    <details class="q"><summary>Can I see it on my own data first?<span class="pl">+</span></summary><div class="a">Yes. Connect your store and Halia surfaces your hidden VICs, usually within the hour. That is the fastest way to judge the value.</div></details>
+  </section>
+
+</div>
+
+<section class="final"><div class="wrap">
+  <h2 style="font-size:clamp(32px,4.6vw,56px);margin-bottom:18px">Still have a question?</h2>
+  <p class="lede" style="max-width:34ch;margin:0 auto 32px">We read every message and reply within a business day.</p>
+  <a class="btn" href="mailto:hello@halia.app?subject=Halia%20question">Ask us anything <span class="arrow">→</span></a>
+  <div style="margin-top:16px"><a href="/connect" style="color:var(--mute);font-size:14px">Or just connect your store →</a></div>
+</div></section>
+
+<footer><div class="foot">
+  <span>© 2026 Halia. All rights reserved.</span>
+  <div class="legal-nav"><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/security">Security</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+</div></footer>
+<script>
+  var hdr=document.getElementById('hdr');addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
+</script>
+</body>
+</html>
