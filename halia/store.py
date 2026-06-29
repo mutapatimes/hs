@@ -36,6 +36,24 @@ _TABLES = [
         shop TEXT PRIMARY KEY,
         data TEXT
     )""",
+    # Self-service tenants (non-Shopify, e.g. WooCommerce). `kind` is the data source;
+    # `token_hash` is the sha256 of the private dashboard-link token (never the token
+    # itself). One row per onboarded client, keyed by the same `shop` tenant key.
+    """CREATE TABLE IF NOT EXISTS tenants (
+        shop       TEXT PRIMARY KEY,
+        kind       TEXT,
+        label      TEXT,
+        token_hash TEXT,
+        created_at TEXT
+    )""",
+    # WooCommerce REST credentials (read-only ck_/cs_), encrypted at rest.
+    """CREATE TABLE IF NOT EXISTS woocommerce (
+        shop            TEXT PRIMARY KEY,
+        store_url       TEXT,
+        consumer_key    TEXT,
+        consumer_secret TEXT,
+        connected_at    TEXT
+    )""",
 ]
 # Earlier versions cached customer PII in these tables. Drop them so any deploy purges it.
 _DROP_LEGACY = [
@@ -135,9 +153,46 @@ class ShopStore(_DB):
         row = self._run("SELECT data FROM settings WHERE shop = :shop", {"shop": shop}, fetch="one")
         return row["data"] if row else None
 
+    # ── self-service tenants (WooCommerce etc.) ─────────────────────────────────
+    def create_tenant(self, shop: str, kind: str, label: str, token_hash: str) -> None:
+        self._run(
+            """INSERT INTO tenants (shop, kind, label, token_hash, created_at)
+               VALUES (:shop, :kind, :label, :th, :at)
+               ON CONFLICT(shop) DO UPDATE SET kind=excluded.kind, label=excluded.label,
+                token_hash=excluded.token_hash""",
+            {"shop": shop, "kind": kind, "label": label, "th": token_hash, "at": _now()})
+
+    def get_tenant(self, shop: str) -> dict | None:
+        return self._run(
+            "SELECT shop, kind, label FROM tenants WHERE shop = :shop", {"shop": shop}, fetch="one")
+
+    def tenant_for_token(self, token_hash: str) -> dict | None:
+        """Resolve a presented dashboard-link token (already hashed) to its tenant."""
+        return self._run("SELECT shop, kind, label FROM tenants WHERE token_hash = :th",
+                         {"th": token_hash}, fetch="one")
+
+    # ── WooCommerce REST credentials (encrypted) ────────────────────────────────
+    def save_woocommerce(self, shop: str, store_url: str, ck: str, cs: str) -> None:
+        self._run(
+            """INSERT INTO woocommerce (shop, store_url, consumer_key, consumer_secret, connected_at)
+               VALUES (:shop, :url, :ck, :cs, :at)
+               ON CONFLICT(shop) DO UPDATE SET store_url=excluded.store_url,
+                consumer_key=excluded.consumer_key, consumer_secret=excluded.consumer_secret,
+                connected_at=excluded.connected_at""",
+            {"shop": shop, "url": store_url, "ck": crypto.encrypt(ck),
+             "cs": crypto.encrypt(cs), "at": _now()})
+
+    def get_woocommerce(self, shop: str) -> dict | None:
+        row = self._run("SELECT store_url, consumer_key, consumer_secret FROM woocommerce "
+                        "WHERE shop = :shop", {"shop": shop}, fetch="one")
+        if not row:
+            return None
+        return {"store_url": row["store_url"],
+                "consumer_key": crypto.decrypt(row["consumer_key"]),
+                "consumer_secret": crypto.decrypt(row["consumer_secret"])}
+
     # ── deletion (shop/redact + app/uninstalled) ───────────────────────────────
     def delete_shop(self, shop: str) -> None:
-        """Erase everything we hold for a shop — token, Klaviyo key, and settings."""
-        self._run("DELETE FROM shops WHERE shop = :shop", {"shop": shop})
-        self._run("DELETE FROM klaviyo WHERE shop = :shop", {"shop": shop})
-        self._run("DELETE FROM settings WHERE shop = :shop", {"shop": shop})
+        """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo creds."""
+        for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce"):
+            self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})

@@ -55,13 +55,31 @@ def _order_index(orders: list[dict]) -> list[dict]:
     return out
 
 
-def sync_shop(shop: str, token: str) -> dict:
-    """Pull → score → cache in RAM (never persisted). Returns the cache entry."""
+def score_woo(shop: str):
+    """Live: pull + score one WooCommerce tenant's customers (using its stored creds)."""
+    from halia import config as hcfg
+    from halia.api.settings import settings_for
+    from scoring.combine import score_customers
+    from scoring.shopify import orders_to_customers
+    from scoring.woocommerce import woo_order_to_rest
+    from scoring.woocommerce_fetch import fetch_orders, http_transport
+
+    creds = shop_store().get_woocommerce(shop)
+    if not creds:
+        raise RuntimeError("No WooCommerce credentials connected for this tenant")
+    transport = http_transport(creds["store_url"], creds["consumer_key"], creds["consumer_secret"])
+    orders = [woo_order_to_rest(o) for o in fetch_orders(transport, max_pages=hcfg.WOO_MAX_PAGES)]
+    customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
+    threshold = settings_for(shop)["vic_threshold"]
+    return score_customers(customers, vic_threshold=threshold), orders
+
+
+def _finalize(shop: str, scored, orders: list[dict]) -> dict:
+    """Score frame + orders -> RAM cache entry (never persisted). Shared by all sources."""
     from build_mvp import dashboard_payload
     from halia.api.settings import settings_for
     from halia.engine import engine
 
-    scored, orders = score_shop(shop, token)
     results = engine.results_from_scored(scored)
     s = settings_for(shop)
     benchmarks = {"aov": s["aov"], "max_orders": s["max_orders"], "highest_lt": s["highest_lt"]}
@@ -70,13 +88,28 @@ def sync_shop(shop: str, token: str) -> dict:
     return cache.get(shop)
 
 
-def results_for(shop: str) -> dict | None:
-    """The shop's live entry — from RAM, or a fresh sync using its stored offline token."""
-    entry = cache.get(shop)
-    if entry:
-        return entry
+def sync_shop(shop: str, token: str) -> dict:
+    """Pull → score → cache in RAM (never persisted). Returns the cache entry."""
+    return _finalize(shop, *score_shop(shop, token))
+
+
+def sync_woo(shop: str) -> dict:
+    """WooCommerce pull → score → cache in RAM. Returns the cache entry."""
+    return _finalize(shop, *score_woo(shop))
+
+
+def sync_tenant(shop: str) -> dict | None:
+    """Sync by source: a WooCommerce tenant via stored creds, else Shopify via its token."""
+    tenant = shop_store().get_tenant(shop)
+    if tenant and tenant["kind"] == "woocommerce":
+        return sync_woo(shop)
     token = shop_store().get_token(shop)
     return sync_shop(shop, token) if token else None
+
+
+def results_for(shop: str) -> dict | None:
+    """The shop's live entry — from RAM, or a fresh sync using its stored source/creds."""
+    return cache.get(shop) or sync_tenant(shop)
 
 
 # ── helpers over a cache entry ──────────────────────────────────────────────────

@@ -48,6 +48,15 @@ SHOPIFY_API_KEY = os.environ.get("SHOPIFY_API_KEY")
 SHOPIFY_API_SECRET = os.environ.get("SHOPIFY_API_SECRET")
 HALIA_APP_URL = os.environ.get("HALIA_APP_URL", "").rstrip("/")
 
+# Self-service onboarding gate. When set, the /connect page requires this code so the
+# public can't create tenants; share it with a client to let them self-onboard. Unset
+# (None) = open onboarding (fine for local dev).
+SIGNUP_CODE = os.environ.get("HALIA_SIGNUP_CODE") or None
+
+# Cap the WooCommerce pull for the interactive dashboard (recent orders are the most
+# actionable; a full back-catalogue pull can take many minutes). 0 / unset = no cap.
+WOO_MAX_PAGES = int(os.environ.get("HALIA_WOO_MAX_PAGES", "0")) or None
+
 # Merchant's VIC spend cutoff (the hidden-vs-known gate). Falls back to the engine default.
 VIC_THRESHOLD = float(os.environ.get("HALIA_VIC_THRESHOLD", "5000"))
 

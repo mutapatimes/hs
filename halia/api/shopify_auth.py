@@ -117,5 +117,16 @@ def require_shop(request: Request) -> str:
     Pure (no network) so read routes stay cheap and unit-testable. Routes that need to
     call the Admin API (the embedded entry + /v1/sync) call ``ensure_offline_token``
     themselves to get/refresh the offline token.
+
+    Falls back to a self-service tenant's private-link cookie (WooCommerce etc.) so the
+    same /v1/* routes — Settings, lookups — serve hosted clients too.
     """
-    return verify_session_token(token_for_request(request))
+    try:
+        return verify_session_token(token_for_request(request))
+    except HTTPException:
+        from halia.api.tenant_auth import resolve_tenant
+
+        shop = resolve_tenant(request)
+        if shop:
+            return shop
+        raise
