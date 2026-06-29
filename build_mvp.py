@@ -126,8 +126,22 @@ def _orders(row: pd.Series) -> int:
     return int(n) if 1 <= n < 200 else 1
 
 
-def _latent(spend: float, orders: int, tier: str, store_aov: float) -> int:
-    """Projected ANNUAL value if converted to a loyal client. NOT a model."""
+def _latent(spend: float, orders: int, tier: str, store_aov: float,
+            score: int = 0, benchmarks: dict | None = None) -> int:
+    """Projected value of this client if nurtured into a top client.
+
+    When the merchant has supplied benchmarks (their AOV, the most orders a single
+    client has placed, and their highest lifetime client), latent is anchored to those:
+    we grow this client from their current spend toward that ceiling, scaled by the
+    Halia score (a 99 could realistically reach your best client; a 64 reaches ~⅔ of the
+    way). Without benchmarks we fall back to the old store-AOV heuristic.
+    """
+    b = benchmarks or {}
+    target = max(float(b.get("highest_lt") or 0),
+                 float(b.get("aov") or 0) * float(b.get("max_orders") or 0))
+    if target > 0:
+        latent = spend + max(0.0, target - spend) * (max(0, min(100, score)) / 100.0)
+        return int(round(min(latent, target), -2))
     client_aov = spend / orders if orders else spend
     base_aov = max(client_aov, store_aov)
     est = base_aov * _LATENT_AOV_UPLIFT.get(tier, 1.5) * _LATENT_FREQ.get(tier, 4)
@@ -185,7 +199,8 @@ def _shopify_url(shop: str | None, cid: object) -> str:
 
 
 def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float,
-            orders_by_customer: dict | None = None, shop: str | None = None) -> dict:
+            orders_by_customer: dict | None = None, shop: str | None = None,
+            benchmarks: dict | None = None) -> dict:
     raw = _num(row[SCORE_COL])
     s100 = _score100(raw)
     t = _tier(s100)
@@ -208,7 +223,7 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
         "grade": GRADE_LABEL.get(t, t),
         "score": s100,
         "spend": int(round(spend)),
-        "latent": _latent(spend, n_orders, t, store_aov),
+        "latent": _latent(spend, n_orders, t, store_aov, s100, benchmarks),
         "count": len(sigs),
         "ordersCount": n_orders,
         "aov": int(round(spend / n_orders)) if n_orders else int(round(spend)),
@@ -248,7 +263,7 @@ def _scored_frame(source: str):
 
 
 def dashboard_payload(scored, orders_by_customer: dict | None = None,
-                      shop: str | None = None) -> dict:
+                      shop: str | None = None, benchmarks: dict | None = None) -> dict:
     """Compute the JSON-serialisable dashboard payload from a scored frame.
 
     Separated from rendering so the embedded app can compute it once during sync,
@@ -260,13 +275,14 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
     store_aov = _store_aov(scored)
     seg_labels: dict[str, str] = {}
     top = top_hidden_vics(scored, n=max(len(hidden), 1))
-    data = [_client(i, row, seg_labels, store_aov, orders_by_customer, shop)
+    data = [_client(i, row, seg_labels, store_aov, orders_by_customer, shop, benchmarks)
             for i, (_, row) in enumerate(top.iterrows())]
     segments = {seg: {"label": label} for seg, label in seg_labels.items()}
 
     hidden_count = int(len(hidden))
     latent_total = sum(
-        _latent(_num(r.get("Spent")), _orders(r), _tier(_score100(_num(r[SCORE_COL]))), store_aov)
+        _latent(_num(r.get("Spent")), _orders(r), _tier(s := _score100(_num(r[SCORE_COL]))),
+                store_aov, s, benchmarks)
         for _, r in hidden.iterrows()
     )
     avg_spend = float(hidden["Spent"].mean()) if "Spent" in hidden and hidden_count else 0.0

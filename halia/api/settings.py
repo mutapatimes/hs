@@ -56,7 +56,18 @@ def settings_for(shop: str) -> dict:
         "vic_threshold": d.get("vic_threshold", DEFAULT_VIC_THRESHOLD),
         "sender_name": d.get("sender_name", ""),
         "email_templates": d.get("email_templates") or DEFAULT_TEMPLATES,
+        # Latent-value benchmarks (merchant's own numbers; 0 = not set → fallback heuristic).
+        "aov": d.get("aov", 0),
+        "max_orders": d.get("max_orders", 0),
+        "highest_lt": d.get("highest_lt", 0),
     }
+
+
+def _num(v, default=0.0):
+    try:
+        return max(0.0, float(v))
+    except (TypeError, ValueError):
+        return default
 
 
 def _clean_templates(raw) -> list[dict]:
@@ -91,6 +102,9 @@ def register(app) -> None:
             "vic_threshold": max(0.0, threshold),
             "sender_name": str(payload.get("sender_name", ""))[:120],
             "email_templates": _clean_templates(payload.get("email_templates")),
+            "aov": _num(payload.get("aov")),
+            "max_orders": int(_num(payload.get("max_orders"))),
+            "highest_lt": _num(payload.get("highest_lt")),
         }
         shop_store().save_settings(shop, json.dumps(data))
         cache.evict(shop)  # a changed threshold must re-score on next load

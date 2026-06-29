@@ -58,11 +58,14 @@ def _order_index(orders: list[dict]) -> list[dict]:
 def sync_shop(shop: str, token: str) -> dict:
     """Pull → score → cache in RAM (never persisted). Returns the cache entry."""
     from build_mvp import dashboard_payload
+    from halia.api.settings import settings_for
     from halia.engine import engine
 
     scored, orders = score_shop(shop, token)
     results = engine.results_from_scored(scored)
-    payload = dashboard_payload(scored, _history(orders), shop)
+    s = settings_for(shop)
+    benchmarks = {"aov": s["aov"], "max_orders": s["max_orders"], "highest_lt": s["highest_lt"]}
+    payload = dashboard_payload(scored, _history(orders), shop, benchmarks)
     cache.set(shop, results, payload, _order_index(orders))
     return cache.get(shop)
 

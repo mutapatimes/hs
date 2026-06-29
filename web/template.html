@@ -310,7 +310,7 @@
       <!-- stats -->
       <div class="stats">
         <div class="stat hero">
-          <div class="k">Est. latent annual value</div>
+          <div class="k">Est. latent value</div>
           <div class="v" id="statLatent">__STAT_LATENT__</div>
           <div class="n">across <span id="statLatentN">__STAT_COUNT__</span> <span id="statScope">surfaced</span> clients</div>
         </div>
@@ -371,7 +371,7 @@
 
       <div class="foot">
         Real output from the Halia scoring engine on <b>sample data</b> (fictional store).
-        Score and tier are <b>provisional</b> (a working 0–100 mapping). Latent value projects annual spend if converted to a loyal client — <b>store AOV × clienteling uplift × ~5 orders/yr</b>, anchored to luxury-clienteling benchmarks, not yet calibrated on this store's own VIC outcomes.
+        Score and tier are <b>provisional</b> (a working 0–100 mapping). Latent value estimates each client's potential if nurtured into a top client — grown from their current spend toward your ceiling (the higher of <b>your highest lifetime client</b> or <b>AOV × max orders from one client</b>), scaled by the Halia score. Set those numbers in ⚙ Settings; until then it uses a store-AOV fallback.
       </div>
     </div>
   </main>
@@ -390,7 +390,7 @@
 <!-- drawer -->
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>
-<aside class="drawer" id="settings" aria-hidden="true"></aside>
+<div id="settings" style="display:none"></div>
 
 <!-- toast -->
 <div class="toast" id="toast"><span class="tick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></span><span id="toastMsg"></span></div>
@@ -714,7 +714,7 @@ function showConnectBanner(){
 }
 
 const settingsEl=document.getElementById("settings");
-function closeSettings(){settingsEl.classList.remove("show");scrim.classList.remove("show");settingsEl.setAttribute("aria-hidden","true");}
+function closeSettings(){settingsEl.style.display="none";}
 function openSettings(){
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
   function rows(){return tmpl.map((t,i)=>`<div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px">
@@ -727,30 +727,48 @@ function openSettings(){
     settingsEl.querySelectorAll("[data-ts]").forEach(el=>tmpl[+el.dataset.ts].subject=el.value);
     settingsEl.querySelectorAll("[data-tb]").forEach(el=>tmpl[+el.dataset.tb].body=el.value);
   }
+  const inp="box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px system-ui";
   function render(){
     settingsEl.innerHTML=`
-      <div class="dhead"><div class="dtop"><div><div class="dname">Settings</div></div><button class="dclose" id="sclose">×</button></div></div>
-      <div class="dbody">
+     <div style="position:fixed;inset:0;background:var(--bg);z-index:300;overflow:auto">
+      <div style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:13px 28px;display:flex;align-items:center;gap:14px;z-index:1">
+        <button class="dbtn" id="sback" style="border:1px solid var(--line);background:#fff">← Back</button>
+        <h2 style="margin:0;font-family:'Fraunces',serif;font-weight:500;font-size:20px">Settings</h2>
+      </div>
+      <div style="max-width:720px;margin:0 auto;padding:26px 28px 90px">
         <div class="dlabel">Klaviyo connection</div>
         <div style="font-size:13px;color:${SETTINGS.klaviyo_connected?'var(--brand)':'var(--soft)'};margin-bottom:8px">${SETTINGS.klaviyo_connected?"✓ Connected":"Not connected"}</div>
         <div style="display:flex;gap:8px;margin-bottom:6px">
-          <input id="setKvKey" type="password" placeholder="pk_live_… (paste to connect or replace)" style="flex:1;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px system-ui">
+          <input id="setKvKey" type="password" placeholder="pk_live_… (paste to connect or replace)" style="flex:1;${inp}">
           <button class="dbtn" id="setKvConnect">Connect</button>
         </div>
         ${SETTINGS.klaviyo_connected?`<button id="setKvDisc" style="border:none;background:none;color:#b54;font-size:12.5px;cursor:pointer">Disconnect Klaviyo</button>`:""}
-        <div class="dlabel" style="margin-top:22px">Hidden-VIC spend threshold (£)</div>
-        <input id="setThreshold" type="number" min="0" value="${esc(SETTINGS.vic_threshold)}" style="width:160px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px system-ui">
+
+        <div class="dlabel" style="margin-top:26px">Hidden-VIC spend threshold (£)</div>
+        <input id="setThreshold" type="number" min="0" value="${esc(SETTINGS.vic_threshold)}" style="width:180px;${inp}">
         <p style="font-size:12.5px;color:var(--soft);margin:6px 0 0">Clients who spend below this and show wealth signals are surfaced as hidden VICs. Saving re-scores your store.</p>
-        <div class="dlabel" style="margin-top:22px">Email sign-off name</div>
-        <input id="setSender" value="${esc(SETTINGS.sender_name)}" placeholder="e.g. The Aubin London team" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px system-ui">
+
+        <div class="dlabel" style="margin-top:26px">Latent-value benchmarks</div>
+        <p style="font-size:12.5px;color:var(--soft);margin:0 0 12px">Your own numbers, so the latent estimate is real. We grow each client from their spend toward your ceiling — the higher of your top lifetime client or AOV × max orders — scaled by their Halia score.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div><div style="font-size:12px;color:var(--soft);margin-bottom:4px">Average order value (£)</div><input id="setAov" type="number" min="0" value="${esc(SETTINGS.aov)}" style="width:100%;${inp}"></div>
+          <div><div style="font-size:12px;color:var(--soft);margin-bottom:4px">Most orders from one client</div><input id="setMaxOrders" type="number" min="0" value="${esc(SETTINGS.max_orders)}" style="width:100%;${inp}"></div>
+          <div><div style="font-size:12px;color:var(--soft);margin-bottom:4px">Highest lifetime client (£)</div><input id="setHighestLt" type="number" min="0" value="${esc(SETTINGS.highest_lt)}" style="width:100%;${inp}"></div>
+        </div>
+
+        <div class="dlabel" style="margin-top:26px">Email sign-off name</div>
+        <input id="setSender" value="${esc(SETTINGS.sender_name)}" placeholder="e.g. The Aubin London team" style="width:100%;${inp}">
         <p style="font-size:12.5px;color:var(--soft);margin:6px 0 0">Inserted wherever a template uses {sender}.</p>
-        <div class="dlabel" style="margin-top:22px">Email templates</div>
+
+        <div class="dlabel" style="margin-top:26px">Email templates</div>
         <p style="font-size:12.5px;color:var(--soft);margin:0 0 10px">Use {first_name} and {sender}. These power the per-client “Email ▾” menu.</p>
         <div id="tmplList">${rows()}</div>
         <button id="addTmpl" class="dbtn" style="border:1px dashed var(--line-strong);background:#fff">+ Add template</button>
+
+        <div style="margin-top:26px"><button class="dbtn primary" id="saveSettings">Save settings</button></div>
       </div>
-      <div class="dactions"><button class="dbtn primary" id="saveSettings">Save settings</button></div>`;
-    document.getElementById("sclose").onclick=closeSettings;
+     </div>`;
+    document.getElementById("sback").onclick=closeSettings;
     document.getElementById("addTmpl").onclick=()=>{collect();tmpl.push({name:"New template",subject:"",body:"Dear {first_name},\n\n\n\n{sender}"});render();};
     settingsEl.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{collect();tmpl.splice(+b.dataset.td,1);render();});
     document.getElementById("setKvConnect").onclick=()=>{
@@ -765,22 +783,18 @@ function openSettings(){
     };
     document.getElementById("saveSettings").onclick=()=>{
       collect();
-      const body={vic_threshold:parseFloat(document.getElementById("setThreshold").value)||0,
-        sender_name:document.getElementById("setSender").value,
+      const num=id=>parseFloat(document.getElementById(id).value)||0;
+      const body={vic_threshold:num("setThreshold"),sender_name:document.getElementById("setSender").value,
+        aov:num("setAov"),max_orders:num("setMaxOrders"),highest_lt:num("setHighestLt"),
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim())};
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";
-      const prevThreshold=SETTINGS.vic_threshold;
       fetch("/v1/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
-          EMAIL_TEMPLATES=body.email_templates.length?body.email_templates:EMAIL_TEMPLATES; SENDER=body.sender_name;
-          SETTINGS.vic_threshold=body.vic_threshold; SETTINGS.sender_name=body.sender_name; SETTINGS.email_templates=EMAIL_TEMPLATES;
-          closeSettings();
-          if(body.vic_threshold!==prevThreshold){ toast("Saved — re-scoring with your new threshold…"); setTimeout(()=>location.reload(),700); }
-          else toast("Settings saved.");
+          toast("Settings saved — refreshing…"); setTimeout(()=>location.reload(),600);
         })
         .catch(e=>{toast("Save failed: "+e.message);b.disabled=false;b.textContent="Save settings";});
     };
-    settingsEl.classList.add("show");scrim.classList.add("show");settingsEl.setAttribute("aria-hidden","false");
+    settingsEl.style.display="block";
   }
   render();
 }

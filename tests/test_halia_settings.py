@@ -33,17 +33,20 @@ def test_defaults(client):
     assert s["vic_threshold"] == 5000 and s["klaviyo_connected"] is False
     assert len(s["email_templates"]) >= 5
     assert "{first_name}" in s["email_templates"][0]["body"]
+    assert s["aov"] == 0 and s["max_orders"] == 0 and s["highest_lt"] == 0  # latent benchmarks
 
 
 def test_save_and_reload(client):
     c, _ = client
     r = c.post("/v1/settings", headers=_auth(), json={
         "vic_threshold": 8000, "sender_name": "The Team",
+        "aov": 1800, "max_orders": 22, "highest_lt": 95000,
         "email_templates": [{"name": "Hi", "subject": "S", "body": "Dear {first_name}"},
                             {"name": "", "body": ""}]})  # blank one is dropped
     assert r.status_code == 200
     s = c.get("/v1/settings", headers=_auth()).json()
     assert s["vic_threshold"] == 8000 and s["sender_name"] == "The Team"
+    assert s["aov"] == 1800 and s["max_orders"] == 22 and s["highest_lt"] == 95000
     assert len(s["email_templates"]) == 1 and s["email_templates"][0]["name"] == "Hi"
 
 
