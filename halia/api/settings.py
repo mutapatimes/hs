@@ -88,7 +88,11 @@ def register(app) -> None:
     @app.get("/v1/settings")
     def get_settings(shop: str = Depends(require_shop)) -> dict:
         s = settings_for(shop)
-        s["klaviyo_connected"] = bool(shop_store().get_klaviyo(shop) or config.KLAVIYO_API_KEY)
+        store = shop_store()
+        s["klaviyo_connected"] = bool(store.get_klaviyo(shop) or config.KLAVIYO_API_KEY)
+        mc = store.get_mailchimp(shop)
+        s["mailchimp_connected"] = bool(mc and mc.get("list_id"))
+        s["mailchimp_list_name"] = (mc or {}).get("list_name")
         return s
 
     @app.post("/v1/settings")

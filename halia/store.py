@@ -54,6 +54,14 @@ _TABLES = [
         consumer_secret TEXT,
         connected_at    TEXT
     )""",
+    # Per-shop Mailchimp connection: encrypted API key (...-dc) + the chosen audience.
+    """CREATE TABLE IF NOT EXISTS mailchimp (
+        shop         TEXT PRIMARY KEY,
+        api_key      TEXT,
+        list_id      TEXT,
+        list_name    TEXT,
+        connected_at TEXT
+    )""",
 ]
 # Earlier versions cached customer PII in these tables. Drop them so any deploy purges it.
 _DROP_LEGACY = [
@@ -191,8 +199,29 @@ class ShopStore(_DB):
                 "consumer_key": crypto.decrypt(row["consumer_key"]),
                 "consumer_secret": crypto.decrypt(row["consumer_secret"])}
 
+    # ── per-shop Mailchimp connection (key + chosen audience) ───────────────────
+    def save_mailchimp(self, shop: str, api_key: str, list_id: str, list_name: str) -> None:
+        self._run(
+            """INSERT INTO mailchimp (shop, api_key, list_id, list_name, connected_at)
+               VALUES (:shop, :key, :lid, :lname, :at)
+               ON CONFLICT(shop) DO UPDATE SET api_key=excluded.api_key, list_id=excluded.list_id,
+                list_name=excluded.list_name, connected_at=excluded.connected_at""",
+            {"shop": shop, "key": crypto.encrypt(api_key), "lid": list_id,
+             "lname": list_name, "at": _now()})
+
+    def get_mailchimp(self, shop: str) -> dict | None:
+        row = self._run("SELECT api_key, list_id, list_name FROM mailchimp WHERE shop = :shop",
+                        {"shop": shop}, fetch="one")
+        if not row:
+            return None
+        return {"api_key": crypto.decrypt(row["api_key"]),
+                "list_id": row["list_id"], "list_name": row["list_name"]}
+
+    def delete_mailchimp(self, shop: str) -> None:
+        self._run("DELETE FROM mailchimp WHERE shop = :shop", {"shop": shop})
+
     # ── deletion (shop/redact + app/uninstalled) ───────────────────────────────
     def delete_shop(self, shop: str) -> None:
-        """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo creds."""
-        for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce"):
+        """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""
+        for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "mailchimp"):
             self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})

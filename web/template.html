@@ -735,6 +735,7 @@ function openSettings(){
   const BS="background:#fff;color:#303030;border:1px solid #999;border-radius:8px;padding:9px 15px;font:600 13px system-ui;cursor:pointer";
   const LBL="font:500 12px system-ui;color:#616161;margin-bottom:5px";
   const kv=SETTINGS.klaviyo_connected;
+  const mc=SETTINGS.mailchimp_connected;
   function render(){
     settingsEl.innerHTML=`
      <div style="position:fixed;inset:0;background:#f1f1f1;z-index:300;overflow:auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
@@ -751,6 +752,17 @@ function openSettings(){
             <button id="setKvConnect" style="${BS}">Connect</button>
           </div>
           ${kv?`<div style="margin-top:12px"><button id="setKvDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect Klaviyo</button></div>`:""}
+        </div>
+
+        <div style="${C}">
+          <div style="${H}">Mailchimp connection</div>
+          <p style="${P}">Connect your Mailchimp API key (ends in <b>-usXX</b>) to push grades, tags, and segments to your audience.</p>
+          <div style="font:600 13px system-ui;color:${mc?'#0f7b4f':'#616161'};margin-bottom:10px">${mc?"● Connected"+(SETTINGS.mailchimp_list_name?" · "+SETTINGS.mailchimp_list_name:""):"○ Not connected"}</div>
+          <div style="display:flex;gap:8px;max-width:540px">
+            <input id="setMcKey" type="password" placeholder="xxxxxxxx-us21 (paste to connect or replace)" style="flex:1;${I}">
+            <button id="setMcConnect" style="${BS}">Connect</button>
+          </div>
+          ${mc?`<div style="margin-top:12px"><button id="setMcDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect Mailchimp</button></div>`:""}
         </div>
 
         <div style="${C}">
@@ -797,6 +809,17 @@ function openSettings(){
     };
     const disc=document.getElementById("setKvDisc"); if(disc) disc.onclick=()=>{
       fetch("/v1/klaviyo/disconnect",{method:"POST"}).then(()=>{SETTINGS.klaviyo_connected=false;toast("Klaviyo disconnected.");render();});
+    };
+    document.getElementById("setMcConnect").onclick=()=>{
+      const key=document.getElementById("setMcKey").value.trim(); if(!key){toast("Paste your Mailchimp key first.");return;}
+      const b=document.getElementById("setMcConnect");b.disabled=true;b.textContent="Connecting…";
+      fetch("/v1/mailchimp/connect",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({api_key:key})})
+        .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
+          SETTINGS.mailchimp_connected=true;SETTINGS.mailchimp_list_name=d.list_name;toast("Mailchimp connected · "+(d.list_name||"audience"));render();})
+        .catch(e=>{toast("Connect failed: "+e.message);b.disabled=false;b.textContent="Connect";});
+    };
+    const mdisc=document.getElementById("setMcDisc"); if(mdisc) mdisc.onclick=()=>{
+      fetch("/v1/mailchimp/disconnect",{method:"POST"}).then(()=>{SETTINGS.mailchimp_connected=false;toast("Mailchimp disconnected.");render();});
     };
     document.getElementById("saveSettings").onclick=()=>{
       collect();

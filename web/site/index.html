@@ -157,7 +157,16 @@
   }
 
   /* data: sortable table + charts */
-  .tbl{overflow-x:auto;margin-bottom:84px}
+  .browser{border:1px solid var(--line);border-radius:13px;overflow:hidden;background:#0c0d0e;
+    box-shadow:0 50px 110px -50px rgba(0,0,0,.8);margin-bottom:84px}
+  .browser .bbar{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}
+  .browser .dots{display:flex;gap:7px;flex:none}
+  .browser .dots i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.15)}
+  .browser .url{flex:1;max-width:340px;margin:0 auto;text-align:center;font:500 12px var(--sans);
+    color:var(--faint);background:rgba(255,255,255,.05);border-radius:7px;padding:6px 14px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .browser .bbody{padding:26px 30px 30px}
+  .tbl{overflow-x:auto}
   table#vicTable{width:100%;border-collapse:collapse;min-width:720px}
   #vicTable th{font:500 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
     text-align:left;padding:0 18px 16px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none;transition:color .2s}
@@ -367,16 +376,19 @@
     <div class="eyebrow" style="margin-bottom:20px">Inside the dashboard</div>
     <h2 class="h2">A clear read on<br>every customer.</h2>
   </div>
-  <div class="tbl reveal d1">
-    <table id="vicTable"><thead><tr>
-      <th data-k="client">Client</th>
-      <th data-k="grade">Grade</th>
-      <th data-k="score" class="num">Score</th>
-      <th data-k="spend" class="num">Spend</th>
-      <th data-k="latent" class="num">Latent value</th>
-      <th data-k="signals">Signals</th>
-    </tr></thead><tbody></tbody></table>
-    <div class="tbl-hint">Sample data. Click a column to sort.</div>
+  <div class="browser reveal d1">
+    <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.halia.io  ·  Hidden VICs</div></div>
+    <div class="bbody"><div class="tbl">
+      <table id="vicTable"><thead><tr>
+        <th data-k="client">Client</th>
+        <th data-k="grade">Grade</th>
+        <th data-k="score" class="num">Score</th>
+        <th data-k="spend" class="num">Spend</th>
+        <th data-k="latent" class="num">Latent value</th>
+        <th data-k="signals">Signals</th>
+      </tr></thead><tbody></tbody></table>
+      <div class="tbl-hint">Sample data. Click a column to sort.</div>
+    </div></div>
   </div>
   <div class="charts reveal d2">
     <div class="chart">

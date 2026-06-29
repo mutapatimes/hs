@@ -104,12 +104,13 @@ def hidden_vics(shop: str = Depends(require_shop),
 # Mount the embedded entry, self-service onboarding, Klaviyo integrations, fulfilment
 # view, and compliance webhooks.
 from halia.api import (  # noqa: E402
-    embedded, fulfilment, integrations, onboarding, settings, webhooks,
+    embedded, fulfilment, integrations, mailchimp_integration, onboarding, settings, webhooks,
 )
 
 embedded.register(app)
 onboarding.register(app)
 integrations.register(app)
+mailchimp_integration.register(app)
 settings.register(app)
 fulfilment.register(app)
 webhooks.register(app)
