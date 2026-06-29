@@ -94,13 +94,31 @@ def _persist(store, shop: str, scored, orders) -> None:
     store.upsert_orders(src.iter_orders(), shop=shop)
 
 
+def _orders_by_customer(orders: list[dict]) -> dict:
+    """CUST_ID -> [{date, amount, items}], newest first — powers the in-app history."""
+    by: dict[str, list] = {}
+    for o in orders:
+        cid = (o.get("customer") or {}).get("id")
+        if cid is None:
+            continue
+        items = sum(int(li.get("quantity") or 0) for li in (o.get("line_items") or []))
+        by.setdefault(str(cid), []).append({
+            "date": str(o.get("created_at") or "")[:10],
+            "amount": round(float(o.get("total_price") or 0), 2),
+            "items": items,
+        })
+    for rows in by.values():
+        rows.sort(key=lambda r: r["date"], reverse=True)
+    return by
+
+
 def _sync_and_store(store, shop: str, token: str) -> dict:
     """Live pull → score → persist scores/orders AND the prerendered dashboard payload."""
     from build_mvp import dashboard_payload
 
     scored, orders = score_shop(shop, token)
     _persist(store, shop, scored, orders)
-    payload = dashboard_payload(scored)
+    payload = dashboard_payload(scored, _orders_by_customer(orders), shop)
     store.save_dashboard(shop, json.dumps(payload))
     return payload
 

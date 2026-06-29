@@ -324,7 +324,7 @@
         <div class="stat">
           <div class="k">Top-tier (A* / A)</div>
           <div class="v" id="statTopTier">__STAT_TOPTIER__</div>
-          <div class="n">ready to assign</div>
+          <div class="n">top priority</div>
         </div>
       </div>
 
@@ -378,9 +378,7 @@
 <div class="bulk" id="bulk">
   <div class="n"><b id="bulkN">0</b> selected</div>
   <div class="acts">
-    <button class="bbtn" data-dest="Dotdigital">Push to Dotdigital</button>
-    <button class="bbtn" data-dest="Klaviyo">Push to Klaviyo</button>
-    <button class="bbtn primary" data-dest="associate assignment">Assign to associate</button>
+    <button class="bbtn primary" id="bulkpush">Sync to Klaviyo</button>
   </div>
   <button class="bclear" id="bclear" title="Clear">×</button>
 </div>
@@ -524,12 +522,25 @@ function updateBulk(){
   bulk.classList.toggle("show",selected.size>0);
 }
 
-// bulk actions
-document.querySelectorAll(".bbtn").forEach(b=>b.onclick=()=>{
-  const n=selected.size, dest=b.dataset.dest;
+// Push hidden VICs to Klaviyo (real). App Bridge attaches the session token to fetch.
+async function haliaPush(cids){
+  try{
+    const r=await fetch("/v1/klaviyo/push",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify(cids&&cids.length?{customer_ids:cids}:{})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail||("HTTP "+r.status));
+    toast(`${d.pushed} client${d.pushed===1?"":"s"} synced to Klaviyo with their Halia grade.`);
+  }catch(e){ toast("Klaviyo sync failed: "+e.message); }
+}
+
+// bulk action: sync the selected clients
+document.getElementById("bulkpush").onclick=async()=>{
+  const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
+  const btn=document.getElementById("bulkpush"); btn.disabled=true; btn.textContent="Syncing…";
+  await haliaPush(cids);
+  btn.disabled=false; btn.textContent="Sync to Klaviyo";
   selected.clear();renderRows();updateBulk();
-  toast(`${n} client${n>1?"s":""} pushed to ${dest}.`);
-});
+};
 document.getElementById("bclear").onclick=()=>{selected.clear();renderRows();updateBulk();};
 
 // drawer
@@ -543,7 +554,7 @@ function openDrawer(id){
           <div class="dava ${c.tier}" style="background:${c.tier==='A1'?'linear-gradient(140deg,#1d4d42,#143a32)':c.tier==='A'?'linear-gradient(140deg,#26695b,#1f564a)':'var(--tierB)'}">${c.init}</div>
           <div>
             <div class="dname">${c.name}</div>
-            <div class="dmeta"><span class="mono">${c.id}</span> · ${c.loc} · last shopped ${c.last}</div>
+            <div class="dmeta">${c.loc} · ${c.ordersCount} order${c.ordersCount===1?"":"s"} · AOV ${gbp(c.aov)} · last ${c.last}</div>
             <div class="dmeta">${[c.email,c.phone].filter(Boolean).join(" · ")}</div>
           </div>
         </div>
@@ -566,15 +577,29 @@ function openDrawer(id){
         <div class="k">Recommended approach</div>
         <p>${c.reco}</p>
       </div>
+
+      <div class="dlabel">Order history${c.orders&&c.orders.length?` · ${c.orders.length}`:""}</div>
+      <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+        ${(c.orders&&c.orders.length)
+          ? c.orders.slice(0,12).map(o=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px">
+              <span style="color:var(--soft)">${o.date||"—"}</span>
+              <span style="color:var(--soft)">${o.items} item${o.items===1?"":"s"}</span>
+              <span class="mono" style="font-weight:600">${gbp(o.amount)}</span></div>`).join("")
+          : `<div style="padding:12px 14px;color:var(--faint);font-size:13px">No orders on record.</div>`}
+        ${c.orders&&c.orders.length>12?`<div style="padding:9px 14px;color:var(--faint);font-size:12.5px">+${c.orders.length-12} earlier orders</div>`:""}
+      </div>
     </div>
     <div class="dactions">
-      <button class="dbtn" id="dpush">Push to email</button>
-      <button class="dbtn primary" id="dassign">Assign to associate</button>
+      ${c.shopifyUrl?`<a class="dbtn" href="${c.shopifyUrl}" target="_top">Open in Shopify</a>`:""}
+      <button class="dbtn primary" id="dpush">Sync to Klaviyo</button>
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   document.getElementById("dclose").onclick=closeDrawer;
-  document.getElementById("dpush").onclick=()=>{closeDrawer();toast(`${c.name} pushed to your email platform.`);};
-  document.getElementById("dassign").onclick=()=>{closeDrawer();toast(`${c.name} assigned to an associate.`);};
+  document.getElementById("dpush").onclick=async()=>{
+    const b=document.getElementById("dpush"); b.disabled=true; b.textContent="Syncing…";
+    await haliaPush([c.cid]);
+    b.disabled=false; b.textContent="Sync to Klaviyo";
+  };
 }
 function closeDrawer(){drawer.classList.remove("show");scrim.classList.remove("show");drawer.setAttribute("aria-hidden","true");}
 scrim.onclick=closeDrawer;

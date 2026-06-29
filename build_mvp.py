@@ -170,7 +170,22 @@ def _parse_signals(reasons: object, seg_labels: dict[str, str]) -> list[dict]:
     return sigs
 
 
-def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float) -> dict:
+def _numeric_id(cid: object) -> str:
+    """Trailing digits of a Shopify customer id ('gid://…/Customer/123' -> '123')."""
+    digits = re.findall(r"\d+", str(cid or ""))
+    return digits[-1] if digits else ""
+
+
+def _shopify_url(shop: str | None, cid: object) -> str:
+    num = _numeric_id(cid)
+    if not shop or not num:
+        return ""
+    handle = str(shop).replace(".myshopify.com", "")
+    return f"https://admin.shopify.com/store/{handle}/customers/{num}"
+
+
+def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float,
+            orders_by_customer: dict | None = None, shop: str | None = None) -> dict:
     raw = _num(row[SCORE_COL])
     s100 = _score100(raw)
     t = _tier(s100)
@@ -178,8 +193,11 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
     sigs = _parse_signals(row[REASONS_COL], seg_labels)
     top_label = sigs[0]["d"].split(": ", 1)[0] if sigs else ""
     last_sort, last_label = _last_shopped(row)
+    cid = row.get("CUST_ID")
+    n_orders = _orders(row)
     return {
         "id": f"C-{i + 1:04d}",
+        "cid": str(cid) if cid is not None and not pd.isna(cid) else "",
         "init": _initials(row.get("Name")),
         "name": _display_name(row.get("Name")),
         "email": _text(row.get("EMAIL_ADDR")),
@@ -190,10 +208,14 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
         "grade": GRADE_LABEL.get(t, t),
         "score": s100,
         "spend": int(round(spend)),
-        "latent": _latent(spend, _orders(row), t, store_aov),
+        "latent": _latent(spend, n_orders, t, store_aov),
         "count": len(sigs),
+        "ordersCount": n_orders,
+        "aov": int(round(spend / n_orders)) if n_orders else int(round(spend)),
         "last": last_label,
         "lastSort": last_sort,
+        "orders": (orders_by_customer or {}).get(str(cid), []),
+        "shopifyUrl": _shopify_url(shop, cid),
         "signals": sigs,
         "reco": RECO.get(top_label, DEFAULT_RECO),
     }
@@ -225,17 +247,21 @@ def _scored_frame(source: str):
     return score_customers(load_data())
 
 
-def dashboard_payload(scored) -> dict:
+def dashboard_payload(scored, orders_by_customer: dict | None = None,
+                      shop: str | None = None) -> dict:
     """Compute the JSON-serialisable dashboard payload from a scored frame.
 
     Separated from rendering so the embedded app can compute it once during sync,
     persist it, and re-render instantly on later loads (no live re-scoring per view).
+    ``orders_by_customer`` (CUST_ID -> [order summaries]) powers the in-app order
+    history; ``shop`` builds per-client "open in Shopify" links.
     """
     hidden = scored[scored[HIDDEN_COL]].copy()
     store_aov = _store_aov(scored)
     seg_labels: dict[str, str] = {}
     top = top_hidden_vics(scored, n=max(len(hidden), 1))
-    data = [_client(i, row, seg_labels, store_aov) for i, (_, row) in enumerate(top.iterrows())]
+    data = [_client(i, row, seg_labels, store_aov, orders_by_customer, shop)
+            for i, (_, row) in enumerate(top.iterrows())]
     segments = {seg: {"label": label} for seg, label in seg_labels.items()}
 
     hidden_count = int(len(hidden))

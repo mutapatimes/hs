@@ -60,6 +60,11 @@ _TABLES = [
         payload    TEXT,
         updated_at TEXT
     )""",
+    """CREATE TABLE IF NOT EXISTS klaviyo (
+        shop         TEXT PRIMARY KEY,
+        api_key      TEXT,
+        connected_at TEXT
+    )""",
 ]
 
 
@@ -273,3 +278,16 @@ class ShopStore(_DB):
     def get_token(self, shop: str) -> str | None:
         row = self.fetchone("SELECT access_token FROM shops WHERE shop = :shop", {"shop": shop})
         return row["access_token"] if row else None
+
+    # ── per-shop Klaviyo connection (each merchant brings their own key) ────────
+    def save_klaviyo(self, shop: str, api_key: str) -> None:
+        self._exec(
+            """INSERT INTO klaviyo (shop, api_key, connected_at)
+               VALUES (:shop, :key, :at)
+               ON CONFLICT(shop) DO UPDATE SET api_key=excluded.api_key,
+                connected_at=excluded.connected_at""",
+            {"shop": shop, "key": api_key, "at": _now()})
+
+    def get_klaviyo(self, shop: str) -> str | None:
+        row = self.fetchone("SELECT api_key FROM klaviyo WHERE shop = :shop", {"shop": shop})
+        return row["api_key"] if row else None

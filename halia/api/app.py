@@ -76,8 +76,10 @@ def hidden_vics(shop: str = Depends(require_shop),
     return [r.to_dict() for r in get_store().top_hidden(shop, limit)]
 
 
-# Mount the embedded entry (GET / , /v1/sync, /v1/dashboard) and the fulfilment view.
-from halia.api import embedded, fulfilment  # noqa: E402
+# Mount the embedded entry (GET / , /v1/sync, /v1/dashboard), the integrations
+# (real Klaviyo connect/push), and the fulfilment view.
+from halia.api import embedded, fulfilment, integrations  # noqa: E402
 
 embedded.register(app, get_store)
+integrations.register(app, get_store)
 fulfilment.register(app, get_store)
