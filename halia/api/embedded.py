@@ -89,6 +89,7 @@ def register(app) -> None:
 
         resp = HTMLResponse(body)
         resp.headers["Content-Security-Policy"] = _csp(shop)
+        resp.headers["Cache-Control"] = "no-store"  # always serve the latest dashboard
         return resp
 
     @app.post("/v1/sync")
