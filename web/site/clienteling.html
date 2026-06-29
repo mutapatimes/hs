@@ -128,9 +128,18 @@
   </div>
 </div></section>
 
+<!-- BLEED: relationships -->
+<section style="position:relative;height:74vh;min-height:480px;overflow:hidden;display:flex;align-items:flex-end" class="reveal">
+  <img src="img/three_clients.jpg" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+  <div style="position:absolute;inset:0;background:linear-gradient(transparent,rgba(8,8,9,.72))"></div>
+  <div class="wrap" style="position:relative;z-index:2;padding-bottom:clamp(40px,7vh,80px)">
+    <h2 class="h2" style="color:#fff;max-width:18ch">A relationship is the one thing a competitor cannot copy.</h2>
+  </div>
+</section>
+
 <!-- HIDDEN A (the Halia thesis) -->
-<div class="wrap"><div class="split reveal">
-  <div class="media"><img src="img/every_record_is_yours.jpg" alt="Hidden value" loading="lazy"></div>
+<div class="wrap"><div class="split reveal" style="padding-top:clamp(80px,11vh,140px)">
+  <div class="media" style="aspect-ratio:auto"><img src="img/twoclients.jpg" alt="Knowing your clients" loading="lazy"></div>
   <div class="copy">
     <div class="eyebrow" style="margin-bottom:18px">The part most brands miss</div>
     <h2 class="h2">Your top twenty percent is <em>not fixed.</em></h2>
@@ -191,9 +200,8 @@
       +bars
       +'<polyline class="pline" points="'+pts.join(' ')+'" pathLength="1"/>'
       +dots
-      +'<text class="plabel" x="'+(padL+pw*0.1)+'" y="'+(base+20)+'" text-anchor="middle">Top 20%</text>'
-      +'<text class="plabel" x="'+(padL+pw*0.62)+'" y="'+(base+20)+'" text-anchor="middle">Everyone else</text>'
-      +'<text class="plabel" x="'+padL+'" y="'+(base+20)+'" text-anchor="start" style="fill:var(--mute)">Clients, ranked by value →</text>'
+      +'<text class="plabel" x="'+(padL+pw*0.1).toFixed(0)+'" y="'+(base+22)+'" text-anchor="middle" style="fill:var(--mute)">Top 20%</text>'
+      +'<text class="plabel" x="'+(padL+pw*0.6).toFixed(0)+'" y="'+(base+22)+'" text-anchor="middle">Everyone else, ranked by value →</text>'
       +'</svg>';
     host.innerHTML=svg;
   })();
