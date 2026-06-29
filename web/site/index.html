@@ -332,6 +332,7 @@
     <a href="/faq">FAQ</a>
   </nav>
   <div class="right">
+    <a class="si" href="#demo">See a demo</a>
     <a class="si" href="/app">Sign in</a>
     <a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a>
   </div>
@@ -663,16 +664,21 @@
   </div>
 </div></section>
 
-<!-- FINAL -->
-<section class="pad final" style="overflow:hidden">
+<!-- FINAL / DEMO -->
+<section id="demo" class="pad final" style="overflow:hidden">
   <img src="img/find_your_most_valuable_clients.jpg" alt="" loading="lazy"
        style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.20">
   <div style="position:absolute;inset:0;background:radial-gradient(75% 80% at 50% 45%,transparent,var(--bg) 88%)"></div>
   <div class="wrap reveal" style="position:relative;z-index:2">
-    <div class="eyebrow" style="margin-bottom:26px">Begin</div>
-    <h2>Find the clients<br>you're missing.</h2>
-    <p class="lede">Connect your store and Halia will surface your hidden VICs, usually within the hour.</p>
-    <a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a>
+    <div class="eyebrow" style="margin-bottom:26px">See it now</div>
+    <h2>Step inside a<br>live Halia dashboard.</h2>
+    <p class="lede" style="margin-bottom:30px">Enter your email and walk straight into a working dashboard, hidden VICs and all. No setup, no call.</p>
+    <form id="demoForm" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <input id="demoEmail" type="email" placeholder="Your work email" required
+        style="background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:14px 22px;color:var(--ink);font:500 15px var(--sans);min-width:280px;outline:none">
+      <button class="btn" type="submit">See demo now <span class="arrow">→</span></button>
+    </form>
+    <div style="margin-top:18px"><a href="/connect" style="color:var(--mute);font-size:14px">Or connect your store →</a></div>
   </div>
 </section>
 
@@ -707,6 +713,16 @@
 <script>
   var hdr=document.getElementById('hdr');
   addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
+
+  // demo: capture email, then walk straight into the live sample dashboard
+  var df=document.getElementById('demoForm');
+  if(df)df.addEventListener('submit',function(e){e.preventDefault();
+    var em=(document.getElementById('demoEmail').value||'').trim();
+    if(!/.+@.+\..+/.test(em)){document.getElementById('demoEmail').focus();return;}
+    var b=df.querySelector('button');b.disabled=true;b.textContent='Loading…';
+    fetch('/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:em,source:'demo'})})
+      .finally(function(){window.location.href='/demo';});
+  });
 
   // newsletter subscribe
   var nf=document.getElementById('newsForm');
