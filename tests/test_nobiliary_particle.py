@@ -28,10 +28,11 @@ def test_particle_alone_never_surfaces_a_client():
 
 
 def test_particle_corroborates_a_real_signal():
-    # With a stronger signal present (custom domain), the particle now counts.
+    # With a stronger (core) signal present — a wealth-employer work email — the
+    # nobiliary particle corroborates and counts.
     out = score_customers(pd.DataFrame([{
         "Name": "Côme de Bouchony", "Spent": 300,
-        "EMAIL_ADDR": "come.de-bouchony@chanel.com",
+        "EMAIL_ADDR": "come@goldmansachs.com",
     }]))
     reasons = out.loc[0, REASONS_COL]
     assert bool(out.loc[0, HIDDEN_COL])

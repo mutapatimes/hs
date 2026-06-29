@@ -16,6 +16,7 @@ Optional: WOO_MAX_PAGES=2 caps the pull (handy for a first smoke test).
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 
@@ -42,7 +43,17 @@ def main() -> None:
         )
 
     max_pages = int(os.environ.get("WOO_MAX_PAGES", "0")) or None
-    orders = fetch_orders(http_transport(), max_pages=max_pages)
+    # Cache the raw pull (git-ignored) so we can re-score offline after calibration
+    # changes without a fresh 20-minute pull. WOO_FROM_CACHE=1 reads it back.
+    cache = OUTPUT_DIR / f"woo_orders_{store_slug(store)}.json"
+    if os.environ.get("WOO_FROM_CACHE") and cache.exists():
+        orders = json.loads(cache.read_text(encoding="utf-8"))
+        print(f"Loaded {len(orders):,} orders from cache ({cache.name})")
+    else:
+        orders = fetch_orders(http_transport(), max_pages=max_pages)
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps(orders), encoding="utf-8")
+
     customers = woo_orders_to_customers(orders).rename(
         columns={"orders_count": "Count of CUST_ID"}
     )

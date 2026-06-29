@@ -42,10 +42,11 @@ def test_elite_outranks_general_outranks_generic():
         "EMAIL_ADDR": "b@apex-capital.com"}])).iloc[0]
     generic = score_customers(pd.DataFrame([{"Name": "C", "Spent": 200,
         "EMAIL_ADDR": "c@bobsplumbing.com"}])).iloc[0]
-    # elite (3) + custom 0.5 = 3.5 ; general (2) + custom 0.5 = 2.5 ; generic = 1
+    # elite (3) + custom 0.5 = 3.5 ; general (2) + custom 0.5 = 2.5 ; a bare custom
+    # domain is corroboration-only now, so a generic custom domain alone scores 0.
     assert float(elite[SCORE_COL]) == 3.5
     assert float(general[SCORE_COL]) == 2.5
-    assert float(generic[SCORE_COL]) == 1.0
+    assert float(generic[SCORE_COL]) == 0.0
 
 
 def test_finance_domain_outranks_generic_custom_domain():

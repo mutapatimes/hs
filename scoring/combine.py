@@ -103,7 +103,12 @@ DOMAIN_KEYWORD_TYPE_WEIGHTS = {
 # own: they contribute to the score and count ONLY when at least one stronger
 # (non-supporting) signal has also fired. This enforces "never a sole basis".
 SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
-                      "stylist_directory"}
+                      "stylist_directory",
+                      # A bare custom (non-free) email domain is far too common to be a
+                      # VIC on its own — half a store's buyers can have one. It corroborates
+                      # (e.g. alongside a premium provider, company billing, or prime
+                      # postcode) but never surfaces a customer by itself.
+                      "custom_email"}
 
 # Some signals are CORRELATED — they encode the same underlying fact from
 # different fields. Three "this person is in the UAE" tells (billing country,
