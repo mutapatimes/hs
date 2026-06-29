@@ -55,6 +55,11 @@ _TABLES = [
         access_token TEXT,
         installed_at TEXT
     )""",
+    """CREATE TABLE IF NOT EXISTS dashboards (
+        shop       TEXT PRIMARY KEY,
+        payload    TEXT,
+        updated_at TEXT
+    )""",
 ]
 
 
@@ -197,6 +202,19 @@ class ScoreStore(_DB):
     def count(self, shop: str) -> int:
         row = self.fetchone("SELECT COUNT(*) AS n FROM scores WHERE shop = :shop", {"shop": shop})
         return int(row["n"])
+
+    # ── prerendered dashboard payload (so the embedded view loads instantly) ────
+    def save_dashboard(self, shop: str, payload_json: str) -> None:
+        self._exec(
+            """INSERT INTO dashboards (shop, payload, updated_at)
+               VALUES (:shop, :payload, :at)
+               ON CONFLICT(shop) DO UPDATE SET payload=excluded.payload,
+                updated_at=excluded.updated_at""",
+            {"shop": shop, "payload": payload_json, "at": _now()})
+
+    def get_dashboard(self, shop: str) -> str | None:
+        row = self.fetchone("SELECT payload FROM dashboards WHERE shop = :shop", {"shop": shop})
+        return row["payload"] if row else None
 
     def score_for_order(self, shop: str, order_id: str) -> ScoreResult | None:
         row = self.fetchone(

@@ -225,12 +225,11 @@ def _scored_frame(source: str):
     return score_customers(load_data())
 
 
-def render_dashboard(scored, head_extra: str = "") -> str:
-    """Render the Halia dashboard HTML from a scored frame.
+def dashboard_payload(scored) -> dict:
+    """Compute the JSON-serialisable dashboard payload from a scored frame.
 
-    Reused by the local build (writes a file) and the embedded Shopify app (serves it
-    inside the admin). ``head_extra`` is injected into <head> — the embedded app uses it
-    to add the App Bridge script so the page works inside admin.shopify.com.
+    Separated from rendering so the embedded app can compute it once during sync,
+    persist it, and re-render instantly on later loads (no live re-scoring per view).
     """
     hidden = scored[scored[HIDDEN_COL]].copy()
     store_aov = _store_aov(scored)
@@ -248,21 +247,37 @@ def render_dashboard(scored, head_extra: str = "") -> str:
     top_tier = sum(
         1 for _, r in hidden.iterrows() if _tier(_score100(float(r[SCORE_COL]))) in {"A1", "A"}
     )
+    return {
+        "segments": segments, "data": data,
+        "stat_scored": f"{len(scored):,}", "stat_latent": _fmt_money(latent_total),
+        "stat_count": str(hidden_count), "stat_avgspend": _fmt_money(avg_spend),
+        "stat_toptier": str(top_tier),
+    }
 
+
+def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") -> str:
+    """Render the dashboard HTML from a precomputed payload (see dashboard_payload)."""
     def _safe(s: str) -> str:
         return s.replace("</", "<\\/")  # keep JSON out of the </script> close
 
     html = TEMPLATE.read_text(encoding="utf-8")
     if head_extra:
         html = html.replace("<head>", "<head>\n" + head_extra, 1)
-    html = html.replace("__SEGMENTS__", _safe(json.dumps(segments)))
-    html = html.replace("__DATA__", _safe(json.dumps(data)))
-    html = html.replace("__STAT_SCORED__", f"{len(scored):,}")
-    html = html.replace("__STAT_LATENT__", _fmt_money(latent_total))
-    html = html.replace("__STAT_COUNT__", str(hidden_count))
-    html = html.replace("__STAT_AVGSPEND__", _fmt_money(avg_spend))
-    html = html.replace("__STAT_TOPTIER__", str(top_tier))
+    if body_extra:
+        html = html.replace("</body>", body_extra + "\n</body>", 1)
+    html = html.replace("__SEGMENTS__", _safe(json.dumps(payload["segments"])))
+    html = html.replace("__DATA__", _safe(json.dumps(payload["data"])))
+    html = html.replace("__STAT_SCORED__", payload["stat_scored"])
+    html = html.replace("__STAT_LATENT__", payload["stat_latent"])
+    html = html.replace("__STAT_COUNT__", payload["stat_count"])
+    html = html.replace("__STAT_AVGSPEND__", payload["stat_avgspend"])
+    html = html.replace("__STAT_TOPTIER__", payload["stat_toptier"])
     return html
+
+
+def render_dashboard(scored, head_extra: str = "") -> str:
+    """Render the dashboard directly from a scored frame (local build path)."""
+    return render_payload(dashboard_payload(scored), head_extra)
 
 
 def main() -> None:
