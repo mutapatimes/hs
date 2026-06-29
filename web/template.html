@@ -382,6 +382,7 @@
   <div class="n"><b id="bulkN">0</b> selected</div>
   <div class="acts">
     <button class="bbtn primary" id="bulkpush">Sync to Klaviyo</button>
+    <button class="bbtn" id="bulklist">Create Klaviyo list</button>
   </div>
   <button class="bclear" id="bclear" title="Clear">×</button>
 </div>
@@ -544,10 +545,45 @@ document.getElementById("bulkpush").onclick=async()=>{
   btn.disabled=false; btn.textContent="Sync to Klaviyo";
   selected.clear();renderRows();updateBulk();
 };
+
+// bulk action: build a Klaviyo list from the selected clients
+document.getElementById("bulklist").onclick=async()=>{
+  const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
+  if(!cids.length) return;
+  const name=prompt("Name this Klaviyo list:","Halia VIP selection");
+  if(name===null) return;
+  const w=window.open("","_blank");  // open synchronously to dodge popup blockers
+  const btn=document.getElementById("bulklist"); btn.disabled=true; btn.textContent="Creating…";
+  try{
+    const r=await fetch("/v1/klaviyo/list",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({customer_ids:cids,name})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail||("HTTP "+r.status));
+    if(w){w.location=d.url}else{window.open(d.url,"_blank")}
+    toast(`Created Klaviyo list with ${d.count} client${d.count===1?"":"s"}.`);
+    selected.clear();renderRows();updateBulk();
+  }catch(e){ if(w)w.close(); toast("Couldn't create list: "+e.message); }
+  finally{ btn.disabled=false; btn.textContent="Create Klaviyo list"; }
+};
 document.getElementById("bclear").onclick=()=>{selected.clear();renderRows();updateBulk();};
 
 // drawer
 const drawer=document.getElementById("drawer"), scrim=document.getElementById("scrim");
+// Ready-to-send outreach templates (open in the merchant's own mail app via mailto).
+const MAIL_TEMPLATES=[
+ ["Personal welcome","A personal note","Dear {fn},\n\nThank you for being one of our valued clients. I wanted to reach out personally — if there's ever anything you're looking for, it would be my pleasure to help you find it.\n\nWarm regards,"],
+ ["Private preview invite","An early preview, just for you","Dear {fn},\n\nWe have a private preview of our new pieces coming up, and I immediately thought of you. I'd love to set aside some time for you ahead of everyone else.\n\nWarmly,"],
+ ["Private appointment","A personal appointment","Dear {fn},\n\nWould you enjoy a private appointment with our team? We'd love to show you a few pieces we think you'll love, at a time that suits you.\n\nKind regards,"],
+ ["New arrival for you","Something I thought you'd love","Dear {fn},\n\nA new arrival came in that reminded me of your taste. I've set one aside in case you'd like to see it — no obligation at all.\n\nWarm regards,"],
+ ["Concierge check-in","Checking in","Dear {fn},\n\nJust a note to say we're here whenever you need us — a gift, a particular piece, or simply a recommendation. It's always a pleasure to look after you.\n\nWarmly,"]
+];
+function firstName(name){return String(name||"").replace(/^(sir|lady|dame|lord|baroness|viscount|countess|duchess|marquess|hrh|hsh|the hon)\s+/i,"").split(" ")[0]||"there";}
+function mailtoItems(c){
+  const fn=firstName(c.name), em=c.email||"";
+  const item=(label,href)=>`<a href="${href}" style="display:block;padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px">${label}</a>`;
+  return MAIL_TEMPLATES.map(t=>item(t[0],`mailto:${em}?subject=${encodeURIComponent(t[1])}&body=${encodeURIComponent(t[2].split("{fn}").join(fn))}`)).join("")
+    + item("Blank email",`mailto:${em}`);
+}
 function openDrawer(id){
   const c=DATA.find(x=>x.id===id);
   drawer.innerHTML=`
@@ -589,20 +625,29 @@ function openDrawer(id){
     </div>
     <div class="dactions">
       ${c.shopifyUrl?`<a class="dbtn" href="${c.shopifyUrl}" target="_top">Open in Shopify</a>`:""}
-      <button class="dbtn primary" id="dpush">Email this client →</button>
+      <div style="position:relative">
+        <button class="dbtn" id="dmail">Email ▾</button>
+        <div id="dmailmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${mailtoItems(c)}</div>
+      </div>
+      <button class="dbtn primary" id="dpush">Open in Klaviyo →</button>
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   document.getElementById("dclose").onclick=closeDrawer;
-  // Fire the "Halia VIC Identified" Klaviyo event → the merchant's flow sends the email.
+  // Email dropdown — opens the merchant's own mail app with a ready-to-send message.
+  const dmail=document.getElementById("dmail"), dmenu=document.getElementById("dmailmenu");
+  dmail.onclick=e=>{e.stopPropagation();dmenu.style.display=dmenu.style.display==="block"?"none":"block";};
+  dmenu.onclick=()=>{dmenu.style.display="none";};
+  // Open in Klaviyo — jump straight to this client's Klaviyo profile to action them.
   document.getElementById("dpush").onclick=()=>{
-    const b=document.getElementById("dpush"); b.disabled=true; b.textContent="Sending…";
-    fetch("/v1/klaviyo/event",{method:"POST",headers:{"content-type":"application/json"},
+    const w=window.open("","_blank");
+    const b=document.getElementById("dpush"); b.disabled=true; b.textContent="Opening…";
+    fetch("/v1/klaviyo/open",{method:"POST",headers:{"content-type":"application/json"},
         body:JSON.stringify({customer_id:c.cid})})
       .then(r=>r.json().then(d=>({ok:r.ok,d})))
-      .then(({ok,d})=>{ if(!ok) throw new Error(d.detail||("HTTP "+0));
-        toast(`Triggered Klaviyo for ${c.name} — your “Halia VIC Identified” flow will email them.`); })
-      .catch(e=>toast("Couldn't trigger Klaviyo: "+e.message))
-      .finally(()=>{ b.disabled=false; b.textContent="Email this client →"; });
+      .then(({ok,d})=>{ if(!ok) throw new Error(d.detail||"failed");
+        if(w){w.location=d.url}else{window.open(d.url,"_blank")} })
+      .catch(e=>{ if(w)w.close(); toast("Couldn't open in Klaviyo: "+e.message); })
+      .finally(()=>{ b.disabled=false; b.textContent="Open in Klaviyo →"; });
   };
 }
 function closeDrawer(){drawer.classList.remove("show");scrim.classList.remove("show");drawer.setAttribute("aria-hidden","true");}

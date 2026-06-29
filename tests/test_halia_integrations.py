@@ -72,6 +72,32 @@ def test_fire_event_builds_metric_and_profile():
     assert attrs["properties"]["halia_grade"] == "A*" and attrs["value"] == 400.0
 
 
+def test_list_route_without_key(client):
+    r = client.post("/v1/klaviyo/list", json={"customer_ids": ["c1"]}, headers=_auth())
+    assert r.status_code == 400 and "Connect Klaviyo" in r.json()["detail"]
+
+
+def test_create_list_and_add_profiles_bodies():
+    from halia.adapters.klaviyo_lists import add_profiles, create_list
+    cap = {}
+
+    def fake_create(url, key, rev, body):
+        cap["create"] = (url, body)
+        return 201, {"data": {"id": "LST1"}}
+
+    assert create_list("pk_x", "My List", transport=fake_create) == "LST1"
+    assert cap["create"][0].endswith("/api/lists")
+    assert cap["create"][1]["data"]["attributes"]["name"] == "My List"
+
+    def fake_add(url, key, rev, body):
+        cap["add"] = (url, body)
+        return 204, {}
+
+    add_profiles("pk_x", "LST1", ["p1", "p2"], transport=fake_add)
+    assert cap["add"][0].endswith("/api/lists/LST1/relationships/profiles")
+    assert [d["id"] for d in cap["add"][1]["data"]] == ["p1", "p2"]
+
+
 def test_history_groups_and_sorts():
     orders = [
         {"customer": {"id": "c1"}, "created_at": "2026-03-01T10:00:00Z",

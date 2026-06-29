@@ -90,6 +90,26 @@ def register(app) -> None:
             raise HTTPException(502, "Klaviyo didn't return a profile id.")
         return {"url": f"https://www.klaviyo.com/profile/{pid}"}
 
+    @app.post("/v1/klaviyo/list")
+    def klaviyo_list(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
+        """Create a Klaviyo list from the selected clients and return its URL."""
+        key = _key_for(shop)
+        if not key:
+            raise HTTPException(400, "Connect Klaviyo first (add your private API key).")
+        entry = _entry_or_404(shop)
+        ids = (payload or {}).get("customer_ids") or []
+        name = str((payload or {}).get("name") or "").strip() or "Halia selection"
+        targets = [r for r in (data.result_by_id(entry, c) for c in ids) if r and r.email]
+        if not targets:
+            raise HTTPException(400, "No emailable clients selected.")
+        from halia.adapters.klaviyo_lists import list_from_results
+        from halia.adapters.klaviyo_sink import KlaviyoError
+
+        try:
+            return list_from_results(key, name, targets)
+        except KlaviyoError as exc:
+            raise HTTPException(502, f"Klaviyo rejected it: {exc}")
+
     @app.post("/v1/klaviyo/push")
     def klaviyo_push(shop: str = Depends(require_shop), payload: Any = Body(None)) -> dict:
         key = _key_for(shop)
