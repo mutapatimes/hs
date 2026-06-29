@@ -34,6 +34,23 @@ _IMG_DIR = _ROOT / "web" / "site" / "img"
 if _IMG_DIR.is_dir():
     app.mount("/img", StaticFiles(directory=str(_IMG_DIR)), name="img")
 
+# Static legal / overview pages (Privacy, Terms, Cookies, Security).
+from fastapi.responses import HTMLResponse as _HTML  # noqa: E402
+
+_LEGAL_DIR = _ROOT / "web" / "site" / "legal"
+
+
+def _serve_page(name: str) -> _HTML:
+    f = _LEGAL_DIR / f"{name}.html"
+    if not f.is_file():
+        raise HTTPException(404, "Page not found")
+    return _HTML(f.read_text(encoding="utf-8"))
+
+
+for _name in ("privacy", "terms", "cookies", "security"):
+    app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
+                      methods=["GET"], include_in_schema=False, response_class=_HTML)
+
 
 @app.get("/health")
 def health() -> dict:
