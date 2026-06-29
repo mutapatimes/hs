@@ -27,6 +27,7 @@ from scoring.signals import (
     gcc_billing,
     hnw_area,
     fashion_stylist,
+    stylist_directory,
     heritage_surname,
     hnwi_postcode,
     honorific,
@@ -74,6 +75,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "card_brand": 1,
     "rich_list": 1,
     "fashion_stylist": 2,  # celebrity stylist / personal shopper — high-value, name-match (verify)
+    "stylist_directory": 1,  # broad stylist directory — corroboration-only (see SUPPORTING_SIGNALS)
     "ip_location": 1,
     "domain_keyword": 2,  # finance/high-earning keyword in a custom domain
     "custom_email": 1,
@@ -100,7 +102,8 @@ DOMAIN_KEYWORD_TYPE_WEIGHTS = {
 # "Supporting" signals are too weak/sensitive to ever flag a customer on their
 # own: they contribute to the score and count ONLY when at least one stronger
 # (non-supporting) signal has also fired. This enforces "never a sole basis".
-SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order"}
+SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
+                      "stylist_directory"}
 
 # Some signals are CORRELATED — they encode the same underlying fact from
 # different fields. Three "this person is in the UAE" tells (billing country,
@@ -126,6 +129,7 @@ SIGNAL_GROUP: dict[str, str] = {
     # so a rich-list + dynasty-surname + name-structure pile-up doesn't stack.
     "rich_list": "name",
     "fashion_stylist": "name",
+    "stylist_directory": "name",
     "heritage_surname": "name",
     "name_structure": "name",
     "nobiliary_particle": "name",
@@ -199,6 +203,8 @@ SIGNALS = [
      rich_list.FLAG_COL, lambda r: r[rich_list.REASON_COL]),
     ("fashion_stylist", "Fashion stylist", fashion_stylist.flag_fashion_stylist,
      fashion_stylist.FLAG_COL, lambda r: r[fashion_stylist.REASON_COL]),
+    ("stylist_directory", "Possible stylist", stylist_directory.flag_stylist_directory,
+     stylist_directory.FLAG_COL, lambda r: r[stylist_directory.REASON_COL]),
     ("heritage_surname", "Heritage surname", heritage_surname.flag_heritage_surname,
      heritage_surname.FLAG_COL, lambda r: r[heritage_surname.REASON_COL]),
     ("premium_card", "Premium card", card_bin.flag_card_bin,
