@@ -1,0 +1,107 @@
+"""Shared data access — always via the RAM cache, never a database.
+
+Every surface (the embedded dashboard, the Klaviyo actions, the fulfilment view, the read
+APIs) gets a shop's scored customers through here. `results_for(shop)` returns the cached
+entry or does a live sync; nothing customer-related is ever persisted. The cache entry holds:
+  - `results`  : [ScoreResult]      (all scored customers — for Klaviyo + lookups)
+  - `payload`  : dict               (the rendered-dashboard JSON, incl. per-client history)
+  - `orders`   : [{order_id, created_at, customer_id, email}]  (for the fulfilment view)
+"""
+from __future__ import annotations
+
+from halia.api.shopify_auth import shop_store
+from halia.cache import cache
+
+_RANK = {"A1": 0, "A": 0, "B": 1, "C": 2}
+
+
+def score_shop(shop: str, token: str):
+    """Live: fetch + aggregate + score one shop's customers. Returns (scored_df, orders)."""
+    from scoring.combine import score_customers
+    from scoring.shopify import orders_to_customers
+    from scoring.shopify_fetch import fetch_orders, http_transport
+
+    orders = fetch_orders(http_transport(shop, token))
+    customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
+    return score_customers(customers), orders
+
+
+def _history(orders: list[dict]) -> dict:
+    """CUST_ID -> [{date, amount, items}], newest first (per-client order history)."""
+    by: dict[str, list] = {}
+    for o in orders:
+        cid = (o.get("customer") or {}).get("id")
+        if cid is None:
+            continue
+        items = sum(int(li.get("quantity") or 0) for li in (o.get("line_items") or []))
+        by.setdefault(str(cid), []).append({
+            "date": str(o.get("created_at") or "")[:10],
+            "amount": round(float(o.get("total_price") or 0), 2), "items": items})
+    for rows in by.values():
+        rows.sort(key=lambda r: r["date"], reverse=True)
+    return by
+
+
+def _order_index(orders: list[dict]) -> list[dict]:
+    out = []
+    for o in orders:
+        cust = o.get("customer") or {}
+        out.append({"order_id": str(o.get("id") or o.get("name")),
+                    "created_at": o.get("created_at"),
+                    "customer_id": None if cust.get("id") is None else str(cust.get("id")),
+                    "email": o.get("email") or cust.get("email")})
+    return out
+
+
+def sync_shop(shop: str, token: str) -> dict:
+    """Pull → score → cache in RAM (never persisted). Returns the cache entry."""
+    from build_mvp import dashboard_payload
+    from halia.engine import engine
+
+    scored, orders = score_shop(shop, token)
+    results = engine.results_from_scored(scored)
+    payload = dashboard_payload(scored, _history(orders), shop)
+    cache.set(shop, results, payload, _order_index(orders))
+    return cache.get(shop)
+
+
+def results_for(shop: str) -> dict | None:
+    """The shop's live entry — from RAM, or a fresh sync using its stored offline token."""
+    entry = cache.get(shop)
+    if entry:
+        return entry
+    token = shop_store().get_token(shop)
+    return sync_shop(shop, token) if token else None
+
+
+# ── helpers over a cache entry ──────────────────────────────────────────────────
+def hidden_results(entry: dict, limit: int = 1000) -> list:
+    rs = [r for r in entry["results"] if r.flagged and r.hidden_vic]
+    rs.sort(key=lambda r: r.score or 0, reverse=True)
+    return rs[:limit]
+
+
+def result_by_id(entry: dict, cid) -> object | None:
+    cid = str(cid)
+    return next((r for r in entry["results"] if r.customer_id == cid), None)
+
+
+def result_by_email(entry: dict, email: str) -> object | None:
+    em = (email or "").lower()
+    matches = [r for r in entry["results"] if (r.email or "").lower() == em]
+    return max(matches, key=lambda r: r.score or 0) if matches else None
+
+
+def score_for_order(entry: dict, order_id: str):
+    oid = str(order_id)
+    o = next((o for o in entry["orders"] if o["order_id"] == oid), None)
+    return result_by_id(entry, o["customer_id"]) if o and o["customer_id"] else None
+
+
+def recent_orders(entry: dict, limit: int = 100) -> list[dict]:
+    rows = [{"order_id": o["order_id"], "created_at": o["created_at"],
+             "result": result_by_id(entry, o["customer_id"]) if o["customer_id"] else None}
+            for o in entry["orders"]]
+    rows.sort(key=lambda x: (_RANK.get(x["result"].tier, 3) if x["result"] else 3,
+                             -((x["result"].score or 0) if x["result"] else 0)))
+    return rows[:limit]

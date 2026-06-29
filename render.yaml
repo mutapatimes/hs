@@ -24,6 +24,10 @@ services:
         value: "2026-04"
       - key: HALIA_APP_URL            # the Render URL, e.g. https://halia.onrender.com
         sync: false
+      - key: HALIA_ENCRYPTION_KEY     # Fernet key to encrypt stored secrets at rest — set once,
+        sync: false                   # generate with: python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())"
+      - key: HALIA_CACHE_TTL          # seconds to keep scored customers in RAM (zero-retention)
+        value: "300"
 
 databases:
   - name: halia-db

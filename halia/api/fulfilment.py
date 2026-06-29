@@ -6,7 +6,7 @@ blind on who's who. Give them the Halia grade and a high-value client's order ca
 the better box, the handwritten note, priority dispatch — clienteling expressed through
 logistics.
 
-This is a thin surface: it only reads today's orders from the `ScoreStore`, joins each
+This is a thin surface: it only reads today's orders from the in-memory cache, joins each
 to its customer's score, and renders them with A*/A floated to the top of the queue,
 each with the discreet associate gesture. No new scoring — it rides the same brain.
 """
@@ -66,15 +66,17 @@ def _row_html(order: dict) -> str:
             f'<div class="score"><b>{r.score}</b><span>spend £{int(r.spend):,}</span></div></div>')
 
 
-def register(app, get_store) -> None:
-    """Attach GET /fulfilment to the FastAPI app, reading from the score store."""
+def register(app) -> None:
+    """Attach GET /fulfilment to the FastAPI app, reading from the RAM cache."""
     from fastapi import Depends
 
+    from halia.api import data
     from halia.api.shopify_auth import require_shop
 
     @app.get("/fulfilment", response_class=HTMLResponse)
     def fulfilment_view(shop: str = Depends(require_shop), limit: int = 100):
-        orders = get_store().recent_orders(shop, limit)
+        entry = data.results_for(shop)
+        orders = data.recent_orders(entry, limit) if entry else []
         if not orders:
             body = '<div class="empty">No orders yet. Run <code>python -m halia.sync</code> to populate.</div>'
         else:

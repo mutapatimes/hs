@@ -1,39 +1,33 @@
 """The embedded Shopify app — the Halia dashboard rendered INSIDE admin.shopify.com.
 
-Shopify loads this app's URL in an iframe in the admin, passing a signed session token
-(`?id_token=…`). We verify it and:
-  - on the FIRST load for a shop, token-exchange + pull + score + persist its customers;
-  - on every load, render the dashboard from the STORED payload (instant, no live fetch),
-    with a "Refresh scores" button that re-syncs on demand.
-
-Rendering from a stored payload (rather than re-scoring on every page view) is what makes
-the page fast and robust — a transient Shopify hiccup can't blank the dashboard. Every
-read/write is scoped to the authenticated `shop` (multi-tenant). App Bridge is injected so
-it's a valid embedded app, plus a per-shop CSP so the admin is allowed to frame it.
+Shopify loads this app's URL in an iframe, passing a signed session token (`?id_token=…`).
+We verify it, token-exchange for the shop's Admin token, and render the dashboard from the
+**RAM cache** (`halia.cache` via `halia.api.data`) — scoring live on a cache miss. No
+customer data is ever written to a database: it lives in memory for a few minutes, then is
+gone. App Bridge is injected (valid embedded app) plus a per-shop CSP so the admin can frame it.
 """
 from __future__ import annotations
 
-import json
 import traceback
 
 from fastapi import Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from halia import config
+from halia.api import data
 from halia.api.shopify_auth import (
     ensure_offline_token, require_shop, token_for_request, verify_session_token,
 )
+from halia.cache import cache
 
 _HEAD = (
     '<meta name="shopify-api-key" content="{key}">'
     '<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>'
-    # Hide the template's simulated Shopify shell (it predates real embedding).
     "<style>.topbar,.sidenav,.crumb{{display:none!important}}"
     ".admin{{display:block!important}}.canvas{{min-height:100vh;padding-top:18px}}"
     "#halia-refresh{{position:fixed;top:14px;right:18px;z-index:200;padding:8px 14px;"
     "border-radius:8px;border:1px solid #d8c79a;background:#1f564a;color:#fff;"
     "font:600 13px system-ui;cursor:pointer}}#halia-refresh[disabled]{{opacity:.6}}</style>"
-    # Refresh button — App Bridge attaches the session token to the fetch automatically.
     "<script>addEventListener('DOMContentLoaded',function(){{"
     "var b=document.createElement('button');b.id='halia-refresh';"
     "b.textContent='\\u21bb Refresh scores';b.onclick=function(){{"
@@ -60,70 +54,18 @@ def _head() -> str:
     return _HEAD.format(key=config.SHOPIFY_API_KEY or "")
 
 
-def _error_page(head: str, detail: str) -> str:
+def _error_page(head: str) -> str:
+    # Generic — never echoes exception text (which could contain customer data).
     return (
         "<!doctype html><html><head>" + head + "</head>"
         "<body style='font:15px system-ui;padding:40px;color:#1c1b18'>"
         "<h2>Couldn't load your scores</h2>"
-        "<p style='color:#6b675e;max-width:540px'>Halia hit a snag fetching from Shopify. "
-        "This is usually transient — hit <b>Refresh scores</b> (top right) to try again.</p>"
-        f"<pre style='background:#f4f2ec;padding:12px;border-radius:8px;color:#8a5;"
-        f"font-size:12px;overflow:auto'>{detail[:300]}</pre></body></html>"
+        "<p style='color:#6b675e;max-width:540px'>Halia hit a snag fetching from Shopify — "
+        "usually transient. Hit <b>Refresh scores</b> (top right) to try again.</p></body></html>"
     )
 
 
-def score_shop(shop: str, token: str):
-    """Fetch + aggregate + score one shop's customers. Returns (scored_df, orders)."""
-    from scoring.combine import score_customers
-    from scoring.shopify import orders_to_customers
-    from scoring.shopify_fetch import fetch_orders, http_transport
-
-    orders = fetch_orders(http_transport(shop, token))
-    customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
-    return score_customers(customers), orders
-
-
-def _persist(store, shop: str, scored, orders) -> None:
-    """Store the shop's scored customers + order index (for the API/fulfilment surfaces)."""
-    from halia.adapters.shopify_source import ShopifySource
-    from halia.engine import engine
-
-    store.upsert_many(engine.results_from_scored(scored), shop=shop, source="shopify")
-    src = ShopifySource()
-    src._orders = orders  # already fetched; avoid a second pull
-    store.upsert_orders(src.iter_orders(), shop=shop)
-
-
-def _orders_by_customer(orders: list[dict]) -> dict:
-    """CUST_ID -> [{date, amount, items}], newest first — powers the in-app history."""
-    by: dict[str, list] = {}
-    for o in orders:
-        cid = (o.get("customer") or {}).get("id")
-        if cid is None:
-            continue
-        items = sum(int(li.get("quantity") or 0) for li in (o.get("line_items") or []))
-        by.setdefault(str(cid), []).append({
-            "date": str(o.get("created_at") or "")[:10],
-            "amount": round(float(o.get("total_price") or 0), 2),
-            "items": items,
-        })
-    for rows in by.values():
-        rows.sort(key=lambda r: r["date"], reverse=True)
-    return by
-
-
-def _sync_and_store(store, shop: str, token: str) -> dict:
-    """Live pull → score → persist scores/orders AND the prerendered dashboard payload."""
-    from build_mvp import dashboard_payload
-
-    scored, orders = score_shop(shop, token)
-    _persist(store, shop, scored, orders)
-    payload = dashboard_payload(scored, _orders_by_customer(orders), shop)
-    store.save_dashboard(shop, json.dumps(payload))
-    return payload
-
-
-def register(app, get_store) -> None:
+def register(app) -> None:
     """Mount the embedded entry + per-shop API routes onto the FastAPI app."""
 
     @app.get("/", response_class=HTMLResponse)
@@ -138,17 +80,12 @@ def register(app, get_store) -> None:
 
         head = _head()
         try:
-            store = get_store()
-            payload_json = store.get_dashboard(shop)
-            if payload_json:
-                payload = json.loads(payload_json)  # instant: render stored data
-            else:
-                token = ensure_offline_token(shop, session_token)  # first load → live sync
-                payload = _sync_and_store(store, shop, token)
-            body = render_payload(payload, head_extra=head)
-        except Exception as exc:
-            traceback.print_exc()  # surfaces in Render logs
-            body = _error_page(head, f"{type(exc).__name__}: {exc}")
+            token = ensure_offline_token(shop, session_token)
+            entry = cache.get(shop) or data.sync_shop(shop, token)
+            body = render_payload(entry["payload"], head_extra=head)
+        except Exception:
+            traceback.print_exc()  # stack only — no customer payloads are logged
+            body = _error_page(head)
 
         resp = HTMLResponse(body)
         resp.headers["Content-Security-Policy"] = _csp(shop)
@@ -157,9 +94,12 @@ def register(app, get_store) -> None:
     @app.post("/v1/sync")
     def sync_now(request: Request, shop: str = Depends(require_shop)):
         token = ensure_offline_token(shop, token_for_request(request))
-        payload = _sync_and_store(get_store(), shop, token)
-        return {"shop": shop, "hidden_vics": len(payload["data"])}
+        entry = data.sync_shop(shop, token)
+        return {"shop": shop, "hidden_vics": len(data.hidden_results(entry))}
 
     @app.get("/v1/dashboard")
     def dashboard_data(shop: str = Depends(require_shop)):
-        return JSONResponse([r.to_dict() for r in get_store().top_hidden(shop, 200)])
+        entry = data.results_for(shop)
+        if entry is None:
+            return JSONResponse([])
+        return JSONResponse([r.to_dict() for r in data.hidden_results(entry, 200)])

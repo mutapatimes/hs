@@ -1,4 +1,4 @@
-"""FastAPI surface: stateless score, shop-scoped reads via session token, embedded entry."""
+"""FastAPI surface: stateless score + shop-scoped reads from the RAM cache (no DB)."""
 import time
 
 import jwt
@@ -6,38 +6,36 @@ import pytest
 from fastapi.testclient import TestClient
 
 from halia.api.app import app
+from halia.cache import cache
 from halia.schema import ScoreResult
-from halia.store import ScoreStore
 
-SECRET = "test-app-secret"
-KEY = "test-api-key"
-SHOP = "acme.myshopify.com"
+SECRET, KEY, SHOP = "test-app-secret", "test-api-key", "acme.myshopify.com"
 
 
 def _token(secret=SECRET, aud=KEY, dest=f"https://{SHOP}"):
-    return jwt.encode(
-        {"iss": f"https://{SHOP}/admin", "dest": dest, "aud": aud, "sub": "1",
-         "exp": int(time.time()) + 3600}, secret, algorithm="HS256")
+    return jwt.encode({"iss": f"https://{SHOP}/admin", "dest": dest, "aud": aud, "sub": "1",
+                       "exp": int(time.time()) + 3600}, secret, algorithm="HS256")
+
+
+def _vic():
+    return ScoreResult(matched=True, flagged=True, tier="A1", grade="A*", score=99,
+                       is_priority=True, signal_count=2, signals=["Work email"],
+                       reasons="Work email: GS", gesture="coffee", spend=400.0,
+                       hidden_vic=True, customer_id="c1", email="vic@x.com", phone=None)
 
 
 @pytest.fixture()
-def client(tmp_path, monkeypatch):
+def client(monkeypatch):
     monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", KEY)
     monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
-    store = ScoreStore(db_path=tmp_path / "api.db")
-    store.upsert_many(
-        [ScoreResult(matched=True, flagged=True, tier="A1", grade="A*", score=99,
-                     is_priority=True, signal_count=2, signals=["Work email"],
-                     reasons="Work email: GS", gesture="coffee", spend=400.0,
-                     hidden_vic=True, customer_id="c1", email="vic@x.com", phone=None)],
-        shop=SHOP)
-    store.upsert_orders([{"order_id": "o1", "customer_id": "c1", "email": "vic@x.com",
-                          "created_at": "2026-06-01"}], shop=SHOP)
-    app.state.store = store
+    cache.clear()
+    cache.set(SHOP, results=[_vic()], payload={},
+              orders=[{"order_id": "o1", "created_at": "2026-06-01", "customer_id": "c1",
+                       "email": "vic@x.com"}])
     c = TestClient(app)
-    c.headers.update({"Authorization": f"Bearer {_token()}"})  # default: authed as SHOP
+    c.headers.update({"Authorization": f"Bearer {_token()}"})
     yield c
-    app.state.store = None
+    cache.clear()
 
 
 def test_health_is_open(client):
@@ -53,11 +51,10 @@ def test_post_score_is_stateless_and_open(client):
 
 
 def test_reads_require_session_token(client):
-    # No Authorization header -> 401.
     assert TestClient(app).get("/v1/hidden-vics").status_code == 401
 
 
-def test_shop_scoped_reads(client):
+def test_shop_scoped_reads_from_cache(client):
     assert client.get("/v1/score", params={"id": "c1"}).json()["grade"] == "A*"
     assert client.get("/v1/score", params={"email": "vic@x.com"}).json()["customer_id"] == "c1"
     assert client.get("/v1/orders/o1/score").json()["grade"] == "A*"
@@ -66,11 +63,12 @@ def test_shop_scoped_reads(client):
 
 
 def test_other_shop_sees_nothing(client):
-    other = jwt.encode(
-        {"iss": "https://rival.myshopify.com/admin", "dest": "https://rival.myshopify.com",
-         "aud": KEY, "sub": "1", "exp": int(time.time()) + 3600}, SECRET, algorithm="HS256")
+    other = jwt.encode({"iss": "https://rival.myshopify.com/admin",
+                        "dest": "https://rival.myshopify.com", "aud": KEY, "sub": "1",
+                        "exp": int(time.time()) + 3600}, SECRET, algorithm="HS256")
+    # rival has no cache entry and no stored token -> results_for returns None -> 404
     r = TestClient(app).get("/v1/hidden-vics", headers={"Authorization": f"Bearer {other}"})
-    assert r.status_code == 200 and r.json() == []  # isolated from SHOP's data
+    assert r.status_code == 404
 
 
 def test_fulfilment_view_renders(client):
