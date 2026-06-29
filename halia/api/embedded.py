@@ -21,6 +21,11 @@ from halia.api.shopify_auth import (
 _APP_BRIDGE = (
     '<meta name="shopify-api-key" content="{key}">'
     '<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>'
+    # The template carries a simulated Shopify shell (fake top bar + side nav +
+    # breadcrumb, "Aubin London") from its standalone-mockup days. Inside the REAL
+    # admin that's a duplicate, so hide it and let the dashboard fill the frame.
+    "<style>.topbar,.sidenav,.crumb{display:none!important}"
+    ".admin{display:block!important}.canvas{min-height:100vh;padding-top:20px}</style>"
 )
 
 _OPEN_FROM_ADMIN = (
