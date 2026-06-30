@@ -136,6 +136,47 @@ def score_for_order(entry: dict, order_id: str):
     return result_by_id(entry, o["customer_id"]) if o and o["customer_id"] else None
 
 
+def _f(x) -> float:
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def score_order(shop: str, payload: dict) -> dict | None:
+    """Score the single customer behind one order, in memory. Returns an alert dict, or None.
+
+    Used by the real-time order webhook: nothing is stored, the customer is scored and the
+    alert dispatched, then forgotten.
+    """
+    from halia.api.settings import settings_for
+    from scoring.combine import REASONS_COL, SCORE_COL, score_customers
+    from scoring.grading import GRADE_LABEL, tier_for, to_score100
+    from scoring.shopify import orders_to_customers
+
+    tenant = shop_store().get_tenant(shop)
+    kind = tenant["kind"] if tenant else "shopify"
+    if kind == "woocommerce":
+        from scoring.woocommerce import woo_order_to_rest
+        rest = woo_order_to_rest(payload)
+    else:
+        rest = payload  # Shopify REST order shape
+    customers = orders_to_customers([rest]).rename(columns={"orders_count": "Count of CUST_ID"})
+    if customers.empty:
+        return None
+    scored = score_customers(customers, vic_threshold=settings_for(shop)["vic_threshold"])
+    row = scored.iloc[0]
+    s100 = to_score100(_f(row.get(SCORE_COL)))
+    tier = tier_for(s100)
+    reasons = str(row.get(REASONS_COL) or "")
+    signals = [p.split(":")[0].strip() for p in reasons.split(";") if p.strip()][:3]
+    name = (rest.get("billing_address") or {}).get("name") or rest.get("email") or "A client"
+    return {"order_id": str(rest.get("id") or ""), "when": rest.get("created_at"),
+            "name": name, "grade": GRADE_LABEL.get(tier, tier), "score": s100,
+            "signals": signals, "email": rest.get("email"),
+            "spend": int(round(_f(rest.get("total_price"))))}
+
+
 def high_grade_orders(entry: dict, grades=("A*", "A"), limit: int = 30) -> list[dict]:
     """Recent orders placed by surfaced A*/A (hidden-VIC) clients — for live alerts.
 

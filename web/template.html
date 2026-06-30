@@ -787,9 +787,9 @@ function openSettings(){
 
         <div style="${C}">
           <div style="${H}">Order alerts</div>
-          <p style="${P}">Get a desktop notification the moment a high-grade client places an order, so your team can recognise them in the moment.</p>
+          <p style="${P}">Get notified the moment a high-grade client places an order, so your team can recognise them in the moment, at the till or online.</p>
           <label style="display:flex;align-items:center;gap:10px;font:500 14px system-ui;color:#303030;cursor:pointer">
-            <input type="checkbox" id="setNotify" ${SETTINGS.notify_enabled?"checked":""} style="width:16px;height:16px;accent-color:#1f564a"> Desktop notifications for high-grade orders
+            <input type="checkbox" id="setNotify" ${SETTINGS.notify_enabled?"checked":""} style="width:16px;height:16px;accent-color:#1f564a"> Desktop notifications on this device
           </label>
           <div style="margin-top:16px"><div style="${LBL}">Alert me for</div>
             <select id="setNotifyGrades" style="${I};width:220px">
@@ -797,7 +797,11 @@ function openSettings(){
               <option value="A*,A"${(SETTINGS.notify_grades||[]).indexOf("A")>=0?" selected":""}>A&#42; and A</option>
             </select>
           </div>
-          <p style="${P};margin-top:14px;font-size:12px">Alerts appear while Halia is open in your browser. Nothing about your customers is stored to power them. Real-time alerts when Halia is closed are coming soon.</p>
+          <div style="margin-top:18px"><div style="${LBL}">Also email alerts to (optional)</div>
+            <input id="setNotifyEmail" type="email" value="${esc(SETTINGS.notify_email||"")}" placeholder="team@yourbrand.com" style="width:100%;max-width:380px;${I}"></div>
+          <div style="margin-top:20px"><div style="${LBL}">Real-time webhook</div>
+            <code style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:#303030;background:#f1f1f1;border-radius:8px;padding:11px 13px;word-break:break-all;margin-top:6px">${esc(SETTINGS.webhook_url||"")}</code>
+            <p style="${P};margin-top:8px;font-size:12px">Add this as an “Order created” webhook in your store (WooCommerce → Settings → Advanced → Webhooks, or a Shopify orders/create webhook) for instant alerts even when Halia is closed. Nothing about your customers is stored to power them.</p></div>
         </div>
 
         <div style="${C}">
@@ -847,6 +851,7 @@ function openSettings(){
         aov:num("setAov"),max_orders:num("setMaxOrders"),highest_lt:num("setHighestLt"),
         notify_enabled:document.getElementById("setNotify").checked,
         notify_grades:document.getElementById("setNotifyGrades").value.split(","),
+        notify_email:document.getElementById("setNotifyEmail").value,
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim())};
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";
       fetch("/v1/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
@@ -873,7 +878,10 @@ function initAlerts(s){
   bell.style.display="";
   bell.onclick=()=>{ panel.style.display = panel.style.display==="none"||!panel.style.display?"block":"none";
     if(panel.style.display==="block") countEl.style.display="none"; };
-  if("Notification" in window && Notification.permission==="default") Notification.requestPermission();
+  if("Notification" in window){
+    if(Notification.permission==="granted") subscribePush(s);
+    else if(Notification.permission==="default") Notification.requestPermission().then(p=>{ if(p==="granted") subscribePush(s); });
+  }
   const esc=x=>String(x==null?"":x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const grades=(s.notify_grades||["A*","A"]).join(",");
   let seen=new Set((()=>{try{return JSON.parse(localStorage.getItem("halia_seen_orders")||"[]")}catch(e){return[]}})());
@@ -904,6 +912,18 @@ function initAlerts(s){
   }
   pull(true);                 // seed without notifying for existing orders
   setInterval(()=>pull(false), 60000);
+}
+// Web Push: register the service worker + subscribe so alerts arrive even when Halia is closed.
+function _urlB64(b){const pad="=".repeat((4-b.length%4)%4);const s=(b+pad).replace(/-/g,"+").replace(/_/g,"/");
+  const raw=atob(s);const a=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);return a;}
+async function subscribePush(s){
+  if(!("serviceWorker" in navigator) || !("PushManager" in window) || !s.vapid_public) return;
+  try{
+    const reg=await navigator.serviceWorker.register("/sw.js");
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:_urlB64(s.vapid_public)});
+    fetch("/v1/push/subscribe",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(sub)});
+  }catch(e){ /* push unavailable (e.g. embedded iframe) — the in-dashboard feed still works */ }
 }
 </script>
 </body>

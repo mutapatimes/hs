@@ -23,7 +23,21 @@ class ResultsCache:
     def __init__(self, ttl: int = TTL_SECONDS):
         self.ttl = ttl
         self._data: dict[str, dict] = {}
+        self._alerts: dict[str, list] = {}   # per-shop recent high-grade order alerts (RAM)
         self._lock = threading.Lock()
+
+    # ── live order alerts (RAM-only, capped) ───────────────────────────────────
+    def add_alert(self, shop: str, alert: dict, cap: int = 50) -> None:
+        with self._lock:
+            buf = self._alerts.setdefault(shop, [])
+            if any(a.get("order_id") == alert.get("order_id") for a in buf):
+                return
+            buf.insert(0, alert)
+            del buf[cap:]
+
+    def get_alerts(self, shop: str) -> list:
+        with self._lock:
+            return list(self._alerts.get(shop, []))
 
     def set(self, shop: str, results: list, payload: dict, orders: dict) -> None:
         with self._lock:

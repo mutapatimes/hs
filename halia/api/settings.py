@@ -63,6 +63,7 @@ def settings_for(shop: str) -> dict:
         # Desktop alerts for new high-grade orders.
         "notify_enabled": bool(d.get("notify_enabled", False)),
         "notify_grades": d.get("notify_grades") or ["A*", "A"],
+        "notify_email": d.get("notify_email", ""),
     }
 
 
@@ -96,6 +97,14 @@ def register(app) -> None:
         mc = store.get_mailchimp(shop)
         s["mailchimp_connected"] = bool(mc and mc.get("list_id"))
         s["mailchimp_list_name"] = (mc or {}).get("list_name")
+        # Real-time order-alert plumbing: the per-shop webhook URL + the Web Push key.
+        import secrets
+
+        from halia import notify
+        token = store.ensure_webhook_token(shop, secrets.token_urlsafe(24))
+        base = (config.HALIA_APP_URL or "").rstrip("/")
+        s["webhook_url"] = f"{base}/webhooks/orders/{token}"
+        s["vapid_public"] = notify.vapid_public()
         return s
 
     @app.post("/v1/settings")
@@ -115,6 +124,7 @@ def register(app) -> None:
             "notify_enabled": bool(payload.get("notify_enabled", False)),
             "notify_grades": [g for g in (payload.get("notify_grades") or ["A*", "A"])
                               if g in ("A*", "A", "B")] or ["A*"],
+            "notify_email": str(payload.get("notify_email", ""))[:200],
         }
         shop_store().save_settings(shop, json.dumps(data))
         cache.evict(shop)  # a changed threshold must re-score on next load

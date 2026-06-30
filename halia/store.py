@@ -59,6 +59,20 @@ _TABLES = [
         email        TEXT PRIMARY KEY,
         subscribed_at TEXT
     )""",
+    # Per-shop order-alert webhook token (capability for the alerts webhook). Not customer data.
+    """CREATE TABLE IF NOT EXISTS webhooks (
+        shop       TEXT PRIMARY KEY,
+        token      TEXT,
+        created_at TEXT
+    )""",
+    # Web Push subscriptions (browser endpoints + keys). Not customer data.
+    """CREATE TABLE IF NOT EXISTS push_subs (
+        endpoint TEXT PRIMARY KEY,
+        shop     TEXT,
+        p256dh   TEXT,
+        auth     TEXT,
+        created_at TEXT
+    )""",
     # Per-shop Mailchimp connection: encrypted API key (...-dc) + the chosen audience.
     """CREATE TABLE IF NOT EXISTS mailchimp (
         shop         TEXT PRIMARY KEY,
@@ -204,6 +218,42 @@ class ShopStore(_DB):
                 "consumer_key": crypto.decrypt(row["consumer_key"]),
                 "consumer_secret": crypto.decrypt(row["consumer_secret"])}
 
+    # ── order-alert webhook token ───────────────────────────────────────────────
+    def get_webhook_token(self, shop: str) -> str | None:
+        row = self._run("SELECT token FROM webhooks WHERE shop = :shop", {"shop": shop}, fetch="one")
+        return row["token"] if row else None
+
+    def ensure_webhook_token(self, shop: str, token: str) -> str:
+        """Store `token` for `shop` if none exists yet; return the effective token."""
+        existing = self.get_webhook_token(shop)
+        if existing:
+            return existing
+        self._run("INSERT INTO webhooks (shop, token, created_at) VALUES (:shop, :t, :at) "
+                  "ON CONFLICT(shop) DO NOTHING", {"shop": shop, "t": token, "at": _now()})
+        return self.get_webhook_token(shop) or token
+
+    def shop_for_webhook(self, token: str) -> str | None:
+        row = self._run("SELECT shop FROM webhooks WHERE token = :t", {"t": token}, fetch="one")
+        return row["shop"] if row else None
+
+    # ── Web Push subscriptions ──────────────────────────────────────────────────
+    def add_push_sub(self, shop: str, endpoint: str, p256dh: str, auth: str) -> None:
+        self._run(
+            """INSERT INTO push_subs (endpoint, shop, p256dh, auth, created_at)
+               VALUES (:e, :shop, :p, :a, :at)
+               ON CONFLICT(endpoint) DO UPDATE SET shop=excluded.shop, p256dh=excluded.p256dh,
+                auth=excluded.auth""",
+            {"e": endpoint, "shop": shop, "p": p256dh, "a": auth, "at": _now()})
+
+    def push_subs(self, shop: str) -> list[dict]:
+        rows = self._run("SELECT endpoint, p256dh, auth FROM push_subs WHERE shop = :shop",
+                         {"shop": shop}, fetch="all") or []
+        return [{"endpoint": r["endpoint"], "keys": {"p256dh": r["p256dh"], "auth": r["auth"]}}
+                for r in rows]
+
+    def delete_push_sub(self, endpoint: str) -> None:
+        self._run("DELETE FROM push_subs WHERE endpoint = :e", {"e": endpoint})
+
     # ── newsletter ──────────────────────────────────────────────────────────────
     def add_subscriber(self, email: str) -> None:
         self._run(
@@ -235,5 +285,6 @@ class ShopStore(_DB):
     # ── deletion (shop/redact + app/uninstalled) ───────────────────────────────
     def delete_shop(self, shop: str) -> None:
         """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""
-        for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "mailchimp"):
+        for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "mailchimp",
+                      "webhooks", "push_subs"):
             self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})

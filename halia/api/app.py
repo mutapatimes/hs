@@ -117,24 +117,33 @@ def hidden_vics(shop: str = Depends(require_shop),
 @app.get("/v1/alerts")
 def alerts(shop: str = Depends(require_shop),
            grades: str = Query("A*,A")) -> list[dict]:
-    """Recent orders from A*/A hidden VICs — powers the live alerts feed + desktop pings."""
-    entry = data.results_for(shop)
-    if entry is None:
-        return []
+    """Recent orders from A*/A hidden VICs — powers the live alerts feed + desktop pings.
+
+    Merges real-time webhook alerts (RAM) with the recent high-grade orders derived from the
+    last scored pull, so the feed is populated even before the first webhook fires.
+    """
+    from halia.cache import cache
+
     wanted = tuple(g.strip() for g in grades.split(",") if g.strip()) or ("A*", "A")
-    return data.high_grade_orders(entry, wanted)
+    ram = [a for a in cache.get_alerts(shop) if a.get("grade") in wanted]
+    entry = data.results_for(shop)
+    derived = data.high_grade_orders(entry, wanted) if entry else []
+    seen = {a.get("order_id") for a in ram}
+    return (ram + [d for d in derived if d.get("order_id") not in seen])[:40]
 
 
 # Mount the embedded entry, self-service onboarding, Klaviyo integrations, fulfilment
 # view, and compliance webhooks.
 from halia.api import (  # noqa: E402
-    embedded, fulfilment, integrations, mailchimp_integration, onboarding, settings, webhooks,
+    embedded, fulfilment, integrations, mailchimp_integration, onboarding, realtime,
+    settings, webhooks,
 )
 
 embedded.register(app)
 onboarding.register(app)
 integrations.register(app)
 mailchimp_integration.register(app)
+realtime.register(app)
 settings.register(app)
 fulfilment.register(app)
 webhooks.register(app)
