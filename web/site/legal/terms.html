@@ -2,86 +2,234 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="index">
+<meta name="description" content="The terms that govern use of Halia, the hidden-VIC scoring service for retailers.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-body{background:#0a0a0b;color:#9b988d;font-family:Inter,-apple-system,system-ui,sans-serif;line-height:1.7;margin:0;-webkit-font-smoothing:antialiased}
-.wrap{max-width:760px;margin:0 auto;padding:0 28px}
-a{color:#d8d2c6;text-decoration:none}a:hover{text-decoration:underline}
-header{position:sticky;top:0;background:rgba(10,10,11,.8);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.1);z-index:5}
+body{background:#f5f2ea;color:#4a463d;font-family:Inter,-apple-system,system-ui,sans-serif;line-height:1.7;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:780px;margin:0 auto;padding:0 28px}
+a{color:#1a1712;text-decoration:none}a:hover{text-decoration:underline}
+header{position:sticky;top:0;background:rgba(245,242,234,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(20,18,12,.12);z-index:5}
 .nav{display:flex;justify-content:space-between;align-items:center;height:68px;max-width:1180px;margin:0 auto;padding:0 28px}
-.brand{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#f4f1ea;display:flex;gap:9px;align-items:center}
-.brand svg{width:20px;height:20px}.back{font-size:14px;color:#8c887f}
-main{padding:72px 0 70px}
-h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:clamp(38px,6vw,58px);color:#f4f1ea;margin:0 0 10px;line-height:1.04}
-.upd{color:#56534d;font-size:13px;letter-spacing:.04em;margin-bottom:8px;text-transform:uppercase}
-.lead{color:#cfccc4;font-size:18px;margin:30px 0 10px}
-h2{font-family:Inter;font-weight:600;font-size:17px;color:#f4f1ea;margin:42px 0 10px}
+.brand{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#1a1712;display:flex;gap:9px;align-items:center}
+.brand svg{width:20px;height:20px}.back{font-size:14px;color:#6b6557}
+main{padding:64px 0 70px}
+h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:clamp(38px,6vw,58px);color:#1a1712;margin:0 0 10px;line-height:1.04}
+.upd{color:#9a9385;font-size:13px;letter-spacing:.04em;margin-bottom:8px;text-transform:uppercase}
+.lead{color:#3a372f;font-size:18px;margin:30px 0 10px}
+h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400;font-size:26px;color:#1a1712;margin:46px 0 12px;line-height:1.12}
+h3{font-family:Inter;font-weight:600;font-size:15px;color:#1a1712;margin:24px 0 6px}
 p,li{font-size:15px}ul{padding-left:20px}li{margin:6px 0}
-.note{border:1px solid rgba(217,213,203,.3);background:rgba(217,213,203,.06);border-radius:10px;padding:18px 20px;color:#cfccc4;font-size:14.5px;margin:26px 0}
-footer{border-top:1px solid rgba(255,255,255,.1);padding:34px 0;color:#56534d;font-size:13px}
+b,strong{color:#2a2620}
+.note{border:1px solid rgba(20,18,12,.18);background:rgba(20,18,12,.045);border-radius:10px;padding:18px 20px;color:#3a372f;font-size:14.5px;margin:26px 0}
+.toc{border:1px solid rgba(20,18,12,.12);border-radius:10px;padding:20px 22px;margin:30px 0;font-size:14px;column-count:2;column-gap:30px}
+@media(max-width:560px){.toc{column-count:1}}
+.toc a{display:block;color:#4a463d;padding:3px 0}.toc a:hover{color:#1a1712}
+footer{border-top:1px solid rgba(20,18,12,.12);padding:34px 0;color:#9a9385;font-size:13px}
 .legal-nav{margin-top:36px;display:flex;gap:22px;flex-wrap:wrap;font-size:14px}
 </style></head><body>
-<header><div class="nav"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#d8d2c6"/></svg>Halia</a><a class="back" href="/">← Back to site</a></div></header>
+<header><div class="nav"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#1a1712"/></svg>Halia</a><a class="back" href="/">Back to site</a></div></header>
 <main><div class="wrap">
-<div class="upd">Last updated 29 June 2026</div>
+<div class="upd">Last updated 30 June 2026</div>
 <h1>Terms of Service</h1>
-<p class="lead">These terms govern your use of Halia. By connecting a store or using a Halia
-dashboard, you agree to them.</p>
+<p class="lead">These terms govern your use of Halia. By connecting a store, accessing a Halia
+dashboard, or otherwise using the service, you agree to them. Please read them carefully, as they
+include important limits on liability and how disputes are handled.</p>
 
-<h2>1. The service</h2>
-<p>Halia reads a connected store's customers through a read-only connection, scores them, and returns
-grades, hidden-VIC lists, and segments, including optional pushes to connected marketing tools. Scores
-are estimates produced by a heuristic engine, not guarantees of a customer's wealth, identity, or
-future spend, and should be used as guidance alongside your own judgement.</p>
+<div class="note"><b>In short.</b> Halia reads your store read-only, scores your customers in memory,
+and keeps no copy of them. Scores are estimates to guide your team, not guarantees. You are responsible
+for your store, your customers' data, and how you act on the results. You can disconnect at any time,
+which ends our access immediately.</div>
 
-<h2>2. Accounts and access</h2>
+<div class="toc">
+<a href="#agreement">1. These terms and definitions</a>
+<a href="#service">2. The service</a>
+<a href="#eligibility">3. Eligibility and your authority</a>
+<a href="#accounts">4. Accounts, private links and security</a>
+<a href="#data">5. Customer data and data protection</a>
+<a href="#obligations">6. Your obligations and warranties</a>
+<a href="#use">7. Acceptable use</a>
+<a href="#third">8. Connected third-party services</a>
+<a href="#fees">9. Fees, billing and taxes</a>
+<a href="#beta">10. Trials and beta features</a>
+<a href="#availability">11. Service changes and availability</a>
+<a href="#ip">12. Intellectual property and feedback</a>
+<a href="#confidential">13. Confidentiality</a>
+<a href="#accuracy">14. No guarantee of accuracy</a>
+<a href="#disclaimer">15. Disclaimers</a>
+<a href="#indemnity">16. Your indemnity</a>
+<a href="#liability">17. Limitation of liability</a>
+<a href="#suspension">18. Suspension</a>
+<a href="#term">19. Term and termination</a>
+<a href="#force">20. Force majeure</a>
+<a href="#changes">21. Changes to these terms</a>
+<a href="#law">22. Governing law and disputes</a>
+<a href="#general">23. General</a>
+<a href="#contact">24. Contact</a>
+</div>
+
+<h2 id="agreement">1. These terms and definitions</h2>
+<p>These terms form a binding agreement between Halia ("Halia", "we", "us") and the merchant or person
+using the service ("you", "your"). In these terms, "service" means the Halia application, website,
+scoring engine, alerts, and related features; "customer data" means personal data about your customers
+that we process on your behalf; and "account data" means the account, settings, and business contact
+data described in our <a href="/privacy">Privacy Policy</a>. If you use Halia on behalf of an
+organisation, you confirm you are authorised to bind it, and "you" means that organisation.</p>
+
+<h2 id="service">2. The service</h2>
+<p>Halia reads a connected store's customers through a read-only connection, scores them in memory, and
+returns grades, hidden-VIC lists, signals, latent-value estimates, and segments, including optional
+pushes to connected marketing tools and optional real-time order alerts. Halia keeps no standing copy
+of your customer data. We may improve, add, or change features over time.</p>
+
+<h2 id="eligibility">3. Eligibility and your authority</h2>
+<p>You must be able to form a binding contract and use the service for business purposes. You confirm
+that you are authorised to connect the store, that you have the right and a lawful basis to have its
+customer data processed by Halia, and that you have provided your customers with any privacy
+information and obtained any consents required by law for that processing.</p>
+
+<h2 id="accounts">4. Accounts, private links and security</h2>
 <p>Access to a dashboard is by a private link. You are responsible for keeping that link confidential
-and for activity under your account. Tell us promptly if you believe a link has been exposed, and we
-will issue a new one.</p>
+and for all activity carried out through it. Do not share it beyond people authorised by you. Tell us
+promptly at <a href="mailto:hello@halia.app">hello@halia.app</a> if you believe a link has been exposed
+or there is unauthorised access, and we will issue a new one and revoke the old.</p>
 
-<h2>3. Your authority and your customers</h2>
-<p>You confirm that you are authorised to connect the store and to have its customer data processed by
-Halia, and that you have a lawful basis to do so. As between us, you are the controller of your
-customer data and we are your processor, acting on your instructions to provide the service.</p>
+<h2 id="data">5. Customer data and data protection</h2>
+<p>As between us, you are the controller of your customer data and we are your processor. We process
+customer data only to provide the service and only on your documented instructions, which these terms
+and your use of the service constitute. We will: keep customer data confidential; apply appropriate
+technical and organisational measures; not store a standing copy of it (it is scored in memory and
+discarded); use the subprocessors described in our Privacy Policy; assist you, taking into account the
+nature of processing, with data-subject requests and security obligations; and, on termination, cease
+processing. Because we do not retain customer data, there is no standing copy for us to return or
+delete beyond ceasing access. These commitments operate as our data processing terms; a separate data
+processing agreement is available on request and, if signed, will govern in case of conflict.</p>
 
-<h2>4. Acceptable use</h2>
+<h2 id="obligations">6. Your obligations and warranties</h2>
 <ul>
-<li>Do not use Halia unlawfully, or to discriminate against individuals in a manner prohibited by law.</li>
-<li>Do not attempt to breach security, reverse engineer, or disrupt the service.</li>
-<li>Do not resell or provide the service to third parties without our written agreement.</li>
+<li>You will comply with all laws that apply to your use of Halia, including data protection, marketing,
+and consumer laws.</li>
+<li>You will maintain a lawful basis for processing your customer data and give your customers the
+privacy information they are due.</li>
+<li>You will not use Halia, or any score or signal, to make decisions about individuals in a way that is
+unlawful, including unlawful discrimination.</li>
+<li>You are responsible for your outreach and communications to your customers, including consent and
+unsubscribe handling, even where Halia helps you compose or send them through a connected tool.</li>
 </ul>
 
-<h2>5. Fees</h2>
-<p>Halia is offered on a per-store subscription, billed monthly unless agreed otherwise. Fees are
-communicated before you subscribe.</p>
+<h2 id="use">7. Acceptable use</h2>
+<ul>
+<li>Do not use Halia unlawfully, or to harass, profile unlawfully, or harm individuals.</li>
+<li>Do not attempt to breach security, probe, scrape, reverse engineer, decompile, or disrupt the
+service, or circumvent access controls or usage limits.</li>
+<li>Do not resell, sublicense, or provide the service to third parties, or use it to build a competing
+product, without our written agreement.</li>
+<li>Do not upload malicious code or use the service in a way that could damage or overburden it.</li>
+</ul>
 
-<h2>6. Intellectual property</h2>
-<p>Halia, including its engine, signal library, and interfaces, remains our property. Your data
-remains yours. You grant us only the limited rights needed to provide the service.</p>
+<h2 id="third">8. Connected third-party services</h2>
+<p>Halia connects to platforms you choose, such as your e-commerce and marketing tools. Your use of
+those services is governed by their own terms, and we are not responsible for them, their availability,
+or their handling of data once it reaches them at your instruction. You are responsible for maintaining
+the rights and credentials needed to connect them and for any charges they impose.</p>
 
-<h2>7. Disclaimers</h2>
-<p>The service is provided on an "as is" and "as available" basis. We do not warrant that scores are
-accurate for any particular purpose or that the service will be uninterrupted or error-free.</p>
+<h2 id="fees">9. Fees, billing and taxes</h2>
+<p>Halia is offered on a per-store subscription, billed in advance on a recurring basis unless agreed
+otherwise. Fees are communicated before you subscribe. Unless stated, fees are exclusive of taxes, and
+you are responsible for any applicable taxes other than those on our income. Late or failed payments
+may lead to suspension after notice. Except where required by law, fees are non-refundable for periods
+already started. We may change fees for a renewal term by giving reasonable advance notice.</p>
 
-<h2>8. Limitation of liability</h2>
-<p>To the maximum extent permitted by law, neither party is liable for indirect or consequential loss,
-and our total liability for any claim is limited to the fees you paid in the twelve months before the
-claim. Nothing limits liability that cannot be limited by law.</p>
+<h2 id="beta">10. Trials and beta features</h2>
+<p>We may offer trials or features labelled beta, preview, or similar. These are provided for evaluation,
+may be changed or withdrawn, and are offered without warranties to the fullest extent permitted by law.
+We may set usage limits on trials.</p>
 
-<h2>9. Termination</h2>
-<p>You may stop using Halia and disconnect at any time, which revokes our access immediately. We may
-suspend or terminate for material breach. On termination we delete stored account data and secrets.</p>
+<h2 id="availability">11. Service changes and availability</h2>
+<p>We aim to provide a reliable service but do not guarantee that it will be uninterrupted or
+error-free. We may perform maintenance, and may modify, suspend, or discontinue features, giving notice
+of material adverse changes where reasonable.</p>
 
-<h2>10. Changes</h2>
-<p>We may update these terms. Material changes will be notified, and continued use after they take
-effect constitutes acceptance.</p>
+<h2 id="ip">12. Intellectual property and feedback</h2>
+<p>Halia, including its engine, signal library, models, interfaces, and brand, remains our property and
+that of our licensors. We grant you a limited, non-exclusive, non-transferable right to use the service
+during your subscription. Your data remains yours; you grant us only the limited rights needed to
+provide the service. If you give us feedback or suggestions, you grant us a perpetual, royalty-free
+right to use them to improve the service, without obligation to you.</p>
 
-<h2>11. Governing law</h2>
+<h2 id="confidential">13. Confidentiality</h2>
+<p>Each party may receive confidential information of the other. The receiving party will use it only to
+perform under these terms, protect it with reasonable care, and not disclose it except to those who need
+it and are bound by similar duties, or as required by law. This does not apply to information that is
+public through no fault of the receiving party or independently developed.</p>
+
+<h2 id="accuracy">14. No guarantee of accuracy</h2>
+<p>Scores, grades, signals, and latent-value figures are estimates produced by a heuristic engine. They
+are not statements of fact about a person's wealth, identity, or future spend, and they may be
+incomplete or wrong. They are intended as guidance to support your team's judgement, not to replace it.
+You are responsible for any decision you make using them.</p>
+
+<h2 id="disclaimer">15. Disclaimers</h2>
+<p>To the fullest extent permitted by law, the service is provided on an "as is" and "as available"
+basis, and we disclaim all warranties, express or implied, including merchantability, fitness for a
+particular purpose, accuracy, and non-infringement. Some jurisdictions do not allow certain disclaimers,
+so some of these may not apply to you.</p>
+
+<h2 id="indemnity">16. Your indemnity</h2>
+<p>You will defend, indemnify, and hold us harmless from claims, losses, and costs (including reasonable
+legal fees) arising from your breach of these terms, your unlawful or unauthorised use of the service,
+your customer data or your authority to provide it, or your communications with your customers. We will
+notify you of the claim, give you reasonable control of the defence, and cooperate at your expense.</p>
+
+<h2 id="liability">17. Limitation of liability</h2>
+<p>To the maximum extent permitted by law, neither party is liable for indirect, incidental, special,
+consequential, or punitive loss, or for loss of profits, revenue, goodwill, or data. Our total
+aggregate liability arising out of or relating to the service is limited to the fees you paid to us in
+the twelve months before the event giving rise to the claim. These limits do not apply to liability that
+cannot be limited by law, such as for death or personal injury caused by negligence, or for fraud.</p>
+
+<h2 id="suspension">18. Suspension</h2>
+<p>We may suspend access immediately where reasonably necessary to protect the service or others, for
+example in response to a security risk, suspected unlawful use, or non-payment after notice. We will aim
+to limit any suspension to what is necessary and to restore access once the cause is resolved.</p>
+
+<h2 id="term">19. Term and termination</h2>
+<p>These terms apply while you use the service. You may stop using Halia and disconnect at any time,
+which revokes our access immediately. Either party may terminate for material breach that is not cured
+within a reasonable period after notice. On termination, your right to use the service ends, we delete
+stored account data and secrets in line with our Privacy Policy, and any sections that by their nature
+should survive (including sections 12 to 17, 22, and 23) continue to apply.</p>
+
+<h2 id="force">20. Force majeure</h2>
+<p>Neither party is liable for failure or delay caused by events beyond its reasonable control,
+including outages of infrastructure or third-party platforms, acts of government, or other events of
+force majeure, provided it takes reasonable steps to mitigate.</p>
+
+<h2 id="changes">21. Changes to these terms</h2>
+<p>We may update these terms. We will change the "last updated" date and, for material changes, take
+reasonable steps to notify you. Changes take effect when posted unless stated otherwise, and your
+continued use after they take effect constitutes acceptance. If you do not agree, you may stop using the
+service and disconnect.</p>
+
+<h2 id="law">22. Governing law and disputes</h2>
 <p>These terms are governed by the laws of England and Wales, and the courts of England and Wales have
-exclusive jurisdiction, unless your local law requires otherwise.</p>
+exclusive jurisdiction, unless mandatory local law gives you a different right. Before starting formal
+proceedings, the parties will try in good faith to resolve any dispute by discussion.</p>
 
-<h2>12. Contact</h2>
+<h2 id="general">23. General</h2>
+<ul>
+<li><b>Assignment.</b> You may not assign these terms without our consent; we may assign them to an
+affiliate or in connection with a merger, acquisition, or sale of assets.</li>
+<li><b>Entire agreement.</b> These terms, with our Privacy Policy and any order or data processing
+agreement, are the entire agreement between us on their subject and supersede prior discussions.</li>
+<li><b>Severability.</b> If any provision is unenforceable, the rest remains in effect.</li>
+<li><b>No waiver.</b> A failure to enforce a right is not a waiver of it.</li>
+<li><b>Notices.</b> We may give notice by email or through the service; you may contact us at the email
+below.</li>
+<li><b>Third parties.</b> No one other than the parties has rights under these terms.</li>
+</ul>
+
+<h2 id="contact">24. Contact</h2>
 <p><a href="mailto:hello@halia.app">hello@halia.app</a>.</p>
 <div class="legal-nav"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/cookies">Cookies</a><a href="/security">Security</a><a href="mailto:hello@halia.app">Contact</a></div>
 </div></main>

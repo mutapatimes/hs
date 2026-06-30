@@ -2,92 +2,274 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="index">
+<meta name="description" content="How Halia handles personal data. We are zero-retention by design: we read merchant customers in memory, score them, and keep no copy.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-body{background:#0a0a0b;color:#9b988d;font-family:Inter,-apple-system,system-ui,sans-serif;line-height:1.7;margin:0;-webkit-font-smoothing:antialiased}
-.wrap{max-width:760px;margin:0 auto;padding:0 28px}
-a{color:#d8d2c6;text-decoration:none}a:hover{text-decoration:underline}
-header{position:sticky;top:0;background:rgba(10,10,11,.8);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.1);z-index:5}
+body{background:#f5f2ea;color:#4a463d;font-family:Inter,-apple-system,system-ui,sans-serif;line-height:1.7;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:780px;margin:0 auto;padding:0 28px}
+a{color:#1a1712;text-decoration:none}a:hover{text-decoration:underline}
+header{position:sticky;top:0;background:rgba(245,242,234,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(20,18,12,.12);z-index:5}
 .nav{display:flex;justify-content:space-between;align-items:center;height:68px;max-width:1180px;margin:0 auto;padding:0 28px}
-.brand{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#f4f1ea;display:flex;gap:9px;align-items:center}
-.brand svg{width:20px;height:20px}.back{font-size:14px;color:#8c887f}
-main{padding:72px 0 70px}
-h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:clamp(38px,6vw,58px);color:#f4f1ea;margin:0 0 10px;line-height:1.04}
-.upd{color:#56534d;font-size:13px;letter-spacing:.04em;margin-bottom:8px;text-transform:uppercase}
-.lead{color:#cfccc4;font-size:18px;margin:30px 0 10px}
-h2{font-family:Inter;font-weight:600;font-size:17px;color:#f4f1ea;margin:42px 0 10px}
+.brand{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;color:#1a1712;display:flex;gap:9px;align-items:center}
+.brand svg{width:20px;height:20px}.back{font-size:14px;color:#6b6557}
+main{padding:64px 0 70px}
+h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:clamp(38px,6vw,58px);color:#1a1712;margin:0 0 10px;line-height:1.04}
+.upd{color:#9a9385;font-size:13px;letter-spacing:.04em;margin-bottom:8px;text-transform:uppercase}
+.lead{color:#3a372f;font-size:18px;margin:30px 0 10px}
+h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400;font-size:26px;color:#1a1712;margin:46px 0 12px;line-height:1.12}
+h3{font-family:Inter;font-weight:600;font-size:15px;color:#1a1712;margin:24px 0 6px}
 p,li{font-size:15px}ul{padding-left:20px}li{margin:6px 0}
-.note{border:1px solid rgba(217,213,203,.3);background:rgba(217,213,203,.06);border-radius:10px;padding:18px 20px;color:#cfccc4;font-size:14.5px;margin:26px 0}
-footer{border-top:1px solid rgba(255,255,255,.1);padding:34px 0;color:#56534d;font-size:13px}
+b,strong{color:#2a2620}
+.note{border:1px solid rgba(20,18,12,.18);background:rgba(20,18,12,.045);border-radius:10px;padding:18px 20px;color:#3a372f;font-size:14.5px;margin:26px 0}
+.toc{border:1px solid rgba(20,18,12,.12);border-radius:10px;padding:20px 22px;margin:30px 0;font-size:14px;column-count:2;column-gap:30px}
+@media(max-width:560px){.toc{column-count:1}}
+.toc a{display:block;color:#4a463d;padding:3px 0}.toc a:hover{color:#1a1712}
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
+th,td{text-align:left;vertical-align:top;border:1px solid rgba(20,18,12,.14);padding:9px 12px}
+th{background:rgba(20,18,12,.04);font-weight:600;color:#2a2620}
+footer{border-top:1px solid rgba(20,18,12,.12);padding:34px 0;color:#9a9385;font-size:13px}
 .legal-nav{margin-top:36px;display:flex;gap:22px;flex-wrap:wrap;font-size:14px}
 </style></head><body>
-<header><div class="nav"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#d8d2c6"/></svg>Halia</a><a class="back" href="/">← Back to site</a></div></header>
+<header><div class="nav"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#1a1712"/></svg>Halia</a><a class="back" href="/">Back to site</a></div></header>
 <main><div class="wrap">
-<div class="upd">Last updated 29 June 2026</div>
+<div class="upd">Last updated 30 June 2026</div>
 <h1>Privacy Policy</h1>
 <p class="lead">Halia is built so that we never hold your customers. This policy explains what we
-process, the little we store, and how we keep it safe.</p>
+process, the little we store, the lawful bases we rely on, and the rights you have. It applies to our
+website, our application, and the scoring service we provide to retailers.</p>
 
 <div class="note"><b>The short version.</b> When a merchant connects their store, Halia reads their
-customers, scores them in memory, and discards them within minutes. We do not copy your customer
-database onto our servers. The only thing we store is a merchant's own account details and an
-encrypted, read-only key.</div>
+customers, scores them in memory, and discards them within minutes. We do not copy a merchant's
+customer database onto our servers. The only things we store are a merchant's own account details and
+an encrypted, read-only key. We never sell personal data, never share it with other brands, and never
+use a merchant's customer data to train models or for advertising.</div>
 
-<h2>1. Who we are</h2>
-<p>Halia ("we", "us") provides hidden-VIC scoring software for retailers. For a merchant's own
-customer data, the merchant is the data controller and Halia acts as a data processor, processing
-that data only to provide the service and only on the merchant's instructions.</p>
+<div class="toc">
+<a href="#who">1. Who we are and how to contact us</a>
+<a href="#scope">2. Scope of this policy</a>
+<a href="#roles">3. Our two roles: processor and controller</a>
+<a href="#customer">4. Customer data we process for merchants</a>
+<a href="#special">5. Special category data</a>
+<a href="#account">6. Account and business data we store</a>
+<a href="#visitors">7. Website visitors, demos and marketing</a>
+<a href="#collect">8. How we collect personal data</a>
+<a href="#bases">9. Why we use data and our legal bases</a>
+<a href="#profiling">10. Scoring, automated processing and profiling</a>
+<a href="#marketing">11. Marketing and your choices</a>
+<a href="#sharing">12. Who we share data with</a>
+<a href="#subprocessors">13. Subprocessors</a>
+<a href="#transfers">14. International data transfers</a>
+<a href="#security">15. How we protect data</a>
+<a href="#retention">16. How long we keep data</a>
+<a href="#rights">17. Your privacy rights</a>
+<a href="#exercise">18. Exercising your rights and complaints</a>
+<a href="#us">19. US state privacy rights</a>
+<a href="#children">20. Children's data</a>
+<a href="#breach">21. Data breaches</a>
+<a href="#changes">22. Changes to this policy</a>
+<a href="#contact">23. Contact</a>
+</div>
 
-<h2>2. Customer data we process for merchants (and do not store)</h2>
-<p>To score a merchant's customers we read, in memory only, fields such as name, email, phone,
-billing and shipping address, order totals and counts, and payment method. This data is processed
-transiently to produce a score and is not written to any Halia database. It exists in memory for the
-duration of a scoring run, typically a few minutes, and is then discarded.</p>
+<h2 id="who">1. Who we are and how to contact us</h2>
+<p>Halia ("Halia", "we", "us", "our") provides hidden-VIC scoring software for retailers. Halia is the
+trading name of the entity operating this service. For any privacy question, request, or complaint,
+contact us at <a href="mailto:hello@halia.app">hello@halia.app</a>. If you represent a merchant, your
+fastest route for any request relating to your own customers is usually through your own systems, since
+we do not hold a copy of them; see section 17.</p>
 
-<h2>3. Account data we do store</h2>
+<h2 id="scope">2. Scope of this policy</h2>
+<p>This policy covers: (a) personal data of a merchant's customers that we process on the merchant's
+behalf to provide the service; (b) personal data of the merchants, their staff and account holders who
+use Halia; and (c) personal data of visitors to our website who request a demo, subscribe to updates,
+or contact us. It does not cover third-party sites or services that you connect to Halia or link out
+to, which have their own policies.</p>
+
+<h2 id="roles">3. Our two roles: processor and controller</h2>
+<p>We act in two distinct capacities, and which one applies changes who is responsible:</p>
 <ul>
-<li>The merchant's store URL and an encrypted, read-only API key (or platform token).</li>
-<li>Merchant settings: VIC threshold, latent-value benchmarks, email templates, sign-off name.</li>
-<li>A one-way hash of the private dashboard-link token used to authenticate access.</li>
-<li>Basic contact details a merchant gives us, such as a work email.</li>
+<li><b>As a processor.</b> For a merchant's customer data, the merchant is the data controller and
+Halia is a data processor. We process that data only to provide the service and only on the merchant's
+documented instructions, under the terms of our agreement and any applicable data processing terms.</li>
+<li><b>As a controller.</b> For merchant account data, for the personal data of the people who
+administer a Halia account, and for website visitor and marketing data, we are the controller and this
+policy sets out how we handle it.</li>
 </ul>
-<p>This is not customer personal data. Secrets are encrypted at rest.</p>
 
-<h2>4. How we use data</h2>
-<p>To provide, secure, and support the service, to authenticate access to a dashboard, and to
-communicate with merchants about their account. We do not sell data, and we do not use a merchant's
-customer data to train models or for advertising.</p>
+<h2 id="customer">4. Customer data we process for merchants (and do not store)</h2>
+<p>To score a merchant's customers we read, in memory only, fields that may include name, email
+address, telephone number, billing and shipping address (including postcode and country), order totals,
+order counts and dates, currency, and payment method. We may also read or derive non-sensitive signals
+from this data, such as whether an email is a work or free address, or whether a postcode falls in a
+recognised high-value area.</p>
+<p>This data is processed transiently to produce a score. It is held in volatile memory for the duration
+of a scoring run, typically a few minutes, and is then discarded. It is not written to any Halia
+database, data warehouse, log of personal data, or long-term store. We do not build a standing profile
+of any individual on our systems. For real-time order alerts, a single incoming order is scored in
+memory and the alert is sent, after which the order data is discarded in the same way.</p>
 
-<h2>5. Legal bases</h2>
-<p>For merchant account data, performance of our contract and our legitimate interest in running the
-service. For customer data processed on a merchant's behalf, the merchant determines the legal basis
-as controller, and we act under a processor agreement.</p>
+<h2 id="special">5. Special category data</h2>
+<p>Halia does not seek to process special category data (such as data revealing health, racial or
+ethnic origin, religion, or sexual orientation) and is not designed to infer it. We process ordinary
+commercial and contact data. Merchants should not configure the service in a way that introduces
+special category data, and remain responsible as controller for the data they make available.</p>
 
-<h2>6. Sharing and subprocessors</h2>
-<p>We use a small number of infrastructure providers to run Halia, including our cloud hosting
-provider. We push scores and segments only to the tools a merchant explicitly connects, such as
-their marketing platform. We do not share data with anyone else except where required by law.</p>
+<h2 id="account">6. Account and business data we store</h2>
+<ul>
+<li>The merchant's store URL and an encrypted, read-only API key or platform token.</li>
+<li>Merchant settings, such as the VIC threshold, latent-value benchmarks, email templates, and a
+sign-off name.</li>
+<li>A one-way hash of the private dashboard-link token used to authenticate access (we do not store the
+token itself).</li>
+<li>Web-push subscription endpoints, if a merchant opts in to browser notifications.</li>
+<li>Basic business contact details a merchant provides, such as a work email address and name.</li>
+<li>Billing and subscription records needed to operate the account.</li>
+</ul>
+<p>This is business and account data, not a merchant's customer database. Secrets are encrypted at rest.</p>
 
-<h2>7. Retention</h2>
-<p>Customer data: not retained, as described above. Merchant account data and secrets: kept while an
-account is active and deleted on disconnection or request, subject to any legal retention duties.</p>
+<h2 id="visitors">7. Website visitors, demos and marketing</h2>
+<p>If you request a demo, subscribe to updates, or email us, we process the details you provide, such as
+your name, work email, company, and message. We use these to respond to you, to provide the demo or
+updates you asked for, and to keep records of our communications. Our public marketing site is designed
+to run without advertising or cross-site tracking cookies; see our <a href="/cookies">Cookie
+Policy</a>.</p>
 
-<h2>8. International transfers</h2>
-<p>Where data is processed outside your region, we rely on appropriate safeguards such as standard
-contractual clauses. Because we do not store customer data, the practical transfer footprint is
-limited to account data.</p>
+<h2 id="collect">8. How we collect personal data</h2>
+<ul>
+<li><b>Directly from you</b>, when you contact us, request a demo, subscribe, or set up an account.</li>
+<li><b>From a connected platform</b>, when a merchant authorises Halia to read their store through a
+read-only connection (for example their e-commerce or marketing platform).</li>
+<li><b>Automatically</b>, in limited technical logs needed to run and secure the service, such as
+request metadata and error logs, which are not used to build customer profiles.</li>
+</ul>
 
-<h2>9. Your rights</h2>
-<p>Individuals can exercise data-subject rights (access, correction, erasure, and others) through the
-merchant who controls their data. As there is no customer data stored with Halia, erasure on our side
-is satisfied by design. Merchants can contact us to exercise rights over their account data.</p>
+<h2 id="bases">9. Why we use data and our legal bases</h2>
+<p>Where the UK GDPR or EU GDPR applies and we are the controller, we rely on the following bases:</p>
+<table>
+<tr><th>Purpose</th><th>Legal basis</th></tr>
+<tr><td>Providing, operating and securing the service for merchants</td><td>Performance of a contract; legitimate interests in running a secure service</td></tr>
+<tr><td>Authenticating access to a dashboard</td><td>Performance of a contract; legitimate interests in security</td></tr>
+<tr><td>Responding to demo requests, enquiries and support</td><td>Legitimate interests; steps to enter into a contract</td></tr>
+<tr><td>Sending product updates to subscribers</td><td>Consent, or legitimate interests for existing business contacts</td></tr>
+<tr><td>Billing, accounting and tax</td><td>Performance of a contract; legal obligation</td></tr>
+<tr><td>Preventing fraud, abuse and protecting our rights</td><td>Legitimate interests; legal obligation</td></tr>
+</table>
+<p>For customer data processed on a merchant's behalf, the merchant determines the legal basis as
+controller, and we act under a processor relationship and only on the merchant's instructions.</p>
 
-<h2>10. Cookies</h2>
-<p>Our application uses a single essential cookie to keep you signed in. See our
-<a href="/cookies">Cookie Policy</a>.</p>
+<h2 id="profiling">10. Scoring, automated processing and profiling</h2>
+<p>Halia scores customers using a heuristic engine. This is a form of profiling carried out on behalf
+of, and under the control of, the merchant. Scores are estimates and prompts for human attention; they
+are presented to a merchant's team to inform their own judgement and outreach. Halia does not use these
+scores to make decisions that produce legal or similarly significant effects on individuals on our own
+account. Merchants are responsible for how they act on scores and for meeting any transparency
+obligations to their customers.</p>
 
-<h2>11. Contact</h2>
+<h2 id="marketing">11. Marketing and your choices</h2>
+<p>We only send marketing or product updates to people who have asked for them or who are existing
+business contacts, and every message includes a way to unsubscribe. You can opt out at any time by using
+that link or by emailing us. Opting out of marketing does not stop essential service messages, such as
+billing or security notices, to account holders.</p>
+
+<h2 id="sharing">12. Who we share data with</h2>
+<p>We do not sell personal data and we do not share a merchant's customer data with other brands or
+merchants. We disclose data only:</p>
+<ul>
+<li>to the subprocessors listed in section 13, who help us run the service under contract;</li>
+<li>to the tools a merchant explicitly connects, such as their own marketing platform, to which we push
+the scores and segments the merchant asks us to;</li>
+<li>to professional advisers, auditors, or a potential buyer in connection with a corporate transaction,
+under appropriate confidentiality and protection;</li>
+<li>where required by law, regulation, or valid legal process, or to protect our rights, users, or the
+public.</li>
+</ul>
+
+<h2 id="subprocessors">13. Subprocessors</h2>
+<p>We use a small number of providers to run Halia. Because we do not store customer data, our
+subprocessors do not receive a standing copy of it.</p>
+<table>
+<tr><th>Subprocessor</th><th>Purpose</th></tr>
+<tr><td>Cloud hosting and database provider</td><td>Running the application and storing account data and encrypted secrets</td></tr>
+<tr><td>Transactional email provider</td><td>Sending account, alert and service emails</td></tr>
+<tr><td>The platforms a merchant connects</td><td>Reading the merchant's store and, where chosen, receiving scores and segments</td></tr>
+</table>
+<p>We keep our use of subprocessors limited and require appropriate confidentiality and security from
+them. We can provide the current named list on request and will give merchants a way to learn of
+material changes.</p>
+
+<h2 id="transfers">14. International data transfers</h2>
+<p>Where personal data is processed outside the UK or EEA, we rely on appropriate safeguards, such as
+the UK International Data Transfer Agreement or Addendum, the EU Standard Contractual Clauses, or an
+adequacy decision. Because we do not store customer data, the practical transfer footprint is limited to
+account and operational data.</p>
+
+<h2 id="security">15. How we protect data</h2>
+<ul>
+<li><b>Zero-retention by design.</b> Customer data is scored in memory and not stored, which removes the
+largest source of risk: a standing database to breach.</li>
+<li><b>Read-only access.</b> Halia connects to a store read-only and cannot change, delete, or place an
+order.</li>
+<li><b>Encryption.</b> Secrets are encrypted at rest, and connections to your store and your tools use
+encrypted, authenticated channels in transit.</li>
+<li><b>Access control.</b> Dashboard access is by a private link authenticated against a one-way hash,
+and can be revoked and reissued at any time.</li>
+<li><b>Least data.</b> We collect and keep as little as possible, and discard what we do not need.</li>
+</ul>
+<p>No method of transmission or storage is completely secure, but we work to protect personal data using
+measures appropriate to the risk.</p>
+
+<h2 id="retention">16. How long we keep data</h2>
+<table>
+<tr><th>Data</th><th>Retention</th></tr>
+<tr><td>Merchant customer data used for scoring</td><td>Not retained; held in memory only and discarded within minutes</td></tr>
+<tr><td>Merchant account data and encrypted secrets</td><td>Kept while the account is active; deleted on disconnection or request, subject to legal duties</td></tr>
+<tr><td>Billing and tax records</td><td>Kept for the period required by law</td></tr>
+<tr><td>Marketing and enquiry records</td><td>Kept until you unsubscribe or ask us to delete them, plus a short record of the request</td></tr>
+<tr><td>Technical and security logs</td><td>Kept for a limited period for operation and security</td></tr>
+</table>
+
+<h2 id="rights">17. Your privacy rights</h2>
+<p>Subject to applicable law, individuals have rights to access their personal data, to correct
+inaccurate data, to erase data, to restrict or object to processing, to data portability, and to
+withdraw consent where we rely on it. Where we make automated decisions you may have rights in relation
+to those, as described in section 10.</p>
+<p><b>For a merchant's customers:</b> because Halia does not store your data, requests such as access or
+erasure should be directed to the merchant who controls it. As there is no customer data stored with
+Halia, erasure on our side is satisfied by design, and we will assist the merchant as their processor
+where needed. <b>For merchants and account holders:</b> contact us to exercise rights over your own
+account data.</p>
+
+<h2 id="exercise">18. Exercising your rights and complaints</h2>
+<p>To make a request, email <a href="mailto:hello@halia.app">hello@halia.app</a>. We may need to verify
+your identity and will respond within the time required by law. You also have the right to complain to a
+data protection authority. In the UK this is the Information Commissioner's Office (ico.org.uk); in the
+EEA it is your local supervisory authority. We would welcome the chance to address your concern first.</p>
+
+<h2 id="us">19. US state privacy rights</h2>
+<p>If you are a resident of California or another US state with privacy laws, you may have rights to
+know, access, correct, and delete personal information, and to opt out of its sale or sharing. Halia
+does not sell personal information and does not share it for cross-context behavioural advertising.
+Where Halia processes a merchant's customer data, it does so as a service provider or processor on the
+merchant's behalf and uses it only to provide the service. To exercise rights over data we control,
+contact us; we will not discriminate against you for doing so.</p>
+
+<h2 id="children">20. Children's data</h2>
+<p>Halia is a business tool and is not directed to children. We do not knowingly collect personal data
+from children. Merchants are responsible for the data they make available through their store.</p>
+
+<h2 id="breach">21. Data breaches</h2>
+<p>We maintain measures to detect and respond to security incidents. If a personal data breach occurs
+that is likely to result in a risk to individuals, we will notify the relevant authority and, where
+required, affected controllers or individuals, without undue delay and in line with our legal
+obligations. Where we act as processor, we will notify the affected merchant promptly so they can meet
+their own obligations.</p>
+
+<h2 id="changes">22. Changes to this policy</h2>
+<p>We may update this policy from time to time. We will change the "last updated" date above and, for
+material changes, take reasonable steps to notify account holders. Your continued use after a change
+takes effect indicates acceptance of the updated policy.</p>
+
+<h2 id="contact">23. Contact</h2>
 <p>Questions or requests: <a href="mailto:hello@halia.app">hello@halia.app</a>.</p>
 <div class="legal-nav"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/cookies">Cookies</a><a href="/security">Security</a><a href="mailto:hello@halia.app">Contact</a></div>
 </div></main>
