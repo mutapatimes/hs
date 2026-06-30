@@ -192,6 +192,52 @@ def test_woo_oneclick_flow_end_to_end(client, monkeypatch):
     assert creds["consumer_key"] == "ck_auto" and creds["consumer_secret"] == "cs_auto"
 
 
+def test_shopify_authorize_needs_config(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", None)
+    r = c.post("/v1/shopify/authorize", json={"shop_domain": "acme.myshopify.com"})
+    assert r.status_code == 400
+
+
+def test_shopify_oauth_flow_end_to_end(client, monkeypatch):
+    import hashlib
+    import hmac as _hmac
+    c, store = client
+    monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", "key")
+    monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", "secret")
+    monkeypatch.setattr("halia.config.HALIA_APP_URL", "https://halia.test")
+    monkeypatch.setattr(onboarding, "_shopify_exchange", lambda shop, code: "shpat_oauth")
+    monkeypatch.setattr(onboarding, "_validate_shopify", lambda *a, **k: (True, ""))
+    # 1. start install
+    a = c.post("/v1/shopify/authorize", json={"shop_domain": "acme.myshopify.com"}).json()
+    tok = a["token"]
+    assert "/admin/oauth/authorize" in a["url"] and "state=" + tok in a["url"]
+    assert c.get(f"/v1/shopify/authorized/{tok}").json()["ready"] is False
+    # 2. Shopify redirects back to our callback (sign it like Shopify does)
+    params = {"code": "abc", "shop": "acme.myshopify.com", "state": tok}
+    msg = "&".join(f"{k}={params[k]}" for k in sorted(params))
+    params["hmac"] = _hmac.new(b"secret", msg.encode(), hashlib.sha256).hexdigest()
+    assert c.get("/connect/shopify/callback", params=params).status_code == 200
+    auth = c.get(f"/v1/shopify/authorized/{tok}").json()
+    assert auth["ready"] is True and auth["shop_domain"] == "acme.myshopify.com"
+    # 3. onboarding finishes using the OAuth token (no manual entry)
+    r = c.post("/v1/onboard", json={"source": "shopify", "shopify_token": tok, "platform": ""})
+    assert r.status_code == 200
+    assert store.get_tenant("acme.myshopify.com")["kind"] == "shopify"
+    assert store.get_token("acme.myshopify.com") == "shpat_oauth"
+
+
+def test_shopify_callback_rejects_bad_hmac(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", "key")
+    monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", "secret")
+    monkeypatch.setattr("halia.config.HALIA_APP_URL", "https://halia.test")
+    tok = c.post("/v1/shopify/authorize", json={"shop_domain": "acme.myshopify.com"}).json()["token"]
+    r = c.get("/connect/shopify/callback",
+              params={"code": "abc", "shop": "acme.myshopify.com", "state": tok, "hmac": "bad"})
+    assert r.status_code == 400
+
+
 def test_newsletter_subscribe(client):
     c, _ = client
     assert c.post("/subscribe", json={"email": "jane@halia.app"}).status_code == 200
