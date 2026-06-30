@@ -47,6 +47,11 @@
   footer{border-top:1px solid var(--line);padding:60px 0 44px}
   .foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:var(--faint);font-size:13px;max-width:1180px;margin:0 auto;padding:0 40px}
   .legal-nav{display:flex;gap:20px;flex-wrap:wrap}.legal-nav a{color:var(--mute)}
+  /* hero with image */
+  .phero .wrap{max-width:1180px;display:grid;grid-template-columns:1.2fr .85fr;gap:clamp(36px,5vw,72px);align-items:center}
+  .phero-media{border-radius:6px;overflow:hidden;aspect-ratio:4/5;margin:0}
+  .phero-media img{width:100%;height:100%;object-fit:cover;display:block}
+  @media(max-width:860px){.phero .wrap{grid-template-columns:1fr;gap:26px}.phero-media{aspect-ratio:16/11;max-height:300px}}
 </style>
 </head>
 <body>
@@ -56,7 +61,7 @@
   <div class="right"><a class="si" href="/app">Sign in</a><a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a></div>
 </div></header>
 
-<section class="phero"><div class="wrap">
+<section class="phero"><div class="wrap"><div class="phero-text">
   <div class="eyebrow">Frequently asked</div>
   <h1 class="display">Questions, answered in full.</h1>
   <p class="lede" style="max-width:52ch">Everything on how Halia works, from the data model to privacy, integrations, and pricing. If something is missing, <a href="mailto:hello@halia.app" style="color:var(--ink);text-decoration:underline;text-underline-offset:3px">just ask</a>.</p>
@@ -64,7 +69,7 @@
     <a href="#basics">The basics</a><a href="#data">Signals &amp; data</a><a href="#scoring">Scoring &amp; accuracy</a>
     <a href="#privacy">Privacy &amp; security</a><a href="#integrations">Integrations</a><a href="#setup">Setup</a><a href="#pricing">Pricing</a>
   </div>
-</div></section>
+</div><div class="phero-media reveal in d1"><img src="img/find_your_most_valuable_clients.jpg" alt="Finding your most valuable clients" loading="lazy"></div></div></section>
 
 <div class="wrap">
 

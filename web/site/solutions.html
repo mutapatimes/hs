@@ -46,6 +46,11 @@
   .legal-nav{display:flex;gap:20px;flex-wrap:wrap}.legal-nav a{color:var(--mute)}
   @media(max-width:900px){.vert{grid-template-columns:1fr;gap:34px}.vert.rev .media{order:0}}
   @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+  /* hero with image */
+  .phero .wrap{max-width:1180px;display:grid;grid-template-columns:1.2fr .85fr;gap:clamp(36px,5vw,72px);align-items:center}
+  .phero-media{border-radius:6px;overflow:hidden;aspect-ratio:4/5;margin:0}
+  .phero-media img{width:100%;height:100%;object-fit:cover;display:block}
+  @media(max-width:860px){.phero .wrap{grid-template-columns:1fr;gap:26px}.phero-media{aspect-ratio:16/11;max-height:300px}}
 </style>
 </head>
 <body>
@@ -55,13 +60,13 @@
   <div class="right"><a class="si" href="/app">Sign in</a><a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a></div>
 </div></header>
 
-<section class="phero"><div class="wrap">
+<section class="phero"><div class="wrap"><div class="phero-text">
   <div class="eyebrow reveal in">Solutions</div>
   <h1 class="display reveal in d1">Built for considered <em>purchases.</em></h1>
   <p class="lede reveal in d1">Halia earns its keep wherever one well-treated client is worth more than a
     thousand one-time buyers. The signals differ by category. The principle does not: find the quiet
     high-value clients first, and treat them like it.</p>
-</div></section>
+</div><div class="phero-media reveal in d1"><img src="img/general.jpg" alt="Considered-purchase retail" loading="lazy"></div></div></section>
 
 <div class="wrap">
 
