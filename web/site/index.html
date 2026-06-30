@@ -157,15 +157,27 @@
   }
 
   /* data: sortable table + charts */
-  .browser{border:1px solid var(--line);border-radius:13px;overflow:hidden;background:#0c0d0e;
-    box-shadow:0 50px 110px -50px rgba(0,0,0,.8);margin-bottom:84px}
-  .browser .bbar{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}
-  .browser .dots{display:flex;gap:7px;flex:none}
-  .browser .dots i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.15)}
-  .browser .url{flex:1;max-width:340px;margin:0 auto;text-align:center;font:500 12px var(--sans);
-    color:var(--faint);background:rgba(255,255,255,.05);border-radius:7px;padding:6px 14px;
+  .browser{position:relative;border:1px solid rgba(255,255,255,.14);border-radius:15px;overflow:hidden;
+    background:#0c0d0e;box-shadow:0 60px 130px -50px rgba(0,0,0,.65),0 8px 24px -12px rgba(0,0,0,.5);margin-bottom:84px}
+  .browser .bbar{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08);
+    background:linear-gradient(180deg,#1a1c1e,#141618)}
+  .browser .dots{display:flex;gap:8px;flex:none}
+  .browser .dots i{width:12px;height:12px;border-radius:50%;background:#3a3d40}
+  .browser .dots i:nth-child(1){background:#ff5f57}.browser .dots i:nth-child(2){background:#febc2e}.browser .dots i:nth-child(3){background:#28c840}
+  .browser .url{flex:1;max-width:360px;margin:0 auto;text-align:center;font:500 12px var(--sans);
+    color:#9a978d;background:#0d0e10;border-radius:8px;padding:7px 14px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .browser .bbody{padding:26px 30px 30px}
+  /* animated fake cursor over a screenshot */
+  .cursor{position:absolute;z-index:6;left:62%;top:24%;pointer-events:none;animation:curs 10s ease-in-out infinite}
+  .cursor svg{display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,.45))}
+  .cursor .ring{position:absolute;left:-9px;top:-9px;width:34px;height:34px;border-radius:50%;
+    border:2px solid rgba(31,86,74,.75);opacity:0;transform:scale(.4);animation:click 10s ease-in-out infinite}
+  @keyframes curs{0%{left:62%;top:24%}16%,23%{left:24%;top:48%}44%,51%{left:71%;top:42%}70%,77%{left:42%;top:66%}100%{left:62%;top:24%}}
+  @keyframes click{0%,15%{opacity:0;transform:scale(.4)}18%{opacity:.85;transform:scale(.5)}26%{opacity:0;transform:scale(1.25)}
+    43%{opacity:0;transform:scale(.4)}46%{opacity:.85;transform:scale(.5)}54%{opacity:0;transform:scale(1.25)}
+    69%{opacity:0;transform:scale(.4)}72%{opacity:.85;transform:scale(.5)}80%{opacity:0;transform:scale(1.25)}100%{opacity:0}}
+  @media(prefers-reduced-motion:reduce){.cursor{display:none}}
   .tbl{overflow-x:auto}
   table#vicTable{width:100%;border-collapse:collapse;min-width:720px}
   #vicTable th{font:500 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
@@ -308,7 +320,7 @@
   }
   /* light (cream) sections */
   .light{background:#f4f1ea;color:#13110c;
-    --ink:#13110c;--mute:#6b6557;--faint:#9a9385;--line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.08);--bg:#f4f1ea;--bg-2:#ece7dc}
+    --ink:#13110c;--mute:#6b6557;--faint:#9a9385;--gold:#8a8377;--line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.08);--bg:#f4f1ea;--bg-2:#ece7dc}
   .light .eyebrow{color:#7a7363}
   .light em{color:#13110c}
   .light .btn{background:#13110c;color:#f4f1ea;border-color:#13110c}
@@ -393,10 +405,11 @@
 </section>
 
 <!-- PRODUCT SCREENSHOT -->
-<section class="pad" style="padding-top:clamp(20px,4vh,60px)"><div class="wrap">
+<section class="pad light" style="padding-top:clamp(20px,4vh,60px)"><div class="wrap">
   <div class="browser reveal" style="margin-bottom:0">
     <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.halia.io  ·  Hidden VICs</div></div>
     <img src="img/dashboard.png" alt="The Halia dashboard with hidden VICs surfaced and ranked" style="width:100%;display:block">
+    <div class="cursor"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 2.5l14.5 7.2-6.3 1.7 3.3 6.6-2.7 1.3-3.3-6.6L5 16.5z" fill="#fff" stroke="#111" stroke-width="1.1" stroke-linejoin="round"/></svg><span class="ring"></span></div>
   </div>
   <p class="lede reveal d1" style="text-align:center;max-width:48ch;margin:36px auto 0">Every customer graded, your hidden VICs surfaced and ranked, inside the tools your team already uses.</p>
 </div></section>
@@ -505,6 +518,7 @@
   <div class="browser reveal" style="margin:84px 0 0">
     <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.halia.io  ·  Client</div></div>
     <img src="img/dashboard_detail.png" alt="A client detail view: signals, score, latent value, recommended approach" style="width:100%;display:block">
+    <div class="cursor" style="animation-duration:11s"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 2.5l14.5 7.2-6.3 1.7 3.3 6.6-2.7 1.3-3.3-6.6L5 16.5z" fill="#fff" stroke="#111" stroke-width="1.1" stroke-linejoin="round"/></svg><span class="ring"></span></div>
   </div>
   <p class="lede reveal d1" style="text-align:center;max-width:48ch;margin:36px auto 0">Open any client for the full picture: the signals that fired, their score and latent value, and a recommended approach ready to send.</p>
 </div></section>
@@ -549,7 +563,7 @@
 </section>
 
 <!-- FOR TEAMS / DEPARTMENTS -->
-<section id="teams" class="pad" style="background:var(--bg-2)"><div class="wrap">
+<section id="teams" class="pad light"><div class="wrap">
   <div class="sig-head reveal">
     <div class="eyebrow" style="margin-bottom:20px">For your teams</div>
     <h2 class="h2">One score, every team<br>that touches a client.</h2>
@@ -669,7 +683,7 @@
 </div></section>
 
 <!-- SIGNALS -->
-<section id="signals" class="pad"><div class="wrap">
+<section id="signals" class="pad light"><div class="wrap">
   <div class="sig-head reveal">
     <div class="eyebrow" style="margin-bottom:20px">What Halia sees</div>
     <h2 class="h2">The tells of quiet wealth.</h2>
