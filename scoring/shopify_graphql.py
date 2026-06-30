@@ -34,6 +34,9 @@ _CUSTOMER_NODE = """
         nodes {
           id
           createdAt
+          displayFinancialStatus
+          displayFulfillmentStatus
+          cancelledAt
           tags
           totalPriceSet { shopMoney { amount } }
           totalDiscountsSet { shopMoney { amount } }
@@ -104,6 +107,10 @@ def order_node_to_rest(order: dict, customer: dict) -> dict:
         "email": customer.get("email"),
         "phone": customer.get("phone"),
         "created_at": order.get("createdAt"),
+        # Order status -> powers the dashboard Orders view (shared with WooCommerce).
+        "financial_status": str(order.get("displayFinancialStatus") or "").lower(),
+        "fulfillment_status": str(order.get("displayFulfillmentStatus") or "").lower(),
+        "cancelled_at": order.get("cancelledAt"),
         "tags": _tags_str(order.get("tags")),
         "total_price": _money(order.get("totalPriceSet")),
         "total_discounts": _money(order.get("totalDiscountsSet")),
