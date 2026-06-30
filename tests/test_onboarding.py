@@ -107,6 +107,7 @@ def test_onboard_json_creates_tenant_settings_and_link(client):
     r = c.post("/v1/onboard", json={
         "store_url": "https://glennorah.co.uk", "consumer_key": "ck_x", "consumer_secret": "cs_x",
         "label": "Glen Norah", "vic_threshold": "8000", "sender_name": "Amara", "platform": "",
+        "accept_terms": True,
     })
     assert r.status_code == 200
     d = r.json()
@@ -118,11 +119,32 @@ def test_onboard_json_creates_tenant_settings_and_link(client):
     assert s["vic_threshold"] == 8000 and s["sender_name"] == "Amara"
 
 
+def test_onboard_requires_terms_acceptance(client):
+    c, store = client
+    r = c.post("/v1/onboard", json={
+        "store_url": "https://noterms.co.uk", "consumer_key": "ck", "consumer_secret": "cs",
+        "platform": ""})  # accept_terms omitted
+    assert r.status_code == 400 and "Terms" in r.json()["detail"]
+    assert store.get_tenant("noterms-co-uk") is None  # nothing created without acceptance
+
+
+def test_onboard_records_terms_acceptance(client):
+    c, store = client
+    r = c.post("/v1/onboard", json={
+        "store_url": "https://yesterms.co.uk", "consumer_key": "ck", "consumer_secret": "cs",
+        "platform": "", "accept_terms": True})
+    assert r.status_code == 200
+    import json
+    s = json.loads(store.get_settings_raw("yesterms-co-uk"))
+    assert s["terms_accepted"] is True and s["terms_version"] == onboarding.TERMS_VERSION
+    assert s["terms_accepted_at"].endswith("Z")  # recorded UTC timestamp for the audit trail
+
+
 def test_onboard_captures_account_and_notify_emails(client):
     c, store = client
     r = c.post("/v1/onboard", json={
         "store_url": "https://x.com", "consumer_key": "ck", "consumer_secret": "cs", "platform": "",
-        "email": "owner@x.com", "notify_emails": ["team@x.com", "not-an-email"]})
+        "email": "owner@x.com", "notify_emails": ["team@x.com", "not-an-email"], "accept_terms": True})
     assert r.status_code == 200
     import json
     s = json.loads(store.get_settings_raw("x-com"))
@@ -135,7 +157,7 @@ def test_onboard_rejects_bad_woo(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr(onboarding, "_validate_woo", lambda *a, **k: (False, "401 Unauthorized"))
     r = c.post("/v1/onboard", json={"store_url": "https://x.com", "consumer_key": "ck",
-                                    "consumer_secret": "cs"})
+                                    "consumer_secret": "cs", "accept_terms": True})
     assert r.status_code == 400 and "WooCommerce" in r.json()["detail"]
 
 
@@ -143,7 +165,7 @@ def test_onboard_klaviyo_bad_key_warns_not_blocks(client):
     c, store = client
     r = c.post("/v1/onboard", json={
         "store_url": "https://x.com", "consumer_key": "ck", "consumer_secret": "cs",
-        "platform": "klaviyo", "api_key": "not-a-pk-key"})
+        "platform": "klaviyo", "api_key": "not-a-pk-key", "accept_terms": True})
     assert r.status_code == 200
     d = r.json()
     assert d["platform_connected"] is False and "pk_" in d["platform_warning"]
@@ -170,7 +192,8 @@ def test_onboard_shopify_creates_tenant_and_saves_token(client, monkeypatch):
     c, store = client
     monkeypatch.setattr(onboarding, "_validate_shopify", lambda *a, **k: (True, ""))
     r = c.post("/v1/onboard", json={"source": "shopify", "shop_domain": "acme.myshopify.com",
-                                    "admin_token": "shpat_xyz", "label": "Acme", "platform": ""})
+                                    "admin_token": "shpat_xyz", "label": "Acme", "platform": "",
+                                    "accept_terms": True})
     assert r.status_code == 200 and r.json()["link"].startswith("/app?t=")
     t = store.get_tenant("acme.myshopify.com")
     assert t and t["kind"] == "shopify"
@@ -181,7 +204,7 @@ def test_onboard_shopify_bad_token_rejected(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr(onboarding, "_validate_shopify", lambda *a, **k: (False, "401 Unauthorized"))
     r = c.post("/v1/onboard", json={"source": "shopify", "shop_domain": "acme.myshopify.com",
-                                    "admin_token": "bad"})
+                                    "admin_token": "bad", "accept_terms": True})
     assert r.status_code == 400 and "Shopify" in r.json()["detail"]
 
 
@@ -206,7 +229,7 @@ def test_woo_oneclick_flow_end_to_end(client, monkeypatch):
     assert c.get(f"/v1/woo/authorized/{tok}").json() == {"ready": True}
     # 3. onboarding finishes using the keys from the flow (no manual entry)
     r = c.post("/v1/onboard", json={"source": "woocommerce", "store_url": "https://shop.com",
-                                    "woo_token": tok, "platform": ""})
+                                    "woo_token": tok, "platform": "", "accept_terms": True})
     assert r.status_code == 200
     creds = store.get_woocommerce("shop-com")
     assert creds["consumer_key"] == "ck_auto" and creds["consumer_secret"] == "cs_auto"
@@ -225,7 +248,7 @@ def test_onboard_shopify_uses_installed_token(client, monkeypatch):
     monkeypatch.setattr(onboarding, "_validate_shopify", lambda *a, **k: (True, ""))
     store.save_shop("acme.myshopify.com", "shpat_installed")  # saved when they installed via the link
     r = c.post("/v1/onboard", json={"source": "shopify", "shop_domain": "acme.myshopify.com",
-                                    "platform": ""})  # no admin_token: picked up from the install
+                                    "platform": "", "accept_terms": True})  # no admin_token: from the install
     assert r.status_code == 200
     assert store.get_tenant("acme.myshopify.com")["kind"] == "shopify"
 
@@ -259,7 +282,7 @@ def test_shopify_oauth_flow_end_to_end(client, monkeypatch):
     auth = c.get(f"/v1/shopify/authorized/{tok}").json()
     assert auth["ready"] is True and auth["shop_domain"] == "acme.myshopify.com"
     # 3. onboarding finishes using the OAuth token (no manual entry)
-    r = c.post("/v1/onboard", json={"source": "shopify", "shopify_token": tok, "platform": ""})
+    r = c.post("/v1/onboard", json={"source": "shopify", "shopify_token": tok, "platform": "", "accept_terms": True})
     assert r.status_code == 200
     assert store.get_tenant("acme.myshopify.com")["kind"] == "shopify"
     assert store.get_token("acme.myshopify.com") == "shpat_oauth"

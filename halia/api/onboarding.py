@@ -33,6 +33,10 @@ from halia.cache import cache
 _SYNCING: set[str] = set()
 _LOCK = threading.Lock()
 
+# The version of the Terms/Privacy a client accepts at onboarding (recorded for the audit
+# trail). Bump when the legal terms change materially.
+TERMS_VERSION = "2026-06-30"
+
 # Pending WooCommerce one-click authorisations: token -> {store_url, ck, cs, ts}. The merchant's
 # browser holds the token; WooCommerce posts the read-only keys to our callback, which we match by
 # token. In RAM only, short-lived; never customer data.
@@ -606,6 +610,9 @@ h1{font-family:var(--serif);font-weight:300;font-size:clamp(33px,5.4vw,50px);lin
 h1 em{font-style:italic;color:var(--gold)}
 .lede{font-size:18px;color:var(--mute);line-height:1.55;max-width:48ch;margin:0 0 26px}
 label{display:block;font:600 13px var(--sans);margin:18px 0 7px}
+.termsrow{display:flex;gap:10px;align-items:flex-start;font:400 13.5px var(--sans);color:var(--mute);margin:22px 0 0;cursor:pointer}
+.termsrow input{width:auto;flex:none;margin:2px 0 0;padding:0;cursor:pointer}
+.termsrow a{color:var(--gold);text-decoration:underline}
 .hint{font-size:13px;color:var(--mute);line-height:1.5;margin:6px 0 0}
 input{width:100%;padding:14px 16px;border:1px solid var(--line);border-radius:11px;font:15px var(--sans);background:#fffdf8;color:var(--ink)}
 input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(122,115,99,.15)}
@@ -731,6 +738,7 @@ summary::-webkit-details-marker{display:none}
     <label>Also send order alerts to</label>
     <div id="emaillist"></div>
     <button type="button" class="addmail" id="addmail">+ Add another recipient</button>
+    <label class="termsrow"><input type="checkbox" id="accept_terms"><span>I have read and agree to Halia's <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
     <div id="err6" class="err" style="display:none"></div>
     <div class="row"><button class="back" data-back>Back</button><button class="btn" data-next>Find my VICs &rarr;</button></div>
   </section>
@@ -915,7 +923,9 @@ function valid(n){
   if(n===6){var em=gv('email');
     if(!em){err('err6','Enter your email so we can set up your account.');return false;}
     if(!EMRE.test(em)){err('err6','That email does not look right.');return false;}
-    if(collectEmails().some(function(x){return !EMRE.test(x);})){err('err6','One of the alert emails does not look right.');return false;}}
+    if(collectEmails().some(function(x){return !EMRE.test(x);})){err('err6','One of the alert emails does not look right.');return false;}
+    var ck=document.getElementById('accept_terms');
+    if(!ck||!ck.checked){err('err6','Please accept the Terms of Service and Privacy Policy to continue.');return false;}}
   return true;
 }
 function nextFrom(n){var s=seq(),i=s.indexOf(n);return(i<0||i>=s.length-1)?'finish':s[i+1];}
@@ -935,6 +945,7 @@ function payload(){return{
   shop_domain:gv('shop_domain'),admin_token:gv('admin_token'),woo_token:state.woo_token||'',code:gv('code'),
   platform:(!state.platform||state.platform==='later')?'':state.platform,api_key:gv('api_key'),
   email:gv('email'),notify_emails:collectEmails(),
+  accept_terms:!!(document.getElementById('accept_terms')&&document.getElementById('accept_terms').checked),
   vic_threshold:gv('vic_threshold'),sender_name:gv('sender_name'),aov:gv('aov'),max_orders:gv('max_orders'),highest_lt:gv('highest_lt')};}
 function finish(){
   show(7);
@@ -1031,6 +1042,10 @@ def register(app) -> None:
         if config.SIGNUP_CODE and g("code") != config.SIGNUP_CODE:
             raise HTTPException(403, "That signup code is not right. Check with your Halia contact.")
 
+        if not bool(p.get("accept_terms")):
+            raise HTTPException(400, "Please accept the Terms of Service and Privacy Policy to continue.")
+        terms_accepted_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
         import json as _json
 
         store = shop_store()
@@ -1094,6 +1109,9 @@ def register(app) -> None:
             "notify_email": recipients[0] if recipients else "",
             "notify_enabled": bool(recipients),
             "notify_grades": ["A*", "A"],
+            "terms_accepted": True,
+            "terms_accepted_at": terms_accepted_at,
+            "terms_version": TERMS_VERSION,
         }))
         connected, warning = _connect_marketing(store, shop, g("platform"), g("api_key"))
         _start_sync(shop, notify=True)  # warm the cache while they read the closing screen
