@@ -38,6 +38,7 @@ import csv
 import statistics
 import sys
 import tempfile
+import urllib.error
 import urllib.request
 from collections import defaultdict
 from pathlib import Path
@@ -89,7 +90,21 @@ def _download(year: int) -> Path:
         print(f"  using cached {tmp}")
         return tmp
     print(f"  downloading {url} ...")
-    urllib.request.urlretrieve(url, tmp)
+    try:
+        urllib.request.urlretrieve(url, tmp)
+    except (urllib.error.URLError, OSError) as exc:
+        if tmp.exists():
+            tmp.unlink()  # don't leave a half-written file behind
+        raise SystemExit(
+            f"\nCould not download {url}\n  reason: {exc}\n\n"
+            "This is a network/DNS issue, not the script. Either your machine is offline,\n"
+            "behind a VPN or captive-portal wifi, or DNS is blocked. Two options:\n"
+            "  1. Fix connectivity (try another network / drop the VPN) and re-run.\n"
+            "  2. Download the year file(s) manually from\n"
+            "     https://www.gov.uk/government/statistical-data-sets/price-paid-data-downloads\n"
+            "     then point the script at them:\n"
+            "       python scripts/build_property_values.py --files ~/Downloads/pp-2024.csv\n"
+        )
     return tmp
 
 
