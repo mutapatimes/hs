@@ -319,6 +319,18 @@ h1 em{font-style:italic;color:var(--gold)}
 .fine{font-size:13px;color:var(--faint);margin:22px 0 0}
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-right:8px;vertical-align:middle;animation:pl 1.1s infinite}
 @keyframes pl{0%,100%{opacity:.3}50%{opacity:1}}
+.term{max-width:520px;margin:34px auto 0;background:#0e1012;border:1px solid rgba(20,18,12,.18);border-radius:12px;overflow:hidden;text-align:left;box-shadow:0 34px 70px -34px rgba(0,0,0,.45)}
+.term .bar{display:flex;align-items:center;gap:7px;padding:11px 14px;background:#17191c;border-bottom:1px solid rgba(255,255,255,.06)}
+.term .bar i{width:11px;height:11px;border-radius:50%;background:#3a3d40}
+.term .bar i:nth-child(1){background:#ff5f57}.term .bar i:nth-child(2){background:#febc2e}.term .bar i:nth-child(3){background:#28c840}
+.term .bar span{margin-left:8px;color:#7d8186;font:500 12px var(--sans)}
+.term .body{padding:14px 16px;height:176px;overflow:hidden;font:12.5px/1.72 ui-monospace,SFMono-Regular,Menlo,monospace}
+.term .ln{white-space:pre-wrap;color:#c9cdd2;animation:tin .25s ease}
+@keyframes tin{from{opacity:0}to{opacity:1}}
+.term .ln.ok{color:#5bd6a0}.term .ln.dim{color:#7d8186}
+.term .pr{color:#5bd6a0}.term .cmd{color:#eaeef2}
+.term .caret{display:inline-block;width:8px;height:14px;background:#5bd6a0;vertical-align:-2px;animation:bk 1s step-end infinite}
+@keyframes bk{50%{opacity:0}}
 </style></head><body>
 <header class="top"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#7a7363"/></svg>Halia</a></header>
 <main class="stage">
@@ -326,6 +338,10 @@ h1 em{font-style:italic;color:var(--gold)}
   <h1 id="head">Finding your <em>hidden VICs</em></h1>
   <p class="lede" id="msg">Reading every order in your store...</p>
   <div class="track"><i id="bar"></i></div>
+  <div class="term">
+    <div class="bar"><i></i><i></i><i></i><span>halia &middot; scoring engine</span></div>
+    <div class="body"><div id="termlines"></div><div class="ln"><span class="pr">$</span> <span class="caret"></span></div></div>
+  </div>
   <p class="fine" id="leave">__LEAVE__</p>
 </main>
 <script>
@@ -344,8 +360,34 @@ var msg=document.getElementById('msg'),bar=document.getElementById('bar'),mi=0,p
 var cyc=setInterval(function(){mi=(mi+1)%MSGS.length;msg.style.opacity=0;setTimeout(function(){msg.textContent=MSGS[mi];msg.style.opacity=1;},250);},2600);
 var creep=setInterval(function(){prog=Math.min(92,prog+Math.random()*7+1.5);bar.style.width=prog+'%';},1300);
 setTimeout(function(){bar.style.width='12%';},80);
+var SCRIPT=[
+ {p:'halia connect --read-only'},
+ {o:'✓ secure link established  (read-only, we never write)'},
+ {p:'halia pull orders --recent'},
+ {d:'→ fetching orders ............ done'},
+ {p:'halia score --signals wealth,intent,loyalty,locale'},
+ {d:'· loading curated wealth datasets'},
+ {d:'· matching work emails, postcodes, honorifics'},
+ {d:'analyzing customers .......... 81%'},
+ {o:'✓ every customer graded  A* → C'},
+ {p:'halia surface --hidden-vics'},
+ {o:'★ hidden VICs surfaced and ranked'},
+ {p:'halia estimate --latent-value'},
+ {o:'✓ revenue potential calculated'},
+ {p:'halia prepare-dashboard'},
+ {o:'✓ ready'}
+];
+var termlines=document.getElementById('termlines'),ti=0,termTick;
+function termLine(){
+  var s=SCRIPT[ti%SCRIPT.length];ti++;
+  var d=document.createElement('div');d.className='ln'+(s.o?' ok':(s.d?' dim':''));
+  if(s.p){d.innerHTML='<span class="pr">$</span> <span class="cmd">'+s.p+'</span>';}else{d.textContent=s.o||s.d;}
+  termlines.appendChild(d);
+  while(termlines.children.length>6)termlines.removeChild(termlines.firstChild);
+}
+if(termlines){termLine();termTick=setInterval(termLine,1050);}
 function done(d){
-  clearInterval(cyc);clearInterval(creep);bar.style.width='100%';
+  clearInterval(cyc);clearInterval(creep);clearInterval(termTick);bar.style.width='100%';
   document.getElementById('phase').innerHTML='Ready';
   document.getElementById('head').innerHTML='Your VICs are <em>ready.</em>';
   var c=(d&&d.count)||'0',l=(d&&d.latent)||'';
