@@ -48,7 +48,7 @@ def _serve_page(name: str) -> _HTML:
     raise HTTPException(404, "Page not found")
 
 
-for _name in ("solutions", "security", "clienteling", "faq", "demo",
+for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
               "privacy", "terms", "cookies"):
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
                       methods=["GET"], include_in_schema=False, response_class=_HTML)

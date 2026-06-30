@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brand · Halia</title>
+<meta name="description" content="The Halia brand: the mark, colours, typography, and voice. How to use the logo and write like Halia.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f4f1ea;--bg-2:#ece7dc;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;
+    --line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.07);
+    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}::selection{background:#1a1712;color:#f4f1ea}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 40px}
+  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+  h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.05}
+  .display{font-size:clamp(46px,7vw,88px)}.h2{font-size:clamp(30px,4.4vw,52px)}
+  em{font-style:italic;color:var(--gold)}
+  .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);line-height:1.5;max-width:60ch}
+  p{color:var(--mute)}b{color:var(--ink)}
+  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}
+  header.solid{background:rgba(244,241,234,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px}.brand svg{width:22px;height:22px}
+  .nav-links{display:flex;gap:32px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
+  .nav .right{display:flex;gap:20px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:13px 24px;border-radius:999px;border:1px solid var(--ink);color:#f4f1ea;background:var(--ink);transition:.25s}
+  .btn:hover{background:transparent;color:var(--ink)}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
+  @media(max-width:860px){.nav-links{display:none}}
+  section{padding:clamp(60px,9vh,110px) 0;border-top:1px solid var(--line-2)}
+  .phero{padding:170px 0 30px;border-top:0}.phero h1{margin:18px 0 24px;max-width:20ch}
+  .sec-h{max-width:46ch;margin-bottom:42px}.sec-h .eyebrow{margin-bottom:16px}
+  .sec-h p{margin:14px 0 0;font-size:17px}
+  /* logo lockups */
+  .locks{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:680px){.locks{grid-template-columns:1fr}}
+  .lock{border:1px solid var(--line);border-radius:14px;min-height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+  .lock.dark{background:#0a0a0b;border-color:transparent}
+  .lock .mk{display:flex;align-items:center;gap:14px;font-family:var(--serif);font-size:40px}
+  .lock .mk svg{width:36px;height:36px}
+  .lock.cream .mk{color:var(--ink)}.lock.dark .mk{color:#f4f1ea}
+  .lock .cap{font:500 12px var(--sans);letter-spacing:.14em;text-transform:uppercase}
+  .lock.cream .cap{color:var(--faint)}.lock.dark .cap{color:#56534d}
+  .markrow{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px}
+  .markrow .tile{width:96px;height:96px;border-radius:14px;display:flex;align-items:center;justify-content:center}
+  .markrow .tile svg{width:46px;height:46px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}@media(max-width:740px){.grid2{grid-template-columns:1fr}}
+  ul.do{list-style:none;padding:0;margin:0}ul.do li{position:relative;padding:9px 0 9px 30px;font-size:15px;color:var(--mute);border-top:1px solid var(--line-2)}
+  ul.do li:first-child{border-top:0}
+  ul.do li:before{content:"";position:absolute;left:2px;top:15px;width:8px;height:8px;border-radius:2px;transform:rotate(45deg)}
+  ul.do.yes li:before{background:#1f7a52}ul.do.no li:before{background:#a23b2a}
+  /* colour swatches */
+  .sw{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}@media(max-width:740px){.sw{grid-template-columns:repeat(2,1fr)}}
+  .swatch{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .swatch .chip{height:104px}
+  .swatch .meta{padding:13px 14px}
+  .swatch .nm{font:600 14px var(--sans);color:var(--ink)}
+  .swatch .hex{font:500 12.5px ui-monospace,Menlo,monospace;color:var(--mute);margin-top:3px;letter-spacing:.02em}
+  /* type specimens */
+  .spec{border:1px solid var(--line);border-radius:14px;padding:30px 32px;margin-top:16px}
+  .spec .lab{font:500 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+  .spec .big{font-family:var(--serif);font-weight:300;font-size:clamp(40px,7vw,76px);line-height:1.02;margin:10px 0 6px}
+  .spec .ital{font-style:italic;color:var(--gold)}
+  .spec .scale{font-family:var(--serif);font-weight:300;margin:6px 0;line-height:1.1}
+  .spec.sans .big{font-family:var(--sans);font-weight:600;font-size:clamp(30px,4.6vw,46px);letter-spacing:-.01em}
+  .spec .row{display:flex;gap:26px;flex-wrap:wrap;margin-top:14px;font:500 14px var(--sans);color:var(--mute)}
+  .code{font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;background:#15140f;color:#cfd3d8;border-radius:12px;padding:16px 18px;overflow:auto;margin-top:18px}
+  .code .t{color:#8fb6e0}
+  .dl{margin-top:20px;display:flex;gap:14px;flex-wrap:wrap}
+  footer{border-top:1px solid var(--line);padding:54px 0 44px;margin-top:20px}
+  .foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:var(--faint);font-size:13px}
+  .legal-nav{display:flex;gap:20px;flex-wrap:wrap}.legal-nav a{color:var(--mute)}.legal-nav a:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+<header id="hdr"><div class="wrap nav">
+  <a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#7a7363"/></svg>Halia</a>
+  <nav class="nav-links"><a href="/#how">How it works</a><a href="/solutions">Solutions</a><a href="/security">Security</a><a href="/faq">FAQ</a></nav>
+  <div class="right"><a class="btn ghost" href="/connect">Connect your store</a></div>
+</div></header>
+
+<section class="phero"><div class="wrap">
+  <div class="eyebrow">Brand</div>
+  <h1 class="display">The Halia <em>brand.</em></h1>
+  <p class="lede">Halia surfaces the quiet, high-value clients hiding in a brand's own data. The brand should feel the same way it works: calm, precise, and quietly premium. This page holds the mark, the colours, the type, and the voice.</p>
+</div></section>
+
+<!-- THE NAME -->
+<section><div class="wrap grid2">
+  <div class="sec-h" style="margin:0">
+    <div class="eyebrow">The name</div>
+    <h2 class="h2" style="margin-top:16px">Halia.</h2>
+  </div>
+  <div>
+    <p style="font-size:17px;margin:0">Halia was a nymph of the sea. The name suits the idea at the centre of the product: your most valuable clients are already there, below the surface, and Halia brings them up into the light. The tone follows from that, unhurried, deep, and sure of itself.</p>
+    <p style="font-size:17px;margin:16px 0 0">Always written <b>Halia</b>, capital H, never in all caps, never abbreviated.</p>
+  </div>
+</div></section>
+
+<!-- THE MARK -->
+<section><div class="wrap">
+  <div class="sec-h">
+    <div class="eyebrow">The mark</div>
+    <h2 class="h2" style="margin-top:16px">A single point of light.</h2>
+    <p>An eight-point star: the one client worth more than all the rest, found and set apart. It pairs with the Halia wordmark set in Cormorant Garamond, or stands alone as an app icon.</p>
+  </div>
+  <div class="locks">
+    <div class="lock cream"><div class="mk"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#13110c"/></svg>Halia</div><div class="cap">Primary · on cream</div></div>
+    <div class="lock dark"><div class="mk"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#f4f1ea"/></svg>Halia</div><div class="cap">Reversed · on near-black</div></div>
+  </div>
+  <div class="markrow">
+    <div class="tile" style="background:#f4f1ea;border:1px solid var(--line)"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#13110c"/></svg></div>
+    <div class="tile" style="background:#1a1712"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#d8d2c6"/></svg></div>
+    <div class="tile" style="background:#7a7363"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#f4f1ea"/></svg></div>
+  </div>
+  <div class="dl">
+    <a class="btn" download="halia-mark.svg" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z' fill='%237a7363'/></svg>">Download mark (SVG)</a>
+  </div>
+  <div class="code"><span class="t">&lt;svg</span> viewBox=<span class="t">"0 0 24 24"</span>&gt;<span class="t">&lt;path</span> d=<span class="t">"M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z"</span> fill=<span class="t">"#7a7363"</span>/&gt;<span class="t">&lt;/svg&gt;</span></div>
+</div></section>
+
+<!-- LOGO USE -->
+<section><div class="wrap grid2">
+  <div>
+    <div class="eyebrow" style="color:#1f7a52">Do</div>
+    <ul class="do yes" style="margin-top:16px">
+      <li>Give the mark clear space of at least its own height on every side.</li>
+      <li>Use the cream, near-black, or warm-gold versions only.</li>
+      <li>Keep the wordmark in Cormorant Garamond, weight 300.</li>
+      <li>Let it sit small and confident; it does not need to shout.</li>
+    </ul>
+  </div>
+  <div>
+    <div class="eyebrow" style="color:#a23b2a">Do not</div>
+    <ul class="do no" style="margin-top:16px">
+      <li>Recolour the mark or add gradients, shadows, or outlines.</li>
+      <li>Stretch, rotate, or rebuild the star from different proportions.</li>
+      <li>Set the wordmark in another typeface or in all caps.</li>
+      <li>Place it on a busy image without a calm, solid panel behind it.</li>
+    </ul>
+  </div>
+</div></section>
+
+<!-- COLOUR -->
+<section><div class="wrap">
+  <div class="sec-h">
+    <div class="eyebrow">Colour</div>
+    <h2 class="h2" style="margin-top:16px">Cream, ink, and a warm gold.</h2>
+    <p>A quiet, editorial palette. Cream and ink do the work; the gold is an accent, used sparingly for emphasis and the mark. Near-black carries the rare dramatic, full-bleed moment.</p>
+  </div>
+  <div class="sw">
+    <div class="swatch"><div class="chip" style="background:#f4f1ea;border-bottom:1px solid var(--line)"></div><div class="meta"><div class="nm">Cream</div><div class="hex">#F4F1EA</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#1a1712"></div><div class="meta"><div class="nm">Ink</div><div class="hex">#1A1712</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#7a7363"></div><div class="meta"><div class="nm">Gold (warm)</div><div class="hex">#7A7363</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#d8d2c6"></div><div class="meta"><div class="nm">Gold (light)</div><div class="hex">#D8D2C6</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#0a0a0b"></div><div class="meta"><div class="nm">Near-black</div><div class="hex">#0A0A0B</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#615b50"></div><div class="meta"><div class="nm">Muted</div><div class="hex">#615B50</div></div></div>
+  </div>
+</div></section>
+
+<!-- TYPE -->
+<section><div class="wrap">
+  <div class="sec-h">
+    <div class="eyebrow">Typography</div>
+    <h2 class="h2" style="margin-top:16px">A serif for the idea, a sans for the detail.</h2>
+    <p>Cormorant Garamond carries the headlines and the brand voice, light and a little literary. Inter handles everything functional: labels, body, numbers, the interface.</p>
+  </div>
+  <div class="spec">
+    <div class="lab">Display · Cormorant Garamond · Light 300</div>
+    <div class="big">Your best clients are <span class="ital">already here.</span></div>
+    <div class="scale" style="font-size:34px">Aa Bb Cc Dd Ee &nbsp; 1925</div>
+    <div class="row"><span>Headlines</span><span>Statements</span><span>The wordmark</span><span>Italic for emphasis</span></div>
+  </div>
+  <div class="spec sans">
+    <div class="lab">Text · Inter · 400 / 500 / 600</div>
+    <div class="big">A clear read on every customer.</div>
+    <p style="margin:8px 0 0;max-width:56ch">Inter keeps the product legible and calm. Use 400 for body, 500 for labels and buttons, 600 only where a number or a heading needs to hold its ground.</p>
+    <div class="row"><span>Body</span><span>Labels</span><span>Buttons</span><span>Tables &amp; numbers</span></div>
+  </div>
+</div></section>
+
+<!-- VOICE -->
+<section><div class="wrap">
+  <div class="sec-h">
+    <div class="eyebrow">Voice</div>
+    <h2 class="h2" style="margin-top:16px">Calm, plain, and quietly optimistic.</h2>
+    <p>Halia speaks like a trusted advisor, not a growth tool. It is precise without being technical, warm without being soft, and it never hypes. The reader should feel that real value, already theirs, is about to be found.</p>
+  </div>
+  <div class="grid2">
+    <div>
+      <ul class="do yes">
+        <li><b>Plain over clever.</b> Say the useful thing simply.</li>
+        <li><b>Show the evidence.</b> Name the signal, the score, the number.</li>
+        <li><b>Lead with the client's gain</b>, not the mechanics.</li>
+        <li><b>Reassure on privacy</b> in our own words: we read only your data, never store it, never share it.</li>
+      </ul>
+    </div>
+    <div>
+      <ul class="do no">
+        <li>No hype, no growth-hacking tone, no exclamation marks.</li>
+        <li>No jargon where a plain word will do.</li>
+        <li>Never imply we see other brands' data, or learn from yours.</li>
+        <li><b>No em dashes.</b> Use a comma, a colon, or a full stop.</li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<!-- CONTACT -->
+<section><div class="wrap" style="text-align:center">
+  <div class="eyebrow" style="justify-content:center">Press &amp; brand</div>
+  <h2 class="h2" style="margin:16px 0 18px">Need something else?</h2>
+  <p style="max-width:48ch;margin:0 auto 26px">For logos in other formats, a press note, or a question about using the Halia brand, get in touch.</p>
+  <a class="btn" href="mailto:hello@halia.app">Contact us</a>
+</div></section>
+
+<footer><div class="wrap foot">
+  <div>© 2026 Halia. All rights reserved.</div>
+  <div class="legal-nav"><a href="/">Home</a><a href="/solutions">Solutions</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/brand">Brand</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+</div></footer>
+
+<script>
+  var hdr=document.getElementById('hdr');
+  addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>10);},{passive:true});
+  hdr.classList.toggle('solid',scrollY>10);
+</script>
+</body>
+</html>
