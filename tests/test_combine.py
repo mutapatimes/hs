@@ -59,7 +59,7 @@ def test_correlated_geo_signals_get_diminishing_returns():
         "EMAIL_ADDR": "x@calculuscapital.com",      # work_email (own group), w=3
         "LATEST_BILLING_ZIP": "SW10 9SJ",           # hnwi_postcode (geo), w=3
         "LATEST_BILLING_ADDRESS4": "Qatar",         # gcc_billing (geo), w=2
-    }]))
+    }]), include_origin=True)  # origin proxies opted in to test geo grouping
     # All 3 fire, but the two GEO tells don't fully stack:
     #   work_email 3  +  geo[ hnwi 3 (full) + gcc 2 x 0.5 ]  = 3 + 4.0 = 7.0
     # (naive additive would have been 3 + 3 + 2 = 8).
@@ -75,8 +75,8 @@ def test_three_correlated_geo_tells_score_below_their_raw_sum():
         "PHONE": "+971 50 123 4567",                # phone_country (geo), w=1
         "LATEST_BILLING_ADDRESS4": "United Arab Emirates",   # gcc_billing (geo), w=2
         "LATEST_SHIPPING_ADDRESS4": "United Arab Emirates",
-    }]))
-    # geo[ gcc 2 (full) + phone 1 x 0.5 ] = 2.5, not 3 — redundant location discounted.
+    }]), include_origin=True)  # origin proxies opted in to test geo grouping
+    # geo[ gcc 2 (full) + phone 1 x 0.5 ] = 2.5, not 3; redundant location discounted.
     assert out.loc[0, COUNT_COL] == 2
     assert out.loc[0, SCORE_COL] == 2.5
 
@@ -111,7 +111,7 @@ def test_top_hidden_vics_sorted_by_score_then_spend():
          "EMAIL_ADDR": "x@calculuscapital.com",
          "LATEST_BILLING_ZIP": "SW10 9SJ",
          "LATEST_BILLING_ADDRESS4": "Kuwait"},                            # 3 signals
-    ]))
+    ]), include_origin=True)  # origin proxies opted in: "one" rides gcc_billing
     ranked = top_hidden_vics(out, n=10)
     assert ranked.iloc[0]["Name"] == "three"   # highest score wins despite £1 spend
     assert list(ranked["Name"]) == ["three", "one"]   # "low" excluded (no signal)

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Responsible profiling · Halia</title>
+<meta name="description" content="How Halia profiles responsibly: wealth facts, never nationality, name, or ethnicity. A human always decides. We elevate, never withhold.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f4f1ea;--bg-2:#ece7dc;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;
+    --line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.07);
+    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}::selection{background:#1a1712;color:#f4f1ea}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 40px}
+  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+  h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.05}
+  .display{font-size:clamp(46px,7vw,88px)}.h2{font-size:clamp(30px,4.4vw,52px)}
+  em{font-style:italic;color:var(--gold)}
+  .g{font-family:var(--serif);line-height:1}
+  .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);line-height:1.5;max-width:60ch}
+  p{color:var(--mute)}b{color:var(--ink)}
+  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}
+  header.solid{background:rgba(244,241,234,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--serif);font-size:26px}
+  .brand .g{color:var(--gold);font-size:23px}
+  .nav-links{display:flex;gap:32px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
+  .nav .right{display:flex;gap:20px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:13px 24px;border-radius:999px;border:1px solid var(--ink);color:#f4f1ea;background:var(--ink);transition:.25s}
+  .btn:hover{background:transparent;color:var(--ink)}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
+  @media(max-width:860px){.nav-links{display:none}}
+  section{padding:clamp(60px,9vh,110px) 0;border-top:1px solid var(--line-2)}
+  .phero{padding:170px 0 30px;border-top:0}.phero h1{margin:18px 0 24px;max-width:18ch}
+  .sec-h{max-width:52ch;margin-bottom:42px}.sec-h .eyebrow{margin-bottom:16px}
+  .sec-h p{margin:14px 0 0;font-size:17px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}@media(max-width:740px){.grid2{grid-template-columns:1fr}}
+  /* principle cards */
+  .princ{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:680px){.princ{grid-template-columns:1fr}}
+  .pcard{border:1px solid var(--line);border-radius:16px;padding:30px 30px 32px}
+  .pcard .g{color:var(--gold);font-size:34px;line-height:1}
+  .pcard h3{font-size:26px;margin:14px 0 10px}
+  .pcard p{margin:0;font-size:15.5px}
+  /* signal split */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:8px}
+  @media(max-width:680px){.split{grid-template-columns:1fr}}
+  .col{border:1px solid var(--line);border-radius:16px;padding:26px 28px}
+  .col .lab{font:500 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;margin-bottom:14px}
+  .col.on .lab{color:#1f7a52}.col.off .lab{color:#a23b2a}
+  ul.do{list-style:none;padding:0;margin:0}ul.do li{position:relative;padding:9px 0 9px 28px;font-size:15px;color:var(--mute);border-top:1px solid var(--line-2)}
+  ul.do li:first-child{border-top:0}
+  ul.do li:before{content:"";position:absolute;left:2px;top:15px;width:8px;height:8px;border-radius:2px;transform:rotate(45deg)}
+  ul.do.yes li:before{background:#1f7a52}ul.do.no li:before{background:#a23b2a}
+  .docs{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px}
+  .caveat{border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;padding:22px 26px;margin-top:26px;font-size:15px}
+  footer{border-top:1px solid var(--line);padding:54px 0 44px;margin-top:20px}
+  .foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:var(--faint);font-size:13px}
+  .legal-nav{display:flex;gap:20px;flex-wrap:wrap}.legal-nav a{color:var(--mute)}.legal-nav a:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+<header id="hdr"><div class="wrap nav">
+  <a class="brand" href="/"><span class="g">&#8258;</span>Halia</a>
+  <nav class="nav-links"><a href="/#how">How it works</a><a href="/solutions">Solutions</a><a href="/security">Security</a><a href="/faq">FAQ</a></nav>
+  <div class="right"><a class="btn ghost" href="/connect">Connect your store</a></div>
+</div></header>
+
+<section class="phero"><div class="wrap">
+  <div class="eyebrow">Responsible profiling</div>
+  <h1 class="display">Value, found <em>fairly.</em></h1>
+  <p class="lede">Halia surfaces the quiet, high-value clients already in your data so your team can give them a more personal welcome. It does that on wealth and address facts, never on who someone is or where they are from, and a person at your brand always decides what happens next.</p>
+</div></section>
+
+<!-- PRINCIPLES -->
+<section><div class="wrap">
+  <div class="sec-h">
+    <div class="eyebrow">Our principles</div>
+    <h2 class="h2" style="margin-top:16px">Five lines we will not cross.</h2>
+    <p>Wealth screening earns trust only if it is fair. These are the commitments built into how Halia scores, not a policy bolted on afterwards.</p>
+  </div>
+  <div class="princ">
+    <div class="pcard">
+      <span class="g">&#8258;</span>
+      <h3>Wealth facts, never origin.</h3>
+      <p>We score on what someone has actually done with you: how much and how often they buy, a recognised prime address, a professional email. We do not score on nationality, ethnicity, your customer's name, or the origin of that name. Those signals are off by default.</p>
+    </div>
+    <div class="pcard">
+      <span class="g">&#8258;</span>
+      <h3>A human always decides.</h3>
+      <p>Halia hands your team a shortlist to consider. It never takes an automatic decision about a customer, and it never sets a price, an offer, or who gets served. The most that follows from a score is a person choosing to reach out.</p>
+    </div>
+    <div class="pcard">
+      <span class="g">&#8258;</span>
+      <h3>We elevate, never withhold.</h3>
+      <p>The only effect of a score is more personal attention. No one is ever shown a worse price, refused a product, or pushed down a list because of it. The direction is always up.</p>
+    </div>
+    <div class="pcard">
+      <span class="g">&#8258;</span>
+      <h3>Read-only, kept by no one.</h3>
+      <p>We read your data, score it in memory, show you the result, and discard it. Nothing about your customers is written to our database, shared with anyone, or used to train any model. The score is explainable: every grade carries its reasons.</p>
+    </div>
+    <div class="pcard" style="grid-column:1/-1">
+      <span class="g">&#8258;</span>
+      <h3>We hand you the paperwork.</h3>
+      <p>You are the data controller; we are your processor. We give you the documents to do this properly: a Data Processing Agreement, the profiling logic to put in your own privacy notice, and a DPIA and Legitimate Interests Assessment to keep on file.</p>
+      <div class="docs">
+        <a class="btn ghost" href="mailto:hello@halia.app?subject=Halia%20DPA%20request">Request the DPA</a>
+        <a class="btn ghost" href="mailto:hello@halia.app?subject=Halia%20compliance%20pack">Request the compliance pack</a>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- SIGNAL SPLIT -->
+<section><div class="wrap">
+  <div class="sec-h">
+    <div class="eyebrow">What we look at</div>
+    <h2 class="h2" style="margin-top:16px">Wealth facts on. Origin proxies off.</h2>
+    <p>UK law looks at the effect of profiling, not the label on it, so the safe default is simply not to run any signal that sorts by national or ethnic origin. By default Halia uses only the left column.</p>
+  </div>
+  <div class="split">
+    <div class="col on">
+      <div class="lab">On by default · wealth, work &amp; address facts</div>
+      <ul class="do yes">
+        <li>Total spend and order history with you</li>
+        <li>A recognised prime postcode or neighbourhood</li>
+        <li>A professional or wealth-employer email domain</li>
+        <li>A company or trade account that buys for clients</li>
+        <li>A premium payment method on file</li>
+      </ul>
+    </div>
+    <div class="col off">
+      <div class="lab">Off by default · origin proxies</div>
+      <ul class="do no">
+        <li>Nationality or billing country as an origin tell</li>
+        <li>A phone dialling-code country</li>
+        <li>The structure or origin of a customer's name</li>
+        <li>A heritage or dynasty surname</li>
+        <li>Currency or tax-haven country as a proxy for origin</li>
+      </ul>
+    </div>
+  </div>
+  <div class="caveat">
+    These origin signals stay off unless a brand has documented its own lawful basis and asked us to enable them. That is a deliberate, operator-controlled decision, never a self-serve switch, and never the default.
+  </div>
+</div></section>
+
+<!-- CONTACT -->
+<section><div class="wrap" style="text-align:center">
+  <div class="eyebrow" style="justify-content:center">Questions</div>
+  <h2 class="h2" style="margin:16px 0 18px">Want to see the detail?</h2>
+  <p style="max-width:50ch;margin:0 auto 26px">We are happy to walk your team or your legal counsel through exactly how the scoring works, signal by signal, and to share the compliance pack.</p>
+  <a class="btn" href="mailto:hello@halia.app">Contact us</a>
+</div></section>
+
+<footer><div class="wrap foot">
+  <div>© 2026 Halia. All rights reserved.</div>
+  <div class="legal-nav"><a href="/">Home</a><a href="/solutions">Solutions</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/brand">Brand</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+</div></footer>
+
+<script>
+  var hdr=document.getElementById('hdr');
+  addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>10);},{passive:true});
+  hdr.classList.toggle('solid',scrollY>10);
+</script>
+</body>
+</html>

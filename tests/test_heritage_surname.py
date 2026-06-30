@@ -37,7 +37,7 @@ def test_scores_low_and_groups_with_other_name_signals():
     out = score_customers(pd.DataFrame([{
         "Name": "Cornelius Vanderbilt", "Spent": 100, "EMAIL_ADDR": "c@gmail.com",
         "LATEST_BILLING_ZIP": "LS1 1AA",
-    }]))
+    }]), include_origin=True)  # heritage_surname is off by default; opt in to test it
     assert out.loc[0, COUNT_COL] == 1
     assert out.loc[0, SCORE_COL] == 1          # floor weight
 
@@ -45,6 +45,6 @@ def test_scores_low_and_groups_with_other_name_signals():
     out2 = score_customers(pd.DataFrame([{
         "Name": "James Dyson Vanderbilt", "Spent": 100,   # Dyson (rich_list) + Vanderbilt
         "EMAIL_ADDR": "x@gmail.com", "LATEST_BILLING_ZIP": "LS1 1AA",
-    }]))
+    }]), include_origin=True)  # heritage_surname is off by default; opt in to test grouping
     assert out2.loc[0, COUNT_COL] == 2
     assert out2.loc[0, SCORE_COL] == 1.5       # 1 + 1*0.5 (name group diminishing)

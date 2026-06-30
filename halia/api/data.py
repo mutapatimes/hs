@@ -15,6 +15,13 @@ from halia.cache import cache
 _RANK = {"A1": 0, "A": 0, "B": 1, "C": 2}
 
 
+def _include_origin(shop: str) -> bool:
+    """Origin-proxy signals run only for tenants the operator has opted in (documented
+    lawful basis). Off by default for everyone. See scoring.combine.ORIGIN_PROXY_SIGNALS."""
+    from halia import config as hcfg
+    return shop in hcfg.HALIA_ORIGIN_SIGNAL_SHOPS
+
+
 def score_shop(shop: str, token: str):
     """Live: fetch + aggregate + score one shop's customers (using its VIC threshold)."""
     from halia.api.settings import settings_for
@@ -25,7 +32,8 @@ def score_shop(shop: str, token: str):
     orders = fetch_orders(http_transport(shop, token))
     customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
     threshold = settings_for(shop)["vic_threshold"]
-    return score_customers(customers, vic_threshold=threshold), orders
+    return score_customers(customers, vic_threshold=threshold,
+                           include_origin=_include_origin(shop)), orders
 
 
 def _history(orders: list[dict]) -> dict:
@@ -71,7 +79,8 @@ def score_woo(shop: str):
     orders = [woo_order_to_rest(o) for o in fetch_orders(transport, max_pages=hcfg.WOO_MAX_PAGES)]
     customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
     threshold = settings_for(shop)["vic_threshold"]
-    return score_customers(customers, vic_threshold=threshold), orders
+    return score_customers(customers, vic_threshold=threshold,
+                           include_origin=_include_origin(shop)), orders
 
 
 def _finalize(shop: str, scored, orders: list[dict]) -> dict:
@@ -164,7 +173,8 @@ def score_order(shop: str, payload: dict) -> dict | None:
     customers = orders_to_customers([rest]).rename(columns={"orders_count": "Count of CUST_ID"})
     if customers.empty:
         return None
-    scored = score_customers(customers, vic_threshold=settings_for(shop)["vic_threshold"])
+    scored = score_customers(customers, vic_threshold=settings_for(shop)["vic_threshold"],
+                             include_origin=_include_origin(shop))
     row = scored.iloc[0]
     s100 = to_score100(_f(row.get(SCORE_COL)))
     tier = tier_for(s100)

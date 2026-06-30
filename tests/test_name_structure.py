@@ -68,7 +68,8 @@ def test_name_structure_alone_never_flags():
 def test_name_structure_only_nudges_when_corroborated():
     # Hyphenated name + a real signal (work email). Now it counts, as a nudge.
     out = score_customers(pd.DataFrame([_row(
-        Name="Anne Pelham-Clinton", EMAIL_ADDR="anne@gs.com")]))   # work_email, w=3
+        Name="Anne Pelham-Clinton", EMAIL_ADDR="anne@gs.com")]),   # work_email, w=3
+        include_origin=True)  # name_structure is off by default; opt in to test the nudge
     assert out.loc[0, COUNT_COL] == 2
     assert out.loc[0, SCORE_COL] == 4          # 3 (work email) + 1 (name nudge)
 

@@ -18,7 +18,7 @@ def _frame():
     }
     rows = [
         {**base, "Name": "Hidden Big", "Spent": 4000, "LATEST_BILLING_ZIP": "SW10 9SJ"},
-        {**base, "Name": "Hidden Small", "Spent": 10, "LATEST_BILLING_ADDRESS4": "Qatar"},
+        {**base, "Name": "Hidden Small", "Spent": 10, "EMAIL_ADDR": "small@me.com"},
         {**base, "Name": "Above Threshold", "Spent": 8000, "LATEST_BILLING_ZIP": "SW10 9SJ"},
         {**base, "Name": "No Signal", "Spent": 100},
     ]
@@ -39,7 +39,7 @@ def test_hidden_sheet_is_below_threshold_and_ranks_by_score(tmp_path):
     names = hidden["Name"].tolist()
     assert "Above Threshold" not in names   # already spends above the cutoff -> excluded
     assert "No Signal" not in names         # nothing fired -> excluded
-    # Hidden Big (postcode, weight 3) ranks above Hidden Small (GCC, weight 2)
+    # Hidden Big (postcode, weight 3) ranks above Hidden Small (premium email, weight 2)
     assert names == ["Hidden Big", "Hidden Small"]
 
 

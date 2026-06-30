@@ -63,6 +63,13 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET") or None
 # Tenant keys granted full access without paying (e.g. a comped first client), comma-separated.
 HALIA_FREE_SHOPS = {s.strip() for s in os.environ.get("HALIA_FREE_SHOPS", "").split(",") if s.strip()}
 
+# Origin-proxy signals (nationality / name / ethnicity tells) are OFF by default for every
+# tenant. List here, comma-separated, only the shop keys whose merchant has DOCUMENTED a
+# lawful basis to use them; those tenants then score with include_origin=True. Default empty
+# = off everywhere (lawful-by-default). Operator-controlled, not a self-serve merchant toggle.
+HALIA_ORIGIN_SIGNAL_SHOPS = {s.strip() for s in
+                             os.environ.get("HALIA_ORIGIN_SIGNAL_SHOPS", "").split(",") if s.strip()}
+
 # Shopify one-click onboarding via your app's install link (Dev Dashboard -> Distribution ->
 # Manage custom install link). When set, the wizard's 'Connect with Shopify' button opens this
 # link; the merchant installs, the embedded app stores their token, and onboarding picks it up.

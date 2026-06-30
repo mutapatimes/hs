@@ -243,18 +243,31 @@ CORE_DATA_ONLY = True
 # card_brand (Amex/Diners) and foreign_currency remain parked.
 PARKED_SIGNALS = {"card_brand", "foreign_currency"}
 
+# Signals that sort by national / ethnic / name origin rather than by wealth facts.
+# These are OFF BY DEFAULT so Halia is lawful-by-default: they never apply, score, or
+# appear in `reasons` unless a caller explicitly opts in (include_origin=True) for a
+# tenant that has documented a lawful basis. A UK origin-effect (Recital 71 / Equality
+# Act) is caught by the effect, not the label, so the safe default is simply not to run
+# them. See docs/dpia-lia-support.md for the rationale and the wealth-fact vs origin split.
+# (intl_postcode / hnw_area stay ON: they match a SPECIFIC ultra-prime address, a property
+# fact, not a country.)
+ORIGIN_PROXY_SIGNALS = {"gcc_billing", "tax_haven", "phone_country", "foreign_currency",
+                        "nobiliary_particle", "name_structure", "heritage_surname"}
 
-def active_signals() -> list:
-    """Signals in scope: everything except parked transaction signals."""
-    if CORE_DATA_ONLY:
-        return [s for s in SIGNALS if s[0] not in PARKED_SIGNALS]
-    return list(SIGNALS)
+
+def active_signals(include_origin: bool = False) -> list:
+    """Signals in scope. Parked transaction signals are dropped (when CORE_DATA_ONLY),
+    and the origin-proxy signals are dropped too unless ``include_origin`` is set."""
+    excluded = set(PARKED_SIGNALS) if CORE_DATA_ONLY else set()
+    if not include_origin:
+        excluded |= ORIGIN_PROXY_SIGNALS
+    return [s for s in SIGNALS if s[0] not in excluded]
 
 
-def run_all_signals(df: pd.DataFrame) -> pd.DataFrame:
+def run_all_signals(df: pd.DataFrame, include_origin: bool = False) -> pd.DataFrame:
     """Apply every in-scope signal, returning a copy with their columns added."""
     out = df
-    for _key, _label, apply_fn, _flag, _reason in active_signals():
+    for _key, _label, apply_fn, _flag, _reason in active_signals(include_origin):
         out = apply_fn(out)
     return out
 
@@ -263,11 +276,17 @@ def score_customers(
     df: pd.DataFrame,
     weights: dict[str, int] | None = None,
     vic_threshold: float = VIC_SPEND_THRESHOLD,
+    include_origin: bool = False,
 ) -> pd.DataFrame:
-    """Add signal_score, signal_count, reasons, and hidden_vic columns."""
+    """Add signal_score, signal_count, reasons, and hidden_vic columns.
+
+    ``include_origin`` is OFF by default: origin-proxy signals (nationality / name /
+    ethnicity tells, see ORIGIN_PROXY_SIGNALS) do not contribute or surface unless a
+    caller opts in for a tenant with a documented lawful basis.
+    """
     weights = weights or SIGNAL_WEIGHTS
-    out = run_all_signals(df)
-    active = active_signals()
+    out = run_all_signals(df, include_origin)
+    active = active_signals(include_origin)
 
     flag_of = {key: flag_col for key, _l, _a, flag_col, _r in active}
     grouped: dict[str, list[str]] = {}

@@ -33,7 +33,7 @@ def test_particle_corroborates_a_real_signal():
     out = score_customers(pd.DataFrame([{
         "Name": "Côme de Bouchony", "Spent": 300,
         "EMAIL_ADDR": "come@goldmansachs.com",
-    }]))
+    }]), include_origin=True)  # origin proxies are off by default; opt in to test corroboration
     reasons = out.loc[0, REASONS_COL]
     assert bool(out.loc[0, HIDDEN_COL])
     assert "Nobiliary particle" in reasons
