@@ -295,29 +295,82 @@ def _hosted_head() -> str:
     )
 
 
+_PREPARING = r'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Scoring your store · Halia</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<noscript><meta http-equiv="refresh" content="5"></noscript>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f1ea;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;--serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(1100px 600px at 50% -12%,#fcfaf5,#f4f1ea 62%);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+.top{max-width:960px;margin:0 auto;padding:22px 28px}
+.brand{font-family:var(--serif);font-size:24px;display:flex;align-items:center;gap:9px}.brand svg{width:20px;height:20px}
+.stage{max-width:640px;margin:0 auto;padding:clamp(40px,12vh,120px) 28px;text-align:center}
+.eyebrow{font:500 12px var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
+h1{font-family:var(--serif);font-weight:300;font-size:clamp(34px,6vw,56px);line-height:1.06;letter-spacing:-.01em;margin:0 0 18px}
+h1 em{font-style:italic;color:var(--gold)}
+.lede{font-size:18px;color:var(--mute);line-height:1.5;min-height:3em;transition:opacity .25s;margin:0 auto;max-width:42ch}
+.lede b{color:var(--ink);font-weight:600}
+.track{height:6px;background:rgba(20,18,12,.1);border-radius:99px;overflow:hidden;max-width:420px;margin:30px auto 0;position:relative}
+.track i{display:block;height:100%;width:8%;background:linear-gradient(90deg,#7a7363,#b7ad99);border-radius:99px;transition:width 1.1s cubic-bezier(.3,.7,.3,1)}
+.track:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-100%);animation:sh 1.8s infinite}
+@keyframes sh{to{transform:translateX(100%)}}
+.fine{font-size:13px;color:var(--faint);margin:22px 0 0}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-right:8px;vertical-align:middle;animation:pl 1.1s infinite}
+@keyframes pl{0%,100%{opacity:.3}50%{opacity:1}}
+</style></head><body>
+<header class="top"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#7a7363"/></svg>Halia</a></header>
+<main class="stage">
+  <div class="eyebrow" id="phase"><span class="dot"></span>Scoring your store</div>
+  <h1 id="head">Finding your <em>hidden VICs</em></h1>
+  <p class="lede" id="msg">Reading every order in your store...</p>
+  <div class="track"><i id="bar"></i></div>
+  <p class="fine" id="leave">__LEAVE__</p>
+</main>
+<script>
+var MSGS=[
+ "Reading every order in your store...",
+ "Matching customers to the signals behind them...",
+ "Spotting the quiet big spenders...",
+ "Weighing wealth and intent signals together...",
+ "Separating your hidden VICs from the crowd...",
+ "Estimating the revenue waiting in your list...",
+ "Ranking your clients by what they could be worth...",
+ "Finding the few worth more than all the rest...",
+ "This is the exciting part..."
+];
+var msg=document.getElementById('msg'),bar=document.getElementById('bar'),mi=0,prog=8;
+var cyc=setInterval(function(){mi=(mi+1)%MSGS.length;msg.style.opacity=0;setTimeout(function(){msg.textContent=MSGS[mi];msg.style.opacity=1;},250);},2600);
+var creep=setInterval(function(){prog=Math.min(92,prog+Math.random()*7+1.5);bar.style.width=prog+'%';},1300);
+setTimeout(function(){bar.style.width='12%';},80);
+function done(d){
+  clearInterval(cyc);clearInterval(creep);bar.style.width='100%';
+  document.getElementById('phase').innerHTML='Ready';
+  document.getElementById('head').innerHTML='Your VICs are <em>ready.</em>';
+  var c=(d&&d.count)||'0',l=(d&&d.latent)||'';
+  msg.style.opacity=0;
+  setTimeout(function(){msg.innerHTML=l?('We found <b>'+c+'</b> hidden VICs worth about <b>'+l+'</b>.'):('We found <b>'+c+'</b> hidden VICs.');msg.style.opacity=1;},250);
+  document.getElementById('leave').textContent='Opening your dashboard...';
+  setTimeout(function(){location.href='/app';},1700);
+}
+function poll(){
+  fetch('/app/status',{headers:{accept:'application/json'}}).then(function(r){return r.json();})
+   .then(function(d){if(d&&d.state==='done'){done(d);}else{setTimeout(poll,2000);}})
+   .catch(function(){setTimeout(poll,3000);});
+}
+setTimeout(poll,1500);
+</script>
+</body></html>'''
+
+
 def _preparing_page(shop: str | None = None) -> HTMLResponse:
     from halia import notify as _notify
 
-    can_email = _notify.email_configured()
-    state = sync_status(shop).get("state") if shop else "running"
-    spinner = ("<div class=card><div style='display:flex;gap:10px;align-items:center'>"
-               "<div class='spin' style='width:18px;height:18px;border:3px solid #d8d8d8;"
-               "border-top-color:#1f564a;border-radius:50%;animation:s 1s linear infinite'></div>"
-               "<span style='color:#616161;font-size:14px'>Working on it</span></div></div>"
-               "<style>@keyframes s{to{transform:rotate(360deg)}}</style>")
-    leave = ("You can close this tab and we will email you the moment your VICs are ready."
-             if can_email else
-             "You can leave this page open; it keeps working and will load your dashboard on its own.")
-    if state == "error":
-        inner = ("<h1>This is taking longer than usual</h1>"
-                 f"<p class=sub>We hit a snag pulling your store and we are retrying. {leave}</p>"
-                 + spinner)
-    else:
-        inner = ("<h1>Scoring your store</h1>"
-                 "<p class=sub>Halia is pulling your orders and grading every customer. A large "
-                 f"store can take a little while the first time. {leave}</p>" + spinner)
-    resp = HTMLResponse(_page("Scoring · Halia", inner))
-    resp.headers["Refresh"] = "5"  # browser re-requests /app every 5s
+    leave = ("You can close this tab. We will email you the moment your VICs are ready."
+             if _notify.email_configured() else
+             "Keep this tab open. It opens your dashboard automatically the second it is ready.")
+    resp = HTMLResponse(_PREPARING.replace("__LEAVE__", leave))
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
@@ -1151,6 +1204,19 @@ def register(app) -> None:
         resp = HTMLResponse(body)
         resp.headers["Cache-Control"] = "no-store"
         return resp
+
+    @app.get("/app/status")
+    def hosted_status(request: Request) -> dict:
+        """Live scoring status for the preparing screen to poll."""
+        shop = require_tenant(request)
+        entry = cache.get(shop)
+        if entry is not None:
+            p = entry["payload"]
+            return {"state": "done", "count": p.get("stat_count", "0"),
+                    "latent": p.get("stat_latent", "")}
+        _start_sync(shop, notify=True)  # keep it alive / restart if the worker died
+        st = sync_status(shop)
+        return {"state": st.get("state") or "running", "error": st.get("error", "")}
 
     @app.post("/app/refresh")
     def hosted_refresh(request: Request):

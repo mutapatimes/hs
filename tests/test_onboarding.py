@@ -76,6 +76,26 @@ def test_app_shows_preparing_without_cache(client):
     assert r.status_code == 200 and "Scoring your store" in r.text
 
 
+def test_app_status_done_with_counts(client):
+    from halia.cache import cache
+    c, store = client
+    tok = _make_tenant(store)
+    cache.set("shopx", [], {"stat_count": "9", "stat_latent": "£50,000"}, {})
+    try:
+        c.cookies.set(COOKIE, tok)
+        d = c.get("/app/status").json()
+        assert d["state"] == "done" and d["count"] == "9" and d["latent"] == "£50,000"
+    finally:
+        cache.evict("shopx")
+
+
+def test_app_status_running_without_cache(client):
+    c, store = client
+    tok = _make_tenant(store)
+    c.cookies.set(COOKIE, tok)
+    assert c.get("/app/status").json()["state"] in ("running", "idle")
+
+
 def test_app_rejects_bad_token(client):
     c, _ = client
     c.cookies.set(COOKIE, "not-a-real-token")
