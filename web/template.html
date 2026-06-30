@@ -745,6 +745,41 @@ function oRow(o,i){
     <div class="oact">${oActions(o,i)}</div>
   </div>`;
 }
+// snapshots so we can restore the Clients header/stats when switching back
+const ORIG_TITLE=document.querySelector(".title").textContent,
+      ORIG_SUB=document.querySelector(".sub").textContent,
+      ORIG_STATS=document.querySelector(".stats").innerHTML;
+function orderStatsHTML(list){
+  const val=list.reduce((s,o)=>s+(o.amount||0),0);
+  const nf=list.filter(o=>o.statusCat==="new").length;
+  const ff=list.filter(o=>o.statusCat==="fulfilled").length;
+  const rc=list.filter(o=>o.statusCat==="refunded"||o.statusCat==="cancelled").length;
+  return `<div class="stat hero"><div class="k">Order value in view</div><div class="v">£${val.toLocaleString()}</div><div class="n">across ${list.length} order${list.length===1?"":"s"}</div></div>
+   <div class="stat"><div class="k">Need fulfilling</div><div class="v mono" style="font-family:'Fraunces',serif">${nf}</div><div class="n up">unfulfilled, action ready</div></div>
+   <div class="stat"><div class="k">Fulfilled</div><div class="v">${ff}</div><div class="n">on their way</div></div>
+   <div class="stat"><div class="k">Refunds &amp; cancels</div><div class="v">${rc}</div><div class="n">worth a personal note</div></div>`;
+}
+function openOrderDrawer(o){
+  const c=DATA.find(x=>x.cid===o.cid), sigs=c?c.signals:[], reco=c?c.reco:"", em=o.email||"";
+  const tpls=ORDER_TEMPLATES[o.statusCat]||ORDER_TEMPLATES.new;
+  const href=t=>`mailto:${em}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(fillTemplate(t.body,o))}`;
+  drawer.innerHTML=`
+    <div class="dhead">
+      <button class="dclose" id="dclose">&times;</button>
+      <div style="font:600 11px system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--soft)">Order</div>
+      <div style="display:flex;align-items:center;gap:11px;margin-top:5px"><div style="font:700 22px 'Fraunces',serif">#${esc(o.orderId)}</div>${osb(o)}</div>
+      <div style="color:var(--soft);font-size:13px;margin-top:7px">${o.date||""} &middot; £${(o.amount||0).toLocaleString()}${o.items?` &middot; ${o.items} item${o.items===1?"":"s"}`:""}</div>
+    </div>
+    <div style="padding:18px 22px">
+      <div style="display:flex;align-items:center;gap:10px">${ogr(o)}<div style="font:600 16px system-ui">${esc(o.name)}</div>${o.score?`<span style="margin-left:auto;font:700 13px system-ui;color:var(--brand)">Score ${o.score}</span>`:""}</div>
+      ${sigs.length?`<div style="font:600 11px system-ui;color:var(--soft);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.08em">Why this client matters</div>${sigs.map(s=>`<div class="ev"><span class="badge">${SEGMENTS[s.seg]?SEGMENTS[s.seg].label:""}</span><div class="d">${s.d}${s.x?`<small>${s.x}</small>`:""}</div></div>`).join("")}`:`<div style="color:var(--soft);font-size:13px;margin:14px 0">Graded ${o.grade||"this client"}. Open the Clients view for the full signal breakdown on your hidden VICs.</div>`}
+      ${reco?`<div style="font:600 11px system-ui;color:var(--soft);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.08em">Recommended approach</div><div style="font-size:14px;line-height:1.6">${reco}</div>`:""}
+      <div style="font:600 11px system-ui;color:var(--soft);margin:20px 0 9px;text-transform:uppercase;letter-spacing:.08em">Send a ${o.status.toLowerCase()} message</div>
+      <div style="display:flex;flex-direction:column;gap:8px">${tpls.map((t,j)=>`<a class="obtn${j===0?" primary":""}" style="justify-content:flex-start;text-align:left" href="${href(t)}" target="_top">${t.name}</a>`).join("")}<a class="obtn" style="justify-content:flex-start" href="mailto:${em}" target="_top">Blank email</a></div>
+    </div>`;
+  drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
+  document.getElementById("dclose").onclick=closeDrawer;
+}
 function renderOrders(){
   const onlyTop=!document.getElementById("oAllGrades").checked;
   const st=document.getElementById("oStatus").value;
@@ -757,7 +792,9 @@ function renderOrders(){
   });
   document.getElementById("orows").innerHTML = list.length?list.map(oRow).join(""):'<div class="oempty">No orders to show. Try Show every grade, or a different status.</div>';
   document.getElementById("ofoot").textContent = list.length+" order"+(list.length===1?"":"s")+(onlyTop?" from clients graded above C":"")+" · newest first";
+  document.querySelector(".stats").innerHTML = orderStatsHTML(list);
   document.querySelectorAll("[data-om]").forEach(b=>b.onclick=e=>{e.stopPropagation();const m=document.getElementById("om-"+b.dataset.om);const open=m.classList.contains("show");document.querySelectorAll(".omenu.show").forEach(x=>x.classList.remove("show"));if(!open)m.classList.add("show");});
+  document.querySelectorAll("#orows .orow").forEach((row,idx)=>{row.style.cursor="pointer";row.onclick=e=>{if(e.target.closest(".oact"))return;openOrderDrawer(list[idx]);};});
 }
 document.addEventListener("click",()=>document.querySelectorAll(".omenu.show").forEach(m=>m.classList.remove("show")));
 ["oAllGrades","oStatus","oq"].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener(e.type==="text"?"input":"change",renderOrders);});
@@ -766,7 +803,15 @@ document.querySelectorAll(".vtab").forEach(t=>t.onclick=()=>{
   const v=t.dataset.view;
   document.getElementById("viewClients").style.display=v==="clients"?"":"none";
   document.getElementById("viewOrders").style.display=v==="orders"?"":"none";
-  if(v==="orders") renderOrders();
+  if(v==="orders"){
+    document.querySelector(".title").textContent="Orders";
+    document.querySelector(".sub").textContent="Every order, newest first, ranked by the client behind it. Act on each one while it is live, the message matches the order's status.";
+    renderOrders();
+  } else {
+    document.querySelector(".title").textContent=ORIG_TITLE;
+    document.querySelector(".sub").textContent=ORIG_SUB;
+    document.querySelector(".stats").innerHTML=ORIG_STATS;
+  }
 });
 function openDrawer(id){
   const c=DATA.find(x=>x.id===id);

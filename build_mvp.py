@@ -295,6 +295,7 @@ def _orders_list(raw_orders, score_map: dict, limit: int = 600) -> list[dict]:
             "date": str(o.get("created_at") or "")[:10],
             "amount": int(round(_num(o.get("total_price") if o.get("total_price") is not None else o.get("total")))),
             "status": label, "statusCat": cat,
+            "items": sum(int(li.get("quantity") or 0) for li in (o.get("line_items") or [])),
             "name": name, "first": firstName_py(name),
             "email": sc.get("email") or _text(o.get("email")),
             "grade": sc.get("grade", ""), "tier": sc.get("tier", ""), "score": sc.get("score", 0),
