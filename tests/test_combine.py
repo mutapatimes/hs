@@ -60,13 +60,15 @@ def test_correlated_geo_signals_get_diminishing_returns():
         "LATEST_BILLING_ZIP": "SW10 9SJ",           # hnwi_postcode (geo), w=3
         "LATEST_BILLING_ADDRESS4": "Qatar",         # gcc_billing (geo), w=2
     }]), include_origin=True)  # origin proxies opted in to test geo grouping
-    # All 3 fire, but the two GEO tells don't fully stack:
-    #   work_email 3  +  geo[ hnwi 3 (full) + gcc 2 x 0.5 ]  = 3 + 4.0 = 7.0
-    # (naive additive would have been 3 + 3 + 2 = 8).
-    assert out.loc[0, COUNT_COL] == 3
-    assert out.loc[0, SCORE_COL] == 7.0
+    # SW10 fires both hnwi_postcode AND property_value (Chelsea, a prime area). Four
+    # signals fire, but the three GEO tells (same location) don't fully stack:
+    #   work_email 3  +  geo[ hnwi 3 (full) + property_value 3 x0.5 + gcc 2 x0.25 ]
+    #   = 3 + (3 + 1.5 + 0.5) = 8.0   (naive additive would have been 3+3+3+2 = 11).
+    assert out.loc[0, COUNT_COL] == 4
+    assert out.loc[0, SCORE_COL] == 8.0
     reasons = out.loc[0, REASONS_COL]
-    assert "Work email" in reasons and "HNWI postcode" in reasons and "GCC billing" in reasons
+    assert "Work email" in reasons and "HNWI postcode" in reasons \
+        and "Property value" in reasons and "GCC billing" in reasons
 
 
 def test_three_correlated_geo_tells_score_below_their_raw_sum():

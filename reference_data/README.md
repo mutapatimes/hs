@@ -5,6 +5,7 @@ these **are** committed to the repo.
 
 - `postcodes/hnwi_postcodes.csv` — ultra-prime UK postcode prefixes (HNWI signal).
 - `postcodes/affluent_postcodes.csv` — broader affluent postcode prefixes (starter).
+- `postcodes/uk_property_values.csv` : outcode to median property value + tier (property_value signal). Curated seed; regenerate to full national coverage with `python scripts/build_property_values.py` (HM Land Registry Price Paid Data).
 - `venues/luxury_venues.csv` — luxury hotels/clubs/stores used as address signals.
 - `domains/wealth_employer_domains.csv` — wealth-signalling employer email domains
   (banking, private equity, hedge funds, wealth management, family offices).

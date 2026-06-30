@@ -37,6 +37,7 @@ RECO = {
     "Styling service (B2B)": "B2B trade account: this buyer styles many UHNW clients. Open a wholesale/trade relationship with a dedicated contact and recurring-order terms, not a one-off discount. Highest-value relationship to win.",
     "HNWI postcode": "Ultra-prime billing area. Strong candidate for a private appointment and early access to new drops.",
     "Prime residence": "Trophy-building address signals real wealth. Worth a personal associate assignment.",
+    "Property value": "Lives in a high-value area (local property prices well above national). A genuine wealth tell on modest spend: worth a personal, service-led approach.",
     "Delivery": "Notable delivery destination. Offer concierge / in-stay delivery and capture a primary address.",
     "Honorific": "Titled client. Keep handling discreet and service-first.",
     "Company": "Wealth-linked employer on file. A gentle, service-led first approach.",

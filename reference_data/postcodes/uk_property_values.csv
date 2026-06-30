@@ -1,0 +1,82 @@
+outcode,area,median_price,tier
+# UK area property-value signal (a WEALTH FACT, on by default; not an origin proxy).
+# Each row maps a postcode OUTCODE (district, e.g. "SW10") to the approximate median
+# property value of that area and a tier. A customer whose billing/shipping postcode
+# falls in a listed outcode scores on property_value, weighted by tier:
+#     ultra  (>= ~£1.5m area median)  -> strongest
+#     prime  (~£900k - £1.5m)
+#     high   (~£600k - £900k)
+# Areas below ~£600k are simply not listed (no tell), keeping this file compact.
+#
+# THIS IS A CURATED SEED. Regenerate/expand it to full national coverage from HM Land
+# Registry Price Paid Data (free, open) with:  python scripts/build_property_values.py
+# That script computes the median sale price per outcode and assigns tiers by national
+# percentile, so the list is data-driven rather than hand-picked.
+#
+# Columns: outcode, area (for the reason text), median_price (GBP), tier.
+# Lines starting with # are comments and are ignored.
+W1K,Mayfair,3200000,ultra
+W1J,Mayfair,2600000,ultra
+W1S,Mayfair,2400000,ultra
+SW1X,Belgravia & Knightsbridge,2900000,ultra
+SW1A,St James's,2500000,ultra
+SW1W,Belgravia,1800000,ultra
+W8,Kensington,1950000,ultra
+SW3,Chelsea,1900000,ultra
+SW7,South Kensington,1850000,ultra
+W11,Notting Hill & Holland Park,1700000,ultra
+NW8,St John's Wood,1600000,ultra
+N6,Highgate,1500000,ultra
+GU25,Virginia Water,1650000,ultra
+KT11,Cobham & Oxshott,1550000,ultra
+BH13,Sandbanks & Branksome Park,1550000,ultra
+NW3,Hampstead,1400000,prime
+SW10,Chelsea & West Brompton,1300000,prime
+SW13,Barnes,1300000,prime
+W2,Bayswater & Hyde Park,1200000,prime
+NW11,Hampstead Garden Suburb,1200000,prime
+NW1,Primrose Hill & Regent's Park,1100000,prime
+TW10,Richmond Hill,1100000,prime
+HP9,Beaconsfield,1100000,prime
+SW5,Earls Court,1100000,prime
+W4,Chiswick,1050000,prime
+SW6,Fulham,1050000,prime
+KT10,Esher,1000000,prime
+SE21,Dulwich,1000000,prime
+SL5,Ascot & Sunningdale,1000000,prime
+W6,Hammersmith & Brook Green,975000,prime
+SW11,Battersea,950000,prime
+N1,Islington,950000,prime
+TW9,Kew,950000,prime
+KT13,Weybridge,950000,prime
+SK9,Alderley Edge & Wilmslow,920000,prime
+SW14,Mortlake & East Sheen,900000,prime
+SW19,Wimbledon,830000,high
+CB3,Cambridge (west),850000,high
+OX2,Oxford (north & west),820000,high
+SW18,Wandsworth,800000,high
+SW15,Putney,790000,high
+JE2,Jersey,800000,high
+SE3,Blackheath,760000,high
+SL6,Maidenhead & Bray,760000,high
+TW11,Teddington,760000,high
+GU8,Godalming & Witley,750000,high
+SW20,Raynes Park,720000,high
+TW1,Twickenham,710000,high
+CB2,Cambridge (south),710000,high
+KT2,Kingston upon Thames,700000,high
+KT22,Leatherhead & Oxshott,700000,high
+EH3,Edinburgh New Town,700000,high
+RH4,Dorking,670000,high
+GU7,Godalming,660000,high
+BN3,Hove,660000,high
+BS8,Clifton (Bristol),660000,high
+BS9,Stoke Bishop (Bristol),650000,high
+BA2,Bath (south),650000,high
+OX1,Oxford (central),650000,high
+TW12,Hampton,650000,high
+EH10,Edinburgh Morningside,620000,high
+EH4,Edinburgh (west),610000,high
+HG2,Harrogate (south),610000,high
+GU1,Guildford,610000,high
+RG9,Henley-on-Thames,820000,high

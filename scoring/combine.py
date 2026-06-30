@@ -39,6 +39,7 @@ from scoring.signals import (
     phone_country,
     post_nominal,
     premium_email,
+    property_value,
     styling_service,
     prime_residence,
     rich_list,
@@ -55,6 +56,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "us_hnwi_zip": 3,
     "intl_postcode": 3,
     "hnw_area": 3,
+    "property_value": 2,  # base; the tier (ultra/prime/high) overrides, see PROPERTY_TIER_WEIGHTS
     "hotel_concierge": 3,
     "delivery_venue": 3,
     "styling_service": 3,  # B2B trade account — buys for many UHNW clients
@@ -99,6 +101,14 @@ DOMAIN_KEYWORD_TYPE_WEIGHTS = {
     "general": 2,
 }
 
+# Within property_value, the area's value TIER grades the tell: an ultra-prime area
+# median outweighs a merely high-value one. Overrides the signal's base weight.
+PROPERTY_TIER_WEIGHTS = {
+    "ultra": 4,
+    "prime": 3,
+    "high": 2,
+}
+
 # "Supporting" signals are too weak/sensitive to ever flag a customer on their
 # own: they contribute to the score and count ONLY when at least one stronger
 # (non-supporting) signal has also fired. This enforces "never a sole basis".
@@ -124,6 +134,7 @@ SIGNAL_GROUP: dict[str, str] = {
     "us_hnwi_zip": "geo",
     "intl_postcode": "geo",
     "hnw_area": "geo",
+    "property_value": "geo",  # area property value echoes the same location
     "prime_residence": "geo",
     "gcc_billing": "geo",
     "tax_haven": "geo",
@@ -188,6 +199,8 @@ SIGNALS = [
      intl_postcode.FLAG_COL, lambda r: r[intl_postcode.REASON_COL]),
     ("hnw_area", "HNW area", hnw_area.flag_hnw_area,
      hnw_area.MATCH_COL, lambda r: f"{r[hnw_area.AREA_COL]} ({r[hnw_area.TYPE_COL]})"),
+    ("property_value", "Property value", property_value.flag_property_value,
+     property_value.FLAG_COL, lambda r: r[property_value.REASON_COL]),
     ("wealth_office", "Wealth office", wealth_office.flag_wealth_office,
      wealth_office.MATCH_COL, lambda r: r[wealth_office.OFFICE_COL]),
     ("delivery_venue", "Delivery", delivery_venue.flag_delivery_venue,
@@ -323,6 +336,8 @@ def score_customers(
                 type_spec = (delivery_venue.TYPE_COL, DELIVERY_TYPE_WEIGHTS)
             elif key == "domain_keyword":
                 type_spec = (domain_keyword.TYPE_COL, DOMAIN_KEYWORD_TYPE_WEIGHTS)
+            elif key == "property_value":
+                type_spec = (property_value.TIER_COL, PROPERTY_TIER_WEIGHTS)
             if type_spec and type_spec[0] in out.columns:
                 type_col, type_weights = type_spec
                 wv = out[type_col].map(

@@ -97,7 +97,8 @@ safeguards). Keep the human and the "elevate-only" effect real.
 
 **On by default (wealth / work / specific-address facts):**
 work email, HNWI postcode, US HNWI ZIP, international prime postcode, prime neighbourhood (HNW
-area), hotel concierge, delivery venue, styling service, prime residence, premium card, honorific,
+area), area property value (median sale price of the postcode district, from HM Land Registry open
+data), hotel concierge, delivery venue, styling service, prime residence, premium card, honorific,
 company keyword, premium email, wealth office, elite alumni, assistant order, post-nominal,
 fashion stylist, stylist directory, IP location, domain keyword, custom email, rich-list surname.
 
