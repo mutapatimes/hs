@@ -145,6 +145,73 @@ def _preparing_page() -> HTMLResponse:
     return resp
 
 
+def _norm_shop(value: str) -> str:
+    """Normalise a Shopify shop to its myshopify domain (accepts a handle, domain, or URL)."""
+    s = re.sub(r"^https?://", "", (value or "").lower()).strip().strip("/").split("/")[0]
+    if not s:
+        return ""
+    return s if s.endswith(".myshopify.com") else f"{s}.myshopify.com"
+
+
+def _validate_shopify(shop_domain: str, token: str, probe=None) -> tuple[bool, str]:
+    """One live Admin API call to confirm a Shopify custom-app token works. `probe` is injectable."""
+    try:
+        if probe is None:
+            from scoring.shopify_fetch import http_transport
+            probe = http_transport(shop_domain, token)
+        res = probe("{ shop { name } }", {})
+        if isinstance(res, dict) and res.get("errors"):
+            import json
+            return False, json.dumps(res["errors"])[:160]
+        return True, ""
+    except Exception as exc:  # noqa: BLE001 — surface a short reason
+        return False, str(exc)[:180]
+
+
+_SHOPIFY_HINTS = ("cdn.shopify.com", "/cdn/shop/", "shopify.shop", "x-shopify", "x-shopid",
+                  "myshopify.com", "shopify-section", "shopify.theme")
+_WOO_HINTS = ("woocommerce", "/plugins/woocommerce", "wp-json/wc/", "wc-block", "wc_add_to_cart",
+              "woocommerce-page")
+
+
+def _detect_platform(store_url: str, fetch=None) -> dict:
+    """Best-effort: fetch the storefront once and guess Shopify vs WooCommerce.
+
+    Returns {"platform": "shopify"|"woocommerce"|"unknown", "myshopify": domain-or-empty}.
+    Never raises; an unknown result simply lets the wizard ask the merchant to choose.
+    """
+    url = (store_url or "").strip()
+    if not url:
+        return {"platform": "unknown", "myshopify": ""}
+    if not url.startswith("http"):
+        url = "https://" + url
+    try:
+        if fetch is None:
+            import requests
+            r = requests.get(url, timeout=7, allow_redirects=True,
+                             headers={"User-Agent": "HaliaBot/1.0 (+store detection)"})
+            header_blob = " ".join(f"{k}:{v}" for k, v in r.headers.items())
+            body = r.text[:200000]
+        else:
+            header_blob, body = fetch(url)
+    except Exception:  # noqa: BLE001 — detection is a convenience, never fatal
+        return {"platform": "unknown", "myshopify": ""}
+    blob = (header_blob + " " + (body or "")).lower()
+    m = re.search(r"([a-z0-9][a-z0-9\-]*\.myshopify\.com)", blob)
+    myshop = m.group(1) if m else ""
+    shopify = any(h in blob for h in _SHOPIFY_HINTS)
+    woo = any(h in blob for h in _WOO_HINTS)
+    if shopify and not woo:
+        platform = "shopify"
+    elif woo and not shopify:
+        platform = "woocommerce"
+    elif shopify and woo:
+        platform = "shopify"
+    else:
+        platform = "unknown"
+    return {"platform": platform, "myshopify": myshop}
+
+
 _WIZARD = r'''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>Connect your store · Halia</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -219,18 +286,10 @@ summary::-webkit-details-marker{display:none}
   </section>
 
   <section class="step" data-step="2">
-    <div class="eyebrow">Your store data</div>
-    <h1>Connect your orders, <em>safely.</em></h1>
-    <p class="lede">Halia reads your past orders to learn who your customers really are. You hand it a read-only key, so it can look but never touch.</p>
-    <ol class="slist">
-      <li>In your store admin, open <b>WooCommerce &rarr; Settings &rarr; Advanced &rarr; REST API</b>.</li>
-      <li>Click <b>Add key</b>. Description: "Halia". Permissions: <b>Read</b>.</li>
-      <li>Click <b>Generate API key</b>, then copy the two values it shows you.</li>
-    </ol>
-    <label>Consumer key</label>
-    <input id="consumer_key" placeholder="ck_..." autocomplete="off">
-    <label>Consumer secret</label>
-    <input id="consumer_secret" type="password" placeholder="cs_..." autocomplete="off">
+    <div class="eyebrow" id="srceye">Your store data</div>
+    <h1 id="srctitle">Connect your orders, <em>safely.</em></h1>
+    <p class="lede" id="srclede">Halia reads your past orders to learn who your customers really are. It connects read-only, so it can look but never touch.</p>
+    <div id="srcbody"></div>
     <div id="codewrap" style="display:none">
       <label>Signup code</label>
       <input id="code" type="password" placeholder="from your Halia contact" autocomplete="off">
@@ -299,11 +358,40 @@ summary::-webkit-details-marker{display:none}
 <script>
 var SIGNUP=__SIGNUP_REQUIRED__;
 var steps=[].slice.call(document.querySelectorAll('.step'));
-var state={platform:null,cur:0};
+var state={platform:null,source:null,myshop:'',cur:0};
 if(SIGNUP) document.getElementById('codewrap').style.display='block';
 function gv(id){var e=document.getElementById(id);return e?e.value.trim():'';}
 function err(id,msg){var e=document.getElementById(id);if(e){e.textContent=msg;e.style.display='block';}}
 function clearErrs(){['err1','err2','err4','err6'].forEach(function(i){var e=document.getElementById(i);if(e)e.style.display='none';});}
+function renderSource(){
+  var eye=document.getElementById('srceye'),ti=document.getElementById('srctitle'),le=document.getElementById('srclede'),b=document.getElementById('srcbody');
+  if(state.source==='woocommerce'){
+    eye.textContent='Your store data · WooCommerce';
+    ti.innerHTML='Connect your orders, <em>safely.</em>';
+    le.textContent='You give Halia a read-only WooCommerce key. It can read your past orders, and nothing else.';
+    b.innerHTML='<ol class="slist"><li>In your store admin, open <b>WooCommerce &rarr; Settings &rarr; Advanced &rarr; REST API</b>.</li><li>Click <b>Add key</b>. Description: "Halia". Permissions: <b>Read</b>.</li><li>Click <b>Generate API key</b>, then copy the two values.</li></ol><label>Consumer key</label><input id="consumer_key" placeholder="ck_..." autocomplete="off"><label>Consumer secret</label><input id="consumer_secret" type="password" placeholder="cs_..." autocomplete="off">';
+  } else if(state.source==='shopify'){
+    eye.textContent='Your store data · Shopify';
+    ti.innerHTML='Connect your orders, <em>safely.</em>';
+    le.textContent='You give Halia a read-only Shopify token. It can read your past orders, and nothing else.';
+    b.innerHTML='<ol class="slist"><li>In Shopify admin, open <b>Settings &rarr; Apps and sales channels &rarr; Develop apps</b>.</li><li>Click <b>Create an app</b>, name it "Halia", then <b>Configure Admin API scopes</b>.</li><li>Tick <b>read_orders</b> and <b>read_customers</b>, save, then <b>Install app</b>.</li><li>Copy the <b>Admin API access token</b> (it starts with shpat_).</li></ol><label>Your Shopify store domain</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address, even if your shop uses a custom domain.</div><label>Admin API access token</label><input id="admin_token" type="password" placeholder="shpat_..." autocomplete="off">';
+  } else {
+    eye.textContent='Your store';
+    ti.innerHTML='Which platform powers your <em>store?</em>';
+    le.textContent='We could not tell automatically, no problem at all. Pick yours and we will show you exactly what to do.';
+    b.innerHTML='<div class="cards"><div class="pcard" data-src="shopify"><div class="pi">S</div><div><h3>Shopify</h3><p>Connect with a read-only Admin API token.</p></div></div><div class="pcard" data-src="woocommerce"><div class="pi">W</div><div><h3>WooCommerce</h3><p>Connect with a read-only REST API key.</p></div></div></div>';
+    [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){state.source=c.dataset.src;renderSource();};});
+  }
+}
+function detectThenAdvance(){
+  var b=document.querySelector('.step.active [data-next]'),orig=b?b.innerHTML:'';
+  if(b){b.disabled=true;b.innerHTML='Looking at your store&hellip;';}
+  fetch('/v1/detect',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({store_url:gv('store_url')})})
+   .then(function(r){return r.json();})
+   .then(function(d){state.source=(d&&d.platform&&d.platform!=='unknown')?d.platform:'unknown';state.myshop=(d&&d.myshopify)||'';})
+   .catch(function(){state.source='unknown';})
+   .then(function(){if(b){b.disabled=false;b.innerHTML=orig;}renderSource();show(2);});
+}
 function order(){var o=[1,2,3];if(state.platform&&state.platform!=='later')o.push(4);o.push(5);return o;}
 function show(n){
   state.cur=n;
@@ -334,7 +422,10 @@ function fillPlatform(){
 function valid(n){
   clearErrs();
   if(n===1){if(!/^https?:\/\//i.test(gv('store_url'))){err('err1','Enter your full store address, starting with https://');return false;}}
-  if(n===2){if(!gv('consumer_key')||!gv('consumer_secret')){err('err2','Paste both your consumer key and secret.');return false;}
+  if(n===2){
+    if(state.source==='shopify'){if(!gv('shop_domain')){err('err2','Enter your .myshopify.com store domain.');return false;}if(!gv('admin_token')){err('err2','Paste your Admin API access token.');return false;}}
+    else if(state.source==='woocommerce'){if(!gv('consumer_key')||!gv('consumer_secret')){err('err2','Paste both your consumer key and secret.');return false;}}
+    else{err('err2','Choose your store platform to continue.');return false;}
     if(SIGNUP&&!gv('code')){err('err2','Enter your signup code.');return false;}}
   if(n===4){var key=gv('api_key');if(!key){err('err4','Paste your '+(state.platform==='klaviyo'?'Klaviyo':'Mailchimp')+' key, or go back and choose to connect later.');return false;}
     if(state.platform==='klaviyo'&&key.indexOf('pk_')!==0){err('err4','A Klaviyo private key starts with pk_.');return false;}}
@@ -342,7 +433,7 @@ function valid(n){
 }
 function nextFrom(n){if(n===3)return(state.platform&&state.platform!=='later')?4:5;if(n===4)return 5;if(n===5)return 'finish';return n+1;}
 function backFrom(n){if(n===5)return(state.platform&&state.platform!=='later')?4:3;if(n===4)return 3;return Math.max(0,n-1);}
-function handleNext(){var n=state.cur;if(!valid(n))return;var t=nextFrom(n);if(t==='finish')finish();else show(t);}
+function handleNext(){var n=state.cur;if(!valid(n))return;if(n===1){detectThenAdvance();return;}var t=nextFrom(n);if(t==='finish')finish();else show(t);}
 [].forEach.call(document.querySelectorAll('[data-next]'),function(b){b.onclick=handleNext;});
 [].forEach.call(document.querySelectorAll('[data-back]'),function(b){b.onclick=function(){show(backFrom(state.cur));};});
 [].forEach.call(document.querySelectorAll('.pcard'),function(c){c.onclick=function(){
@@ -351,7 +442,9 @@ function handleNext(){var n=state.cur;if(!valid(n))return;var t=nextFrom(n);if(t
 document.getElementById('stage').addEventListener('keydown',function(e){
   if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();handleNext();}});
 function payload(){return{
-  label:gv('label'),store_url:gv('store_url'),consumer_key:gv('consumer_key'),consumer_secret:gv('consumer_secret'),code:gv('code'),
+  label:gv('label'),store_url:gv('store_url'),source:state.source||'',
+  consumer_key:gv('consumer_key'),consumer_secret:gv('consumer_secret'),
+  shop_domain:gv('shop_domain'),admin_token:gv('admin_token'),code:gv('code'),
   platform:(!state.platform||state.platform==='later')?'':state.platform,api_key:gv('api_key'),
   vic_threshold:gv('vic_threshold'),sender_name:gv('sender_name'),aov:gv('aov'),max_orders:gv('max_orders'),highest_lt:gv('highest_lt')};}
 function finish(){
@@ -373,7 +466,7 @@ function finish(){
    .catch(function(e){
      var m=e.message||'Something went wrong.';
      if(/address|https/i.test(m)){show(1);err('err1',m);}
-     else if(/woocommerce|key and secret|signup code/i.test(m)){show(2);err('err2',m);}
+     else if(/woocommerce|shopify|key and secret|domain|access token|signup code/i.test(m)){show(2);err('err2',m);}
      else{sp.style.display='none';document.getElementById('donesub').textContent='We hit a snag.';err('err6',m);
        var o=document.getElementById('openbtn');o.textContent='Start over';o.href='/connect';document.getElementById('donerow').style.display='flex';}
    });
@@ -447,35 +540,53 @@ def register(app) -> None:
         if config.SIGNUP_CODE and g("code") != config.SIGNUP_CODE:
             raise HTTPException(403, "That signup code is not right. Check with your Halia contact.")
 
-        store_url = g("store_url").rstrip("/")
-        shop = _slug(store_url)
-        if not shop or not store_url.startswith("http"):
-            raise HTTPException(400, "Enter your full store web address, starting with https://")
-        ck, cs = g("consumer_key"), g("consumer_secret")
-        if not ck or not cs:
-            raise HTTPException(400, "Add your WooCommerce consumer key and secret.")
-
-        ok, why = _validate_woo(store_url, ck, cs)
-        if not ok:
-            raise HTTPException(400, f"We could not reach WooCommerce with those keys: {why}")
-
         import json as _json
 
-        token = new_token()
         store = shop_store()
-        label = g("label") or shop
-        store.create_tenant(shop, "woocommerce", label, hash_token(token))
-        store.save_woocommerce(shop, store_url, ck, cs)
+        store_url = g("store_url").rstrip("/")
+        label = g("label")
+        source = g("source").lower() or "woocommerce"
+        link_token = new_token()
+
+        if source == "shopify":
+            domain = _norm_shop(g("shop_domain") or store_url)
+            admin_token = g("admin_token")
+            if not domain or not admin_token:
+                raise HTTPException(400, "Add your Shopify store domain and Admin API access token.")
+            ok, why = _validate_shopify(domain, admin_token)
+            if not ok:
+                raise HTTPException(400, f"We could not reach Shopify with that token: {why}")
+            shop = domain
+            label = label or domain.replace(".myshopify.com", "")
+            store.create_tenant(shop, "shopify", label, hash_token(link_token))
+            store.save_shop(shop, admin_token)
+        else:
+            shop = _slug(store_url)
+            if not shop or not store_url.startswith("http"):
+                raise HTTPException(400, "Enter your full store web address, starting with https://")
+            ck, cs = g("consumer_key"), g("consumer_secret")
+            if not ck or not cs:
+                raise HTTPException(400, "Add your WooCommerce consumer key and secret.")
+            ok, why = _validate_woo(store_url, ck, cs)
+            if not ok:
+                raise HTTPException(400, f"We could not reach WooCommerce with those keys: {why}")
+            label = label or shop
+            store.create_tenant(shop, "woocommerce", label, hash_token(link_token))
+            store.save_woocommerce(shop, store_url, ck, cs)
+
         store.save_settings(shop, _json.dumps({
             "vic_threshold": num("vic_threshold") or 5000,
             "sender_name": g("sender_name")[:120],
             "aov": num("aov"), "max_orders": int(num("max_orders")), "highest_lt": num("highest_lt"),
         }))
-
         connected, warning = _connect_marketing(store, shop, g("platform"), g("api_key"))
         _start_sync(shop)  # warm the cache while they read the closing screen
-        return {"ok": True, "link": f"/app?t={token}", "label": label,
+        return {"ok": True, "link": f"/app?t={link_token}", "label": label,
                 "platform_connected": connected, "platform_warning": warning}
+
+    @app.post("/v1/detect")
+    def detect_store(payload: dict = Body(...)) -> dict:
+        return _detect_platform(str((payload or {}).get("store_url", "")))
 
     @app.post("/connect", response_class=HTMLResponse)
     def connect_submit(

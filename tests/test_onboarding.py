@@ -117,6 +117,41 @@ def test_onboard_klaviyo_bad_key_warns_not_blocks(client):
     assert store.get_klaviyo("x-com") is None  # bad key never saved
 
 
+def test_detect_platform_from_signals():
+    sho = onboarding._detect_platform("http://x", fetch=lambda u: ("", "load //cdn.shopify.com m=acme.myshopify.com"))
+    assert sho == {"platform": "shopify", "myshopify": "acme.myshopify.com"}
+    woo = onboarding._detect_platform("http://x", fetch=lambda u: ("", "/wp-content/plugins/woocommerce/x"))
+    assert woo["platform"] == "woocommerce"
+    assert onboarding._detect_platform("http://x", fetch=lambda u: ("", "plain site"))["platform"] == "unknown"
+
+
+def test_detect_endpoint(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr(onboarding, "_detect_platform",
+                        lambda url: {"platform": "shopify", "myshopify": "acme.myshopify.com"})
+    r = c.post("/v1/detect", json={"store_url": "https://acme.com"})
+    assert r.status_code == 200 and r.json()["platform"] == "shopify"
+
+
+def test_onboard_shopify_creates_tenant_and_saves_token(client, monkeypatch):
+    c, store = client
+    monkeypatch.setattr(onboarding, "_validate_shopify", lambda *a, **k: (True, ""))
+    r = c.post("/v1/onboard", json={"source": "shopify", "shop_domain": "acme.myshopify.com",
+                                    "admin_token": "shpat_xyz", "label": "Acme", "platform": ""})
+    assert r.status_code == 200 and r.json()["link"].startswith("/app?t=")
+    t = store.get_tenant("acme.myshopify.com")
+    assert t and t["kind"] == "shopify"
+    assert store.get_token("acme.myshopify.com") == "shpat_xyz"
+
+
+def test_onboard_shopify_bad_token_rejected(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr(onboarding, "_validate_shopify", lambda *a, **k: (False, "401 Unauthorized"))
+    r = c.post("/v1/onboard", json={"source": "shopify", "shop_domain": "acme.myshopify.com",
+                                    "admin_token": "bad"})
+    assert r.status_code == 400 and "Shopify" in r.json()["detail"]
+
+
 def test_newsletter_subscribe(client):
     c, _ = client
     assert c.post("/subscribe", json={"email": "jane@halia.app"}).status_code == 200
