@@ -82,6 +82,41 @@ def test_app_rejects_bad_token(client):
     assert c.get("/app").status_code == 401
 
 
+def test_onboard_json_creates_tenant_settings_and_link(client):
+    c, store = client
+    r = c.post("/v1/onboard", json={
+        "store_url": "https://glennorah.co.uk", "consumer_key": "ck_x", "consumer_secret": "cs_x",
+        "label": "Glen Norah", "vic_threshold": "8000", "sender_name": "Amara", "platform": "",
+    })
+    assert r.status_code == 200
+    d = r.json()
+    assert d["ok"] and d["link"].startswith("/app?t=") and d["platform_connected"] is False
+    t = store.get_tenant("glennorah-co-uk")
+    assert t and t["kind"] == "woocommerce" and t["label"] == "Glen Norah"
+    import json
+    s = json.loads(store.get_settings_raw("glennorah-co-uk"))
+    assert s["vic_threshold"] == 8000 and s["sender_name"] == "Amara"
+
+
+def test_onboard_rejects_bad_woo(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr(onboarding, "_validate_woo", lambda *a, **k: (False, "401 Unauthorized"))
+    r = c.post("/v1/onboard", json={"store_url": "https://x.com", "consumer_key": "ck",
+                                    "consumer_secret": "cs"})
+    assert r.status_code == 400 and "WooCommerce" in r.json()["detail"]
+
+
+def test_onboard_klaviyo_bad_key_warns_not_blocks(client):
+    c, store = client
+    r = c.post("/v1/onboard", json={
+        "store_url": "https://x.com", "consumer_key": "ck", "consumer_secret": "cs",
+        "platform": "klaviyo", "api_key": "not-a-pk-key"})
+    assert r.status_code == 200
+    d = r.json()
+    assert d["platform_connected"] is False and "pk_" in d["platform_warning"]
+    assert store.get_klaviyo("x-com") is None  # bad key never saved
+
+
 def test_newsletter_subscribe(client):
     c, _ = client
     assert c.post("/subscribe", json={"email": "jane@halia.app"}).status_code == 200
