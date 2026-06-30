@@ -392,6 +392,22 @@
   </div>
 </section>
 
+<!-- PARETO 80/20 -->
+<section class="pad" style="background:var(--bg-2)"><div class="wrap">
+  <div class="eyebrow reveal" style="margin-bottom:18px">The eighty-twenty of luxury</div>
+  <h2 class="h2 reveal" style="margin-bottom:14px;max-width:20ch">Twenty percent of clients. Eighty percent of revenue.</h2>
+  <div class="chartwrap">
+    <div class="pareto reveal d1" id="pareto"></div>
+    <div class="chart-side reveal d2">
+      <div class="eyebrow">Why a few matter so much</div>
+      <p>In luxury the imbalance is extreme: a small tier of clients carries most of the revenue,
+        and the very top of it carries most of that. The whole game is finding those people, and the
+        ones about to become them, before anyone else.</p>
+      <a class="btn ghost" href="/clienteling" style="margin-top:24px">The case for clienteling <span class="arrow">→</span></a>
+    </div>
+  </div>
+</div></section>
+
 <!-- PRODUCT SCREENSHOT -->
 <section class="pad" style="padding-top:clamp(20px,4vh,60px)"><div class="wrap">
   <div class="browser reveal" style="margin-bottom:0">
@@ -399,47 +415,6 @@
     <img src="img/dashboard.png" alt="The Halia dashboard with hidden VICs surfaced and ranked" style="width:100%;display:block">
   </div>
   <p class="lede reveal d1" style="text-align:center;max-width:48ch;margin:36px auto 0">Every customer graded, your hidden VICs surfaced and ranked, inside the tools your team already uses.</p>
-</div></section>
-
-<!-- ENGINE (copy left, node graph right) -->
-<section id="engine" class="pad"><div class="wrap split">
-  <div class="copy reveal">
-    <div class="eyebrow">The engine</div>
-    <h2 class="h2">Forty signals.<br>One quiet score.</h2>
-    <p>Halia reads the tells a great associate would: prime postcodes, premium email domains,
-      the names and companies behind the orders. It weighs more than forty of them across every
-      customer you have, then resolves the lot into a single score and a grade from A&#42; to C.
-      Explainable, defensible, tuned to your store.</p>
-    <div class="meta">
-      <div><b>40+</b><span>Signals read</span></div>
-      <div><b>A&#42; to C</b><span>Every customer graded</span></div>
-      <div><b>~1hr</b><span>To first results</span></div>
-    </div>
-  </div>
-  <div class="graph reveal d1" id="graph">
-    <canvas id="nodelines"></canvas>
-    <div class="score-node"><div class="sv" id="scoreVal">0</div><div class="sg"><b id="scoreGrade">C</b> &middot; Halia score</div></div>
-  </div>
-</div></section>
-
-<!-- UNDER THE HOOD / KNOWLEDGE BASE -->
-<section class="pad"><div class="wrap">
-  <div class="sig-head reveal" style="max-width:42ch">
-    <div class="eyebrow" style="margin-bottom:20px">Under the hood</div>
-    <h2 class="h2">Knowledge no team could<br>hold in its head.</h2>
-    <p class="lede" style="margin-top:22px;max-width:58ch">It is not just "this looks like a premium email." Every order is checked, in
-      milliseconds, against curated datasets that took years to build and could never be kept by hand,
-      then the matches are weighed together into a single score. No person could do this for one
-      customer, let alone all of them, continuously.</p>
-  </div>
-  <div class="kb-stats reveal d1" id="kbstats">
-    <div class="kb-stat"><div class="n" data-to="40" data-suffix="+">0</div><div class="l">Signals weighed together</div></div>
-    <div class="kb-stat"><div class="n" data-to="1500" data-suffix="+">0</div><div class="l">Curated reference points</div></div>
-    <div class="kb-stat"><div class="n word">Every</div><div class="l">Private-jet terminal &amp; superyacht marina</div></div>
-    <div class="kb-stat"><div class="n word">Milliseconds</div><div class="l">Per customer, scored continuously</div></div>
-  </div>
-  <p class="reveal d2" style="color:var(--mute);font-size:16px;margin-top:34px;max-width:64ch">And it does not simply flag. Correlated tells are discounted, so three ways of saying "this client is in Monaco" count as one, and weak signals only surface a client when stronger ones agree. The result is a score you can defend, not a pile of guesses.</p>
-  <div class="reveal d2" style="margin-top:30px"><a class="btn ghost" href="/faq#data">Explore the full data model <span class="arrow">→</span></a></div>
 </div></section>
 
 <!-- HOW IT WORKS / ARCHITECTURE -->
@@ -484,19 +459,66 @@
     customer database sitting on anyone else's servers.</p>
 </div></section>
 
-<!-- PARETO 80/20 -->
-<section class="pad" style="background:var(--bg-2)"><div class="wrap">
-  <div class="eyebrow reveal" style="margin-bottom:18px">The eighty-twenty of luxury</div>
-  <h2 class="h2 reveal" style="margin-bottom:14px;max-width:20ch">Twenty percent of clients. Eighty percent of revenue.</h2>
-  <div class="chartwrap">
-    <div class="pareto reveal d1" id="pareto"></div>
-    <div class="chart-side reveal d2">
-      <div class="eyebrow">Why a few matter so much</div>
-      <p>In luxury the imbalance is extreme: a small tier of clients carries most of the revenue,
-        and the very top of it carries most of that. The whole game is finding those people, and the
-        ones about to become them, before anyone else.</p>
-      <a class="btn ghost" href="/clienteling" style="margin-top:24px">The case for clienteling <span class="arrow">→</span></a>
+<!-- ENGINE (copy left, node graph right) -->
+<section id="engine" class="pad"><div class="wrap split">
+  <div class="copy reveal">
+    <div class="eyebrow">The engine</div>
+    <h2 class="h2">Forty signals.<br>One quiet score.</h2>
+    <p>Halia reads the tells a great associate would: prime postcodes, premium email domains,
+      the names and companies behind the orders. It weighs more than forty of them across every
+      customer you have, then resolves the lot into a single score and a grade from A&#42; to C.
+      Explainable, defensible, tuned to your store.</p>
+    <div class="meta">
+      <div><b>40+</b><span>Signals read</span></div>
+      <div><b>A&#42; to C</b><span>Every customer graded</span></div>
+      <div><b>~1hr</b><span>To first results</span></div>
     </div>
+  </div>
+  <div class="graph reveal d1" id="graph">
+    <canvas id="nodelines"></canvas>
+    <div class="score-node"><div class="sv" id="scoreVal">0</div><div class="sg"><b id="scoreGrade">C</b> &middot; Halia score</div></div>
+  </div>
+</div></section>
+
+<!-- UNDER THE HOOD / KNOWLEDGE BASE -->
+<section class="pad"><div class="wrap">
+  <div class="sig-head reveal" style="max-width:42ch">
+    <div class="eyebrow" style="margin-bottom:20px">Under the hood</div>
+    <h2 class="h2">Knowledge no team could<br>hold in its head.</h2>
+    <p class="lede" style="margin-top:22px;max-width:58ch">It is not just "this looks like a premium email." Every order is checked, in
+      milliseconds, against curated datasets that took years to build and could never be kept by hand,
+      then the matches are weighed together into a single score. No person could do this for one
+      customer, let alone all of them, continuously.</p>
+  </div>
+  <div class="kb-stats reveal d1" id="kbstats">
+    <div class="kb-stat"><div class="n" data-to="40" data-suffix="+">0</div><div class="l">Signals weighed together</div></div>
+    <div class="kb-stat"><div class="n" data-to="1500" data-suffix="+">0</div><div class="l">Curated reference points</div></div>
+    <div class="kb-stat"><div class="n word">Every</div><div class="l">Private-jet terminal &amp; superyacht marina</div></div>
+    <div class="kb-stat"><div class="n word">Milliseconds</div><div class="l">Per customer, scored continuously</div></div>
+  </div>
+  <p class="reveal d2" style="color:var(--mute);font-size:16px;margin-top:34px;max-width:64ch">And it does not simply flag. Correlated tells are discounted, so three ways of saying "this client is in Monaco" count as one, and weak signals only surface a client when stronger ones agree. The result is a score you can defend, not a pile of guesses.</p>
+  <div class="reveal d2" style="margin-top:30px"><a class="btn ghost" href="/faq#data">Explore the full data model <span class="arrow">→</span></a></div>
+</div></section>
+
+<!-- SIGNALS -->
+<section id="signals" class="pad"><div class="wrap">
+  <div class="sig-head reveal">
+    <div class="eyebrow" style="margin-bottom:20px">What Halia sees</div>
+    <h2 class="h2">The tells of quiet wealth.</h2>
+  </div>
+  <div class="sgrid">
+    <div class="scell reveal"><div class="k"><h3>Geography</h3><span class="num">01</span></div>
+      <div class="tags"><span class="tag">Ultra-prime postcodes</span><span class="tag">Trophy residences</span><span class="tag">HNW neighbourhoods</span><span class="tag">International wealth hubs</span></div></div>
+    <div class="scell reveal d1"><div class="k"><h3>Delivery destinations</h3><span class="num">02</span></div>
+      <div class="tags"><span class="tag">Private-jet terminals</span><span class="tag">Superyacht marinas</span><span class="tag">Luxury hotels</span><span class="tag">Members' clubs</span></div></div>
+    <div class="scell reveal"><div class="k"><h3>Email &amp; domain</h3><span class="num">03</span></div>
+      <div class="tags"><span class="tag">Wealth-employer domains</span><span class="tag">Family offices</span><span class="tag">Private equity &amp; hedge funds</span><span class="tag">Elite alumni</span></div></div>
+    <div class="scell reveal d1"><div class="k"><h3>Identity</h3><span class="num">04</span></div>
+      <div class="tags"><span class="tag">Honorifics</span><span class="tag">Post-nominals</span><span class="tag">Heritage surnames</span><span class="tag">Celebrity stylists</span></div></div>
+    <div class="scell reveal"><div class="k"><h3>Behaviour</h3><span class="num">05</span></div>
+      <div class="tags"><span class="tag">Assistant &amp; PA orders</span><span class="tag">Concierge delivery</span><span class="tag">Company billing</span><span class="tag">Foreign-currency spend</span></div></div>
+    <div class="scell reveal d1"><div class="k"><h3>Payment</h3><span class="num">06</span></div>
+      <div class="tags"><span class="tag">Premium card ranges</span><span class="tag">Black &amp; bespoke cards</span><span class="tag">GCC billing</span><span class="tag">Tax-haven billing</span></div></div>
   </div>
 </div></section>
 
@@ -608,28 +630,6 @@
   </div></div>
 </section>
 
-<!-- SIGNALS -->
-<section id="signals" class="pad"><div class="wrap">
-  <div class="sig-head reveal">
-    <div class="eyebrow" style="margin-bottom:20px">What Halia sees</div>
-    <h2 class="h2">The tells of quiet wealth.</h2>
-  </div>
-  <div class="sgrid">
-    <div class="scell reveal"><div class="k"><h3>Geography</h3><span class="num">01</span></div>
-      <div class="tags"><span class="tag">Ultra-prime postcodes</span><span class="tag">Trophy residences</span><span class="tag">HNW neighbourhoods</span><span class="tag">International wealth hubs</span></div></div>
-    <div class="scell reveal d1"><div class="k"><h3>Delivery destinations</h3><span class="num">02</span></div>
-      <div class="tags"><span class="tag">Private-jet terminals</span><span class="tag">Superyacht marinas</span><span class="tag">Luxury hotels</span><span class="tag">Members' clubs</span></div></div>
-    <div class="scell reveal"><div class="k"><h3>Email &amp; domain</h3><span class="num">03</span></div>
-      <div class="tags"><span class="tag">Wealth-employer domains</span><span class="tag">Family offices</span><span class="tag">Private equity &amp; hedge funds</span><span class="tag">Elite alumni</span></div></div>
-    <div class="scell reveal d1"><div class="k"><h3>Identity</h3><span class="num">04</span></div>
-      <div class="tags"><span class="tag">Honorifics</span><span class="tag">Post-nominals</span><span class="tag">Heritage surnames</span><span class="tag">Celebrity stylists</span></div></div>
-    <div class="scell reveal"><div class="k"><h3>Behaviour</h3><span class="num">05</span></div>
-      <div class="tags"><span class="tag">Assistant &amp; PA orders</span><span class="tag">Concierge delivery</span><span class="tag">Company billing</span><span class="tag">Foreign-currency spend</span></div></div>
-    <div class="scell reveal d1"><div class="k"><h3>Payment</h3><span class="num">06</span></div>
-      <div class="tags"><span class="tag">Premium card ranges</span><span class="tag">Black &amp; bespoke cards</span><span class="tag">GCC billing</span><span class="tag">Tax-haven billing</span></div></div>
-  </div>
-</div></section>
-
 <!-- FOR TEAMS / DEPARTMENTS -->
 <section id="teams" class="pad" style="background:var(--bg-2)"><div class="wrap">
   <div class="sig-head reveal">
@@ -652,19 +652,6 @@
   </div>
 </div></section>
 
-<!-- HIDDEN POTENTIAL → clienteling -->
-<section class="pad light"><div class="wrap split">
-  <div class="media reveal"><img src="img/clientimage.jpg" alt="Finding and connecting with hidden VICs" loading="lazy"></div>
-  <div class="copy reveal d1">
-    <div class="eyebrow">Hidden potential</div>
-    <h2 class="h2" style="margin:22px 0 24px">The clients worth finding are the ones you cannot <em>see.</em></h2>
-    <p>Your most valuable relationships are not always your biggest spenders today. A single modest
-      order can hide a future VIC, a referral, an inheritance. Halia surfaces that hidden potential,
-      so you can find and connect with the right people before anyone else does.</p>
-    <a class="btn ghost" href="/clienteling" style="margin-top:30px">The case for clienteling <span class="arrow">→</span></a>
-  </div>
-</div></section>
-
 <!-- SOLUTIONS -->
 <section id="solutions" class="pad"><div class="wrap">
   <div class="sol-head">
@@ -678,6 +665,19 @@
     <div class="sol reveal d3"><img src="img/homeware.jpg" alt="Homeware" loading="lazy"><div class="lab"><h3>Home &amp; Lifestyle</h3><p>The trade and trophy-address clients.</p></div></div>
   </div>
   <div class="reveal d1" style="margin-top:46px"><a class="btn ghost" href="/solutions">Explore solutions in depth <span class="arrow">→</span></a></div>
+</div></section>
+
+<!-- HIDDEN POTENTIAL → clienteling -->
+<section class="pad light"><div class="wrap split">
+  <div class="media reveal"><img src="img/clientimage.jpg" alt="Finding and connecting with hidden VICs" loading="lazy"></div>
+  <div class="copy reveal d1">
+    <div class="eyebrow">Hidden potential</div>
+    <h2 class="h2" style="margin:22px 0 24px">The clients worth finding are the ones you cannot <em>see.</em></h2>
+    <p>Your most valuable relationships are not always your biggest spenders today. A single modest
+      order can hide a future VIC, a referral, an inheritance. Halia surfaces that hidden potential,
+      so you can find and connect with the right people before anyone else does.</p>
+    <a class="btn ghost" href="/clienteling" style="margin-top:30px">The case for clienteling <span class="arrow">→</span></a>
+  </div>
 </div></section>
 
 <!-- IMAGE STATEMENT (negative space) -->

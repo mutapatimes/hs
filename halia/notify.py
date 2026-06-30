@@ -5,9 +5,12 @@ alert, then forgets it. Nothing about the customer is stored to send these. If S
 is not configured, that channel is simply a no-op, so the webhook never fails because of it.
 
 Env:
-  Email:  HALIA_SMTP_HOST, HALIA_SMTP_PORT (587), HALIA_SMTP_USER, HALIA_SMTP_PASS, HALIA_SMTP_FROM
+  Email (Brevo):  HALIA_BREVO_API_KEY, HALIA_EMAIL_FROM (a verified sender), HALIA_EMAIL_FROM_NAME
+  Email (SMTP):   HALIA_SMTP_HOST, HALIA_SMTP_PORT (587), HALIA_SMTP_USER, HALIA_SMTP_PASS, HALIA_SMTP_FROM
   Push:   HALIA_VAPID_PRIVATE (PEM), HALIA_VAPID_PUBLIC (base64url applicationServerKey).
           If unset, a keypair is generated once and cached in output/vapid.json.
+
+Email uses Brevo's transactional API when HALIA_BREVO_API_KEY is set, else SMTP.
 """
 from __future__ import annotations
 
@@ -35,12 +38,33 @@ def _env(*names: str) -> str | None:
 
 # ── email ────────────────────────────────────────────────────────────────────────
 def email_configured() -> bool:
-    return bool(_env("HALIA_SMTP_HOST"))
+    return bool(_env("HALIA_BREVO_API_KEY") or _env("HALIA_SMTP_HOST"))
+
+
+def _send_brevo(to: str, subject: str, html: str) -> bool:
+    import requests
+
+    sender = _env("HALIA_EMAIL_FROM", "HALIA_SMTP_FROM") or "alerts@halia.app"
+    body = {"sender": {"email": sender, "name": _env("HALIA_EMAIL_FROM_NAME") or "Halia"},
+            "to": [{"email": to}], "subject": subject, "htmlContent": html}
+    try:
+        resp = requests.post("https://api.brevo.com/v3/smtp/email", json=body,
+                             headers={"api-key": _env("HALIA_BREVO_API_KEY"),
+                                      "accept": "application/json", "content-type": "application/json"},
+                             timeout=15)
+        return 200 <= resp.status_code < 300
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
+        return False
 
 
 def send_email(to: str, subject: str, html: str, text: str | None = None) -> bool:
+    if not to:
+        return False
+    if _env("HALIA_BREVO_API_KEY"):
+        return _send_brevo(to, subject, html)
     host = _env("HALIA_SMTP_HOST")
-    if not host or not to:
+    if not host:
         return False
     port = int(_env("HALIA_SMTP_PORT") or 587)
     user, pw = _env("HALIA_SMTP_USER"), _env("HALIA_SMTP_PASS")
