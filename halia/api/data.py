@@ -83,7 +83,7 @@ def _finalize(shop: str, scored, orders: list[dict]) -> dict:
     results = engine.results_from_scored(scored)
     s = settings_for(shop)
     benchmarks = {"aov": s["aov"], "max_orders": s["max_orders"], "highest_lt": s["highest_lt"]}
-    payload = dashboard_payload(scored, _history(orders), shop, benchmarks)
+    payload = dashboard_payload(scored, _history(orders), shop, benchmarks, raw_orders=orders)
     cache.set(shop, results, payload, _order_index(orders))
     return cache.get(shop)
 

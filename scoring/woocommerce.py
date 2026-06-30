@@ -22,6 +22,7 @@ def woo_order_to_rest(o: dict) -> dict:
     full_name = _name(bill.get("first_name"), bill.get("last_name"))
     return {
         "id": o.get("id"),
+        "status": o.get("status"),  # woo: pending/processing/on-hold/completed/cancelled/refunded
         "email": email,
         "phone": bill.get("phone"),
         "customer": {

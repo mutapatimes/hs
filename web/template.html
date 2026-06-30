@@ -268,6 +268,35 @@
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
   :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+  /* view tabs + Orders view */
+  .views{display:inline-flex;gap:4px;background:#eef0ee;border-radius:11px;padding:4px;margin:0 0 16px}
+  .vtab{border:none;background:transparent;font:600 13px system-ui;color:#5b5f5b;padding:7px 18px;border-radius:8px;cursor:pointer}
+  .vtab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.09)}
+  .othead{grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px}
+  .orow{display:grid;grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line);font-size:13px}
+  .orow:hover{background:#fafbfa}
+  .odate{color:var(--soft);font-variant-numeric:tabular-nums}
+  .oclient{display:flex;align-items:center;gap:9px;min-width:0}
+  .onm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;color:var(--ink)}
+  .oid{color:var(--soft);font-variant-numeric:tabular-nums}
+  .oamt{text-align:right;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+  .gchip{flex:none;font:700 10.5px system-ui;padding:2px 7px;border-radius:6px;color:#fff;letter-spacing:.02em}
+  .gchip.A1{background:#1f564a}.gchip.A{background:#26695b}.gchip.B{background:#8a7b53}.gchip.none{background:#cfd3cf}
+  .sb{font:600 11px system-ui;padding:3px 9px;border-radius:999px;display:inline-block;white-space:nowrap}
+  .sb.new{background:#fff3e0;color:#9a5b12}.sb.fulfilled{background:#e6f4ea;color:#1f7a40}.sb.refunded{background:#fdecea;color:#a23b2a}.sb.cancelled{background:#eef0ee;color:#6b675e}
+  .oact{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+  .obtn{font:600 12px system-ui;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;text-decoration:none;white-space:nowrap}
+  .obtn.primary{background:#1f564a;border-color:#1f564a;color:#fff}
+  .omw{position:relative}
+  .omenu{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:212px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 34px -14px rgba(0,0,0,.22);overflow:hidden;z-index:60}
+  .omenu.show{display:block}
+  .omi{display:block;padding:9px 13px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px}
+  .omi:last-child{border-bottom:0}.omi:hover{background:#f4f6f4}
+  .oempty{padding:34px 16px;color:var(--soft);text-align:center;font-size:13px}
+  .ofoot{color:var(--soft);font-size:12.5px;padding:12px 4px}
+  .ocheck{display:flex;align-items:center;gap:8px;cursor:pointer}
+  #viewOrders .controls #oq{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:13px system-ui}
+  @media(max-width:820px){.othead .oid,.orow .oid,.odate{display:none}.othead,.orow{grid-template-columns:30px minmax(120px,1fr) 96px 78px 180px}}
 </style>
 </head>
 <body>
@@ -335,6 +364,13 @@
         </div>
       </div>
 
+      <!-- view tabs -->
+      <div class="views">
+        <button class="vtab on" data-view="clients">Clients</button>
+        <button class="vtab" data-view="orders">Orders</button>
+      </div>
+
+      <div id="viewClients">
       <!-- toolbar -->
       <div class="toolbar">
         <div class="chips" id="chips"></div>
@@ -372,6 +408,26 @@
         </div>
         <div id="rows"></div>
       </div>
+      </div><!-- /viewClients -->
+
+      <div id="viewOrders" style="display:none">
+        <div class="controls">
+          <label class="ocheck"><input type="checkbox" id="oAllGrades"> Show every grade</label>
+          <label>Status
+            <select id="oStatus"><option value="all">All</option><option value="new">Unfulfilled</option><option value="fulfilled">Fulfilled</option><option value="refunded">Refunded</option><option value="cancelled">Cancelled</option></select>
+          </label>
+          <label class="push">Search
+            <input id="oq" placeholder="Client name…" autocomplete="off">
+          </label>
+        </div>
+        <div class="panel">
+          <div class="thead othead">
+            <div class="h-rank">#</div><div>Date</div><div>Client</div><div>Order</div><div>Status</div><div style="text-align:right">Amount</div><div style="text-align:right">Action</div>
+          </div>
+          <div id="orows"></div>
+        </div>
+        <div class="ofoot" id="ofoot"></div>
+      </div>
 
       <div class="foot">
         Real output from the Halia scoring engine on <b>sample data</b> (fictional store).
@@ -405,6 +461,7 @@
 const SEGMENTS = __SEGMENTS__;
 
 const DATA = __DATA__;
+const ORDERS = __ORDERS__;
 
 const gbp = n => "£"+n.toLocaleString("en-GB");
 const gbpK = n => n>=1000 ? "£"+(n/1000).toFixed(n%1000===0?0:1)+"k" : "£"+n;
@@ -635,6 +692,82 @@ function mailtoItems(c){
   return (EMAIL_TEMPLATES||[]).map(t=>item(t.name,`mailto:${em}?subject=${encodeURIComponent(t.subject||"")}&body=${encodeURIComponent(fillTemplate(t.body,c))}`)).join("")
     + item("Blank email",`mailto:${em}`);
 }
+
+/* ---- Orders view: each row is an order; the actions match the order's status ---- */
+const ORDER_TEMPLATES={
+  new:[
+    {name:"Local expedite",subject:"Good news about your order",body:"Hi {first_name},\n\nWe noticed you are local, so we have expedited your order and may be able to get it out to you today, making sure it reaches you as soon as possible. Could you just confirm you are happy with the same delivery address? Reply here and we will get it moving.\n\nWarmly,\n{sender}"},
+    {name:"Welcome + gift wrap",subject:"Thank you for your order",body:"Hi {first_name},\n\nThank you for your order, we really look forward to looking after it. We aim to get it out as quickly as we can. Ahead of time, we also offer complimentary gift wrapping and a handwritten note if this is a gift, just let me know and I will arrange it before it ships.\n\nWarmly,\n{sender}"},
+    {name:"Priority handling",subject:"Your order is in good hands",body:"Hi {first_name},\n\nI wanted to let you know I have personally flagged your order for priority handling, so it is prepared with extra care. I will be in touch the moment it ships.\n\nWarmly,\n{sender}"},
+    {name:"Personal thank you",subject:"A personal note",body:"Hi {first_name},\n\nThank you so much for your order, it is a pleasure to have you with us. If there is anything you would like alongside it, I am here personally to help.\n\nWarmly,\n{sender}"},
+    {name:"Anything else?",subject:"While we prepare your order",body:"Hi {first_name},\n\nWhile we get your order ready, is there anything else you have had your eye on? I would be glad to set it aside or send it together to save you a second delivery.\n\nWarmly,\n{sender}"}
+  ],
+  fulfilled:[
+    {name:"Shipped fast",subject:"Your order is on its way",body:"Hi {first_name},\n\nJust to let you know we got your order out as fast as we could. We hope it reaches you soon and that you love it. If anything is not quite right, reply here and I will sort it out straight away.\n\nWarmly,\n{sender}"},
+    {name:"Care check-in",subject:"Looking after you",body:"Hi {first_name},\n\nYour order is on its way. If anything is not perfect when it arrives, tell me directly and I will make it right, no fuss.\n\nWarmly,\n{sender}"},
+    {name:"Styling help",subject:"A little help with your order",body:"Hi {first_name},\n\nYour order has shipped. If you would like any advice on caring for it or styling it, I am always happy to help.\n\nWarmly,\n{sender}"},
+    {name:"VIP touch",subject:"You are in good hands",body:"Hi {first_name},\n\nYour order is on the way. As one of our most valued clients, you have my direct line for anything you need.\n\nWarmly,\n{sender}"},
+    {name:"Early preview",subject:"Something you might love",body:"Hi {first_name},\n\nI hope you enjoy your order. We have some new pieces arriving that I think would suit you. Would you like an early look before they go live?\n\nWarmly,\n{sender}"}
+  ],
+  refunded:[
+    {name:"Win back",subject:"Let me help",body:"Hi {first_name},\n\nI am sorry this one did not work out, and your refund is on its way. I would love to help you find something that is a better fit, whenever you are ready.\n\nWarmly,\n{sender}"},
+    {name:"Apology + offer",subject:"Thank you for your patience",body:"Hi {first_name},\n\nApologies for the trouble, your refund has been processed. As a thank you for your patience, I would be glad to look after you personally on your next order.\n\nWarmly,\n{sender}"},
+    {name:"Quick feedback",subject:"So we can do better",body:"Hi {first_name},\n\nYour refund is complete. If you have a moment, I would value knowing what did not suit, so we can do better for you next time.\n\nWarmly,\n{sender}"},
+    {name:"Always welcome",subject:"You are always welcome",body:"Hi {first_name},\n\nSorry it was not right this time. You are always welcome back, and I am here if you would like a hand finding the right piece.\n\nWarmly,\n{sender}"},
+    {name:"On the hunt",subject:"Tell me what you were after",body:"Hi {first_name},\n\nYour refund is sorted. If there was something specific you were after, tell me and I will hunt it down for you.\n\nWarmly,\n{sender}"}
+  ],
+  cancelled:[
+    {name:"Everything ok?",subject:"About your order",body:"Hi {first_name},\n\nI noticed your order was cancelled. If that was not intended, or you would like a hand, I am here to sort it quickly.\n\nWarmly,\n{sender}"},
+    {name:"Help to reorder",subject:"Happy to help",body:"Hi {first_name},\n\nIf you changed your mind or hit a snag at checkout, just let me know and I can place the order for you, or hold the piece while you decide.\n\nWarmly,\n{sender}"},
+    {name:"Suggest alternatives",subject:"Let me help you find the right one",body:"Hi {first_name},\n\nSorry this one did not go ahead. If it was not quite right, I would be glad to suggest a few alternatives you might prefer.\n\nWarmly,\n{sender}"},
+    {name:"No pressure",subject:"Whenever you are ready",body:"Hi {first_name},\n\nNo pressure at all. Whenever you are ready, I am here to help you find something you will love.\n\nWarmly,\n{sender}"},
+    {name:"Stay in touch",subject:"Keeping you in mind",body:"Hi {first_name},\n\nI will keep you in mind for pieces I think you would like. If you would prefer me not to, just say and I will leave you be.\n\nWarmly,\n{sender}"}
+  ]
+};
+function ogr(o){return o.grade?`<span class="gchip ${o.tier||'B'}">${o.grade}</span>`:`<span class="gchip none">·</span>`;}
+function osb(o){return `<span class="sb ${o.statusCat}">${o.status}</span>`;}
+function oActions(o,i){
+  const tpls=ORDER_TEMPLATES[o.statusCat]||ORDER_TEMPLATES.new, em=o.email||"";
+  const href=t=>`mailto:${em}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(fillTemplate(t.body,o))}`;
+  const primary={new:"Confirm & expedite",fulfilled:"Follow up",refunded:"Win back",cancelled:"Reach out"}[o.statusCat]||"Email";
+  const menu=tpls.map(t=>`<a class="omi" href="${href(t)}" target="_top">${t.name}</a>`).join("")+`<a class="omi" href="mailto:${em}" target="_top">Blank email</a>`;
+  return `<a class="obtn primary" href="${href(tpls[0])}" target="_top">${primary}</a>`
+    +`<div class="omw"><button class="obtn" data-om="${i}">Email &#9662;</button><div class="omenu" id="om-${i}">${menu}</div></div>`;
+}
+function oRow(o,i){
+  return `<div class="orow">
+    <div class="h-rank">${i+1}</div>
+    <div class="odate">${o.date||""}</div>
+    <div class="oclient">${ogr(o)}<span class="onm" title="${esc(o.name)}">${esc(o.name)}</span></div>
+    <div class="oid">#${esc(o.orderId)}</div>
+    <div>${osb(o)}</div>
+    <div class="oamt">£${(o.amount||0).toLocaleString()}</div>
+    <div class="oact">${oActions(o,i)}</div>
+  </div>`;
+}
+function renderOrders(){
+  const onlyTop=!document.getElementById("oAllGrades").checked;
+  const st=document.getElementById("oStatus").value;
+  const q=(document.getElementById("oq").value||"").toLowerCase().trim();
+  const list=ORDERS.filter(o=>{
+    if(onlyTop && !["A1","A","B"].includes(o.tier)) return false;
+    if(st!=="all" && o.statusCat!==st) return false;
+    if(q && !(o.name||"").toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById("orows").innerHTML = list.length?list.map(oRow).join(""):'<div class="oempty">No orders to show. Try Show every grade, or a different status.</div>';
+  document.getElementById("ofoot").textContent = list.length+" order"+(list.length===1?"":"s")+(onlyTop?" from clients graded above C":"")+" · newest first";
+  document.querySelectorAll("[data-om]").forEach(b=>b.onclick=e=>{e.stopPropagation();const m=document.getElementById("om-"+b.dataset.om);const open=m.classList.contains("show");document.querySelectorAll(".omenu.show").forEach(x=>x.classList.remove("show"));if(!open)m.classList.add("show");});
+}
+document.addEventListener("click",()=>document.querySelectorAll(".omenu.show").forEach(m=>m.classList.remove("show")));
+["oAllGrades","oStatus","oq"].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener(e.type==="text"?"input":"change",renderOrders);});
+document.querySelectorAll(".vtab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll(".vtab").forEach(x=>x.classList.remove("on"));t.classList.add("on");
+  const v=t.dataset.view;
+  document.getElementById("viewClients").style.display=v==="clients"?"":"none";
+  document.getElementById("viewOrders").style.display=v==="orders"?"":"none";
+  if(v==="orders") renderOrders();
+});
 function openDrawer(id){
   const c=DATA.find(x=>x.id===id);
   drawer.innerHTML=`

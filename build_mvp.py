@@ -29,23 +29,23 @@ from scoring.loader import load_data
 TEMPLATE = ROOT / "web" / "template.html"
 OUT = OUTPUT_DIR / "mvp.html"
 # The dashboard renders ALL hidden VICs (ranked), so the filter chips / search
-# reach every one — not just a top-N slice that buries weak single-signal matches.
+# reach every one: not just a top-N slice that buries weak single-signal matches.
 
 # Recommended-approach copy, keyed by the strongest signal that fired.
 RECO = {
-    "Work email": "High earning potential masked by modest spend. Lead with a personal, service-led approach — recognition, not a discount.",
-    "Styling service (B2B)": "B2B trade account — this buyer styles many UHNW clients. Open a wholesale/trade relationship with a dedicated contact and recurring-order terms, not a one-off discount. Highest-value relationship to win.",
+    "Work email": "High earning potential masked by modest spend. Lead with a personal, service-led approach: recognition, not a discount.",
+    "Styling service (B2B)": "B2B trade account: this buyer styles many UHNW clients. Open a wholesale/trade relationship with a dedicated contact and recurring-order terms, not a one-off discount. Highest-value relationship to win.",
     "HNWI postcode": "Ultra-prime billing area. Strong candidate for a private appointment and early access to new drops.",
     "Prime residence": "Trophy-building address signals real wealth. Worth a personal associate assignment.",
     "Delivery": "Notable delivery destination. Offer concierge / in-stay delivery and capture a primary address.",
     "GCC billing": "Gulf home market. Time outreach to their travel pattern; flag concierge delivery.",
-    "Tax haven": "Offshore billing footprint — handle discreetly and lead with service.",
+    "Tax haven": "Offshore billing footprint: handle discreetly and lead with service.",
     "Honorific": "Titled client. Keep handling discreet and service-first.",
     "Company": "Wealth-linked employer on file. A gentle, service-led first approach.",
     "Phone": "International dialling code linked to wealth. Corroborate before heavy outreach.",
-    "Rich list": "Possible public-figure name match — verify the identity before acting.",
+    "Rich list": "Possible public-figure name match: verify the identity before acting.",
     "Premium card": "Premium-card tell. Corroborate, then offer white-glove service.",
-    "IP location": "Location tell from checkout — weak alone; watch for a second signal.",
+    "IP location": "Location tell from checkout: weak alone; watch for a second signal.",
 }
 DEFAULT_RECO = "A genuine hidden-VIC tell on modest current spend. Worth a personal, service-led approach."
 
@@ -57,7 +57,7 @@ def _slug(text: str) -> str:
 def _display_name(name: object) -> str:
     text = str(name or "").strip()
     if not text:
-        return "—"
+        return "·"
     return text.title() if (text.islower() or text.isupper()) else text
 
 
@@ -88,7 +88,7 @@ def _initials(name: object) -> str:
 # Latent = projected ANNUAL value if this client is converted to a loyal client:
 #     latent = max(client AOV, store AOV) x AOV-uplift x target orders/year
 # Anchored to the dataset's own AOV and to widely-cited luxury-clienteling
-# benchmarks (industry rules of thumb, NOT a fitted model — these are tunable):
+# benchmarks (industry rules of thumb, NOT a fitted model: these are tunable):
 #   - loyal luxury clients buy ~4-6x/year, multi-season     -> _LATENT_FREQ
 #   - personal clienteling lifts basket size ~1.3-2x        -> _LATENT_AOV_UPLIFT
 #   - stronger wealth signals (grade) => more real headroom -> both scale by grade
@@ -159,14 +159,14 @@ def _location(row: pd.Series) -> str:
 
 def _city(row: pd.Series) -> str:
     city = _text(row.get("LATEST_BILLING_ADDRESS3")) or _text(row.get("LATEST_SHIPPING_ADDRESS3"))
-    return city.title() if city else "—"
+    return city.title() if city else "·"
 
 
 def _last_shopped(row: pd.Series) -> tuple[int, str]:
     """Return (sortable epoch seconds, display label) for the last order date."""
     ts = pd.to_datetime(row.get("Last Shopped"), errors="coerce")
     if pd.isna(ts):
-        return 0, "—"
+        return 0, "·"
     return int(ts.value // 10**9), ts.strftime("%b %Y")
 
 
@@ -251,7 +251,7 @@ def _scored_frame(source: str):
     Both end in the same score_customers() shape the renderer expects.
     """
     if source == "shopify":
-        from halia import config as _hc  # noqa: F401 — importing loads .env
+        from halia import config as _hc  # noqa: F401: importing loads .env
         from scoring.shopify import orders_to_customers
         from scoring.shopify_fetch import fetch_orders
 
@@ -262,8 +262,56 @@ def _scored_frame(source: str):
     return score_customers(load_data())
 
 
+def _order_status(o: dict) -> tuple[str, str]:
+    """Map a REST-shaped order to (display label, category). Category drives the actions:
+    new / fulfilled / refunded / cancelled."""
+    woo = str(o.get("status") or "").lower()
+    fin = str(o.get("financial_status") or "").lower()
+    ful = str(o.get("fulfillment_status") or "").lower()
+    if o.get("cancelled_at") or woo in ("cancelled", "failed") or fin == "voided":
+        return ("Cancelled", "cancelled")
+    if woo == "refunded" or fin in ("refunded", "partially_refunded"):
+        return ("Refunded", "refunded")
+    if woo == "completed" or ful == "fulfilled":
+        return ("Fulfilled", "fulfilled")
+    label = {"processing": "Processing", "on-hold": "On hold", "pending": "Pending"}.get(woo)
+    return (label or "Unfulfilled", "new")
+
+
+def _orders_list(raw_orders, score_map: dict, limit: int = 600) -> list[dict]:
+    """Flat, newest-first list of orders, each joined to its client's grade/score."""
+    out = []
+    for o in (raw_orders or []):
+        cust = o.get("customer") or {}
+        cid = str(cust.get("id") if cust.get("id") is not None else (o.get("customer_id") or ""))
+        sc = score_map.get(cid) or {}
+        label, cat = _order_status(o)
+        bill = o.get("billing_address") or {}
+        name = sc.get("name") or str(bill.get("name") or "").strip() or str(o.get("email") or "").strip() or "Guest order"
+        if name == "·":
+            name = "Guest order"
+        out.append({
+            "orderId": str(o.get("id") or o.get("name") or ""),
+            "date": str(o.get("created_at") or "")[:10],
+            "amount": int(round(_num(o.get("total_price") if o.get("total_price") is not None else o.get("total")))),
+            "status": label, "statusCat": cat,
+            "name": name, "first": firstName_py(name),
+            "email": sc.get("email") or _text(o.get("email")),
+            "grade": sc.get("grade", ""), "tier": sc.get("tier", ""), "score": sc.get("score", 0),
+            "cid": cid,
+        })
+    out.sort(key=lambda x: x["date"], reverse=True)
+    return out[:limit]
+
+
+def firstName_py(name: str) -> str:
+    n = re.sub(r"^(sir|lady|dame|lord|hrh|hsh|the hon)\s+", "", str(name or ""), flags=re.I)
+    return (n.split(" ")[0] if n.strip() else "") or "there"
+
+
 def dashboard_payload(scored, orders_by_customer: dict | None = None,
-                      shop: str | None = None, benchmarks: dict | None = None) -> dict:
+                      shop: str | None = None, benchmarks: dict | None = None,
+                      raw_orders: list | None = None) -> dict:
     """Compute the JSON-serialisable dashboard payload from a scored frame.
 
     Separated from rendering so the embedded app can compute it once during sync,
@@ -289,8 +337,22 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
     top_tier = sum(
         1 for _, r in hidden.iterrows() if _tier(_score100(float(r[SCORE_COL]))) in {"A1", "A"}
     )
+
+    # Every scored customer (not just hidden VICs) -> grade/score, so the Orders view can rank
+    # any order by its client. Keyed by CUST_ID.
+    score_map: dict[str, dict] = {}
+    for _, r in scored.iterrows():
+        cid = r.get("CUST_ID")
+        if cid is None or (isinstance(cid, float) and pd.isna(cid)):
+            continue
+        s100 = _score100(_num(r[SCORE_COL]))
+        t = _tier(s100)
+        score_map[str(cid)] = {"name": _display_name(r.get("Name")), "email": _text(r.get("EMAIL_ADDR")),
+                               "grade": GRADE_LABEL.get(t, t), "tier": t, "score": s100}
+
     return {
         "segments": segments, "data": data,
+        "orders": _orders_list(raw_orders, score_map),
         "stat_scored": f"{len(scored):,}", "stat_latent": _fmt_money(latent_total),
         "stat_count": str(hidden_count), "stat_avgspend": _fmt_money(avg_spend),
         "stat_toptier": str(top_tier),
@@ -309,6 +371,7 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
         html = html.replace("</body>", body_extra + "\n</body>", 1)
     html = html.replace("__SEGMENTS__", _safe(json.dumps(payload["segments"])))
     html = html.replace("__DATA__", _safe(json.dumps(payload["data"])))
+    html = html.replace("__ORDERS__", _safe(json.dumps(payload.get("orders", []))))
     html = html.replace("__STAT_SCORED__", payload["stat_scored"])
     html = html.replace("__STAT_LATENT__", payload["stat_latent"])
     html = html.replace("__STAT_COUNT__", payload["stat_count"])
@@ -332,7 +395,7 @@ def main() -> None:
     print(
         f"Scored {len(scored):,} customers · {hidden_count} hidden VICs "
         f"(threshold £{VIC_SPEND_THRESHOLD:,.0f})\n"
-        f"Wrote {OUT}  —  open it in a browser."
+        f"Wrote {OUT} :  open it in a browser."
     )
 
 
