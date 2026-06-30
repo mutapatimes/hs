@@ -332,7 +332,7 @@ h1 em{font-style:italic;color:var(--gold)}
 .term .caret{display:inline-block;width:8px;height:14px;background:#5bd6a0;vertical-align:-2px;animation:bk 1s step-end infinite}
 @keyframes bk{50%{opacity:0}}
 </style></head><body>
-<header class="top"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#7a7363"/></svg>Halia</a></header>
+<header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#10086;&#65038;</span>Halia</a></header>
 <main class="stage">
   <div class="eyebrow" id="phase"><span class="dot"></span>Scoring your store</div>
   <h1 id="head">Finding your <em>hidden VICs</em></h1>
@@ -482,7 +482,7 @@ h1 em{font-style:italic;color:var(--gold)}
 .fine{font-size:13px;color:var(--faint);margin:18px 0 0}
 .err{background:#fbeeec;border:1px solid #e0b4b0;color:#8e1f0b;border-radius:10px;padding:12px 14px;font-size:13.5px;margin:18px auto 0;max-width:42ch}
 </style></head><body>
-<header class="top"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#7a7363"/></svg>Halia</a></header>
+<header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#10086;&#65038;</span>Halia</a></header>
 <main class="stage">
   <div class="eyebrow">__LABEL__ &middot; the result is in</div>
   <h1>You have <em>__COUNT__</em> hidden VICs,<br>worth an estimated <em>__LATENT__</em>.</h1>
@@ -638,7 +638,7 @@ summary::-webkit-details-marker{display:none}
 .addmail:hover{color:var(--ink)}
 </style></head><body>
 <div class="bar"><i id="barfill"></i></div>
-<header class="top"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#7a7363"/></svg>Halia</a><div class="stepn" id="stepn"></div></header>
+<header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#10086;&#65038;</span>Halia</a><div class="stepn" id="stepn"></div></header>
 <main class="stage" id="stage">
 
   <section class="step active" data-step="0">
