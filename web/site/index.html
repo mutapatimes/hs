@@ -264,7 +264,7 @@
   @media(prefers-reduced-motion:reduce){.atoast{opacity:1;animation:none}}
 
   /* signals */
-  .sig-head{max-width:30ch;margin-bottom:60px}
+  .sig-head{max-width:46ch;margin-bottom:60px}
   .sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);
     border:1px solid var(--line);border-radius:6px;overflow:hidden}
   .scell{background:var(--bg);padding:36px 38px}
@@ -308,7 +308,7 @@
   /* footer */
   footer{border-top:1px solid var(--line);padding:72px 0 46px}
   .news{display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap;padding-bottom:50px;margin-bottom:50px;border-bottom:1px solid var(--line)}
-  .news h3{font-family:var(--serif);font-weight:300;font-size:clamp(24px,3vw,34px);max-width:16ch;line-height:1.1}
+  .news h3{font-family:var(--serif);font-weight:300;font-size:clamp(24px,3vw,34px);max-width:28ch;line-height:1.1}
   .news form{display:flex;gap:10px;flex-wrap:wrap}
   .news input{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:13px 20px;color:var(--ink);font:500 14px var(--sans);min-width:250px;outline:none}
   .news input:focus{border-color:rgba(255,255,255,.4)}.news input::placeholder{color:var(--faint)}
@@ -341,9 +341,10 @@
   /* message mock + moments */
   .msgcard{background:#fff;border:1px solid rgba(20,18,12,.12);border-radius:14px;padding:26px 28px;box-shadow:0 30px 70px -42px rgba(20,18,12,.3)}
   .msgcard .mm{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#9a9385;border-bottom:1px solid rgba(20,18,12,.1);padding-bottom:14px;margin-bottom:18px}
-  .msgcard .mb{font-family:var(--serif);font-weight:300;font-size:19px;line-height:1.5;color:#2a2722}
+  .msgcard .mb{font-family:var(--serif);font-weight:300;font-size:19px;line-height:1.5;color:#2a2722;transition:opacity .22s}
   .msgcard .mt{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(20,18,12,.1)}
-  .msgcard .mt .chip{font:500 12.5px var(--sans);color:#6b6557;border:1px solid rgba(20,18,12,.16);border-radius:999px;padding:6px 12px}
+  .msgcard .mt .chip{font:500 12.5px var(--sans);color:#6b6557;border:1px solid rgba(20,18,12,.16);border-radius:999px;padding:6px 12px;cursor:pointer;transition:.18s;user-select:none}
+  .msgcard .mt .chip:hover{border-color:rgba(20,18,12,.4);color:#13110c}
   .msgcard .mt .chip.on{background:#13110c;color:#f4f1ea;border-color:#13110c}
   .moment{padding:24px 0;border-top:1px solid rgba(20,18,12,.12)}.moment:first-child{border-top:0;padding-top:0}
   .moment .mi{font-family:var(--serif);font-size:15px;color:#9a9385}
@@ -468,11 +469,16 @@
   </div>
   <div class="split" style="align-items:start">
     <div class="msgcard reveal">
-      <div class="mm">To a new VIC · Personal welcome</div>
-      <div class="mb">Dear Amara,<br><br>A new arrival came in that reminded me of your taste, and I have
-        set one aside in case you would like to see it. No obligation at all, it would simply be a
-        pleasure to look after you.<br><br>Warmly,<br>The Aubin London team</div>
-      <div class="mt"><span class="chip on">Personal welcome</span><span class="chip">New arrival</span><span class="chip">Concierge check-in</span><span class="chip">Win-back</span></div>
+      <div class="mm" id="msgMeta">To a new VIC · Personal welcome</div>
+      <div class="mb" id="msgBody">Dear Amara,<br><br>Thank you for being one of our valued clients. I wanted to
+        reach out personally; if there is ever a piece you are looking for, it would be my pleasure to
+        help you find it.<br><br>Warmly,<br>The Aubin London team</div>
+      <div class="mt" id="msgPills">
+        <span class="chip on" data-t="0">Personal welcome</span>
+        <span class="chip" data-t="1">New arrival</span>
+        <span class="chip" data-t="2">Concierge check-in</span>
+        <span class="chip" data-t="3">Win-back</span>
+      </div>
     </div>
     <div class="reveal d1">
       <p style="color:#6b6557;font-size:17px;max-width:42ch;margin:0 0 30px">The hard part is usually the next
@@ -488,7 +494,7 @@
 
 <!-- INSIDE THE DASHBOARD: interactive table + charts -->
 <section id="dashboard" class="pad"><div class="wrap">
-  <div class="sig-head reveal" style="max-width:34ch">
+  <div class="sig-head reveal" style="max-width:50ch">
     <div class="eyebrow" style="margin-bottom:20px">Inside the dashboard</div>
     <h2 class="h2">A clear read on<br>every customer.</h2>
   </div>
@@ -559,7 +565,7 @@
   <img src="img/general.jpg" alt="" loading="lazy" data-parallax style="position:absolute;left:0;top:-13%;width:100%;height:126%;object-fit:cover;will-change:transform">
   <div class="veil2" style="background:linear-gradient(90deg,rgba(8,8,9,.6),rgba(8,8,9,.2) 55%,transparent)"></div>
   <div class="wrap"><div class="inner reveal">
-    <h2 style="max-width:16ch">A handful of clients are worth more than the rest combined.</h2>
+    <h2 style="max-width:26ch">A handful of clients are worth more than the rest combined.</h2>
     <p style="max-width:36ch">Halia makes sure you know exactly who they are.</p>
   </div></div>
 </section>
@@ -668,10 +674,10 @@
 <section class="pad" style="position:relative;overflow:hidden">
   <img src="img/databases.jpg" alt="" loading="lazy" data-parallax style="position:absolute;left:0;top:-14%;width:100%;height:128%;object-fit:cover;opacity:.10;z-index:0;will-change:transform">
   <div class="wrap" style="position:relative;z-index:1">
-  <div class="sig-head reveal" style="max-width:42ch">
+  <div class="sig-head reveal" style="max-width:58ch">
     <div class="eyebrow" style="margin-bottom:20px">Under the hood</div>
     <h2 class="h2">Knowledge no team could<br>hold in its head.</h2>
-    <p class="lede" style="margin-top:22px;max-width:58ch">It is not just "this looks like a premium email." Every order is checked, in
+    <p class="lede" style="margin-top:22px;max-width:72ch">It is not just "this looks like a premium email." Every order is checked, in
       milliseconds, against curated datasets that took years to build and could never be kept by hand,
       then the matches are weighed together into a single score. No person could do this for one
       customer, let alone all of them, continuously.</p>
@@ -821,6 +827,26 @@
     es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
   },{threshold:.16,rootMargin:'0px 0px -8% 0px'});
   document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el);});
+
+  // template pills: click to switch the message
+  (function(){
+    var meta=document.getElementById('msgMeta'),body=document.getElementById('msgBody'),pills=document.getElementById('msgPills');
+    if(!pills) return;
+    var T=[
+      {m:'To a new VIC · Personal welcome',b:'Dear Amara,<br><br>Thank you for being one of our valued clients. I wanted to reach out personally; if there is ever a piece you are looking for, it would be my pleasure to help you find it.<br><br>Warmly,<br>The Aubin London team'},
+      {m:'To a returning client · New arrival',b:'Dear Amara,<br><br>A new arrival came in that reminded me of your taste, and I have set one aside in case you would like to see it. No obligation at all, it would simply be a pleasure to look after you.<br><br>Warmly,<br>The Aubin London team'},
+      {m:'To a VIC · Concierge check-in',b:'Dear Amara,<br><br>Just a note to say we are here whenever you need us, for a gift, a particular piece, or simply a recommendation. It is always a pleasure to look after you.<br><br>Warmly,<br>The Aubin London team'},
+      {m:'To a lapsed VIC · Win-back',b:'Dear Amara,<br><br>It has been a little while, and I wanted to reach out personally. A few pieces have come in that I think you would love, and I would be glad to set them aside for you.<br><br>Warmly,<br>The Aubin London team'}
+    ];
+    pills.querySelectorAll('.chip').forEach(function(c){
+      c.addEventListener('click',function(){
+        var i=+c.dataset.t;
+        pills.querySelectorAll('.chip').forEach(function(x){x.classList.remove('on');}); c.classList.add('on');
+        meta.textContent=T[i].m; body.style.opacity=0;
+        setTimeout(function(){body.innerHTML=T[i].b; body.style.opacity=1;},160);
+      });
+    });
+  })();
 
   document.querySelectorAll('a[href^="#"]').forEach(function(a){
     a.addEventListener('click',function(e){var t=document.querySelector(a.getAttribute('href'));
