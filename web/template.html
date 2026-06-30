@@ -303,7 +303,11 @@
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
           <div class="live"><span class="pulse"></span> Scored from your data · <span class="mono">__STAT_SCORED__</span> customers</div>
-          <button class="dbtn" id="openSettings" style="border:1px solid var(--line);background:#fff">⚙ Settings</button>
+          <div style="display:flex;gap:8px;position:relative">
+            <button class="dbtn" id="alertsBell" style="border:1px solid var(--line);background:#fff;position:relative;display:none">🔔 Alerts<span id="alertsCount" style="display:none;position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#1f564a;color:#fff;font:700 11px/18px system-ui;text-align:center"></span></button>
+            <button class="dbtn" id="openSettings" style="border:1px solid var(--line);background:#fff">⚙ Settings</button>
+            <div id="alertsPanel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-height:440px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 22px 54px -22px rgba(0,0,0,.28);z-index:140;text-align:left"></div>
+          </div>
         </div>
       </div>
 
@@ -782,6 +786,21 @@ function openSettings(){
         </div>
 
         <div style="${C}">
+          <div style="${H}">Order alerts</div>
+          <p style="${P}">Get a desktop notification the moment a high-grade client places an order, so your team can recognise them in the moment.</p>
+          <label style="display:flex;align-items:center;gap:10px;font:500 14px system-ui;color:#303030;cursor:pointer">
+            <input type="checkbox" id="setNotify" ${SETTINGS.notify_enabled?"checked":""} style="width:16px;height:16px;accent-color:#1f564a"> Desktop notifications for high-grade orders
+          </label>
+          <div style="margin-top:16px"><div style="${LBL}">Alert me for</div>
+            <select id="setNotifyGrades" style="${I};width:220px">
+              <option value="A*"${JSON.stringify(SETTINGS.notify_grades)==='["A*"]'?" selected":""}>A&#42; only</option>
+              <option value="A*,A"${(SETTINGS.notify_grades||[]).indexOf("A")>=0?" selected":""}>A&#42; and A</option>
+            </select>
+          </div>
+          <p style="${P};margin-top:14px;font-size:12px">Alerts appear while Halia is open in your browser. Nothing about your customers is stored to power them. Real-time alerts when Halia is closed are coming soon.</p>
+        </div>
+
+        <div style="${C}">
           <div style="${H}">Email sign-off name</div>
           <p style="${P}">Inserted wherever a template uses {sender}.</p>
           <input id="setSender" value="${esc(SETTINGS.sender_name)}" placeholder="e.g. The Aubin London team" style="width:100%;max-width:440px;${I}">
@@ -826,6 +845,8 @@ function openSettings(){
       const num=id=>parseFloat(document.getElementById(id).value)||0;
       const body={vic_threshold:num("setThreshold"),sender_name:document.getElementById("setSender").value,
         aov:num("setAov"),max_orders:num("setMaxOrders"),highest_lt:num("setHighestLt"),
+        notify_enabled:document.getElementById("setNotify").checked,
+        notify_grades:document.getElementById("setNotifyGrades").value.split(","),
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim())};
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";
       fetch("/v1/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
@@ -841,7 +862,49 @@ function openSettings(){
 document.getElementById("openSettings").onclick=openSettings;
 
 renderChips();renderRows();
-loadSettings().then(s=>{ if(!s.klaviyo_connected) showConnectBanner(); });
+loadSettings().then(s=>{ if(!s.klaviyo_connected) showConnectBanner(); initAlerts(s); });
+
+// Live high-grade order alerts (in-dashboard feed + desktop notifications).
+function initAlerts(s){
+  if(!s || !s.notify_enabled) return;
+  const bell=document.getElementById("alertsBell"), panel=document.getElementById("alertsPanel"),
+        countEl=document.getElementById("alertsCount");
+  if(!bell) return;
+  bell.style.display="";
+  bell.onclick=()=>{ panel.style.display = panel.style.display==="none"||!panel.style.display?"block":"none";
+    if(panel.style.display==="block") countEl.style.display="none"; };
+  if("Notification" in window && Notification.permission==="default") Notification.requestPermission();
+  const esc=x=>String(x==null?"":x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const grades=(s.notify_grades||["A*","A"]).join(",");
+  let seen=new Set((()=>{try{return JSON.parse(localStorage.getItem("halia_seen_orders")||"[]")}catch(e){return[]}})());
+  function render(list){
+    panel.innerHTML = list.length ? list.map(a=>
+      `<div style="padding:12px 14px;border-bottom:1px solid #f0eee9">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <b style="font:600 13.5px system-ui;color:#1c1b18">${esc(a.name||"Client")}</b>
+          <span style="font:700 12px system-ui;color:#1f564a">${esc(a.grade)}</span></div>
+        <div style="font-size:11.5px;color:#6b675e;margin-top:3px">${(a.signals||[]).map(esc).join(" · ")}</div>
+        <div style="font-size:11px;color:#9a958a;margin-top:3px">Order ${esc(a.order_id)} · ${esc((a.when||"").slice(0,10))}</div>
+      </div>`).join("")
+      : `<div style="padding:20px;color:#9a958a;font-size:13px">No high-grade orders yet.</div>`;
+  }
+  function pull(first){
+    fetch("/v1/alerts?grades="+encodeURIComponent(grades)).then(r=>r.json()).then(list=>{
+      render(list);
+      const fresh=list.filter(a=>a.order_id && !seen.has(a.order_id));
+      fresh.forEach(a=>seen.add(a.order_id));
+      try{localStorage.setItem("halia_seen_orders",JSON.stringify([...seen].slice(-500)));}catch(e){}
+      if(!first && fresh.length){
+        countEl.textContent=fresh.length; countEl.style.display="";
+        if("Notification" in window && Notification.permission==="granted")
+          fresh.slice(0,3).forEach(a=>{ try{new Notification("New "+a.grade+" order · "+(a.name||"client"),
+            {body:(a.signals||[]).join(" · ")||"A high-grade client just ordered."});}catch(e){} });
+      }
+    }).catch(()=>{});
+  }
+  pull(true);                 // seed without notifying for existing orders
+  setInterval(()=>pull(false), 60000);
+}
 </script>
 </body>
 </html>

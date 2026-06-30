@@ -114,6 +114,17 @@ def hidden_vics(shop: str = Depends(require_shop),
     return [r.to_dict() for r in data.hidden_results(_entry(shop), limit)]
 
 
+@app.get("/v1/alerts")
+def alerts(shop: str = Depends(require_shop),
+           grades: str = Query("A*,A")) -> list[dict]:
+    """Recent orders from A*/A hidden VICs — powers the live alerts feed + desktop pings."""
+    entry = data.results_for(shop)
+    if entry is None:
+        return []
+    wanted = tuple(g.strip() for g in grades.split(",") if g.strip()) or ("A*", "A")
+    return data.high_grade_orders(entry, wanted)
+
+
 # Mount the embedded entry, self-service onboarding, Klaviyo integrations, fulfilment
 # view, and compliance webhooks.
 from halia.api import (  # noqa: E402

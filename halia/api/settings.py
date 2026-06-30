@@ -60,6 +60,9 @@ def settings_for(shop: str) -> dict:
         "aov": d.get("aov", 0),
         "max_orders": d.get("max_orders", 0),
         "highest_lt": d.get("highest_lt", 0),
+        # Desktop alerts for new high-grade orders.
+        "notify_enabled": bool(d.get("notify_enabled", False)),
+        "notify_grades": d.get("notify_grades") or ["A*", "A"],
     }
 
 
@@ -109,6 +112,9 @@ def register(app) -> None:
             "aov": _num(payload.get("aov")),
             "max_orders": int(_num(payload.get("max_orders"))),
             "highest_lt": _num(payload.get("highest_lt")),
+            "notify_enabled": bool(payload.get("notify_enabled", False)),
+            "notify_grades": [g for g in (payload.get("notify_grades") or ["A*", "A"])
+                              if g in ("A*", "A", "B")] or ["A*"],
         }
         shop_store().save_settings(shop, json.dumps(data))
         cache.evict(shop)  # a changed threshold must re-score on next load

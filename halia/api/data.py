@@ -136,6 +136,30 @@ def score_for_order(entry: dict, order_id: str):
     return result_by_id(entry, o["customer_id"]) if o and o["customer_id"] else None
 
 
+def high_grade_orders(entry: dict, grades=("A*", "A"), limit: int = 30) -> list[dict]:
+    """Recent orders placed by surfaced A*/A (hidden-VIC) clients — for live alerts.
+
+    Built from the already-scored cache (payload clients + order index), so nothing extra
+    about a customer is stored: it is the same RAM data the dashboard already holds.
+    """
+    clients = (entry.get("payload") or {}).get("data") or []
+    by_cid = {str(c.get("cid")): c for c in clients if c.get("cid")}
+    by_email = {(c.get("email") or "").lower(): c for c in clients if c.get("email")}
+    gset = set(grades)
+    out = []
+    for o in entry.get("orders") or []:
+        c = by_cid.get(str(o.get("customer_id"))) or by_email.get((o.get("email") or "").lower())
+        if not c or c.get("grade") not in gset:
+            continue
+        out.append({"order_id": o.get("order_id"), "when": o.get("created_at"),
+                    "id": c.get("id"), "name": c.get("name"), "grade": c.get("grade"),
+                    "score": c.get("score"), "spend": c.get("spend"),
+                    "signals": [s.get("d", "").split(":")[0].strip()
+                                for s in (c.get("signals") or [])][:3]})
+    out.sort(key=lambda a: a["when"] or "", reverse=True)
+    return out[:limit]
+
+
 def recent_orders(entry: dict, limit: int = 100) -> list[dict]:
     rows = [{"order_id": o["order_id"], "created_at": o["created_at"],
              "result": result_by_id(entry, o["customer_id"]) if o["customer_id"] else None}
