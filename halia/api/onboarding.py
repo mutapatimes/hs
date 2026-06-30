@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import html
 import re
+import secrets
 import threading
+import time
 import traceback
 
 from fastapi import Body, Form, HTTPException, Request
@@ -28,6 +30,46 @@ from halia.cache import cache
 # Shops currently being scored in a background thread (so we don't double-trigger).
 _SYNCING: set[str] = set()
 _LOCK = threading.Lock()
+
+# Pending WooCommerce one-click authorisations: token -> {store_url, ck, cs, ts}. The merchant's
+# browser holds the token; WooCommerce posts the read-only keys to our callback, which we match by
+# token. In RAM only, short-lived; never customer data.
+_PENDING_WOO: dict[str, dict] = {}
+_WOO_LOCK = threading.Lock()
+_WOO_TTL = 1800  # 30 minutes
+
+
+def _woo_prune() -> None:
+    cutoff = time.time() - _WOO_TTL
+    for k in [k for k, v in _PENDING_WOO.items() if v["ts"] < cutoff]:
+        _PENDING_WOO.pop(k, None)
+
+
+def _woo_pending_new(store_url: str) -> str:
+    tok = secrets.token_urlsafe(24)
+    with _WOO_LOCK:
+        _woo_prune()
+        _PENDING_WOO[tok] = {"store_url": store_url, "ck": None, "cs": None, "ts": time.time()}
+    return tok
+
+
+def _woo_pending_set(tok: str, ck: str, cs: str) -> None:
+    with _WOO_LOCK:
+        p = _PENDING_WOO.get(tok)
+        if p:
+            p["ck"], p["cs"] = ck, cs
+
+
+def _woo_pending_get(tok: str) -> dict | None:
+    with _WOO_LOCK:
+        _woo_prune()
+        p = _PENDING_WOO.get(tok)
+        return dict(p) if p else None
+
+
+def _woo_pending_pop(tok: str) -> None:
+    with _WOO_LOCK:
+        _PENDING_WOO.pop(tok, None)
 
 _CSS = (
     "body{margin:0;background:#f1f1f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',"
@@ -437,7 +479,7 @@ summary::-webkit-details-marker{display:none}
 <script>
 var SIGNUP=__SIGNUP_REQUIRED__;
 var steps=[].slice.call(document.querySelectorAll('.step'));
-var state={platform:null,source:null,myshop:'',cur:0};
+var state={platform:null,source:null,myshop:'',woo_method:null,woo_token:'',cur:0};
 if(SIGNUP) document.getElementById('codewrap').style.display='block';
 function gv(id){var e=document.getElementById(id);return e?e.value.trim():'';}
 function err(id,msg){var e=document.getElementById(id);if(e){e.textContent=msg;e.style.display='block';}}
@@ -453,8 +495,15 @@ function renderSource(){
   if(state.source==='woocommerce'){
     eye.textContent='Your store data · WooCommerce';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
-    le.textContent='You give Halia a read-only WooCommerce key. It can read your past orders, and nothing else.';
-    b.innerHTML='<ol class="slist"><li>In your store admin, open <b>WooCommerce &rarr; Settings &rarr; Advanced &rarr; REST API</b>.</li><li>Click <b>Add key</b>. Description: "Halia". Permissions: <b>Read</b>.</li><li>Click <b>Generate API key</b>, then copy the two values.</li></ol><label>Consumer key</label><input id="consumer_key" placeholder="ck_..." autocomplete="off"><label>Consumer secret</label><input id="consumer_secret" type="password" placeholder="cs_..." autocomplete="off">';
+    le.textContent='Choose how to connect. Either way Halia gets read-only access: it can read your past orders and nothing else.';
+    b.innerHTML='<div class="cards">'
+      +'<div class="pcard" data-wm="auto"><div class="pi">&#9889;</div><div><h3>Connect automatically</h3><p>Approve Halia inside your own WordPress admin. No keys to copy.</p></div></div>'
+      +'<div class="pcard" data-wm="manual"><div class="pi">&#35;</div><div><h3>Enter an API key</h3><p>Create a read-only key in WooCommerce and paste it.</p></div></div>'
+      +'</div><div id="woomethod" style="margin-top:6px"></div>';
+    [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){
+      [].forEach.call(b.querySelectorAll('.pcard'),function(x){x.classList.remove('sel');});
+      c.classList.add('sel');state.woo_method=c.dataset.wm;renderWooMethod();};});
+    if(state.woo_method){var sw=b.querySelector('.pcard[data-wm="'+state.woo_method+'"]');if(sw)sw.classList.add('sel');renderWooMethod();}
   } else if(state.source==='shopify'){
     eye.textContent='Your store data · Shopify';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
@@ -467,6 +516,40 @@ function renderSource(){
     b.innerHTML='<div class="cards"><div class="pcard" data-src="shopify"><div class="pi">S</div><div><h3>Shopify</h3><p>Connect with a read-only Admin API token.</p></div></div><div class="pcard" data-src="woocommerce"><div class="pi">W</div><div><h3>WooCommerce</h3><p>Connect with a read-only REST API key.</p></div></div></div>';
     [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){state.source=c.dataset.src;renderSource();};});
   }
+}
+function renderWooMethod(){
+  var w=document.getElementById('woomethod');if(!w)return;
+  if(state.woo_method==='manual'){
+    w.innerHTML='<ol class="slist"><li>In your store admin, open <b>WooCommerce &rarr; Settings &rarr; Advanced &rarr; REST API</b>.</li><li>Click <b>Add key</b>. Description: "Halia". Permissions: <b>Read</b>.</li><li>Click <b>Generate API key</b>, then copy the two values.</li></ol><label>Consumer key</label><input id="consumer_key" placeholder="ck_..." autocomplete="off"><label>Consumer secret</label><input id="consumer_secret" type="password" placeholder="cs_..." autocomplete="off">';
+  } else if(state.woo_method==='auto'){
+    w.innerHTML='<p class="hint" style="margin-top:14px">A WooCommerce tab opens where you approve Halia. The read-only key is sent straight back, nothing to copy. Come back here when it says connected.</p><button type="button" class="btn" id="wooauth" style="margin-top:12px">Authorize in WooCommerce &rarr;</button><div id="woostatus" style="margin-top:14px"></div>';
+    document.getElementById('wooauth').onclick=startWooAuth;
+    if(state.woo_token)document.getElementById('woostatus').innerHTML='<span style="color:#1f564a;font:600 14px var(--sans)">&#10003; Connected. Continue when ready.</span>';
+  }
+}
+function startWooAuth(){
+  var st=document.getElementById('woostatus'),btn=document.getElementById('wooauth');
+  if(!gv('store_url')){st.innerHTML='<span style="color:#8e1f0b;font-size:13.5px">Go back and enter your store address first.</span>';return;}
+  btn.disabled=true;btn.innerHTML='Opening WooCommerce&hellip;';
+  fetch('/v1/woo/authorize',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({store_url:gv('store_url')})})
+   .then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});})
+   .then(function(res){
+     if(!res.ok)throw new Error((res.d&&res.d.detail)||'Could not start.');
+     state.woo_token=res.d.token;window.open(res.d.url,'_blank');
+     btn.disabled=false;btn.innerHTML='Authorize in WooCommerce &rarr;';
+     st.innerHTML='<div style="display:flex;gap:10px;align-items:center"><div class="spin"></div><span style="color:var(--mute);font-size:14px">Waiting for you to approve Halia in the new tab&hellip;</span></div>';
+     pollWoo();
+   })
+   .catch(function(e){btn.disabled=false;btn.innerHTML='Authorize in WooCommerce &rarr;';st.innerHTML='<span style="color:#8e1f0b;font-size:13.5px">'+e.message+'</span>';});
+}
+var _wooPoll;
+function pollWoo(){
+  clearTimeout(_wooPoll);if(!state.woo_token)return;
+  fetch('/v1/woo/authorized/'+encodeURIComponent(state.woo_token)).then(function(r){return r.json();})
+   .then(function(d){var st=document.getElementById('woostatus');
+     if(d&&d.ready){if(st)st.innerHTML='<span style="color:#1f564a;font:600 14px var(--sans)">&#10003; Connected. You can continue.</span>';}
+     else{_wooPoll=setTimeout(pollWoo,3000);}})
+   .catch(function(){_wooPoll=setTimeout(pollWoo,4000);});
 }
 function detectThenAdvance(){
   var b=document.querySelector('.step.active [data-next]'),orig=b?b.innerHTML:'';
@@ -512,7 +595,10 @@ function valid(n){
   if(n===1){if(!/^https?:\/\//i.test(gv('store_url'))){err('err1','Enter your full store address, starting with https://');return false;}}
   if(n===2){
     if(state.source==='shopify'){if(!gv('shop_domain')){err('err2','Enter your .myshopify.com store domain.');return false;}if(!gv('admin_token')){err('err2','Paste your Admin API access token.');return false;}}
-    else if(state.source==='woocommerce'){if(!gv('consumer_key')||!gv('consumer_secret')){err('err2','Paste both your consumer key and secret.');return false;}}
+    else if(state.source==='woocommerce'){
+      if(!state.woo_method){err('err2','Choose how to connect your store.');return false;}
+      if(state.woo_method==='auto'&&!state.woo_token){err('err2','Click Authorize and approve Halia in WooCommerce, then continue.');return false;}
+      if(state.woo_method==='manual'&&(!gv('consumer_key')||!gv('consumer_secret'))){err('err2','Paste both your consumer key and secret.');return false;}}
     else{err('err2','Choose your store platform to continue.');return false;}
     if(SIGNUP&&!gv('code')){err('err2','Enter your signup code.');return false;}}
   if(n===4){var key=gv('api_key');if(!key){err('err4','Paste your '+(state.platform==='klaviyo'?'Klaviyo':'Mailchimp')+' key, or go back and choose to connect later.');return false;}
@@ -537,7 +623,7 @@ document.getElementById('addmail').onclick=function(){var l=document.getElementB
 function payload(){return{
   label:gv('label'),store_url:gv('store_url'),source:state.source||'',
   consumer_key:gv('consumer_key'),consumer_secret:gv('consumer_secret'),
-  shop_domain:gv('shop_domain'),admin_token:gv('admin_token'),code:gv('code'),
+  shop_domain:gv('shop_domain'),admin_token:gv('admin_token'),woo_token:state.woo_token||'',code:gv('code'),
   platform:(!state.platform||state.platform==='later')?'':state.platform,api_key:gv('api_key'),
   email:gv('email'),notify_emails:collectEmails(),
   vic_threshold:gv('vic_threshold'),sender_name:gv('sender_name'),aov:gv('aov'),max_orders:gv('max_orders'),highest_lt:gv('highest_lt')};}
@@ -658,7 +744,12 @@ def register(app) -> None:
             shop = _slug(store_url)
             if not shop or not store_url.startswith("http"):
                 raise HTTPException(400, "Enter your full store web address, starting with https://")
-            ck, cs = g("consumer_key"), g("consumer_secret")
+            woo_token = g("woo_token")
+            pend = _woo_pending_get(woo_token) if woo_token else None
+            if pend and pend.get("ck"):           # keys came from the one-click authorise flow
+                ck, cs = pend["ck"], pend["cs"]
+            else:                                  # manual API key
+                ck, cs = g("consumer_key"), g("consumer_secret")
             if not ck or not cs:
                 raise HTTPException(400, "Add your WooCommerce consumer key and secret.")
             ok, why = _validate_woo(store_url, ck, cs)
@@ -667,6 +758,8 @@ def register(app) -> None:
             label = label or shop
             store.create_tenant(shop, "woocommerce", label, hash_token(link_token))
             store.save_woocommerce(shop, store_url, ck, cs)
+            if woo_token:
+                _woo_pending_pop(woo_token)
 
         from halia.api.settings import clean_emails
         acct = g("email")
@@ -691,6 +784,48 @@ def register(app) -> None:
     @app.post("/v1/detect")
     def detect_store(payload: dict = Body(...)) -> dict:
         return _detect_platform(str((payload or {}).get("store_url", "")))
+
+    # ── WooCommerce one-click authorise (native /wc-auth flow, no plugin) ───────
+    @app.post("/v1/woo/authorize")
+    def woo_authorize(payload: dict = Body(...)) -> dict:
+        base = config.HALIA_APP_URL or ""
+        if not base.startswith("https"):
+            raise HTTPException(400, "Automatic connect needs Halia running on https. "
+                                     "Use the API key method instead.")
+        store_url = str((payload or {}).get("store_url", "")).strip().rstrip("/")
+        if not store_url.startswith("http"):
+            raise HTTPException(400, "Enter your store web address first.")
+        from urllib.parse import urlencode
+
+        tok = _woo_pending_new(store_url)
+        params = {"app_name": "Halia", "scope": "read", "user_id": tok,
+                  "return_url": f"{base}/connect/woo/return",
+                  "callback_url": f"{base}/connect/woo/callback/{tok}"}
+        return {"token": tok, "url": f"{store_url}/wc-auth/v1/authorize?{urlencode(params)}"}
+
+    @app.post("/connect/woo/callback/{token}")
+    async def woo_callback(token: str, request: Request) -> dict:
+        try:
+            data = await request.json()
+        except Exception:  # noqa: BLE001
+            data = {}
+        ck = str((data or {}).get("consumer_key", "")).strip()
+        cs = str((data or {}).get("consumer_secret", "")).strip()
+        if ck and cs:
+            _woo_pending_set(token, ck, cs)
+        return {"ok": True}
+
+    @app.get("/v1/woo/authorized/{token}")
+    def woo_authorized(token: str) -> dict:
+        p = _woo_pending_get(token)
+        return {"ready": bool(p and p.get("ck"))}
+
+    @app.get("/connect/woo/return", response_class=HTMLResponse)
+    def woo_return() -> HTMLResponse:
+        return HTMLResponse(_page("Connected · Halia",
+                                  "<h1 class=ok>&#10003; Connected</h1><p class=sub>Halia is connected "
+                                  "to your store. You can close this tab and return to the setup to "
+                                  "finish.</p>"))
 
     @app.post("/connect", response_class=HTMLResponse)
     def connect_submit(

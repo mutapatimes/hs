@@ -165,6 +165,33 @@ def test_onboard_shopify_bad_token_rejected(client, monkeypatch):
     assert r.status_code == 400 and "Shopify" in r.json()["detail"]
 
 
+def test_woo_authorize_needs_https(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr("halia.config.HALIA_APP_URL", "")
+    r = c.post("/v1/woo/authorize", json={"store_url": "https://shop.com"})
+    assert r.status_code == 400 and "https" in r.json()["detail"]
+
+
+def test_woo_oneclick_flow_end_to_end(client, monkeypatch):
+    c, store = client
+    monkeypatch.setattr("halia.config.HALIA_APP_URL", "https://halia.test")
+    # 1. start the authorise: get a token + a wc-auth URL
+    a = c.post("/v1/woo/authorize", json={"store_url": "https://shop.com"}).json()
+    tok = a["token"]
+    assert "/wc-auth/v1/authorize" in a["url"] and tok in a["url"]
+    assert c.get(f"/v1/woo/authorized/{tok}").json() == {"ready": False}
+    # 2. WooCommerce posts the keys back to our callback
+    c.post(f"/connect/woo/callback/{tok}",
+           json={"consumer_key": "ck_auto", "consumer_secret": "cs_auto"})
+    assert c.get(f"/v1/woo/authorized/{tok}").json() == {"ready": True}
+    # 3. onboarding finishes using the keys from the flow (no manual entry)
+    r = c.post("/v1/onboard", json={"source": "woocommerce", "store_url": "https://shop.com",
+                                    "woo_token": tok, "platform": ""})
+    assert r.status_code == 200
+    creds = store.get_woocommerce("shop-com")
+    assert creds["consumer_key"] == "ck_auto" and creds["consumer_secret"] == "cs_auto"
+
+
 def test_newsletter_subscribe(client):
     c, _ = client
     assert c.post("/subscribe", json={"email": "jane@halia.app"}).status_code == 200
