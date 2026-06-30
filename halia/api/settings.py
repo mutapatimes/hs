@@ -13,6 +13,7 @@ customers is unaffected).
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from fastapi import Body, Depends, HTTPException
@@ -48,10 +49,26 @@ DEFAULT_TEMPLATES = [
 ]
 
 
+def clean_emails(raw) -> list[str]:
+    """Normalise a list (or comma/space-separated string) of emails to a de-duped valid list."""
+    if isinstance(raw, str):
+        raw = re.split(r"[,;\s]+", raw)
+    out: list[str] = []
+    for e in (raw or []):
+        e = str(e).strip()
+        if e and re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", e) and e.lower() not in (x.lower() for x in out):
+            out.append(e[:200])
+    return out[:25]
+
+
 def settings_for(shop: str) -> dict:
     """The shop's settings, with defaults filled in."""
     raw = shop_store().get_settings_raw(shop)
     d = json.loads(raw) if raw else {}
+    # Alert recipients: prefer the list; fall back to the legacy single notify_email.
+    emails = d.get("notify_emails")
+    if emails is None:
+        emails = [d["notify_email"]] if d.get("notify_email") else []
     return {
         "vic_threshold": d.get("vic_threshold", DEFAULT_VIC_THRESHOLD),
         "sender_name": d.get("sender_name", ""),
@@ -60,10 +77,13 @@ def settings_for(shop: str) -> dict:
         "aov": d.get("aov", 0),
         "max_orders": d.get("max_orders", 0),
         "highest_lt": d.get("highest_lt", 0),
-        # Desktop alerts for new high-grade orders.
+        # The merchant's own account email (captured at onboarding).
+        "account_email": d.get("account_email", ""),
+        # Desktop + email alerts for new high-grade orders.
         "notify_enabled": bool(d.get("notify_enabled", False)),
         "notify_grades": d.get("notify_grades") or ["A*", "A"],
-        "notify_email": d.get("notify_email", ""),
+        "notify_emails": emails,
+        "notify_email": emails[0] if emails else "",  # back-compat (first recipient)
     }
 
 
@@ -124,8 +144,13 @@ def register(app) -> None:
             "notify_enabled": bool(payload.get("notify_enabled", False)),
             "notify_grades": [g for g in (payload.get("notify_grades") or ["A*", "A"])
                               if g in ("A*", "A", "B")] or ["A*"],
-            "notify_email": str(payload.get("notify_email", ""))[:200],
+            "account_email": str(payload.get("account_email", ""))[:200],
         }
+        emails = clean_emails(payload.get("notify_emails")
+                              if payload.get("notify_emails") is not None
+                              else payload.get("notify_email"))
+        data["notify_emails"] = emails
+        data["notify_email"] = emails[0] if emails else ""  # back-compat
         shop_store().save_settings(shop, json.dumps(data))
         cache.evict(shop)  # a changed threshold must re-score on next load
         return {"ok": True}

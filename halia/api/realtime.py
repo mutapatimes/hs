@@ -60,10 +60,12 @@ def _dispatch(shop: str, alert: dict, s: dict) -> None:
             "title": f"New {alert['grade']} order · {alert['name']}",
             "body": " · ".join(alert.get("signals") or []) or "A high-grade client just ordered.",
             "tag": "halia-" + str(alert.get("order_id")), "url": "/app"})
-    email = (s.get("notify_email") or "").strip()
-    if email and notify.email_configured():
-        notify.send_email(email, f"New {alert['grade']} order · {alert['name']}",
-                          _email_html(alert, shop))
+    emails = s.get("notify_emails") or ([s["notify_email"]] if s.get("notify_email") else [])
+    if emails and notify.email_configured():
+        subject = f"New {alert['grade']} order · {alert['name']}"
+        html = _email_html(alert, shop)
+        for email in emails:
+            notify.send_email(email, subject, html)
 
 
 def register(app) -> None:

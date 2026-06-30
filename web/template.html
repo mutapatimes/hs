@@ -854,8 +854,9 @@ function openSettings(){
               <option value="A*,A"${(SETTINGS.notify_grades||[]).indexOf("A")>=0?" selected":""}>A&#42; and A</option>
             </select>
           </div>
-          <div style="margin-top:18px"><div style="${LBL}">Also email alerts to (optional)</div>
-            <input id="setNotifyEmail" type="email" value="${esc(SETTINGS.notify_email||"")}" placeholder="team@yourbrand.com" style="width:100%;max-width:380px;${I}"></div>
+          <div style="margin-top:18px"><div style="${LBL}">Email alerts to (comma-separated)</div>
+            <input id="setNotifyEmail" type="text" value="${esc((SETTINGS.notify_emails||[]).join(', '))}" placeholder="you@brand.com, manager@brand.com" style="width:100%;max-width:480px;${I}">
+            <div style="font:12px system-ui;color:#8a8a8a;margin-top:5px">Everyone here gets an email when a high-grade client orders.</div></div>
           <div style="margin-top:20px"><div style="${LBL}">Real-time webhook</div>
             <code style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:#303030;background:#f1f1f1;border-radius:8px;padding:11px 13px;word-break:break-all;margin-top:6px">${esc(SETTINGS.webhook_url||"")}</code>
             <p style="${P};margin-top:8px;font-size:12px">Add this as an “Order created” webhook in your store (WooCommerce → Settings → Advanced → Webhooks, or a Shopify orders/create webhook) for instant alerts even when Halia is closed. Nothing about your customers is stored to power them.</p></div>
@@ -908,7 +909,8 @@ function openSettings(){
         aov:num("setAov"),max_orders:num("setMaxOrders"),highest_lt:num("setHighestLt"),
         notify_enabled:document.getElementById("setNotify").checked,
         notify_grades:document.getElementById("setNotifyGrades").value.split(","),
-        notify_email:document.getElementById("setNotifyEmail").value,
+        notify_emails:document.getElementById("setNotifyEmail").value,
+        account_email:SETTINGS.account_email||"",
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim())};
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";
       fetch("/v1/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})

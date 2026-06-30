@@ -319,6 +319,12 @@ input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(122,
 details{margin-top:20px;border-top:1px solid var(--line)}
 summary{cursor:pointer;font:600 13px var(--sans);color:var(--mute);padding:14px 0 4px;list-style:none}
 summary::-webkit-details-marker{display:none}
+.emrow{display:flex;gap:8px;margin-top:8px;align-items:center}
+.emrow input{flex:1}
+.emrow .rm{flex:none;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:#fffdf8;color:var(--mute);cursor:pointer;font-size:18px;line-height:1}
+.emrow .rm:hover{color:var(--ink);border-color:var(--ink)}
+.addmail{margin-top:12px;background:none;border:none;color:var(--gold);font:600 14px var(--sans);cursor:pointer;padding:6px 0}
+.addmail:hover{color:var(--ink)}
 </style></head><body>
 <div class="bar"><i id="barfill"></i></div>
 <header class="top"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#7a7363"/></svg>Halia</a><div class="stepn" id="stepn"></div></header>
@@ -401,15 +407,29 @@ summary::-webkit-details-marker{display:none}
       </div>
       <label>Your highest lifetime client value</label><input id="highest_lt" type="number" min="0" step="100" placeholder="optional">
     </details>
-    <div class="row"><button class="back" data-back>Back</button><button class="btn" data-next id="finishbtn">Find my VICs &rarr;</button></div>
+    <div class="row"><button class="back" data-back>Back</button><button class="btn" data-next>Continue &rarr;</button></div>
   </section>
 
   <section class="step" data-step="6">
+    <div class="eyebrow">Stay in the loop</div>
+    <h1>Never miss a <em>big moment.</em></h1>
+    <p class="lede">When a top client places an order, in person at the till or online, Halia can alert your team in real time so you can look after them right away. Where should those alerts go?</p>
+    <label>Your email</label>
+    <input id="email" type="email" placeholder="you@yourstore.com" autocomplete="email">
+    <div class="hint">For your account and important notices. You will receive alerts here too.</div>
+    <label>Also send order alerts to</label>
+    <div id="emaillist"></div>
+    <button type="button" class="addmail" id="addmail">+ Add another recipient</button>
+    <div id="err6" class="err" style="display:none"></div>
+    <div class="row"><button class="back" data-back>Back</button><button class="btn" data-next>Find my VICs &rarr;</button></div>
+  </section>
+
+  <section class="step" data-step="7">
     <div class="eyebrow">Almost there</div>
     <h1 id="donetitle">Scoring your store&hellip;</h1>
     <p class="lede" id="donelede">Halia is reading your orders and grading every customer. The first run takes a minute. Keep this tab open, your hidden VICs are on their way.</p>
     <div style="display:flex;gap:12px;align-items:center;margin-top:8px" id="spinrow"><div class="spin" id="spin"></div><span id="donesub" style="color:var(--mute);font-size:14px">Connecting&hellip;</span></div>
-    <div id="err6" class="err" style="display:none"></div>
+    <div id="err7" class="err" style="display:none"></div>
     <div class="row" id="donerow" style="display:none"><a class="btn" id="openbtn" href="#">Open my dashboard &rarr;</a></div>
   </section>
 
@@ -421,7 +441,13 @@ var state={platform:null,source:null,myshop:'',cur:0};
 if(SIGNUP) document.getElementById('codewrap').style.display='block';
 function gv(id){var e=document.getElementById(id);return e?e.value.trim():'';}
 function err(id,msg){var e=document.getElementById(id);if(e){e.textContent=msg;e.style.display='block';}}
-function clearErrs(){['err1','err2','err4','err6'].forEach(function(i){var e=document.getElementById(i);if(e)e.style.display='none';});}
+function clearErrs(){['err1','err2','err4','err6','err7'].forEach(function(i){var e=document.getElementById(i);if(e)e.style.display='none';});}
+var EMRE=/^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+function emailRow(val){var d=document.createElement('div');d.className='emrow';
+  d.innerHTML='<input type="email" placeholder="name@yourstore.com"><button type="button" class="rm" title="Remove">&times;</button>';
+  d.querySelector('input').value=val||'';d.querySelector('.rm').onclick=function(){d.remove();};return d;}
+function initEmails(){var l=document.getElementById('emaillist');if(l&&!l.children.length)l.appendChild(emailRow(''));}
+function collectEmails(){return [].map.call(document.querySelectorAll('#emaillist input'),function(i){return i.value.trim();}).filter(Boolean);}
 function renderSource(){
   var eye=document.getElementById('srceye'),ti=document.getElementById('srctitle'),le=document.getElementById('srclede'),b=document.getElementById('srcbody');
   if(state.source==='woocommerce'){
@@ -451,16 +477,17 @@ function detectThenAdvance(){
    .catch(function(){state.source='unknown';})
    .then(function(){if(b){b.disabled=false;b.innerHTML=orig;}renderSource();show(2);});
 }
-function order(){var o=[1,2,3];if(state.platform&&state.platform!=='later')o.push(4);o.push(5);return o;}
+function order(){var o=[1,2,3];if(state.platform&&state.platform!=='later')o.push(4);o.push(5);o.push(6);return o;}
 function show(n){
   state.cur=n;
   steps.forEach(function(s){s.classList.toggle('active',(+s.dataset.step)===n);});
   var fill=document.getElementById('barfill'),sn=document.getElementById('stepn'),o=order(),pos=o.indexOf(n);
   if(n===0){fill.style.width='6%';sn.textContent='';}
-  else if(n===6){fill.style.width='100%';sn.textContent='';}
+  else if(n===7){fill.style.width='100%';sn.textContent='';}
   else{fill.style.width=(((pos+1)/(o.length+1))*100)+'%';sn.textContent=(pos+1)+' of '+o.length;}
   window.scrollTo(0,0);
   if(n===4) fillPlatform();
+  if(n===6) initEmails();
 }
 function fillPlatform(){
   var k=state.platform==='klaviyo';
@@ -488,9 +515,13 @@ function valid(n){
     if(SIGNUP&&!gv('code')){err('err2','Enter your signup code.');return false;}}
   if(n===4){var key=gv('api_key');if(!key){err('err4','Paste your '+(state.platform==='klaviyo'?'Klaviyo':'Mailchimp')+' key, or go back and choose to connect later.');return false;}
     if(state.platform==='klaviyo'&&key.indexOf('pk_')!==0){err('err4','A Klaviyo private key starts with pk_.');return false;}}
+  if(n===6){var em=gv('email');
+    if(!em){err('err6','Enter your email so we can set up your account.');return false;}
+    if(!EMRE.test(em)){err('err6','That email does not look right.');return false;}
+    if(collectEmails().some(function(x){return !EMRE.test(x);})){err('err6','One of the alert emails does not look right.');return false;}}
   return true;
 }
-function nextFrom(n){if(n===3)return(state.platform&&state.platform!=='later')?4:5;if(n===4)return 5;if(n===5)return 'finish';return n+1;}
+function nextFrom(n){if(n===3)return(state.platform&&state.platform!=='later')?4:5;if(n===4)return 5;if(n===5)return 6;if(n===6)return 'finish';return n+1;}
 function backFrom(n){if(n===5)return(state.platform&&state.platform!=='later')?4:3;if(n===4)return 3;return Math.max(0,n-1);}
 function handleNext(){var n=state.cur;if(!valid(n))return;if(n===1){detectThenAdvance();return;}var t=nextFrom(n);if(t==='finish')finish();else show(t);}
 [].forEach.call(document.querySelectorAll('[data-next]'),function(b){b.onclick=handleNext;});
@@ -500,14 +531,16 @@ function handleNext(){var n=state.cur;if(!valid(n))return;if(n===1){detectThenAd
   c.classList.add('sel');state.platform=c.dataset.plat;document.getElementById('p3next').disabled=false;};});
 document.getElementById('stage').addEventListener('keydown',function(e){
   if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();handleNext();}});
+document.getElementById('addmail').onclick=function(){var l=document.getElementById('emaillist');l.appendChild(emailRow(''));var ins=l.querySelectorAll('input');ins[ins.length-1].focus();};
 function payload(){return{
   label:gv('label'),store_url:gv('store_url'),source:state.source||'',
   consumer_key:gv('consumer_key'),consumer_secret:gv('consumer_secret'),
   shop_domain:gv('shop_domain'),admin_token:gv('admin_token'),code:gv('code'),
   platform:(!state.platform||state.platform==='later')?'':state.platform,api_key:gv('api_key'),
+  email:gv('email'),notify_emails:collectEmails(),
   vic_threshold:gv('vic_threshold'),sender_name:gv('sender_name'),aov:gv('aov'),max_orders:gv('max_orders'),highest_lt:gv('highest_lt')};}
 function finish(){
-  show(6);
+  show(7);
   var sp=document.getElementById('spin');
   fetch('/v1/onboard',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload())})
    .then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});})
@@ -526,7 +559,7 @@ function finish(){
      var m=e.message||'Something went wrong.';
      if(/address|https/i.test(m)){show(1);err('err1',m);}
      else if(/woocommerce|shopify|key and secret|domain|access token|signup code/i.test(m)){show(2);err('err2',m);}
-     else{sp.style.display='none';document.getElementById('donesub').textContent='We hit a snag.';err('err6',m);
+     else{sp.style.display='none';document.getElementById('donesub').textContent='We hit a snag.';err('err7',m);
        var o=document.getElementById('openbtn');o.textContent='Start over';o.href='/connect';document.getElementById('donerow').style.display='flex';}
    });
 }
@@ -633,10 +666,20 @@ def register(app) -> None:
             store.create_tenant(shop, "woocommerce", label, hash_token(link_token))
             store.save_woocommerce(shop, store_url, ck, cs)
 
+        from halia.api.settings import clean_emails
+        acct = g("email")
+        recipients = clean_emails(p.get("notify_emails"))
+        if acct and acct.lower() not in (e.lower() for e in recipients):
+            recipients = clean_emails([acct]) + recipients  # the owner hears about it by default
         store.save_settings(shop, _json.dumps({
             "vic_threshold": num("vic_threshold") or 5000,
             "sender_name": g("sender_name")[:120],
             "aov": num("aov"), "max_orders": int(num("max_orders")), "highest_lt": num("highest_lt"),
+            "account_email": acct,
+            "notify_emails": recipients,
+            "notify_email": recipients[0] if recipients else "",
+            "notify_enabled": bool(recipients),
+            "notify_grades": ["A*", "A"],
         }))
         connected, warning = _connect_marketing(store, shop, g("platform"), g("api_key"))
         _start_sync(shop)  # warm the cache while they read the closing screen

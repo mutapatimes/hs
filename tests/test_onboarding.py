@@ -98,6 +98,19 @@ def test_onboard_json_creates_tenant_settings_and_link(client):
     assert s["vic_threshold"] == 8000 and s["sender_name"] == "Amara"
 
 
+def test_onboard_captures_account_and_notify_emails(client):
+    c, store = client
+    r = c.post("/v1/onboard", json={
+        "store_url": "https://x.com", "consumer_key": "ck", "consumer_secret": "cs", "platform": "",
+        "email": "owner@x.com", "notify_emails": ["team@x.com", "not-an-email"]})
+    assert r.status_code == 200
+    import json
+    s = json.loads(store.get_settings_raw("x-com"))
+    assert s["account_email"] == "owner@x.com"
+    assert "owner@x.com" in s["notify_emails"] and "team@x.com" in s["notify_emails"]
+    assert "not-an-email" not in s["notify_emails"] and s["notify_enabled"] is True
+
+
 def test_onboard_rejects_bad_woo(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr(onboarding, "_validate_woo", lambda *a, **k: (False, "401 Unauthorized"))
