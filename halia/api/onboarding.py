@@ -475,9 +475,10 @@ function detectThenAdvance(){
    .then(function(r){return r.json();})
    .then(function(d){state.source=(d&&d.platform&&d.platform!=='unknown')?d.platform:'unknown';state.myshop=(d&&d.myshopify)||'';})
    .catch(function(){state.source='unknown';})
-   .then(function(){if(b){b.disabled=false;b.innerHTML=orig;}renderSource();show(2);});
+   .then(function(){if(b){b.disabled=false;b.innerHTML=orig;}show(nextFrom(1));});
 }
-function order(){var o=[1,2,3];if(state.platform&&state.platform!=='later')o.push(4);o.push(5);o.push(6);return o;}
+function seq(){var s=[0,1,6,2,3];if(state.platform&&state.platform!=='later')s.push(4);s.push(5);return s;}
+function order(){return seq().filter(function(x){return x!==0;});}
 function show(n){
   state.cur=n;
   steps.forEach(function(s){s.classList.toggle('active',(+s.dataset.step)===n);});
@@ -486,6 +487,7 @@ function show(n){
   else if(n===7){fill.style.width='100%';sn.textContent='';}
   else{fill.style.width=(((pos+1)/(o.length+1))*100)+'%';sn.textContent=(pos+1)+' of '+o.length;}
   window.scrollTo(0,0);
+  if(n===2) renderSource();
   if(n===4) fillPlatform();
   if(n===6) initEmails();
 }
@@ -521,8 +523,8 @@ function valid(n){
     if(collectEmails().some(function(x){return !EMRE.test(x);})){err('err6','One of the alert emails does not look right.');return false;}}
   return true;
 }
-function nextFrom(n){if(n===3)return(state.platform&&state.platform!=='later')?4:5;if(n===4)return 5;if(n===5)return 6;if(n===6)return 'finish';return n+1;}
-function backFrom(n){if(n===5)return(state.platform&&state.platform!=='later')?4:3;if(n===4)return 3;return Math.max(0,n-1);}
+function nextFrom(n){var s=seq(),i=s.indexOf(n);return(i<0||i>=s.length-1)?'finish':s[i+1];}
+function backFrom(n){var s=seq(),i=s.indexOf(n);return i<=0?0:s[i-1];}
 function handleNext(){var n=state.cur;if(!valid(n))return;if(n===1){detectThenAdvance();return;}var t=nextFrom(n);if(t==='finish')finish();else show(t);}
 [].forEach.call(document.querySelectorAll('[data-next]'),function(b){b.onclick=handleNext;});
 [].forEach.call(document.querySelectorAll('[data-back]'),function(b){b.onclick=function(){show(backFrom(state.cur));};});
