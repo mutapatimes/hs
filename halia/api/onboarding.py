@@ -327,8 +327,8 @@ h1 em{font-style:italic;color:var(--gold)}
 .term .body{padding:14px 16px;height:176px;overflow:hidden;font:12.5px/1.72 ui-monospace,SFMono-Regular,Menlo,monospace}
 .term .ln{white-space:pre-wrap;color:#c9cdd2;animation:tin .25s ease}
 @keyframes tin{from{opacity:0}to{opacity:1}}
-.term .ln.ok{color:#5bd6a0}.term .ln.dim{color:#7d8186}
-.term .pr{color:#5bd6a0}.term .cmd{color:#eaeef2}
+.term .ln.ok{color:#5bd6a0}.term .ln.dim{color:#7d8186}.term .ln.calc{color:#8fb6e0}
+.term .pr{color:#5bd6a0}.term .cmd{color:#eaeef2}.term .br{color:#d8b96a}
 .term .caret{display:inline-block;width:8px;height:14px;background:#5bd6a0;vertical-align:-2px;animation:bk 1s step-end infinite}
 @keyframes bk{50%{opacity:0}}
 </style></head><body>
@@ -361,33 +361,55 @@ var cyc=setInterval(function(){mi=(mi+1)%MSGS.length;msg.style.opacity=0;setTime
 var creep=setInterval(function(){prog=Math.min(92,prog+Math.random()*7+1.5);bar.style.width=prog+'%';},1300);
 setTimeout(function(){bar.style.width='12%';},80);
 var SCRIPT=[
+ {p:'halia engine --version'},
+ {d:'Halia scoring engine v2.4.1   zero-retention'},
  {p:'halia connect --read-only'},
- {o:'✓ secure link established  (read-only, we never write)'},
- {p:'halia pull orders --recent'},
- {d:'→ fetching orders ............ done'},
+ {o:'✓ secure link established (read-only, never writes)'},
+ {bar:'pulling recent orders', ms:2000, done:'→ 4,213 orders loaded into memory'},
  {p:'halia score --signals wealth,intent,loyalty,locale'},
- {d:'· loading curated wealth datasets'},
- {d:'· matching work emails, postcodes, honorifics'},
- {d:'analyzing customers .......... 81%'},
- {o:'✓ every customer graded  A* → C'},
+ {c:'weights   wealth·0.34  intent·0.27  loyalty·0.22  locale·0.17'},
+ {spin:'loading curated wealth datasets', ms:1900, done:'✓ datasets ready (HNWI postcodes · firms · schools)'},
+ {c:'cust#4821  goldmansachs.com → work-email+   SW1X → HNWI p99'},
+ {spin:'computing weighted score', ms:1800, done:'score = 0.34·92 + 0.27·81 + 0.22·76 + 0.17·88 = 84.6 → A'},
+ {c:'cohort   AOV £420 · max-orders 14 · ceiling £18,400'},
+ {spin:'estimating latent value', ms:2100, done:'£ latent(cust#4821) = 14,800'},
+ {bar:'scoring all customers', ms:2400, done:'✓ 4,213 customers graded  A* → C'},
+ {spin:'ranking by percentile', ms:1500, done:'★ top 3.2%   Σ signals = 7   grade A*'},
  {p:'halia surface --hidden-vics'},
- {o:'★ hidden VICs surfaced and ranked'},
- {p:'halia estimate --latent-value'},
- {o:'✓ revenue potential calculated'},
- {p:'halia prepare-dashboard'},
- {o:'✓ ready'}
+ {o:'✓ 87 hidden VICs surfaced and ranked by Halia'},
+ {spin:'preparing your dashboard', ms:1400, done:'✓ Halia ready'}
 ];
-var termlines=document.getElementById('termlines'),ti=0,termTick;
-function termLine(){
-  var s=SCRIPT[ti%SCRIPT.length];ti++;
-  var d=document.createElement('div');d.className='ln'+(s.o?' ok':(s.d?' dim':''));
-  if(s.p){d.innerHTML='<span class="pr">$</span> <span class="cmd">'+s.p+'</span>';}else{d.textContent=s.o||s.d;}
-  termlines.appendChild(d);
-  while(termlines.children.length>6)termlines.removeChild(termlines.firstChild);
+var termlines=document.getElementById('termlines'),termTick,termStop=false;
+var SPIN=['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+function cap(){while(termlines.children.length>6)termlines.removeChild(termlines.firstChild);}
+function el(cls){var d=document.createElement('div');d.className='ln'+(cls?' '+cls:'');termlines.appendChild(d);cap();return d;}
+function doneCls(t){return (t&&t.charAt(0)==='✓')?'ln ok':'ln calc';}
+function addStatic(s){
+  var d=el(s.o?'ok':(s.c?'calc':'dim'));
+  if(s.p){d.innerHTML='<span class="pr">$</span> <span class="cmd">'+s.p+'</span>';}
+  else{d.textContent=s.o||s.c||s.d;}
 }
-if(termlines){termLine();termTick=setInterval(termLine,1050);}
+function spinStep(s,cb){
+  var d=el('dim'),fi=0;
+  var iv=setInterval(function(){if(termStop){clearInterval(iv);return;}d.textContent=SPIN[fi++%SPIN.length]+'  '+s.spin;},80);
+  termTick=setTimeout(function(){clearInterval(iv);d.className=doneCls(s.done);d.textContent=s.done;cb();},s.ms||1500);
+}
+function barStep(s,cb){
+  var d=el('dim'),p=0,W=10;
+  var iv=setInterval(function(){if(termStop){clearInterval(iv);return;}p=Math.min(100,p+Math.random()*15+6);var f=Math.round(p/100*W);d.innerHTML='<span class="br">['+Array(f+1).join('█')+Array(W-f+1).join('░')+']</span> '+Math.round(p)+'%  '+s.bar;},170);
+  termTick=setTimeout(function(){clearInterval(iv);d.className=doneCls(s.done);d.textContent=s.done;cb();},s.ms||2000);
+}
+function next(i,delay){if(termStop)return;termTick=setTimeout(function(){run(i+1);},delay);}
+function run(i){
+  if(termStop)return;
+  var s=SCRIPT[i%SCRIPT.length];
+  if(s.spin){spinStep(s,function(){next(i,500);});}
+  else if(s.bar){barStep(s,function(){next(i,500);});}
+  else{addStatic(s);next(i,s.p?650:(s.c?550:900));}
+}
+if(termlines)run(0);
 function done(d){
-  clearInterval(cyc);clearInterval(creep);clearInterval(termTick);bar.style.width='100%';
+  clearInterval(cyc);clearInterval(creep);termStop=true;clearTimeout(termTick);bar.style.width='100%';
   document.getElementById('phase').innerHTML='Ready';
   document.getElementById('head').innerHTML='Your VICs are <em>ready.</em>';
   var c=(d&&d.count)||'0',l=(d&&d.latent)||'';
