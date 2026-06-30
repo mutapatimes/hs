@@ -70,3 +70,17 @@ def test_endpoint_and_paged_fetch():
 
     got = fetch_orders(transport, per_page=100)
     assert len(got) == 3 and calls[0] == ("orders", 1)
+
+
+def test_fetch_requests_only_needed_fields_and_caps_pages():
+    seen = []
+
+    def transport(path, params):
+        seen.append(params)
+        return [{"id": 1}] * params["per_page"]  # always full -> would page forever without a cap
+
+    got = fetch_orders(transport, per_page=100, max_pages=3)
+    # _fields trims the payload to what the scorer reads (big speed win on real stores)
+    assert "_fields" in seen[0] and "billing" in seen[0]["_fields"] and "meta_data" not in seen[0]["_fields"]
+    # max_pages bounds the pull so a huge store cannot run forever
+    assert len(seen) == 3 and len(got) == 300

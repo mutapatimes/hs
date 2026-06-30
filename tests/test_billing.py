@@ -16,7 +16,7 @@ from halia.store import ShopStore
 def client(tmp_path, monkeypatch):
     store = ShopStore(db_path=tmp_path / "b.db")
     monkeypatch.setattr(shopify_auth, "_shop_store", store)
-    monkeypatch.setattr(onboarding, "_start_sync", lambda shop: None)
+    monkeypatch.setattr(onboarding, "_start_sync", lambda *a, **k: None)
     return TestClient(app), store
 
 

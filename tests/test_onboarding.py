@@ -13,7 +13,7 @@ def client(tmp_path, monkeypatch):
     store = ShopStore(db_path=tmp_path / "t.db")
     monkeypatch.setattr(shopify_auth, "_shop_store", store)        # all surfaces share this store
     monkeypatch.setattr(onboarding, "_validate_woo", lambda *a, **k: (True, ""))  # no network
-    monkeypatch.setattr(onboarding, "_start_sync", lambda shop: None)             # no background pull
+    monkeypatch.setattr(onboarding, "_start_sync", lambda *a, **k: None)             # no background pull
     monkeypatch.setattr("halia.config.SIGNUP_CODE", None)
     return TestClient(app), store
 

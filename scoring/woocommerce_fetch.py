@@ -18,6 +18,13 @@ from typing import Callable
 
 DEFAULT_PER_PAGE = 100
 
+# Only the fields the scorer reads (scoring.woocommerce.woo_order_to_rest). Passing `_fields`
+# to WooCommerce makes each page far smaller and faster: it drops meta_data, tax/fee/coupon
+# lines, refunds, etc. that a full order object carries. This alone can cut a large-store pull
+# from many minutes to a fraction of that.
+ORDER_FIELDS = ("id,customer_id,status,total,discount_total,date_created_gmt,date_created,"
+                "billing,shipping,line_items")
+
 # A transport maps (path, params) -> parsed JSON (a list of orders for "orders").
 Transport = Callable[[str, dict], object]
 
@@ -64,16 +71,20 @@ def fetch_orders(
     per_page: int = DEFAULT_PER_PAGE,
     max_pages: int | None = None,
     status: str | None = None,
+    fields: str | None = ORDER_FIELDS,
 ) -> list[dict]:
     """Page through /orders (newest first) and return the raw WooCommerce order list.
 
     ``status`` optionally filters (e.g. "completed" or "completed,processing"); the
-    WooCommerce default returns all non-trashed orders.
+    WooCommerce default returns all non-trashed orders. ``fields`` limits the response to
+    the columns the scorer needs (pass None for full order objects).
     """
     orders: list[dict] = []
     page = 1
     while True:
         params = {"per_page": per_page, "page": page, "orderby": "date", "order": "desc"}
+        if fields:
+            params["_fields"] = fields
         if status:
             params["status"] = status
         batch = transport("orders", params)

@@ -178,22 +178,73 @@ def _validate_woo(store_url: str, ck: str, cs: str, probe=None) -> tuple[bool, s
             probe = http_transport(store_url, ck, cs)
         probe("orders", {"per_page": 1})
         return True, ""
-    except Exception as exc:  # noqa: BLE001 — surface a short reason to the client
+    except Exception as exc:  # noqa: BLE001 - surface a short reason to the client
         return False, str(exc)[:180]
 
 
-def _start_sync(shop: str) -> None:
-    """Kick a background scoring sync for a tenant (idempotent)."""
+# Background-sync status per shop, so the preparing page can reassure / show errors rather than
+# spin forever. Plus a "ready email sent" guard so we email a tenant only once.
+_SYNC_STATUS: dict[str, dict] = {}
+_NOTIFIED: set[str] = set()
+
+
+def _set_status(shop: str, state: str, error: str = "") -> None:
+    with _LOCK:
+        _SYNC_STATUS[shop] = {"state": state, "error": error, "ts": time.time()}
+
+
+def sync_status(shop: str) -> dict:
+    with _LOCK:
+        return dict(_SYNC_STATUS.get(shop) or {"state": "idle", "error": "", "ts": 0})
+
+
+def _send_ready_email(shop: str, entry: dict | None) -> None:
+    """Email the merchant that their scores are ready (best-effort; no-op without email config)."""
+    try:
+        from halia import notify as _notify
+        from halia.api.settings import settings_for
+
+        if not _notify.email_configured():
+            return
+        s = settings_for(shop)
+        recipients = s.get("notify_emails") or ([s["account_email"]] if s.get("account_email") else [])
+        if not recipients:
+            return
+        base = (config.HALIA_APP_URL or "").rstrip("/")
+        count = len(data.hidden_results(entry)) if entry else 0
+        html = (f"<p>Good news, your store has finished scoring.</p>"
+                f"<p>Halia found <b>{count}</b> hidden VICs in your customers. Open your dashboard "
+                f"to see them, ranked and ready to act on:</p>"
+                f"<p><a href='{base}/app'>{base}/app</a></p>"
+                f"<p style='color:#888;font-size:13px'>Open it on the device you set Halia up on, "
+                f"so you go straight in.</p>")
+        for em in recipients:
+            _notify.send_email(em, "Your hidden VICs are ready · Halia", html)
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
+
+
+def _start_sync(shop: str, notify: bool = False) -> None:
+    """Kick a background scoring sync for a tenant (idempotent). On completion, optionally email."""
     with _LOCK:
         if shop in _SYNCING:
             return
+        st = _SYNC_STATUS.get(shop)
+        if st and st["state"] == "error" and time.time() - st["ts"] < 60:
+            return  # brief back-off after a failure, so a refresh loop can't hammer the store
         _SYNCING.add(shop)
+    _set_status(shop, "running")
 
     def _run():
         try:
-            data.sync_tenant(shop)
-        except Exception:
-            traceback.print_exc()  # stack only — never customer data
+            entry = data.sync_tenant(shop)
+            _set_status(shop, "done")
+            if notify and shop not in _NOTIFIED:
+                _NOTIFIED.add(shop)
+                _send_ready_email(shop, entry)
+        except Exception as exc:  # noqa: BLE001
+            traceback.print_exc()  # stack only - never customer data
+            _set_status(shop, "error", str(exc)[:200])
         finally:
             with _LOCK:
                 _SYNCING.discard(shop)
@@ -209,10 +260,10 @@ def _connect_form(error: str = "", values: dict | None = None) -> str:
                       "<input name=code type=password placeholder='from your Halia contact'>"
                       "<div class=help>Required to create an account.</div>")
     err = f"<div class=err>{html.escape(error)}</div>" if error else ""
-    return _page("Connect your store — Halia", f"""
+    return _page("Connect your store - Halia", f"""
       <h1>Connect your store</h1>
       <p class=sub>Halia scores your customers for hidden VICs. Connect a read-only
-      WooCommerce key — we never write to your store, and never store your customers.</p>
+      WooCommerce key - we never write to your store, and never store your customers.</p>
       <div class=card>{err}
       <form method=post action=/connect>
         <label>Store name</label>
@@ -244,16 +295,28 @@ def _hosted_head() -> str:
     )
 
 
-def _preparing_page() -> HTMLResponse:
-    inner = ("<h1>Scoring your store…</h1>"
-             "<p class=sub>We're pulling your orders and scoring your customers. This can take "
-             "a minute or two the first time — this page refreshes itself.</p>"
-             "<div class=card><div style='display:flex;gap:10px;align-items:center'>"
-             "<div class='spin' style='width:18px;height:18px;border:3px solid #d8d8d8;"
-             "border-top-color:#1f564a;border-radius:50%;animation:s 1s linear infinite'></div>"
-             "<span style='color:#616161;font-size:14px'>Working…</span></div></div>"
-             "<style>@keyframes s{to{transform:rotate(360deg)}}</style>")
-    resp = HTMLResponse(_page("Scoring… — Halia", inner))
+def _preparing_page(shop: str | None = None) -> HTMLResponse:
+    from halia import notify as _notify
+
+    can_email = _notify.email_configured()
+    state = sync_status(shop).get("state") if shop else "running"
+    spinner = ("<div class=card><div style='display:flex;gap:10px;align-items:center'>"
+               "<div class='spin' style='width:18px;height:18px;border:3px solid #d8d8d8;"
+               "border-top-color:#1f564a;border-radius:50%;animation:s 1s linear infinite'></div>"
+               "<span style='color:#616161;font-size:14px'>Working on it</span></div></div>"
+               "<style>@keyframes s{to{transform:rotate(360deg)}}</style>")
+    leave = ("You can close this tab and we will email you the moment your VICs are ready."
+             if can_email else
+             "You can leave this page open; it keeps working and will load your dashboard on its own.")
+    if state == "error":
+        inner = ("<h1>This is taking longer than usual</h1>"
+                 f"<p class=sub>We hit a snag pulling your store and we are retrying. {leave}</p>"
+                 + spinner)
+    else:
+        inner = ("<h1>Scoring your store</h1>"
+                 "<p class=sub>Halia is pulling your orders and grading every customer. A large "
+                 f"store can take a little while the first time. {leave}</p>" + spinner)
+    resp = HTMLResponse(_page("Scoring · Halia", inner))
     resp.headers["Refresh"] = "5"  # browser re-requests /app every 5s
     resp.headers["Cache-Control"] = "no-store"
     return resp
@@ -337,7 +400,7 @@ def _validate_shopify(shop_domain: str, token: str, probe=None) -> tuple[bool, s
             import json
             return False, json.dumps(res["errors"])[:160]
         return True, ""
-    except Exception as exc:  # noqa: BLE001 — surface a short reason
+    except Exception as exc:  # noqa: BLE001 - surface a short reason
         return False, str(exc)[:180]
 
 
@@ -367,7 +430,7 @@ def _detect_platform(store_url: str, fetch=None) -> dict:
             body = r.text[:200000]
         else:
             header_blob, body = fetch(url)
-    except Exception:  # noqa: BLE001 — detection is a convenience, never fatal
+    except Exception:  # noqa: BLE001 - detection is a convenience, never fatal
         return {"platform": "unknown", "myshopify": ""}
     blob = (header_blob + " " + (body or "")).lower()
     m = re.search(r"([a-z0-9][a-z0-9\-]*\.myshopify\.com)", blob)
@@ -785,7 +848,7 @@ def _connect_marketing(store, shop: str, platform: str, api_key: str) -> tuple[b
         try:
             from halia.adapters.klaviyo_segments import KlaviyoSegments
             KlaviyoSegments(api_key=api_key).ensure_defaults()
-        except Exception:  # noqa: BLE001 — segments are a bonus, the key is saved
+        except Exception:  # noqa: BLE001 - segments are a bonus, the key is saved
             traceback.print_exc()
         return True, ""
     if platform == "mailchimp":
@@ -899,7 +962,7 @@ def register(app) -> None:
             "notify_grades": ["A*", "A"],
         }))
         connected, warning = _connect_marketing(store, shop, g("platform"), g("api_key"))
-        _start_sync(shop)  # warm the cache while they read the closing screen
+        _start_sync(shop, notify=True)  # warm the cache while they read the closing screen
         return {"ok": True, "link": f"/app?t={link_token}", "label": label,
                 "platform_connected": connected, "platform_warning": warning}
 
@@ -1029,16 +1092,16 @@ def register(app) -> None:
         store = shop_store()
         store.create_tenant(shop, "woocommerce", label.strip() or shop, hash_token(token))
         store.save_woocommerce(shop, store_url, consumer_key.strip(), consumer_secret.strip())
-        _start_sync(shop)  # warm the cache while they read the success page
+        _start_sync(shop, notify=True)  # warm the cache while they read the success page
 
         link = f"/app?t={token}"
         inner = (f"<h1 class=ok>✓ {html.escape(label.strip() or shop)} connected</h1>"
-                 "<p class=sub>Your private dashboard is ready. Bookmark this link — it's the "
+                 "<p class=sub>Your private dashboard is ready. Bookmark this link - it's the "
                  "only way in, so keep it safe.</p>"
                  f"<div class=card><p style='margin:0 0 14px'><a class=link href='{link}'>"
                  "Open my dashboard →</a></p>"
                  f"<div class=help>Private link</div><code>{html.escape(link)}</code></div>")
-        return HTMLResponse(_page("Connected — Halia", inner))
+        return HTMLResponse(_page("Connected - Halia", inner))
 
     @app.get("/app", response_class=HTMLResponse)
     def hosted_dashboard(request: Request):
@@ -1066,8 +1129,8 @@ def register(app) -> None:
 
         entry = cache.get(shop)
         if entry is None:
-            _start_sync(shop)
-            return _preparing_page()
+            _start_sync(shop, notify=True)
+            return _preparing_page(shop)
 
         # Free tier: until they subscribe, show the teaser (count + latent value), not the dashboard.
         from halia.api import billing

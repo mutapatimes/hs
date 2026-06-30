@@ -70,8 +70,10 @@ HALIA_FREE_SHOPS = {s.strip() for s in os.environ.get("HALIA_FREE_SHOPS", "").sp
 HALIA_SHOPIFY_INSTALL_URL = os.environ.get("HALIA_SHOPIFY_INSTALL_URL") or ""
 
 # Cap the WooCommerce pull for the interactive dashboard (recent orders are the most
-# actionable; a full back-catalogue pull can take many minutes). 0 / unset = no cap.
-WOO_MAX_PAGES = int(os.environ.get("HALIA_WOO_MAX_PAGES", "0")) or None
+# actionable; a full back-catalogue pull on a big store can take many minutes). Defaults to
+# 60 pages (~6,000 most-recent orders) so the first scoring is fast; set HALIA_WOO_MAX_PAGES=0
+# for the full history, or another number to taste. Pages are 100 orders each.
+WOO_MAX_PAGES = int(os.environ.get("HALIA_WOO_MAX_PAGES", "60")) or None
 
 # Merchant's VIC spend cutoff (the hidden-vs-known gate). Falls back to the engine default.
 VIC_THRESHOLD = float(os.environ.get("HALIA_VIC_THRESHOLD", "5000"))
