@@ -28,6 +28,17 @@ services:
         sync: false                   # generate with: python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())"
       - key: HALIA_CACHE_TTL          # seconds to keep scored customers in RAM (zero-retention)
         value: "300"
+      # Stripe billing. Set BOTH SECRET_KEY and PRICE_ID to switch the freemium gate ON: a newly
+      # connected tenant then sees the teaser (hidden-VIC count + latent value) until they subscribe.
+      # Leave unset to keep every dashboard fully open.
+      - key: STRIPE_SECRET_KEY        # sk_live_… (or sk_test_… while testing)
+        sync: false
+      - key: STRIPE_PRICE_ID          # price_… of your recurring subscription price
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET    # whsec_… from the Stripe webhook endpoint (/webhooks/stripe)
+        sync: false
+      - key: HALIA_FREE_SHOPS         # comma-separated tenant keys to comp (e.g. your first client)
+        sync: false
 
 databases:
   - name: halia-db

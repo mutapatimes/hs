@@ -145,6 +145,65 @@ def _preparing_page() -> HTMLResponse:
     return resp
 
 
+_TEASER = r'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Your hidden VICs · Halia</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f1ea;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;--line:rgba(20,18,12,.16);--serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(1100px 600px at 50% -12%,#fcfaf5,#f4f1ea 62%);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.top{max-width:960px;margin:0 auto;padding:22px 28px}
+.brand{font-family:var(--serif);font-size:24px;display:flex;align-items:center;gap:9px}.brand svg{width:20px;height:20px}
+.stage{max-width:680px;margin:0 auto;padding:clamp(20px,6vh,70px) 28px 90px;text-align:center}
+.eyebrow{font:500 12px var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
+h1{font-family:var(--serif);font-weight:300;font-size:clamp(34px,6vw,58px);line-height:1.05;letter-spacing:-.01em;margin:0 0 18px}
+h1 em{font-style:italic;color:var(--gold)}
+.lede{font-size:18px;color:var(--mute);line-height:1.55;max-width:54ch;margin:0 auto 30px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:34px 0 30px}
+@media(max-width:560px){.stats{grid-template-columns:1fr}}
+.stat{border:1px solid var(--line);border-radius:14px;padding:22px 16px;background:#fffdf8}
+.stat .num{font-family:var(--serif);font-weight:400;font-size:clamp(28px,5vw,44px);line-height:1;color:var(--ink)}
+.stat .lab{font:500 12px var(--sans);letter-spacing:.06em;color:var(--mute);margin-top:10px;text-transform:uppercase}
+.btn{display:inline-flex;align-items:center;gap:9px;font:600 16px var(--sans);padding:17px 36px;border-radius:999px;border:1px solid var(--ink);background:var(--ink);color:#f4f1ea;cursor:pointer;transition:.2s}
+.btn:hover{background:#2a2620}.btn[disabled]{opacity:.55;cursor:default}
+.fine{font-size:13px;color:var(--faint);margin:18px 0 0}
+.err{background:#fbeeec;border:1px solid #e0b4b0;color:#8e1f0b;border-radius:10px;padding:12px 14px;font-size:13.5px;margin:18px auto 0;max-width:42ch}
+</style></head><body>
+<header class="top"><a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.6 6.4L21 11l-6.4 2.6L12 20l-2.6-6.4L3 11l6.4-2.6L12 2z" fill="#7a7363"/></svg>Halia</a></header>
+<main class="stage">
+  <div class="eyebrow">__LABEL__ &middot; the result is in</div>
+  <h1>You have <em>__COUNT__</em> hidden VICs,<br>worth an estimated <em>__LATENT__</em>.</h1>
+  <p class="lede">Halia read your store and found high-value clients you are not treating like VIPs yet, and estimated the revenue waiting inside them. Their names, scores, the signals behind each one, and one-tap outreach are a single step away.</p>
+  <div class="stats">
+    <div class="stat"><div class="num">__COUNT__</div><div class="lab">Hidden VICs found</div></div>
+    <div class="stat"><div class="num">__LATENT__</div><div class="lab">Latent value to unlock</div></div>
+    <div class="stat"><div class="num">__TOPTIER__</div><div class="lab">Graded A or above</div></div>
+  </div>
+  <button class="btn" id="unlock">Unlock this hidden revenue now &rarr;</button>
+  <p class="fine">Cancel anytime. Halia stays zero-retention: your customers are scored in the moment and never stored.</p>
+  <div class="err" id="err" style="display:none"></div>
+</main>
+<script>
+document.getElementById('unlock').onclick=function(){
+  var b=this;b.disabled=true;b.textContent='Opening secure checkout…';
+  fetch('/v1/checkout',{method:'POST'}).then(function(r){return r.json();})
+   .then(function(d){if(d&&d.url){location.href=d.url;}else{throw new Error('no url');}})
+   .catch(function(){b.disabled=false;b.innerHTML='Unlock this hidden revenue now &rarr;';
+     var e=document.getElementById('err');e.textContent='We could not start checkout just now. Please try again.';e.style.display='block';});
+};
+</script>
+</body></html>'''
+
+
+def _teaser_page(label: str, count: str, latent: str, toptier: str) -> str:
+    return (_TEASER.replace("__LABEL__", html.escape(str(label)))
+            .replace("__COUNT__", html.escape(str(count)))
+            .replace("__LATENT__", html.escape(str(latent)) or "your hidden value")
+            .replace("__TOPTIER__", html.escape(str(toptier))))
+
+
 def _norm_shop(value: str) -> str:
     """Normalise a Shopify shop to its myshopify domain (accepts a handle, domain, or URL)."""
     s = re.sub(r"^https?://", "", (value or "").lower()).strip().strip("/").split("/")[0]
@@ -642,10 +701,28 @@ def register(app) -> None:
             return resp
 
         shop = require_tenant(request)
+
+        # Returning from Stripe Checkout: confirm the session, then clean the URL.
+        if request.query_params.get("session_id"):
+            from halia.api import billing
+            billing.confirm_session(shop, request.query_params["session_id"])
+            return RedirectResponse("/app", status_code=303)
+
         entry = cache.get(shop)
         if entry is None:
             _start_sync(shop)
             return _preparing_page()
+
+        # Free tier: until they subscribe, show the teaser (count + latent value), not the dashboard.
+        from halia.api import billing
+        if not billing.is_paid(shop):
+            tenant = shop_store().get_tenant(shop)
+            label = (tenant["label"] if tenant else None) or shop
+            p = entry["payload"]
+            resp = HTMLResponse(_teaser_page(label, p.get("stat_count", "0"),
+                                             p.get("stat_latent", ""), p.get("stat_toptier", "0")))
+            resp.headers["Cache-Control"] = "no-store"
+            return resp
         try:
             body = render_payload(entry["payload"], head_extra=_hosted_head())
         except Exception:

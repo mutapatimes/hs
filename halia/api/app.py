@@ -135,7 +135,7 @@ def alerts(shop: str = Depends(require_shop),
 # Mount the embedded entry, self-service onboarding, Klaviyo integrations, fulfilment
 # view, and compliance webhooks.
 from halia.api import (  # noqa: E402
-    embedded, fulfilment, integrations, mailchimp_integration, onboarding, realtime,
+    billing, embedded, fulfilment, integrations, mailchimp_integration, onboarding, realtime,
     settings, webhooks,
 )
 
@@ -147,3 +147,4 @@ realtime.register(app)
 settings.register(app)
 fulfilment.register(app)
 webhooks.register(app)
+billing.register(app)

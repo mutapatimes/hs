@@ -81,6 +81,15 @@ _TABLES = [
         list_name    TEXT,
         connected_at TEXT
     )""",
+    # Per-shop subscription state (Stripe). Not customer data. status: active / trialing /
+    # canceled / comped. customer_id + subscription_id are Stripe references, not secrets.
+    """CREATE TABLE IF NOT EXISTS billing (
+        shop            TEXT PRIMARY KEY,
+        status          TEXT,
+        customer_id     TEXT,
+        subscription_id TEXT,
+        updated_at      TEXT
+    )""",
 ]
 # Earlier versions cached customer PII in these tables. Drop them so any deploy purges it.
 _DROP_LEGACY = [
@@ -282,9 +291,27 @@ class ShopStore(_DB):
     def delete_mailchimp(self, shop: str) -> None:
         self._run("DELETE FROM mailchimp WHERE shop = :shop", {"shop": shop})
 
+    # ── per-shop subscription state (Stripe) ────────────────────────────────────
+    def get_billing(self, shop: str) -> dict | None:
+        row = self._run(
+            "SELECT shop, status, customer_id, subscription_id FROM billing WHERE shop = :shop",
+            {"shop": shop}, fetch="one")
+        return dict(row) if row else None
+
+    def set_billing(self, shop: str, status: str, customer_id: str | None = None,
+                    subscription_id: str | None = None) -> None:
+        self._run(
+            """INSERT INTO billing (shop, status, customer_id, subscription_id, updated_at)
+               VALUES (:shop, :st, :cid, :sid, :at)
+               ON CONFLICT(shop) DO UPDATE SET status=excluded.status,
+                customer_id=COALESCE(excluded.customer_id, billing.customer_id),
+                subscription_id=COALESCE(excluded.subscription_id, billing.subscription_id),
+                updated_at=excluded.updated_at""",
+            {"shop": shop, "st": status, "cid": customer_id, "sid": subscription_id, "at": _now()})
+
     # ── deletion (shop/redact + app/uninstalled) ───────────────────────────────
     def delete_shop(self, shop: str) -> None:
         """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""
         for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "mailchimp",
-                      "webhooks", "push_subs"):
+                      "webhooks", "push_subs", "billing"):
             self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})
