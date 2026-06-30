@@ -93,6 +93,8 @@
   .media{position:relative;border-radius:4px;overflow:hidden}
   .media img{width:100%;height:auto;display:block;transition:transform 1.4s cubic-bezier(.2,.6,.2,1)}
   .media:hover img{transform:scale(1.04)}
+  .pxmedia{position:relative;aspect-ratio:4/5;overflow:hidden;border-radius:4px}
+  .pxmedia img{position:absolute;left:0;top:-10%;width:100%;height:120%;object-fit:cover;will-change:transform}
   .copy .eyebrow{margin-bottom:22px}
   .copy h2{margin-bottom:24px}
   .copy p{color:var(--mute);max-width:44ch;font-size:17px}
@@ -458,18 +460,6 @@
   </div>
 </div></section>
 
-<!-- BLEED -->
-<section class="bleed">
-  <img src="img/databases.jpg" alt="" loading="lazy" data-parallax style="position:absolute;left:0;top:-13%;width:100%;height:126%;object-fit:cover;object-position:center;will-change:transform">
-  <div class="veil2" style="background:linear-gradient(90deg,rgba(8,8,9,.82),rgba(8,8,9,.45) 55%,rgba(8,8,9,.15))"></div>
-  <div class="wrap"><div class="inner reveal">
-    <div class="eyebrow" style="color:#e7e3da">Find them. Fish them.</div>
-    <h2 style="margin-top:18px">See them first.</h2>
-    <p>Your hidden VICs, surfaced and ranked, ready for a personal approach before your
-      competitors ever notice they were there.</p>
-  </div></div>
-</section>
-
 <!-- WHITE: from insight to action -->
 <section class="pad light"><div class="wrap">
   <div class="sig-head reveal" style="max-width:38ch">
@@ -537,7 +527,7 @@
 
 <!-- HIDDEN POTENTIAL → clienteling -->
 <section class="pad light"><div class="wrap split">
-  <div class="media reveal"><img src="img/clientimage.jpg" alt="Finding and connecting with hidden VICs" loading="lazy"></div>
+  <div class="media pxmedia reveal"><img src="img/clientimage.jpg" alt="Finding and connecting with hidden VICs" loading="lazy" data-parallax></div>
   <div class="copy reveal d1">
     <div class="eyebrow">Hidden potential</div>
     <h2 class="h2" style="margin:22px 0 24px">The clients worth finding are the ones you cannot <em>see.</em></h2>
@@ -627,7 +617,7 @@
     <div class="conn"><span class="dot"></span></div>
     <div class="fnode hub">
       <div class="fh">Halia</div>
-      <div class="fs">Scores every customer in memory. Stores nothing.</div>
+      <div class="fs">Scores every customer on the spot. Keeps no copy.</div>
       <div class="chips"><span>40+ signals</span><span>A&#42; to C</span><span>Latent value</span></div>
       <div class="fl">Scored in seconds</div>
     </div>
@@ -675,7 +665,9 @@
 </div></section>
 
 <!-- UNDER THE HOOD / KNOWLEDGE BASE -->
-<section class="pad"><div class="wrap">
+<section class="pad" style="position:relative;overflow:hidden">
+  <img src="img/databases.jpg" alt="" loading="lazy" data-parallax style="position:absolute;left:0;top:-14%;width:100%;height:128%;object-fit:cover;opacity:.10;z-index:0;will-change:transform">
+  <div class="wrap" style="position:relative;z-index:1">
   <div class="sig-head reveal" style="max-width:42ch">
     <div class="eyebrow" style="margin-bottom:20px">Under the hood</div>
     <h2 class="h2">Knowledge no team could<br>hold in its head.</h2>
@@ -729,15 +721,15 @@
         or hand to anyone.</p>
       <a class="btn ghost" href="/security" style="margin-top:30px">Read our security overview <span class="arrow">→</span></a>
     </div>
-    <div class="media reveal d1"><img src="img/we_keep_nothing.jpg" alt="We keep nothing" loading="lazy"></div>
+    <div class="media pxmedia reveal d1"><img src="img/we_keep_nothing.jpg" alt="We keep nothing" loading="lazy" data-parallax></div>
   </div>
   <div class="sec-points reveal d2">
-    <div class="spt"><h3><span class="b">01</span>Read-only access</h3><p>A read-only connection to your store. Halia can never change, delete, or place an order.</p></div>
-    <div class="spt"><h3><span class="b">02</span>Scored in memory</h3><p>Customers are processed in RAM and never written to a Halia database. Minutes later, gone.</p></div>
-    <div class="spt"><h3><span class="b">03</span>Encrypted, revocable key</h3><p>The single secret we store is encrypted at rest. Pull the key and access ends at once.</p></div>
-    <div class="spt"><h3><span class="b">04</span>GDPR by design</h3><p>Nothing of your customers lives with us to return, export, or delete. Compliance, not paperwork.</p></div>
-    <div class="spt"><h3><span class="b">05</span>You keep every record</h3><p>Your data stays in your store and your tools. Halia is the lens, never the vault.</p></div>
-    <div class="spt"><h3><span class="b">06</span>Encryption in transit</h3><p>Every call to your store and your tools runs over encrypted, authenticated connections.</p></div>
+    <div class="spt"><h3><span class="b">01</span>We can only look</h3><p>Halia can read your store to score it. It can never change, delete, or place an order.</p></div>
+    <div class="spt"><h3><span class="b">02</span>We keep no copy</h3><p>Your customers are scored on the spot and never saved to anything on our side. Minutes later, gone.</p></div>
+    <div class="spt"><h3><span class="b">03</span>Off whenever you like</h3><p>The one thing we hold is permission to look, kept locked away. Switch it off and access ends at once.</p></div>
+    <div class="spt"><h3><span class="b">04</span>Privacy requests, handled</h3><p>There is nothing of your customers with us to return, export, or delete. Compliance, not paperwork.</p></div>
+    <div class="spt"><h3><span class="b">05</span>You keep every record</h3><p>Your data stays in your store and your own tools. Halia is the lens, never the vault.</p></div>
+    <div class="spt"><h3><span class="b">06</span>Safe in transit</h3><p>Every connection to your store and your tools is encrypted, so nothing can be read along the way.</p></div>
   </div>
 </div></section>
 
@@ -775,8 +767,8 @@
       <p class="bio">Halia is hidden-VIC intelligence for considered-purchase retail. We read the wealth
         and intent signals already sitting in your customer data, grade every customer, and surface
         the high-value clients you would otherwise treat like everyone else, then help your teams act
-        on them in the tools they already use. Built zero-retention from the first line of code: your
-        customers are scored in memory and never stored.</p>
+        on them in the tools they already use. We never keep a copy of your customers: they are scored
+        on the spot and nothing about them is stored on our side.</p>
     </div>
     <div class="col"><h4>Product</h4><a href="#engine">The engine</a><a href="#how">How it works</a><a href="#signals">Signals</a><a href="#teams">For teams</a><a href="/connect">Connect a store</a></div>
     <div class="col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="mailto:hello@halia.app">Contact</a></div>
