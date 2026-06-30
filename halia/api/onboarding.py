@@ -295,7 +295,7 @@ def _hosted_head() -> str:
     )
 
 
-_PREPARING = r'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+_PREPARING = r'''<!doctype html><html lang="en"><head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
 <title>Scoring your store · Halia</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <noscript><meta http-equiv="refresh" content="5"></noscript>
@@ -456,7 +456,7 @@ def _preparing_page(shop: str | None = None) -> HTMLResponse:
     return resp
 
 
-_TEASER = r'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+_TEASER = r'''<!doctype html><html lang="en"><head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
 <title>Your hidden VICs · Halia</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -582,7 +582,7 @@ def _detect_platform(store_url: str, fetch=None) -> dict:
     return {"platform": platform, "myshopify": myshop}
 
 
-_WIZARD = r'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+_WIZARD = r'''<!doctype html><html lang="en"><head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
 <title>Connect your store · Halia</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

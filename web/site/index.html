@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head>
+<head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Halia · Find your most valuable clients</title>
@@ -52,7 +52,30 @@
   .nav-links a:hover{color:var(--ink)}
   .nav .right{display:flex;align-items:center;gap:22px}
   .nav .right .si{font:500 14px var(--sans);color:var(--mute)}.nav .right .si:hover{color:var(--ink)}
-  @media(max-width:900px){.nav-links{display:none}}
+  .burger{display:none;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;margin-left:6px;flex:none}
+  .burger svg{width:20px;height:20px}
+  .mscrim{position:fixed;inset:0;background:rgba(8,8,9,.55);opacity:0;visibility:hidden;transition:.25s;z-index:50}
+  .mscrim.show{opacity:1;visibility:visible}
+  .mdrawer{position:fixed;top:0;right:0;bottom:0;width:min(84vw,330px);background:#0e0e10;border-left:1px solid var(--line);z-index:60;transform:translateX(100%);transition:transform .32s cubic-bezier(.2,.7,.2,1);display:flex;flex-direction:column;padding:22px 26px 30px;overflow-y:auto}
+  .mdrawer.show{transform:none}
+  .mdrawer .mclose{align-self:flex-end;background:none;border:none;color:var(--mute);font-size:28px;line-height:1;cursor:pointer;padding:2px 4px;margin-bottom:6px}
+  .mdrawer a{font:500 17px var(--sans);color:var(--ink);padding:14px 0;border-bottom:1px solid var(--line-2)}
+  .mdrawer a.msi{color:var(--mute);font-size:15px}
+  .mdrawer a.mcta{margin-top:20px;border:none;background:var(--ink);color:#0a0a0b;text-align:center;border-radius:999px;padding:15px;font-weight:600}
+  @media(max-width:900px){
+    .nav-links{display:none}
+    .nav .right .si{display:none}
+    .nav .right .btn{padding:10px 18px;font-size:13px;letter-spacing:.01em}
+    .nav .right .btn .arrow{display:none}
+    .burger{display:inline-flex}
+  }
+
+  /* integrations */
+  .intg{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  @media(max-width:760px){.intg{grid-template-columns:1fr 1fr}}
+  .ichip{background:#fff;border-radius:16px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:128px;border:1px solid rgba(255,255,255,.06)}
+  .ichip img{max-height:56px;max-width:88%;width:auto;object-fit:contain}
+  .ichip span{font:600 12.5px var(--sans);color:#615b50;letter-spacing:.04em}
 
   /* hero (content to the right) */
   .hero{position:relative;height:100vh;min-height:680px;display:flex;align-items:center;overflow:hidden}
@@ -375,8 +398,22 @@
     <a class="si" href="#demo">See a demo</a>
     <a class="si" href="/app">Sign in</a>
     <a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a>
+    <button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
   </div>
 </div></header>
+
+<div class="mscrim" id="mscrim"></div>
+<aside class="mdrawer" id="mdrawer" aria-hidden="true">
+  <button class="mclose" id="mclose" aria-label="Close menu">&times;</button>
+  <a href="#how">How it works</a>
+  <a href="/clienteling">Clienteling</a>
+  <a href="/solutions">Solutions</a>
+  <a href="/security">Security</a>
+  <a href="/faq">FAQ</a>
+  <a class="msi" href="#demo">See a demo</a>
+  <a class="msi" href="/app">Sign in</a>
+  <a class="mcta" href="/connect">Connect your store</a>
+</aside>
 
 <!-- HERO (right) -->
 <section class="hero">
@@ -401,7 +438,7 @@
 
 <!-- STATEMENT -->
 <section class="pad statement"><div class="wrap reveal">
-  <p>Every order you have ever taken is an ocean. <span>A few of those customers are worth a private appointment, a personal note, a relationship.</span> Most brands never see them.</p>
+  <p>Your top spenders are the whales, impossible to miss from above. <span>But the ocean is full of value that never surfaces.</span> Halia is the eye that sees beneath it.</p>
 </div></section>
 
 <!-- WHITE: the competitor-spend hook -->
@@ -607,6 +644,21 @@
   <div class="reveal d1" style="margin-top:46px"><a class="btn ghost" href="/solutions">Explore solutions in depth <span class="arrow">→</span></a></div>
 </div></section>
 
+<!-- INTEGRATIONS -->
+<section class="pad" style="padding-top:clamp(46px,6vh,86px);padding-bottom:clamp(46px,6vh,86px)"><div class="wrap">
+  <div class="sig-head reveal" style="max-width:48ch;margin-bottom:34px">
+    <div class="eyebrow" style="margin-bottom:18px">Integrations</div>
+    <h2 class="h2">Works with the tools<br>you already use.</h2>
+    <p class="lede" style="margin-top:18px">Connect your store in one click, then send your graded VICs straight to the platform your team already lives in. Nothing to migrate, nothing to learn.</p>
+  </div>
+  <div class="intg reveal d1">
+    <div class="ichip"><img src="img/logos/shopify.png" alt="Shopify" loading="lazy"><span>Shopify</span></div>
+    <div class="ichip"><img src="img/logos/woocommerce.png" alt="WooCommerce" loading="lazy"><span>WooCommerce</span></div>
+    <div class="ichip"><img src="img/logos/klaviyo.png" alt="Klaviyo" loading="lazy"><span>Klaviyo</span></div>
+    <div class="ichip"><img src="img/logos/mailchimp.png" alt="Mailchimp" loading="lazy"><span>Mailchimp</span></div>
+  </div>
+</div></section>
+
 <!-- HOW IT WORKS / ARCHITECTURE -->
 <section id="how" class="pad" style="background:var(--bg-2)"><div class="wrap">
   <div class="sig-head reveal" style="max-width:none">
@@ -789,6 +841,16 @@
 <script>
   var hdr=document.getElementById('hdr');
   addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
+
+  // mobile menu drawer
+  (function(){
+    var b=document.getElementById('burger'),d=document.getElementById('mdrawer'),s=document.getElementById('mscrim'),c=document.getElementById('mclose');
+    if(!d) return;
+    function open(){d.classList.add('show');s.classList.add('show');d.setAttribute('aria-hidden','false');}
+    function close(){d.classList.remove('show');s.classList.remove('show');d.setAttribute('aria-hidden','true');}
+    if(b) b.onclick=open; if(c) c.onclick=close; if(s) s.onclick=close;
+    d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',close);});
+  })();
 
   // demo: work emails only, then walk straight into the live sample dashboard
   var FREE_EMAIL=new Set(['gmail.com','googlemail.com','yahoo.com','yahoo.co.uk','yahoo.fr','yahoo.de',
