@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Halia — Hidden VIC discovery</title>
+<title>Halia · Hidden VIC discovery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -375,7 +375,7 @@
 
       <div class="foot">
         Real output from the Halia scoring engine on <b>sample data</b> (fictional store).
-        Score and tier are <b>provisional</b> (a working 0–100 mapping). Latent value estimates each client's potential if nurtured into a top client — grown from their current spend toward your ceiling (the higher of <b>your highest lifetime client</b> or <b>AOV × max orders from one client</b>), scaled by the Halia score. Set those numbers in ⚙ Settings; until then it uses a store-AOV fallback.
+        Score and tier are <b>provisional</b> (a working 0–100 mapping). Latent value estimates each client's potential if nurtured into a top client, grown from their current spend toward your ceiling (the higher of <b>your highest lifetime client</b> or <b>AOV × max orders from one client</b>), scaled by the Halia score. Set those numbers in ⚙ Settings; until then it uses a store-AOV fallback.
       </div>
     </div>
   </main>
@@ -387,6 +387,8 @@
   <div class="acts">
     <button class="bbtn primary" id="bulkpush">Sync to Klaviyo</button>
     <button class="bbtn" id="bulklist">Create Klaviyo list</button>
+    <button class="bbtn" id="bulkpushmc" style="display:none">Sync to Mailchimp</button>
+    <button class="bbtn" id="bulksegmc" style="display:none">Create Mailchimp segment</button>
   </div>
   <button class="bclear" id="bclear" title="Clear">×</button>
 </div>
@@ -433,7 +435,7 @@ function renderChips(){
 
 // populate the city filter from the data, and wire the filter/sort controls
 (function(){
-  const cities = [...new Set(DATA.map(c=>c.city).filter(x=>x && x!=="—"))].sort();
+  const cities = [...new Set(DATA.map(c=>c.city).filter(x=>x && x!=="·"))].sort();
   const sel = document.getElementById("fCity");
   cities.forEach(ct=>{ const o=document.createElement("option"); o.value=ct; o.textContent=ct; sel.appendChild(o); });
 })();
@@ -570,18 +572,59 @@ document.getElementById("bulklist").onclick=async()=>{
   }catch(e){ if(w)w.close(); toast("Couldn't create list: "+e.message); }
   finally{ btn.disabled=false; btn.textContent="Create Klaviyo list"; }
 };
+// bulk action: sync the selected clients to Mailchimp
+document.getElementById("bulkpushmc").onclick=async()=>{
+  const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
+  const btn=document.getElementById("bulkpushmc"); btn.disabled=true; const t=btn.textContent; btn.textContent="Syncing…";
+  try{
+    const r=await fetch("/v1/mailchimp/push",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify(cids&&cids.length?{customer_ids:cids}:{})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail||("HTTP "+r.status));
+    toast(`${d.pushed} client${d.pushed===1?"":"s"} synced to Mailchimp with their Halia grade.`);
+    selected.clear();renderRows();updateBulk();
+  }catch(e){ toast("Mailchimp sync failed: "+e.message); }
+  finally{ btn.disabled=false; btn.textContent=t; }
+};
+
+// bulk action: build a Mailchimp segment from the selected clients
+document.getElementById("bulksegmc").onclick=async()=>{
+  const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
+  if(!cids.length) return;
+  const name=prompt("Name this Mailchimp segment:","Halia VIP selection");
+  if(name===null) return;
+  const btn=document.getElementById("bulksegmc"); btn.disabled=true; const t=btn.textContent; btn.textContent="Creating…";
+  try{
+    const r=await fetch("/v1/mailchimp/segment",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({customer_ids:cids,name})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail||("HTTP "+r.status));
+    toast(`Created Mailchimp segment "${name}" with ${d.count} client${d.count===1?"":"s"}${d.list_name?" in "+d.list_name:""}.`);
+    selected.clear();renderRows();updateBulk();
+  }catch(e){ toast("Couldn't create segment: "+e.message); }
+  finally{ btn.disabled=false; btn.textContent=t; }
+};
+
+// show each integration's bulk buttons only when that integration is connected
+function refreshIntegrationUI(){
+  const kv=!!SETTINGS.klaviyo_connected, mc=!!SETTINGS.mailchimp_connected;
+  const show=(id,on)=>{const e=document.getElementById(id); if(e) e.style.display=on?"":"none";};
+  show("bulkpush",kv); show("bulklist",kv); show("bulkpushmc",mc); show("bulksegmc",mc);
+  const sync=document.getElementById("bulkpushmc"); if(sync) sync.classList.toggle("primary", mc&&!kv);
+}
+
 document.getElementById("bclear").onclick=()=>{selected.clear();renderRows();updateBulk();};
 
 // drawer
 const drawer=document.getElementById("drawer"), scrim=document.getElementById("scrim");
-// Email templates — editable in Settings (loaded from /v1/settings). {first_name} and
+// Email templates, editable in Settings (loaded from /v1/settings). {first_name} and
 // {sender} are substituted per client. These are just the fallback seed.
 let EMAIL_TEMPLATES=[
- {name:"Personal welcome",subject:"A personal note",body:"Dear {first_name},\n\nThank you for being one of our valued clients. I wanted to reach out personally — if there's ever anything you're looking for, it would be my pleasure to help you find it.\n\nWarm regards,\n{sender}"},
+ {name:"Personal welcome",subject:"A personal note",body:"Dear {first_name},\n\nThank you for being one of our valued clients. I wanted to reach out personally; if there's ever anything you're looking for, it would be my pleasure to help you find it.\n\nWarm regards,\n{sender}"},
  {name:"Private preview invite",subject:"An early preview, just for you",body:"Dear {first_name},\n\nWe have a private preview of our new pieces coming up, and I immediately thought of you. I'd love to set aside some time for you ahead of everyone else.\n\nWarmly,\n{sender}"},
  {name:"Private appointment",subject:"A personal appointment",body:"Dear {first_name},\n\nWould you enjoy a private appointment with our team? We'd love to show you a few pieces we think you'll love, at a time that suits you.\n\nKind regards,\n{sender}"},
- {name:"New arrival for you",subject:"Something I thought you'd love",body:"Dear {first_name},\n\nA new arrival came in that reminded me of your taste. I've set one aside in case you'd like to see it — no obligation at all.\n\nWarm regards,\n{sender}"},
- {name:"Concierge check-in",subject:"Checking in",body:"Dear {first_name},\n\nJust a note to say we're here whenever you need us — a gift, a particular piece, or simply a recommendation. It's always a pleasure to look after you.\n\nWarmly,\n{sender}"}
+ {name:"New arrival for you",subject:"Something I thought you'd love",body:"Dear {first_name},\n\nA new arrival came in that reminded me of your taste. I've set one aside in case you'd like to see it, no obligation at all.\n\nWarm regards,\n{sender}"},
+ {name:"Concierge check-in",subject:"Checking in",body:"Dear {first_name},\n\nJust a note to say we're here whenever you need us, for a gift, a particular piece, or simply a recommendation. It's always a pleasure to look after you.\n\nWarmly,\n{sender}"}
 ];
 let SENDER="";
 function firstName(name){return String(name||"").replace(/^(sir|lady|dame|lord|baroness|viscount|countess|duchess|marquess|hrh|hsh|the hon)\s+/i,"").split(" ")[0]||"there";}
@@ -624,7 +667,7 @@ function openDrawer(id){
       <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
         ${(c.orders&&c.orders.length)
           ? c.orders.slice(0,12).map(o=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px">
-              <span style="color:var(--soft)">${o.date||"—"}</span>
+              <span style="color:var(--soft)">${o.date||"·"}</span>
               <span style="color:var(--soft)">${o.items} item${o.items===1?"":"s"}</span>
               <span class="mono" style="font-weight:600">${gbp(o.amount)}</span></div>`).join("")
           : `<div style="padding:12px 14px;color:var(--faint);font-size:13px">No orders on record.</div>`}
@@ -637,25 +680,39 @@ function openDrawer(id){
         <button class="dbtn" id="dmail">Email ▾</button>
         <div id="dmailmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${mailtoItems(c)}</div>
       </div>
-      <button class="dbtn primary" id="dpush">Open in Klaviyo →</button>
+      ${SETTINGS.mailchimp_connected?`<button class="dbtn${SETTINGS.klaviyo_connected?'':' primary'}" id="dpushmc">Push to Mailchimp</button>`:""}
+      ${SETTINGS.klaviyo_connected?`<button class="dbtn primary" id="dpush">Open in Klaviyo →</button>`:""}
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   document.getElementById("dclose").onclick=closeDrawer;
-  // Email dropdown — opens the merchant's own mail app with a ready-to-send message.
+  // Email dropdown: opens the merchant's own mail app with a ready-to-send message.
   const dmail=document.getElementById("dmail"), dmenu=document.getElementById("dmailmenu");
   dmail.onclick=e=>{e.stopPropagation();dmenu.style.display=dmenu.style.display==="block"?"none":"block";};
   dmenu.onclick=()=>{dmenu.style.display="none";};
-  // Open in Klaviyo — jump straight to this client's Klaviyo profile to action them.
-  document.getElementById("dpush").onclick=()=>{
+  // Open in Klaviyo: jump straight to this client's Klaviyo profile to action them.
+  const dpush=document.getElementById("dpush");
+  if(dpush) dpush.onclick=()=>{
     const w=window.open("","_blank");
-    const b=document.getElementById("dpush"); b.disabled=true; b.textContent="Opening…";
+    dpush.disabled=true; dpush.textContent="Opening…";
     fetch("/v1/klaviyo/open",{method:"POST",headers:{"content-type":"application/json"},
         body:JSON.stringify({customer_id:c.cid})})
       .then(r=>r.json().then(d=>({ok:r.ok,d})))
       .then(({ok,d})=>{ if(!ok) throw new Error(d.detail||"failed");
         if(w){w.location=d.url}else{window.open(d.url,"_blank")} })
       .catch(e=>{ if(w)w.close(); toast("Couldn't open in Klaviyo: "+e.message); })
-      .finally(()=>{ b.disabled=false; b.textContent="Open in Klaviyo →"; });
+      .finally(()=>{ dpush.disabled=false; dpush.textContent="Open in Klaviyo →"; });
+  };
+  // Push to Mailchimp: upsert this one client to the connected audience with their Halia grade.
+  const dpushmc=document.getElementById("dpushmc");
+  if(dpushmc) dpushmc.onclick=()=>{
+    dpushmc.disabled=true; const t=dpushmc.textContent; dpushmc.textContent="Pushing…";
+    fetch("/v1/mailchimp/push",{method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({customer_ids:[c.cid]})})
+      .then(r=>r.json().then(d=>({ok:r.ok,d})))
+      .then(({ok,d})=>{ if(!ok) throw new Error(d.detail||"failed");
+        toast(d.pushed?`Pushed to Mailchimp${d.list_name?" · "+d.list_name:""} with their Halia grade.`:"This client has no email to push."); })
+      .catch(e=>toast("Mailchimp push failed: "+e.message))
+      .finally(()=>{ dpushmc.disabled=false; dpushmc.textContent=t; });
   };
 }
 function closeDrawer(){drawer.classList.remove("show");scrim.classList.remove("show");drawer.setAttribute("aria-hidden","true");}
@@ -703,7 +760,7 @@ function showConnectBanner(){
   const wrap=document.querySelector(".wrap"); if(!wrap||document.getElementById("kv-banner")) return;
   const div=document.createElement("div"); div.id="kv-banner";
   div.style.cssText="margin:0 0 18px;padding:14px 16px;background:#fff;border:1px solid #d8c79a;border-left:3px solid var(--brand);border-radius:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
-  div.innerHTML='<div style="flex:1;min-width:240px"><b>Connect Klaviyo</b> <span style="color:var(--soft)">— paste your Klaviyo <b>private</b> API key (pk_…) to push grades, build segments, and email clients. You can also do this in ⚙ Settings.</span></div>'
+  div.innerHTML='<div style="flex:1;min-width:240px"><b>Connect Klaviyo</b> <span style="color:var(--soft)">Paste your Klaviyo <b>private</b> API key (pk_…) to push grades, build segments, and email clients. You can also do this in ⚙ Settings.</span></div>'
     +'<input id="kv-key" type="password" placeholder="pk_live_…" autocomplete="off" style="flex:0 0 220px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px system-ui">'
     +'<button id="kv-connect" class="dbtn primary" style="border:none">Connect</button>';
   wrap.insertBefore(div, wrap.firstChild);
@@ -712,7 +769,7 @@ function showConnectBanner(){
     const btn=document.getElementById("kv-connect"); btn.disabled=true; btn.textContent="Connecting…";
     fetch("/v1/klaviyo/connect",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({api_key:key})})
       .then(r=>r.json().then(d=>({ok:r.ok,d})))
-      .then(({ok,d})=>{ if(!ok) throw new Error(d.detail||"failed"); SETTINGS.klaviyo_connected=true; div.remove(); toast("Klaviyo connected — default Halia segments created."); })
+      .then(({ok,d})=>{ if(!ok) throw new Error(d.detail||"failed"); SETTINGS.klaviyo_connected=true; div.remove(); refreshIntegrationUI(); toast("Klaviyo connected. Default Halia segments created."); })
       .catch(e=>{ toast("Connect failed: "+e.message); btn.disabled=false; btn.textContent="Connect"; });
   };
 }
@@ -724,7 +781,7 @@ function openSettings(){
   function rows(){return tmpl.map((t,i)=>`<div style="border:1px solid #e3e3e3;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafafa">
       <input data-tn="${i}" value="${esc(t.name)}" placeholder="Template name" style="width:100%;${I};margin-bottom:8px">
       <input data-ts="${i}" value="${esc(t.subject)}" placeholder="Subject" style="width:100%;${I};margin-bottom:8px">
-      <textarea data-tb="${i}" rows="5" placeholder="Body — use {first_name} and {sender}" style="width:100%;${I};resize:vertical">${esc(t.body)}</textarea>
+      <textarea data-tb="${i}" rows="5" placeholder="Body: use {first_name} and {sender}" style="width:100%;${I};resize:vertical">${esc(t.body)}</textarea>
       <button data-td="${i}" style="margin-top:8px;background:none;border:none;color:#8e1f0b;font:600 12.5px system-ui;cursor:pointer;padding:0">Delete</button></div>`).join("");}
   function collect(){
     settingsEl.querySelectorAll("[data-tn]").forEach(el=>tmpl[+el.dataset.tn].name=el.value);
@@ -777,7 +834,7 @@ function openSettings(){
 
         <div style="${C}">
           <div style="${H}">Latent-value benchmarks</div>
-          <p style="${P}">Your own numbers, so the latent estimate is real. We grow each client from their spend toward your ceiling — the higher of your top lifetime client or AOV × max orders — scaled by their Halia score.</p>
+          <p style="${P}">Your own numbers, so the latent estimate is real. We grow each client from their spend toward your ceiling, the higher of your top lifetime client or AOV × max orders, scaled by their Halia score.</p>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
             <div><div style="${LBL}">Average order value (£)</div><input id="setAov" type="number" min="0" value="${esc(SETTINGS.aov)}" style="width:100%;${I}"></div>
             <div><div style="${LBL}">Most orders from one client</div><input id="setMaxOrders" type="number" min="0" value="${esc(SETTINGS.max_orders)}" style="width:100%;${I}"></div>
@@ -827,22 +884,22 @@ function openSettings(){
       const key=document.getElementById("setKvKey").value.trim(); if(!key){toast("Paste your Klaviyo key first.");return;}
       const b=document.getElementById("setKvConnect");b.disabled=true;b.textContent="Connecting…";
       fetch("/v1/klaviyo/connect",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({api_key:key})})
-        .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");SETTINGS.klaviyo_connected=true;toast("Klaviyo connected — segments created.");render();})
+        .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");SETTINGS.klaviyo_connected=true;toast("Klaviyo connected. Segments created.");render();refreshIntegrationUI();})
         .catch(e=>{toast("Connect failed: "+e.message);b.disabled=false;b.textContent="Connect";});
     };
     const disc=document.getElementById("setKvDisc"); if(disc) disc.onclick=()=>{
-      fetch("/v1/klaviyo/disconnect",{method:"POST"}).then(()=>{SETTINGS.klaviyo_connected=false;toast("Klaviyo disconnected.");render();});
+      fetch("/v1/klaviyo/disconnect",{method:"POST"}).then(()=>{SETTINGS.klaviyo_connected=false;toast("Klaviyo disconnected.");render();refreshIntegrationUI();});
     };
     document.getElementById("setMcConnect").onclick=()=>{
       const key=document.getElementById("setMcKey").value.trim(); if(!key){toast("Paste your Mailchimp key first.");return;}
       const b=document.getElementById("setMcConnect");b.disabled=true;b.textContent="Connecting…";
       fetch("/v1/mailchimp/connect",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({api_key:key})})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
-          SETTINGS.mailchimp_connected=true;SETTINGS.mailchimp_list_name=d.list_name;toast("Mailchimp connected · "+(d.list_name||"audience"));render();})
+          SETTINGS.mailchimp_connected=true;SETTINGS.mailchimp_list_name=d.list_name;toast("Mailchimp connected · "+(d.list_name||"audience"));render();refreshIntegrationUI();})
         .catch(e=>{toast("Connect failed: "+e.message);b.disabled=false;b.textContent="Connect";});
     };
     const mdisc=document.getElementById("setMcDisc"); if(mdisc) mdisc.onclick=()=>{
-      fetch("/v1/mailchimp/disconnect",{method:"POST"}).then(()=>{SETTINGS.mailchimp_connected=false;toast("Mailchimp disconnected.");render();});
+      fetch("/v1/mailchimp/disconnect",{method:"POST"}).then(()=>{SETTINGS.mailchimp_connected=false;toast("Mailchimp disconnected.");render();refreshIntegrationUI();});
     };
     document.getElementById("saveSettings").onclick=()=>{
       collect();
@@ -856,7 +913,7 @@ function openSettings(){
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";
       fetch("/v1/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
-          toast("Settings saved — refreshing…"); setTimeout(()=>location.reload(),600);
+          toast("Settings saved. Refreshing…"); setTimeout(()=>location.reload(),600);
         })
         .catch(e=>{toast("Save failed: "+e.message);b.disabled=false;b.textContent="Save settings";});
     };
@@ -867,7 +924,7 @@ function openSettings(){
 document.getElementById("openSettings").onclick=openSettings;
 
 renderChips();renderRows();
-loadSettings().then(s=>{ if(!s.klaviyo_connected) showConnectBanner(); initAlerts(s); });
+loadSettings().then(s=>{ if(!s.klaviyo_connected&&!s.mailchimp_connected) showConnectBanner(); initAlerts(s); refreshIntegrationUI(); });
 
 // Live high-grade order alerts (in-dashboard feed + desktop notifications).
 function initAlerts(s){
@@ -923,7 +980,7 @@ async function subscribePush(s){
     let sub=await reg.pushManager.getSubscription();
     if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:_urlB64(s.vapid_public)});
     fetch("/v1/push/subscribe",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(sub)});
-  }catch(e){ /* push unavailable (e.g. embedded iframe) — the in-dashboard feed still works */ }
+  }catch(e){ /* push unavailable (e.g. embedded iframe): the in-dashboard feed still works */ }
 }
 </script>
 </body>

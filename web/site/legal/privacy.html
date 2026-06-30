@@ -188,14 +188,15 @@ public.</li>
 <p>We use a small number of providers to run Halia. Because we do not store customer data, our
 subprocessors do not receive a standing copy of it.</p>
 <table>
-<tr><th>Subprocessor</th><th>Purpose</th></tr>
-<tr><td>Cloud hosting and database provider</td><td>Running the application and storing account data and encrypted secrets</td></tr>
-<tr><td>Transactional email provider</td><td>Sending account, alert and service emails</td></tr>
-<tr><td>The platforms a merchant connects</td><td>Reading the merchant's store and, where chosen, receiving scores and segments</td></tr>
+<tr><th>Subprocessor</th><th>Purpose</th><th>Location</th></tr>
+<tr><td><b>Render</b> (Render Services, Inc.)</td><td>Cloud hosting and managed database: running the application and storing account data and encrypted secrets</td><td>United States / EU</td></tr>
+<tr><td><b>Brevo</b> (Sendinblue SAS)</td><td>Sending transactional account, alert and service emails</td><td>EU (France)</td></tr>
+<tr><td><b>Platforms you connect</b> (for example Shopify, WooCommerce, Klaviyo, Mailchimp)</td><td>Reading your store at your instruction and, where you choose, receiving the scores and segments Halia pushes</td><td>Per the provider you choose</td></tr>
 </table>
 <p>We keep our use of subprocessors limited and require appropriate confidentiality and security from
-them. We can provide the current named list on request and will give merchants a way to learn of
-material changes.</p>
+them. The platforms in the third row are tools you choose to connect and operate under your own account
+and their own terms. We will keep this list current and give merchants a way to learn of material
+changes before they take effect.</p>
 
 <h2 id="transfers">14. International data transfers</h2>
 <p>Where personal data is processed outside the UK or EEA, we rely on appropriate safeguards, such as
