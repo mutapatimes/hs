@@ -192,6 +192,24 @@ def test_woo_oneclick_flow_end_to_end(client, monkeypatch):
     assert creds["consumer_key"] == "ck_auto" and creds["consumer_secret"] == "cs_auto"
 
 
+def test_shopify_installed_endpoint(client):
+    c, store = client
+    assert c.get("/v1/shopify/installed", params={"shop": "acme.myshopify.com"}).json()["ready"] is False
+    store.save_shop("acme.myshopify.com", "shpat_installed")
+    r = c.get("/v1/shopify/installed", params={"shop": "acme"}).json()  # handle accepted, normalised
+    assert r["ready"] is True and r["shop_domain"] == "acme.myshopify.com"
+
+
+def test_onboard_shopify_uses_installed_token(client, monkeypatch):
+    c, store = client
+    monkeypatch.setattr(onboarding, "_validate_shopify", lambda *a, **k: (True, ""))
+    store.save_shop("acme.myshopify.com", "shpat_installed")  # saved when they installed via the link
+    r = c.post("/v1/onboard", json={"source": "shopify", "shop_domain": "acme.myshopify.com",
+                                    "platform": ""})  # no admin_token: picked up from the install
+    assert r.status_code == 200
+    assert store.get_tenant("acme.myshopify.com")["kind"] == "shopify"
+
+
 def test_shopify_authorize_needs_config(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", None)

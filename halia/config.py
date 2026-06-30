@@ -63,6 +63,12 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET") or None
 # Tenant keys granted full access without paying (e.g. a comped first client), comma-separated.
 HALIA_FREE_SHOPS = {s.strip() for s in os.environ.get("HALIA_FREE_SHOPS", "").split(",") if s.strip()}
 
+# Shopify one-click onboarding via your app's install link (Dev Dashboard -> Distribution ->
+# Manage custom install link). When set, the wizard's 'Connect with Shopify' button opens this
+# link; the merchant installs, the embedded app stores their token, and onboarding picks it up.
+# Unset = the wizard offers only the manual Admin API token method for Shopify.
+HALIA_SHOPIFY_INSTALL_URL = os.environ.get("HALIA_SHOPIFY_INSTALL_URL") or ""
+
 # Cap the WooCommerce pull for the interactive dashboard (recent orders are the most
 # actionable; a full back-catalogue pull can take many minutes). 0 / unset = no cap.
 WOO_MAX_PAGES = int(os.environ.get("HALIA_WOO_MAX_PAGES", "0")) or None

@@ -550,8 +550,9 @@ summary::-webkit-details-marker{display:none}
 </main>
 <script>
 var SIGNUP=__SIGNUP_REQUIRED__;
+var SHOP_INSTALL=__SHOP_INSTALL_URL__;
 var steps=[].slice.call(document.querySelectorAll('.step'));
-var state={platform:null,source:null,myshop:'',woo_method:null,woo_token:'',shop_method:null,shopify_token:'',cur:0};
+var state={platform:null,source:null,myshop:'',woo_method:null,woo_token:'',shop_method:null,shop_installed:false,cur:0};
 if(SIGNUP) document.getElementById('codewrap').style.display='block';
 function gv(id){var e=document.getElementById(id);return e?e.value.trim():'';}
 function err(id,msg){var e=document.getElementById(id);if(e){e.textContent=msg;e.style.display='block';}}
@@ -581,7 +582,7 @@ function renderSource(){
     ti.innerHTML='Connect your orders, <em>safely.</em>';
     le.textContent='Choose how to connect. Either way Halia gets read-only access: it can read your past orders and nothing else.';
     b.innerHTML='<div class="cards">'
-      +'<div class="pcard" data-sm="oauth"><div class="pi">&#9889;</div><div><h3>Connect with Shopify</h3><p>Approve Halia in your Shopify admin. No token to copy.</p></div></div>'
+      +(SHOP_INSTALL?'<div class="pcard" data-sm="install"><div class="pi">&#9889;</div><div><h3>Connect with Shopify</h3><p>Add Halia from Shopify in a click. No token to copy.</p></div></div>':'')
       +'<div class="pcard" data-sm="token"><div class="pi">&#35;</div><div><h3>Enter an Admin API token</h3><p>Create a custom-app token and paste it.</p></div></div>'
       +'</div><div id="shopmethod" style="margin-top:6px"></div>';
     [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){
@@ -634,35 +635,30 @@ function renderShopMethod(){
   var w=document.getElementById('shopmethod');if(!w)return;
   if(state.shop_method==='token'){
     w.innerHTML='<ol class="slist"><li>In Shopify admin, open <b>Settings &rarr; Apps and sales channels &rarr; Develop apps</b>.</li><li>Click <b>Create an app</b>, name it "Halia", then <b>Configure Admin API scopes</b>.</li><li>Tick <b>read_orders</b> and <b>read_customers</b>, save, then <b>Install app</b>.</li><li>Copy the <b>Admin API access token</b> (starts with shpat_).</li></ol><label>Your Shopify store domain</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address, even with a custom domain.</div><label>Admin API access token</label><input id="admin_token" type="password" placeholder="shpat_..." autocomplete="off">';
-  } else if(state.shop_method==='oauth'){
-    w.innerHTML='<label>Your Shopify store domain</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address. We open Shopify so you can approve Halia, nothing to copy.</div><button type="button" class="btn" id="shopauth" style="margin-top:14px">Install Halia in Shopify &rarr;</button><div id="shopstatus" style="margin-top:14px"></div>';
-    document.getElementById('shopauth').onclick=startShopAuth;
-    if(state.shopify_token)document.getElementById('shopstatus').innerHTML='<span style="color:#1f564a;font:600 14px var(--sans)">&#10003; Connected. Continue when ready.</span>';
+  } else if(state.shop_method==='install'){
+    w.innerHTML='<label>Your Shopify store domain</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address. We open Shopify so you can add Halia, nothing to copy.</div><button type="button" class="btn" id="shopauth" style="margin-top:14px">Install Halia in Shopify &rarr;</button><div id="shopstatus" style="margin-top:14px"></div>';
+    document.getElementById('shopauth').onclick=startShopInstall;
+    if(state.shop_installed)document.getElementById('shopstatus').innerHTML='<span style="color:#1f564a;font:600 14px var(--sans)">&#10003; Connected. Continue when ready.</span>';
   }
 }
-function startShopAuth(){
+function startShopInstall(){
   var st=document.getElementById('shopstatus'),btn=document.getElementById('shopauth');
-  if(!gv('shop_domain')){st.innerHTML='<span style="color:#8e1f0b;font-size:13.5px">Enter your .myshopify.com domain first.</span>';return;}
-  btn.disabled=true;btn.innerHTML='Opening Shopify&hellip;';
-  fetch('/v1/shopify/authorize',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({shop_domain:gv('shop_domain')})})
-   .then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});})
-   .then(function(res){
-     if(!res.ok)throw new Error((res.d&&res.d.detail)||'Could not start.');
-     state.shopify_token=res.d.token;window.open(res.d.url,'_blank');
-     btn.disabled=false;btn.innerHTML='Install Halia in Shopify &rarr;';
-     st.innerHTML='<div style="display:flex;gap:10px;align-items:center"><div class="spin"></div><span style="color:var(--mute);font-size:14px">Waiting for you to approve Halia in the new tab&hellip;</span></div>';
-     pollShop();
-   })
-   .catch(function(e){btn.disabled=false;btn.innerHTML='Install Halia in Shopify &rarr;';st.innerHTML='<span style="color:#8e1f0b;font-size:13.5px">'+e.message+'</span>';});
+  var dom=gv('shop_domain');
+  if(!dom){st.innerHTML='<span style="color:#8e1f0b;font-size:13.5px">Enter your .myshopify.com domain first.</span>';return;}
+  if(!SHOP_INSTALL){st.innerHTML='<span style="color:#8e1f0b;font-size:13.5px">Install link is not set up yet. Use the Admin API token method.</span>';return;}
+  window.open(SHOP_INSTALL,'_blank');
+  btn.innerHTML='Reopen Shopify &rarr;';state._dom=dom;
+  st.innerHTML='<div style="display:flex;gap:10px;align-items:center"><div class="spin"></div><span style="color:var(--mute);font-size:14px">Add Halia in the new tab, then come back here&hellip;</span></div>';
+  pollShopInstall();
 }
 var _shopPoll;
-function pollShop(){
-  clearTimeout(_shopPoll);if(!state.shopify_token)return;
-  fetch('/v1/shopify/authorized/'+encodeURIComponent(state.shopify_token)).then(function(r){return r.json();})
+function pollShopInstall(){
+  clearTimeout(_shopPoll);var dom=state._dom||gv('shop_domain');if(!dom)return;
+  fetch('/v1/shopify/installed?shop='+encodeURIComponent(dom)).then(function(r){return r.json();})
    .then(function(d){var st=document.getElementById('shopstatus');
-     if(d&&d.ready){if(d.shop_domain)state.myshop=d.shop_domain;if(st)st.innerHTML='<span style="color:#1f564a;font:600 14px var(--sans)">&#10003; Connected. You can continue.</span>';}
-     else{_shopPoll=setTimeout(pollShop,3000);}})
-   .catch(function(){_shopPoll=setTimeout(pollShop,4000);});
+     if(d&&d.ready){state.shop_installed=true;if(d.shop_domain)state.myshop=d.shop_domain;if(st)st.innerHTML='<span style="color:#1f564a;font:600 14px var(--sans)">&#10003; Connected. You can continue.</span>';}
+     else{_shopPoll=setTimeout(pollShopInstall,3000);}})
+   .catch(function(){_shopPoll=setTimeout(pollShopInstall,4000);});
 }
 function detectThenAdvance(){
   var b=document.querySelector('.step.active [data-next]'),orig=b?b.innerHTML:'';
@@ -709,7 +705,7 @@ function valid(n){
   if(n===2){
     if(state.source==='shopify'){
       if(!state.shop_method){err('err2','Choose how to connect your store.');return false;}
-      if(state.shop_method==='oauth'&&!state.shopify_token){err('err2','Click Install and approve Halia in Shopify, then continue.');return false;}
+      if(state.shop_method==='install'&&!state.shop_installed){err('err2','Click Install and add Halia in Shopify, then continue.');return false;}
       if(state.shop_method==='token'&&(!gv('shop_domain')||!gv('admin_token'))){err('err2','Enter your store domain and Admin API token.');return false;}}
     else if(state.source==='woocommerce'){
       if(!state.woo_method){err('err2','Choose how to connect your store.');return false;}
@@ -739,7 +735,7 @@ document.getElementById('addmail').onclick=function(){var l=document.getElementB
 function payload(){return{
   label:gv('label'),store_url:gv('store_url'),source:state.source||'',
   consumer_key:gv('consumer_key'),consumer_secret:gv('consumer_secret'),
-  shop_domain:gv('shop_domain'),admin_token:gv('admin_token'),woo_token:state.woo_token||'',shopify_token:state.shopify_token||'',code:gv('code'),
+  shop_domain:gv('shop_domain'),admin_token:gv('admin_token'),woo_token:state.woo_token||'',code:gv('code'),
   platform:(!state.platform||state.platform==='later')?'':state.platform,api_key:gv('api_key'),
   email:gv('email'),notify_emails:collectEmails(),
   vic_threshold:gv('vic_threshold'),sender_name:gv('sender_name'),aov:gv('aov'),max_orders:gv('max_orders'),highest_lt:gv('highest_lt')};}
@@ -817,8 +813,10 @@ def register(app) -> None:
 
     @app.get("/connect", response_class=HTMLResponse)
     def connect_form():
-        return HTMLResponse(_WIZARD.replace("__SIGNUP_REQUIRED__",
-                                            "true" if config.SIGNUP_CODE else "false"))
+        import json
+        return HTMLResponse(
+            _WIZARD.replace("__SIGNUP_REQUIRED__", "true" if config.SIGNUP_CODE else "false")
+                   .replace("__SHOP_INSTALL_URL__", json.dumps(config.HALIA_SHOPIFY_INSTALL_URL or "")))
 
     @app.post("/v1/onboard")
     def onboard(payload: dict = Body(...)) -> dict:
@@ -850,9 +848,9 @@ def register(app) -> None:
             if pend and pend.get("token"):        # token came from the one-click OAuth install
                 domain = _norm_shop(pend.get("shop_domain") or g("shop_domain") or store_url)
                 admin_token = pend["token"]
-            else:                                  # manual custom-app Admin API token
+            else:                                  # manual token, or a token already saved at install
                 domain = _norm_shop(g("shop_domain") or store_url)
-                admin_token = g("admin_token")
+                admin_token = g("admin_token") or (store.get_token(domain) if domain else "") or ""
             if not domain or not admin_token:
                 raise HTTPException(400, "Add your Shopify store domain and Admin API access token.")
             ok, why = _validate_shopify(domain, admin_token)
@@ -997,6 +995,13 @@ def register(app) -> None:
     def shopify_authorized(token: str) -> dict:
         p = _shop_pending_get(token)
         return {"ready": bool(p and p.get("token")), "shop_domain": (p or {}).get("shop_domain", "")}
+
+    # Route B: the merchant installs via your app's install link; the embedded app stores their
+    # token (shopify_auth.save_shop). We just check whether that token now exists for their shop.
+    @app.get("/v1/shopify/installed")
+    def shopify_installed(shop: str = "") -> dict:
+        domain = _norm_shop(shop)
+        return {"ready": bool(domain and shop_store().get_token(domain)), "shop_domain": domain}
 
     @app.post("/connect", response_class=HTMLResponse)
     def connect_submit(
