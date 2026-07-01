@@ -3,13 +3,13 @@
 <head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Solutions · Halia</title>
-<meta name="description" content="Halia for fashion, beauty, jewellery and home. Find the high-value clients hiding in your customer base, by category.">
+<title>System status · Halia</title>
+<meta name="description" content="Live status of the Halia service — uptime and component health. Hosted on Render.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#f5f2ea;--bg-2:#efeadd;--ink:#1a1712;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;
-    --line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.07);
+    --line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.07);--ok:#2f9e6f;--warn:#c58a2a;
     --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
   *{box-sizing:border-box}html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
@@ -17,10 +17,10 @@
   .wrap{max-width:1180px;margin:0 auto;padding:0 40px}
   .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
   h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.04}
-  .display{font-size:clamp(46px,7.4vw,96px)}.h2{font-size:clamp(32px,4.6vw,58px)}
+  .display{font-size:clamp(44px,7vw,82px)}.h2{font-size:clamp(28px,4vw,48px)}
   em{font-style:italic;color:var(--gold)}
   .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);line-height:1.5}
-  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:999px;border:1px solid var(--ink);color:#f5f2ea;background:var(--ink);transition:.25s}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:999px;border:1px solid var(--ink);color:#f5f2ea;background:var(--ink);transition:.25s;cursor:pointer}
   .btn:hover{background:transparent;color:var(--ink)}.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
   .arrow{transition:transform .25s}.btn:hover .arrow{transform:translateX(4px)}
   header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(245,242,234,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
@@ -40,28 +40,34 @@
   .mdrawer a.msi{color:var(--mute);font-size:15px}
   .mdrawer a.mcta{margin-top:20px;border:none;background:var(--ink);color:var(--bg);text-align:center;border-radius:999px;padding:15px;font-weight:600}
   @media(max-width:900px){.burger{display:inline-flex}}
-  section{position:relative}.pad{padding:clamp(90px,13vh,160px) 0}
-  .reveal{opacity:0;transform:translateY(26px);transition:opacity 1s cubic-bezier(.2,.6,.2,1),transform 1s cubic-bezier(.2,.6,.2,1)}.reveal.in{opacity:1;transform:none}.reveal.d1{transition-delay:.1s}
-  .phero{padding:170px 0 40px}.phero h1{margin:18px 0 26px;max-width:22ch}.phero .lede{max-width:52ch}
-  .vert{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,7vw,100px);align-items:center;padding:clamp(70px,10vh,120px) 0;border-top:1px solid var(--line-2)}
-  .vert.rev .media{order:2}
-  .media{border-radius:4px;overflow:hidden;aspect-ratio:4/5}.media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 1.4s cubic-bezier(.2,.6,.2,1)}.media:hover img{transform:scale(1.05)}
-  .vert .ix{font-family:var(--serif);font-size:15px;color:var(--faint)}
-  .vert h2{margin:14px 0 20px}
-  .vert p{color:var(--mute);font-size:17px;max-width:46ch}
-  .surfaces{margin-top:28px}.surfaces .sl{font:500 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
-  .tags{display:flex;flex-wrap:wrap;gap:9px}.tag{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);padding:7px 13px;border-radius:999px}
-  .final{text-align:center}.final h2{margin-bottom:18px}
+  section{position:relative}.pad{padding:clamp(48px,7vh,84px) 0}
+  .sthero{padding:150px 0 10px}
+  /* status banner */
+  .st-banner{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border:1px solid var(--line);border-radius:16px;
+    padding:26px 30px;background:var(--bg-2);margin-top:34px}
+  .st-dot{width:14px;height:14px;border-radius:50%;background:var(--faint);flex:none;position:relative}
+  .st-dot.ok{background:var(--ok)}.st-dot.warn{background:var(--warn)}.st-dot.load{background:var(--faint)}
+  .st-dot.ok::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--ok);opacity:.5;animation:pulse 2.2s ease-out infinite}
+  @keyframes pulse{0%{transform:scale(.6);opacity:.6}100%{transform:scale(1.5);opacity:0}}
+  .st-headline{font-family:var(--serif);font-size:clamp(24px,3.4vw,34px);line-height:1.1}
+  .st-sub{color:var(--mute);font-size:14px;margin-top:2px}
+  .st-banner .st-meta{margin-left:auto;text-align:right}
+  .st-banner .st-meta b{font-family:var(--serif);font-size:26px;font-weight:400;display:block}
+  .st-banner .st-meta span{color:var(--faint);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  @media(max-width:620px){.st-banner .st-meta{margin-left:0;text-align:left}}
+  /* component rows */
+  .st-list{border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:22px}
+  .st-row{display:flex;align-items:center;gap:16px;padding:20px 26px;border-top:1px solid var(--line-2)}
+  .st-row:first-child{border-top:none}
+  .st-row .nm{font-weight:500}.st-row .nt{color:var(--faint);font-size:13px;margin-top:1px}
+  .st-row .badge{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--mute)}
+  .st-row .badge.ok{color:var(--ok)}.st-row .badge.warn{color:var(--warn)}
+  .st-mini{width:9px;height:9px;border-radius:50%;background:var(--faint)}
+  .st-mini.ok{background:var(--ok)}.st-mini.warn{background:var(--warn)}
+  .st-note{color:var(--mute);font-size:14px;margin-top:20px;max-width:74ch}.st-note a{color:var(--ink);text-decoration:underline}
+  .st-foot{color:var(--faint);font-size:12.5px;margin-top:14px}
   footer{border-top:1px solid var(--line);padding:60px 0 44px;margin-top:30px}
-  .foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:var(--faint);font-size:13px}
-  .legal-nav{display:flex;gap:20px;flex-wrap:wrap}.legal-nav a{color:var(--mute)}
-  @media(max-width:900px){.vert{grid-template-columns:1fr;gap:34px}.vert.rev .media{order:0}}
-  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
-  /* hero with image */
-  .phero .wrap{max-width:1180px;display:grid;grid-template-columns:1.2fr .85fr;gap:clamp(36px,5vw,72px);align-items:center}
-  .phero-media{border-radius:6px;overflow:hidden;aspect-ratio:4/5;margin:0}
-  .phero-media img{width:100%;height:100%;object-fit:cover;display:block}
-  @media(max-width:860px){.phero .wrap{grid-template-columns:1fr;gap:26px}.phero-media{aspect-ratio:16/11;max-height:300px}}
+  @media(max-width:520px){.st-row{padding:16px 18px;gap:12px}.st-banner{padding:22px 20px}}
 </style>
 </head>
 <body>
@@ -85,76 +91,31 @@
   <a class="mcta" href="/connect">Connect your store</a>
 </aside>
 
-<section class="phero"><div class="wrap"><div class="phero-text">
-  <div class="eyebrow reveal in">Solutions</div>
-  <h1 class="display reveal in d1">Built for considered <em>purchases.</em></h1>
-  <p class="lede reveal in d1">Halia earns its keep wherever one well-treated client is worth more than a
-    thousand one-time buyers. The signals differ by category. The principle does not: find the quiet
-    high-value clients first, and treat them like it.</p>
-</div><div class="phero-media reveal in d1"><img src="img/general.jpg" alt="Considered-purchase retail" loading="lazy"></div></div></section>
+<section class="sthero"><div class="wrap">
+  <div class="eyebrow">System status</div>
+  <h1 class="display" style="margin:16px 0 20px;max-width:15ch">Is Halia <em>up?</em></h1>
+  <p class="lede" style="max-width:56ch">A live check of the service. This page reads the running system
+    directly — component health and uptime, refreshed automatically. No customer data is involved.</p>
 
-<div class="wrap">
-
-  <div class="vert reveal">
-    <div class="media"><img src="img/fashion.jpg" alt="Fashion" loading="lazy"></div>
-    <div class="copy">
-      <div class="ix">01 / Fashion &amp; Apparel</div>
-      <h2 class="h2">Buyers worth a private appointment.</h2>
-      <p>Luxury and contemporary fashion runs on relationships, and a first modest order often hides a
-        stylist, a celebrity client, or a Mayfair address. Halia reads those tells the moment the order
-        lands, so your clienteling team can open a personal line before the next drop, not after it sells out.</p>
-      <div class="surfaces"><div class="sl">What Halia surfaces</div>
-        <div class="tags"><span class="tag">Celebrity stylists</span><span class="tag">Prime postcodes</span><span class="tag">Premium cards</span><span class="tag">Company &amp; PA orders</span></div></div>
+  <div class="st-banner" id="banner">
+    <span class="st-dot load" id="ovDot"></span>
+    <div>
+      <div class="st-headline" id="ovText">Checking status…</div>
+      <div class="st-sub" id="ovSub">Reading the running service</div>
     </div>
+    <div class="st-meta"><b id="ovUptime">—</b><span>Current uptime</span></div>
   </div>
 
-  <div class="vert rev reveal">
-    <div class="media"><img src="img/beauty.jpg" alt="Beauty" loading="lazy"></div>
-    <div class="copy">
-      <div class="ix">02 / Beauty &amp; Fragrance</div>
-      <h2 class="h2">One-time gifters into house clients.</h2>
-      <p>Beauty sees enormous one-time and gifting volume, and most of it never returns. Halia separates
-        the casual gifter from the quiet regular-in-waiting, flagging concierge deliveries, assistant
-        orders, and premium domains so lifecycle can nurture the few who are worth a real relationship.</p>
-      <div class="surfaces"><div class="sl">What Halia surfaces</div>
-        <div class="tags"><span class="tag">Concierge delivery</span><span class="tag">Assistant orders</span><span class="tag">Premium email</span><span class="tag">HNW neighbourhoods</span></div></div>
-    </div>
+  <div class="st-list" id="list">
+    <div class="st-row"><div><div class="nm">Loading components…</div></div></div>
   </div>
 
-  <div class="vert reveal">
-    <div class="media"><img src="img/jewellery.jpg" alt="Jewellery" loading="lazy"></div>
-    <div class="copy">
-      <div class="ix">03 / Jewellery &amp; Watches</div>
-      <h2 class="h2">Quiet wealth behind a modest order.</h2>
-      <p>In high-AOV categories, a small first purchase is often a test, and the second can be
-        life-changing for the relationship. Halia grades the wealth signals behind that first order, a
-        premium card, a trophy address, a family-office domain, so a personal follow-up reaches the right
-        person while the interest is warm.</p>
-      <div class="surfaces"><div class="sl">What Halia surfaces</div>
-        <div class="tags"><span class="tag">Family offices</span><span class="tag">Prime residences</span><span class="tag">Premium card BINs</span><span class="tag">Honorifics &amp; post-nominals</span></div></div>
-    </div>
-  </div>
-
-  <div class="vert rev reveal">
-    <div class="media"><img src="img/homeware.jpg" alt="Home &amp; Lifestyle" loading="lazy"></div>
-    <div class="copy">
-      <div class="ix">04 / Home &amp; Lifestyle</div>
-      <h2 class="h2">The trade and trophy-address clients.</h2>
-      <p>Interior designers, stylists, and trade buyers place orders that look ordinary and recur for
-        years. Halia spots company billing, repeat delivery addresses, and prime locations, so you can
-        open a trade relationship with terms and a dedicated contact instead of a one-off discount.</p>
-      <div class="surfaces"><div class="sl">What Halia surfaces</div>
-        <div class="tags"><span class="tag">Company billing</span><span class="tag">Trade buyers</span><span class="tag">Trophy addresses</span><span class="tag">Repeat delivery patterns</span></div></div>
-    </div>
-  </div>
-
-</div>
-
-<section class="pad final"><div class="wrap reveal">
-  <div class="eyebrow" style="margin-bottom:24px">Begin</div>
-  <h2 class="h2">See who you have been missing.</h2>
-  <p class="lede" style="max-width:34ch;margin:0 auto 34px">Connect your store and Halia surfaces your hidden VICs, usually within the hour.</p>
-  <a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a>
+  <p class="st-note">Halia is hosted on <b>Render</b>, whose infrastructure carries
+    <b>SOC&nbsp;2 Type&nbsp;2</b>, <b>ISO&nbsp;27001</b> and an annual third-party penetration test.
+    Provider-level incidents are published on Render's own status page; the checks above reflect
+    <em>Halia's</em> application and its dependencies. More on how we're built:
+    <a href="/security">Security &amp; compliance</a>.</p>
+  <p class="st-foot" id="footLine">Uptime is measured from the current server process start; it resets on each deploy.</p>
 </div></section>
 
 <footer class="hfoot"><div class="hf-inner">
@@ -189,8 +150,39 @@
     if(b) b.onclick=open; if(c) c.onclick=close; if(s) s.onclick=close;
     d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',close);});
   })();
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.14,rootMargin:'0px 0px -8% 0px'});
-  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el);});
+
+  // ── Live status: poll /status.json and render ────────────────────────────────
+  (function(){
+    var ovDot=document.getElementById('ovDot'),ovText=document.getElementById('ovText'),
+        ovSub=document.getElementById('ovSub'),ovUptime=document.getElementById('ovUptime'),
+        list=document.getElementById('list'),footLine=document.getElementById('footLine');
+    function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
+    function render(d){
+      var ok=d.status==='operational';
+      ovDot.className='st-dot '+(ok?'ok':'warn');
+      ovText.textContent=ok?'All systems operational':'Some systems degraded';
+      ovSub.textContent=ok?'Everything is running normally.':'We are aware and looking into it.';
+      ovUptime.textContent=d.uptime_human||'—';
+      list.innerHTML=(d.checks||[]).map(function(c){
+        var cok=c.status==='operational';
+        return '<div class="st-row"><span class="st-mini '+(cok?'ok':'warn')+'"></span>'+
+               '<div><div class="nm">'+esc(c.name)+'</div>'+(c.note?'<div class="nt">'+esc(c.note)+'</div>':'')+'</div>'+
+               '<span class="badge '+(cok?'ok':'warn')+'">'+(cok?'Operational':'Degraded')+'</span></div>';
+      }).join('');
+      footLine.textContent='Hosted on '+(d.host||'Render')+' · uptime measured from the current server process (resets on deploy) · last checked '+
+        new Date().toLocaleTimeString();
+    }
+    function fail(){
+      ovDot.className='st-dot warn';ovText.textContent='Status unavailable';
+      ovSub.textContent='Could not reach the status endpoint. If this page loaded, the site is at least partly up.';
+      list.innerHTML='<div class="st-row"><span class="st-mini warn"></span><div><div class="nm">/status.json</div>'+
+        '<div class="nt">No response</div></div><span class="badge warn">Unreachable</span></div>';
+    }
+    function poll(){
+      fetch('/status.json',{cache:'no-store'}).then(function(r){return r.json();}).then(render).catch(fail);
+    }
+    poll();setInterval(poll,20000);
+  })();
 </script>
 </body>
 </html>

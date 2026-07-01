@@ -110,7 +110,7 @@ def _serve_page(name: str) -> _HTML:
 
 
 for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
-              "responsible", "pricing", "privacy", "terms", "cookies"):
+              "responsible", "pricing", "privacy", "terms", "cookies", "status"):
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
                       methods=["GET"], include_in_schema=False, response_class=_HTML)
 
@@ -118,6 +118,85 @@ for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+# Process start — used by the public status page to report uptime.
+import datetime as _dt  # noqa: E402
+
+_STARTED_MONO = _time.monotonic()
+_STARTED_AT = _dt.datetime.now(_dt.timezone.utc)
+
+
+def _fmt_uptime(secs: float) -> str:
+    secs = int(secs)
+    d, r = divmod(secs, 86400)
+    h, r = divmod(r, 3600)
+    m, s = divmod(r, 60)
+    if d:
+        return f"{d}d {h}h {m}m"
+    if h:
+        return f"{h}h {m}m {s}s"
+    return f"{m}m {s}s" if m else f"{s}s"
+
+
+@app.get("/status.json", include_in_schema=False)
+def status_json() -> dict:
+    """Public health snapshot for the status page: uptime + component checks.
+
+    No customer data — reports subsystem liveness only. Each check is 'operational'
+    or 'degraded' so the page can render honestly even when a dependency is down.
+    """
+    checks = []
+
+    # Web: if this handler runs, the API is serving.
+    checks.append({"key": "api", "name": "API & dashboard", "status": "operational",
+                   "note": "Serving requests"})
+
+    # Persistence (encrypted merchant secrets only — no customer rows here).
+    db_status, db_note = "operational", "Reachable"
+    backend = "database"
+    try:
+        store = shop_store()
+        store._run("SELECT 1", fetch="one")
+        backend = "PostgreSQL" if getattr(store, "pg", False) else "SQLite"
+        db_note = "Reachable"
+    except Exception:
+        db_status, db_note = "degraded", "Unreachable"
+    checks.append({"key": "db", "name": f"Secret store ({backend})", "status": db_status,
+                   "note": db_note})
+
+    # Scoring engine importable/ready.
+    eng_status, eng_note = "operational", "Ready"
+    try:
+        from scoring.combine import active_signals
+        eng_note = f"{len(active_signals(include_origin=False))} signals active"
+    except Exception:
+        eng_status, eng_note = "degraded", "Unavailable"
+    checks.append({"key": "engine", "name": "Scoring engine", "status": eng_status,
+                   "note": eng_note})
+
+    # In-memory scoring cache (zero-retention working set).
+    cache_status, cache_note = "operational", "Zero-retention (in memory)"
+    try:
+        from halia import cache as _cache
+        ttl = int(getattr(_cache, "TTL_SECONDS", _os.environ.get("HALIA_CACHE_TTL", 300)) or 300)
+        cache_note = f"TTL {ttl}s · results discarded after"
+    except Exception:
+        cache_status, cache_note = "degraded", "Unavailable"
+    checks.append({"key": "cache", "name": "In-memory scoring cache", "status": cache_status,
+                   "note": cache_note})
+
+    overall = "operational" if all(c["status"] == "operational" for c in checks) else "degraded"
+    uptime = _time.monotonic() - _STARTED_MONO
+    return {
+        "status": overall,
+        "started_at": _STARTED_AT.isoformat(timespec="seconds"),
+        "uptime_seconds": int(uptime),
+        "uptime_human": _fmt_uptime(uptime),
+        "now": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
+        "host": "Render",
+        "checks": checks,
+    }
 
 
 @app.post("/subscribe", include_in_schema=False)

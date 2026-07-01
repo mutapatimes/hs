@@ -62,16 +62,32 @@
   @media(max-width:720px){.ptiers{grid-template-columns:repeat(2,1fr)}.ptier .pwho,.ptier .pscan,.ptier .prefund{min-height:0}}
   @media(max-width:440px){.ptiers{grid-template-columns:1fr}}
   /* comparison table */
-  .cmp-wrap{overflow-x:auto;margin-top:20px;border:1px solid var(--line);border-radius:14px}
+  .cmp-outer{position:relative;margin-top:20px}
+  .cmp-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;scroll-snap-type:x proximity}
   table.cmp{width:100%;min-width:760px;border-collapse:collapse;font-size:14px}
-  table.cmp th,table.cmp td{padding:13px 16px;text-align:center;border-top:1px solid var(--line-2)}
+  table.cmp th,table.cmp td{padding:13px 16px;text-align:center;border-top:1px solid var(--line-2);scroll-snap-align:start}
   table.cmp thead th{border-top:none;font-family:var(--serif);font-weight:400;font-size:18px;color:var(--ink)}
   table.cmp thead th small{display:block;font-family:var(--sans);font-size:11px;color:var(--faint);letter-spacing:.04em;margin-top:2px}
-  table.cmp th:first-child,table.cmp td:first-child{text-align:left;color:var(--mute);font-weight:500;position:sticky;left:0;background:var(--bg)}
+  table.cmp th:first-child,table.cmp td:first-child{text-align:left;color:var(--mute);font-weight:500;position:sticky;left:0;background:var(--bg);z-index:1}
+  table.cmp thead th:first-child{z-index:2}
   table.cmp tbody tr:hover td{background:var(--bg-2)}
   table.cmp .yes{color:var(--ink);font-weight:600}table.cmp .no{color:var(--faint)}
   table.cmp col.feat,table.cmp .featcol{background:rgba(122,115,99,.06)}
   table.cmp .val{color:var(--ink);font-weight:600;font-size:13.5px}
+  /* right-edge fade cue + swipe hint (mobile) */
+  .cmp-fade{position:absolute;top:0;right:0;bottom:0;width:46px;border-radius:0 14px 14px 0;pointer-events:none;
+    background:linear-gradient(90deg,rgba(245,242,234,0),var(--bg));opacity:0;transition:opacity .25s}
+  .cmp-outer.more .cmp-fade{opacity:1}
+  .cmp-hint{display:none;align-items:center;gap:7px;color:var(--faint);font-size:12.5px;margin:10px 2px 0}
+  .cmp-hint svg{width:15px;height:15px}
+  @media(max-width:760px){
+    .cmp-hint{display:flex}
+    table.cmp{min-width:660px;font-size:13px}
+    table.cmp th,table.cmp td{padding:11px 12px}
+    table.cmp thead th{font-size:15px}
+    table.cmp th:first-child,table.cmp td:first-child{max-width:148px;font-size:12.5px;line-height:1.35;white-space:normal}
+    table.cmp .val{font-size:12.5px}
+  }
   /* funnel */
   .funnel{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:34px}
   .fstep{border:1px solid var(--line);border-radius:12px;padding:24px 22px;background:var(--bg)}
@@ -175,7 +191,9 @@
 <section class="pad" style="padding-top:0"><div class="wrap reveal">
   <div class="eyebrow" style="margin-bottom:18px">Compare</div>
   <h2 class="h2">What each plan includes.</h2>
-  <div class="cmp-wrap">
+  <div class="cmp-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Swipe to compare all plans</div>
+  <div class="cmp-outer" id="cmpOuter">
+   <div class="cmp-wrap" id="cmpWrap">
     <table class="cmp">
       <thead><tr>
         <th></th>
@@ -205,6 +223,8 @@
         <tr><td>Dedicated relationship</td><td class="no">–</td><td class="no">–</td><td class="no featcol">–</td><td class="no">–</td><td class="yes">✓</td></tr>
       </tbody>
     </table>
+   </div>
+   <div class="cmp-fade" aria-hidden="true"></div>
   </div>
 </div></section>
 
@@ -259,7 +279,7 @@
       <p class="hf-bio">Halia is hidden-VIC intelligence for considered-purchase retail. We read the wealth and intent signals already sitting in your customer data, grade every customer, and surface the high-value clients you would otherwise treat like everyone else, then help your teams act on them in the tools they already use. We never keep a copy of your customers: they are scored on the spot and nothing about them is stored on our side.</p>
     </div>
     <div class="hf-col"><h4>Product</h4><a href="/#engine">The engine</a><a href="/#how">How it works</a><a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/connect">Connect a store</a></div>
-    <div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/brand">Brand</a><a href="mailto:hello@halia.app">Contact</a></div>
+    <div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/brand">Brand</a><a href="mailto:hello@halia.app">Contact</a></div>
     <div class="hf-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/cookies">Cookie Policy</a><a href="/security">Security &amp; compliance</a></div>
   </div>
   <div class="hf-bot">
@@ -279,6 +299,12 @@
   })();
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.14,rootMargin:'0px 0px -8% 0px'});
   document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el);});
+  (function(){
+    var wrap=document.getElementById('cmpWrap'),outer=document.getElementById('cmpOuter');
+    if(!wrap||!outer) return;
+    function upd(){var more=wrap.scrollWidth-wrap.clientWidth-wrap.scrollLeft>4;outer.classList.toggle('more',more);}
+    wrap.addEventListener('scroll',upd,{passive:true});addEventListener('resize',upd,{passive:true});upd();
+  })();
 </script>
 </body>
 </html>

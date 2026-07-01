@@ -42,6 +42,21 @@ def test_health_is_open(client):
     assert TestClient(app).get("/health").json() == {"status": "ok"}
 
 
+def test_status_json_is_open_and_reports_components(client):
+    r = TestClient(app).get("/status.json")
+    assert r.status_code == 200
+    d = r.json()
+    assert d["status"] in {"operational", "degraded"}
+    assert d["host"] == "Render"
+    assert "uptime_human" in d and d["uptime_seconds"] >= 0
+    keys = {c["key"] for c in d["checks"]}
+    assert {"api", "db", "engine", "cache"} <= keys
+
+
+def test_status_page_serves(client):
+    assert TestClient(app).get("/status").status_code == 200
+
+
 def test_post_score_is_stateless_and_open(client):
     r = TestClient(app).post("/v1/score", json={
         "CUST_ID": "x", "Name": "Sir A B", "EMAIL_ADDR": "a@gs.com",
