@@ -1078,6 +1078,7 @@ function openSettings(){
   const CHIP="background:#eef1f0;border:1px solid #cdd6d3;border-radius:6px;padding:3px 9px;font:600 12px ui-monospace,SFMono-Regular,monospace;color:#1f564a;cursor:pointer;margin:0 6px 6px 0";
   const kv=SETTINGS.klaviyo_connected;
   const mc=SETTINGS.mailchimp_connected;
+  const calibrated=!!(SETTINGS.signal_weights&&Object.keys(SETTINGS.signal_weights).length);
   function render(){
     settingsEl.innerHTML=`
      <div style="position:fixed;inset:0;background:#f1f1f1;z-index:300;overflow:auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
@@ -1121,6 +1122,18 @@ function openSettings(){
             <div><div style="${LBL}">Most orders from one client</div><input id="setMaxOrders" type="number" min="0" value="${esc(SETTINGS.max_orders)}" style="width:100%;${I}"></div>
             <div><div style="${LBL}">Highest lifetime client (£)</div><input id="setHighestLt" type="number" min="0" value="${esc(SETTINGS.highest_lt)}" style="width:100%;${I}"></div>
           </div>
+        </div>
+
+        <div style="${C}">
+          <div style="${H}">Signal calibration</div>
+          <p style="${P}">Learn which signals actually track spend <b>for your store</b> and re-tune each signal's weight to match — so rankings reflect your customers, not our defaults. Halia reads your store, measures each signal's spend lift, and adjusts the weights (bounded, and never switching a signal off). <b>Preview</b> to see the effect first; <b>Apply</b> to adopt it and re-score.</p>
+          <div style="font:600 13px system-ui;color:${calibrated?'#0f7b4f':'#616161'};margin-bottom:12px">${calibrated?"● Calibrated to your store":"○ Using default weights"}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button id="calibPreview" style="${BS}">Preview</button>
+            <button id="calibApply" style="${BP}">Apply calibration</button>
+            ${calibrated?`<button id="calibReset" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0 8px">Reset to defaults</button>`:""}
+          </div>
+          <div id="calibResult" style="margin-top:14px"></div>
         </div>
 
         <div style="${C}">
@@ -1201,6 +1214,44 @@ function openSettings(){
     };
     const mdisc=document.getElementById("setMcDisc"); if(mdisc) mdisc.onclick=()=>{
       fetch("/v1/mailchimp/disconnect",{method:"POST"}).then(()=>{SETTINGS.mailchimp_connected=false;toast("Mailchimp disconnected.");render();refreshIntegrationUI();});
+    };
+    const calibBox=document.getElementById("calibResult");
+    function showCalib(rep,note){
+      const rws=(rep||[]).filter(r=>r.n_fired>0);
+      if(!rws.length){calibBox.innerHTML=`<div style="${P};margin:0">No signals have fired on your store yet — nothing to calibrate.</div>`;return;}
+      calibBox.innerHTML=`${note?`<div style="${LBL};margin-bottom:8px">${note}</div>`:""}
+        <div style="overflow:auto;border:1px solid #e3e3e3;border-radius:10px">
+        <table style="width:100%;border-collapse:collapse;font:12.5px system-ui">
+          <thead><tr style="background:#fafafa;color:#616161;text-align:left">
+            <th style="padding:8px 10px">Signal</th><th style="padding:8px 10px">Fired</th>
+            <th style="padding:8px 10px">Spend lift</th><th style="padding:8px 10px">Weight</th></tr></thead>
+          <tbody>${rws.map(r=>{const ch=r.suggested_weight!==r.base_weight;
+            const arr=r.suggested_weight>r.base_weight?"↑":(r.suggested_weight<r.base_weight?"↓":"→");
+            return `<tr style="border-top:1px solid #efefef">
+              <td style="padding:7px 10px;color:#303030">${esc(r.label)}</td>
+              <td style="padding:7px 10px">${r.n_fired}</td>
+              <td style="padding:7px 10px">${r.lift==null?"—":r.lift.toFixed(2)+"×"}</td>
+              <td style="padding:7px 10px;color:${ch?'#1f564a':'#8a8a8a'};font-weight:${ch?'700':'400'}">${r.base_weight} ${arr} ${r.suggested_weight}</td>
+            </tr>`;}).join("")}</tbody></table></div>`;
+    }
+    const cprev=document.getElementById("calibPreview");
+    if(cprev) cprev.onclick=()=>{cprev.disabled=true;cprev.textContent="Reading your store…";
+      fetch("/v1/calibrate").then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+        if(!ok)throw new Error(d.detail||"failed");
+        showCalib(d.report,"Preview only — not yet applied. Apply to adopt these weights.");
+      }).catch(e=>toast("Preview failed: "+e.message)).finally(()=>{cprev.disabled=false;cprev.textContent="Preview";});
+    };
+    const capply=document.getElementById("calibApply");
+    if(capply) capply.onclick=()=>{capply.disabled=true;capply.textContent="Calibrating…";
+      fetch("/v1/calibrate",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+        if(!ok)throw new Error(d.detail||"failed");
+        toast("Calibrated to your store. Refreshing…");setTimeout(()=>location.reload(),800);
+      }).catch(e=>{toast("Calibration failed: "+e.message);capply.disabled=false;capply.textContent="Apply calibration";});
+    };
+    const creset=document.getElementById("calibReset");
+    if(creset) creset.onclick=()=>{creset.disabled=true;
+      fetch("/v1/calibrate",{method:"DELETE"}).then(()=>{toast("Reset to default weights. Refreshing…");setTimeout(()=>location.reload(),800);})
+        .catch(e=>{toast("Reset failed: "+e.message);creset.disabled=false;});
     };
     document.getElementById("saveSettings").onclick=()=>{
       collect();
