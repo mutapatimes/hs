@@ -34,6 +34,11 @@ _IMG_DIR = _ROOT / "web" / "site" / "img"
 if _IMG_DIR.is_dir():
     app.mount("/img", StaticFiles(directory=str(_IMG_DIR)), name="img")
 
+# Shared brand layer (logo spin + asterisk design language) used by every page.
+_STATIC_DIR = _ROOT / "web" / "site" / "static"
+if _STATIC_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+
 # Static legal / overview pages (Privacy, Terms, Cookies, Security).
 from fastapi.responses import HTMLResponse as _HTML  # noqa: E402
 

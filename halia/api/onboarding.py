@@ -164,7 +164,8 @@ _CSS = (
 
 
 def _page(title: str, inner: str) -> str:
-    return (f"<!doctype html><html><head><meta charset=utf-8><title>{title}</title>"
+    return (f"<!doctype html><html><head><link rel=stylesheet href=/static/brand.css>"
+            f"<script src=/static/brand.js defer></script><meta charset=utf-8><title>{title}</title>"
             f"<meta name=viewport content='width=device-width,initial-scale=1'>"
             f"<style>{_CSS}</style></head><body><div class=wrap>{inner}</div></body></html>")
 
@@ -299,7 +300,7 @@ def _hosted_head() -> str:
     )
 
 
-_PREPARING = r'''<!doctype html><html lang="en"><head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
+_PREPARING = r'''<!doctype html><html lang="en"><head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
 <title>Scoring your store · Halia</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <noscript><meta http-equiv="refresh" content="5"></noscript>
@@ -336,7 +337,7 @@ h1 em{font-style:italic;color:var(--gold)}
 .term .caret{display:inline-block;width:8px;height:14px;background:#5bd6a0;vertical-align:-2px;animation:bk 1s step-end infinite}
 @keyframes bk{50%{opacity:0}}
 </style></head><body>
-<header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Halia</a></header>
+<header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Hali<span class="wm-last">a</span></a></header>
 <main class="stage">
   <div class="eyebrow" id="phase"><span class="dot"></span>Scoring your store</div>
   <h1 id="head">Finding your <em>hidden VICs</em></h1>
@@ -460,7 +461,7 @@ def _preparing_page(shop: str | None = None) -> HTMLResponse:
     return resp
 
 
-_TEASER = r'''<!doctype html><html lang="en"><head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
+_TEASER = r'''<!doctype html><html lang="en"><head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
 <title>Your hidden VICs · Halia</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -486,7 +487,7 @@ h1 em{font-style:italic;color:var(--gold)}
 .fine{font-size:13px;color:var(--faint);margin:18px 0 0}
 .err{background:#fbeeec;border:1px solid #e0b4b0;color:#8e1f0b;border-radius:10px;padding:12px 14px;font-size:13.5px;margin:18px auto 0;max-width:42ch}
 </style></head><body>
-<header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Halia</a></header>
+<header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Hali<span class="wm-last">a</span></a></header>
 <main class="stage">
   <div class="eyebrow">__LABEL__ &middot; the result is in</div>
   <h1>You have <em>__COUNT__</em> hidden VICs,<br>worth an estimated <em>__LATENT__</em>.</h1>
@@ -586,7 +587,7 @@ def _detect_platform(store_url: str, fetch=None) -> dict:
     return {"platform": platform, "myshopify": myshop}
 
 
-_WIZARD = r'''<!doctype html><html lang="en"><head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
+_WIZARD = r'''<!doctype html><html lang="en"><head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
 <title>Connect your store · Halia</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -645,7 +646,7 @@ summary::-webkit-details-marker{display:none}
 .addmail:hover{color:var(--ink)}
 </style></head><body>
 <div class="bar"><i id="barfill"></i></div>
-<header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Halia</a><div class="stepn" id="stepn"></div></header>
+<header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Hali<span class="wm-last">a</span></a><div class="stepn" id="stepn"></div></header>
 <main class="stage" id="stage">
 
   <section class="step active" data-step="0">

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>">
+<head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FAQ · Halia</title>
@@ -27,7 +27,18 @@
   .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px}.brand svg{width:22px;height:22px}
   .nav-links{display:flex;gap:30px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
   .nav .right{display:flex;gap:20px;align-items:center}.nav .right .si{font:500 14px var(--sans);color:var(--mute)}
-  @media(max-width:980px){.nav-links{display:none}}
+  @media(max-width:900px){.nav-links{display:none}}
+  .burger{display:none;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;flex:none;padding:0}
+  .burger svg{width:20px;height:20px}
+  .mscrim{position:fixed;inset:0;background:rgba(10,10,11,.5);opacity:0;visibility:hidden;transition:opacity .3s;z-index:55}
+  .mscrim.show{opacity:1;visibility:visible}
+  .mdrawer{position:fixed;top:0;right:0;bottom:0;width:min(84vw,330px);background:var(--bg);border-left:1px solid var(--line);z-index:60;transform:translateX(100%);transition:transform .32s cubic-bezier(.2,.7,.2,1);display:flex;flex-direction:column;padding:22px 26px 30px;overflow-y:auto}
+  .mdrawer.show{transform:none}
+  .mdrawer .mclose{align-self:flex-end;background:none;border:none;color:var(--mute);font-size:28px;line-height:1;cursor:pointer;padding:2px 4px;margin-bottom:6px}
+  .mdrawer a{font:500 17px var(--sans);color:var(--ink);padding:14px 0;border-bottom:1px solid var(--line-2)}
+  .mdrawer a.msi{color:var(--mute);font-size:15px}
+  .mdrawer a.mcta{margin-top:20px;border:none;background:var(--ink);color:var(--bg);text-align:center;border-radius:999px;padding:15px;font-weight:600}
+  @media(max-width:900px){.burger{display:inline-flex}}
   .phero{padding:170px 0 40px}.phero h1{margin:18px 0 24px;max-width:22ch}
   .toc{display:flex;flex-wrap:wrap;gap:10px;margin:34px 0 0}
   .toc a{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:8px 15px}
@@ -56,10 +67,23 @@
 </head>
 <body>
 <header id="hdr"><div class="nav">
-  <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#1a1712">&#8258;</span>Halia</a>
-  <nav class="nav-links"><a href="/#how">How it works</a><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/security">Security</a></nav>
-  <div class="right"><a class="si" href="/app">Sign in</a><a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a></div>
+  <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#1a1712">&#8258;</span>Hali<span class="wm-last">a</span></a>
+  <nav class="nav-links"><a href="/#how">How it works</a><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/security">Security</a><a href="/faq">FAQ</a></nav>
+  <div class="right"><a class="si" href="/#demo">See a demo</a><a class="si" href="/app">Sign in</a><a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a><button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div>
 </div></header>
+
+<div class="mscrim" id="mscrim"></div>
+<aside class="mdrawer" id="mdrawer" aria-hidden="true">
+  <button class="mclose" id="mclose" aria-label="Close menu">&times;</button>
+  <a href="/#how">How it works</a>
+  <a href="/clienteling">Clienteling</a>
+  <a href="/solutions">Solutions</a>
+  <a href="/security">Security</a>
+  <a href="/faq">FAQ</a>
+  <a class="msi" href="/#demo">See a demo</a>
+  <a class="msi" href="/app">Sign in</a>
+  <a class="mcta" href="/connect">Connect your store</a>
+</aside>
 
 <section class="phero"><div class="wrap"><div class="phero-text">
   <div class="eyebrow">Frequently asked</div>
@@ -140,12 +164,38 @@
   <div style="margin-top:16px"><a href="/connect" style="color:var(--mute);font-size:14px">Or just connect your store →</a></div>
 </div></section>
 
-<footer><div class="foot">
-  <span>© 2026 Halia. All rights reserved.</span>
-  <div class="legal-nav"><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/security">Security</a><a href="/responsible">Responsible profiling</a><a href="/brand">Brand</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+<footer class="hfoot"><div class="hf-inner">
+  <div class="hf-news">
+    <h3>The quiet edge in luxury retail, in your inbox.</h3>
+    <form id="newsForm" novalidate>
+      <input id="newsEmail" type="email" placeholder="Your work email" required>
+      <button type="submit">Subscribe →</button>
+    </form>
+  </div>
+  <div class="hf-grid">
+    <div>
+      <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:var(--gold,#8a8377)">&#8258;</span>Hali<span class="wm-last">a</span></a>
+      <p class="hf-bio">Halia is hidden-VIC intelligence for considered-purchase retail. We read the wealth and intent signals already sitting in your customer data, grade every customer, and surface the high-value clients you would otherwise treat like everyone else, then help your teams act on them in the tools they already use. We never keep a copy of your customers: they are scored on the spot and nothing about them is stored on our side.</p>
+    </div>
+    <div class="hf-col"><h4>Product</h4><a href="/#engine">The engine</a><a href="/#how">How it works</a><a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/connect">Connect a store</a></div>
+    <div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/brand">Brand</a><a href="mailto:hello@halia.app">Contact</a></div>
+    <div class="hf-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/cookies">Cookie Policy</a><a href="/security">Security &amp; compliance</a></div>
+  </div>
+  <div class="hf-bot">
+    <span>© 2026 Halia. All rights reserved.</span>
+    <span>Zero-retention by design · Shopify · WooCommerce · Klaviyo · Mailchimp</span>
+  </div>
 </div></footer>
 <script>
   var hdr=document.getElementById('hdr');addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
+  (function(){
+    var b=document.getElementById('burger'),d=document.getElementById('mdrawer'),s=document.getElementById('mscrim'),c=document.getElementById('mclose');
+    if(!d) return;
+    function open(){d.classList.add('show');s.classList.add('show');d.setAttribute('aria-hidden','false');}
+    function close(){d.classList.remove('show');s.classList.remove('show');d.setAttribute('aria-hidden','true');}
+    if(b) b.onclick=open; if(c) c.onclick=close; if(s) s.onclick=close;
+    d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',close);});
+  })();
 </script>
 </body>
 </html>

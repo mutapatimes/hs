@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>">
+<head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Halia · Find your most valuable clients</title>
@@ -385,8 +385,7 @@
 <header id="hdr"><div class="wrap nav">
   <a class="brand" href="/">
     <span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span>
-    Halia
-  </a>
+    Hali<span class="wm-last">a</span>  </a>
   <nav class="nav-links">
     <a href="#how">How it works</a>
     <a href="/clienteling">Clienteling</a>
@@ -821,7 +820,7 @@
   </div>
   <div class="foot">
     <div>
-      <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span>Halia</a>
+      <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span>Hali<span class="wm-last">a</span></a>
       <p class="bio">Halia is hidden-VIC intelligence for considered-purchase retail. We read the wealth
         and intent signals already sitting in your customer data, grade every customer, and surface
         the high-value clients you would otherwise treat like everyone else, then help your teams act
@@ -874,16 +873,7 @@
       .finally(function(){window.location.href='/demo';});
   });
 
-  // newsletter subscribe
-  var nf=document.getElementById('newsForm');
-  if(nf)nf.addEventListener('submit',function(e){e.preventDefault();
-    var em=(document.getElementById('newsEmail').value||'').trim();
-    if(!/.+@.+\..+/.test(em))return;
-    var b=nf.querySelector('button');b.disabled=true;b.textContent='…';
-    var done=function(){nf.innerHTML='<span class="ok">Thank you. You are on the list.</span>';};
-    fetch('/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:em})})
-      .then(function(r){done();}).catch(function(){done();});
-  });
+  // newsletter subscribe — handled by the shared /static/brand.js on every page
 
   var io=new IntersectionObserver(function(es){
     es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});

@@ -1,0 +1,51 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Halia brand layer — the asterism (⁂) as a recurring mark, loaded site-wide.
+   One place for the logo flourish and the asterisk "design language" so the
+   look can be tuned without touching every page.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* The logo asterism (first span in .brand) rotates with the cursor — see
+   brand.js. This just makes it transformable and eases the motion. */
+header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;transition:transform .28s cubic-bezier(.2,.7,.2,1);will-change:transform}
+
+/* Wordmark flourish: the final letter in Halia green. Mid-emerald so it reads
+   on both the dark homepage and the light cream pages. */
+.brand .wm-last{color:#34a085}
+
+/* Keep the collapsed (mobile) header uncluttered, matching the homepage: the
+   secondary text links hide below 900px, leaving the CTA and the hamburger. */
+@media(max-width:900px){header .nav .right .si{display:none}}
+
+/* A quiet, recurring brand tell: the asterism before every section eyebrow.
+   Inherits the eyebrow's own colour so it matches in both light and dark
+   sections. Applied automatically site-wide — no per-page markup. */
+.eyebrow::before{content:"\2042";margin-right:.6em;letter-spacing:0;color:inherit}
+
+/* Asterisk bullets — opt-in list styling for brand consistency in "cute
+   places". Uses each page's own --gold accent so it sits in the palette. */
+.ast-list{list-style:none;padding:0;margin:0}
+.ast-list > li{position:relative;padding-left:1.7em;margin:0 0 .55em}
+.ast-list > li::before{content:"\2042";position:absolute;left:0;top:0;color:var(--gold,#8a8377);font-size:.92em;line-height:1.5}
+
+/* ── Shared site footer, mirrored on every page ─────────────────────────────
+   Self-contained (own width, inputs and button) so it renders correctly even
+   on pages with a minimal stylesheet (the legal pages). Colours read theme
+   vars with light-theme fallbacks. */
+.hfoot{border-top:1px solid var(--line,rgba(20,18,12,.14));padding:72px 0 46px;margin-top:56px;font-family:var(--sans,'Inter',system-ui,sans-serif)}
+.hfoot .hf-inner{max-width:1180px;margin:0 auto;padding:0 40px}
+.hfoot .hf-news{display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap;padding-bottom:50px;margin-bottom:50px;border-bottom:1px solid var(--line,rgba(20,18,12,.14))}
+.hfoot .hf-news h3{font-family:var(--serif,'Cormorant Garamond',Georgia,serif);font-weight:300;font-size:clamp(24px,3vw,34px);max-width:28ch;line-height:1.1;margin:0}
+.hfoot .hf-news form{display:flex;gap:10px;flex-wrap:wrap;margin:0}
+.hfoot .hf-news input{background:var(--bg-2,#efeadd);border:1px solid var(--line,rgba(20,18,12,.14));border-radius:999px;padding:13px 20px;color:var(--ink,#1a1712);font:500 14px var(--sans,'Inter',system-ui,sans-serif);min-width:250px;outline:none}
+.hfoot .hf-news input::placeholder{color:var(--faint,#9a9385)}
+.hfoot .hf-news button{display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--ink,#1a1712);background:var(--ink,#1a1712);color:var(--bg,#f5f2ea);border-radius:999px;padding:13px 24px;font:500 14px var(--sans,'Inter',system-ui,sans-serif);transition:.2s}
+.hfoot .hf-news button:hover{background:transparent;color:var(--ink,#1a1712)}
+.hfoot .hf-news .ok{color:var(--mute,#615b50);font-size:15px}
+.hfoot .hf-grid{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr;gap:40px}
+.hfoot .hf-grid .brand{margin-bottom:16px}
+.hfoot .hf-bio{color:var(--mute,#615b50);max-width:42ch;font-size:14px;line-height:1.6}
+.hfoot .hf-col h4{font:500 11px var(--sans,'Inter',system-ui,sans-serif);letter-spacing:.18em;text-transform:uppercase;color:var(--faint,#9a9385);margin:0 0 14px}
+.hfoot .hf-col a{display:block;color:var(--mute,#615b50);font-size:14px;padding:5px 0;text-decoration:none}
+.hfoot .hf-col a:hover{color:var(--ink,#1a1712)}
+.hfoot .hf-bot{margin-top:56px;padding-top:24px;border-top:1px solid var(--line,rgba(20,18,12,.14));display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--faint,#9a9385);font-size:13px}
+@media(max-width:900px){.hfoot .hf-grid{grid-template-columns:1fr;gap:32px}.hfoot .hf-news{flex-direction:column;align-items:flex-start}}
