@@ -50,6 +50,29 @@ def test_save_and_reload(client):
     assert len(s["email_templates"]) == 1 and s["email_templates"][0]["name"] == "Hi"
 
 
+def test_order_templates_defaults(client):
+    c, _ = client
+    ot = c.get("/v1/settings", headers=_auth()).json()["order_templates"]
+    assert set(ot) == {"new", "fulfilled", "refunded", "cancelled"}
+    assert all(len(ot[k]) >= 1 for k in ot)
+    assert "{first_name}" in ot["new"][0]["body"]
+
+
+def test_save_order_templates_and_fallback(client):
+    c, _ = client
+    r = c.post("/v1/settings", headers=_auth(), json={"order_templates": {
+        "new": [{"name": "Ship it", "subject": "On its way", "body": "Hi {first_name} {order_number}"},
+                {"name": "", "body": ""}],   # blank dropped
+        "fulfilled": [],                     # empty -> falls back to defaults
+        "bogus": [{"name": "X", "body": "Y"}],  # unknown status ignored
+    }})
+    assert r.status_code == 200
+    ot = c.get("/v1/settings", headers=_auth()).json()["order_templates"]
+    assert set(ot) == {"new", "fulfilled", "refunded", "cancelled"}   # only known statuses kept
+    assert [t["name"] for t in ot["new"]] == ["Ship it"]              # custom kept, blank dropped
+    assert len(ot["fulfilled"]) >= 1                                  # empty -> default fallback
+
+
 def test_klaviyo_disconnect(client):
     c, store = client
     store.save_klaviyo(SHOP, "pk_x")

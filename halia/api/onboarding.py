@@ -190,6 +190,47 @@ def _signin_page() -> str:
     return _page("Sign in · Halia", inner)
 
 
+# Lean suggested privacy wording (matches PRIVACY_INSERTS in the dashboard). Not legal advice.
+_PRIVACY_INSERTS = [
+    ("Understanding our customers",
+     "To give our best customers a more personal level of service, we use a tool that reviews "
+     "information we already hold — such as your order history and the area your orders are "
+     "delivered to — to recognise clients who may value a more personal service, such as a "
+     "dedicated contact or an invitation to a preview."),
+    ("What it looks at",
+     "It draws on commercial and address facts — what and how often you have bought from us, and "
+     "publicly recognisable signs of an area or a professional email domain. It does not use your "
+     "nationality, your ethnicity, or the origin of your name."),
+    ("A person always decides",
+     "The tool only highlights customers for our team to consider. It never makes an automatic "
+     "decision about you and never withholds a product, price or service — a member of our team "
+     "always decides whether to get in touch. You can ask us to stop at any time."),
+]
+
+
+def _privacy_block() -> str:
+    """A copy-pasteable 'suggested privacy wording' card for the onboarding success screen."""
+    cards = "".join(
+        "<div style='border:1px solid #e3e3e3;border-radius:10px;padding:12px;margin-bottom:10px;"
+        "background:#fafafa'><div style='display:flex;justify-content:space-between;align-items:center;"
+        f"gap:10px;margin-bottom:6px'><b style='font:650 13px system-ui'>{h}</b>"
+        f"<button type=button class=pcopy data-c=\"{html.escape(b, quote=True)}\" style='background:#fff;"
+        "border:1px solid #999;border-radius:8px;padding:5px 12px;font:600 12px system-ui;cursor:pointer'>"
+        f"Copy</button></div><div style='font:13px/1.55 system-ui;color:#444'>{html.escape(b)}</div></div>"
+        for h, b in _PRIVACY_INSERTS
+    )
+    return (
+        "<div class=card style='margin-top:16px'>"
+        "<p style='font:650 15px system-ui;margin:0 0 4px'>Suggested privacy wording</p>"
+        "<p class=sub style='margin:0 0 12px'>A starting point to add to your own privacy policy — "
+        "not legal advice. It's always available in your dashboard Settings too.</p>"
+        f"{cards}</div>"
+        "<script>document.querySelectorAll('.pcopy').forEach(function(x){x.onclick=function(){"
+        "if(navigator.clipboard)navigator.clipboard.writeText(x.dataset.c);"
+        "x.textContent='Copied';setTimeout(function(){x.textContent='Copy'},1500);};});</script>"
+    )
+
+
 def _slug(url: str) -> str:
     bare = re.sub(r"^https?://", "", (url or "").lower()).strip("/")
     return re.sub(r"[^a-z0-9]+", "-", bare).strip("-")
@@ -1278,7 +1319,8 @@ def register(app) -> None:
                  "only way in, so keep it safe.</p>"
                  f"<div class=card><p style='margin:0 0 14px'><a class=link href='{link}'>"
                  "Open my dashboard →</a></p>"
-                 f"<div class=help>Private link</div><code>{html.escape(link)}</code></div>")
+                 f"<div class=help>Private link</div><code>{html.escape(link)}</code></div>"
+                 + _privacy_block())
         return HTMLResponse(_page("Connected - Halia", inner))
 
     @app.get("/app", response_class=HTMLResponse)

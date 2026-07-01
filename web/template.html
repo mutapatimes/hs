@@ -717,7 +717,23 @@ let EMAIL_TEMPLATES=[
 ];
 let SENDER="";
 function firstName(name){return String(name||"").replace(/^(sir|lady|dame|lord|baroness|viscount|countess|duchess|marquess|hrh|hsh|the hon)\s+/i,"").split(" ")[0]||"there";}
-function fillTemplate(s,c){return String(s||"").split("{first_name}").join(firstName(c.name)).split("{sender}").join(SENDER||"");}
+function fillTemplate(s,c){c=c||{};return String(s||"")
+  .split("{first_name}").join(firstName(c.name))
+  .split("{sender}").join(SENDER||"")
+  .split("{order_number}").join(c.orderId?("#"+c.orderId):"")
+  .split("{order_total}").join(c.amount!=null?("£"+Number(c.amount).toLocaleString()):"");}
+function copyText(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>toast("Copied to clipboard.")).catch(()=>toast("Couldn't copy — select the text and copy manually."));
+  } else { toast("Copy isn't supported here — select the text and copy manually."); }
+}
+// Lean suggested wording a merchant can paste into their own privacy policy (see the full
+// compliance pack). Not legal advice; surfaced in Settings and on the onboarding success screen.
+const PRIVACY_INSERTS=[
+  {h:"Understanding our customers",body:"To give our best customers a more personal level of service, we use a tool that reviews information we already hold — such as your order history and the area your orders are delivered to — to recognise clients who may value a more personal service, such as a dedicated contact or an invitation to a preview."},
+  {h:"What it looks at",body:"It draws on commercial and address facts — what and how often you have bought from us, and publicly recognisable signs of an area or a professional email domain. It does not use your nationality, your ethnicity, or the origin of your name."},
+  {h:"A person always decides",body:"The tool only highlights customers for our team to consider. It never makes an automatic decision about you and never withholds a product, price or service — a member of our team always decides whether to get in touch. You can ask us to stop at any time."}
+];
 function mailtoItems(c){
   const em=c.email||"";
   const item=(label,href)=>`<a href="${href}" target="_top" style="display:block;padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px">${label}</a>`;
@@ -741,7 +757,7 @@ function whatsappItems(c){
 }
 
 /* ---- Orders view: each row is an order; the actions match the order's status ---- */
-const ORDER_TEMPLATES={
+let ORDER_TEMPLATES={
   new:[
     {name:"Local expedite",subject:"Good news about your order",body:"Hi {first_name},\n\nWe noticed you are local, so we have expedited your order and may be able to get it out to you today, making sure it reaches you as soon as possible. Could you just confirm you are happy with the same delivery address? Reply here and we will get it moving.\n\nWarmly,\n{sender}"},
     {name:"Welcome + gift wrap",subject:"Thank you for your order",body:"Hi {first_name},\n\nThank you for your order, we really look forward to looking after it. We aim to get it out as quickly as we can. Ahead of time, we also offer complimentary gift wrapping and a handwritten note if this is a gift, just let me know and I will arrange it before it ships.\n\nWarmly,\n{sender}"},
@@ -778,8 +794,15 @@ function oActions(o,i){
   const href=t=>`mailto:${em}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(fillTemplate(t.body,o))}`;
   const primary={new:"Confirm & expedite",fulfilled:"Follow up",refunded:"Win back",cancelled:"Reach out"}[o.statusCat]||"Email";
   const menu=tpls.map(t=>`<a class="omi" href="${href(t)}" target="_top">${t.name}</a>`).join("")+`<a class="omi" href="mailto:${em}" target="_top">Blank email</a>`;
-  return `<a class="obtn primary" href="${href(tpls[0])}" target="_top">${primary}</a>`
+  let html=`<a class="obtn primary" href="${href(tpls[0])}" target="_top">${primary}</a>`
     +`<div class="omw"><button class="obtn" data-om="${i}">Email &#9662;</button><div class="omenu" id="om-${i}">${menu}</div></div>`;
+  const num=phoneDigits(o.phone);
+  if(num){
+    const wa=t=>`https://wa.me/${num}?text=${encodeURIComponent(fillTemplate(t.body,o))}`;
+    const wamenu=tpls.map(t=>`<a class="omi" href="${wa(t)}" target="_blank" rel="noopener">${t.name}</a>`).join("")+`<a class="omi" href="https://wa.me/${num}" target="_blank" rel="noopener">Blank message</a>`;
+    html+=`<div class="omw"><button class="obtn" data-om="wa${i}">WhatsApp &#9662;</button><div class="omenu" id="om-wa${i}">${wamenu}</div></div>`;
+  }
+  return html;
 }
 function oRow(o,i){
   return `<div class="orow">
@@ -995,6 +1018,7 @@ function loadSettings(){
   return fetch("/v1/settings").then(r=>r.json()).then(s=>{
     SETTINGS=s;
     if(s.email_templates&&s.email_templates.length) EMAIL_TEMPLATES=s.email_templates;
+    if(s.order_templates) ORDER_TEMPLATES=s.order_templates;
     SENDER=s.sender_name||"";
     return s;
   }).catch(()=>SETTINGS);
@@ -1024,16 +1048,24 @@ const settingsEl=document.getElementById("settings");
 function closeSettings(){settingsEl.style.display="none";}
 function openSettings(){
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
-  function rows(){return tmpl.map((t,i)=>`<div style="border:1px solid #e3e3e3;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafafa">
+  let otmpl=JSON.parse(JSON.stringify(ORDER_TEMPLATES||{new:[],fulfilled:[],refunded:[],cancelled:[]}));
+  let tab="client", ostatus="new", lastField=null;
+  const OSTAT=["new","fulfilled","refunded","cancelled"];
+  const OSTLBL={new:"New",fulfilled:"Fulfilled",refunded:"Refunded",cancelled:"Cancelled"};
+  function currentList(){return tab==="client"?tmpl:(otmpl[ostatus]=otmpl[ostatus]||[]);}
+  function rows(){return currentList().map((t,i)=>`<div style="border:1px solid #e3e3e3;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafafa">
       <input data-tn="${i}" value="${esc(t.name)}" placeholder="Template name" style="width:100%;${I};margin-bottom:8px">
-      <input data-ts="${i}" value="${esc(t.subject)}" placeholder="Subject" style="width:100%;${I};margin-bottom:8px">
-      <textarea data-tb="${i}" rows="5" placeholder="Body: use {first_name} and {sender}" style="width:100%;${I};resize:vertical">${esc(t.body)}</textarea>
+      <input data-ts="${i}" value="${esc(t.subject)}" placeholder="Subject (email only)" style="width:100%;${I};margin-bottom:8px">
+      <textarea data-tb="${i}" rows="5" placeholder="Body" style="width:100%;${I};resize:vertical">${esc(t.body)}</textarea>
       <button data-td="${i}" style="margin-top:8px;background:none;border:none;color:#8e1f0b;font:600 12.5px system-ui;cursor:pointer;padding:0">Delete</button></div>`).join("");}
-  function collect(){
-    settingsEl.querySelectorAll("[data-tn]").forEach(el=>tmpl[+el.dataset.tn].name=el.value);
-    settingsEl.querySelectorAll("[data-ts]").forEach(el=>tmpl[+el.dataset.ts].subject=el.value);
-    settingsEl.querySelectorAll("[data-tb]").forEach(el=>tmpl[+el.dataset.tb].body=el.value);
+  function collect(){const list=currentList();
+    settingsEl.querySelectorAll("[data-tn]").forEach(el=>list[+el.dataset.tn].name=el.value);
+    settingsEl.querySelectorAll("[data-ts]").forEach(el=>list[+el.dataset.ts].subject=el.value);
+    settingsEl.querySelectorAll("[data-tb]").forEach(el=>list[+el.dataset.tb].body=el.value);
   }
+  function insertToken(tok){const el=lastField;if(!el){toast("Tap a template field first, then insert.");return;}
+    const s=el.selectionStart==null?el.value.length:el.selectionStart, e=el.selectionEnd==null?el.value.length:el.selectionEnd;
+    el.value=el.value.slice(0,s)+tok+el.value.slice(e);el.focus();el.selectionStart=el.selectionEnd=s+tok.length;}
   const I="box-sizing:border-box;padding:8px 12px;border:1px solid #8a8a8a;border-radius:8px;font:14px system-ui;color:#303030;background:#fff";
   const C="background:#fff;border:1px solid #e3e3e3;border-radius:12px;padding:18px 20px;margin-bottom:16px";
   const H="font:650 14px system-ui;color:#303030;margin:0 0 4px";
@@ -1041,6 +1073,11 @@ function openSettings(){
   const BP="background:#303030;color:#fff;border:none;border-radius:8px;padding:11px 20px;font:600 13px system-ui;cursor:pointer";
   const BS="background:#fff;color:#303030;border:1px solid #999;border-radius:8px;padding:9px 15px;font:600 13px system-ui;cursor:pointer";
   const LBL="font:500 12px system-ui;color:#616161;margin-bottom:5px";
+  const TAB_ON="background:#303030;color:#fff;border:1px solid #303030;border-radius:8px;padding:8px 16px;font:600 13px system-ui;cursor:pointer";
+  const TAB_OFF="background:#fff;color:#616161;border:1px solid #ccc;border-radius:8px;padding:8px 16px;font:600 13px system-ui;cursor:pointer";
+  const SUB_ON="background:#1f564a;color:#fff;border:none;border-radius:999px;padding:6px 13px;font:600 12px system-ui;cursor:pointer";
+  const SUB_OFF="background:#ececec;color:#555;border:none;border-radius:999px;padding:6px 13px;font:600 12px system-ui;cursor:pointer";
+  const CHIP="background:#eef1f0;border:1px solid #cdd6d3;border-radius:6px;padding:3px 9px;font:600 12px ui-monospace,SFMono-Regular,monospace;color:#1f564a;cursor:pointer;margin:0 6px 6px 0";
   const kv=SETTINGS.klaviyo_connected;
   const mc=SETTINGS.mailchimp_connected;
   function render(){
@@ -1115,18 +1152,37 @@ function openSettings(){
         </div>
 
         <div style="${C}">
-          <div style="${H}">Email templates</div>
-          <p style="${P}">Use {first_name} and {sender}. These power the per-client “Email ▾” and “WhatsApp ▾” menus.</p>
+          <div style="${H}">Message templates</div>
+          <p style="${P}"><b>Client emails</b> power the per-client “Email ▾” / “WhatsApp ▾” menus. <b>Order actions</b> power the status buttons in the Orders view.</p>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button data-tab="client" style="${tab==='client'?TAB_ON:TAB_OFF}">Client emails</button>
+            <button data-tab="order" style="${tab==='order'?TAB_ON:TAB_OFF}">Order actions</button>
+          </div>
+          ${tab==='order'?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${OSTAT.map(st=>`<button data-ost="${st}" style="${st===ostatus?SUB_ON:SUB_OFF}">${OSTLBL[st]}</button>`).join("")}</div>`:""}
+          <div style="${LBL};margin-bottom:8px">Insert: ${(tab==='order'?["{first_name}","{sender}","{order_number}","{order_total}"]:["{first_name}","{sender}"]).map(t=>`<button type="button" data-chip="${t}" style="${CHIP}">${t}</button>`).join("")}</div>
           <div id="tmplList">${rows()}</div>
           <button id="addTmpl" style="${BS};margin-top:4px">+ Add template</button>
+        </div>
+
+        <div style="${C}">
+          <div style="${H}">Privacy wording for your policy</div>
+          <p style="${P}">Suggested wording to add to your own privacy policy — a starting point, not legal advice. Need the full paperwork? <a href="mailto:hello@halia.app?subject=Halia%20compliance%20pack" style="color:#1f564a;font-weight:600">Request the DPA &amp; compliance pack</a>.</p>
+          ${PRIVACY_INSERTS.map((p,i)=>`<div style="border:1px solid #e3e3e3;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafafa">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px"><div style="font:650 13px system-ui;color:#303030">${p.h}</div><button data-copy="${i}" style="${BS};padding:5px 12px">Copy</button></div>
+            <div style="font:13px/1.55 system-ui;color:#444">${esc(p.body)}</div></div>`).join("")}
         </div>
 
         <button id="saveSettings" style="${BP}">Save settings</button>
       </div>
      </div>`;
     document.getElementById("sback").onclick=closeSettings;
-    document.getElementById("addTmpl").onclick=()=>{collect();tmpl.push({name:"New template",subject:"",body:"Dear {first_name},\n\n\n\n{sender}"});render();};
-    settingsEl.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{collect();tmpl.splice(+b.dataset.td,1);render();});
+    document.getElementById("addTmpl").onclick=()=>{collect();currentList().push({name:"New template",subject:"",body:(tab==='order'?"Hi {first_name},\n\n\n\n{sender}":"Dear {first_name},\n\n\n\n{sender}")});render();};
+    settingsEl.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{collect();currentList().splice(+b.dataset.td,1);render();});
+    settingsEl.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{collect();tab=b.dataset.tab;render();});
+    settingsEl.querySelectorAll("[data-ost]").forEach(b=>b.onclick=()=>{collect();ostatus=b.dataset.ost;render();});
+    settingsEl.querySelectorAll("[data-chip]").forEach(b=>b.onclick=()=>insertToken(b.dataset.chip));
+    settingsEl.querySelectorAll("[data-copy]").forEach(b=>b.onclick=()=>copyText(PRIVACY_INSERTS[+b.dataset.copy].body));
+    settingsEl.querySelectorAll("[data-tn],[data-ts],[data-tb]").forEach(el=>el.addEventListener("focus",()=>{lastField=el;}));
     document.getElementById("setKvConnect").onclick=()=>{
       const key=document.getElementById("setKvKey").value.trim(); if(!key){toast("Paste your Klaviyo key first.");return;}
       const b=document.getElementById("setKvConnect");b.disabled=true;b.textContent="Connecting…";
@@ -1157,7 +1213,8 @@ function openSettings(){
         notify_grades:document.getElementById("setNotifyGrades").value.split(","),
         notify_emails:document.getElementById("setNotifyEmail").value,
         account_email:SETTINGS.account_email||"",
-        email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim())};
+        email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),
+        order_templates:Object.fromEntries(OSTAT.map(st=>[st,(otmpl[st]||[]).filter(t=>(t.name||"").trim()&&(t.body||"").trim())]))};
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";
       fetch("/v1/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");

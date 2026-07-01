@@ -296,6 +296,7 @@ def _orders_list(raw_orders, score_map: dict, limit: int = 600) -> list[dict]:
             "items": sum(int(li.get("quantity") or 0) for li in (o.get("line_items") or [])),
             "name": name, "first": firstName_py(name),
             "email": sc.get("email") or _text(o.get("email")),
+            "phone": sc.get("phone") or _text(bill.get("phone") or o.get("phone")),
             "grade": sc.get("grade", ""), "tier": sc.get("tier", ""), "score": sc.get("score", 0),
             "cid": cid,
         })
@@ -347,6 +348,7 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
         s100 = _score100(_num(r[SCORE_COL]))
         t = _tier(s100)
         score_map[str(cid)] = {"name": _display_name(r.get("Name")), "email": _text(r.get("EMAIL_ADDR")),
+                               "phone": _text(r.get("PHONE")),
                                "grade": GRADE_LABEL.get(t, t), "tier": t, "score": s100}
 
     return {
