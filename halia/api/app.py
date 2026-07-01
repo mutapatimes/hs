@@ -36,6 +36,52 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+# ── Lightweight per-IP rate limiting on the sensitive endpoints ─────────────────────
+# In-process fixed window: guards auth/scoring/onboarding against brute-force + hammering.
+# Single-instance (fine on Render free); a reverse proxy / WAF is the proper control at
+# scale. Disabled under pytest (per-request check) so the test suite can't trip it; set
+# HALIA_RATE_LIMIT=0 to turn it off in prod if ever needed.
+import os as _os  # noqa: E402
+import time as _time  # noqa: E402
+from collections import deque as _deque  # noqa: E402
+
+from fastapi.responses import JSONResponse as _JSONResponse  # noqa: E402
+
+_RL_WINDOW = 60.0
+_RL_MAX = {"r": 120, "w": 30}   # requests per IP per window: reads (GET/HEAD) vs writes
+_RL_HITS: dict = {}
+_RL_PATHS = ("/v1/", "/app", "/connect", "/subscribe", "/webhooks")
+
+
+def _rate_limited(ip: str, write: bool, now: float | None = None) -> bool:
+    """True if this IP has exceeded its window for reads/writes. Pure + unit-testable."""
+    now = _time.monotonic() if now is None else now
+    if len(_RL_HITS) > 5000:          # crude memory bound: reset rather than grow unbounded
+        _RL_HITS.clear()
+    key = f"{ip}|{'w' if write else 'r'}"
+    dq = _RL_HITS.setdefault(key, _deque())
+    cutoff = now - _RL_WINDOW
+    while dq and dq[0] < cutoff:
+        dq.popleft()
+    if len(dq) >= _RL_MAX["w" if write else "r"]:
+        return True
+    dq.append(now)
+    return False
+
+
+@app.middleware("http")
+async def _rate_limit_mw(request, call_next):
+    if ("PYTEST_CURRENT_TEST" in _os.environ or _os.environ.get("HALIA_RATE_LIMIT") == "0"
+            or request.method == "OPTIONS"):
+        return await call_next(request)
+    path = request.url.path
+    if any(path.startswith(p) for p in _RL_PATHS):
+        ip = request.client.host if request.client else "?"
+        if _rate_limited(ip, request.method not in ("GET", "HEAD")):
+            return _JSONResponse({"detail": "Too many requests — please slow down."},
+                                 status_code=429, headers={"Retry-After": "60"})
+    return await call_next(request)
+
 # Serve the marketing site's imagery (water hero video, editorial photography) at /img.
 from config import ROOT as _ROOT  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
