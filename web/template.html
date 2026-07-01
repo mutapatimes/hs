@@ -1087,6 +1087,11 @@ function openSettings(){
         <h1 style="margin:2px 0 20px;font:650 22px/1.2 system-ui;color:#303030">Settings</h1>
 
         <div style="${C}">
+          <div style="${H}">Billing</div>
+          <div id="billingBox"><div style="${P};margin:0">Loading…</div></div>
+        </div>
+
+        <div style="${C}">
           <div style="${H}">Klaviyo connection</div>
           <p style="${P}">Connect your Klaviyo <b>private</b> API key (pk_…) to push grades, build segments, and email clients.</p>
           <div style="font:600 13px system-ui;color:${kv?'#0f7b4f':'#616161'};margin-bottom:10px">${kv?"● Connected":"○ Not connected"}</div>
@@ -1215,6 +1220,31 @@ function openSettings(){
     const mdisc=document.getElementById("setMcDisc"); if(mdisc) mdisc.onclick=()=>{
       fetch("/v1/mailchimp/disconnect",{method:"POST"}).then(()=>{SETTINGS.mailchimp_connected=false;toast("Mailchimp disconnected.");render();refreshIntegrationUI();});
     };
+    function paintBilling(b){
+      const box=document.getElementById("billingBox"); if(!box) return;
+      const LBLMAP={active:"Active",trialing:"Trial",comped:"Complimentary",canceled:"Cancelled",
+                    past_due:"Past due",incomplete:"Incomplete",free:"Not subscribed"};
+      if(!b.enabled){box.innerHTML=`<div style="${P};margin:0">You have full access — no billing is required at the moment.</div>`;return;}
+      const label=LBLMAP[b.status]||b.status;
+      const dot=b.paid?'#0f7b4f':'#8a6d3b';
+      let h=`<div style="font:600 13px system-ui;color:${dot};margin-bottom:12px">● Plan: ${label}</div>`;
+      if(b.comped){h+=`<p style="${P};margin:0">Your access is complimentary — there's nothing to manage.</p>`;}
+      else if(b.manageable){h+=`<p style="${P}">Update your card, view invoices, or cancel any time in the Stripe portal.</p><button id="billBtn" style="${BP}">Manage billing →</button>`;}
+      else{h+=`<p style="${P}">Subscribe to unlock the full dashboard.</p><button id="billBtn" style="${BP}">Subscribe →</button>`;}
+      box.innerHTML=h;
+      const btn=document.getElementById("billBtn");
+      if(btn) btn.onclick=()=>{const goManage=b.manageable;btn.disabled=true;btn.textContent="One moment…";
+        fetch(goManage?"/v1/billing/portal":"/v1/checkout",{method:"POST"})
+          .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+            if(!ok||!d.url)throw new Error((d&&d.detail)||"Couldn't open billing.");location.href=d.url;})
+          .catch(e=>{toast("Billing error: "+e.message);btn.disabled=false;btn.textContent=goManage?"Manage billing →":"Subscribe →";});
+      };
+    }
+    function loadBilling(){
+      if(SETTINGS.billing){paintBilling(SETTINGS.billing);return;}
+      fetch("/v1/billing/status").then(r=>r.json()).then(b=>{SETTINGS.billing=b;paintBilling(b);}).catch(()=>{});
+    }
+    loadBilling();
     const calibBox=document.getElementById("calibResult");
     function showCalib(rep,note){
       const rws=(rep||[]).filter(r=>r.n_fired>0);

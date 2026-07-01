@@ -78,6 +78,42 @@ def test_checkout_creates_session(client, monkeypatch):
     assert c.post("/v1/checkout").json() == {"url": "https://checkout.stripe/shopx"}
 
 
+def test_billing_status_free_then_active(client, monkeypatch):
+    c, store = client
+    _enable(monkeypatch)
+    c.cookies.set(COOKIE, _tenant(store))
+    s = c.get("/v1/billing/status").json()
+    assert s["enabled"] and s["paid"] is False and s["status"] == "free" and s["manageable"] is False
+    store.set_billing("shopx", "active", "cus_1", "sub_1")
+    s = c.get("/v1/billing/status").json()
+    assert s["paid"] and s["status"] == "active" and s["manageable"] is True
+
+
+def test_billing_status_open_when_billing_off(client, monkeypatch):
+    c, store = client
+    monkeypatch.setattr("halia.config.STRIPE_SECRET_KEY", None)
+    c.cookies.set(COOKIE, _tenant(store))
+    s = c.get("/v1/billing/status").json()
+    assert s["enabled"] is False and s["paid"] is True and s["manageable"] is False
+
+
+def test_portal_opens_for_customer(client, monkeypatch):
+    c, store = client
+    _enable(monkeypatch)
+    store.set_billing("shopx", "active", "cus_9", "sub_9")
+    monkeypatch.setattr(billing, "_stripe",
+                        lambda m, p, data=None: {"url": f"https://portal.stripe/{data['customer']}"})
+    c.cookies.set(COOKIE, _tenant(store))
+    assert c.post("/v1/billing/portal").json() == {"url": "https://portal.stripe/cus_9"}
+
+
+def test_portal_400_without_customer(client, monkeypatch):
+    c, store = client
+    _enable(monkeypatch)
+    c.cookies.set(COOKIE, _tenant(store))
+    assert c.post("/v1/billing/portal").status_code == 400  # no customer yet
+
+
 def test_app_shows_teaser_when_unpaid(client, monkeypatch):
     c, store = client
     _enable(monkeypatch)

@@ -68,6 +68,32 @@ def create_checkout(shop: str) -> str:
     return _stripe("POST", "checkout/sessions", data)["url"]
 
 
+def create_portal(shop: str) -> str:
+    """Create a Stripe Billing Portal session so the tenant can manage their subscription
+    (update card, view invoices, cancel). Requires an existing Stripe customer."""
+    b = shop_store().get_billing(shop) or {}
+    customer = b.get("customer_id")
+    if not customer:
+        raise HTTPException(400, "No billing account yet — subscribe first.")
+    base = config.HALIA_APP_URL or ""
+    return _stripe("POST", "billing_portal/sessions",
+                   {"customer": customer, "return_url": f"{base}/app"})["url"]
+
+
+def billing_state(shop: str) -> dict:
+    """A small, UI-friendly summary of this tenant's billing state."""
+    b = shop_store().get_billing(shop) or {}
+    comped = shop in config.HALIA_FREE_SHOPS
+    status = "comped" if comped else (b.get("status") or "free")
+    return {
+        "enabled": billing_enabled(),
+        "paid": is_paid(shop),
+        "comped": comped,
+        "status": status,
+        "manageable": bool(billing_enabled() and b.get("customer_id") and not comped),
+    }
+
+
 def confirm_session(shop: str, session_id: str) -> bool:
     """Verify a returning Checkout session and, if paid, mark the tenant active."""
     if not billing_enabled() or not session_id:
@@ -103,6 +129,16 @@ def register(app) -> None:
         if not billing_enabled():
             return {"url": "/app"}  # nothing to pay for; the dashboard is already open
         return {"url": create_checkout(shop)}
+
+    @app.get("/v1/billing/status")
+    def billing_status(shop: str = Depends(require_shop)) -> dict:
+        return billing_state(shop)
+
+    @app.post("/v1/billing/portal")
+    def billing_portal(shop: str = Depends(require_shop)) -> dict:
+        if not billing_enabled():
+            raise HTTPException(400, "Billing isn't enabled.")
+        return {"url": create_portal(shop)}
 
     @app.post("/webhooks/stripe")
     async def stripe_webhook(request: Request) -> dict:
