@@ -1,0 +1,39 @@
+venue,signal_type,aliases
+# Prime Gulf residential districts (Bucket 3 of the geography taxonomy). Matched by NAME
+# against the billing/shipping address, country-guarded, exactly like hnw_areas.csv.
+#
+# GATED, off by default (in scoring.combine.ORIGIN_PROXY_SIGNALS). These are genuinely among
+# the most expensive residential districts on earth and their residents are internationally
+# mixed — but in a UK book a district-level Gulf signal still disproportionately touches
+# Middle-Eastern clients, so the Recital-71 effect test isn't as clean as Monaco's. A tenant
+# with a documented Gulf clientele opts in (include_origin=True). Sourced from residential
+# property-market data, not any tax list. Reason text stays factual ("prime residential
+# district"). See docs/geography-signal-taxonomy.md.
+#
+# --- UAE ---
+Palm Jumeirah,UAE,PALM JUMEIRAH
+Emirates Hills,UAE,EMIRATES HILLS
+Jumeirah,UAE,JUMEIRAH
+Downtown Dubai,UAE,BURJ KHALIFA;DOWNTOWN DUBAI
+Dubai Marina,UAE,DUBAI MARINA
+Sheikh Zayed Road,UAE,SHEIKH ZAYED ROAD
+Jumeirah Bay,UAE,JUMEIRAH BAY
+Saadiyat Island,UAE,SAADIYAT
+Al Maryah Island,UAE,AL MARYAH
+Al Bateen,UAE,AL BATEEN
+# --- Qatar ---
+The Pearl,Qatar,THE PEARL;PEARL QATAR
+Lusail,Qatar,LUSAIL
+# --- Saudi Arabia ---
+Diplomatic Quarter,Saudi Arabia,DIPLOMATIC QUARTER
+Al Nakheel,Saudi Arabia,AL NAKHEEL
+Al Olaya,Saudi Arabia,AL OLAYA
+Hittin,Saudi Arabia,HITTIN;HITTEEN
+Al Malqa,Saudi Arabia,AL MALQA
+King Abdullah Financial District,Saudi Arabia,KAFD;KING ABDULLAH FINANCIAL DISTRICT
+Al Yasmin,Saudi Arabia,AL YASMIN
+Al Muhammadiyah,Saudi Arabia,AL MUHAMMADIYAH
+Al Shati,Saudi Arabia,AL SHATI;ASH SHATI
+Obhur,Saudi Arabia,OBHUR;ABHUR
+# --- Bahrain ---
+Amwaj Islands,Bahrain,AMWAJ

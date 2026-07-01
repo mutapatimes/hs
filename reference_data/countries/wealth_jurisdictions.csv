@@ -1,0 +1,27 @@
+country,aliases,basis
+# High-value residential jurisdictions. A customer whose BILLING or SHIPPING country is
+# one of these gets the wealth_jurisdiction signal — a WEALTH FACT: residence in these
+# places is itself evidence of wealth. ON by default; NOT an origin proxy.
+#
+# INCLUSION CRITERION (do not break this): a jurisdiction is listed because of residential
+# PROPERTY COST & EXCLUSIVITY — these are among the most expensive places on earth to live,
+# with an internationally-mixed resident base. The list is NOT sourced from any OECD/EU tax
+# blacklist. The reason text is deliberately factual ("high-value residential jurisdiction"),
+# never "tax haven" or "offshore". See docs/geography-signal-taxonomy.md.
+#
+# Same format + whole-word matching as gcc_countries.csv ('#' lines ignored). The optional
+# third column is documentary only (the property-market basis for inclusion).
+#
+# --- Crown dependencies (prime residential) ---
+Jersey,JERSEY,Crown dependency; prime residential housing market
+Guernsey,GUERNSEY,Crown dependency; prime residential housing market
+Isle of Man,ISLE OF MAN,Crown dependency; prime residential housing market
+# --- European micro-states (ultra-prime, internationally-mixed residents) ---
+Monaco,MONACO,Most expensive residential market on earth; ultra-prime
+Liechtenstein,LIECHTENSTEIN,Alpine micro-state; among the highest property values in Europe
+Andorra,ANDORRA,Pyrenean micro-state; prime residential
+San Marino,SAN MARINO,Micro-state; high-value residential
+Gibraltar,GIBRALTAR,Prime residential enclave (Ocean Village / marina)
+# --- Atlantic / Caribbean ultra-prime residential ---
+Cayman Islands,CAYMAN ISLANDS;CAYMAN,Ultra-prime residential (Seven Mile Beach)
+Bermuda,BERMUDA,Among the most expensive residential markets globally

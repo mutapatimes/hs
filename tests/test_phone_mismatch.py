@@ -50,4 +50,4 @@ def test_off_by_default_origin_proxy():
     assert "phone_mismatch" not in default_keys        # gated off by default
     assert "phone_mismatch" in origin_keys             # available when opted in
     # its raw siblings stay gated too
-    assert {"phone_country", "tax_haven", "gcc_billing"}.isdisjoint(default_keys)
+    assert {"phone_country", "gulf_prime_district", "gcc_billing"}.isdisjoint(default_keys)

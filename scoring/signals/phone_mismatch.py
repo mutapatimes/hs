@@ -1,14 +1,17 @@
 """Phone-country ≠ address-country mismatch signal.
 
-Flags a customer whose PHONE dialling code maps to a tax-haven / GCC / HNW jurisdiction
+Flags a customer whose PHONE dialling code maps to a high-value / GCC / HNW jurisdiction
 (reference_data/phone/hnw_dialing_codes.csv) that does NOT match their billing or shipping
 country. A matching local number never fires — so this is a mobility / international-ties
 tell, not a "where they're from" indicator.
 
 It is still DERIVED from the phone country code (which correlates with national origin), so
 it is an ORIGIN PROXY: registered OFF BY DEFAULT in scoring.combine (the include_origin gate),
-alongside phone_country/tax_haven/gcc_billing. The reason text states only the observed fact —
-never a wealth or origin inference — so the audit trail records no sensitive conclusion.
+alongside phone_country/gcc_billing. Nothing derived from a phone-jurisdiction lookup ever
+originates a score by default (see docs/geography-signal-taxonomy.md — the one on-by-default
+use is agreement-as-confidence corroborating an address, which is a separate signal). The
+reason text states only the observed fact — never a wealth or origin inference — so the audit
+trail records no sensitive conclusion.
 """
 from __future__ import annotations
 

@@ -89,10 +89,8 @@ Japan,1070062,Minami-Aoyama
 # --- Monaco ---
 Monaco,98000,Monaco
 
-# --- GCC (limited; postcodes scarce) ---
-Saudi Arabia,11693,Riyadh Diplomatic Quarter
-Saudi Arabia,11564,Riyadh
-Kuwait,13001,Kuwait City
+# NOTE: prime Gulf (GCC) postcodes moved to reference_data/locations/gulf_prime_postcodes.csv
+# — GATED off by default (origin-adjacent). See docs/geography-signal-taxonomy.md.
 
 # --- Spain (Ibiza) ---
 Spain,07800,Ibiza Town

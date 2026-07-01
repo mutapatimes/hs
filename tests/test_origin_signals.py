@@ -66,7 +66,7 @@ def test_reasons_never_carry_origin_proxies_by_default():
         PHONE="+971 50 123 4567",               # phone_country
     )
     reasons = score_customers(df).loc[0, REASONS_COL]
-    for term in ("GCC", "Tax haven", "Phone", "Nobiliary", "Name", "Heritage", "currency"):
+    for term in ("GCC", "Prime Gulf", "Phone", "Nobiliary", "Name", "Heritage", "currency"):
         assert term not in reasons
 
 

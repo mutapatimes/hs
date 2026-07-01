@@ -52,19 +52,27 @@ rather than by wealth, which UK GDPR (Recital 71) and the Equality Act catch by 
 label. Renaming a nationality signal does not cure it.
 
 Halia's mitigation is structural: the signals that sort by national / ethnic / name origin are
-**off by default** (`scoring.combine.ORIGIN_PROXY_SIGNALS`): billing-country-as-origin, dialling
-code, name structure, name origin, heritage surname, foreign currency, and tax-haven country. By
-default the score is built from **wealth facts** (spend, order history), **work facts** (employer
-/ professional email and company tells), and **specific address facts**.
+**off by default** (`scoring.combine.ORIGIN_PROXY_SIGNALS`): billing-country-as-origin (GCC),
+prime Gulf districts, phone dialling code, phone/address mismatch, name structure, name origin,
+heritage surname, and foreign currency. By default the score is built from **wealth facts** (spend,
+order history), **work facts** (employer / professional email and company tells), and **specific
+address / structure facts**.
 
-### 3.1 Why two address signals stay on
-`intl_postcode` and `hnw_area` remain active because they match a **specific ultra-prime address
-or neighbourhood** (for example Monaco, Gstaad, a named prime postcode), which is a **property /
-wealth fact** about a place, not a sort by country-of-origin. A wealthy address is evidence of
-wealth in the same way a high spend is. This is a deliberate, documented line: the test is "does
-this signal sort by where someone is *from*, or by a *wealth fact*?" Country-of-origin proxies
-fail that test and are off; a specific prime address passes it and stays on. The operator may
-re-enable origin proxies for a single tenant only after that Merchant documents a lawful basis.
+### 3.1 Why the address & structure signals stay on (the geography taxonomy)
+The active geography signals match a **property or wealth fact about a place or structure**, not a
+sort by country-of-origin — the test being "does this signal sort by where someone is *from*, or by
+a *wealth fact*?" A specific ultra-prime address (`prime_residence`, `intl_postcode`, `hnw_area`), a
+**high-value residential jurisdiction** where residence itself is a wealth fact (`wealth_jurisdiction`
+— Monaco, Jersey, Guernsey and peers, on internationally-mixed-resident grounds), and a
+**wealth-management structure** (`wealth_structure` — a trust company, family office, registered
+agent; origin-neutral) all pass the test and stay on. Country-of-origin proxies fail it and are off.
+**Prime Gulf districts** (`gulf_prime_district`) are a deliberate middle case: arguable
+wealth-geography, but district-level Gulf still disproportionately touches Middle-Eastern clients in
+a UK book, so they are gated with the origin proxies. Fields that speak only to origin — phone
+dialling code, email country-code TLD — never originate a score and may only *corroborate* an
+address. The full taxonomy, with the property-market inclusion criteria, is
+[geography-signal-taxonomy.md](geography-signal-taxonomy.md). The operator may re-enable origin
+proxies for a single tenant only after that Merchant documents a lawful basis.
 
 ### 3.2 Why the effect is non-discriminatory
 With origin proxies off, the model sorts on wealth and address facts. The effect on a customer is
@@ -95,16 +103,22 @@ safeguards). Keep the human and the "elevate-only" effect real.
 
 ## 6. Signal catalogue: wealth facts (on) vs origin proxies (off by default)
 
-**On by default (wealth / work / specific-address facts):**
+**On by default (wealth / work / specific-address / structure facts):**
 work email, HNWI postcode, US HNWI ZIP, international prime postcode, prime neighbourhood (HNW
-area), area property value (median sale price of the postcode district, from HM Land Registry open
-data), hotel concierge, delivery venue, styling service, prime residence, premium card, honorific,
-company keyword, premium email, wealth office, elite alumni, assistant order, post-nominal,
-fashion stylist, stylist directory, IP location, domain keyword, custom email, rich-list surname.
+area, non-Gulf), high-value residential jurisdiction (Monaco/Jersey/… — was "tax haven"),
+wealth-management structure (trust company / family office / registered agent), area property
+value (median sale price of the postcode district, from HM Land Registry open data), hotel
+concierge, delivery venue, styling service, prime residence, premium card, honorific, company
+keyword, premium email, wealth office, elite alumni, assistant order, post-nominal, fashion
+stylist, stylist directory, IP location, domain keyword, custom email, rich-list surname,
+Companies House control.
 
 **Off by default (origin proxies; enable per-tenant only with a documented lawful basis):**
-billing country as an origin proxy (GCC), tax-haven country, phone dialling-code country, foreign
-currency, nobiliary particle (de / von), name structure, heritage surname.
+billing country as an origin proxy (GCC), prime Gulf district, phone dialling-code country,
+phone/address mismatch, foreign currency, nobiliary particle (de / von), name structure, heritage
+surname. (Fields that speak only to origin — phone dialling code, email ccTLD — never originate a
+score; the sole on-by-default use is agreement-as-confidence corroborating an address. See
+[geography-signal-taxonomy.md](geography-signal-taxonomy.md).)
 
 The authoritative list lives in `scoring/combine.py` (`SIGNAL_WEIGHTS` and
 `ORIGIN_PROXY_SIGNALS`); this catalogue should be kept in step with it.

@@ -1,0 +1,17 @@
+venue,signal_type,aliases
+# Wealth-management STRUCTURES (Bucket 2 of the geography taxonomy). The tell here is not
+# geography — it is that a person's shopping is routed through a wealth-management vehicle:
+# a trust company, family office, corporate registered agent, or fiduciary. That is a wealth
+# fact and it is ORIGIN-NEUTRAL, so it is ON by default. Reason text stays factual
+# ("address routed through a …"). See docs/geography-signal-taxonomy.md.
+#
+# Matched by NAME (whole-word) against the billing/shipping address, same machinery as
+# hnw_areas.csv. Keep aliases SPECIFIC (two-word phrases) so ordinary company names don't
+# false-fire. The "venue" column is the human label used in the reason. Bare "PO Box" is
+# handled separately in code (only fires alongside an offshore jurisdiction).
+#
+trust company,trust_company,TRUST COMPANY;TRUST CORPORATION
+family office,family_office,FAMILY OFFICE
+registered agent,registered_agent,REGISTERED AGENT
+fiduciary,fiduciary,FIDUCIARY;FIDUCIAIRE;TREUHAND
+nominee,nominee,NOMINEE SERVICES;NOMINEE DIRECTOR

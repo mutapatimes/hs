@@ -96,22 +96,8 @@ Daikanyama,Japan,DAIKANYAMA
 Takanawa,Japan,TAKANAWA
 Ashiya,Japan,ASHIYA
 
-# --- GCC ---
-Palm Jumeirah,UAE,PALM JUMEIRAH
-Emirates Hills,UAE,EMIRATES HILLS
-Jumeirah,UAE,JUMEIRAH
-Downtown Dubai,UAE,BURJ KHALIFA;DOWNTOWN DUBAI
-Dubai Marina,UAE,DUBAI MARINA
-Sheikh Zayed Road,UAE,SHEIKH ZAYED ROAD
-Jumeirah Bay,UAE,JUMEIRAH BAY
-Saadiyat Island,UAE,SAADIYAT
-Al Maryah Island,UAE,AL MARYAH
-Al Bateen,UAE,AL BATEEN
-The Pearl,Qatar,THE PEARL;PEARL QATAR
-Lusail,Qatar,LUSAIL
-Diplomatic Quarter,Saudi Arabia,DIPLOMATIC QUARTER
-Al Nakheel,Saudi Arabia,AL NAKHEEL
-Amwaj Islands,Bahrain,AMWAJ
+# NOTE: prime Gulf (GCC) districts moved to reference_data/locations/gulf_prime_districts.csv
+# — they are GATED off by default (origin-adjacent). See docs/geography-signal-taxonomy.md.
 
 # --- Globally famous HNW streets / enclaves ---
 Kensington Palace Gardens,UK,KENSINGTON PALACE GARDENS
@@ -215,17 +201,7 @@ Via Gesu,Italy,VIA GESU
 Brera,Italy,BRERA
 CityLife,Italy,CITYLIFE;CITY LIFE MILANO
 Quadrilatero della Moda,Italy,QUADRILATERO DELLA MODA
-# --- Saudi Arabia ---
-Al Olaya,Saudi Arabia,AL OLAYA
-Hittin,Saudi Arabia,HITTIN;HITTEEN
-Al Malqa,Saudi Arabia,AL MALQA
-Diplomatic Quarter,Saudi Arabia,DIPLOMATIC QUARTER
-King Abdullah Financial District,Saudi Arabia,KAFD;KING ABDULLAH FINANCIAL DISTRICT
-Al Yasmin,Saudi Arabia,AL YASMIN
-Al Muhammadiyah,Saudi Arabia,AL MUHAMMADIYAH
-Al Shati,Saudi Arabia,AL SHATI;ASH SHATI
-Obhur,Saudi Arabia,OBHUR;ABHUR
-Al Nakheel Riyadh,Saudi Arabia,AL NAKHEEL
+# (Saudi Arabia prime districts moved to gulf_prime_districts.csv — gated, see above.)
 # --- Lebanon ---
 Achrafieh,Lebanon,ACHRAFIEH;ASHRAFIEH
 Beirut Central District,Lebanon,SOLIDERE;BEIRUT CENTRAL DISTRICT

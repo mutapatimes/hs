@@ -26,6 +26,7 @@ from scoring.signals import (
     elite_alumni,
     foreign_currency,
     gcc_billing,
+    gulf_prime_district,
     hnw_area,
     fashion_stylist,
     stylist_directory,
@@ -47,9 +48,10 @@ from scoring.signals import (
     prime_residence,
     rich_list,
     shared_phone,
-    tax_haven,
     us_zip,
+    wealth_jurisdiction,
     wealth_office,
+    wealth_structure,
     work_email,
 )
 
@@ -69,8 +71,11 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "gcc_billing": 2,
     "honorific": 2,
     "company_keyword": 2,
-    "tax_haven": 1,  # billing in a tax-haven COUNTRY is a soft, broad tell (esp.
-                     # populous ones like Switzerland) — a corroborator, not primary
+    "wealth_jurisdiction": 2,  # billing/shipping in a high-value residential jurisdiction
+                               # (Monaco, Jersey…) — a wealth fact, on by default
+    "wealth_structure": 3,     # address routed through a trust co / family office / registered
+                               # agent — origin-neutral, arguably stronger than the address
+    "gulf_prime_district": 2,  # prime Gulf district — GATED (origin-adjacent; see ORIGIN_PROXY)
     "premium_email": 2,
     "wealth_office": 2,
     "elite_alumni": 2,
@@ -152,7 +157,8 @@ SIGNAL_GROUP: dict[str, str] = {
     "property_value": "geo",  # area property value echoes the same location
     "prime_residence": "geo",
     "gcc_billing": "geo",
-    "tax_haven": "geo",
+    "wealth_jurisdiction": "geo",  # high-value residential jurisdiction (was tax_haven)
+    "gulf_prime_district": "geo",  # prime Gulf district (gated) — same location species
     "phone_country": "geo",
     "phone_mismatch": "geo",
     "ip_location": "geo",
@@ -220,14 +226,18 @@ SIGNALS = [
      property_value.FLAG_COL, lambda r: r[property_value.REASON_COL]),
     ("wealth_office", "Wealth office", wealth_office.flag_wealth_office,
      wealth_office.MATCH_COL, lambda r: r[wealth_office.OFFICE_COL]),
+    ("wealth_structure", "Wealth structure", wealth_structure.flag_wealth_structure,
+     wealth_structure.FLAG_COL, lambda r: r[wealth_structure.REASON_COL]),
     ("delivery_venue", "Delivery", delivery_venue.flag_delivery_venue,
      delivery_venue.MATCH_COL, _reason_delivery),
     ("prime_residence", "Prime residence", prime_residence.flag_prime_residence,
      prime_residence.MATCH_COL, lambda r: r[prime_residence.RESIDENCE_COL]),
     ("gcc_billing", "GCC billing", gcc_billing.flag_gcc_billing,
      gcc_billing.FLAG_COL, lambda r: r[gcc_billing.COUNTRY_COL]),
-    ("tax_haven", "Tax haven", tax_haven.flag_tax_haven,
-     tax_haven.FLAG_COL, lambda r: r[tax_haven.REASON_COL]),
+    ("wealth_jurisdiction", "High-value area", wealth_jurisdiction.flag_wealth_jurisdiction,
+     wealth_jurisdiction.FLAG_COL, lambda r: r[wealth_jurisdiction.REASON_COL]),
+    ("gulf_prime_district", "Prime Gulf district", gulf_prime_district.flag_gulf_prime_district,
+     gulf_prime_district.FLAG_COL, lambda r: r[gulf_prime_district.REASON_COL]),
     ("honorific", "Honorific", honorific.flag_honorific,
      honorific.FLAG_COL, lambda r: r[honorific.REASON_COL]),
     ("company_keyword", "Company", company_keyword.flag_company_keyword,
@@ -287,14 +297,18 @@ PARKED_SIGNALS = {"card_brand", "foreign_currency"}
 # tenant that has documented a lawful basis. A UK origin-effect (Recital 71 / Equality
 # Act) is caught by the effect, not the label, so the safe default is simply not to run
 # them. See docs/dpia-lia-support.md for the rationale and the wealth-fact vs origin split.
-# (intl_postcode / hnw_area stay ON: they match a SPECIFIC ultra-prime address, a property
-# fact, not a country.)
+# (intl_postcode / hnw_area / wealth_jurisdiction / wealth_structure stay ON: they match a
+# SPECIFIC ultra-prime address, a high-value residential jurisdiction, or a wealth-management
+# structure — property/wealth facts, not a sort by country-of-origin. See the three-bucket
+# taxonomy in docs/geography-signal-taxonomy.md. The prime GULF DISTRICTS were split out of
+# hnw_area/intl_postcode into the gated gulf_prime_district signal: district-level Gulf still
+# disproportionately touches Middle-Eastern clients in a UK book, so it is opt-in.)
 # phone_mismatch (phone jurisdiction != address country) is a SOFTER origin proxy than raw
 # phone_country — it reads mobility, not "where they're from" — but it is still derived from the
 # phone country code, so it stays behind the same gate. Upward-only ("recognition, not
 # deprioritisation") profiling defends the significant-effect / Art. 22 axis, not the
 # discrimination axis (Recital 71 catches beneficial sorting too), so it is off by default.
-ORIGIN_PROXY_SIGNALS = {"gcc_billing", "tax_haven", "phone_country", "phone_mismatch",
+ORIGIN_PROXY_SIGNALS = {"gcc_billing", "gulf_prime_district", "phone_country", "phone_mismatch",
                         "foreign_currency", "nobiliary_particle", "name_structure",
                         "heritage_surname"}
 

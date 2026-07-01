@@ -51,7 +51,7 @@ authoritative list, traced from the signal source.
 | `LATEST_BILLING_ADDRESS1` | prime_residence | `billing_address.address1` | from most-recent order |
 | `LATEST_BILLING_ADDRESS2` | prime_residence | `billing_address.address2` | " |
 | `LATEST_BILLING_ADDRESS3` | prime_residence | `billing_address.city` | " |
-| `LATEST_BILLING_ADDRESS4` | gcc_billing, tax_haven, prime_residence | `billing_address.country` | " |
+| `LATEST_BILLING_ADDRESS4` | gcc_billing, wealth_jurisdiction, prime_residence | `billing_address.country` | " |
 | `LATEST_BILLING_ZIP` | hnwi_postcode, prime_residence | `billing_address.zip` | " |
 | `LATEST_SHIPPING_ADDRESS1-4` | delivery_venue | `shipping_address.address1/2/city/country` | from most-recent order |
 | `LATEST_SHIPPING_ZIP` | delivery_venue | `shipping_address.zip` | " |
@@ -63,7 +63,7 @@ authoritative list, traced from the signal source.
 **Address packing convention** (important): the engine expects `ADDRESS4` to hold
 the **country**, with city in `ADDRESS3`. This is inherited from the original CRM
 export and `scoring/shopify.py` already maps it this way. Country matchers
-(gcc, tax_haven) read the country *name* and match against an alias list — so map
+(gcc, wealth_jurisdiction) read the country *name* and match against an alias list — so map
 `billing_address.country` (the name, e.g. "United Arab Emirates"), **not**
 `country_code`. See §8 for the optional country-code upgrade.
 
@@ -185,7 +185,7 @@ Implications:
   features for free.
 - **Country-code upgrade (optional).** Matchers currently key on country *name*.
   Adding `billing_address.country_code` (ISO `AE`, `SA`, …) as extra aliases in
-  `gcc_countries.csv` / `tax_havens.csv` would make those two signals immune to
+  `gcc_countries.csv` / `wealth_jurisdictions.csv` would make those two signals immune to
   spelling variation. Pure reference-data change, no code edit.
 - **Spend source.** Summing `order.total_price` (today) and `customer.amount_spent`
   should agree; prefer `amount_spent` when present — it's authoritative and saves

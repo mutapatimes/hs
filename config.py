@@ -35,9 +35,15 @@ STYLING_SERVICES_FILE = DOMAINS_DIR / "styling_services.csv"
 HOTEL_CHAIN_DOMAINS_FILE = DOMAINS_DIR / "hotel_chain_domains.csv"
 COUNTRIES_DIR = REFERENCE_DIR / "countries"
 GCC_COUNTRIES_FILE = COUNTRIES_DIR / "gcc_countries.csv"
-TAX_HAVENS_FILE = COUNTRIES_DIR / "tax_havens.csv"
+# High-value residential jurisdictions (Bucket 1 of the geography taxonomy — a wealth fact,
+# on by default). Formerly TAX_HAVENS_FILE / the "tax_haven" signal; see
+# docs/geography-signal-taxonomy.md.
+WEALTH_JURISDICTIONS_FILE = COUNTRIES_DIR / "wealth_jurisdictions.csv"
 ADDRESSES_DIR = REFERENCE_DIR / "addresses"
 PRIME_RESIDENCES_FILE = ADDRESSES_DIR / "prime_residences.csv"
+# Wealth-management structures (Bucket 2 — address routed through a trust company / family
+# office / registered agent / offshore PO box). Origin-neutral, on by default.
+WEALTH_STRUCTURES_FILE = ADDRESSES_DIR / "wealth_structures.csv"
 NAMES_DIR = REFERENCE_DIR / "names"
 HONORIFICS_FILE = NAMES_DIR / "honorifics.csv"
 RICH_LIST_FILE = NAMES_DIR / "rich_list.csv"
@@ -56,6 +62,10 @@ PREMIUM_BINS_FILE = CARDS_DIR / "premium_bins.csv"
 LOCATIONS_DIR = REFERENCE_DIR / "locations"
 HNW_LOCATIONS_FILE = LOCATIONS_DIR / "hnw_locations.csv"
 HNW_AREAS_FILE = LOCATIONS_DIR / "hnw_areas.csv"
+# Prime Gulf districts (Bucket 3 — arguable wealth-geography but origin-adjacent, so GATED
+# off by default). Names matched like hnw_areas; postcodes like intl_hnwi_postcodes.
+GULF_PRIME_DISTRICTS_FILE = LOCATIONS_DIR / "gulf_prime_districts.csv"
+GULF_PRIME_POSTCODES_FILE = LOCATIONS_DIR / "gulf_prime_postcodes.csv"
 
 # Optional MaxMind GeoIP database for IP -> location (not committed; see README).
 GEOIP_DIR = ROOT / "geoip"

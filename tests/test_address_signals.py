@@ -41,12 +41,12 @@ def test_prime_residence_matches_on_shipping_address():
 def test_hnw_area_matches_international_names_either_side():
     df = pd.DataFrame({
         "LATEST_BILLING_ADDRESS3": ["Roppongi", "Nowheresville"],
-        "LATEST_SHIPPING_ADDRESS3": ["Nowheresville", "Palm Jumeirah"],
+        "LATEST_SHIPPING_ADDRESS3": ["Nowheresville", "Gstaad"],
     })
     out = flag_hnw_area(df)
     assert out[AREA_MATCH].tolist() == [True, True]
     assert out.loc[0, AREA_COL] == "Roppongi"
-    assert out.loc[1, AREA_COL] == "Palm Jumeirah"
+    assert out.loc[1, AREA_COL] == "Gstaad"
 
 
 # --- Wealth office ----------------------------------------------------------
