@@ -792,10 +792,8 @@ function osb(o){return `<span class="sb ${o.statusCat}">${o.status}</span>`;}
 function oActions(o,i){
   const tpls=ORDER_TEMPLATES[o.statusCat]||ORDER_TEMPLATES.new, em=o.email||"";
   const href=t=>`mailto:${em}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(fillTemplate(t.body,o))}`;
-  const primary={new:"Confirm & expedite",fulfilled:"Follow up",refunded:"Win back",cancelled:"Reach out"}[o.statusCat]||"Email";
   const menu=tpls.map(t=>`<a class="omi" href="${href(t)}" target="_top">${t.name}</a>`).join("")+`<a class="omi" href="mailto:${em}" target="_top">Blank email</a>`;
-  let html=`<a class="obtn primary" href="${href(tpls[0])}" target="_top">${primary}</a>`
-    +`<div class="omw"><button class="obtn" data-om="${i}">Email &#9662;</button><div class="omenu" id="om-${i}">${menu}</div></div>`;
+  let html=`<div class="omw"><button class="obtn" data-om="${i}">Email &#9662;</button><div class="omenu" id="om-${i}">${menu}</div></div>`;
   const num=phoneDigits(o.phone);
   if(num){
     const wa=t=>`https://wa.me/${num}?text=${encodeURIComponent(fillTemplate(t.body,o))}`;

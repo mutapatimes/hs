@@ -195,6 +195,36 @@
   </div>
 </div></section>
 
+<style>
+  .term{max-width:940px;margin:0 auto;background:#0a0d0c;border:1px solid #1d2925;border-radius:12px;overflow:hidden;box-shadow:0 40px 90px -50px rgba(0,0,0,.7)}
+  .term-bar{display:flex;align-items:center;gap:7px;padding:11px 14px;background:#101614;border-bottom:1px solid #1d2925}
+  .term-bar .td{width:11px;height:11px;border-radius:50%}
+  .term-bar .r{background:#ef6b5f}.term-bar .y{background:#f4bf50}.term-bar .g{background:#57c264}
+  .term-title{margin-left:10px;color:#6b807a;font:500 12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  .term-body{padding:18px;height:min(62vh,520px);overflow-y:auto;background:#0a0d0c;font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#b7c8c1;white-space:pre-wrap;word-break:break-word;text-align:left}
+  .term-body:focus{outline:none}
+  .term-line{display:flex;flex-wrap:wrap}
+  .term-prompt{color:#57d39a;white-space:pre}
+  .term .cmd{color:#eaf2ee}
+  .term-out{color:#93a8a1}
+  .term-out.head{color:#eaf2ee;font-weight:600;margin-top:4px}
+  .term-out.ok{color:#57d39a}.term-out.warn{color:#e6c07b}.term-out.dim{color:#6f847d}
+  .term-body input{background:transparent;border:none;outline:none;color:#eaf2ee;font:inherit;flex:1;min-width:120px;caret-color:#57d39a;padding:0}
+  @media(max-width:640px){.term-body{height:66vh;font-size:12px}}
+</style>
+<section class="pad"><div class="wrap">
+  <div class="eyebrow reveal" style="margin-bottom:18px">For your security team</div>
+  <h2 class="h2 reveal" style="margin-bottom:14px">The posture, as a shell.</h2>
+  <p class="lede reveal" style="max-width:62ch;margin-bottom:30px">A walkthrough of what we hold, what we don't, and the controls in place. It runs itself — or click in and type <code>help</code> to poke around.</p>
+  <div class="term reveal d1" id="term">
+    <div class="term-bar"><span class="td r"></span><span class="td y"></span><span class="td g"></span><span class="term-title">halia — security shell</span></div>
+    <div class="term-body" id="termBody" tabindex="0" aria-label="Halia security terminal (demo)">
+      <div id="termOut"></div>
+      <div class="term-line" id="termInputLine" style="display:none"><span class="term-prompt">halia@security:~$ </span><input id="termInput" autocomplete="off" spellcheck="false" aria-label="terminal command input"></div>
+    </div>
+  </div>
+</div></section>
+
 <section class="pad final"><div class="wrap reveal">
   <div class="eyebrow" style="margin-bottom:24px">Talk to us</div>
   <h2 class="h2">Security questions are welcome.</h2>
@@ -236,6 +266,137 @@
   })();
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.14,rootMargin:'0px 0px -8% 0px'});
   document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el);});
+
+  // ── Security terminal (demo): scripted walkthrough + a little interaction ──────────
+  (function(){
+    var term=document.getElementById('term'); if(!term) return;
+    var out=document.getElementById('termOut'), body=document.getElementById('termBody'),
+        inputLine=document.getElementById('termInputLine'), input=document.getElementById('termInput');
+    var reduce=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var PROMPT='halia@security:~$ ';
+    function line(cls,text){var d=document.createElement('div'); d.className=cls; if(text!=null)d.textContent=text; out.appendChild(d); return d;}
+    function scroll(){body.scrollTop=body.scrollHeight;}
+    function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+
+    var CMDS={
+      'security status':{think:600,lines:[
+        ['Halia security posture','head'],
+        ['  architecture       zero-retention — customers scored in RAM, never persisted','dim'],
+        ['  customer database  none  ✓','ok'],
+        ['  persisted secret   1 per store · encrypted · read-only','dim'],
+        ['  transport          TLS 1.2+ enforced','dim'],
+        ['  host               Render · SOC 2 Type 2 · ISO 27001 · annual pen test','dim'],
+        ['  status             OK','ok']]},
+      'data retention --show':{think:1100,lines:[
+        ['tracing one scoring run:','head'],
+        ['  1. fetch orders (read-only)              → memory','dim'],
+        ['  2. aggregate + score (pandas, in RAM)    → memory','dim'],
+        ['  3. serve dashboard / push grades         → response','dim'],
+        ['  4. discard                               → evicted after HALIA_CACHE_TTL (300s)','dim'],
+        ['customer data is never written to disk, database, or logs.  ✓','ok']]},
+      'store inspect --customers':{think:900,lines:[
+        ['scanning persistent stores for customer records…','dim'],
+        ['  postgres tables: shops, tenants, settings, billing, klaviyo, mailchimp, push_subs','dim'],
+        ['  customer rows found: 0  ✓','ok'],
+        ['no customer database to breach, leak, or be compelled to hand over.','']]},
+      'keys inspect':{think:800,lines:[
+        ['stored secret: shopify_access_token (per store)','head'],
+        ['  scope       read_orders, read_customers  (+write_customers only where tagging is enabled)','dim'],
+        ['  at rest     Fernet / AES-128-CBC + HMAC','dim'],
+        ['  key source  HALIA_ENCRYPTION_KEY — held outside the database','dim'],
+        ['  db-dump test → cannot decrypt without the key  ✓','ok']]},
+      'host certs --provider render':{think:1500,lines:[
+        ['fetching infrastructure attestations from provider…','dim'],
+        ['  provider: Render','head'],
+        ['  ─ SOC 2 Type 2         2024-10-01 → 2025-09-30   valid','ok'],
+        ['  ─ SOC 2 bridge letter  2025-11-07                valid','ok'],
+        ['  ─ ISO 27001            2024-11-08 → 2027-11-07   valid','ok'],
+        ['  ─ Penetration test     2026-03-12 (annual)       on file','ok'],
+        ['  ─ GDPR DPA             2025-01-13                available','ok'],
+        ['  ─ SOC 3 (public)                                 available','ok'],
+        ['note: these certify the infrastructure (Render), not Halia itself.','warn']]},
+      'egress list':{think:700,lines:[
+        ['allowed outbound destinations:','head'],
+        ['  api.shopify.com        orders read + grade write-back','dim'],
+        ['  <store>/wc-api         WooCommerce orders read','dim'],
+        ['  a.klaviyo.com          grade / segment push (opt-in)','dim'],
+        ['  *.api.mailchimp.com    grade / tag push (opt-in)','dim'],
+        ['  api.brevo.com / SMTP   order alerts (name + signals only)','dim'],
+        ['  api.stripe.com         billing (store id only)','dim'],
+        ['  web-push endpoints     desktop alerts','dim'],
+        ['outbound is a finite, known set — nothing else is contacted.','ok']]},
+      'ratelimit status':{think:500,lines:[
+        ['per-IP fixed window (60s):','head'],
+        ['  reads   120 / window','dim'],
+        ['  writes   30 / window','dim'],
+        ['  exceeded → 429 Too Many Requests','ok']]},
+      'logs grep customer':{think:1000,lines:[
+        ['searching application logs for customer records…','dim'],
+        ['  0 matches  ✓','ok'],
+        ['logs hold counts and stack traces only — never a customer row or a token.','']]},
+      'breach --simulate':{think:1400,lines:[
+        ['assuming full application compromise…','warn'],
+        ['  reachable:     1 encrypted, read-only store credential','dim'],
+        ['  reachable:     the in-memory scoring window (small, transient)','dim'],
+        ['  NOT reachable: a customer database — none exists','ok'],
+        ['blast radius: contained. no standing customer data to exfiltrate.','ok'],
+        ['no system is impenetrable — but the design keeps the prize tiny.','']]}
+    };
+    var SEQ=['security status','data retention --show','store inspect --customers','keys inspect',
+             'host certs --provider render','egress list','ratelimit status','logs grep customer','breach --simulate'];
+    var HELP=[['available commands:','head']].concat(SEQ.map(function(k){return ['  halia '+k,'dim'];}))
+             .concat([['  help · clear · contact','dim']]);
+    var CONTACT=[['Halia — hidden-VIC intelligence; your processor, you remain the controller.','dim'],
+                 ['security questions → hello@halia.app','ok']];
+
+    async function typeCmd(cmd){
+      var l=document.createElement('div'); l.className='term-line';
+      var p=document.createElement('span'); p.className='term-prompt'; p.textContent=PROMPT; l.appendChild(p);
+      var s=document.createElement('span'); s.className='cmd'; l.appendChild(s); out.appendChild(l); scroll();
+      var full='halia '+cmd;
+      if(reduce){s.textContent=full; return;}
+      for(var i=0;i<full.length;i++){s.textContent+=full[i]; await sleep(22); scroll();}
+    }
+    async function think(ms){
+      if(reduce||!ms) return;
+      var l=line('term-out dim','… working'); var n=0, t0=Date.now();
+      while(Date.now()-t0<ms){n=(n+1)%4; l.textContent='… working'+Array(n+1).join('.'); await sleep(170); scroll();}
+      out.removeChild(l);
+    }
+    async function printLines(rows){
+      for(var i=0;i<rows.length;i++){line('term-out '+(rows[i][1]||''),rows[i][0]); scroll(); if(!reduce) await sleep(65);}
+    }
+    async function run(cmd){var spec=CMDS[cmd]; await think(spec.think); await printLines(spec.lines);}
+
+    async function submit(raw){
+      var cmd=raw.trim().replace(/^halia\s+/i,'').toLowerCase();
+      var l=document.createElement('div'); l.className='term-line';
+      var p=document.createElement('span'); p.className='term-prompt'; p.textContent=PROMPT;
+      var s=document.createElement('span'); s.className='cmd'; s.textContent='halia '+cmd; l.appendChild(p); l.appendChild(s); out.appendChild(l); scroll();
+      if(!cmd) return;
+      if(cmd==='clear'){out.innerHTML=''; return;}
+      if(cmd==='help'){await printLines(HELP); return;}
+      if(cmd==='contact'||cmd==='whoami'){await printLines(CONTACT); return;}
+      if(CMDS[cmd]){await run(cmd); return;}
+      line('term-out warn','command not found: '+cmd+'   — try `help`'); scroll();
+    }
+    if(input) input.addEventListener('keydown',function(e){
+      if(e.key!=='Enter') return;
+      var v=input.value; input.value=''; input.disabled=true;
+      submit(v).then(function(){input.disabled=false; input.focus();});
+    });
+    if(body) body.addEventListener('click',function(){ if(inputLine.style.display!=='none') input.focus(); });
+
+    var started=false;
+    async function play(){
+      if(started) return; started=true;
+      for(var i=0;i<SEQ.length;i++){await typeCmd(SEQ[i]); if(!reduce) await sleep(160); await run(SEQ[i]); if(!reduce) await sleep(400);}
+      line('term-out dim','— type `help` to explore, or `clear` to reset —');
+      inputLine.style.display=''; scroll();
+    }
+    var tio=new IntersectionObserver(function(es){es.forEach(function(e){ if(e.isIntersecting){tio.unobserve(term); play();} });},{threshold:.25});
+    tio.observe(term);
+  })();
 </script>
 </body>
 </html>
