@@ -16,11 +16,13 @@ def _frame():
         "LATEST_SHIPPING_ADDRESS1": "1 Nowhere Road", "LATEST_SHIPPING_ADDRESS3": "London",
         "LATEST_SHIPPING_ADDRESS4": "United Kingdom", "LATEST_SHIPPING_ZIP": "E14 9GU",
     }
+    # Distinct phones per row so the shared-phone signal doesn't fire (the dummy phone
+    # here is incidental — sharing is exercised in tests/test_shared_phone.py).
     rows = [
-        {**base, "Name": "Hidden Big", "Spent": 4000, "LATEST_BILLING_ZIP": "SW10 9SJ"},
-        {**base, "Name": "Hidden Small", "Spent": 10, "EMAIL_ADDR": "small@me.com"},
-        {**base, "Name": "Above Threshold", "Spent": 8000, "LATEST_BILLING_ZIP": "SW10 9SJ"},
-        {**base, "Name": "No Signal", "Spent": 100},
+        {**base, "Name": "Hidden Big", "Spent": 4000, "LATEST_BILLING_ZIP": "SW10 9SJ", "PHONE": "07000 000001"},
+        {**base, "Name": "Hidden Small", "Spent": 10, "EMAIL_ADDR": "small@me.com", "PHONE": "07000 000002"},
+        {**base, "Name": "Above Threshold", "Spent": 8000, "LATEST_BILLING_ZIP": "SW10 9SJ", "PHONE": "07000 000003"},
+        {**base, "Name": "No Signal", "Spent": 100, "PHONE": "07000 000004"},
     ]
     return pd.DataFrame(rows)
 

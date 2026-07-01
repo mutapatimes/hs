@@ -34,15 +34,18 @@ from scoring.signals import (
     hotel_concierge,
     intl_postcode,
     ip_location,
+    landline,
     name_structure,
     nobiliary_particle,
     phone_country,
+    phone_mismatch,
     post_nominal,
     premium_email,
     property_value,
     styling_service,
     prime_residence,
     rich_list,
+    shared_phone,
     tax_haven,
     us_zip,
     wealth_office,
@@ -73,6 +76,9 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "assistant_order": 2,
     "post_nominal": 2,
     "phone_country": 1,
+    "phone_mismatch": 2,  # phone jurisdiction != address country — a cleaner mobility tell
+    "shared_phone": 2,    # same number on 2+ records — household / assistant linkage
+    "landline": 1,        # a fixed line — soft tell of an established household / office
     "foreign_currency": 1,
     "card_brand": 1,
     "rich_list": 1,
@@ -113,7 +119,9 @@ PROPERTY_TIER_WEIGHTS = {
 # own: they contribute to the score and count ONLY when at least one stronger
 # (non-supporting) signal has also fired. This enforces "never a sole basis".
 SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
-                      "stylist_directory",
+                      "stylist_directory", "landline",  # a fixed line is common — corroborates,
+                      # never surfaces a customer on its own
+
                       # A bare custom (non-free) email domain is far too common to be a
                       # VIC on its own — half a store's buyers can have one. It corroborates
                       # (e.g. alongside a premium provider, company billing, or prime
@@ -139,6 +147,7 @@ SIGNAL_GROUP: dict[str, str] = {
     "gcc_billing": "geo",
     "tax_haven": "geo",
     "phone_country": "geo",
+    "phone_mismatch": "geo",
     "ip_location": "geo",
     "foreign_currency": "geo",  # currency largely echoes location
     # Name-based tells are correlated ("their name signals status") — group them
@@ -217,6 +226,12 @@ SIGNALS = [
      company_keyword.FLAG_COL, lambda r: r[company_keyword.REASON_COL]),
     ("phone_country", "Phone", phone_country.flag_phone_country,
      phone_country.FLAG_COL, lambda r: r[phone_country.REASON_COL]),
+    ("phone_mismatch", "Phone ≠ address", phone_mismatch.flag_phone_mismatch,
+     phone_mismatch.FLAG_COL, lambda r: r[phone_mismatch.REASON_COL]),
+    ("shared_phone", "Shared phone", shared_phone.flag_shared_phone,
+     shared_phone.FLAG_COL, lambda r: r[shared_phone.REASON_COL]),
+    ("landline", "Landline", landline.flag_landline,
+     landline.FLAG_COL, lambda r: r[landline.REASON_COL]),
     ("rich_list", "Rich list", rich_list.flag_rich_list,
      rich_list.FLAG_COL, lambda r: r[rich_list.REASON_COL]),
     ("fashion_stylist", "Fashion stylist", fashion_stylist.flag_fashion_stylist,
@@ -264,8 +279,14 @@ PARKED_SIGNALS = {"card_brand", "foreign_currency"}
 # them. See docs/dpia-lia-support.md for the rationale and the wealth-fact vs origin split.
 # (intl_postcode / hnw_area stay ON: they match a SPECIFIC ultra-prime address, a property
 # fact, not a country.)
-ORIGIN_PROXY_SIGNALS = {"gcc_billing", "tax_haven", "phone_country", "foreign_currency",
-                        "nobiliary_particle", "name_structure", "heritage_surname"}
+# phone_mismatch (phone jurisdiction != address country) is a SOFTER origin proxy than raw
+# phone_country — it reads mobility, not "where they're from" — but it is still derived from the
+# phone country code, so it stays behind the same gate. Upward-only ("recognition, not
+# deprioritisation") profiling defends the significant-effect / Art. 22 axis, not the
+# discrimination axis (Recital 71 catches beneficial sorting too), so it is off by default.
+ORIGIN_PROXY_SIGNALS = {"gcc_billing", "tax_haven", "phone_country", "phone_mismatch",
+                        "foreign_currency", "nobiliary_particle", "name_structure",
+                        "heritage_surname"}
 
 
 def active_signals(include_origin: bool = False) -> list:

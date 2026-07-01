@@ -33,7 +33,7 @@ def _blank_row(**overrides):
         "LATEST_SHIPPING_ADDRESS3": "London",
         "LATEST_SHIPPING_ADDRESS4": "United Kingdom",
         "LATEST_SHIPPING_ZIP": "E14 9GU",
-        "PHONE": "+44 20 7946 0000",
+        "PHONE": "+44 7700 900000",   # a mobile — trips no signal (a landline would)
     }
     row.update(overrides)
     return pd.DataFrame([row])

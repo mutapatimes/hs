@@ -724,6 +724,21 @@ function mailtoItems(c){
   return (EMAIL_TEMPLATES||[]).map(t=>item(t.name,`mailto:${em}?subject=${encodeURIComponent(t.subject||"")}&body=${encodeURIComponent(fillTemplate(t.body,c))}`)).join("")
     + item("Blank email",`mailto:${em}`);
 }
+// WhatsApp: same prepopulated templates as wa.me links (body only — no subject).
+// Needs an international number; phoneDigits() returns "" when it can't route reliably.
+function phoneDigits(raw){
+  let s=String(raw||"").replace(/[^\d+]/g,"");
+  if(s.startsWith("+")) s=s.slice(1);
+  else if(s.startsWith("00")) s=s.slice(2);
+  if(s.startsWith("0")||s.length<8) return "";   // no country code -> don't build a misrouting link
+  return s;
+}
+function whatsappItems(c){
+  const num=phoneDigits(c.phone);
+  const item=(label,href)=>`<a href="${href}" target="_blank" rel="noopener" style="display:block;padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px">${label}</a>`;
+  return (EMAIL_TEMPLATES||[]).map(t=>item(t.name,`https://wa.me/${num}?text=${encodeURIComponent(fillTemplate(t.body,c))}`)).join("")
+    + item("Blank message",`https://wa.me/${num}`);
+}
 
 /* ---- Orders view: each row is an order; the actions match the order's status ---- */
 const ORDER_TEMPLATES={
@@ -890,6 +905,10 @@ function openDrawer(id){
         <button class="dbtn" id="dmail">Email ▾</button>
         <div id="dmailmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${mailtoItems(c)}</div>
       </div>
+      ${phoneDigits(c.phone)?`<div style="position:relative">
+        <button class="dbtn" id="dwa">WhatsApp ▾</button>
+        <div id="dwamenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${whatsappItems(c)}</div>
+      </div>`:""}
       ${SETTINGS.mailchimp_connected?`<button class="dbtn${SETTINGS.klaviyo_connected?'':' primary'}" id="dpushmc">Push to Mailchimp</button>`:""}
       ${SETTINGS.klaviyo_connected?`<button class="dbtn" id="dflow">Trigger Klaviyo flow</button>`:""}
       ${SETTINGS.klaviyo_connected?`<button class="dbtn primary" id="dpush">Open in Klaviyo →</button>`:""}
@@ -900,6 +919,10 @@ function openDrawer(id){
   const dmail=document.getElementById("dmail"), dmenu=document.getElementById("dmailmenu");
   dmail.onclick=e=>{e.stopPropagation();dmenu.style.display=dmenu.style.display==="block"?"none":"block";};
   dmenu.onclick=()=>{dmenu.style.display="none";};
+  // WhatsApp dropdown: opens wa.me to the client's mobile with the message pre-filled.
+  const dwa=document.getElementById("dwa"), dwamenu=document.getElementById("dwamenu");
+  if(dwa) dwa.onclick=e=>{e.stopPropagation();dwamenu.style.display=dwamenu.style.display==="block"?"none":"block";};
+  if(dwamenu) dwamenu.onclick=()=>{dwamenu.style.display="none";};
   // Open in Klaviyo: jump straight to this client's Klaviyo profile to action them.
   const dpush=document.getElementById("dpush");
   if(dpush) dpush.onclick=()=>{
@@ -1093,7 +1116,7 @@ function openSettings(){
 
         <div style="${C}">
           <div style="${H}">Email templates</div>
-          <p style="${P}">Use {first_name} and {sender}. These power the per-client “Email ▾” menu.</p>
+          <p style="${P}">Use {first_name} and {sender}. These power the per-client “Email ▾” and “WhatsApp ▾” menus.</p>
           <div id="tmplList">${rows()}</div>
           <button id="addTmpl" style="${BS};margin-top:4px">+ Add template</button>
         </div>
