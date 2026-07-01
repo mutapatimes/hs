@@ -337,7 +337,9 @@ def _pos_live(shop: str, customer_id, email):
     customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
     if customers.empty:
         return None
-    scored = score_customers(customers, vic_threshold=settings_for(shop)["vic_threshold"],
+    s = settings_for(shop)
+    scored = score_customers(customers, weights=s.get("signal_weights"),
+                             vic_threshold=s["vic_threshold"],
                              include_origin=data._include_origin(shop))
     return ScoreResult.from_scored_row(scored.iloc[0])
 

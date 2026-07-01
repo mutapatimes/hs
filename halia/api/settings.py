@@ -171,7 +171,43 @@ def settings_for(shop: str) -> dict:
         "notify_grades": d.get("notify_grades") or ["A*", "A"],
         "notify_emails": emails,
         "notify_email": emails[0] if emails else "",  # back-compat (first recipient)
+        # Per-merchant calibrated signal weights (see scoring.calibrate). None = engine defaults.
+        "signal_weights": d.get("signal_weights") or None,
     }
+
+
+def _clean_signal_weights(raw):
+    """Keep only known signal keys mapped to a sane int weight (0-10); None if empty.
+
+    Guards the scoring path: an unknown key or a junk value can never reach the engine.
+    """
+    from scoring.combine import SIGNAL_WEIGHTS
+    if not isinstance(raw, dict):
+        return None
+    out = {}
+    for k, v in raw.items():
+        if k not in SIGNAL_WEIGHTS:
+            continue
+        try:
+            iv = int(round(float(v)))
+        except (TypeError, ValueError):
+            continue
+        out[k] = max(0, min(10, iv))
+    return out or None
+
+
+def set_signal_weights(shop: str, weights) -> dict | None:
+    """Merge calibrated weights into the shop's settings (None clears them). Evicts cache."""
+    raw = shop_store().get_settings_raw(shop)
+    d = json.loads(raw) if raw else {}
+    cleaned = _clean_signal_weights(weights)
+    if cleaned is None:
+        d.pop("signal_weights", None)
+    else:
+        d["signal_weights"] = cleaned
+    shop_store().save_settings(shop, json.dumps(d))
+    cache.evict(shop)  # re-score with the new weights on next load
+    return cleaned
 
 
 def _num(v, default=0.0):
@@ -229,6 +265,8 @@ def register(app) -> None:
     @app.post("/v1/settings")
     def save_settings(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
         payload = payload or {}
+        existing_raw = shop_store().get_settings_raw(shop)
+        existing = json.loads(existing_raw) if existing_raw else {}
         try:
             threshold = float(payload.get("vic_threshold", DEFAULT_VIC_THRESHOLD))
         except (TypeError, ValueError):
@@ -245,6 +283,9 @@ def register(app) -> None:
             "notify_grades": [g for g in (payload.get("notify_grades") or ["A*", "A"])
                               if g in ("A*", "A", "B")] or ["A*"],
             "account_email": str(payload.get("account_email", ""))[:200],
+            # Preserve calibrated weights the settings UI doesn't send; only change if provided.
+            "signal_weights": (_clean_signal_weights(payload["signal_weights"])
+                               if "signal_weights" in payload else existing.get("signal_weights")),
         }
         emails = clean_emails(payload.get("notify_emails")
                               if payload.get("notify_emails") is not None
@@ -259,3 +300,37 @@ def register(app) -> None:
     def klaviyo_disconnect(shop: str = Depends(require_shop)) -> dict:
         shop_store().delete_klaviyo(shop)
         return {"ok": True}
+
+    @app.get("/v1/calibrate")
+    def calibrate_preview(shop: str = Depends(require_shop)) -> dict:
+        """Measure each signal's spend lift on this shop's data and suggest weights. No save."""
+        from halia.api import data
+        from scoring.calibrate import calibrate_weights, calibration_report
+
+        scored = data.scored_frame_for(shop)
+        if scored is None:
+            raise HTTPException(400, "No store is connected to calibrate against.")
+        return {
+            "report": calibration_report(scored),
+            "suggested": calibrate_weights(scored),
+            "current": settings_for(shop)["signal_weights"],
+        }
+
+    @app.post("/v1/calibrate")
+    def calibrate_apply(shop: str = Depends(require_shop)) -> dict:
+        """Compute per-merchant calibrated weights and adopt them (re-scores on next load)."""
+        from halia.api import data
+        from scoring.calibrate import calibrate_weights, calibration_report
+
+        scored = data.scored_frame_for(shop)
+        if scored is None:
+            raise HTTPException(400, "No store is connected to calibrate against.")
+        report = calibration_report(scored)
+        saved = set_signal_weights(shop, calibrate_weights(scored))
+        return {"ok": True, "saved": saved, "report": report}
+
+    @app.delete("/v1/calibrate")
+    def calibrate_reset(shop: str = Depends(require_shop)) -> dict:
+        """Clear calibrated weights — back to the engine's default weights."""
+        set_signal_weights(shop, None)
+        return {"ok": True, "saved": None}

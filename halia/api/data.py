@@ -31,8 +31,9 @@ def score_shop(shop: str, token: str):
 
     orders = fetch_orders(http_transport(shop, token))
     customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
-    threshold = settings_for(shop)["vic_threshold"]
-    return score_customers(customers, vic_threshold=threshold,
+    s = settings_for(shop)
+    return score_customers(customers, weights=s.get("signal_weights"),
+                           vic_threshold=s["vic_threshold"],
                            include_origin=_include_origin(shop)), orders
 
 
@@ -78,8 +79,9 @@ def score_woo(shop: str):
     transport = http_transport(creds["store_url"], creds["consumer_key"], creds["consumer_secret"])
     orders = [woo_order_to_rest(o) for o in fetch_orders(transport, max_pages=hcfg.WOO_MAX_PAGES)]
     customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
-    threshold = settings_for(shop)["vic_threshold"]
-    return score_customers(customers, vic_threshold=threshold,
+    s = settings_for(shop)
+    return score_customers(customers, weights=s.get("signal_weights"),
+                           vic_threshold=s["vic_threshold"],
                            include_origin=_include_origin(shop)), orders
 
 
@@ -105,6 +107,19 @@ def sync_shop(shop: str, token: str) -> dict:
 def sync_woo(shop: str) -> dict:
     """WooCommerce pull → score → cache in RAM. Returns the cache entry."""
     return _finalize(shop, *score_woo(shop))
+
+
+def scored_frame_for(shop: str):
+    """Re-pull + score this shop's customers, returning the scored DataFrame (flag columns
+    + Spent) for calibration. Source-aware like sync_tenant. None if no source is connected.
+
+    Flags (which signals fired) are independent of weights, so calibration is unaffected by
+    any weights currently applied — it always measures lift against the canonical base."""
+    tenant = shop_store().get_tenant(shop)
+    if tenant and tenant["kind"] == "woocommerce":
+        return score_woo(shop)[0]
+    token = shop_store().get_token(shop)
+    return score_shop(shop, token)[0] if token else None
 
 
 def sync_tenant(shop: str) -> dict | None:
@@ -173,7 +188,9 @@ def score_order(shop: str, payload: dict) -> dict | None:
     customers = orders_to_customers([rest]).rename(columns={"orders_count": "Count of CUST_ID"})
     if customers.empty:
         return None
-    scored = score_customers(customers, vic_threshold=settings_for(shop)["vic_threshold"],
+    s = settings_for(shop)
+    scored = score_customers(customers, weights=s.get("signal_weights"),
+                             vic_threshold=s["vic_threshold"],
                              include_origin=_include_origin(shop))
     row = scored.iloc[0]
     s100 = to_score100(_f(row.get(SCORE_COL)))
