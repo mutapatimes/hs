@@ -80,6 +80,9 @@
   /* hero (content to the right) */
   .hero{position:relative;height:100vh;min-height:680px;display:flex;align-items:center;overflow:hidden}
   .hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
+  .hero .hero-fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;display:none}
+  .hero.use-gif video{display:none}
+  .hero.use-gif .hero-fallback{display:block}
   .hero .veil{position:absolute;inset:0;background:
     radial-gradient(120% 80% at 65% 35%,transparent 0%,rgba(10,10,11,.5) 68%,var(--bg) 100%),
     linear-gradient(180deg,rgba(10,10,11,.45),rgba(10,10,11,.15) 40%,var(--bg))}
@@ -416,9 +419,11 @@
 
 <!-- HERO (right) -->
 <section class="hero">
-  <video autoplay muted loop playsinline poster="img/find_your_most_valuable_clients.jpg">
+  <video id="heroVid" autoplay muted loop playsinline poster="img/find_your_most_valuable_clients.jpg">
     <source src="img/hero.mp4" type="video/mp4">
   </video>
+  <img id="heroGif" class="hero-fallback" data-src="img/hero.gif" alt="" aria-hidden="true">
+
   <canvas id="fish"></canvas>
   <div class="veil"></div>
   <div class="wrap"><div class="block">

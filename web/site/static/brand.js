@@ -44,7 +44,31 @@
     });
   }
 
-  function init() { initSpin(); initNews(); }
+  function initHeroFallback() {
+    // The hero background is a muted autoplay video. Mobile browsers often block
+    // that (iOS Low Power Mode, data saver, flaky connections) and leave a static
+    // poster. When the video can't play, swap in an animated GIF instead. The GIF
+    // is only fetched when actually needed (data-src), so capable devices that
+    // play the video never download it.
+    var v = document.getElementById('heroVid');
+    var g = document.getElementById('heroGif');
+    if (!v || !g) return;
+    var used = false;
+    function useGif() {
+      if (used) return;
+      used = true;
+      if (g.dataset.src) g.src = g.dataset.src;
+      if (v.parentNode) v.parentNode.classList.add('use-gif');
+    }
+    v.addEventListener('error', useGif, true);
+    var p = v.play && v.play();
+    if (p && typeof p.then === 'function') p.catch(useGif);   // autoplay rejected
+    setTimeout(function () {                                   // safety net
+      if (v.paused && v.currentTime === 0) useGif();
+    }, 2500);
+  }
+
+  function init() { initSpin(); initNews(); initHeroFallback(); }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
