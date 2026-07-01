@@ -33,6 +33,7 @@ HIGH_EARNING_KEYWORDS_FILE = DOMAINS_DIR / "high_earning_keywords.csv"
 ELITE_FINANCE_KEYWORDS_FILE = DOMAINS_DIR / "elite_finance_keywords.csv"
 STYLING_SERVICES_FILE = DOMAINS_DIR / "styling_services.csv"
 HOTEL_CHAIN_DOMAINS_FILE = DOMAINS_DIR / "hotel_chain_domains.csv"
+CCTLD_COUNTRIES_FILE = DOMAINS_DIR / "cctld_countries.csv"  # email ccTLD -> country (corroboration only)
 COUNTRIES_DIR = REFERENCE_DIR / "countries"
 GCC_COUNTRIES_FILE = COUNTRIES_DIR / "gcc_countries.csv"
 # High-value residential jurisdictions (Bucket 1 of the geography taxonomy — a wealth fact,
@@ -54,6 +55,10 @@ NOBILIARY_PARTICLES_FILE = NAMES_DIR / "nobiliary_particles.csv"
 POST_NOMINALS_FILE = NAMES_DIR / "post_nominals.csv"
 PHONE_DIR = REFERENCE_DIR / "phone"
 PHONE_CODES_FILE = PHONE_DIR / "hnw_dialing_codes.csv"
+# Corroboration-only maps: a phone dialling code / email ccTLD -> the country it belongs to,
+# used solely by geo_confirmation to check agreement with a high-value address (never originates
+# a score). See docs/geography-signal-taxonomy.md.
+DIALING_CODE_COUNTRIES_FILE = PHONE_DIR / "dialing_code_countries.csv"
 COMPANIES_DIR = REFERENCE_DIR / "companies"
 COMPANY_KEYWORDS_FILE = COMPANIES_DIR / "company_keywords.csv"
 UK_COMPANY_CONTROLLERS_FILE = COMPANIES_DIR / "uk_company_controllers.csv"

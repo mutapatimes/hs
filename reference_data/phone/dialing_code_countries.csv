@@ -1,0 +1,31 @@
+code,countries
+# Dialling code -> the country/countries it belongs to (alias-set), for the geo_confirmation
+# signal ONLY. This is used to check whether a customer's phone jurisdiction *agrees* with a
+# high-value billing/shipping address they already fired a wealth-geography signal on. It never
+# originates a score (see docs/geography-signal-taxonomy.md — origin fields corroborate, never
+# originate). Longest prefix wins (+1345 before +1). '#' lines ignored.
++377,MONACO
++423,LIECHTENSTEIN
++376,ANDORRA
++378,SAN MARINO
++350,GIBRALTAR
++1345,CAYMAN ISLANDS;CAYMAN
++1441,BERMUDA
++44,UNITED KINGDOM;UK;GREAT BRITAIN;ENGLAND;SCOTLAND;WALES;JERSEY;GUERNSEY;ISLE OF MAN
++33,FRANCE
++41,SWITZERLAND
++352,LUXEMBOURG
++49,GERMANY
++39,ITALY
++81,JAPAN
++86,CHINA
++34,SPAIN
++30,GREECE
++61,AUSTRALIA
++1,UNITED STATES;USA;US;UNITED STATES OF AMERICA
++971,UNITED ARAB EMIRATES;UAE
++966,SAUDI ARABIA;KSA
++974,QATAR
++965,KUWAIT
++973,BAHRAIN
++968,OMAN

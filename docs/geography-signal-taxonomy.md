@@ -97,9 +97,15 @@ corroborate but never originate. One-line summary of the whole taxonomy: **Halia
 live and how they operate, and never where they're from; any field that speaks to origin is only ever
 allowed to agree with an address, never to speak first.**
 
-*Status:* the class gating (phone lookups behind `include_origin`) is implemented; the
-agreement-as-confidence corroboration signal, email ccTLD as a gated class, and the structural-email-
-domain extension are the planned next step (they depend on `wealth_jurisdiction` existing).
+*Status (implemented 2026-07):* the class gating (phone lookups behind `include_origin`) and the
+agreement-as-confidence signal (`geo_confirmation` — `scoring/signals/geo_confirmation.py`, weight 1,
+SUPPORTING, runs last so it reads the wealth-geo flags; confirms via phone dialling code
+[`dialing_code_countries.csv`] or email ccTLD [`cctld_countries.csv`] agreeing with the address
+country) are live. The email **ccTLD is corroboration-only** — there is deliberately no gated
+originating ccTLD signal; the country suffix may only ever agree with an address. The structural
+**email-domain** extension lands in `domain_keyword`'s elite tier (trust company / fiduciary /
+chambers / yacht management / private office / family office resolve at the elite weight, the email
+twin of the `wealth_structure` address signal).
 
 ## Where it lives in code
 `scoring/combine.py` is authoritative: `SIGNAL_WEIGHTS`, `SIGNAL_GROUP`, and `ORIGIN_PROXY_SIGNALS`

@@ -1,0 +1,35 @@
+cctld,countries
+# Email country-code TLD -> the country/countries it belongs to (alias-set), for the
+# geo_confirmation signal ONLY. Like the dialling code, a ccTLD is an origin-correlated field
+# and NEVER originates a score — its sole use is to confirm that an email jurisdiction *agrees*
+# with a high-value address the customer already fired a wealth-geography signal on. The value
+# in an email is the ORGANISATION (left of @), handled by work_email / domain_keyword; only the
+# country suffix lives here. See docs/geography-signal-taxonomy.md. '#' lines ignored.
+mc,MONACO
+li,LIECHTENSTEIN
+ad,ANDORRA
+sm,SAN MARINO
+gi,GIBRALTAR
+je,JERSEY
+gg,GUERNSEY
+im,ISLE OF MAN
+ky,CAYMAN ISLANDS;CAYMAN
+bm,BERMUDA
+uk,UNITED KINGDOM;UK;GREAT BRITAIN;ENGLAND;SCOTLAND;WALES
+fr,FRANCE
+ch,SWITZERLAND
+lu,LUXEMBOURG
+de,GERMANY
+it,ITALY
+jp,JAPAN
+cn,CHINA
+es,SPAIN
+gr,GREECE
+au,AUSTRALIA
+us,UNITED STATES;USA;US
+ae,UNITED ARAB EMIRATES;UAE
+sa,SAUDI ARABIA;KSA
+qa,QATAR
+kw,KUWAIT
+bh,BAHRAIN
+om,OMAN

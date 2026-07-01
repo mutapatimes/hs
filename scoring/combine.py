@@ -26,6 +26,7 @@ from scoring.signals import (
     elite_alumni,
     foreign_currency,
     gcc_billing,
+    geo_confirmation,
     gulf_prime_district,
     hnw_area,
     fashion_stylist,
@@ -76,6 +77,8 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "wealth_structure": 3,     # address routed through a trust co / family office / registered
                                # agent — origin-neutral, arguably stronger than the address
     "gulf_prime_district": 2,  # prime Gulf district — GATED (origin-adjacent; see ORIGIN_PROXY)
+    "geo_confirmation": 1,      # phone/email jurisdiction AGREES with a high-value address —
+                               # corroboration only (supporting; never originates a score)
     "premium_email": 2,
     "wealth_office": 2,
     "elite_alumni": 2,
@@ -138,7 +141,12 @@ SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
                       # A Companies House PSC/director name match is drawn from a register of
                       # millions, so name-alone collisions are common. Unlike the curated
                       # rich_list, it must never be a sole basis — it only corroborates.
-                      "companies_house"}
+                      "companies_house",
+
+                      # geo_confirmation is agreement-as-confidence: a phone/email jurisdiction
+                      # AGREEING with a high-value address. It requires a wealth-geo signal to
+                      # have fired, so it can never originate a score — pure corroboration.
+                      "geo_confirmation"}
 
 # Some signals are CORRELATED — they encode the same underlying fact from
 # different fields. Three "this person is in the UAE" tells (billing country,
@@ -159,6 +167,7 @@ SIGNAL_GROUP: dict[str, str] = {
     "gcc_billing": "geo",
     "wealth_jurisdiction": "geo",  # high-value residential jurisdiction (was tax_haven)
     "gulf_prime_district": "geo",  # prime Gulf district (gated) — same location species
+    "geo_confirmation": "geo",     # phone/email agreeing with an address — decays as a nudge
     "phone_country": "geo",
     "phone_mismatch": "geo",
     "ip_location": "geo",
@@ -276,6 +285,10 @@ SIGNALS = [
      foreign_currency.FLAG_COL, lambda r: r[foreign_currency.REASON_COL]),
     ("card_brand", "Premium card brand", card_brand.flag_card_brand,
      card_brand.FLAG_COL, lambda r: r[card_brand.REASON_COL]),
+    # MUST STAY LAST: geo_confirmation reads the wealth-geo flag columns added by the signals
+    # above (agreement-as-confidence only fires when a wealth-geography signal already fired).
+    ("geo_confirmation", "Geo confirmation", geo_confirmation.flag_geo_confirmation,
+     geo_confirmation.FLAG_COL, lambda r: r[geo_confirmation.REASON_COL]),
 ]
 
 
