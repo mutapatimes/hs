@@ -1288,17 +1288,14 @@ function openSettings(){
       }
       function step3(){
         box.innerHTML=`<div style="${H};margin-bottom:6px">Confirm cancellation</div>
-          <p style="${P}">To complete your cancellation and settle your account, please email <b>hello@halia.app</b>. Confirming now will <b>revoke your store access immediately</b> — Halia will stop reading your store and your dashboard will lock.</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="cConfirm" style="${dngr}">Revoke access & request cancellation</button><button id="cBack2" style="${BS}">Go back</button></div>`;
+          <p style="${P}">You'll keep full access until the end of your current billing period, and then your subscription won't renew. You can resume any time before it ends.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="cConfirm" style="${dngr}">Cancel my subscription</button><button id="cBack2" style="${BS}">Go back</button></div>`;
         document.getElementById("cBack2").onclick=()=>paintBilling(b);
-        document.getElementById("cConfirm").onclick=()=>{const bn=document.getElementById("cConfirm");bn.disabled=true;bn.textContent="Revoking…";
-          fetch("/v1/billing/cancel/request",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({reason:reason,detail:detail})})
-            .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error((d&&d.detail)||"failed");finished(d.contact||"hello@halia.app");})
-            .catch(e=>{toast("Something went wrong: "+e.message);bn.disabled=false;bn.textContent="Revoke access & request cancellation";});};
-      }
-      function finished(contact){
-        box.innerHTML=`<div style="${H};margin-bottom:6px">Access revoked</div>
-          <p style="${P}">Your store access has been revoked. To finish cancelling and settle billing, email <a href="mailto:${contact}" style="color:#1f564a;font-weight:600">${contact}</a> — we'll confirm by reply.</p>`;
+        document.getElementById("cConfirm").onclick=()=>{const bn=document.getElementById("cConfirm");bn.disabled=true;bn.textContent="Cancelling…";
+          fetch("/v1/billing/cancel",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({reason:reason,detail:detail})})
+            .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error((d&&d.detail)||"failed");
+              toast("Subscription cancelled — access continues until your period ends.");SETTINGS.billing=null;loadBilling();})
+            .catch(e=>{toast("Something went wrong: "+e.message);bn.disabled=false;bn.textContent="Cancel my subscription";});};
       }
       step1();
     }

@@ -313,14 +313,6 @@ class ShopStore(_DB):
                 updated_at=excluded.updated_at""",
             {"shop": shop, "st": status, "cid": customer_id, "sid": subscription_id, "at": _now()})
 
-    def revoke_access(self, shop: str) -> None:
-        """Immediately revoke the stored ACCESS credentials — the store token, WooCommerce
-        keys, and marketing (Klaviyo/Mailchimp) keys, plus order-alert webhooks. Keeps the
-        tenant, billing and settings rows so a cancellation can still be processed and audited.
-        Used by the cancellation flow: pull access now, settle billing manually."""
-        for table in ("shops", "woocommerce", "klaviyo", "mailchimp", "webhooks", "push_subs"):
-            self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})
-
     # ── deletion (shop/redact + app/uninstalled) ───────────────────────────────
     def delete_shop(self, shop: str) -> None:
         """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""

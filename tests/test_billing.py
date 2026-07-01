@@ -189,27 +189,19 @@ def test_retention_uses_configured_coupon(client, monkeypatch):
     assert seen == {"p": "subscriptions/sub_1", "data": {"coupon": "co_fixed"}}  # no coupon created
 
 
-def test_cancel_request_revokes_access_but_keeps_records(client, monkeypatch):
+def test_cancel_records_reason_and_schedules(client, monkeypatch):
     import json
     c, store = client
     _enable(monkeypatch)
-    tok = _tenant(store)
-    store.save_shop("shopx", "shpat_secret")
-    store.save_klaviyo("shopx", "pk_secret")
     store.set_billing("shopx", "active", "cus_1", "sub_1")
-    store.save_settings("shopx", json.dumps({"account_email": "o@shopx.com"}))
-    cache.set("shopx", [], {}, {})
-    c.cookies.set(COOKIE, tok)
-    r = c.post("/v1/billing/cancel/request", json={"reason": "Too expensive", "detail": "tight month"})
-    d = r.json()
-    assert d["ok"] and d["revoked"] and d["contact"] == "hello@halia.app"
-    # keys revoked immediately
-    assert store.get_token("shopx") is None and store.get_klaviyo("shopx") is None
-    assert cache.get("shopx") is None
-    # tenant + billing kept (to settle manually), reason recorded, flagged cancel_requested
-    assert store.get_tenant("shopx") is not None
-    b = store.get_billing("shopx")
-    assert b["status"] == "cancel_requested" and b["customer_id"] == "cus_1"
+    monkeypatch.setattr(billing, "_stripe",
+                        lambda m, p, data=None: {"cancel_at_period_end": True, "current_period_end": 123})
+    c.cookies.set(COOKIE, _tenant(store))
+    r = c.post("/v1/billing/cancel", json={"reason": "Too expensive", "detail": "tight month"}).json()
+    assert r["cancel_at_period_end"] is True
+    # self-service: access continues until period end (Stripe keeps status active)
+    assert billing.is_paid("shopx") is True
+    # survey reason recorded for our team
     s = json.loads(store.get_settings_raw("shopx"))
     assert s["cancel_reason"] == "Too expensive" and s["cancel_detail"] == "tight month"
 
