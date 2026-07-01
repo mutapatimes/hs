@@ -160,6 +160,60 @@ def test_status_reports_scheduled_cancellation(client, monkeypatch):
     assert s["cancellable"] and s["cancel_at_period_end"] is True and s["current_period_end"] == 111
 
 
+def test_retention_applies_discount(client, monkeypatch):
+    c, store = client
+    _enable(monkeypatch)
+    store.set_billing("shopx", "active", "cus_1", "sub_1")
+    calls = []
+    monkeypatch.setattr(billing, "_stripe",
+                        lambda m, p, data=None: calls.append((p, data))
+                        or ({"id": "co_50"} if p == "coupons" else {"ok": True}))
+    c.cookies.set(COOKIE, _tenant(store))
+    r = c.post("/v1/billing/retention").json()
+    assert r["ok"] and r["percent_off"] == 50
+    # created an ad-hoc 50% coupon and applied it to the subscription
+    assert ("coupons", {"percent_off": "50", "duration": "forever",
+                        "name": "Halia retention 50% off"}) in calls
+    assert ("subscriptions/sub_1", {"coupon": "co_50"}) in calls
+
+
+def test_retention_uses_configured_coupon(client, monkeypatch):
+    c, store = client
+    _enable(monkeypatch)
+    monkeypatch.setattr("halia.config.STRIPE_RETENTION_COUPON", "co_fixed")
+    store.set_billing("shopx", "active", "cus_1", "sub_1")
+    seen = {}
+    monkeypatch.setattr(billing, "_stripe", lambda m, p, data=None: seen.update(p=p, data=data) or {})
+    c.cookies.set(COOKIE, _tenant(store))
+    c.post("/v1/billing/retention")
+    assert seen == {"p": "subscriptions/sub_1", "data": {"coupon": "co_fixed"}}  # no coupon created
+
+
+def test_cancel_request_revokes_access_but_keeps_records(client, monkeypatch):
+    import json
+    c, store = client
+    _enable(monkeypatch)
+    tok = _tenant(store)
+    store.save_shop("shopx", "shpat_secret")
+    store.save_klaviyo("shopx", "pk_secret")
+    store.set_billing("shopx", "active", "cus_1", "sub_1")
+    store.save_settings("shopx", json.dumps({"account_email": "o@shopx.com"}))
+    cache.set("shopx", [], {}, {})
+    c.cookies.set(COOKIE, tok)
+    r = c.post("/v1/billing/cancel/request", json={"reason": "Too expensive", "detail": "tight month"})
+    d = r.json()
+    assert d["ok"] and d["revoked"] and d["contact"] == "hello@halia.app"
+    # keys revoked immediately
+    assert store.get_token("shopx") is None and store.get_klaviyo("shopx") is None
+    assert cache.get("shopx") is None
+    # tenant + billing kept (to settle manually), reason recorded, flagged cancel_requested
+    assert store.get_tenant("shopx") is not None
+    b = store.get_billing("shopx")
+    assert b["status"] == "cancel_requested" and b["customer_id"] == "cus_1"
+    s = json.loads(store.get_settings_raw("shopx"))
+    assert s["cancel_reason"] == "Too expensive" and s["cancel_detail"] == "tight month"
+
+
 def test_app_shows_teaser_when_unpaid(client, monkeypatch):
     c, store = client
     _enable(monkeypatch)

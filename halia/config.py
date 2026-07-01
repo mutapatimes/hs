@@ -60,6 +60,8 @@ SIGNUP_CODE = os.environ.get("HALIA_SIGNUP_CODE") or None
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY") or None
 STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID") or None
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET") or None
+# Optional preconfigured Stripe coupon id for the 50%-off retention offer (else created ad-hoc).
+STRIPE_RETENTION_COUPON = os.environ.get("STRIPE_RETENTION_COUPON") or None
 # Tenant keys granted full access without paying (e.g. a comped first client), comma-separated.
 HALIA_FREE_SHOPS = {s.strip() for s in os.environ.get("HALIA_FREE_SHOPS", "").split(",") if s.strip()}
 

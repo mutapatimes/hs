@@ -19,7 +19,7 @@ import hashlib
 import hmac
 import json
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Body, Depends, HTTPException, Request
 
 from halia import config
 from halia.api.shopify_auth import require_shop, shop_store
@@ -105,6 +105,58 @@ def set_cancel(shop: str, cancel: bool) -> dict:
             "current_period_end": sub.get("current_period_end")}
 
 
+RETENTION_PERCENT = 50
+CONTACT_EMAIL = "hello@halia.app"
+
+
+def apply_retention(shop: str) -> dict:
+    """Retention offer: apply a 50%-off discount to this tenant's subscription."""
+    b = shop_store().get_billing(shop) or {}
+    sub_id = b.get("subscription_id")
+    if not sub_id:
+        raise HTTPException(400, "No active subscription to discount.")
+    coupon = config.STRIPE_RETENTION_COUPON
+    if not coupon:
+        coupon = _stripe("POST", "coupons", {
+            "percent_off": str(RETENTION_PERCENT), "duration": "forever",
+            "name": f"Halia retention {RETENTION_PERCENT}% off"})["id"]
+    _stripe("POST", f"subscriptions/{sub_id}", {"coupon": coupon})
+    return {"ok": True, "percent_off": RETENTION_PERCENT}
+
+
+def request_cancellation(shop: str, reason: str = "", detail: str = "") -> dict:
+    """Final step of the cancellation flow: revoke access immediately and record the request.
+
+    Per policy, we do NOT auto-cancel the Stripe subscription here — the merchant is asked to
+    contact us to complete it — but their store access is revoked at once."""
+    store = shop_store()
+    store.revoke_access(shop)          # keys pulled immediately
+    from halia.cache import cache
+    cache.evict(shop)                  # drop any warm scored data
+    # Record the reason on the tenant's settings for our team, and flag the billing row.
+    try:
+        raw = store.get_settings_raw(shop)
+        s = json.loads(raw) if raw else {}
+        s["cancel_reason"] = (reason or "")[:200]
+        s["cancel_detail"] = (detail or "")[:1000]
+        store.save_settings(shop, json.dumps(s))
+    except Exception:  # noqa: BLE001
+        pass
+    if store.get_billing(shop):
+        store.set_billing(shop, "cancel_requested")
+    # Best-effort ops notification.
+    try:
+        from halia import notify
+        if notify.email_configured():
+            notify.send_email(
+                CONTACT_EMAIL, f"Cancellation requested — {shop}",
+                f"<p>Tenant <b>{shop}</b> requested cancellation and access was revoked.</p>"
+                f"<p>Reason: {reason or '—'}</p><p>Detail: {detail or '—'}</p>")
+    except Exception:  # noqa: BLE001
+        pass
+    return {"ok": True, "revoked": True, "contact": CONTACT_EMAIL}
+
+
 def billing_state(shop: str) -> dict:
     """A small, UI-friendly summary of this tenant's billing state."""
     b = shop_store().get_billing(shop) or {}
@@ -187,6 +239,20 @@ def register(app) -> None:
         if not billing_enabled():
             raise HTTPException(400, "Billing isn't enabled.")
         return set_cancel(shop, False)
+
+    @app.post("/v1/billing/retention")
+    def billing_retention(shop: str = Depends(require_shop)) -> dict:
+        """Accept the 50%-off retention offer instead of cancelling."""
+        if not billing_enabled():
+            raise HTTPException(400, "Billing isn't enabled.")
+        return apply_retention(shop)
+
+    @app.post("/v1/billing/cancel/request")
+    def billing_cancel_request(shop: str = Depends(require_shop),
+                               payload: dict = Body(default={})) -> dict:
+        """Complete the cancellation flow: revoke access now; ask them to contact us to settle."""
+        p = payload or {}
+        return request_cancellation(shop, str(p.get("reason", "")), str(p.get("detail", "")))
 
     @app.post("/webhooks/stripe")
     async def stripe_webhook(request: Request) -> dict:
