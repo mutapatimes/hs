@@ -114,6 +114,52 @@ def test_portal_400_without_customer(client, monkeypatch):
     assert c.post("/v1/billing/portal").status_code == 400  # no customer yet
 
 
+def test_cancel_schedules_at_period_end(client, monkeypatch):
+    c, store = client
+    _enable(monkeypatch)
+    store.set_billing("shopx", "active", "cus_1", "sub_1")
+    calls = {}
+    monkeypatch.setattr(billing, "_stripe",
+                        lambda m, p, data=None: calls.update(path=p, data=data)
+                        or {"cancel_at_period_end": data.get("cancel_at_period_end") == "true",
+                            "current_period_end": 1893456000})
+    c.cookies.set(COOKIE, _tenant(store))
+    r = c.post("/v1/billing/cancel").json()
+    assert calls["path"] == "subscriptions/sub_1" and calls["data"]["cancel_at_period_end"] == "true"
+    assert r["cancel_at_period_end"] is True and r["current_period_end"] == 1893456000
+    # still paid until the period actually ends (Stripe keeps status active)
+    assert billing.is_paid("shopx") is True
+
+
+def test_resume_undoes_cancellation(client, monkeypatch):
+    c, store = client
+    _enable(monkeypatch)
+    store.set_billing("shopx", "active", "cus_1", "sub_1")
+    monkeypatch.setattr(billing, "_stripe",
+                        lambda m, p, data=None: {"cancel_at_period_end": data.get("cancel_at_period_end") == "true"})
+    c.cookies.set(COOKIE, _tenant(store))
+    assert c.post("/v1/billing/resume").json()["cancel_at_period_end"] is False
+
+
+def test_cancel_400_without_subscription(client, monkeypatch):
+    c, store = client
+    _enable(monkeypatch)
+    store.set_billing("shopx", "active", "cus_1")  # no subscription_id
+    c.cookies.set(COOKIE, _tenant(store))
+    assert c.post("/v1/billing/cancel").status_code == 400
+
+
+def test_status_reports_scheduled_cancellation(client, monkeypatch):
+    c, store = client
+    _enable(monkeypatch)
+    store.set_billing("shopx", "active", "cus_1", "sub_1")
+    monkeypatch.setattr(billing, "_stripe",
+                        lambda m, p, data=None: {"cancel_at_period_end": True, "current_period_end": 111})
+    c.cookies.set(COOKIE, _tenant(store))
+    s = c.get("/v1/billing/status").json()
+    assert s["cancellable"] and s["cancel_at_period_end"] is True and s["current_period_end"] == 111
+
+
 def test_app_shows_teaser_when_unpaid(client, monkeypatch):
     c, store = client
     _enable(monkeypatch)

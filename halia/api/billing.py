@@ -80,18 +80,52 @@ def create_portal(shop: str) -> str:
                    {"customer": customer, "return_url": f"{base}/app"})["url"]
 
 
+def _subscription(shop: str) -> dict | None:
+    """Fetch this tenant's Stripe subscription (best-effort; None on any problem)."""
+    b = shop_store().get_billing(shop) or {}
+    sub_id = b.get("subscription_id")
+    if not (billing_enabled() and sub_id):
+        return None
+    try:
+        return _stripe("GET", f"subscriptions/{sub_id}")
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def set_cancel(shop: str, cancel: bool) -> dict:
+    """Schedule (or undo) cancellation at the end of the current period. The tenant keeps
+    access until then — no mid-cycle lockout. Returns the new cancel flag + period end."""
+    b = shop_store().get_billing(shop) or {}
+    sub_id = b.get("subscription_id")
+    if not sub_id:
+        raise HTTPException(400, "No active subscription to change.")
+    sub = _stripe("POST", f"subscriptions/{sub_id}",
+                  {"cancel_at_period_end": "true" if cancel else "false"})
+    return {"cancel_at_period_end": bool(sub.get("cancel_at_period_end")),
+            "current_period_end": sub.get("current_period_end")}
+
+
 def billing_state(shop: str) -> dict:
     """A small, UI-friendly summary of this tenant's billing state."""
     b = shop_store().get_billing(shop) or {}
     comped = shop in config.HALIA_FREE_SHOPS
     status = "comped" if comped else (b.get("status") or "free")
-    return {
+    manageable = bool(billing_enabled() and b.get("customer_id") and not comped)
+    state = {
         "enabled": billing_enabled(),
         "paid": is_paid(shop),
         "comped": comped,
         "status": status,
-        "manageable": bool(billing_enabled() and b.get("customer_id") and not comped),
+        "manageable": manageable,
+        "cancellable": bool(manageable and b.get("subscription_id") and is_paid(shop)),
+        "cancel_at_period_end": False,
+        "current_period_end": None,
     }
+    sub = _subscription(shop) if state["cancellable"] else None
+    if sub:
+        state["cancel_at_period_end"] = bool(sub.get("cancel_at_period_end"))
+        state["current_period_end"] = sub.get("current_period_end")
+    return state
 
 
 def confirm_session(shop: str, session_id: str) -> bool:
@@ -139,6 +173,20 @@ def register(app) -> None:
         if not billing_enabled():
             raise HTTPException(400, "Billing isn't enabled.")
         return {"url": create_portal(shop)}
+
+    @app.post("/v1/billing/cancel")
+    def billing_cancel(shop: str = Depends(require_shop)) -> dict:
+        """Cancel at the end of the current period (keeps access until then)."""
+        if not billing_enabled():
+            raise HTTPException(400, "Billing isn't enabled.")
+        return set_cancel(shop, True)
+
+    @app.post("/v1/billing/resume")
+    def billing_resume(shop: str = Depends(require_shop)) -> dict:
+        """Undo a scheduled cancellation — keep the subscription running."""
+        if not billing_enabled():
+            raise HTTPException(400, "Billing isn't enabled.")
+        return set_cancel(shop, False)
 
     @app.post("/webhooks/stripe")
     async def stripe_webhook(request: Request) -> dict:

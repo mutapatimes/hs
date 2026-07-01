@@ -1227,18 +1227,40 @@ function openSettings(){
       if(!b.enabled){box.innerHTML=`<div style="${P};margin:0">You have full access — no billing is required at the moment.</div>`;return;}
       const label=LBLMAP[b.status]||b.status;
       const dot=b.paid?'#0f7b4f':'#8a6d3b';
+      const fmt=ts=>ts?new Date(ts*1000).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}):"";
       let h=`<div style="font:600 13px system-ui;color:${dot};margin-bottom:12px">● Plan: ${label}</div>`;
       if(b.comped){h+=`<p style="${P};margin:0">Your access is complimentary — there's nothing to manage.</p>`;}
-      else if(b.manageable){h+=`<p style="${P}">Update your card, view invoices, or cancel any time in the Stripe portal.</p><button id="billBtn" style="${BP}">Manage billing →</button>`;}
-      else{h+=`<p style="${P}">Subscribe to unlock the full dashboard.</p><button id="billBtn" style="${BP}">Subscribe →</button>`;}
+      else if(b.manageable){
+        if(b.cancel_at_period_end){
+          h+=`<p style="${P}">Your subscription is set to cancel on <b>${fmt(b.current_period_end)}</b>. You keep full access until then.</p>`
+            +`<div style="display:flex;gap:8px;flex-wrap:wrap"><button id="billResume" style="${BP}">Resume subscription</button>`
+            +`<button id="billPortal" style="${BS}">Manage billing →</button></div>`;
+        } else {
+          h+=`<p style="${P}">Update your card or view invoices in the Stripe portal, or cancel below. Cancelling keeps access until the end of your current period.</p>`
+            +`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button id="billPortal" style="${BP}">Manage billing →</button>`
+            +`<button id="billCancel" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0 8px">Cancel subscription</button></div>`;
+        }
+      }
+      else{h+=`<p style="${P}">Subscribe to unlock the full dashboard.</p><button id="billSub" style="${BP}">Subscribe →</button>`;}
       box.innerHTML=h;
-      const btn=document.getElementById("billBtn");
-      if(btn) btn.onclick=()=>{const goManage=b.manageable;btn.disabled=true;btn.textContent="One moment…";
-        fetch(goManage?"/v1/billing/portal":"/v1/checkout",{method:"POST"})
-          .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
-            if(!ok||!d.url)throw new Error((d&&d.detail)||"Couldn't open billing.");location.href=d.url;})
-          .catch(e=>{toast("Billing error: "+e.message);btn.disabled=false;btn.textContent=goManage?"Manage billing →":"Subscribe →";});
-      };
+      const openUrl=(url,btn,label)=>{btn.disabled=true;btn.textContent="One moment…";
+        fetch(url,{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+          if(!ok||!d.url)throw new Error((d&&d.detail)||"Couldn't open billing.");location.href=d.url;})
+          .catch(e=>{toast("Billing error: "+e.message);btn.disabled=false;btn.textContent=label;});};
+      const sub=document.getElementById("billSub"); if(sub) sub.onclick=()=>openUrl("/v1/checkout",sub,"Subscribe →");
+      const portal=document.getElementById("billPortal"); if(portal) portal.onclick=()=>openUrl("/v1/billing/portal",portal,"Manage billing →");
+      const setCancel=(url,confirmMsg)=>{
+        if(confirmMsg&&!confirm(confirmMsg))return;
+        fetch(url,{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+          if(!ok)throw new Error((d&&d.detail)||"failed");
+          SETTINGS.billing=Object.assign({},b,{cancel_at_period_end:d.cancel_at_period_end,current_period_end:d.current_period_end});
+          toast(d.cancel_at_period_end?"Subscription will cancel at period end.":"Subscription resumed.");
+          paintBilling(SETTINGS.billing);})
+          .catch(e=>toast("Billing error: "+e.message));};
+      const canc=document.getElementById("billCancel");
+      if(canc) canc.onclick=()=>setCancel("/v1/billing/cancel","Cancel your subscription? You'll keep full access until the end of your current billing period.");
+      const res=document.getElementById("billResume");
+      if(res) res.onclick=()=>setCancel("/v1/billing/resume",null);
     }
     function loadBilling(){
       if(SETTINGS.billing){paintBilling(SETTINGS.billing);return;}
