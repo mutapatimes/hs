@@ -54,7 +54,9 @@ HIGH = 600_000
 # A robust median needs a few sales; ignore thin outcodes.
 MIN_SALES = 30
 
-YEARLY_URL = "http://prod.publicdata.landregistry.gov.uk/pp-{year}.csv"
+# HM Land Registry serves Price Paid Data from this S3 website endpoint. (The old
+# vanity host prod.publicdata.landregistry.gov.uk no longer resolves.)
+YEARLY_URL = "http://prod.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com/pp-{year}.csv"
 # Land Registry Price Paid columns (headerless): 1 = price, 3 = postcode, 11 = town.
 COL_PRICE, COL_POSTCODE, COL_TOWN = 1, 3, 11
 
@@ -142,6 +144,13 @@ def build(files: list[Path], merge: bool) -> None:
             n += 1
         print(f"  {n:,} sales")
 
+    # Existing rows, so we can preserve hand-curated area labels and non-EW rows.
+    existing = _load_existing(UK_PROPERTY_VALUES_FILE) if merge else []
+    curated_area = {
+        row[0].strip().upper().replace(" ", ""): row[1].strip()
+        for row in existing if len(row) > 1 and row[1].strip()
+    }
+
     # England & Wales rows from the data.
     ew_rows: dict[str, list[str]] = {}
     for oc, plist in prices.items():
@@ -151,16 +160,20 @@ def build(files: list[Path], merge: bool) -> None:
         tier = _tier(med)
         if tier is None:
             continue
-        area = max(towns[oc].items(), key=lambda kv: kv[1])[0] if towns[oc] else oc
+        # Prefer a hand-curated district label: Land Registry's town column is just
+        # "LONDON" for every London outcode, which loses the "Mayfair"/"Belgravia" feel
+        # the merchant-facing reason string relies on. Fall back to the most common town
+        # in the data, then to the bare outcode.
+        data_town = max(towns[oc].items(), key=lambda kv: kv[1])[0] if towns[oc] else oc
+        area = curated_area.get(oc) or data_town
         ew_rows[oc] = [oc, area, str(med), tier]
 
     # Merge: keep any existing row whose outcode the data did NOT cover (e.g. Scotland).
     final: dict[str, list[str]] = {}
-    if merge:
-        for row in _load_existing(UK_PROPERTY_VALUES_FILE):
-            oc = row[0].strip().upper().replace(" ", "")
-            if oc not in ew_rows:
-                final[oc] = row
+    for row in existing:
+        oc = row[0].strip().upper().replace(" ", "")
+        if oc not in ew_rows:
+            final[oc] = row
     final.update(ew_rows)
 
     ordered = sorted(final.values(), key=lambda r: -int(r[2]))

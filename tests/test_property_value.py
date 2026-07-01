@@ -80,9 +80,9 @@ def test_property_value_scores_by_default_and_is_not_an_origin_proxy():
 
 
 def test_tier_grades_the_weight():
-    # Fulham (prime) outscores Henley (high) on the same machinery. Use postcodes whose
+    # Barnes (prime) outscores Henley (high) on the same machinery. Use postcodes whose
     # outcode is NOT also on the hnwi list, so property_value is the sole geo tell.
-    prime = score_customers(_row("SW6 1AA")).iloc[0]   # Fulham, 'prime', w3
+    prime = score_customers(_row("SW13 9AA")).iloc[0]   # Barnes, 'prime', w3
     high = score_customers(_row("RG9 2AA")).iloc[0]     # Henley, 'high', w2
     assert prime[SCORE_COL] == PROPERTY_TIER_WEIGHTS["prime"]
     assert high[SCORE_COL] == PROPERTY_TIER_WEIGHTS["high"]
