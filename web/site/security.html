@@ -195,6 +195,82 @@
   </div>
 </div></section>
 
+<!-- COMPLIANCE STRIP -->
+<style>
+  .cmpl-head{display:flex;align-items:baseline;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:6px}
+  .cmpl-legend{display:flex;gap:18px;color:var(--faint);font-size:12.5px;flex-wrap:wrap}
+  .cmpl-legend span{display:inline-flex;align-items:center;gap:7px}
+  .cmpl-legend i{width:22px;height:0;border-top:1.5px solid var(--gold);display:inline-block}
+  .cmpl-legend i.soon{border-top-style:dashed;border-color:var(--faint)}
+  .cmpl-group{margin-top:30px}
+  .cmpl-group>h3{font:500 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin:0 0 4px}
+  .cmpl-group>p{color:var(--faint);font-size:13px;margin:0 0 14px;max-width:70ch}
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{border:1px solid var(--line);border-radius:999px;padding:9px 15px;font-size:13px;color:var(--mute);background:var(--bg);white-space:nowrap}
+  .chip.soon{border-style:dashed;color:var(--faint)}
+  .chip.soon::after{content:"in progress";margin-left:8px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);opacity:.85}
+</style>
+<section class="pad" style="padding-top:0"><div class="wrap">
+  <div class="cmpl-head reveal">
+    <div>
+      <div class="eyebrow" style="margin-bottom:16px">Compliance &amp; standards</div>
+      <h2 class="h2" style="max-width:20ch">The full picture, honestly labelled.</h2>
+    </div>
+    <div class="cmpl-legend"><span><i></i> In place</span><span><i class="soon"></i> On the roadmap</span></div>
+  </div>
+
+  <div class="cmpl-group reveal d1">
+    <h3>Certified — via our infrastructure (Render)</h3>
+    <p>Independent audits held by our host, Render, and inherited by anything that runs on it. These certify the infrastructure, not Halia's own application.</p>
+    <div class="chips">
+      <span class="chip">SOC 2 Type II</span><span class="chip">ISO/IEC 27001</span>
+      <span class="chip">Annual third-party penetration test</span><span class="chip">GDPR Data Processing Agreement</span>
+      <span class="chip">SOC 3 (public report)</span><span class="chip">Automated backups &amp; DDoS protection</span>
+    </div>
+  </div>
+
+  <div class="cmpl-group reveal d1">
+    <h3>How Halia is built</h3>
+    <p>Controls in our own code and configuration — the ones we can point to line by line (see the shell below).</p>
+    <div class="chips">
+      <span class="chip">Zero customer-data retention</span><span class="chip">In-memory scoring, then discarded</span>
+      <span class="chip">AES-128 encryption at rest (Fernet)</span><span class="chip">TLS in transit</span>
+      <span class="chip">Encryption key held apart from the database</span><span class="chip">Read-only, least-privilege store scopes</span>
+      <span class="chip">Per-IP rate limiting</span><span class="chip">No customer data in logs or on disk</span>
+      <span class="chip">No secrets in source control</span>
+    </div>
+  </div>
+
+  <div class="cmpl-group reveal d1">
+    <h3>Aligned with — self-assessed</h3>
+    <p>Frameworks we design and build against. These are our own assessments, not third-party certifications.</p>
+    <div class="chips">
+      <span class="chip">OWASP Top Ten</span><span class="chip">NIST Cybersecurity Framework</span>
+      <span class="chip">GDPR Recital 71 / Article 22 safeguards</span><span class="chip">DPIA &amp; LIA on file</span>
+      <span class="chip">Responsible-disclosure policy</span>
+    </div>
+  </div>
+
+  <div class="cmpl-group reveal d1">
+    <h3>Regulatory posture — UK, as your processor</h3>
+    <p>For your customer data you are the controller; Halia is your processor, acting only on your instructions.</p>
+    <div class="chips">
+      <span class="chip">UK GDPR &amp; Data Protection Act 2018</span><span class="chip">Controller–processor model</span>
+      <span class="chip">DPA available on request</span><span class="chip">Subprocessor list on request</span>
+    </div>
+  </div>
+
+  <div class="cmpl-group reveal d1">
+    <h3>On the roadmap</h3>
+    <p>Being worked towards — stated as coming, never as done. We will move each to the lists above only once it is genuinely complete.</p>
+    <div class="chips">
+      <span class="chip soon">Halia SOC 2 Type II</span><span class="chip soon">Halia ISO/IEC 27001</span>
+      <span class="chip soon">Independent penetration test of Halia</span><span class="chip soon">Encryption key in a managed KMS</span>
+      <span class="chip soon">ICO registration</span>
+    </div>
+  </div>
+</div></section>
+
 <style>
   .term{max-width:940px;margin:0 auto;background:#0a0d0c;border:1px solid #1d2925;border-radius:12px;overflow:hidden;box-shadow:0 40px 90px -50px rgba(0,0,0,.7)}
   .term-bar{display:flex;align-items:center;gap:7px;padding:11px 14px;background:#101614;border-bottom:1px solid #1d2925}
