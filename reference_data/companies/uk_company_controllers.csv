@@ -1,0 +1,29 @@
+# UK company controllers — Companies House PSC / director name reference (SEED).
+#
+# Read by scoring/signals/companies_house.py. A customer whose name matches an entry
+# here is flagged as someone who owns or controls a UK company (a wealth/work fact).
+#
+# This is a small SEED for out-of-the-box behaviour and tests. Matching is on NAME ALONE
+# against a public register, so it is CORROBORATION-ONLY (never a sole basis) in the
+# combiner. Regenerate to national coverage from the free Companies House "People with
+# Significant Control (PSC) snapshot" with:
+#
+#     python scripts/build_company_controllers.py
+#
+# Columns: name, role   (role is optional; used only in the human-readable reason)
+name,role
+James Dyson,Founder & PSC
+Richard Branson,Founder & PSC
+Anita Roddick,Founder
+Charles Dunstone,Founder & PSC
+Brent Hoberman,Founder & Director
+Martha Lane Fox,Founder & Director
+Michael Ashley,Founder & PSC
+Peter Hargreaves,Co-founder & PSC
+Stephen Lansdown,Co-founder & PSC
+Denise Coates,Founder & PSC
+Alex Chesterman,Founder & Director
+Nick Jones,Founder & Director
+Tom Blomfield,Founder & Director
+Rishi Khosla,Co-founder & PSC
+Anne Boden,Founder & Director

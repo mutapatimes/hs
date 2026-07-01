@@ -18,6 +18,7 @@ from scoring.signals import (
     assistant_order,
     card_bin,
     card_brand,
+    companies_house,
     company_keyword,
     custom_email,
     domain_keyword,
@@ -82,6 +83,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "foreign_currency": 1,
     "card_brand": 1,
     "rich_list": 1,
+    "companies_house": 1,  # PSC/director name match — very broad, corroboration-only (see SUPPORTING_SIGNALS)
     "fashion_stylist": 2,  # celebrity stylist / personal shopper — high-value, name-match (verify)
     "stylist_directory": 1,  # broad stylist directory — corroboration-only (see SUPPORTING_SIGNALS)
     "ip_location": 1,
@@ -126,7 +128,12 @@ SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
                       # VIC on its own — half a store's buyers can have one. It corroborates
                       # (e.g. alongside a premium provider, company billing, or prime
                       # postcode) but never surfaces a customer by itself.
-                      "custom_email"}
+                      "custom_email",
+
+                      # A Companies House PSC/director name match is drawn from a register of
+                      # millions, so name-alone collisions are common. Unlike the curated
+                      # rich_list, it must never be a sole basis — it only corroborates.
+                      "companies_house"}
 
 # Some signals are CORRELATED — they encode the same underlying fact from
 # different fields. Three "this person is in the UAE" tells (billing country,
@@ -153,6 +160,7 @@ SIGNAL_GROUP: dict[str, str] = {
     # Name-based tells are correlated ("their name signals status") — group them
     # so a rich-list + dynasty-surname + name-structure pile-up doesn't stack.
     "rich_list": "name",
+    "companies_house": "name",  # a name-based control tell — correlated with other name tells
     "fashion_stylist": "name",
     "stylist_directory": "name",
     "heritage_surname": "name",
@@ -234,6 +242,8 @@ SIGNALS = [
      landline.FLAG_COL, lambda r: r[landline.REASON_COL]),
     ("rich_list", "Rich list", rich_list.flag_rich_list,
      rich_list.FLAG_COL, lambda r: r[rich_list.REASON_COL]),
+    ("companies_house", "Companies House", companies_house.flag_companies_house,
+     companies_house.FLAG_COL, lambda r: r[companies_house.REASON_COL]),
     ("fashion_stylist", "Fashion stylist", fashion_stylist.flag_fashion_stylist,
      fashion_stylist.FLAG_COL, lambda r: r[fashion_stylist.REASON_COL]),
     ("stylist_directory", "Possible stylist", stylist_directory.flag_stylist_directory,
