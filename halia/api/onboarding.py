@@ -1,10 +1,12 @@
 """Self-service onboarding + hosted dashboard for non-Shopify clients (WooCommerce now).
 
 A client connects their store at **/connect**: store URL + read-only WooCommerce REST keys
-(plus the signup code, if one is configured). We validate the creds with one live read,
-create a tenant with the creds encrypted, and hand back a private dashboard link
-(**/app?t=<token>**). The dashboard pulls + scores in RAM (zero-retention) and shows their
-hidden VICs + Settings. No env files, no engineer in the loop.
+(plus the signup code, if one is configured). We validate the creds with one live read and
+create a tenant with the creds encrypted. On completion we sign the browser in directly
+(a signed `halia_s` session cookie — no raw token in the URL) and email them a durable
+sign-in link for their other devices. Later sign-ins use the email-first magic link at
+/app. The dashboard pulls + scores in RAM (zero-retention) and shows their hidden VICs +
+Settings. No env files, no engineer in the loop.
 
 First load triggers a background sync (a full store pull can take a while) and shows a
 "preparing" page that auto-refreshes; once the RAM cache is warm the dashboard renders.
@@ -21,7 +23,7 @@ import time
 import traceback
 
 from fastapi import Body, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from halia import config
 from halia.api import data
@@ -203,6 +205,25 @@ def _magic_pop(k: str) -> str | None:
     _magic_prune()
     v = _MAGIC.pop(k or "", None)
     return v["shop"] if v else None
+
+
+def _send_welcome_signin_email(email: str, link_path: str, label: str = "") -> bool:
+    """Email the tenant their durable sign-in link at onboarding (instead of showing it on
+    screen). Returns True if actually sent. First use of the link hands out a session."""
+    from halia import notify as _notify
+    if not email or not _notify.email_configured():
+        return False
+    base = (config.HALIA_APP_URL or "").rstrip("/")
+    url = link_path if link_path.startswith("http") else f"{base}{link_path}"
+    who = f", {html.escape(label)}" if label else ""
+    body = (
+        f"<p>Welcome to Halia{who}.</p>"
+        "<p>Your private dashboard is ready. Open it with the link below — it signs you in on "
+        "this device, so there is nothing to paste.</p>"
+        f"<p><a href='{url}'>Open my Halia dashboard</a></p>"
+        "<p style='color:#8a8a8a;font-size:13px'>Keep this link private. You can always get a "
+        "fresh one-time sign-in link by entering your email at the sign-in page.</p>")
+    return _notify.send_email(email, "Your Halia dashboard is ready", body)
 
 
 def _shop_for_email(email: str) -> str | None:
@@ -1135,11 +1156,14 @@ function finish(){
      var d=res.d;
      sp.style.display='none';
      document.getElementById('donetitle').innerHTML='Your store is <em>connected.</em>';
-     document.getElementById('donelede').textContent=d.platform_warning?d.platform_warning:'Halia is scoring your customers right now. Your hidden VICs are moments away.';
+     var msg=d.platform_warning?d.platform_warning:'Halia is scoring your customers right now. Your hidden VICs are moments away.';
+     if(d.emailed&&d.email)msg+=' We have also emailed a sign-in link to '+d.email+' for your other devices.';
+     document.getElementById('donelede').textContent=msg;
      document.getElementById('donesub').textContent=d.platform_warning?'':'Done.';
-     document.getElementById('openbtn').href=d.link;
+     var dest=d.app_url||'/app';
+     document.getElementById('openbtn').href=dest;
      document.getElementById('donerow').style.display='flex';
-     if(!d.platform_warning)setTimeout(function(){location.href=d.link;},1500);
+     if(!d.platform_warning)setTimeout(function(){location.href=dest;},1500);
    })
    .catch(function(e){
      var m=e.message||'Something went wrong.';
@@ -1293,8 +1317,16 @@ def register(app) -> None:
         }))
         connected, warning = _connect_marketing(store, shop, g("platform"), g("api_key"))
         _start_sync(shop, notify=True)  # warm the cache while they read the closing screen
-        return {"ok": True, "link": f"/app?t={link_token}", "label": label,
-                "platform_connected": connected, "platform_warning": warning}
+        # Sign this browser in directly (signed session cookie) — no raw token in the URL —
+        # and email the durable sign-in link for their other devices / next time.
+        emailed = _send_welcome_signin_email(acct, f"/app?t={link_token}", label)
+        resp = JSONResponse({"ok": True, "app_url": "/app", "emailed": emailed, "email": acct,
+                             "label": label, "platform_connected": connected,
+                             "platform_warning": warning})
+        resp.set_cookie(SESSION_COOKIE, make_session(shop), httponly=True,
+                        secure=(config.HALIA_APP_URL or "").startswith("https"),
+                        samesite="lax", max_age=60 * 60 * 24 * 365)
+        return resp
 
     @app.post("/v1/detect")
     def detect_store(payload: dict = Body(...)) -> dict:

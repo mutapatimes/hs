@@ -141,7 +141,8 @@ def test_app_shows_signin_without_valid_session(client):
     assert r.status_code == 200 and "Sign in" in r.text
 
 
-def test_onboard_json_creates_tenant_settings_and_link(client):
+def test_onboard_json_creates_tenant_settings_and_signs_in(client):
+    from halia.api.tenant_auth import SESSION_COOKIE
     c, store = client
     r = c.post("/v1/onboard", json={
         "store_url": "https://glennorah.co.uk", "consumer_key": "ck_x", "consumer_secret": "cs_x",
@@ -150,12 +151,29 @@ def test_onboard_json_creates_tenant_settings_and_link(client):
     })
     assert r.status_code == 200
     d = r.json()
-    assert d["ok"] and d["link"].startswith("/app?t=") and d["platform_connected"] is False
+    # No raw token handed back; the browser is signed in via a session cookie instead.
+    assert d["ok"] and d["app_url"] == "/app" and "link" not in d
+    assert d["platform_connected"] is False
+    assert SESSION_COOKIE in r.cookies
     t = store.get_tenant("glennorah-co-uk")
     assert t and t["kind"] == "woocommerce" and t["label"] == "Glen Norah"
     import json
     s = json.loads(store.get_settings_raw("glennorah-co-uk"))
     assert s["vic_threshold"] == 8000 and s["sender_name"] == "Amara"
+
+
+def test_onboard_emails_signin_link_when_email_configured(client, monkeypatch):
+    c, store = client
+    sent = {}
+    monkeypatch.setattr("halia.notify.email_configured", lambda: True)
+    monkeypatch.setattr("halia.notify.send_email",
+                        lambda to, subj, html, text=None: sent.update(to=to, html=html) or True)
+    r = c.post("/v1/onboard", json={
+        "store_url": "https://mayfair.co.uk", "consumer_key": "ck", "consumer_secret": "cs",
+        "email": "owner@mayfair.co.uk", "label": "Mayfair", "accept_terms": True, "platform": ""})
+    d = r.json()
+    assert d["emailed"] is True and d["email"] == "owner@mayfair.co.uk"
+    assert sent["to"] == "owner@mayfair.co.uk" and "/app?t=" in sent["html"]
 
 
 def test_onboard_requires_terms_acceptance(client):
@@ -233,7 +251,7 @@ def test_onboard_shopify_creates_tenant_and_saves_token(client, monkeypatch):
     r = c.post("/v1/onboard", json={"source": "shopify", "shop_domain": "acme.myshopify.com",
                                     "admin_token": "shpat_xyz", "label": "Acme", "platform": "",
                                     "accept_terms": True})
-    assert r.status_code == 200 and r.json()["link"].startswith("/app?t=")
+    assert r.status_code == 200 and r.json()["app_url"] == "/app"
     t = store.get_tenant("acme.myshopify.com")
     assert t and t["kind"] == "shopify"
     assert store.get_token("acme.myshopify.com") == "shpat_xyz"
