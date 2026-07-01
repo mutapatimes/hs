@@ -146,7 +146,14 @@ SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
                       # geo_confirmation is agreement-as-confidence: a phone/email jurisdiction
                       # AGREEING with a high-value address. It requires a wealth-geo signal to
                       # have fired, so it can never originate a score — pure corroboration.
-                      "geo_confirmation"}
+                      "geo_confirmation",
+
+                      # NAME-MATCH BRIGHT LINE: no name-only match surfaces a customer alone.
+                      # A name matched against a list (rich_list, a celebrity stylist) is a
+                      # namesake-collision risk, so — like companies_house — it only corroborates.
+                      # (heritage_surname / name_structure / nobiliary_particle are gated origin
+                      # proxies; post_nominal is a name-borne credential — all held to the same line.)
+                      "rich_list", "fashion_stylist", "post_nominal"}
 
 # Some signals are CORRELATED — they encode the same underlying fact from
 # different fields. Three "this person is in the UAE" tells (billing country,
@@ -199,8 +206,13 @@ VIC_SPEND_THRESHOLD = 5000.0
 
 SCORE_COL = "signal_score"
 COUNT_COL = "signal_count"
+CONFIDENCE_COL = "signal_confidence"   # breadth of INDEPENDENT evidence (distinct groups fired)
 REASONS_COL = "reasons"
 HIDDEN_COL = "hidden_vic"
+
+# Engine identity for audit: every scored payload can carry a version + a fingerprint of the
+# active weights/gates, so "why did this customer score this way in March" has an exact answer.
+ENGINE_VERSION = "1.1"
 
 
 def _reason_delivery(row: pd.Series) -> str:
@@ -302,6 +314,9 @@ SIGNALS = [
 CORE_DATA_ONLY = True
 # premium_card (BIN -> issuer/tier) is ACTIVE: payment method as a signal + filter.
 # card_brand (Amex/Diners) and foreign_currency remain parked.
+# foreign_currency is DELIBERATELY in BOTH this set and ORIGIN_PROXY_SIGNALS: parked removes it
+# now (transaction data we don't score), and the origin-proxy membership is belt-and-suspenders —
+# if anyone ever un-parks it (CORE_DATA_ONLY=False), it still stays gated as origin-correlated.
 PARKED_SIGNALS = {"card_brand", "foreign_currency"}
 
 # Signals that sort by national / ethnic / name origin rather than by wealth facts.
@@ -418,8 +433,23 @@ def score_customers(
                 parts.append(f"{label}: {reason_fn(row)}")
         return "; ".join(parts)
 
+    # Confidence = breadth of INDEPENDENT evidence: how many distinct groups fired, counting
+    # only CORE (non-supporting) signals and treating an ungrouped signal as its own group. A
+    # one-group A* ("strong signal, single source") is a very different object from a four-group
+    # A* ("strong signal, corroborated") — this turns the correlation-decay structure into a
+    # user-facing trust cue without changing the score.
+    group_fired: dict[str, np.ndarray] = {}
+    for key, arr in fired_of.items():
+        if key in SUPPORTING_SIGNALS:
+            continue
+        g = SIGNAL_GROUP.get(key, key)
+        group_fired[g] = group_fired.get(g, np.zeros(n, dtype=bool)) | arr
+    confidence = (np.sum([a.astype(int) for a in group_fired.values()], axis=0)
+                  if group_fired else np.zeros(n, dtype=int))
+
     out[SCORE_COL] = score
     out[COUNT_COL] = count
+    out[CONFIDENCE_COL] = confidence
     out[REASONS_COL] = out.apply(build_reasons, axis=1)
 
     if "Spent" in out.columns:
@@ -438,3 +468,25 @@ def top_hidden_vics(df: pd.DataFrame, n: int = 20) -> pd.DataFrame:
     if "Spent" in hidden.columns:
         sort_cols.append("Spent")
     return hidden.sort_values(sort_cols, ascending=False).head(n)
+
+
+def config_fingerprint() -> dict:
+    """Engine version + a short hash of the ACTIVE scoring config (weights, gates, groups, decay,
+    threshold). Surfaced on the scored payload so 'why did this customer score this way in March'
+    has an exact, checkable answer — the configuration that produced it. Turns 'explain every
+    score' from a claim into an audit property."""
+    import hashlib
+    import json
+
+    payload = {
+        "weights": SIGNAL_WEIGHTS,
+        "groups": SIGNAL_GROUP,
+        "group_decay": GROUP_DECAY,
+        "origin_proxies": sorted(ORIGIN_PROXY_SIGNALS),
+        "supporting": sorted(SUPPORTING_SIGNALS),
+        "parked": sorted(PARKED_SIGNALS),
+        "core_data_only": CORE_DATA_ONLY,
+        "vic_threshold": VIC_SPEND_THRESHOLD,
+    }
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()[:12]
+    return {"version": ENGINE_VERSION, "hash": digest}

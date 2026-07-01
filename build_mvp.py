@@ -94,7 +94,8 @@ def _initials(name: object) -> str:
 # outcomes; until then this is a research-anchored heuristic, not a forecast.
 _LATENT_FREQ = {"A1": 6, "A": 5, "B": 4, "C": 3}            # target orders / year
 _LATENT_AOV_UPLIFT = {"A1": 2.0, "A": 1.8, "B": 1.5, "C": 1.3}
-_LATENT_CAP = 100_000                                       # sanity ceiling
+_LATENT_CAP = 100_000                                       # absolute sanity ceiling
+_LATENT_MULTIPLE = 12                                       # never project > ~12x a client's own value
 
 
 def _store_aov(df: pd.DataFrame) -> float:
@@ -135,15 +136,20 @@ def _latent(spend: float, orders: int, tier: str, store_aov: float,
     way). Without benchmarks we fall back to the old store-AOV heuristic.
     """
     b = benchmarks or {}
+    # Credibility guardrail: never project more than ~12x a client's own current value. A
+    # £1,200 client scored 97 should read as "worth ~£14k if nurtured", NOT "£94k / 99% of your
+    # best-ever client" — over-promised latent value is the fastest way to lose a clienteling
+    # director's trust in month two. max(spend, store_aov) keeps a near-zero-spend row sensible.
+    cap = max(spend, store_aov) * _LATENT_MULTIPLE
     target = max(float(b.get("highest_lt") or 0),
                  float(b.get("aov") or 0) * float(b.get("max_orders") or 0))
     if target > 0:
         latent = spend + max(0.0, target - spend) * (max(0, min(100, score)) / 100.0)
-        return int(round(min(latent, target), -2))
+        return int(round(min(latent, target, cap), -2))
     client_aov = spend / orders if orders else spend
     base_aov = max(client_aov, store_aov)
     est = base_aov * _LATENT_AOV_UPLIFT.get(tier, 1.5) * _LATENT_FREQ.get(tier, 4)
-    return int(round(min(est, _LATENT_CAP), -2))           # nearest £100
+    return int(round(min(est, _LATENT_CAP, cap), -2))      # nearest £100
 
 
 def _location(row: pd.Series) -> str:
@@ -223,6 +229,8 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
         "spend": int(round(spend)),
         "latent": _latent(spend, n_orders, t, store_aov, s100, benchmarks),
         "count": len(sigs),
+        "confidence": int(_num(row.get("signal_confidence"))),  # distinct evidence groups fired
+
         "ordersCount": n_orders,
         "aov": int(round(spend / n_orders)) if n_orders else int(round(spend)),
         "last": last_label,
@@ -351,12 +359,15 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
                                "phone": _text(r.get("PHONE")),
                                "grade": GRADE_LABEL.get(t, t), "tier": t, "score": s100}
 
+    from scoring.combine import config_fingerprint
+
     return {
         "segments": segments, "data": data,
         "orders": _orders_list(raw_orders, score_map),
         "stat_scored": f"{len(scored):,}", "stat_latent": _fmt_money(latent_total),
         "stat_count": str(hidden_count), "stat_avgspend": _fmt_money(avg_spend),
         "stat_toptier": str(top_tier),
+        "engine": config_fingerprint(),   # version + config hash — audit trail for every payload
     }
 
 

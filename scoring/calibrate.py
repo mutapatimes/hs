@@ -12,11 +12,18 @@ its **spend lift**: the mean spend of customers for whom the signal fired, divid
 mean spend across all customers. Lift > 1 means "when this signal fires, this merchant's
 customers spend more than average" → the signal earns a higher weight; lift < 1 → lower.
 
-This calibrates on a *snapshot* of realised spend, not on a longitudinal "did this flagged
-hidden-VIC later convert" label (we don't retain that history). It is therefore a measure of
-"does this signal track spending power for THIS merchant's customers", which is the right,
-available proxy. Adjustments are bounded (a signal can be at most doubled or halved) and only
-applied when enough customers fired the signal, so a handful of outliers can't swing a weight.
+**DIRECTIONAL-BIAS WARNING (read before trusting these numbers).** This calibrates on a
+*snapshot* of realised spend, not on a longitudinal "did this flagged hidden-VIC later convert"
+label. That is not merely a data limitation — it is a bias *against Halia's own thesis*. The
+product exists to find people whose wealth signals fire *despite* low current spend; a signal
+that is brilliant at that (e.g. `wealth_structure`) will show WEAK spend lift precisely because
+its best catches haven't converted yet, and naive calibration would down-weight it toward the
+signals that merely track existing spend — i.e. RFM through the back door, erasing the
+differentiator. So v1 is deliberately **timid**: adjustments are tightly bounded (a weight can
+move at most ~±25%) and gated on a minimum sample, and this is offered preview-first, not
+auto-applied. The real fix is to calibrate on **conversion outcomes** (did surfaced VICs become
+top clients) once that longitudinal / associate-feedback data exists; until then, prefer small
+nudges over big swings, and never let it zero the hidden-wealth signals.
 
 Everything here is pure and offline: it reads a frame, returns numbers / a new weights dict.
 Nothing is persisted; the caller decides whether to adopt the suggested weights.
@@ -31,8 +38,10 @@ SPEND_COL = "Spent"
 # Don't move a weight unless at least this many customers fired the signal — protects
 # against a couple of big spenders swinging a rarely-fired signal.
 MIN_FIRED = 25
-# Bound how far one calibration pass can move a weight (multiplier on the base weight).
-LO, HI = 0.5, 2.0
+# Bound how far one calibration pass can move a weight (multiplier on the base weight). Kept
+# TIGHT on purpose (see the directional-bias warning above): snapshot spend lift is biased
+# against hidden-wealth signals, so v1 nudges (±25%), it does not swing (±100%).
+LO, HI = 0.8, 1.25
 
 
 def _spend(df: pd.DataFrame, spend_col: str) -> pd.Series:

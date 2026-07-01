@@ -16,7 +16,7 @@ from dataclasses import asdict, dataclass, field
 
 import pandas as pd
 
-from scoring.combine import COUNT_COL, HIDDEN_COL, REASONS_COL, SCORE_COL
+from scoring.combine import CONFIDENCE_COL, COUNT_COL, HIDDEN_COL, REASONS_COL, SCORE_COL
 from scoring.grading import GRADE_LABEL, gesture_for, tier_for, to_score100
 from scoring.shopify import LATEST_COLS
 
@@ -69,12 +69,22 @@ class ScoreResult:
     customer_id: str | None = None
     email: str | None = None
     phone: str | None = None
+    # Breadth of INDEPENDENT evidence: how many distinct signal groups fired (1 = single-source,
+    # 2+ = corroborated). Distinct from score, which is how STRONG the evidence is.
+    confidence: int = 0
 
     # The keys scoring/realtime.py has always returned to the POS — kept stable.
     POS_KEYS = (
         "matched", "flagged", "tier", "grade", "score", "is_priority",
-        "signal_count", "signals", "reasons", "gesture", "spend",
+        "signal_count", "confidence", "signals", "reasons", "gesture", "spend",
     )
+
+    @property
+    def confidence_label(self) -> str:
+        """Human trust cue: 'single source' vs 'corroborated (N sources)'."""
+        if self.confidence <= 1:
+            return "single source"
+        return f"corroborated ({self.confidence} sources)"
 
     @classmethod
     def no_match(cls) -> "ScoreResult":
@@ -106,7 +116,7 @@ class ScoreResult:
             matched=True, flagged=True, tier=tier, grade=GRADE_LABEL.get(tier, tier),
             score=s100, is_priority=tier in ("A1", "A"), signal_count=count,
             signals=_signal_labels(reasons), reasons=reasons, gesture=gesture_for(tier),
-            spend=spend, hidden_vic=hidden, **ident,
+            spend=spend, hidden_vic=hidden, confidence=int(row.get(CONFIDENCE_COL) or 0), **ident,
         )
 
     def pos_dict(self) -> dict:

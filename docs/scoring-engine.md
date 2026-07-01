@@ -144,8 +144,11 @@ descending, multiplies by `0.5 ** np.arange(width)`, sums.
 
 ### 4.3 The supporting-signal gate ("never a sole basis")
 `SUPPORTING_SIGNALS` = `{name_structure, nobiliary_particle, assistant_order, stylist_directory,
-landline, custom_email, companies_house, geo_confirmation}`. A supporting signal is **zeroed unless at
-least one non-supporting ("core") signal also fired** for that customer:
+landline, custom_email, companies_house, geo_confirmation, rich_list, fashion_stylist, post_nominal}`.
+A supporting signal is **zeroed unless at least one non-supporting ("core") signal also fired** for
+that customer. This now includes a **name-match bright line**: no name-only match (`rich_list`,
+`fashion_stylist`, `companies_house`, `post_nominal`) ever surfaces a customer *alone* — a namesake
+collision must be corroborated by a non-name signal, the same logic applied to origin:
 
 ```
 has_core = (count of fired non-supporting signals) > 0
@@ -174,17 +177,30 @@ per-merchant (Settings). `top_hidden_vics` returns the hidden set sorted by scor
 ## 5. Grade & latent value
 
 ### 5.1 Raw → 0–100 → tier ([`scoring/grading.py`](../scoring/grading.py))
-The raw weighted score (~0–8) is mapped to a friendly grade. **This mapping is provisional/display —
-not a fitted model.**
+Evidence is **not linear** — the gap between one weak tell (raw 1) and real convergent evidence
+(raw 3) is huge; the gap between raw 6 and raw 8 is marginal. So the raw score is mapped through a
+**logistic**, which compresses the top (a genuine 90+ is earned, **99 is rare**), spreads the middle
+where discrimination matters, and makes `score100` behave like a **confidence**. **Still
+provisional/display — not a fitted model.**
 
 ```
-score100 = min(99, round(50 + raw · 8))
-tier: A* (A1) if ≥90 · A if ≥78 · B if ≥64 · C otherwise
+score100 = min(99, round( 100 / (1 + e^(-0.8·(raw − 3.5))) ))
+tier: A* (A1) if ≥77 · A if ≥50 · B if ≥20 · C otherwise
 ```
 
-So in raw terms the cuts are **A\* ≥ 5.0, A ≥ 3.5, B ≥ 1.75, C below**. The 7.25 example above →
-`round(50 + 58) = 99` → **A\***. Each tier carries a discreet associate `GESTURE` (shown only to
-staff, never the client) — "offer a coffee and mention the private preview", etc.
+The centre (3.5) and cuts are tuned so the tier boundaries land at the **same raw scores as the old
+linear mapping** (A\* raw≥5.0, A raw≥3.5, B raw≥1.75) — grades don't shift, only the number is
+honest. A zero-signal customer now reads **~6, not 50**. Each tier carries a discreet associate
+`GESTURE` (staff-only) — "offer a coffee and mention the private preview", etc.
+
+### 5.1a Confidence — breadth vs strength
+`score100` says how **strong** the evidence is; **`signal_confidence`** says how much **independent**
+evidence supports it — the number of *distinct groups* that fired (counting core, non-supporting
+signals; an ungrouped signal is its own group). A one-group A\* ("strong signal, **single source**")
+is a very different object from a four-group A\* ("strong signal, **corroborated**"). It costs nothing
+extra to compute (the group structure already exists) and turns the correlation-decay maths into a
+user-facing trust cue on the associate's screen. Surfaced on `ScoreResult.confidence` /
+`.confidence_label`.
 
 ### 5.2 Latent value ([`build_mvp.py:_latent`](../build_mvp.py))
 The projected annual value if this client is nurtured into a top client. **Two modes:**
@@ -192,10 +208,14 @@ The projected annual value if this client is nurtured into a top client. **Two m
 **(a) Merchant benchmarks supplied** (their AOV, most orders from one client, highest-lifetime client):
 ```
 target = max(highest_lifetime, AOV × max_orders)
-latent = spend + (target − spend) · (score100 / 100)        # rounded to £100, capped at target
+latent = spend + (target − spend) · (score100 / 100)
+latent = min(latent, target, max(spend, store_aov) · 12)    # spend-multiple guardrail, then round £100
 ```
-A 99 could realistically reach your best client; a 64 reaches ~⅔ of the way.
-*Example:* spend £1,200, score 84, highest_lt £95,000 → `1200 + 93,800·0.84 ≈ £80,000`.
+The **spend-multiple cap** is the credibility guardrail: we never project more than ~**12× a client's
+own current value**, nor above the merchant's best-ever client. Without it a £1,200 customer scored 97
+projects to ~£94k (99% of your best client ever) — the fastest way to lose a clienteling director's
+trust in month two. *Example:* spend £1,200, score 97, highest_lt £95,000 → capped at `1,200·12 =`
+**£14,400**, not £92k.
 
 **(b) Fallback heuristic** (no benchmarks) — research-anchored, not a forecast:
 ```
@@ -213,14 +233,20 @@ measures each signal's **spend lift** on a merchant's own scored data and re-tun
 
 ```
 lift[k]      = mean_spend(customers who fired k) / mean_spend(all customers)
-multiplier   = clip(lift[k], 0.5, 2.0)                     # bounded: at most halve or double
+multiplier   = clip(lift[k], 0.8, 1.25)                    # TIGHT: nudge ±25%, don't swing
 new_weight[k]= max(1, round(base_weight[k] · multiplier))  # only if ≥ MIN_FIRED (25) fired k
 ```
 
-Signals with too few firings keep their base weight; a signal is never zeroed. The result is a
-per-merchant `signal_weights` dict, adopted via `HaliaEngine(weights=…)` / the `/v1/calibrate`
-endpoints. *Honest limit:* v1 calibrates on a spend **snapshot** (no longitudinal conversion history),
-i.e. "does this signal track spend for *this* merchant".
+Signals with too few firings keep their base weight; a signal is never zeroed. Adopted via
+`HaliaEngine(weights=…)` / the `/v1/calibrate` endpoints, **preview-first, not auto-applied**.
+
+> **Directional-bias warning (the important caveat).** Spend-lift calibration is *biased against
+> Halia's own thesis.* The product finds people whose signals fire *despite* low spend, so a signal
+> that is brilliant at that (`wealth_structure`) shows **weak** spend lift precisely because its best
+> catches haven't converted yet — and naïve calibration would down-weight it toward the signals that
+> merely track existing spend, i.e. **RFM through the back door**, erasing the differentiator. That is
+> why v1 is deliberately timid (±25%). The real fix is calibrating on **conversion outcomes** (did
+> surfaced VICs become top clients) once associate-feedback / longitudinal data exists.
 
 ---
 
@@ -259,11 +285,15 @@ merchant benchmarks (AOV £1,800, max_orders 22, highest_lt £95,000), default (
    - `geo`: sort [3 (hnw_area), 2 (wealth_jurisdiction), 1 (geo_confirmation)] → 3·1 + 2·0.5 + 1·0.25 = **4.25**
    - `email`: sort [3 (domain_keyword), 1 (custom_email)] → 3·1 + 1·0.5 = **3.5**
    - `raw_score = 7.75`
-4. **Grade:** `min(99, round(50 + 7.75·8)) = min(99, 112) = 99` → **A\***.
-5. **Hidden VIC?** count = 5 > 0 and £1,200 < £5,000 → **yes**.
-6. **Latent:** target = max(95,000, 1,800·22=39,600) = 95,000; `1,200 + 93,800·0.99 ≈ £94,100`.
-7. **Output:** an A\* hidden VIC worth ~£94k, reasons listing the factual tells, associate prompt
-   "offer a coffee and mention the private preview".
+4. **Grade:** `min(99, round(100/(1+e^(-0.8·(7.75−3.5))))) = 97` → **A\*** (logistic — 99 stays rare).
+5. **Confidence:** two distinct core groups fired (`geo`, `email`) → **corroborated (2 sources)**.
+6. **Hidden VIC?** count = 5 > 0 and £1,200 < £5,000 → **yes**.
+7. **Latent:** target = max(95,000, 1,800·22) = 95,000; raw `1,200 + 93,800·0.97 ≈ £92k`, then the
+   spend-multiple cap `1,200·12 = ` **£14,400** wins → honest, not £92k.
+8. **Output:** an A\* hidden VIC, corroborated by 2 independent sources, worth ~**£14,400** if
+   nurtured; factual reasons; associate prompt "offer a coffee and mention the private preview".
+   The payload also carries an **engine fingerprint** (`{version, hash}`) so this exact score is
+   reproducible against the config that produced it.
 
 ---
 

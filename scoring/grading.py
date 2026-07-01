@@ -9,19 +9,36 @@ for the point-of-sale flag.
 """
 from __future__ import annotations
 
+import math
+
+# Logistic mapping of the raw weighted signal score (~0-8) to 0-100. Evidence is NOT linear:
+# the gap between one weak tell (raw 1) and real convergent evidence (raw 3) is huge, while the
+# gap between raw 6 and raw 8 is marginal. A logistic compresses the top (so a genuine 90+ is
+# earned, not routine, and 99 is rare), spreads the middle where discrimination matters, and
+# makes score100 behave like a CONFIDENCE — which is what latent value implicitly treats it as.
+# Tuned (centre 3.5, slope 0.8) so the tier boundaries land at the SAME raw scores as before
+# (A* raw>=5.0, A raw>=3.5, B raw>=1.75) — grades don't shift, only the number is honest.
+_LOGIT_CENTRE = 3.5
+_LOGIT_SLOPE = 0.8
+
 
 def to_score100(raw: float) -> int:
-    """Provisional 0-100 mapping of the raw weighted signal score (~0-8 range)."""
-    return int(min(99, round(50 + raw * 8)))
+    """Logistic 0-100 mapping of the raw weighted signal score. 0 signals -> ~6, not 50."""
+    s = 100.0 / (1.0 + math.exp(-_LOGIT_SLOPE * (raw - _LOGIT_CENTRE)))
+    return int(min(99, round(s)))
 
 
 def tier_for(s100: int) -> str:
-    """Score band -> tier CODE. Display labels (GRADE_LABEL): A1='A*', A, B, C."""
-    if s100 >= 90:
+    """Score band -> tier CODE. Display labels (GRADE_LABEL): A1='A*', A, B, C.
+
+    Cuts correspond to the historical raw boundaries under the logistic mapping:
+    77≈raw5.0 (A*), 50=raw3.5 (A), 20≈raw1.75 (B) — so tiers are unchanged by the reshape.
+    """
+    if s100 >= 77:
         return "A1"
-    if s100 >= 78:
+    if s100 >= 50:
         return "A"
-    if s100 >= 64:
+    if s100 >= 20:
         return "B"
     return "C"
 
