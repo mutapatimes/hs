@@ -1,0 +1,19 @@
+api_version = "2026-01"
+
+[[extensions]]
+name = "Halia — VIC at the till"
+handle = "halia-vic-tile"
+description = "Flags a potential VIC on the current cart and shows the discreet play."
+type = "ui_extension"
+
+  [extensions.supported_features]
+  # The tile calls the Halia backend to score the customer, so it needs network.
+  runs_offline = false
+
+  [[extensions.targeting]]
+  target = "pos.home.tile.render"
+  module = "./src/Tile.jsx"
+
+  [[extensions.targeting]]
+  target = "pos.home.modal.render"
+  module = "./src/Modal.jsx"

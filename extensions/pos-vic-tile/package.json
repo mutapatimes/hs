@@ -1,0 +1,9 @@
+{
+  "name": "halia-pos-vic-tile",
+  "private": true,
+  "description": "Shopify POS UI extension: proactive potential-VIC tile for Halia.",
+  "dependencies": {
+    "@shopify/ui-extensions": "2026.1.x",
+    "preact": "^10"
+  }
+}

@@ -21,10 +21,20 @@ from typing import Any, Optional
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 
 from halia.api import data
-from halia.api.shopify_auth import require_shop
+from halia.api.shopify_auth import require_shop, shop_store
 from halia.engine import engine
 
 app = FastAPI(title="Halia", version="1.0", summary="Hidden-VIC scoring — embedded Shopify app")
+
+# The POS UI extension calls this backend cross-origin from the Shopify POS webview.
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://cdn.shopify.com", "https://extensions.shopifycdn.com"],
+    allow_methods=["GET", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 # Serve the marketing site's imagery (water hero video, editorial photography) at /img.
 from config import ROOT as _ROOT  # noqa: E402
@@ -158,6 +168,72 @@ def export_csv(shop: str = Depends(require_shop)):
                     c.get("count", len(c.get("signals") or [])), signals, c.get("reco", "")])
     return Response(buf.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": "attachment; filename=halia-hidden-vics.csv"})
+
+
+# ── POS UI extension: fast single-customer lookup for the at-the-till tile ──────────
+def _pos_payload(r) -> dict:
+    """Compact, staff-facing shape for the POS tile — derived from a ScoreResult."""
+    return {"matched": bool(getattr(r, "matched", True)),
+            "vic": bool(r.hidden_vic or r.is_priority),
+            "grade": r.grade, "score": r.score, "tier": r.tier,
+            "is_priority": bool(r.is_priority), "hidden_vic": bool(r.hidden_vic),
+            "gesture": r.gesture, "signals": (r.signals or [])[:3],
+            "reasons": r.reasons, "spend": r.spend}
+
+
+def _pos_match_cached(entry: dict, customer_id, email):
+    """Find an already-scored customer in RAM (never triggers a full-shop sync)."""
+    if customer_id:
+        num = str(customer_id).rsplit("/", 1)[-1]  # POS numeric id vs stored gid form
+        for cid in (customer_id, num, f"gid://shopify/Customer/{num}"):
+            r = data.result_by_id(entry, cid)
+            if r:
+                return r
+    if email:
+        return data.result_by_email(entry, email)
+    return None
+
+
+def _pos_live(shop: str, customer_id, email):
+    """Score just this one customer live (single-customer fetch, not a full sync)."""
+    from halia.api.settings import settings_for
+    from halia.schema import ScoreResult
+    from scoring.combine import score_customers
+    from scoring.shopify import orders_to_customers
+    from scoring.shopify_fetch import fetch_customer_orders, http_transport
+
+    token = shop_store().get_token(shop)
+    if not token:
+        return None
+    by, ident = ("id", customer_id) if customer_id else ("email", email)
+    orders = fetch_customer_orders(ident, transport=http_transport(shop, token), by=by)
+    if not orders:
+        return None
+    customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
+    if customers.empty:
+        return None
+    scored = score_customers(customers, vic_threshold=settings_for(shop)["vic_threshold"],
+                             include_origin=data._include_origin(shop))
+    return ScoreResult.from_scored_row(scored.iloc[0])
+
+
+@app.get("/v1/pos/score")
+def pos_score(shop: str = Depends(require_shop),
+              customer_id: Optional[str] = Query(None),
+              email: Optional[str] = Query(None)) -> dict:
+    """The at-the-till lookup for the POS tile: warm RAM cache first, and on a miss
+    score just this one customer live — never a full-shop sync while a client waits."""
+    from halia.cache import cache
+
+    if not customer_id and not email:
+        raise HTTPException(422, "Provide ?customer_id= or ?email=")
+    entry = cache.get(shop)  # warm path only — do NOT call results_for (it would full-sync)
+    r = _pos_match_cached(entry, customer_id, email) if entry else None
+    if r is None:
+        r = _pos_live(shop, customer_id, email)
+    if r is None or not getattr(r, "matched", True):
+        return {"matched": False}
+    return _pos_payload(r)
 
 
 # Mount the embedded entry, self-service onboarding, Klaviyo + Shopify write-back, fulfilment

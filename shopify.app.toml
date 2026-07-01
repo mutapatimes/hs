@@ -1,0 +1,29 @@
+# Shopify CLI app config — lets us deploy app extensions (the POS UI tile) to the
+# SAME Partner app the FastAPI backend already uses. This does not change how the
+# app runs in production (Render still runs `uvicorn halia.api.app:app`); it only
+# tells the Shopify CLI which app to attach extensions to.
+#
+# FIRST-TIME SETUP (fills in client_id and links this file to your app):
+#   shopify app config link      # pick the existing "Halia" app; sets client_id below
+#
+# `client_id` MUST match SHOPIFY_API_KEY used by the backend (same app identity).
+client_id = ""   # set by `shopify app config link` (== SHOPIFY_API_KEY)
+
+name = "Halia"
+application_url = "https://halia.onrender.com"   # your HALIA_APP_URL
+embedded = true
+
+[access_scopes]
+# Kept in sync with the backend OAuth scopes (halia/api/onboarding.py).
+scopes = "read_orders,read_customers,write_customers"
+
+[auth]
+redirect_urls = [
+  "https://halia.onrender.com/connect/shopify/callback",
+]
+
+[pos]
+embedded = true
+
+[build]
+include_config_on_deploy = true

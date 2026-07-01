@@ -47,3 +47,9 @@ __pycache__/
 .venv/
 venv/
 .ipynb_checkpoints/
+
+# Node / Shopify CLI (POS UI extension build + deploy artefacts)
+node_modules/
+dist/
+.shopify/
+*.log

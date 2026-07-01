@@ -143,11 +143,16 @@ def fetch_customer_orders(
     """Fetch ONE customer's orders by email/phone (the real-time / POS path).
 
     Returns REST-shaped order dicts for the single matching customer, or [] if
-    none matched. ``by`` is "email" or "phone".
+    none matched. ``by`` is "email", "phone", or "id" (the POS tile passes a
+    numeric customer id, or a ``gid://shopify/Customer/123`` reduced to its tail).
     """
     if transport is None:
         transport = http_transport()
-    query = f'{by}:"{identifier}"'  # Shopify search syntax, e.g. email:"a@b.com"
+    if by == "id":
+        ident = str(identifier).rsplit("/", 1)[-1]  # gid://shopify/Customer/123 -> 123
+        query = f"id:{ident}"                        # Shopify search: unquoted numeric id
+    else:
+        query = f'{by}:"{identifier}"'               # e.g. email:"a@b.com"
     data = _run(transport, CUSTOMER_BY_QUERY, {"q": query}, retries)
     return graphql_customers_to_orders(data["customers"]["nodes"])
 
