@@ -10,7 +10,11 @@ header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;t
 
 /* Keep the collapsed (mobile) header uncluttered, matching the homepage: the
    secondary text links hide below 900px, leaving the CTA and the hamburger. */
-@media(max-width:900px){header .nav .right .si{display:none}}
+@media(max-width:900px){
+  header .nav .right .si{display:none}
+  header .nav .right .btn{padding:10px 16px;font-size:13px;letter-spacing:.01em}
+  header .nav .right .btn .arrow{display:none}
+}
 
 /* A quiet, recurring brand tell: the asterism before every section eyebrow.
    Inherits the eyebrow's own colour so it matches in both light and dark

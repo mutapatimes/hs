@@ -170,6 +170,26 @@ def _page(title: str, inner: str) -> str:
             f"<style>{_CSS}</style></head><body><div class=wrap>{inner}</div></body></html>")
 
 
+def _signin_page() -> str:
+    """Shown at /app when there's no valid session — sign in with your private link."""
+    inner = (
+        "<h1>Sign in</h1>"
+        "<p class=sub>Paste the private dashboard link we emailed you when you connected "
+        "your store. We'll remember this device from now on.</p>"
+        "<input id=lnk placeholder='https://…/app?t=…' autocomplete=off>"
+        "<button class=btn id=go>Go to my dashboard →</button>"
+        "<p class=sub style='margin-top:18px'>New to Halia? <a href=/connect>Connect your store</a>.</p>"
+        "<script>"
+        "function go(){var v=(document.getElementById('lnk').value||'').trim();if(!v)return;"
+        "var t=v,m=v.match(/[?&]t=([^&\\s]+)/);if(m)t=decodeURIComponent(m[1]);"
+        "location.href='/app?t='+encodeURIComponent(t);}"
+        "document.getElementById('go').onclick=go;"
+        "document.getElementById('lnk').addEventListener('keydown',function(e){if(e.key==='Enter')go();});"
+        "</script>"
+    )
+    return _page("Sign in · Halia", inner)
+
+
 def _slug(url: str) -> str:
     bare = re.sub(r"^https?://", "", (url or "").lower()).strip("/")
     return re.sub(r"[^a-z0-9]+", "-", bare).strip("-")
@@ -286,17 +306,22 @@ def _connect_form(error: str = "", values: dict | None = None) -> str:
 
 
 def _hosted_head() -> str:
-    # A refresh button for the hosted dashboard (re-pull + re-score), no App Bridge.
+    # Refresh (re-pull + re-score) and Sign out controls for the hosted dashboard (no App Bridge).
     return (
-        "<style>#halia-refresh{position:fixed;top:14px;right:18px;z-index:200;padding:8px 14px;"
-        "border-radius:8px;border:1px solid #d8c79a;background:#1f564a;color:#fff;"
-        "font:600 13px system-ui;cursor:pointer}#halia-refresh[disabled]{opacity:.6}</style>"
-        "<script>addEventListener('DOMContentLoaded',function(){var b=document.createElement('button');"
-        "b.id='halia-refresh';b.textContent='\\u21bb Refresh scores';b.onclick=function(){"
-        "b.disabled=true;b.textContent='Refreshing\\u2026';fetch('/app/refresh',{method:'POST'})"
-        ".then(function(r){return r.json()}).then(function(){location.reload()})"
-        ".catch(function(){b.textContent='Refresh failed';b.disabled=false})};"
-        "document.body.appendChild(b)});</script>"
+        "<style>#halia-bar{position:fixed;top:14px;right:18px;z-index:200;display:flex;gap:8px}"
+        "#halia-bar button{padding:8px 14px;border-radius:8px;font:600 13px system-ui;cursor:pointer}"
+        "#halia-refresh{border:1px solid #d8c79a;background:#1f564a;color:#fff}"
+        "#halia-refresh[disabled]{opacity:.6}"
+        "#halia-signout{border:1px solid #cfc7b5;background:#fff;color:#1f564a}</style>"
+        "<script>addEventListener('DOMContentLoaded',function(){"
+        "var bar=document.createElement('div');bar.id='halia-bar';"
+        "var r=document.createElement('button');r.id='halia-refresh';r.textContent='\\u21bb Refresh scores';"
+        "r.onclick=function(){r.disabled=true;r.textContent='Refreshing\\u2026';"
+        "fetch('/app/refresh',{method:'POST'}).then(function(x){return x.json()}).then(function(){location.reload()})"
+        ".catch(function(){r.textContent='Refresh failed';r.disabled=false})};"
+        "var o=document.createElement('button');o.id='halia-signout';o.textContent='Sign out';"
+        "o.onclick=function(){location.href='/app/logout'};"
+        "bar.appendChild(r);bar.appendChild(o);document.body.appendChild(bar);});</script>"
     )
 
 
@@ -1272,7 +1297,10 @@ def register(app) -> None:
                             max_age=60 * 60 * 24 * 365)
             return resp
 
-        shop = require_tenant(request)
+        shop = resolve_tenant(request)
+        if not shop:
+            # No valid session — show a friendly sign-in page, not a raw 401.
+            return HTMLResponse(_signin_page())
 
         # Returning from Stripe Checkout: confirm the session, then clean the URL.
         if request.query_params.get("session_id"):
@@ -1303,6 +1331,13 @@ def register(app) -> None:
                                       "<p class=sub>Hit refresh in a moment.</p>"), 500)
         resp = HTMLResponse(body)
         resp.headers["Cache-Control"] = "no-store"
+        return resp
+
+    @app.get("/app/logout")
+    def hosted_logout():
+        """Sign out: forget this device's session cookie, back to the homepage."""
+        resp = RedirectResponse("/", status_code=303)
+        resp.delete_cookie(COOKIE)
         return resp
 
     @app.get("/app/status")

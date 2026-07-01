@@ -96,10 +96,12 @@ def test_app_status_running_without_cache(client):
     assert c.get("/app/status").json()["state"] in ("running", "idle")
 
 
-def test_app_rejects_bad_token(client):
+def test_app_shows_signin_without_valid_session(client):
+    # A bad/absent session isn't a hard 401 any more — it shows the sign-in page.
     c, _ = client
     c.cookies.set(COOKIE, "not-a-real-token")
-    assert c.get("/app").status_code == 401
+    r = c.get("/app")
+    assert r.status_code == 200 and "Sign in" in r.text
 
 
 def test_onboard_json_creates_tenant_settings_and_link(client):
