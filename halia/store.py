@@ -207,6 +207,10 @@ class ShopStore(_DB):
         return self._run("SELECT shop, kind, label FROM tenants WHERE token_hash = :th",
                          {"th": token_hash}, fetch="one")
 
+    def all_tenants(self) -> list[dict]:
+        """Every tenant (shop, kind, label). Used to resolve a sign-in email to a shop."""
+        return self._run("SELECT shop, kind, label FROM tenants", fetch="all") or []
+
     # ── WooCommerce REST credentials (encrypted) ────────────────────────────────
     def save_woocommerce(self, shop: str, store_url: str, ck: str, cs: str) -> None:
         self._run(

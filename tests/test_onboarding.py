@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from halia.api import onboarding, shopify_auth
 from halia.api.app import app
-from halia.api.tenant_auth import COOKIE, hash_token, new_token
+from halia.api.tenant_auth import COOKIE, SESSION_COOKIE, hash_token, new_token
 from halia.store import ShopStore
 
 
@@ -60,12 +60,49 @@ def test_bad_credentials_rejected(client, monkeypatch):
     assert r.status_code == 400 and "reach WooCommerce" in r.text and "401 Unauthorized" in r.text
 
 
-def test_app_link_sets_cookie_and_redirects(client):
+def test_app_link_sets_session_and_redirects(client):
+    # The raw access link is exchanged for a signed session cookie (not a permanent bearer token).
     c, store = client
     tok = _make_tenant(store)
     r = c.get(f"/app?t={tok}", follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/app"
-    assert COOKIE in r.cookies
+    assert SESSION_COOKIE in r.cookies and COOKIE not in r.cookies
+
+
+def test_magic_link_flow_signs_in(client, monkeypatch):
+    import json
+
+    c, store = client
+    _make_tenant(store, "shopx")
+    # Give the tenant an account email.
+    store.save_settings("shopx", json.dumps({"account_email": "owner@shopx.com"}))
+    sent = {}
+    monkeypatch.setattr("halia.notify.email_configured", lambda: True)
+    monkeypatch.setattr("halia.notify.send_email",
+                        lambda to, subj, html, text=None: sent.update(to=to, html=html) or True)
+    # Request a link — neutral response, email dispatched.
+    r = c.post("/app/signin", data={"email": "owner@shopx.com"})
+    assert r.status_code == 200 and "Check your inbox" in r.text
+    assert sent["to"] == "owner@shopx.com"
+    import re
+    k = re.search(r"/app/verify\?k=([A-Za-z0-9_\-]+)", sent["html"]).group(1)
+    # Consume it -> session cookie, redirect to /app.
+    v = c.get(f"/app/verify?k={k}", follow_redirects=False)
+    assert v.status_code == 303 and SESSION_COOKIE in v.cookies
+    # Single-use: a second consume fails.
+    assert c.get(f"/app/verify?k={k}", follow_redirects=False).status_code == 400
+
+
+def test_signin_is_neutral_for_unknown_email(client):
+    c, _ = client
+    r = c.post("/app/signin", data={"email": "nobody@nowhere.com"})
+    assert r.status_code == 200 and "Check your inbox" in r.text  # no account disclosure
+
+
+def test_verify_rejects_bad_key(client):
+    c, _ = client
+    r = c.get("/app/verify?k=bogus", follow_redirects=False)
+    assert r.status_code == 400 and "expired" in r.text.lower()
 
 
 def test_app_shows_preparing_without_cache(client):

@@ -26,7 +26,15 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from halia import config
 from halia.api import data
 from halia.api.shopify_auth import shop_store
-from halia.api.tenant_auth import COOKIE, hash_token, new_token, require_tenant, resolve_tenant
+from halia.api.tenant_auth import (
+    COOKIE,
+    SESSION_COOKIE,
+    hash_token,
+    make_session,
+    new_token,
+    require_tenant,
+    resolve_tenant,
+)
 from halia.cache import cache
 
 # Shops currently being scored in a background thread (so we don't double-trigger).
@@ -170,24 +178,127 @@ def _page(title: str, inner: str) -> str:
             f"<style>{_CSS}</style></head><body><div class=wrap>{inner}</div></body></html>")
 
 
-def _signin_page() -> str:
-    """Shown at /app when there's no valid session — sign in with your private link."""
+# ── Magic-link sign-in ──────────────────────────────────────────────────────────────
+# A one-time, short-lived sign-in link emailed to the tenant's own address. Proving control
+# of that inbox is the credential; the link then hands out a signed session cookie. Held in
+# RAM only (short-lived), single-use. The raw access link (?t=) still works as a fallback.
+_MAGIC: dict = {}          # k -> {"shop": str, "ts": float}
+_MAGIC_TTL = 900           # 15 minutes
+
+
+def _magic_prune() -> None:
+    cut = time.time() - _MAGIC_TTL
+    for k in [k for k, v in _MAGIC.items() if v["ts"] < cut]:
+        _MAGIC.pop(k, None)
+
+
+def _magic_new(shop: str) -> str:
+    _magic_prune()
+    k = secrets.token_urlsafe(32)
+    _MAGIC[k] = {"shop": shop, "ts": time.time()}
+    return k
+
+
+def _magic_pop(k: str) -> str | None:
+    _magic_prune()
+    v = _MAGIC.pop(k or "", None)
+    return v["shop"] if v else None
+
+
+def _shop_for_email(email: str) -> str | None:
+    """Resolve a sign-in email to a tenant shop, matching their account/alert emails."""
+    email = (email or "").strip().lower()
+    if not email or "@" not in email:
+        return None
+    from halia.api.settings import settings_for
+
+    for t in shop_store().all_tenants():
+        s = settings_for(t["shop"])
+        candidates = [s.get("account_email", ""), *(s.get("notify_emails") or [])]
+        if any((c or "").strip().lower() == email for c in candidates):
+            return t["shop"]
+    return None
+
+
+_SIGNIN_CSS = (
+    "*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#f5f2ea;color:#1a1712;"
+    "font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"
+    "display:flex;align-items:center;justify-content:center;padding:28px}"
+    ".card{width:100%;max-width:430px;background:#fffdf8;border:1px solid rgba(20,18,12,.12);"
+    "border-radius:18px;padding:40px 36px;box-shadow:0 40px 90px -50px rgba(20,18,12,.4)}"
+    ".mark{display:flex;align-items:center;gap:10px;font-family:'Cormorant Garamond',Georgia,serif;"
+    "font-size:24px;margin-bottom:26px}.mark .ast{color:#7a7363;font-size:22px}"
+    "h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:38px;"
+    "letter-spacing:-.01em;margin:0 0 8px}.sub{color:#615b50;font-size:14.5px;line-height:1.5;margin:0 0 24px}"
+    "label{display:block;font:500 12px 'Inter',sans-serif;letter-spacing:.02em;color:#615b50;margin:0 0 6px}"
+    "input{width:100%;padding:13px 15px;border:1px solid rgba(20,18,12,.22);border-radius:10px;"
+    "font:15px 'Inter',sans-serif;color:#1a1712;background:#fff}input:focus{outline:none;border-color:#7a7363}"
+    ".btn{width:100%;margin-top:18px;background:#1a1712;color:#f5f2ea;border:none;border-radius:999px;"
+    "padding:14px 20px;font:600 14px 'Inter',sans-serif;cursor:pointer;transition:.2s}"
+    ".btn:hover{background:#000}.alt{color:#615b50;font-size:13.5px;margin:22px 0 0;text-align:center}"
+    "a{color:#1a1712;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(20,18,12,.3)}"
+    ".err{background:#fbeee9;border:1px solid #e0b4a6;color:#8e2f14;border-radius:10px;padding:11px 13px;"
+    "font-size:13px;margin-bottom:18px}.sent{text-align:center}.sent .big{font-family:'Cormorant Garamond',"
+    "Georgia,serif;font-size:30px;font-weight:300;margin:6px 0 12px}.dim{color:#9a9385}"
+    "details{margin-top:22px;border-top:1px solid rgba(20,18,12,.1);padding-top:16px}"
+    "summary{color:#615b50;font-size:13px;cursor:pointer;list-style:none}summary::-webkit-details-marker{display:none}"
+    "details input{margin-top:10px}details .btn{background:transparent;color:#1a1712;border:1px solid rgba(20,18,12,.28)}"
+    "details .btn:hover{background:#1a1712;color:#f5f2ea}"
+)
+
+
+def _signin_shell(inner: str) -> str:
+    return (
+        "<!doctype html><html lang=en><head><meta charset=utf-8>"
+        "<meta name=viewport content='width=device-width,initial-scale=1'>"
+        "<title>Sign in · Halia</title>"
+        "<link rel=preconnect href='https://fonts.googleapis.com'>"
+        "<link rel=preconnect href='https://fonts.gstatic.com' crossorigin>"
+        "<link href='https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&"
+        "family=Inter:wght@400;500;600&display=swap' rel=stylesheet>"
+        f"<style>{_SIGNIN_CSS}</style></head><body><div class=card>"
+        "<div class=mark><span class=ast>&#8258;</span> Halia</div>"
+        f"{inner}</div></body></html>"
+    )
+
+
+def _signin_page(error: str = "", email: str = "") -> str:
+    """Shown at /app with no valid session — email-first magic-link sign-in."""
+    err = f"<div class=err>{error}</div>" if error else ""
     inner = (
         "<h1>Sign in</h1>"
-        "<p class=sub>Paste the private dashboard link we emailed you when you connected "
-        "your store. We'll remember this device from now on.</p>"
+        "<p class=sub>Enter the email you connected with and we'll send you a secure, "
+        "single-use link. No password to remember.</p>"
+        f"{err}"
+        "<form method=post action=/app/signin>"
+        "<label for=email>Work email</label>"
+        f"<input id=email name=email type=email required autocomplete=email "
+        f"placeholder='you@brand.com' value=\"{email}\">"
+        "<button class=btn type=submit>Email me a sign-in link &rarr;</button>"
+        "</form>"
+        "<p class=alt>New to Halia? <a href=/connect>Connect your store</a></p>"
+        "<details><summary>Have a private dashboard link instead?</summary>"
         "<input id=lnk placeholder='https://…/app?t=…' autocomplete=off>"
-        "<button class=btn id=go>Go to my dashboard →</button>"
-        "<p class=sub style='margin-top:18px'>New to Halia? <a href=/connect>Connect your store</a>.</p>"
+        "<button class=btn id=go type=button>Use my link &rarr;</button>"
         "<script>"
         "function go(){var v=(document.getElementById('lnk').value||'').trim();if(!v)return;"
         "var t=v,m=v.match(/[?&]t=([^&\\s]+)/);if(m)t=decodeURIComponent(m[1]);"
         "location.href='/app?t='+encodeURIComponent(t);}"
         "document.getElementById('go').onclick=go;"
         "document.getElementById('lnk').addEventListener('keydown',function(e){if(e.key==='Enter')go();});"
-        "</script>"
+        "</script></details>"
     )
-    return _page("Sign in · Halia", inner)
+    return _signin_shell(inner)
+
+
+def _signin_sent_page(email: str) -> str:
+    inner = (
+        "<div class=sent><div class=big>Check your inbox</div>"
+        f"<p class=sub>If an account matches <b>{email}</b>, we've sent a secure sign-in link. "
+        "It expires in 15 minutes and can be used once.</p>"
+        "<p class=alt><a href=/app>Back to sign in</a></p></div>"
+    )
+    return _signin_shell(inner)
 
 
 # Lean suggested privacy wording (matches PRIVACY_INSERTS in the dashboard). Not legal advice.
@@ -1333,8 +1444,10 @@ def register(app) -> None:
             if not shop:
                 return HTMLResponse(_page("Halia", "<h1>Invalid link</h1><p class=sub>This access "
                                           "link isn't valid. Ask your Halia contact for a new one.</p>"), 401)
+            # Convert the raw access link into a signed, expiring session — the raw token
+            # no longer needs to live in the browser as a permanent bearer cookie.
             resp = RedirectResponse("/app", status_code=303)
-            resp.set_cookie(COOKIE, request.query_params["t"], httponly=True,
+            resp.set_cookie(SESSION_COOKIE, make_session(shop), httponly=True,
                             secure=request.url.scheme == "https", samesite="lax",
                             max_age=60 * 60 * 24 * 365)
             return resp
@@ -1375,11 +1488,47 @@ def register(app) -> None:
         resp.headers["Cache-Control"] = "no-store"
         return resp
 
+    @app.post("/app/signin", response_class=HTMLResponse)
+    def hosted_signin(request: Request, email: str = Form("")):
+        """Email a one-time, short-lived sign-in link to a known tenant address.
+
+        Always responds the same way whether or not the email matches an account, so the
+        page can't be used to discover who has a Halia account."""
+        email = (email or "").strip()
+        shop = _shop_for_email(email)
+        if shop:
+            from halia import notify as _notify
+            base = (config.HALIA_APP_URL or str(request.base_url)).rstrip("/")
+            link = f"{base}/app/verify?k={_magic_new(shop)}"
+            if _notify.email_configured():
+                html = (
+                    "<p>Here is your secure sign-in link for Halia. It expires in 15 minutes "
+                    f"and can be used once.</p><p><a href='{link}'>{link}</a></p>"
+                    "<p style='color:#8a8a8a;font-size:13px'>If you didn't request this, you can "
+                    "safely ignore this email — no one can sign in without it.</p>")
+                _notify.send_email(email, "Your Halia sign-in link", html)
+        return HTMLResponse(_signin_sent_page(email or "that address"))
+
+    @app.get("/app/verify", response_class=HTMLResponse)
+    def hosted_verify(request: Request):
+        """Consume a magic link: single-use, time-limited, then hand out a session."""
+        shop = _magic_pop(request.query_params.get("k", ""))
+        if not shop:
+            return HTMLResponse(_signin_page(
+                error="That sign-in link has expired or was already used. "
+                      "Enter your email below for a fresh one."), status_code=400)
+        resp = RedirectResponse("/app", status_code=303)
+        resp.set_cookie(SESSION_COOKIE, make_session(shop), httponly=True,
+                        secure=request.url.scheme == "https", samesite="lax",
+                        max_age=60 * 60 * 24 * 365)
+        return resp
+
     @app.get("/app/logout")
     def hosted_logout():
-        """Sign out: forget this device's session cookie, back to the homepage."""
+        """Sign out: forget this device's session, back to the homepage."""
         resp = RedirectResponse("/", status_code=303)
         resp.delete_cookie(COOKIE)
+        resp.delete_cookie(SESSION_COOKIE)
         return resp
 
     @app.get("/app/status")
