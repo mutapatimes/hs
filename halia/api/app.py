@@ -54,7 +54,7 @@ def _serve_page(name: str) -> _HTML:
 
 
 for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
-              "responsible", "privacy", "terms", "cookies"):
+              "responsible", "pricing", "privacy", "terms", "cookies"):
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
                       methods=["GET"], include_in_schema=False, response_class=_HTML)
 
@@ -137,11 +137,34 @@ def alerts(shop: str = Depends(require_shop),
     return (ram + [d for d in derived if d.get("order_id") not in seen])[:40]
 
 
-# Mount the embedded entry, self-service onboarding, Klaviyo integrations, fulfilment
+@app.get("/v1/export")
+def export_csv(shop: str = Depends(require_shop)):
+    """Download the surfaced hidden VICs as CSV, built from the in-RAM scored data (no re-fetch)."""
+    import csv
+    import io
+
+    from fastapi.responses import Response
+
+    entry = data.results_for(shop)
+    rows = ((entry or {}).get("payload") or {}).get("data") or []
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["Name", "Email", "Phone", "Location", "Grade", "Score", "Current spend",
+                "Latent value", "Signal count", "Signals", "Recommended approach"])
+    for c in rows:
+        signals = "; ".join(s.get("d", "") for s in (c.get("signals") or []))
+        w.writerow([c.get("name", ""), c.get("email", ""), c.get("phone", ""), c.get("loc", ""),
+                    c.get("grade", ""), c.get("score", ""), c.get("spend", ""), c.get("latent", ""),
+                    c.get("count", len(c.get("signals") or [])), signals, c.get("reco", "")])
+    return Response(buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=halia-hidden-vics.csv"})
+
+
+# Mount the embedded entry, self-service onboarding, Klaviyo + Shopify write-back, fulfilment
 # view, and compliance webhooks.
 from halia.api import (  # noqa: E402
     billing, embedded, fulfilment, integrations, mailchimp_integration, onboarding, realtime,
-    settings, webhooks,
+    settings, shopify_push, webhooks,
 )
 
 embedded.register(app)
@@ -153,3 +176,4 @@ settings.register(app)
 fulfilment.register(app)
 webhooks.register(app)
 billing.register(app)
+shopify_push.register(app)

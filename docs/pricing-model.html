@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halia · revenue model (internal)</title>
+<!--
+  INTERNAL PLANNING TOOL — not routed, not published, not linked from the site.
+  Open this file directly in a browser. Edit any number; everything recalculates live.
+  Mirrors the pricing ladder on /pricing. Numbers here are planning anchors, not gospel.
+-->
+<style>
+  :root{--bg:#f5f2ea;--bg-2:#efeadd;--ink:#1a1712;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;
+    --line:rgba(20,18,12,.16);--line-2:rgba(20,18,12,.08);--good:#1f564a;
+    --serif:'Cormorant Garamond',Georgia,serif;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,system-ui,sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1060px;margin:0 auto;padding:40px 28px 80px}
+  h1{font-family:var(--serif);font-weight:400;font-size:40px;margin:0 0 4px;letter-spacing:-.01em}
+  h1 .ast{color:var(--gold)}
+  .sub{color:var(--mute);margin:0 0 6px}
+  .note{color:var(--faint);font-size:13px;margin:0 0 30px}
+  h2{font-family:var(--serif);font-weight:400;font-size:24px;margin:36px 0 12px}
+  table{width:100%;border-collapse:collapse}
+  .inputs th,.inputs td{padding:9px 10px;border-top:1px solid var(--line-2);text-align:right}
+  .inputs th{color:var(--faint);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;border-top:none}
+  .inputs td:first-child,.inputs th:first-child{text-align:left}
+  .inputs .tname{font-family:var(--serif);font-size:19px}
+  .inputs .tfeat{color:var(--gold)}
+  input{width:92px;padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:inherit;text-align:right;outline:none}
+  input:focus{border-color:var(--gold)}
+  input.wide{width:120px}
+  .glob{display:flex;flex-wrap:wrap;gap:22px;margin:6px 0 4px}
+  .glob label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:6px}
+  .card{border:1px solid var(--line);border-radius:14px;padding:20px 20px 22px;background:#fff}
+  .card .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .card .v{font-family:var(--serif);font-size:34px;margin-top:6px;line-height:1}
+  .card .v small{font-family:var(--sans);font-size:13px;color:var(--mute)}
+  .card.hero{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .card.hero .k{color:rgba(245,242,234,.7)}
+  .bars{margin-top:10px}
+  .bar{display:grid;grid-template-columns:120px 1fr 110px;align-items:center;gap:12px;margin:8px 0}
+  .bar .lab{color:var(--mute);font-size:13px}
+  .bar .track{background:var(--bg-2);border-radius:999px;height:16px;overflow:hidden}
+  .bar .fill{height:100%;background:var(--gold);border-radius:999px}
+  .bar .amt{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .target{border:1px solid var(--gold);border-radius:14px;padding:22px 24px;background:var(--bg-2);margin-top:14px}
+  .target b{color:var(--ink)}
+  .good{color:var(--good);font-weight:600}.bad{color:#8a3b2e;font-weight:600}
+  .foot{color:var(--faint);font-size:12px;margin-top:34px;border-top:1px solid var(--line-2);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="ast">&#8258;</span> Halia revenue model</h1>
+  <p class="sub">Flex any number — MRR, year-one cash and the path to your target update live.</p>
+  <p class="note">Internal planning tool. Not part of the website. Prefilled with the /pricing anchors; these are illustrative, not financial advice.</p>
+
+  <h2>Tiers</h2>
+  <table class="inputs">
+    <thead><tr>
+      <th>Tier</th><th>Clients</th><th>£ / month</th><th>Scan £ (one-off)</th><th>Scan attach %</th>
+    </tr></thead>
+    <tbody id="tierRows"><!-- filled by JS --></tbody>
+  </table>
+
+  <h2>Assumptions</h2>
+  <div class="glob">
+    <label>Monthly churn %<input id="churn" type="number" value="3" min="0" step="0.5"></label>
+    <label>Target annual income £<input id="target" class="wide" type="number" value="120000" min="0" step="1000"></label>
+    <label>Free scans / month<input id="freeScans" type="number" value="20" min="0" step="1"></label>
+    <label>Free → paid conversion %<input id="conv" type="number" value="15" min="0" step="1"></label>
+  </div>
+
+  <h2>Result</h2>
+  <div class="cards">
+    <div class="card hero"><div class="k">Total MRR</div><div class="v" id="oMRR">–</div></div>
+    <div class="card"><div class="k">Annual recurring (ARR)</div><div class="v" id="oARR">–</div></div>
+    <div class="card"><div class="k">Year-1 cash <small>(ARR + scans)</small></div><div class="v" id="oY1">–</div></div>
+    <div class="card"><div class="k">Paying clients</div><div class="v" id="oClients">–</div></div>
+  </div>
+
+  <h2>MRR by tier</h2>
+  <div class="bars" id="bars"></div>
+
+  <h2>Path to target</h2>
+  <div class="target" id="target-out"></div>
+
+  <p class="foot" id="stamp">Halia internal · edit and re-save this file to keep your own scenarios.</p>
+</div>
+
+<script>
+  // Prefilled from /pricing. [key, name, clients, monthly, scan, attach%, featured]
+  var TIERS = [
+    ["discovery", "Discovery", 10, 150,  750, 60, false],
+    ["signal",    "Signal",     8, 500, 1250, 70, true ],
+    ["atelier",   "Atelier",    3, 1200,2000, 80, false],
+    ["maison",    "Maison",     1, 3000,5000, 50, false]
+  ];
+
+  function gbp(n){ n = Math.round(n);
+    if (Math.abs(n) >= 1e6) return "£" + (n/1e6).toFixed(2).replace(/\.?0+$/,"") + "m";
+    if (Math.abs(n) >= 1e4) return "£" + Math.round(n/1e3) + "k";
+    return "£" + n.toLocaleString("en-GB");
+  }
+  function num(id){ var v = parseFloat(document.getElementById(id).value); return isFinite(v) ? v : 0; }
+
+  // Build the editable tier rows.
+  var tbody = document.getElementById("tierRows");
+  TIERS.forEach(function (t, i) {
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td class="tname ' + (t[6] ? "tfeat" : "") + '">' + t[1] + (t[6] ? " ★" : "") + '</td>' +
+      '<td><input type="number" min="0" step="1"    data-i="' + i + '" data-f="clients" value="' + t[2] + '"></td>' +
+      '<td><input type="number" min="0" step="50"   data-i="' + i + '" data-f="monthly" value="' + t[3] + '"></td>' +
+      '<td><input type="number" min="0" step="50"   data-i="' + i + '" data-f="scan"    value="' + t[4] + '"></td>' +
+      '<td><input type="number" min="0" max="100" step="5" data-i="' + i + '" data-f="attach" value="' + t[5] + '"></td>';
+    tbody.appendChild(tr);
+  });
+
+  function read() {
+    return TIERS.map(function (t, i) {
+      function g(f){ return num2(i, f); }
+      return { key:t[0], name:t[1], feat:t[6],
+               clients:g("clients"), monthly:g("monthly"), scan:g("scan"), attach:g("attach") };
+    });
+  }
+  function num2(i, f){ var el = document.querySelector('input[data-i="'+i+'"][data-f="'+f+'"]'); var v = parseFloat(el.value); return isFinite(v) ? v : 0; }
+
+  function recalc() {
+    var rows = read();
+    var mrr = 0, clients = 0, scanRev = 0;
+    rows.forEach(function (r) {
+      mrr += r.clients * r.monthly;
+      clients += r.clients;
+      scanRev += r.clients * (r.attach / 100) * r.scan;   // one-off, year 1
+    });
+    var arr = mrr * 12;
+    var y1 = arr + scanRev;
+
+    document.getElementById("oMRR").innerHTML = gbp(mrr) + ' <small>/mo</small>';
+    document.getElementById("oARR").textContent = gbp(arr);
+    document.getElementById("oY1").textContent = gbp(y1);
+    document.getElementById("oClients").textContent = clients;
+
+    // Bars: MRR by tier
+    var maxMrr = Math.max.apply(null, rows.map(function(r){ return r.clients*r.monthly; }).concat([1]));
+    document.getElementById("bars").innerHTML = rows.map(function (r) {
+      var m = r.clients * r.monthly;
+      return '<div class="bar"><div class="lab">' + r.name + (r.feat?" ★":"") + '</div>' +
+             '<div class="track"><div class="fill" style="width:' + (100*m/maxMrr).toFixed(1) + '%"></div></div>' +
+             '<div class="amt">' + gbp(m) + '/mo</div></div>';
+    }).join("");
+
+    // Path to target
+    var target = num("target"), churn = num("churn")/100;
+    var conv = num("conv")/100, freeScans = num("freeScans");
+    var signal = rows.find(function(r){ return r.key === "signal"; }) || rows[0];
+    var signalMo = signal.monthly || 1;
+    var needSignalOnly = Math.ceil(target / (12 * signalMo));
+    var arpu = clients ? mrr / clients : 0;                          // blended £/client/mo
+    var needBlend = arpu ? Math.ceil(target / (12 * arpu)) : 0;
+    var newPaidPerMo = freeScans * conv;                            // funnel: new paying clients/mo
+    var churnLossPerMo = clients * churn;                           // clients lost/mo at current base
+    var netAddPerMo = newPaidPerMo - churnLossPerMo;
+    var gap = target - arr;
+
+    var lines = [];
+    lines.push('At the blended ARPU of <b>' + gbp(arpu) + '/client/mo</b>, hitting <b>' + gbp(target) +
+               '/yr</b> needs <b>' + needBlend + '</b> paying clients (you have <b>' + clients + '</b>).');
+    lines.push('At <b>Signal alone</b> (' + gbp(signalMo) + '/mo) that is <b>' + needSignalOnly + '</b> clients.');
+    lines.push('Current ARR is ' + (gap <= 0
+        ? '<span class="good">' + gbp(-gap) + ' above target.</span>'
+        : '<span class="bad">' + gbp(gap) + ' short of target.</span>'));
+    lines.push('Funnel: <b>' + freeScans + '</b> free scans/mo × <b>' + (conv*100).toFixed(0) +
+               '%</b> = <b>' + newPaidPerMo.toFixed(1) + '</b> new paying/mo; churn removes <b>' +
+               churnLossPerMo.toFixed(1) + '</b>/mo → net <b class="' + (netAddPerMo>=0?"good":"bad") + '">' +
+               (netAddPerMo>=0?"+":"") + netAddPerMo.toFixed(1) + '</b> clients/mo.');
+    lines.push('Without new sales, churn at <b>' + (churn*100).toFixed(1) + '%/mo</b> takes MRR to <b>' +
+               gbp(mrr*Math.pow(1-churn,12)) + '/mo</b> in 12 months; holding steady needs <b>' +
+               churnLossPerMo.toFixed(1) + '</b> replacements/mo.');
+    document.getElementById("target-out").innerHTML = "• " + lines.join("<br>• ");
+  }
+
+  document.addEventListener("input", recalc);
+  recalc();
+</script>
+</body>
+</html>
