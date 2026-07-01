@@ -8,10 +8,6 @@
    brand.js. This just makes it transformable and eases the motion. */
 header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;transition:transform .28s cubic-bezier(.2,.7,.2,1);will-change:transform}
 
-/* Wordmark flourish: the final letter in Halia green. Mid-emerald so it reads
-   on both the dark homepage and the light cream pages. */
-.brand .wm-last{color:#34a085}
-
 /* Keep the collapsed (mobile) header uncluttered, matching the homepage: the
    secondary text links hide below 900px, leaving the CTA and the hamburger. */
 @media(max-width:900px){header .nav .right .si{display:none}}

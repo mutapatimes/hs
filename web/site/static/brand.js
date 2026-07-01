@@ -1,7 +1,7 @@
 /* Halia shared brand behaviour, loaded on every page:
-     1. the top-logo asterism spins with the cursor's horizontal position
-        (a full sweep across the width is one full turn — the same pace as the
-        cursor). Subtle, header-only, and off when reduced motion is preferred.
+     1. the top-logo asterism spins as the page scrolls (rotation tracks the
+        vertical scroll offset). Subtle, header-only, and off when reduced
+        motion is preferred.
      2. the footer newsletter form posts to /subscribe. */
 (function () {
 
@@ -9,18 +9,19 @@
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var marks = document.querySelectorAll('header .brand > span:first-child');
     if (!marks.length) return;
-    var x = 0, queued = false;
+    var queued = false;
     function paint() {
       queued = false;
-      var deg = (x / (window.innerWidth || 1)) * 360;
+      var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+      var deg = y * 0.4;   // ~one full turn per 900px of scroll — nice and subtle
       for (var i = 0; i < marks.length; i++) {
         marks[i].style.transform = 'rotate(' + deg.toFixed(1) + 'deg)';
       }
     }
-    window.addEventListener('mousemove', function (e) {
-      x = e.clientX;
+    window.addEventListener('scroll', function () {
       if (!queued) { queued = true; requestAnimationFrame(paint); }
     }, { passive: true });
+    paint();   // honour any restored scroll position on load
   }
 
   function initNews() {
