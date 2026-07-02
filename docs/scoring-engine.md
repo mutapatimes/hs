@@ -246,7 +246,16 @@ Signals with too few firings keep their base weight; a signal is never zeroed. A
 > catches haven't converted yet — and naïve calibration would down-weight it toward the signals that
 > merely track existing spend, i.e. **RFM through the back door**, erasing the differentiator. That is
 > why v1 is deliberately timid (±25%). The real fix is calibrating on **conversion outcomes** (did
-> surfaced VICs become top clients) once associate-feedback / longitudinal data exists.
+> surfaced VICs become top clients).
+
+**The feedback loop (the bridge to outcome-based calibration).** The dashboard offers a one-tap
+**"good call" / "not a fit"** on every surfaced VIC (`POST /v1/feedback`). Two things happen, both
+zero-retention-preserving: Halia records an **aggregate per-signal tally** only — how often each
+signal appeared on a good-call vs not-a-fit customer (`store.feedback_stats`, no customer id) — and
+the per-customer verdict is written back as a tag in the merchant's **own** Shopify ("Halia: strong
+lead" / "Halia: not a fit"). `GET /v1/feedback/stats` exposes each signal's feedback **precision**
+(`fit / (fit+nofit)`). This produces labelled outcomes within weeks and is the training signal that
+lets a future calibration re-weight on *precision*, not spend — fixing the directional bias above.
 
 ---
 

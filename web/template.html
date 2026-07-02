@@ -899,7 +899,7 @@ function openDrawer(id){
     </div>
     <div class="dbody">
       <div class="dscore">
-        <div class="dcard accent"><div class="k">Halia score</div><div class="v mono">${c.score}<span style="font-size:13px;opacity:.7"> / 100 · ${tierLabel(c.tier)}</span></div></div>
+        <div class="dcard accent"><div class="k">Halia score</div><div class="v mono">${c.score}<span style="font-size:13px;opacity:.7"> / 100 · ${tierLabel(c.tier)}</span></div>${c.confidence?`<div style="font-size:11px;opacity:.75;margin-top:3px">${c.confidence>=2?("Corroborated · "+c.confidence+" sources"):"Single source"}</div>`:""}</div>
         <div class="dcard"><div class="k">Latent value</div><div class="v">${gbpK(c.latent)}</div></div>
         <div class="dcard"><div class="k">Spend now</div><div class="v">${gbp(c.spend)}</div></div>
       </div>
@@ -908,6 +908,13 @@ function openDrawer(id){
       <div class="evidence">
         ${c.signals.map(s=>`<div class="ev"><span class="badge">${SEGMENTS[s.seg].label}</span><div class="d">${s.d}${s.x?`<small>${s.x}</small>`:""}</div></div>`).join("")}
       </div>
+
+      <div class="dlabel">Was this a good call?</div>
+      <div id="dfb" style="display:flex;gap:8px">
+        <button class="dbtn" id="dfbYes">&#128077; Good call</button>
+        <button class="dbtn" id="dfbNo">&#128078; Not a fit</button>
+      </div>
+      <div style="color:var(--faint);font-size:11.5px;margin-top:6px">Trains Halia to your book. Your verdict is tagged on the client in your store; Halia keeps only an anonymous per-signal tally.</div>
 
       <div class="dlabel">Order history${c.orders&&c.orders.length?` · ${c.orders.length}`:""}</div>
       <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
@@ -936,6 +943,27 @@ function openDrawer(id){
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   document.getElementById("dclose").onclick=closeDrawer;
+  // Associate feedback loop: one tap records an anonymous per-signal tally (Halia) + tags the
+  // client in the merchant's own store. This is the label that later fixes calibration direction.
+  (function(){
+    const box=document.getElementById("dfb"); if(!box) return;
+    function send(verdict){
+      box.innerHTML='<span style="color:var(--soft);font-size:13px">Saving…</span>';
+      fetch("/v1/feedback",{method:"POST",headers:{"content-type":"application/json"},
+          body:JSON.stringify({customer_id:c.cid,email:c.email,verdict:verdict})})
+        .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+          if(!ok)throw new Error(d.detail||"failed");
+          box.innerHTML='<span style="color:var(--brand);font-size:13px;font-weight:600">Thanks — '
+            +(verdict==="fit"?"marked a good call":"marked not a fit")
+            +(d.tagged?" &amp; tagged in Shopify":"")+".</span>";
+          toast("Feedback saved.");
+        }).catch(e=>{toast("Couldn't save feedback: "+e.message);wire();});
+    }
+    function wire(){box.innerHTML='<button class="dbtn" id="dfbYes">&#128077; Good call</button><button class="dbtn" id="dfbNo">&#128078; Not a fit</button>';
+      document.getElementById("dfbYes").onclick=()=>send("fit");
+      document.getElementById("dfbNo").onclick=()=>send("nofit");}
+    wire();
+  })();
   // Email dropdown: opens the merchant's own mail app with a ready-to-send message.
   const dmail=document.getElementById("dmail"), dmenu=document.getElementById("dmailmenu");
   dmail.onclick=e=>{e.stopPropagation();dmenu.style.display=dmenu.style.display==="block"?"none":"block";};

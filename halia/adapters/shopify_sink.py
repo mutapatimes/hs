@@ -91,6 +91,12 @@ class ShopifySink(ScoreSink):
             data = self._run(_ADD_TAGS, {"id": _gid(r.customer_id), "tags": [f"Halia:{r.grade}"]})
             _raise_user_errors(data, "tagsAdd")
 
+    def tag_customer(self, customer_id: str, tags: list[str]) -> None:
+        """Add arbitrary tag(s) to one customer — used by the associate-feedback loop so the
+        merchant's own verdict lives in THEIR Shopify (keeps Halia zero-retention)."""
+        data = self._run(_ADD_TAGS, {"id": _gid(str(customer_id)), "tags": tags})
+        _raise_user_errors(data, "tagsAdd")
+
 
 def _raise_user_errors(data: dict, field: str) -> None:
     errors = (data.get(field) or {}).get("userErrors") or []

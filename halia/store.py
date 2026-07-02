@@ -90,6 +90,17 @@ _TABLES = [
         subscription_id TEXT,
         updated_at      TEXT
     )""",
+    # Associate-feedback tally, AGGREGATE ONLY — how often each signal appeared on a customer
+    # the merchant marked a "good call" vs "not a fit". No customer identifier is stored (the
+    # per-customer verdict lives merchant-side as a Shopify tag), so this keeps zero-retention
+    # while giving outcome labels to calibrate signal weights on later.
+    """CREATE TABLE IF NOT EXISTS feedback_stats (
+        shop   TEXT,
+        signal TEXT,
+        fit    INTEGER DEFAULT 0,
+        nofit  INTEGER DEFAULT 0,
+        PRIMARY KEY (shop, signal)
+    )""",
 ]
 # Earlier versions cached customer PII in these tables. Drop them so any deploy purges it.
 _DROP_LEGACY = [
@@ -313,9 +324,25 @@ class ShopStore(_DB):
                 updated_at=excluded.updated_at""",
             {"shop": shop, "st": status, "cid": customer_id, "sid": subscription_id, "at": _now()})
 
+    # ── associate feedback (aggregate per-signal tally; no customer data) ───────
+    def record_feedback(self, shop: str, signals: list[str], verdict: str) -> None:
+        """Increment the fit/nofit tally for each signal that fired on a customer the merchant
+        judged. ``verdict`` is 'fit' or 'nofit'. Stores no customer identifier."""
+        col = "fit" if verdict == "fit" else "nofit"
+        for signal in {s for s in signals if s}:
+            self._run(
+                f"""INSERT INTO feedback_stats (shop, signal, {col}) VALUES (:shop, :sig, 1)
+                    ON CONFLICT(shop, signal) DO UPDATE SET {col} = feedback_stats.{col} + 1""",
+                {"shop": shop, "sig": signal})
+
+    def get_feedback_stats(self, shop: str) -> list[dict]:
+        rows = self._run("SELECT signal, fit, nofit FROM feedback_stats WHERE shop = :shop",
+                         {"shop": shop}, fetch="all") or []
+        return [dict(r) for r in rows]
+
     # ── deletion (shop/redact + app/uninstalled) ───────────────────────────────
     def delete_shop(self, shop: str) -> None:
         """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""
         for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "mailchimp",
-                      "webhooks", "push_subs", "billing"):
+                      "webhooks", "push_subs", "billing", "feedback_stats"):
             self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})
