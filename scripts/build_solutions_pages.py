@@ -325,39 +325,7 @@ FLOW = {
              "line to your account manager for volume or multi-site orders.&rdquo;"}]},
 }
 
-# The other client — the lookalike who placed the same order. Never treated worse: a genuine,
-# generic welcome. Shared copy (a standard experience is generic by nature).
-STD = {
-    "welcome": {"subj": "Thanks for your order", "body": "&ldquo;Thanks for shopping with us &mdash; we hope you "
-                "love it. We&rsquo;re here if you need anything at all.&rdquo;"},
-    "shipped": {"subj": "Your order has shipped", "body": "&ldquo;Good news &mdash; your order is on its way. You "
-                "can track it any time from your account.&rdquo;"},
-    "nurture": "Added to the general newsletter. Buys again when something catches their eye &mdash; and is always welcome.",
-    "outcome": "A happy, occasional customer &mdash; valued, and never treated as less.",
-}
-# The VIC's nurture one-liner + the two behavioural outcome metrics (realised value is added from
-# buyer_latent in code, so the numbers never drift from the case study above).
-NURTURE = {
-    "fashion": "A private preview before each drop. Early access held. A name they now ask for.",
-    "wine": "An allocation held every release. A standing place at the private tasting.",
-    "beauty": "A private consultation. Samples chosen for them. A note from the founder.",
-    "jewellery": "A dedicated advisor. First sight of new pieces. A bespoke commission underway.",
-    "home": "Trade terms and a dedicated account manager. First call on every new range.",
-    "gifting": "A house account. Priority for events. One point of contact who knows the brief.",
-    "collectibles": "First look at every catalogue. Pieces set aside before they reach the public.",
-    "electronics": "Account pricing. A named contact. Support across every site and order.",
-}
-METRICS = {
-    "fashion": [("Repeat orders", "5&times; / yr"), ("Avg. order", "+280%")],
-    "wine": [("Allocation take-up", "92%"), ("Avg. order", "+340%")],
-    "beauty": [("Repeat rate", "4&times; / yr"), ("Avg. basket", "+190%")],
-    "jewellery": [("2nd commission", "&pound;12k"), ("Avg. order", "+420%")],
-    "home": [("Trade account", "Opened"), ("Order size", "+520%")],
-    "gifting": [("House account", "Opened"), ("Annual spend", "+340%")],
-    "collectibles": [("Catalogue buys", "7 / yr"), ("Avg. order", "+300%")],
-    "electronics": [("Business account", "Opened"), ("Order value", "+900%")],
-}
-# A specific, modest product per industry — both clients place the *same* order.
+# A specific, modest product per industry — the order the hidden VIC places.
 PRODUCT = {
     "fashion": "A silk shirt &middot; &pound;150",
     "wine": "Four midweek reds &middot; &pound;60",
@@ -368,17 +336,42 @@ PRODUCT = {
     "collectibles": "A reading-copy paperback &middot; &pound;20",
     "electronics": "A USB-C charging hub &middot; &pound;40",
 }
-# The template set the merchant can choose from (Halia never sends — it suggests). First is the one
-# picked in the demo; its body is FLOW[...]["emails"][0]. The rest show there is a real set to choose.
+# The templates the merchant can choose from (Halia never sends — it suggests). Each is
+# (button label, subject, body). The first is selected by default. Curly quotes/&mdash; are safe
+# inside the double-quoted data-* attributes the buttons carry.
 TEMPLATES = {
-    "fashion": ["Personal welcome", "Early access", "Private appointment"],
-    "wine": ["Allocation invite", "Private tasting", "Cellar check-in"],
-    "beauty": ["Welcome + sample", "Consultation invite", "Founder note"],
-    "jewellery": ["Advisor intro", "Bespoke invite", "Sizing help"],
-    "home": ["Trade enquiry", "Account offer", "Project help"],
-    "gifting": ["House account", "Events offer", "Order thanks"],
-    "collectibles": ["Catalogue preview", "First-look offer", "Wants list"],
-    "electronics": ["Business intro", "Account pricing", "Callback offer"],
+    "fashion": [
+        ("Personal welcome", "A personal welcome", "Thank you for your first order. I&rsquo;m your personal client advisor &mdash; may I set aside early access to our next collection for you?"),
+        ("Early access", "First look at the new collection", "As one of our valued clients, I&rsquo;d love to offer you a private preview of next season before it launches."),
+        ("Private appointment", "A private appointment, whenever suits", "Would you like to book a private styling appointment? I&rsquo;ll have pieces set aside in your size.")],
+    "wine": [
+        ("Allocation invite", "A note about allocations", "Given your taste, may we add you to our en-primeur allocation list ahead of the next release?"),
+        ("Private tasting", "An invitation to a private tasting", "We&rsquo;re hosting a small tasting next month and would be glad to reserve you a place."),
+        ("Cellar check-in", "Anything for the cellar?", "If you&rsquo;re after something specific, I can source and set bottles aside for you.")],
+    "beauty": [
+        ("Welcome + sample", "A little welcome gift", "Thank you for discovering us. A complimentary sample, chosen for you, is on its way with your order."),
+        ("Consultation", "A private consultation", "As a new client, you&rsquo;re invited to a private virtual consultation with our team."),
+        ("Founder note", "A note from our founder", "I just wanted to personally thank you for your first order &mdash; I hope you love it.")],
+    "jewellery": [
+        ("Advisor intro", "Thank you &mdash; from your advisor", "It was a pleasure to receive your order. I&rsquo;m here for anything you need, from sizing to a future commission."),
+        ("Bespoke invite", "Something made for you", "When you&rsquo;re ready to explore a bespoke piece, I&rsquo;d be delighted to guide you through it."),
+        ("Sizing help", "Getting the fit right", "If you&rsquo;d like any help with sizing or adjustments, just let me know &mdash; it&rsquo;s on us.")],
+    "home": [
+        ("Trade enquiry", "A trade enquiry", "If you specify for clients, we offer trade terms and a dedicated contact &mdash; shall I set that up?"),
+        ("Account offer", "An account for your projects", "We&rsquo;d love to open an account for you, with terms and priority on new ranges."),
+        ("Project help", "Here to help on your project", "For a larger project, I can help with sourcing, lead times, and samples whenever you need.")],
+    "gifting": [
+        ("House account", "A house account, whenever suits", "For corporate or event flowers, we can set up a house account so it&rsquo;s one less thing to think about."),
+        ("Events offer", "Flowers for your events", "If you have events coming up, we&rsquo;d be glad to handle them with priority and one point of contact."),
+        ("Order thanks", "Thank you for your standing order", "We&rsquo;ll take good care of your weekly delivery &mdash; and we&rsquo;re here if you ever need more.")],
+    "collectibles": [
+        ("Catalogue preview", "Welcome to the list", "May we send you early previews of our next catalogue, ahead of the general release?"),
+        ("First look", "A first look", "Here is an early look at a few pieces we think you&rsquo;ll want to see before anyone else."),
+        ("Wants list", "Your wants list", "Tell me what you&rsquo;re hunting for and I&rsquo;ll set pieces aside the moment they come in.")],
+    "electronics": [
+        ("Business intro", "A note from our business team", "It looks like you may be buying at scale &mdash; our business division can offer account pricing and support."),
+        ("Account pricing", "Account pricing for you", "We can set you up with account pricing and a named contact for volume or multi-site orders."),
+        ("Callback offer", "A quick call?", "Would a short call help? We can talk through pricing, stock, and delivery across sites.")],
 }
 # What Halia actually does automatically when a hidden VIC orders: notify the team. Shared copy,
 # {product}/{grade}/{who} filled per page.
@@ -472,72 +465,43 @@ _CSS = """
   figure.shot figcaption{font-family:var(--serif);font-style:italic;font-size:15.5px;color:var(--faint);margin-top:13px;max-width:34ch}
   .do-grid{display:grid;grid-template-columns:1fr .8fr;gap:clamp(30px,5vw,60px);align-items:center;margin-top:2px}
   @media(max-width:860px){.ih-grid,.do-grid{grid-template-columns:1fr;gap:30px}figure.shot img{aspect-ratio:16/11}}
-  /* "what happens next" — two-track timeline (the other client | your hidden VIC) */
-  .duo{position:relative;display:grid;grid-template-columns:1fr 132px 1fr;margin-top:34px}
-  .duo::before{content:"";position:absolute;left:50%;top:58px;bottom:22px;width:2px;background:var(--line);transform:translateX(-50%);z-index:0}
-  .dhead,.dstage{display:contents}
-  .hcell{align-self:end;padding:0 6px 16px}
-  .cn{font-family:var(--serif);font-size:19px;color:var(--ink);line-height:1.1}
-  .cs{font:500 10.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:4px}
-  .hcell.right .cn{color:var(--gold)}
-  .dcell{position:relative;z-index:1;padding:10px 6px 22px;align-self:start;min-width:0}
-  .dcell.mid{display:flex;flex-direction:column;align-items:center;text-align:center;z-index:2;padding:12px 4px 0}
-  .fdot{width:18px;height:18px;border-radius:50%;background:var(--bg);border:2px solid var(--faint);transition:.45s;flex:none}
-  .dstage.on .dcell.mid .fdot{border-color:var(--gold);background:var(--gold);box-shadow:0 0 0 5px rgba(122,115,99,.14)}
-  .dcell.mid .fwhen{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:10px;max-width:112px}
-  .dcell.left,.dcell.right{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.2,.6,.2,1),transform .6s cubic-bezier(.2,.6,.2,1)}
-  .dstage.on .dcell.left,.dstage.on .dcell.right{opacity:1;transform:none}
-  .fcard{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:var(--bg-2)}
-  .dcell.right .fcard.vic{border-color:rgba(122,115,99,.5);background:linear-gradient(180deg,rgba(122,115,99,.07),var(--bg-2))}
-  .fcard.soft{background:transparent}
+  /* "what happens next" — one scenario: order + notify, then pick a template and send */
+  .scene{margin-top:30px;display:grid;grid-template-columns:.88fr 1.12fr;gap:clamp(22px,4vw,42px);align-items:start}
+  @media(max-width:820px){.scene{grid-template-columns:1fr;gap:22px}}
+  .sc-ctx{display:flex;flex-direction:column;gap:13px}
+  .sc-order{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:var(--bg-2)}
   .oc-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
-  .oc-who{font-family:var(--serif);font-size:19px;color:var(--ink)}
+  .oc-who{font-family:var(--serif);font-size:20px;color:var(--ink)}
   .oc-grade{background:var(--ink);color:var(--bg);border-radius:999px;padding:3px 12px;font:600 13px var(--sans);flex:none}
-  .oc-grade.alt{background:transparent;color:var(--faint);border:1px solid var(--line)}
   .oc-item{color:var(--ink);font-size:14px;margin-top:5px;font-weight:500}
-  .oc-note{color:var(--mute);font-size:13.5px;margin-top:10px;line-height:1.5}
-  .oc-sub{color:var(--mute);font-size:13.5px;margin-top:6px;line-height:1.5}
   .oc-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
-  .act{font:500 12px var(--sans);color:var(--gold);border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--bg);opacity:0;transform:translateY(6px);transition:opacity .4s,transform .4s}
+  .act{font:500 12px var(--sans);color:var(--gold);border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--bg);opacity:0;transform:translateY(6px);transition:opacity .45s,transform .45s}
   .act::before{content:"\\2713  ";font-weight:700}
-  .act.on{opacity:1;transform:none}
-  .push{display:flex;align-items:center;gap:9px;font:500 13px var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:12px}
-  .push .bell{font-size:15px;flex:none}
-  .em-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
-  .em-kind{font:600 10px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-  .dcell.right .em-kind{color:var(--gold)}
-  .em-status{font:600 10px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);white-space:nowrap;flex:none}
-  .em-status.sent{color:var(--gold)}.em-status.sent::before{content:"\\2713 "}
-  .em-subj{font-family:var(--serif);font-size:17px;color:var(--ink);line-height:1.2;margin-bottom:5px}
-  .em-subj.sm{font-size:15px}
-  .em-body{color:var(--mute);font-size:13.5px;line-height:1.5;font-style:italic}
-  .tpls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
-  .tpl{font:500 11px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:4px 10px;opacity:0;transform:translateY(6px);transition:.4s}
-  .tpl.on{opacity:1;transform:none}
+  .scene.in .act{opacity:1;transform:none}
+  .scene.in .act:nth-child(2){transition-delay:.12s}.scene.in .act:nth-child(3){transition-delay:.24s}.scene.in .act:nth-child(4){transition-delay:.36s}
+  .sc-note{display:flex;align-items:center;gap:9px;font:500 13px var(--sans);color:var(--mute);border:1px dashed var(--line);border-radius:10px;padding:11px 14px}
+  .sc-note .bell{font-size:15px;flex:none}
+  .composer{border:1px solid var(--line);border-radius:16px;padding:20px 22px;background:var(--bg);position:relative;overflow:hidden}
+  .cmp-h{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:13px}
+  .tpls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .tpl{font:500 12.5px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:6px 13px;background:var(--bg);cursor:pointer;transition:.2s}
+  .tpl:hover{border-color:var(--ink);color:var(--ink)}
   .tpl.sel{color:var(--bg);background:var(--gold);border-color:var(--gold)}
-  .send{display:flex;align-items:center;gap:11px;margin-top:12px}
-  .sendbtn{font:600 12px var(--sans);color:var(--bg);background:var(--ink);border-radius:8px;padding:6px 16px;flex:none;transition:.3s}
-  .fcard.email.done .sendbtn{background:var(--gold)}
-  .em-hint{font:500 11.5px var(--sans);color:var(--faint)}
-  .em-bar{height:2px;background:var(--line-2);border-radius:2px;margin-top:12px;overflow:hidden}
-  .em-bar i{display:block;height:100%;width:0;background:var(--gold);transition:width 1.1s ease}
-  .fcard.out .out-t{font:600 10.5px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
-  .dcell.right .fcard.out .out-t{color:var(--gold)}
-  .metrics{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-  .mtr{border:1px solid rgba(122,115,99,.4);border-radius:10px;padding:8px 12px;background:var(--bg);opacity:0;transform:translateY(6px);transition:.4s;min-width:0}
-  .mtr.on{opacity:1;transform:none}
-  .mtr .mv{font-family:var(--serif);font-size:19px;color:var(--gold);line-height:1;display:block}
-  .mtr .ml{font:500 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:5px;display:block}
-  @media(max-width:820px){
-    .duo{display:block}.duo::before{display:none}.dhead{display:none}
-    .dstage{display:flex;flex-direction:column;margin-bottom:26px;padding-bottom:10px;border-bottom:1px solid var(--line-2)}
-    .dcell.mid{order:-1;flex-direction:row;justify-content:flex-start;gap:11px;text-align:left;padding:0 0 12px}
-    .dcell.mid .fwhen{margin-top:0;max-width:none}
-    .dcell.left,.dcell.right{opacity:1;transform:none;padding:0 0 12px}
-    .dcell.left .fcard::before{content:"The other client";display:block;font:600 10px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
-    .dcell.right .fcard::before{content:"Your hidden VIC";display:block;font:600 10px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
-  }
-  @media(prefers-reduced-motion:reduce){.dcell.left,.dcell.right{opacity:1;transform:none}.act,.mtr,.tpl{opacity:1;transform:none}.em-bar i{transition:none}}
+  .mail{border:1px solid var(--line-2);border-radius:12px;padding:16px 18px;background:var(--bg-2);transition:opacity .4s}
+  .mail-subj{font-family:var(--serif);font-size:19px;color:var(--ink);margin-bottom:8px;line-height:1.22}
+  .mail-body{color:var(--mute);font-size:14.5px;line-height:1.55;font-style:italic}
+  .cmp-foot{display:flex;align-items:center;gap:14px;margin-top:16px;min-height:42px}
+  .sendbtn{display:inline-flex;align-items:center;gap:9px;font:600 13px var(--sans);color:var(--bg);background:var(--ink);border:none;border-radius:999px;padding:11px 22px;cursor:pointer;transition:background .25s}
+  .sendbtn:hover{background:var(--gold)}
+  .sendbtn .plane{width:16px;height:16px;transition:transform .2s}
+  .sent-msg{font:600 13px var(--sans);color:var(--gold);opacity:0;transform:translateX(-6px);transition:opacity .4s,transform .4s}
+  .sent-msg::before{content:"\\2713  "}
+  .composer.sending .plane{animation:planeFly .72s cubic-bezier(.4,.1,.3,1) forwards}
+  @keyframes planeFly{35%{transform:translate(5px,-4px)}100%{transform:translate(160px,-120px) rotate(20deg) scale(.6);opacity:0}}
+  .composer.sent .sendbtn{display:none}
+  .composer.sent .sent-msg{opacity:1;transform:none}
+  .composer.sent .mail{opacity:.5}
+  @media(prefers-reduced-motion:reduce){.act{opacity:1;transform:none}.composer.sending .plane{animation:none}}
 """
 
 _ASTER = "&#8258;"
@@ -601,31 +565,16 @@ _SCRIPT = (
     "var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');"
     "io.unobserve(e.target)}})},{threshold:.14,rootMargin:'0px 0px -8% 0px'});"
     "document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});"
-    # ── the two-track "what happens next" flow: auto-plays when scrolled into view, loops ──
-    "(function(){var rm=matchMedia('(prefers-reduced-motion:reduce)').matches;"
-    "function run(flow){var steps=flow.querySelectorAll('.dstage'),i=0,timers=[];"
-    "function T(fn,ms){timers.push(setTimeout(fn,ms))}"
-    "function deliver(m){var st=m.querySelector('.em-status'),bar=m.querySelector('.em-bar i');"
-    "if(bar)bar.style.width='100%';if(st){st.textContent=st.getAttribute('data-sent')||'Delivered';st.classList.add('sent')}m.classList.add('done')}"
-    "function reset(){timers.forEach(clearTimeout);timers=[];i=0;steps.forEach(function(s){s.classList.remove('on');"
-    "s.querySelectorAll('.act,.mtr,.tpl').forEach(function(a){a.classList.remove('on')});"
-    "s.querySelectorAll('.fcard.email,.fcard.notify').forEach(function(m){m.classList.remove('done');"
-    "var st=m.querySelector('.em-status');if(st){st.textContent=st.getAttribute('data-init')||'';st.classList.remove('sent')}"
-    "var bar=m.querySelector('.em-bar i');if(bar)bar.style.width='0'})})}"
-    "function finalAll(){steps.forEach(function(s){s.classList.add('on');"
-    "s.querySelectorAll('.act,.mtr,.tpl').forEach(function(a){a.classList.add('on')});"
-    "s.querySelectorAll('.fcard.email,.fcard.notify').forEach(deliver)})}"
-    "function step(){if(i>=steps.length){T(function(){reset();T(step,900)},4200);return}"
-    "var s=steps[i];s.classList.add('on');"
-    "var pops=s.querySelectorAll('.act,.mtr,.tpl');pops.forEach(function(a,k){T(function(){a.classList.add('on')},340+k*180)});"
-    "var mails=s.querySelectorAll('.fcard.email,.fcard.notify'),dwell;"
-    "if(mails.length){mails.forEach(function(m){var bar=m.querySelector('.em-bar i');"
-    "T(function(){if(bar)bar.style.width='100%'},380);"
-    "T(function(){var st=m.querySelector('.em-status');if(st){st.textContent=st.getAttribute('data-sent')||'Delivered';st.classList.add('sent')}m.classList.add('done')},1550)});dwell=2300}"
-    "else{dwell=pops.length?340+pops.length*180+700:1000}i++;T(step,dwell+700)}"
-    "var io2=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){io2.disconnect();"
-    "if(rm){finalAll()}else{reset();T(step,400)}}})},{threshold:.18});io2.observe(flow)}"
-    "document.querySelectorAll('[data-flow]').forEach(run)})();</script>"
+    # ── the "what happens next" scene: pick a template, hit send, paper-plane confirmation ──
+    "(function(){document.querySelectorAll('[data-scene]').forEach(function(scene){"
+    "var tpls=scene.querySelectorAll('.tpl'),subj=scene.querySelector('.mail-subj'),"
+    "body=scene.querySelector('.mail-body'),cmp=scene.querySelector('.composer'),btn=scene.querySelector('.sendbtn');"
+    "tpls.forEach(function(t){t.addEventListener('click',function(){"
+    "tpls.forEach(function(x){x.classList.remove('sel')});t.classList.add('sel');"
+    "if(subj)subj.textContent=t.getAttribute('data-subj');if(body)body.textContent=t.getAttribute('data-body');"
+    "cmp.classList.remove('sending','sent')})});"
+    "if(btn)btn.addEventListener('click',function(){if(cmp.classList.contains('sent')||cmp.classList.contains('sending'))return;"
+    "cmp.classList.add('sending');setTimeout(function(){cmp.classList.add('sent')},700)})})})();</script>"
 )
 
 
@@ -648,90 +597,45 @@ def _rows(ind: dict) -> str:
     return "".join(out)
 
 
-def _stage(when: str, left: str, right: str) -> str:
-    return (f'<div class="dstage" data-step>'
-            f'<div class="dcell left">{left}</div>'
-            f'<div class="dcell mid"><span class="fdot"></span><div class="fwhen">{when}</div></div>'
-            f'<div class="dcell right">{right}</div></div>')
-
-
 def _flow(ind: dict) -> str:
     slug = ind["slug"]
     f = FLOW[slug]
-    e1, e2 = f["emails"]
-    grade, who, product = ind["buyer_grade"], f["who"], PRODUCT[slug]
-    std = next((r for r in ind["rows"] if not r[5]), ind["rows"][-1])   # a same-price lookalike
-    std_who, std_grade = std[0], std[3]
+    who, grade, product = f["who"], ind["buyer_grade"], PRODUCT[slug]
     acts = "".join(f'<span class="act">{a}</span>' for a in f["actions"])
-    tmpls = "".join(f'<span class="tpl{" sel" if k == 0 else ""}">{t}</span>'
-                    for k, t in enumerate(TEMPLATES[slug]))
-    metrics = "".join(f'<span class="mtr"><span class="mv">{v}</span><span class="ml">{l}</span></span>'
-                      for l, v in METRICS[slug])
-    metrics += (f'<span class="mtr"><span class="mv">{gbp(ind["buyer_latent"])}</span>'
-                f'<span class="ml">Realised value / yr</span></span>')
+    tpls = TEMPLATES[slug]
+    chips = "".join(
+        f'<button class="tpl{" sel" if k == 0 else ""}" data-subj="{subj}" data-body="{body}">{name}</button>'
+        for k, (name, subj, body) in enumerate(tpls))
+    t0 = tpls[0]
     push = NOTIFY["push"].format(product=product)
-    alert = NOTIFY["alert_body"].format(who=who, grade=grade)
-
-    # Stage 1 — the same order lands for both.
-    s1l = (f'<div class="fcard order"><div class="oc-top"><span class="oc-who">{std_who}</span>'
-           f'<span class="oc-grade alt">{std_grade}</span></div><div class="oc-item">{product}</div>'
-           f'<div class="oc-note">Enters your standard flow &mdash; treated well, like every customer.</div></div>')
-    s1r = (f'<div class="fcard order vic"><div class="oc-top"><span class="oc-who">{who}</span>'
-           f'<span class="oc-grade">{grade}</span></div><div class="oc-item">{product}</div>'
-           f'<div class="oc-actions">{acts}</div></div>')
-    # Stage 2 — Halia's one automatic act: notify the team (web push + email). It never emails customers.
-    s2l = '<div class="fcard soft"><div class="oc-note">No alert needed. Your usual automation takes it from here.</div></div>'
-    s2r = (f'<div class="fcard notify vic"><div class="push"><span class="bell">&#128276;</span><span>{push}</span></div>'
-           f'<div class="em-head"><span class="em-kind">Email to your team</span>'
-           f'<span class="em-status" data-init="Sending" data-sent="Delivered">Sending</span></div>'
-           f'<div class="em-subj sm">{NOTIFY["alert_subj"]}</div><div class="em-body">{alert}</div>'
-           f'<div class="em-bar"><i></i></div></div>')
-    # Stage 3 — you choose whether to reach out, from a template. Halia suggests; you send.
-    s3l = (f'<div class="fcard email"><div class="em-head"><span class="em-kind">Your standard welcome</span>'
-           f'<span class="em-status" data-init="Auto" data-sent="Sent">Auto</span></div>'
-           f'<div class="em-subj">{STD["welcome"]["subj"]}</div><div class="em-body">{STD["welcome"]["body"]}</div>'
-           f'<div class="em-bar"><i></i></div></div>')
-    s3r = (f'<div class="fcard email vic"><div class="em-head"><span class="em-kind">You choose &middot; Halia template</span>'
-           f'<span class="em-status" data-init="Draft" data-sent="Sent by you">Draft</span></div>'
-           f'<div class="tpls">{tmpls}</div><div class="em-subj">{e1["subj"]}</div>'
-           f'<div class="em-body">{e1["body"]}</div>'
-           f'<div class="send"><span class="sendbtn">Send</span><span class="em-hint">You decide whether to reach out.</span></div>'
-           f'<div class="em-bar"><i></i></div></div>')
-    # Stage 4 — fulfilment.
-    s4l = (f'<div class="fcard email"><div class="em-head"><span class="em-kind">Your standard flow</span>'
-           f'<span class="em-status" data-init="Auto" data-sent="Sent">Auto</span></div>'
-           f'<div class="em-subj">{STD["shipped"]["subj"]}</div><div class="em-body">{STD["shipped"]["body"]}</div>'
-           f'<div class="em-bar"><i></i></div></div>')
-    s4r = (f'<div class="fcard email vic"><div class="em-head"><span class="em-kind">You send &middot; Halia template</span>'
-           f'<span class="em-status" data-init="Draft" data-sent="Sent by you">Draft</span></div>'
-           f'<div class="em-subj">{e2["subj"]}</div><div class="em-body">{e2["body"]}</div>'
-           f'<div class="send"><span class="sendbtn">Send</span></div><div class="em-bar"><i></i></div></div>')
-    # Stage 5 — the outcome. Both fine; one becomes a loyal, high-value client.
-    s5l = (f'<div class="fcard out"><div class="out-t">Standard outcome</div>'
-           f'<div class="oc-note">{STD["outcome"]}</div><div class="oc-sub">{STD["nurture"]}</div></div>')
-    s5r = (f'<div class="fcard out vic"><div class="out-t">Nurtured outcome</div>'
-           f'<div class="oc-sub">{NURTURE[slug]}</div><div class="metrics">{metrics}</div></div>')
-
-    stages = (_stage("The order lands", s1l, s1r)
-              + _stage("Halia notifies you", s2l, s2r)
-              + _stage("You choose to reach out", s3l, s3r)
-              + _stage("The order is fulfilled", s4l, s4r)
-              + _stage("The outcome", s5l, s5r))
     return f"""
 <section class="sec"><div class="wrap">
   <div class="k reveal">What happens next</div>
-  <h2 class="h2 reveal">Two clients, the same order. One you&rsquo;d have missed.</h2>
-  <p class="p reveal" style="margin-top:12px;max-width:64ch">Same product, same day. When the hidden VIC
-    orders, Halia notifies your team by web push and email &mdash; then <em>you</em> decide whether to
-    reach out, from a set of ready templates. Halia never emails your customers for you. And the other
-    client is never treated as less.</p>
-  <div class="duo reveal d1" data-flow>
-    <div class="dhead">
-      <div class="hcell left"><div class="cn">The other client</div><div class="cs">A genuine, standard welcome</div></div>
-      <div class="hcell mid"></div>
-      <div class="hcell right"><div class="cn">Your hidden VIC</div><div class="cs">Recognised &amp; nurtured &mdash; by you</div></div>
+  <h2 class="h2 reveal">A hidden VIC just ordered. Your move.</h2>
+  <p class="p reveal" style="margin-top:12px;max-width:60ch">When a hidden VIC places an order, Halia
+    notifies your team by web push and email. Then <em>you</em> decide whether to reach out &mdash; pick
+    a template and send. Halia never emails your customers for you.</p>
+  <div class="scene reveal d1" data-scene>
+    <div class="sc-ctx">
+      <div class="sc-order">
+        <div class="oc-top"><span class="oc-who">{who}</span><span class="oc-grade">{grade}</span></div>
+        <div class="oc-item">{product}</div>
+        <div class="oc-actions">{acts}</div>
+      </div>
+      <div class="sc-note"><span class="bell">&#128276;</span>Halia notified you &mdash; web push &amp; email</div>
     </div>
-    {stages}
+    <div class="composer">
+      <div class="cmp-h">Choose a message to send</div>
+      <div class="tpls">{chips}</div>
+      <div class="mail">
+        <div class="mail-subj">{t0[1]}</div>
+        <div class="mail-body">{t0[2]}</div>
+      </div>
+      <div class="cmp-foot">
+        <button class="sendbtn" type="button">Send<svg class="plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>
+        <span class="sent-msg">Sent &mdash; nicely done.</span>
+      </div>
+    </div>
   </div>
 </div></section>"""
 
