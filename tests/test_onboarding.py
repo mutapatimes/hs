@@ -99,6 +99,16 @@ def test_signin_is_neutral_for_unknown_email(client):
     assert r.status_code == 200 and "Check your inbox" in r.text  # no account disclosure
 
 
+def test_hosted_head_is_halia_branded_not_shopify():
+    # The hosted (WooCommerce/standalone) dashboard must hide the template's fake Shopify chrome
+    # and show a Halia-branded bar with the store's name.
+    h = onboarding._hosted_head("Glen Norah")
+    assert ".topbar,.sidenav,.crumb{display:none!important}" in h   # fake Shopify chrome hidden
+    assert "#halia-top" in h and "Halia" in h                       # Halia's own bar
+    assert '"Glen Norah"' in h                                      # store name injected (JSON-escaped)
+    assert "/app/refresh" in h and "/app/logout" in h              # controls preserved
+
+
 def test_verify_rejects_bad_key(client):
     c, _ = client
     r = c.get("/app/verify?k=bogus", follow_redirects=False)

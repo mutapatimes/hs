@@ -478,23 +478,48 @@ def _connect_form(error: str = "", values: dict | None = None) -> str:
       </form></div>""")
 
 
-def _hosted_head() -> str:
-    # Refresh (re-pull + re-score) and Sign out controls for the hosted dashboard (no App Bridge).
+def _hosted_head(store: str = "") -> str:
+    """A HALIA-BRANDED shell for the hosted (non-Shopify) dashboard.
+
+    The dashboard template bakes in an illustrative *Shopify* admin chrome (top bar + side nav),
+    which is disorienting for a WooCommerce / standalone merchant — it looks like Shopify. So here
+    we hide that fake chrome and give the app its own Halia top bar: brand + the store's name +
+    Refresh / Sign out. (The embedded Shopify app hides the same chrome — real Shopify wraps it.)
+    """
+    import json as _json
+    store_js = _json.dumps(store or "")
     return (
-        "<style>#halia-bar{position:fixed;top:14px;right:18px;z-index:200;display:flex;gap:8px}"
-        "#halia-bar button{padding:8px 14px;border-radius:8px;font:600 13px system-ui;cursor:pointer}"
-        "#halia-refresh{border:1px solid #d8c79a;background:#1f564a;color:#fff}"
-        "#halia-refresh[disabled]{opacity:.6}"
-        "#halia-signout{border:1px solid #cfc7b5;background:#fff;color:#1f564a}</style>"
+        "<style>"
+        ".topbar,.sidenav,.crumb{display:none!important}"
+        ".admin{grid-template-columns:1fr!important;padding-top:52px}"
+        "#halia-top{position:fixed;top:0;left:0;right:0;height:52px;z-index:200;display:flex;"
+        "align-items:center;gap:14px;padding:0 18px;background:#1a1712;color:#f5f2ea;"
+        "border-bottom:1px solid rgba(255,255,255,.08);"
+        "font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif}"
+        "#halia-top .hb{display:flex;align-items:center;gap:9px;"
+        "font-family:'Cormorant Garamond',Georgia,serif;font-size:20px}"
+        "#halia-top .hb .ast{color:#d8d2c6;font-size:19px}"
+        "#halia-top .hstore{color:#cfc7b5;font-size:13px;border-left:1px solid rgba(255,255,255,.16);padding-left:14px}"
+        "#halia-top .hsp{flex:1}"
+        "#halia-top button{padding:7px 14px;border-radius:8px;font:600 13px 'Inter',system-ui;cursor:pointer}"
+        "#halia-refresh{border:1px solid #2c463d;background:#1f564a;color:#fff}#halia-refresh[disabled]{opacity:.6}"
+        "#halia-signout{border:1px solid #3a3630;background:transparent;color:#e9e4d8}"
+        "@media(max-width:600px){#halia-top .hstore{display:none}}"
+        "</style>"
         "<script>addEventListener('DOMContentLoaded',function(){"
-        "var bar=document.createElement('div');bar.id='halia-bar';"
-        "var r=document.createElement('button');r.id='halia-refresh';r.textContent='\\u21bb Refresh scores';"
+        "var s=" + store_js + ";"
+        "var bar=document.createElement('div');bar.id='halia-top';"
+        "bar.innerHTML='<span class=\"hb\"><span class=\"ast\">\\u2042</span> Halia</span>'"
+        "+(s?'<span class=\"hstore\"></span>':'')+'<span class=\"hsp\"></span>'"
+        "+'<button id=\"halia-refresh\">\\u21bb Refresh scores</button>'"
+        "+'<button id=\"halia-signout\">Sign out</button>';"
+        "document.body.insertBefore(bar,document.body.firstChild);"
+        "if(s){bar.querySelector('.hstore').textContent=s;}"
+        "var r=document.getElementById('halia-refresh');"
         "r.onclick=function(){r.disabled=true;r.textContent='Refreshing\\u2026';"
         "fetch('/app/refresh',{method:'POST'}).then(function(x){return x.json()}).then(function(){location.reload()})"
         ".catch(function(){r.textContent='Refresh failed';r.disabled=false})};"
-        "var o=document.createElement('button');o.id='halia-signout';o.textContent='Sign out';"
-        "o.onclick=function(){location.href='/app/logout'};"
-        "bar.appendChild(r);bar.appendChild(o);document.body.appendChild(bar);});</script>"
+        "document.getElementById('halia-signout').onclick=function(){location.href='/app/logout'};});</script>"
     )
 
 
@@ -1511,7 +1536,9 @@ def register(app) -> None:
             resp.headers["Cache-Control"] = "no-store"
             return resp
         try:
-            body = render_payload(entry["payload"], head_extra=_hosted_head())
+            tenant = shop_store().get_tenant(shop)
+            label = (tenant["label"] if tenant else None) or shop
+            body = render_payload(entry["payload"], head_extra=_hosted_head(label))
         except Exception:
             traceback.print_exc()
             return HTMLResponse(_page("Halia", "<h1>Couldn't load your scores</h1>"
