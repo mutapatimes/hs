@@ -155,10 +155,15 @@ def _latent(spend: float, orders: int, tier: str, store_aov: float,
 def _location(row: pd.Series) -> str:
     city = str(row.get("LATEST_BILLING_ADDRESS3") or "").strip()
     zipc = str(row.get("LATEST_BILLING_ZIP") or "").strip()
-    if not city:
-        return "Address withheld"
     outward = zipc.split()[0] if zipc else ""
-    return f"{city.title()}, {outward}" if outward else city.title()
+    if city:
+        return f"{city.title()}, {outward}" if outward else city.title()
+    # No city line, but we may still have the postcode district (which the postcode signals
+    # already surface) — show that rather than claiming "Address withheld", which contradicts a
+    # "HNWI postcode: W8" reason on the same client. Only truly withheld when we have neither.
+    if outward:
+        return outward
+    return "Address withheld"
 
 
 def _city(row: pd.Series) -> str:
