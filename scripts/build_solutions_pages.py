@@ -233,6 +233,28 @@ INDUSTRIES = [
     },
 ]
 
+# Photography per industry: (hero image, hero caption, secondary image | None, secondary caption).
+# Files live in web/site/img/ (portrait 2:3, warm editorial). Absolute /img/ paths because these
+# pages are served from /solutions/<slug>. Captions tie the picture straight to the thesis.
+IMG = {
+    "fashion": ("man_holding_luxury_bag.jpg", "One modest order &mdash; a five-figure wardrobe behind it.",
+                "luxury_bag_detail.jpg", "The second order is where the relationship is won."),
+    "wine": ("luxury_client_pic_also_client_with_wine.jpg", "A quiet monthly order &mdash; a cellar worth the allocation call.",
+             "wine_bottle_hug.jpg", "First on the en-primeur list, before it is asked for."),
+    "beauty": ("beauty_influencer.jpg", "A &pound;34 fragrance &mdash; a five-figure ceiling behind it.",
+               "perfume.jpg", "A private-shopping invite, not another discount code."),
+    "jewellery": ("nice_necklace.jpg", "A &pound;140 strap &mdash; a &pound;50,000 collector behind it.",
+                  "pearl_necklace.jpg", "A named contact, while the interest is still warm."),
+    "home": ("client_with_furniture.jpg", "One accessory &mdash; a whole-house project behind it.",
+             "nice_furniture_stools.jpg", "Terms and a dedicated contact &mdash; a trade account, not a sale."),
+    "gifting": ("flowers.jpg", "A &pound;48 standing order &mdash; a house account behind it.",
+                "gifts_wrapped.jpg", "The house-account conversation the retail order never starts."),
+    "collectibles": ("nice_books_with_mug.jpg", "&pound;20 reading copies beside &pound;8,000 first editions.",
+                     None, None),
+    "electronics": ("head_phones.jpg", "Three &pound;40 orders &mdash; a trade account hiding in retail volume.",
+                    "premium_paymen_card.jpg", "The premium-account team reaches them first."),
+}
+
 _NAV_MENU = "".join(
     f'<a href="/solutions/{i["slug"]}">{i["name"]}</a>' for i in INDUSTRIES
 ) + '<a class="all" href="/solutions">All solutions &rarr;</a>'
@@ -308,6 +330,14 @@ _CSS = """
   .others a{font:500 13.5px var(--sans);color:var(--mute);border:1px solid var(--line);padding:9px 15px;border-radius:999px}.others a:hover{border-color:var(--ink);color:var(--ink)}
   .final{text-align:center}.final h2{margin-bottom:16px}.pad{padding:clamp(70px,10vh,120px) 0}
   footer{border-top:1px solid var(--line);padding:60px 0 44px;margin-top:20px}
+  /* photography */
+  .ih-grid{display:grid;grid-template-columns:1.06fr .94fr;gap:clamp(30px,5vw,66px);align-items:center}
+  .ih-copy .lede{max-width:52ch}.ih-cta{display:flex;gap:13px;flex-wrap:wrap;margin-top:32px}
+  figure.shot{margin:0}
+  figure.shot img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:14px;display:block;background:var(--bg-2)}
+  figure.shot figcaption{font-family:var(--serif);font-style:italic;font-size:15.5px;color:var(--faint);margin-top:13px;max-width:34ch}
+  .do-grid{display:grid;grid-template-columns:1fr .8fr;gap:clamp(30px,5vw,60px);align-items:center;margin-top:2px}
+  @media(max-width:860px){.ih-grid,.do-grid{grid-template-columns:1fr;gap:30px}figure.shot img{aspect-ratio:16/11}}
 """
 
 _ASTER = "&#8258;"
@@ -398,11 +428,33 @@ def render(ind: dict) -> str:
     now_w = max(7, round(now / pot * 100)) if pot else 7      # keep the "now" bar visible
     signals = "".join(f'<span class="chip">{s}</span>' for s in ind["buyer_signals"])
     tags = "".join(f'<span class="tag">{t}</span>' for t in ind["surfaces"])
+    hero_img, hero_cap, img2, img2_cap = IMG[ind["slug"]]
+
+    surfaces_block = (
+        f'<div class="surfaces reveal d1"><div class="sl">Signals it reads, from data you already hold</div>'
+        f'<div class="tags">{tags}</div></div>'
+        f'<p class="p reveal d1" style="margin-top:26px">{ind["move"]}</p>')
+    if img2:
+        do_inner = (
+            f'<div class="do-grid"><div>{surfaces_block}</div>'
+            f'<figure class="shot reveal d1"><img src="/img/{img2}" alt="{ind["name"]}" loading="lazy" '
+            f'width="800" height="1000"><figcaption>{img2_cap}</figcaption></figure></div>')
+    else:
+        do_inner = surfaces_block
+
     body = f"""
-<section class="ip-hero"><div class="wrap">
-  <div class="eyebrow reveal in">{ind["eyebrow"]}</div>
-  <h1 class="display reveal in d1">{ind["h1"]}</h1>
-  <p class="lede reveal in d1">{ind["lede"]}</p>
+<section class="ip-hero"><div class="wrap ih-grid">
+  <div class="ih-copy">
+    <div class="eyebrow reveal in">{ind["eyebrow"]}</div>
+    <h1 class="display reveal in d1">{ind["h1"]}</h1>
+    <p class="lede reveal in d1">{ind["lede"]}</p>
+    <div class="ih-cta reveal in d2">
+      <a class="btn" href="/connect">Connect your store <span class="arrow">&rarr;</span></a>
+      <a class="btn ghost" href="/solutions">All industries</a>
+    </div>
+  </div>
+  <figure class="shot reveal in d1"><img src="/img/{hero_img}" alt="{ind["name"]}" loading="eager"
+    width="800" height="1000"><figcaption>{hero_cap}</figcaption></figure>
 </div></section>
 
 <section class="sec"><div class="wrap">
@@ -448,8 +500,7 @@ def render(ind: dict) -> str:
 <section class="sec"><div class="wrap">
   <div class="k reveal">What Halia does</div>
   <h2 class="h2 reveal">Find them, then make the move.</h2>
-  <div class="surfaces reveal d1"><div class="sl">Signals it reads, from data you already hold</div><div class="tags">{tags}</div></div>
-  <p class="p reveal d1" style="margin-top:26px">{ind["move"]}</p>
+  {do_inner}
 </div></section>
 
 {_others(ind["slug"])}

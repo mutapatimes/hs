@@ -53,9 +53,13 @@
   .tags{display:flex;flex-wrap:wrap;gap:9px}.tag{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);padding:7px 13px;border-radius:999px}
   .sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:36px}
   @media(max-width:900px){.sgrid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.sgrid{grid-template-columns:1fr}}
-  .scard{border:1px solid var(--line);border-radius:14px;padding:22px 22px 20px;background:var(--bg);transition:.2s;display:block}
+  .scard{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg);transition:.2s;display:block}
   .scard:hover{border-color:var(--ink);transform:translateY(-2px)}
-  .scard .n{font-family:var(--serif);font-size:23px;line-height:1.05;margin-bottom:6px}
+  .scard .thumb{aspect-ratio:4/3;overflow:hidden;background:var(--bg-2)}
+  .scard .thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s cubic-bezier(.2,.6,.2,1)}
+  .scard:hover .thumb img{transform:scale(1.05)}
+  .scard .cbody{padding:18px 20px 20px}
+  .scard .n{font-family:var(--serif);font-size:22px;line-height:1.05;margin-bottom:6px}
   .scard .d{color:var(--mute);font-size:13.5px;min-height:38px}
   .scard .go{color:var(--gold);font:600 13px var(--sans);margin-top:12px;display:inline-flex;gap:6px}
   .final{text-align:center}.final h2{margin-bottom:18px}
@@ -103,14 +107,14 @@
 <section style="padding:20px 0 10px"><div class="wrap">
   <div class="eyebrow reveal" style="margin-bottom:6px">By industry</div>
   <div class="sgrid">
-    <a class="scard reveal" href="/solutions/fashion"><div class="n">Fashion &amp; apparel</div><div class="d">The modest first order hiding a house client.</div><div class="go">Explore &rarr;</div></a>
-    <a class="scard reveal" href="/solutions/wine"><div class="n">Wine &amp; spirits</div><div class="d">The quiet regular who's a serious collector.</div><div class="go">Explore &rarr;</div></a>
-    <a class="scard reveal" href="/solutions/beauty"><div class="n">Beauty &amp; fragrance</div><div class="d">Entry-level luxury is how the wealthy shop.</div><div class="go">Explore &rarr;</div></a>
-    <a class="scard reveal" href="/solutions/jewellery"><div class="n">Jewellery &amp; watches</div><div class="d">A strap buyer hiding a collector.</div><div class="go">Explore &rarr;</div></a>
-    <a class="scard reveal" href="/solutions/home"><div class="n">Home &amp; interiors</div><div class="d">A cushion order fronting a whole house.</div><div class="go">Explore &rarr;</div></a>
-    <a class="scard reveal" href="/solutions/gifting"><div class="n">Flowers, food &amp; gifting</div><div class="d">The £50 standing order from Belgravia.</div><div class="go">Explore &rarr;</div></a>
-    <a class="scard reveal" href="/solutions/collectibles"><div class="n">Rare books &amp; collectibles</div><div class="d">Paperbacks beside first editions.</div><div class="go">Explore &rarr;</div></a>
-    <a class="scard reveal" href="/solutions/electronics"><div class="n">Electronics &amp; big-box</div><div class="d">The trade buyer lost in retail volume.</div><div class="go">Explore &rarr;</div></a>
+    <a class="scard reveal" href="/solutions/fashion"><div class="thumb"><img src="img/wrapped_luxury_heels.jpg" alt="Fashion &amp; apparel" loading="lazy"></div><div class="cbody"><div class="n">Fashion &amp; apparel</div><div class="d">The modest first order hiding a house client.</div><div class="go">Explore &rarr;</div></div></a>
+    <a class="scard reveal" href="/solutions/wine"><div class="thumb"><img src="img/wine_bottle_hug.jpg" alt="Wine &amp; spirits" loading="lazy"></div><div class="cbody"><div class="n">Wine &amp; spirits</div><div class="d">The quiet regular who's a serious collector.</div><div class="go">Explore &rarr;</div></div></a>
+    <a class="scard reveal" href="/solutions/beauty"><div class="thumb"><img src="img/nail_polish.jpg" alt="Beauty &amp; fragrance" loading="lazy"></div><div class="cbody"><div class="n">Beauty &amp; fragrance</div><div class="d">Entry-level luxury is how the wealthy shop.</div><div class="go">Explore &rarr;</div></div></a>
+    <a class="scard reveal" href="/solutions/jewellery"><div class="thumb"><img src="img/pearl_necklace.jpg" alt="Jewellery &amp; watches" loading="lazy"></div><div class="cbody"><div class="n">Jewellery &amp; watches</div><div class="d">A strap buyer hiding a collector.</div><div class="go">Explore &rarr;</div></div></a>
+    <a class="scard reveal" href="/solutions/home"><div class="thumb"><img src="img/home_furniture.jpg" alt="Home &amp; interiors" loading="lazy"></div><div class="cbody"><div class="n">Home &amp; interiors</div><div class="d">A cushion order fronting a whole house.</div><div class="go">Explore &rarr;</div></div></a>
+    <a class="scard reveal" href="/solutions/gifting"><div class="thumb"><img src="img/shopping_for_flowers.jpg" alt="Flowers, food &amp; gifting" loading="lazy"></div><div class="cbody"><div class="n">Flowers, food &amp; gifting</div><div class="d">The £50 standing order from Belgravia.</div><div class="go">Explore &rarr;</div></div></a>
+    <a class="scard reveal" href="/solutions/collectibles"><div class="thumb"><img src="img/nice_books_with_mug.jpg" alt="Rare books &amp; collectibles" loading="lazy"></div><div class="cbody"><div class="n">Rare books &amp; collectibles</div><div class="d">Paperbacks beside first editions.</div><div class="go">Explore &rarr;</div></div></a>
+    <a class="scard reveal" href="/solutions/electronics"><div class="thumb"><img src="img/head_phones.jpg" alt="Electronics &amp; big-box" loading="lazy"></div><div class="cbody"><div class="n">Electronics &amp; big-box</div><div class="d">The trade buyer lost in retail volume.</div><div class="go">Explore &rarr;</div></div></a>
   </div>
 </div></section>
 
@@ -122,7 +126,7 @@
 <div class="wrap">
 
   <div class="vert reveal">
-    <div class="media"><img src="img/fashion.jpg" alt="Fashion" loading="lazy"></div>
+    <div class="media"><img src="img/luxurybag.jpg" alt="Fashion" loading="lazy"></div>
     <div class="copy">
       <div class="ix">01 / Fashion &amp; Apparel</div>
       <h2 class="h2">Buyers worth a private appointment.</h2>
@@ -135,7 +139,7 @@
   </div>
 
   <div class="vert rev reveal">
-    <div class="media"><img src="img/beauty.jpg" alt="Beauty" loading="lazy"></div>
+    <div class="media"><img src="img/beauty_influencer.jpg" alt="Beauty" loading="lazy"></div>
     <div class="copy">
       <div class="ix">02 / Beauty &amp; Fragrance</div>
       <h2 class="h2">One-time gifters into house clients.</h2>
@@ -148,7 +152,7 @@
   </div>
 
   <div class="vert reveal">
-    <div class="media"><img src="img/jewellery.jpg" alt="Jewellery" loading="lazy"></div>
+    <div class="media"><img src="img/nice_necklace.jpg" alt="Jewellery" loading="lazy"></div>
     <div class="copy">
       <div class="ix">03 / Jewellery &amp; Watches</div>
       <h2 class="h2">Quiet wealth behind a modest order.</h2>
@@ -162,7 +166,7 @@
   </div>
 
   <div class="vert rev reveal">
-    <div class="media"><img src="img/homeware.jpg" alt="Home &amp; Lifestyle" loading="lazy"></div>
+    <div class="media"><img src="img/client_with_furniture.jpg" alt="Home &amp; Lifestyle" loading="lazy"></div>
     <div class="copy">
       <div class="ix">04 / Home &amp; Lifestyle</div>
       <h2 class="h2">The trade and trophy-address clients.</h2>

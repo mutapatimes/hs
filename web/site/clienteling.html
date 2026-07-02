@@ -69,6 +69,11 @@
   .tier .ts{font:500 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-bottom:18px}
   .tier p{color:var(--mute);font-size:15.5px;margin:0}
   /* playbook */
+  .pb-head{display:grid;grid-template-columns:1.32fr .68fr;gap:clamp(30px,5vw,64px);align-items:center}
+  .pb-media{margin:0}
+  .pb-media img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:6px;display:block;background:var(--bg-2)}
+  .pb-media figcaption{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--faint);margin-top:12px}
+  @media(max-width:900px){.pb-head{grid-template-columns:1fr;gap:26px}}
   .play{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
   .pcard{border-top:1px solid var(--line);padding-top:22px}
   .pcard .pn{font-family:var(--serif);font-size:15px;color:var(--faint)}.pcard h3{font-family:var(--sans);font-weight:500;font-size:16px;margin:12px 0 8px}.pcard p{color:var(--mute);font-size:14px;margin:0}
@@ -112,7 +117,7 @@
   <p class="lede reveal in d1">In luxury, the eighty-twenty rule is not a rule of thumb. It is the business model.
     A small tier of clients drives most of the revenue, and the very top of that tier drives most of it
     again. Clienteling is how the great houses find those people and keep them.</p>
-</div><div class="phero-media reveal in d1"><img src="img/clientimage.jpg" alt="Knowing your best clients" loading="lazy"></div></div></section>
+</div><div class="phero-media reveal in d1"><img src="img/luxury_ceo_client.jpg" alt="Knowing your best clients" loading="eager"></div></div></section>
 
 <!-- PARETO -->
 <section class="pad"><div class="wrap">
@@ -148,9 +153,17 @@
 
 <!-- PLAYBOOK -->
 <section class="pad"><div class="wrap">
-  <div class="eyebrow reveal" style="margin-bottom:18px">The clienteling playbook</div>
-  <h2 class="h2 reveal" style="margin-bottom:48px">Recognition, not discounts.</h2>
-  <div class="play">
+  <div class="pb-head">
+    <div>
+      <div class="eyebrow reveal" style="margin-bottom:18px">The clienteling playbook</div>
+      <h2 class="h2 reveal" style="margin-bottom:20px">Recognition, not discounts.</h2>
+      <p class="reveal d1" style="color:var(--mute);font-size:17px;max-width:44ch;margin:0">The great houses keep their
+        best clients with attention, not price. A remembered name, a private preview, the right gesture at the
+        right moment, delivered before the client thinks to ask.</p>
+    </div>
+    <figure class="pb-media reveal d1"><img src="img/boxes_wrapped_clienteling.jpg" alt="Recognition, not discounts" loading="lazy"><figcaption>The gesture, not the markdown.</figcaption></figure>
+  </div>
+  <div class="play" style="margin-top:52px">
     <div class="pcard reveal"><div class="pn">01</div><h3>Invitation-only events</h3><p>Private viewings, trunk shows, and townhouse appointments closed to the public.</p></div>
     <div class="pcard reveal d1"><div class="pn">02</div><h3>Bespoke and made-to-order</h3><p>Customization and special-order programs for clients who expect the ultimate.</p></div>
     <div class="pcard reveal d2"><div class="pn">03</div><h3>Dedicated client advisors</h3><p>Not associates, but relationship managers who know a client's taste, history, and milestones.</p></div>
@@ -174,7 +187,7 @@
 
 <!-- HIDDEN A (the Halia thesis) -->
 <div class="wrap"><div class="split reveal" style="padding-top:clamp(80px,11vh,140px)">
-  <div class="media" style="aspect-ratio:auto"><img src="img/twoclients.jpg" alt="Knowing your clients" loading="lazy"></div>
+  <div class="media" style="aspect-ratio:auto"><img src="img/luxury_client_pic_also_client_with_wine.jpg" alt="Knowing your clients" loading="lazy"></div>
   <div class="copy">
     <div class="eyebrow" style="margin-bottom:18px">The part most brands miss</div>
     <h2 class="h2">Your top twenty percent is <em>not fixed.</em></h2>
