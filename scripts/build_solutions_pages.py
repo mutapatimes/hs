@@ -255,6 +255,76 @@ IMG = {
                     "premium_paymen_card.jpg", "The premium-account team reaches them first."),
 }
 
+# The "what happens next" sequence per industry: the order card (who/item + the actions Halia
+# fires), then the two lifecycle emails with their actual copy — one when the order lands, one
+# when it is fulfilled. Rendered as an auto-playing timeline (see _flow / the flow JS).
+FLOW = {
+    "fashion": {
+        "who": "New client &middot; Mayfair W1", "item": "First order &middot; a &pound;150 piece",
+        "actions": ["Tagged &middot; Hidden VIC", "Routed to clienteling", "Advisor assigned"],
+        "emails": [
+            {"subj": "A personal welcome", "body": "&ldquo;Thank you for your first order. I&rsquo;m your personal "
+             "client advisor &mdash; may I set aside early access to our next collection for you?&rdquo;"},
+            {"subj": "Your order is on its way", "body": "&ldquo;Your pieces have shipped. When they arrive, "
+             "I&rsquo;d love to arrange a private fitting at your convenience.&rdquo;"}]},
+    "wine": {
+        "who": "Quiet regular &middot; Jersey", "item": "Four &pound;15 bottles, shipped monthly",
+        "actions": ["Tagged &middot; Collector (latent)", "Added to allocation list", "Advisor notified"],
+        "emails": [
+            {"subj": "Welcome &mdash; and a note on allocations", "body": "&ldquo;Thank you for your order. Given your "
+             "taste, may we add you to our en-primeur allocation list ahead of the next release?&rdquo;"},
+            {"subj": "Shipped &mdash; and an invitation", "body": "&ldquo;Your bottles are on their way. We&rsquo;re "
+             "hosting a private tasting next month and would be glad to reserve you a place.&rdquo;"}]},
+    "beauty": {
+        "who": "New client &middot; Notting Hill", "item": "A &pound;34 fragrance, gift-wrapped",
+        "actions": ["Tagged &middot; High ceiling", "Queued for lifecycle", "Founder note drafted"],
+        "emails": [
+            {"subj": "A little welcome gift", "body": "&ldquo;Thank you for discovering us. A complimentary sample, "
+             "chosen for you, is on its way with your order.&rdquo;"},
+            {"subj": "On its way &mdash; plus an invitation", "body": "&ldquo;Your order has shipped. As a new client, "
+             "you&rsquo;re invited to a private virtual consultation with our team.&rdquo;"}]},
+    "jewellery": {
+        "who": "First-time buyer &middot; family office", "item": "A &pound;140 strap",
+        "actions": ["Tagged &middot; Hidden VIC", "Routed to advisor", "Follow-up scheduled"],
+        "emails": [
+            {"subj": "Thank you &mdash; from your advisor", "body": "&ldquo;It was a pleasure to receive your order. "
+             "I&rsquo;m here for anything you need, from sizing to a future commission.&rdquo;"},
+            {"subj": "Your piece has shipped", "body": "&ldquo;Your order is on its way. When you&rsquo;re ready to "
+             "explore something bespoke, I&rsquo;d be delighted to help.&rdquo;"}]},
+    "home": {
+        "who": "Repeat buyer &middot; Chelsea", "item": "A &pound;75 order &middot; company billing",
+        "actions": ["Tagged &middot; Trade / repeat", "Flagged for trade terms", "Account manager assigned"],
+        "emails": [
+            {"subj": "Welcome &mdash; and a trade enquiry", "body": "&ldquo;Thank you for your order. If you specify for "
+             "clients, we offer trade terms and a dedicated contact &mdash; shall I set that up?&rdquo;"},
+            {"subj": "Shipped &mdash; your dedicated line", "body": "&ldquo;Your order is on its way. Here is a direct "
+             "line to your account manager for your next project.&rdquo;"}]},
+    "gifting": {
+        "who": "Standing order &middot; SW1", "item": "A &pound;48 weekly delivery, PA-placed",
+        "actions": ["Tagged &middot; Standing order", "Flagged &middot; house account", "Advisor notified"],
+        "emails": [
+            {"subj": "Thank you for your standing order", "body": "&ldquo;We&rsquo;ll take care of your weekly delivery. "
+             "For corporate or event flowers, we can set up a house account whenever suits.&rdquo;"},
+            {"subj": "This week&rsquo;s delivery is on its way", "body": "&ldquo;Your flowers have shipped. Would a "
+             "recurring account, with priority for events, suit you?&rdquo;"}]},
+    "collectibles": {
+        "who": "Quiet buyer &middot; prime address", "item": "A run of &pound;20&ndash;&pound;40 orders",
+        "actions": ["Tagged &middot; Collector (latent)", "Added to catalogue list", "Dealer notified"],
+        "emails": [
+            {"subj": "Welcome to the list", "body": "&ldquo;Thank you for your order. May we send you early previews of "
+             "our next catalogue, ahead of the general release?&rdquo;"},
+            {"subj": "Shipped &mdash; and a first look", "body": "&ldquo;Your order is on its way. Here is an early look "
+             "at three pieces we think you&rsquo;ll want to see first.&rdquo;"}]},
+    "electronics": {
+        "who": "Multi-address buyer", "item": "Three &pound;40 orders, one billing address",
+        "actions": ["Tagged &middot; Trade / multi-site", "Routed to business team", "Callback scheduled"],
+        "emails": [
+            {"subj": "A note from our business team", "body": "&ldquo;Thanks for your order. It looks like you may be "
+             "buying at scale &mdash; our business division can offer account pricing and support.&rdquo;"},
+            {"subj": "Shipped &mdash; your account contact", "body": "&ldquo;Your order is on its way. Here is a direct "
+             "line to your account manager for volume or multi-site orders.&rdquo;"}]},
+}
+
 _NAV_MENU = "".join(
     f'<a href="/solutions/{i["slug"]}">{i["name"]}</a>' for i in INDUSTRIES
 ) + '<a class="all" href="/solutions">All solutions &rarr;</a>'
@@ -338,6 +408,32 @@ _CSS = """
   figure.shot figcaption{font-family:var(--serif);font-style:italic;font-size:15.5px;color:var(--faint);margin-top:13px;max-width:34ch}
   .do-grid{display:grid;grid-template-columns:1fr .8fr;gap:clamp(30px,5vw,60px);align-items:center;margin-top:2px}
   @media(max-width:860px){.ih-grid,.do-grid{grid-template-columns:1fr;gap:30px}figure.shot img{aspect-ratio:16/11}}
+  /* the "what happens next" flow timeline */
+  .flow{margin-top:36px}
+  .fline{list-style:none;margin:0;padding:0;position:relative}
+  .fline::before{content:"";position:absolute;left:9px;top:8px;bottom:12px;width:2px;background:var(--line)}
+  .fstep{position:relative;padding:0 0 24px 40px;opacity:0;transform:translateY(14px);transition:opacity .6s cubic-bezier(.2,.6,.2,1),transform .6s cubic-bezier(.2,.6,.2,1)}
+  .fstep.on{opacity:1;transform:none}
+  .fdot{position:absolute;left:2px;top:3px;width:18px;height:18px;border-radius:50%;background:var(--bg);border:2px solid var(--faint);transition:.45s}
+  .fstep.on .fdot{border-color:var(--gold);background:var(--gold);box-shadow:0 0 0 5px rgba(122,115,99,.14)}
+  .fwhen{font:500 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:11px;padding-top:1px}
+  .fcard{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:var(--bg-2);max-width:540px}
+  .fcard.order .oc-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .oc-who{font-family:var(--serif);font-size:20px;color:var(--ink)}
+  .oc-grade{background:var(--ink);color:var(--bg);border-radius:999px;padding:3px 12px;font:600 13px var(--sans);flex:none}
+  .oc-item{color:var(--mute);font-size:14px;margin-top:5px}
+  .oc-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .act{font:500 12px var(--sans);color:var(--gold);border:1px solid var(--line);border-radius:999px;padding:5px 11px;background:var(--bg);opacity:0;transform:translateY(6px);transition:opacity .4s,transform .4s}
+  .act::before{content:"\\2713  ";font-weight:700}
+  .act.on{opacity:1;transform:none}
+  .fcard.email .em-head{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-bottom:8px}
+  .em-subj{font-family:var(--serif);font-size:18px;color:var(--ink);line-height:1.2}
+  .em-status{font:600 10.5px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);white-space:nowrap;flex:none}
+  .em-status.sent{color:var(--gold)}.em-status.sent::before{content:"\\2713 "}
+  .em-body{color:var(--mute);font-size:14.5px;line-height:1.55;font-style:italic}
+  .em-bar{height:2px;background:var(--line-2);border-radius:2px;margin-top:14px;overflow:hidden}
+  .em-bar i{display:block;height:100%;width:0;background:var(--gold);transition:width 1.15s ease}
+  @media(prefers-reduced-motion:reduce){.fstep{opacity:1;transform:none}.act{opacity:1;transform:none}.em-bar i{transition:none}}
 """
 
 _ASTER = "&#8258;"
@@ -400,7 +496,29 @@ _SCRIPT = (
     "if(b)b.onclick=o;if(c)c.onclick=x;if(s)s.onclick=x;d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',x)})})();"
     "var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');"
     "io.unobserve(e.target)}})},{threshold:.14,rootMargin:'0px 0px -8% 0px'});"
-    "document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});</script>"
+    "document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});"
+    # ── the "what happens next" flow: auto-plays when scrolled into view, loops ──
+    "(function(){var rm=matchMedia('(prefers-reduced-motion:reduce)').matches;"
+    "function run(flow){var steps=flow.querySelectorAll('[data-step]'),i=0,timers=[];"
+    "function T(fn,ms){timers.push(setTimeout(fn,ms))}"
+    "function reset(){timers.forEach(clearTimeout);timers=[];i=0;steps.forEach(function(s){s.classList.remove('on');"
+    "s.querySelectorAll('.act').forEach(function(a){a.classList.remove('on')});"
+    "var st=s.querySelector('.em-status');if(st){st.textContent='Queued';st.classList.remove('sent')}"
+    "var bar=s.querySelector('.em-bar i');if(bar){bar.style.width='0'}})}"
+    "function finalAll(){steps.forEach(function(s){s.classList.add('on');"
+    "s.querySelectorAll('.act').forEach(function(a){a.classList.add('on')});"
+    "var st=s.querySelector('.em-status');if(st){st.textContent='Delivered';st.classList.add('sent')}"
+    "var bar=s.querySelector('.em-bar i');if(bar){bar.style.width='100%'}})}"
+    "function step(){if(i>=steps.length){T(function(){reset();T(step,900)},3400);return}"
+    "var s=steps[i],acts=s.querySelectorAll('.act');s.classList.add('on');"
+    "acts.forEach(function(a,k){T(function(){a.classList.add('on')},320+k*260)});"
+    "var st=s.querySelector('.em-status'),bar=s.querySelector('.em-bar i'),dwell;"
+    "if(st){T(function(){st.textContent='Sending'},260);if(bar){T(function(){bar.style.width='100%'},360)}"
+    "T(function(){st.textContent='Delivered';st.classList.add('sent')},1550);dwell=2300}"
+    "else{dwell=acts.length?320+acts.length*260+700:1000}i++;T(step,dwell+650)}"
+    "var io2=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){io2.disconnect();"
+    "if(rm){finalAll()}else{reset();T(step,400)}}})},{threshold:.25});io2.observe(flow)}"
+    "document.querySelectorAll('[data-flow]').forEach(run)})();</script>"
 )
 
 
@@ -421,6 +539,48 @@ def _rows(ind: dict) -> str:
             f'<td class="r">{gbp(spend)}</td><td>{signal}</td>'
             f'<td class="g">{grade}</td><td class="r lat">{lat}</td></tr>')
     return "".join(out)
+
+
+def _flow(ind: dict) -> str:
+    f = FLOW[ind["slug"]]
+    acts = "".join(f'<span class="act">{a}</span>' for a in f["actions"])
+    e1, e2 = f["emails"]
+    return f"""
+<section class="sec"><div class="wrap">
+  <div class="k reveal">What happens next</div>
+  <h2 class="h2 reveal">From order to relationship &mdash; automatically.</h2>
+  <p class="p reveal" style="margin-top:12px;max-width:56ch">The instant the order lands, Halia tags the
+    customer, routes them to the right team, and sends the message a modest order would never normally
+    trigger &mdash; then follows up the moment it ships.</p>
+  <div class="flow reveal d1" data-flow>
+    <ol class="fline">
+      <li class="fstep" data-step><span class="fdot"></span>
+        <div class="fwhen">The order lands</div>
+        <div class="fcard order">
+          <div class="oc-top"><span class="oc-who">{f["who"]}</span><span class="oc-grade">{ind["buyer_grade"]}</span></div>
+          <div class="oc-item">{f["item"]}</div>
+          <div class="oc-actions">{acts}</div>
+        </div>
+      </li>
+      <li class="fstep" data-step><span class="fdot"></span>
+        <div class="fwhen">Halia sends the welcome</div>
+        <div class="fcard email">
+          <div class="em-head"><span class="em-subj">{e1["subj"]}</span><span class="em-status">Queued</span></div>
+          <div class="em-body">{e1["body"]}</div>
+          <div class="em-bar"><i></i></div>
+        </div>
+      </li>
+      <li class="fstep" data-step><span class="fdot"></span>
+        <div class="fwhen">The order is fulfilled</div>
+        <div class="fcard email">
+          <div class="em-head"><span class="em-subj">{e2["subj"]}</span><span class="em-status">Queued</span></div>
+          <div class="em-body">{e2["body"]}</div>
+          <div class="em-bar"><i></i></div>
+        </div>
+      </li>
+    </ol>
+  </div>
+</div></section>"""
 
 
 def render(ind: dict) -> str:
@@ -486,7 +646,7 @@ def render(ind: dict) -> str:
     </div>
   </div>
 </div></section>
-
+{_flow(ind)}
 <section class="sec"><div class="wrap">
   <div class="k reveal">Same spend, different worth</div>
   <h2 class="h2 reveal">Three buyers, one price point.</h2>
