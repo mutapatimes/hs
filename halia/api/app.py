@@ -114,6 +114,11 @@ for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
                       methods=["GET"], include_in_schema=False, response_class=_HTML)
 
+# Per-industry solutions pages (web/site/solutions/<slug>.html — see scripts/build_solutions_pages.py).
+for _ind in ("fashion", "wine", "beauty", "jewellery", "home", "gifting", "collectibles", "electronics"):
+    app.add_api_route(f"/solutions/{_ind}", (lambda n: lambda: _serve_page(f"solutions/{n}"))(_ind),
+                      methods=["GET"], include_in_schema=False, response_class=_HTML)
+
 
 @app.get("/health")
 def health() -> dict:
