@@ -382,6 +382,19 @@ NOTIFY = {
                   "like, reach out from a template.&rdquo;",
 }
 
+# ROI at the end of the timeline: two behavioural metrics per industry; the headline realised value
+# is added from buyer_latent in code so it never drifts from the case study above.
+METRICS = {
+    "fashion": [("Repeat orders", "5&times; / yr"), ("Avg. order", "+280%")],
+    "wine": [("Allocation take-up", "92%"), ("Avg. order", "+340%")],
+    "beauty": [("Repeat rate", "4&times; / yr"), ("Avg. basket", "+190%")],
+    "jewellery": [("2nd commission", "&pound;12k"), ("Avg. order", "+420%")],
+    "home": [("Trade account", "Opened"), ("Order size", "+520%")],
+    "gifting": [("House account", "Opened"), ("Annual spend", "+340%")],
+    "collectibles": [("Catalogue buys", "7 / yr"), ("Avg. order", "+300%")],
+    "electronics": [("Business account", "Opened"), ("Order value", "+900%")],
+}
+
 _NAV_MENU = "".join(
     f'<a href="/solutions/{i["slug"]}">{i["name"]}</a>' for i in INDUSTRIES
 ) + '<a class="all" href="/solutions">All solutions &rarr;</a>'
@@ -465,11 +478,14 @@ _CSS = """
   figure.shot figcaption{font-family:var(--serif);font-style:italic;font-size:15.5px;color:var(--faint);margin-top:13px;max-width:34ch}
   .do-grid{display:grid;grid-template-columns:1fr .8fr;gap:clamp(30px,5vw,60px);align-items:center;margin-top:2px}
   @media(max-width:860px){.ih-grid,.do-grid{grid-template-columns:1fr;gap:30px}figure.shot img{aspect-ratio:16/11}}
-  /* "what happens next" — one scenario: order + notify, then pick a template and send */
-  .scene{margin-top:30px;display:grid;grid-template-columns:.88fr 1.12fr;gap:clamp(22px,4vw,42px);align-items:start}
-  @media(max-width:820px){.scene{grid-template-columns:1fr;gap:22px}}
-  .sc-ctx{display:flex;flex-direction:column;gap:13px}
-  .sc-order{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:var(--bg-2)}
+  /* "what happens next" — one scenario as a timeline that reveals on scroll, ROI at the end */
+  .tl{position:relative;margin-top:32px;max-width:620px}
+  .tl::before{content:"";position:absolute;left:9px;top:8px;bottom:14px;width:2px;background:var(--line)}
+  .tstep{position:relative;padding:0 0 26px 40px}
+  .tdot{position:absolute;left:2px;top:3px;width:18px;height:18px;border-radius:50%;background:var(--bg);border:2px solid var(--faint);transition:.45s}
+  .tstep.in .tdot{border-color:var(--gold);background:var(--gold);box-shadow:0 0 0 5px rgba(122,115,99,.14)}
+  .twhen{font:500 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:11px}
+  .tcard{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:var(--bg-2)}
   .oc-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
   .oc-who{font-family:var(--serif);font-size:20px;color:var(--ink)}
   .oc-grade{background:var(--ink);color:var(--bg);border-radius:999px;padding:3px 12px;font:600 13px var(--sans);flex:none}
@@ -477,10 +493,23 @@ _CSS = """
   .oc-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
   .act{font:500 12px var(--sans);color:var(--gold);border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--bg);opacity:0;transform:translateY(6px);transition:opacity .45s,transform .45s}
   .act::before{content:"\\2713  ";font-weight:700}
-  .scene.in .act{opacity:1;transform:none}
-  .scene.in .act:nth-child(2){transition-delay:.12s}.scene.in .act:nth-child(3){transition-delay:.24s}.scene.in .act:nth-child(4){transition-delay:.36s}
-  .sc-note{display:flex;align-items:center;gap:9px;font:500 13px var(--sans);color:var(--mute);border:1px dashed var(--line);border-radius:10px;padding:11px 14px}
-  .sc-note .bell{font-size:15px;flex:none}
+  .tstep.in .act{opacity:1;transform:none}
+  .tstep.in .act:nth-child(2){transition-delay:.12s}.tstep.in .act:nth-child(3){transition-delay:.24s}.tstep.in .act:nth-child(4){transition-delay:.36s}
+  .tnote{display:flex;align-items:center;gap:9px;font:500 13px var(--sans);color:var(--mute)}
+  .tnote .bell{font-size:15px;flex:none}
+  .tnote b{color:var(--ink);font-weight:600}
+  /* ROI card */
+  .roi{border-color:rgba(122,115,99,.5);background:linear-gradient(180deg,rgba(122,115,99,.09),var(--bg-2))}
+  .roi .roi-lead{font:600 10.5px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+  .roi .roi-big{font-family:var(--serif);font-size:clamp(34px,5vw,48px);line-height:1;color:var(--ink)}
+  .roi .roi-big span{display:block;font-family:var(--sans);font-weight:500;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:8px}
+  .metrics{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .mtr{border:1px solid rgba(122,115,99,.4);border-radius:10px;padding:8px 12px;background:var(--bg);opacity:0;transform:translateY(6px);transition:.45s}
+  .tstep.in .mtr{opacity:1;transform:none}
+  .tstep.in .mtr:nth-child(2){transition-delay:.1s}.tstep.in .mtr:nth-child(3){transition-delay:.2s}
+  .mtr .mv{font-family:var(--serif);font-size:19px;color:var(--gold);line-height:1;display:block}
+  .mtr .ml{font:500 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:5px;display:block}
+  .roi-foot{color:var(--mute);font-size:13.5px;margin-top:14px;line-height:1.5}
   .composer{border:1px solid var(--line);border-radius:16px;padding:20px 22px;background:var(--bg);position:relative;overflow:hidden}
   .cmp-h{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:13px}
   .tpls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
@@ -608,34 +637,45 @@ def _flow(ind: dict) -> str:
         for k, (name, subj, body) in enumerate(tpls))
     t0 = tpls[0]
     push = NOTIFY["push"].format(product=product)
+    metrics = "".join(f'<span class="mtr"><span class="mv">{v}</span><span class="ml">{l}</span></span>'
+                      for l, v in METRICS[slug])
+    roi = gbp(ind["buyer_latent"])
+
+    # Each event is a .tstep .reveal — the shared scroll observer reveals them one by one.
+    step1 = (f'<div class="tstep reveal"><span class="tdot"></span><div class="twhen">The order lands</div>'
+             f'<div class="tcard"><div class="oc-top"><span class="oc-who">{who}</span>'
+             f'<span class="oc-grade">{grade}</span></div><div class="oc-item">{product}</div>'
+             f'<div class="oc-actions">{acts}</div></div></div>')
+    step2 = (f'<div class="tstep reveal"><span class="tdot"></span><div class="twhen">Halia notifies you</div>'
+             f'<div class="tcard"><div class="tnote"><span class="bell">&#128276;</span>'
+             f'<span><b>Web push + email to your team.</b> &ldquo;{push}&rdquo; &mdash; open in Halia to review. '
+             f'Halia never emails your customers for you.</span></div></div></div>')
+    step3 = (f'<div class="tstep reveal"><span class="tdot"></span><div class="twhen">You choose to reach out</div>'
+             f'<div class="composer" data-scene>'
+             f'<div class="cmp-h">Choose a message to send</div>'
+             f'<div class="tpls">{chips}</div>'
+             f'<div class="mail"><div class="mail-subj">{t0[1]}</div><div class="mail-body">{t0[2]}</div></div>'
+             f'<div class="cmp-foot"><button class="sendbtn" type="button">Send'
+             f'<svg class="plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>'
+             f'</button><span class="sent-msg">Sent &mdash; nicely done.</span></div></div></div>')
+    step4 = (f'<div class="tstep reveal"><span class="tdot"></span><div class="twhen">The order ships</div>'
+             f'<div class="tcard"><div class="tnote"><span>When it&rsquo;s fulfilled, send a follow-up the same '
+             f'way &mdash; a fitting, an invitation, a thank-you &mdash; and the relationship is under way.</span></div></div></div>')
+    step5 = (f'<div class="tstep reveal"><span class="tdot"></span><div class="twhen">The return</div>'
+             f'<div class="tcard roi"><div class="roi-lead">The relationship this earns</div>'
+             f'<div class="roi-big">{roi}<span>realised value / year</span></div>'
+             f'<div class="metrics">{metrics}</div>'
+             f'<div class="roi-foot">From {product} &mdash; an order you&rsquo;d otherwise never have flagged.</div></div></div>')
+
     return f"""
 <section class="sec"><div class="wrap">
   <div class="k reveal">What happens next</div>
   <h2 class="h2 reveal">A hidden VIC just ordered. Your move.</h2>
   <p class="p reveal" style="margin-top:12px;max-width:60ch">When a hidden VIC places an order, Halia
     notifies your team by web push and email. Then <em>you</em> decide whether to reach out &mdash; pick
-    a template and send. Halia never emails your customers for you.</p>
-  <div class="scene reveal d1" data-scene>
-    <div class="sc-ctx">
-      <div class="sc-order">
-        <div class="oc-top"><span class="oc-who">{who}</span><span class="oc-grade">{grade}</span></div>
-        <div class="oc-item">{product}</div>
-        <div class="oc-actions">{acts}</div>
-      </div>
-      <div class="sc-note"><span class="bell">&#128276;</span>Halia notified you &mdash; web push &amp; email</div>
-    </div>
-    <div class="composer">
-      <div class="cmp-h">Choose a message to send</div>
-      <div class="tpls">{chips}</div>
-      <div class="mail">
-        <div class="mail-subj">{t0[1]}</div>
-        <div class="mail-body">{t0[2]}</div>
-      </div>
-      <div class="cmp-foot">
-        <button class="sendbtn" type="button">Send<svg class="plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>
-        <span class="sent-msg">Sent &mdash; nicely done.</span>
-      </div>
-    </div>
+    a template and send. It compounds into a relationship worth many times the first order.</p>
+  <div class="tl">
+    {step1}{step2}{step3}{step4}{step5}
   </div>
 </div></section>"""
 
