@@ -68,7 +68,7 @@ def test_correlated_geo_signals_get_diminishing_returns():
     assert out.loc[0, SCORE_COL] == 8.0
     reasons = out.loc[0, REASONS_COL]
     assert "Work email" in reasons and "HNWI postcode" in reasons \
-        and "Property value" in reasons and "GCC billing" in reasons
+        and "Prime area" in reasons and "GCC billing" in reasons
 
 
 def test_three_correlated_geo_tells_score_below_their_raw_sum():

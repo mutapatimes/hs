@@ -67,3 +67,30 @@ def test_bad_verdict_422(client):
 def test_unknown_customer_404(client):
     c, _ = client
     assert c.post("/v1/feedback", headers=_auth(), json={"customer_id": "nope", "verdict": "fit"}).status_code == 404
+
+
+# ── outcome-based calibration endpoints ─────────────────────────────────────────
+def test_feedback_calibration_apply_from_seeded_stats(client, monkeypatch):
+    c, store = client
+    monkeypatch.setattr("halia.api.settings.shop_store", lambda: store)
+    # Seed mixed verdicts directly: "Premium email" mostly good, "HNWI postcode" mostly bad.
+    for _ in range(9):
+        store.record_feedback(SHOP, ["Premium email"], "fit")
+    store.record_feedback(SHOP, ["Premium email"], "nofit")
+    for _ in range(9):
+        store.record_feedback(SHOP, ["HNWI postcode"], "nofit")
+    store.record_feedback(SHOP, ["HNWI postcode"], "fit")
+
+    prev = c.get("/v1/calibrate/feedback", headers=_auth()).json()
+    assert prev["verdicts"] == 20 and prev["report"]
+    r = c.post("/v1/calibrate/feedback", headers=_auth()).json()
+    assert r["ok"]
+    # Good-call signal up, poor-call signal down, in the saved per-shop weights.
+    from scoring.combine import SIGNAL_WEIGHTS
+    assert r["saved"]["premium_email"] >= SIGNAL_WEIGHTS["premium_email"]
+    assert r["saved"]["hnwi_postcode"] < SIGNAL_WEIGHTS["hnwi_postcode"]
+
+
+def test_feedback_calibration_400_without_feedback(client):
+    c, _ = client
+    assert c.post("/v1/calibrate/feedback", headers=_auth()).status_code == 400

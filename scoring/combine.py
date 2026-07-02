@@ -243,7 +243,7 @@ SIGNALS = [
      intl_postcode.FLAG_COL, lambda r: r[intl_postcode.REASON_COL]),
     ("hnw_area", "HNW area", hnw_area.flag_hnw_area,
      hnw_area.MATCH_COL, lambda r: f"{r[hnw_area.AREA_COL]} ({r[hnw_area.TYPE_COL]})"),
-    ("property_value", "Property value", property_value.flag_property_value,
+    ("property_value", "Prime area", property_value.flag_property_value,
      property_value.FLAG_COL, lambda r: r[property_value.REASON_COL]),
     ("wealth_office", "Wealth office", wealth_office.flag_wealth_office,
      wealth_office.MATCH_COL, lambda r: r[wealth_office.OFFICE_COL]),

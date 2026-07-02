@@ -57,11 +57,10 @@ def _outcode(postcode: object) -> str | None:
     return compact[:-_INWARD_LEN]
 
 
-def _human_price(price: int) -> str:
-    """1300000 -> '£1.3m'; 760000 -> '£760k'."""
-    if price >= 1_000_000:
-        return f"£{price / 1_000_000:.1f}m".replace(".0m", "m")
-    return f"£{round(price / 1000)}k"
+# NOTE: the signal still grades by the area's median sale price internally (it sets the
+# ultra/prime/high TIER that drives the weight), but we deliberately DO NOT surface a money
+# figure in the reason — showing a merchant an estimated property value for their customer reads
+# as intrusive/surveillance. The reason is the area name only, like the other geography tells.
 
 
 def load_values(path: Path | str = UK_PROPERTY_VALUES_FILE) -> dict[str, dict]:
@@ -105,7 +104,7 @@ def match_postcode(postcode: object, table: dict[str, dict]) -> tuple[bool, str 
     entry = table.get(outcode)
     if entry is None:
         return False, None, None
-    reason = f"{entry['area']} ({outcode}), approx {_human_price(entry['price'])}"
+    reason = f"{entry['area']} ({outcode})"
     return True, entry["tier"], reason
 
 

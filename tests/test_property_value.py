@@ -76,7 +76,7 @@ def test_property_value_scores_by_default_and_is_not_an_origin_proxy():
     assert out[COUNT_COL] == 1
     assert out[SCORE_COL] == PROPERTY_TIER_WEIGHTS["high"]
     assert bool(out[HIDDEN_COL])                      # £200 spend + a signal -> hidden VIC
-    assert "Property value" in out[REASONS_COL]
+    assert "Prime area" in out[REASONS_COL]
 
 
 def test_tier_grades_the_weight():

@@ -1167,6 +1167,14 @@ function openSettings(){
             ${calibrated?`<button id="calibReset" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0 8px">Reset to defaults</button>`:""}
           </div>
           <div id="calibResult" style="margin-top:14px"></div>
+          <div style="border-top:1px solid #e3e3e3;margin:18px 0 14px"></div>
+          <div style="${H};font-size:13px">Or calibrate from your feedback <span style="color:#0f7b4f;font-weight:600">· recommended</span></div>
+          <p style="${P}">Re-weight by which surfaced clients your team marked a <b>good call</b> — outcome-based, so it doesn't under-rate the signals that spot wealth <i>before</i> it shows up as spend. Needs a few verdicts first (the 👍 / 👎 on each client).</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button id="fbPreview" style="${BS}">Preview from feedback</button>
+            <button id="fbApply" style="${BP}">Apply from feedback</button>
+          </div>
+          <div id="fbResult" style="margin-top:14px"></div>
         </div>
 
         <div style="${C}">
@@ -1369,6 +1377,40 @@ function openSettings(){
     if(creset) creset.onclick=()=>{creset.disabled=true;
       fetch("/v1/calibrate",{method:"DELETE"}).then(()=>{toast("Reset to default weights. Refreshing…");setTimeout(()=>location.reload(),800);})
         .catch(e=>{toast("Reset failed: "+e.message);creset.disabled=false;});
+    };
+    // Outcome-based calibration (from associate feedback precision).
+    const fbBox=document.getElementById("fbResult");
+    function showFbCalib(rep,verdicts,note){
+      const rws=(rep||[]).filter(r=>r.n>0);
+      if(!rws.length){fbBox.innerHTML=`<div style="${P};margin:0">No feedback yet — mark a few clients 👍 good call / 👎 not a fit, then come back.</div>`;return;}
+      fbBox.innerHTML=`${note?`<div style="${LBL};margin-bottom:8px">${note} · ${verdicts} verdict${verdicts===1?"":"s"} so far</div>`:""}
+        <div style="overflow:auto;border:1px solid #e3e3e3;border-radius:10px">
+        <table style="width:100%;border-collapse:collapse;font:12.5px system-ui">
+          <thead><tr style="background:#fafafa;color:#616161;text-align:left">
+            <th style="padding:8px 10px">Signal</th><th style="padding:8px 10px">Verdicts</th>
+            <th style="padding:8px 10px">Good-call rate</th><th style="padding:8px 10px">Weight</th></tr></thead>
+          <tbody>${rws.map(r=>{const ch=r.suggested_weight!==r.base_weight;
+            const arr=r.suggested_weight>r.base_weight?"↑":(r.suggested_weight<r.base_weight?"↓":"→");
+            return `<tr style="border-top:1px solid #efefef">
+              <td style="padding:7px 10px;color:#303030">${esc(r.signal)}</td>
+              <td style="padding:7px 10px">${r.n}</td>
+              <td style="padding:7px 10px">${r.precision==null?"—":Math.round(r.precision*100)+"%"}</td>
+              <td style="padding:7px 10px;color:${ch?'#1f564a':'#8a8a8a'};font-weight:${ch?'700':'400'}">${r.base_weight} ${arr} ${r.suggested_weight}</td>
+            </tr>`;}).join("")}</tbody></table></div>`;
+    }
+    const fbprev=document.getElementById("fbPreview");
+    if(fbprev) fbprev.onclick=()=>{fbprev.disabled=true;fbprev.textContent="Reading feedback…";
+      fetch("/v1/calibrate/feedback").then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+        if(!ok)throw new Error(d.detail||"failed");
+        showFbCalib(d.report,d.verdicts,"Preview only — not yet applied.");
+      }).catch(e=>toast("Preview failed: "+e.message)).finally(()=>{fbprev.disabled=false;fbprev.textContent="Preview from feedback";});
+    };
+    const fbapply=document.getElementById("fbApply");
+    if(fbapply) fbapply.onclick=()=>{fbapply.disabled=true;fbapply.textContent="Calibrating…";
+      fetch("/v1/calibrate/feedback",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+        if(!ok)throw new Error(d.detail||"failed");
+        toast("Calibrated from your feedback. Refreshing…");setTimeout(()=>location.reload(),800);
+      }).catch(e=>{toast("Calibration failed: "+e.message);fbapply.disabled=false;fbapply.textContent="Apply from feedback";});
     };
     document.getElementById("saveSettings").onclick=()=>{
       collect();

@@ -70,7 +70,10 @@ signals override their base weight per-row by *type* (below).
 
 **Location / address (group `geo`)** — where someone lives is a wealth fact:
 `hnwi_postcode` (3), `us_hnwi_zip` (3), `intl_postcode` (3), `hnw_area` (3), `prime_residence` (3),
-`property_value` (2 base), `wealth_jurisdiction` (2). All on by default.
+`property_value` (2 base), `wealth_jurisdiction` (2). All on by default. `property_value` still
+grades by the area's median sale price *internally* (it sets the tier below) but is **displayed
+non-intrusively** — label "Prime area", area name only, **no money figure** — showing a merchant an
+estimated property value for a customer reads as surveillance.
 
 **Structure** — routed through a wealth vehicle (origin-neutral): `wealth_structure` (3, standalone).
 

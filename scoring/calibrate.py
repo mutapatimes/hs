@@ -27,6 +27,14 @@ nudges over big swings, and never let it zero the hidden-wealth signals.
 
 Everything here is pure and offline: it reads a frame, returns numbers / a new weights dict.
 Nothing is persisted; the caller decides whether to adopt the suggested weights.
+
+**Outcome-based calibration (the real fix).** The functions at the bottom
+(`calibrate_from_feedback`) re-weight on associate FEEDBACK precision — did surfaced clients turn
+out to be a "good call"? — instead of on spend. That removes the directional bias entirely (it
+rewards signals whose catches the merchant confirmed, even if they haven't spent yet), so its
+bounds are looser than the timid spend-based ones. It consumes the aggregate feedback tally from
+`store.feedback_stats` (populated by /v1/feedback). Prefer it over spend calibration once a
+merchant has given enough verdicts.
 """
 from __future__ import annotations
 
@@ -135,4 +143,87 @@ def calibration_report(
         else:
             note = "no change"
         rows.append({**info, "base_weight": b, "suggested_weight": s, "note": note})
+    return rows
+
+
+# ── Outcome-based calibration (associate feedback: "good call" / "not a fit") ────────────────
+# Bounds are LOOSER than the spend-based ones because feedback precision is unbiased w.r.t. the
+# hidden-wealth thesis (it measures confirmed good calls, not current spend).
+FEEDBACK_MIN = 8          # min verdicts (fit+nofit) on a signal before it may move its weight
+FB_LO, FB_HI = 0.5, 2.0
+
+
+def _label_to_key() -> dict:
+    """Map a signal's display label (as stored in feedback_stats) back to its key."""
+    from scoring.combine import SIGNALS
+    return {label: key for key, label, *_ in SIGNALS}
+
+
+def feedback_lift(stats: list[dict], min_sample: int = FEEDBACK_MIN) -> list[dict]:
+    """Per-signal precision (fit / (fit+nofit)) and its lift over the base good-call rate.
+
+    ``stats`` is store.get_feedback_stats(shop): [{signal(label), fit, nofit}]. lift > 1 means
+    'clients this signal flags are confirmed good calls more often than average' → up-weight.
+    """
+    total_fit = sum(int(s.get("fit", 0)) for s in stats)
+    total = sum(int(s.get("fit", 0)) + int(s.get("nofit", 0)) for s in stats)
+    base = (total_fit / total) if total else None
+    rows: list[dict] = []
+    for s in stats:
+        fit, nofit = int(s.get("fit", 0)), int(s.get("nofit", 0))
+        n = fit + nofit
+        prec = (fit / n) if n else None
+        lift = (prec / base) if (prec is not None and base) else None
+        rows.append({"signal": s.get("signal"), "n": n,
+                     "precision": round(prec, 3) if prec is not None else None,
+                     "lift": round(lift, 3) if lift is not None else None})
+    rows.sort(key=lambda r: (r["lift"] is not None, r["lift"] or 0), reverse=True)
+    return rows
+
+
+def calibrate_from_feedback(
+    stats: list[dict],
+    base_weights: dict[str, int] | None = None,
+    min_sample: int = FEEDBACK_MIN,
+    lo: float = FB_LO,
+    hi: float = FB_HI,
+) -> dict[str, int]:
+    """Return new weights, base scaled by each signal's feedback precision lift (bounded)."""
+    base = dict(base_weights or SIGNAL_WEIGHTS)
+    l2k = _label_to_key()
+    out = dict(base)
+    for r in feedback_lift(stats, min_sample):
+        key = l2k.get(r["signal"])
+        if not key or key not in base or r["lift"] is None or r["n"] < min_sample:
+            continue
+        mult = max(lo, min(hi, r["lift"]))
+        out[key] = max(1, int(round(base[key] * mult)))
+    return out
+
+
+def feedback_calibration_report(
+    stats: list[dict],
+    base_weights: dict[str, int] | None = None,
+    min_sample: int = FEEDBACK_MIN,
+) -> list[dict]:
+    """Rows for display: precision + lift + base vs suggested weight + a plain-English note."""
+    base = dict(base_weights or SIGNAL_WEIGHTS)
+    suggested = calibrate_from_feedback(stats, base, min_sample)
+    l2k = _label_to_key()
+    rows: list[dict] = []
+    for r in feedback_lift(stats, min_sample):
+        key = l2k.get(r["signal"])
+        b = base.get(key)
+        s = suggested.get(key, b)
+        if key is None or b is None:
+            note = "unknown signal"
+        elif r["n"] < min_sample or r["lift"] is None:
+            note = "too few verdicts — kept"
+        elif s > b:
+            note = "confirmed good calls — up"
+        elif s < b:
+            note = "poor calls — down"
+        else:
+            note = "no change"
+        rows.append({**r, "key": key, "base_weight": b, "suggested_weight": s, "note": note})
     return rows

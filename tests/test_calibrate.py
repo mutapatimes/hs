@@ -65,3 +65,36 @@ def test_empty_or_spendless_frame_is_safe():
     scored = score_customers(df)  # no Spent column
     assert calibrate_weights(scored, base_weights={"work_email": 3}) == {"work_email": 3}
     assert signal_lift(scored)  # doesn't raise
+
+
+# ── outcome-based (feedback) calibration ────────────────────────────────────────
+def test_feedback_lift_precision_and_ranking():
+    from scoring.calibrate import feedback_lift
+    stats = [{"signal": "Premium email", "fit": 8, "nofit": 2},
+             {"signal": "Prime area", "fit": 1, "nofit": 9}]
+    rows = {r["signal"]: r for r in feedback_lift(stats, min_sample=8)}
+    assert rows["Premium email"]["precision"] == 0.8
+    assert rows["Prime area"]["precision"] == 0.1
+    assert rows["Premium email"]["lift"] > rows["Prime area"]["lift"]
+
+
+def test_feedback_calibration_up_down_and_min_sample():
+    from scoring.calibrate import calibrate_from_feedback
+    stats = [{"signal": "Premium email", "fit": 8, "nofit": 2},   # good calls -> up
+             {"signal": "Prime area", "fit": 1, "nofit": 9},      # poor calls -> down
+             {"signal": "Honorific", "fit": 3, "nofit": 0}]       # too few (n=3) -> kept
+    base = {"premium_email": 2, "property_value": 2, "honorific": 2}
+    new = calibrate_from_feedback(stats, base_weights=base, min_sample=8)
+    assert new["premium_email"] >= 3          # up
+    assert new["property_value"] == 1         # down, bounded, never zeroed
+    assert new["honorific"] == 2              # kept (below min_sample)
+
+
+def test_feedback_calibration_never_zeroes_and_is_bounded():
+    from scoring.calibrate import calibrate_from_feedback
+    stats = [{"signal": "Prime area", "fit": 0, "nofit": 20},     # 0% precision
+             {"signal": "Work email", "fit": 20, "nofit": 0}]     # 100% precision
+    base = {"property_value": 4, "work_email": 3}
+    new = calibrate_from_feedback(stats, base_weights=base, min_sample=8, lo=0.5, hi=2.0)
+    assert new["property_value"] >= 1 and new["property_value"] <= 4   # halved at most, never 0
+    assert new["work_email"] <= 6                                     # doubled at most

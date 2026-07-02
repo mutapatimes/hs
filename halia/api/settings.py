@@ -334,3 +334,32 @@ def register(app) -> None:
         """Clear calibrated weights — back to the engine's default weights."""
         set_signal_weights(shop, None)
         return {"ok": True, "saved": None}
+
+    @app.get("/v1/calibrate/feedback")
+    def calibrate_feedback_preview(shop: str = Depends(require_shop)) -> dict:
+        """Outcome-based: re-weight by associate-feedback precision (not spend). No save.
+
+        This is the unbiased calibration — it rewards signals whose surfaced clients the merchant
+        confirmed as good calls, so it doesn't punish the hidden-wealth signals the way spend does."""
+        from scoring.calibrate import calibrate_from_feedback, feedback_calibration_report
+
+        stats = shop_store().get_feedback_stats(shop)
+        verdicts = sum(int(s.get("fit", 0)) + int(s.get("nofit", 0)) for s in stats)
+        return {
+            "report": feedback_calibration_report(stats),
+            "suggested": calibrate_from_feedback(stats),
+            "current": settings_for(shop)["signal_weights"],
+            "verdicts": verdicts,
+        }
+
+    @app.post("/v1/calibrate/feedback")
+    def calibrate_feedback_apply(shop: str = Depends(require_shop)) -> dict:
+        """Adopt outcome-based (feedback-precision) calibrated weights (re-scores on next load)."""
+        from scoring.calibrate import calibrate_from_feedback, feedback_calibration_report
+
+        stats = shop_store().get_feedback_stats(shop)
+        if not stats:
+            raise HTTPException(400, "No feedback yet — mark some clients good call / not a fit first.")
+        report = feedback_calibration_report(stats)
+        saved = set_signal_weights(shop, calibrate_from_feedback(stats))
+        return {"ok": True, "saved": saved, "report": report}
