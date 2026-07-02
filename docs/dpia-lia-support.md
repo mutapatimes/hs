@@ -53,7 +53,7 @@ label. Renaming a nationality signal does not cure it.
 
 Halia's mitigation is structural: the signals that sort by national / ethnic / name origin are
 **off by default** (`scoring.combine.ORIGIN_PROXY_SIGNALS`): billing-country-as-origin (GCC),
-prime Gulf districts, phone dialling code, phone/address mismatch, name structure, name origin,
+origin-adjacent prime districts, phone dialling code, phone/address mismatch, name structure, name origin,
 heritage surname, and foreign currency. By default the score is built from **wealth facts** (spend,
 order history), **work facts** (employer / professional email and company tells), and **specific
 address / structure facts**.
@@ -66,9 +66,10 @@ a *wealth fact*?" A specific ultra-prime address (`prime_residence`, `intl_postc
 — Monaco, Jersey, Guernsey and peers, on internationally-mixed-resident grounds), and a
 **wealth-management structure** (`wealth_structure` — a trust company, family office, registered
 agent; origin-neutral) all pass the test and stay on. Country-of-origin proxies fail it and are off.
-**Prime Gulf districts** (`gulf_prime_district`) are a deliberate middle case: arguable
-wealth-geography, but district-level Gulf still disproportionately touches Middle-Eastern clients in
-a UK book, so they are gated with the origin proxies. Fields that speak only to origin — phone
+**Origin-adjacent prime districts** (`origin_adjacent_district` — Gulf, Lebanon) are a deliberate
+middle case: arguable wealth-geography, but a district-level match whose flagged population skews to
+one national origin in a UK book is gated with the origin proxies, by a written **general review
+rule** (see the taxonomy doc). Fields that speak only to origin — phone
 dialling code, email country-code TLD — never originate a score and may only *corroborate* an
 address. The full taxonomy, with the property-market inclusion criteria, is
 [geography-signal-taxonomy.md](geography-signal-taxonomy.md). The operator may re-enable origin
@@ -114,7 +115,7 @@ stylist, stylist directory, IP location, domain keyword, custom email, rich-list
 Companies House control.
 
 **Off by default (origin proxies; enable per-tenant only with a documented lawful basis):**
-billing country as an origin proxy (GCC), prime Gulf district, phone dialling-code country,
+billing country as an origin proxy (GCC), origin-adjacent prime district, phone dialling-code country,
 phone/address mismatch, foreign currency, nobiliary particle (de / von), name structure, heritage
 surname. (Fields that speak only to origin — phone dialling code, email ccTLD — never originate a
 score; the sole on-by-default use is agreement-as-confidence corroborating an address. See

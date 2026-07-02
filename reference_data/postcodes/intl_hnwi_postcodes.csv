@@ -89,7 +89,7 @@ Japan,1070062,Minami-Aoyama
 # --- Monaco ---
 Monaco,98000,Monaco
 
-# NOTE: prime Gulf (GCC) postcodes moved to reference_data/locations/gulf_prime_postcodes.csv
+# NOTE: prime Gulf (GCC) postcodes moved to reference_data/locations/origin_adjacent_postcodes.csv
 # — GATED off by default (origin-adjacent). See docs/geography-signal-taxonomy.md.
 
 # --- Spain (Ibiza) ---

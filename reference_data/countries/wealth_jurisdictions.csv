@@ -16,12 +16,13 @@ country,aliases,basis
 Jersey,JERSEY,Crown dependency; prime residential housing market
 Guernsey,GUERNSEY,Crown dependency; prime residential housing market
 Isle of Man,ISLE OF MAN,Crown dependency; prime residential housing market
-# --- European micro-states (ultra-prime, internationally-mixed residents) ---
-Monaco,MONACO,Most expensive residential market on earth; ultra-prime
-Liechtenstein,LIECHTENSTEIN,Alpine micro-state; among the highest property values in Europe
-Andorra,ANDORRA,Pyrenean micro-state; prime residential
-San Marino,SAN MARINO,Micro-state; high-value residential
-Gibraltar,GIBRALTAR,Prime residential enclave (Ocean Village / marina)
+# --- European micro-states where the WHOLE jurisdiction is ultra-prime ---
+# (Audited against the criterion: only micro-states whose entire residential market is
+# genuinely ultra-prime with an internationally-mixed base. San Marino, Andorra and Gibraltar
+# were struck 2026-07 — ordinary small jurisdictions with modest/mixed housing that only ever
+# belonged on an OECD tax list, which is exactly the trap this file must avoid.)
+Monaco,MONACO,Most expensive residential market on earth; ultra-prime; international base
+Liechtenstein,LIECHTENSTEIN,Micro-state; among the highest property values in Europe
 # --- Atlantic / Caribbean ultra-prime residential ---
 Cayman Islands,CAYMAN ISLANDS;CAYMAN,Ultra-prime residential (Seven Mile Beach)
 Bermuda,BERMUDA,Among the most expensive residential markets globally

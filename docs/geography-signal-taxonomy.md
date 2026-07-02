@@ -21,12 +21,19 @@ always was.
 ## The three buckets
 
 ### Bucket 1 — residence-is-wealth jurisdictions → `wealth_jurisdiction` (ON by default)
-Jurisdictions where residence itself is the wealth signal: Monaco, Jersey, Guernsey, Isle of Man,
-Liechtenstein, Andorra, San Marino, Gibraltar, Cayman, Bermuda. These are among the most expensive
-residential markets on earth, and their residents come from **every** nationality — so the correlation
-is with property wealth, not origin. Same species as a Mayfair W1 postcode. On by default, in the `geo`
-group. Reference: [`reference_data/countries/wealth_jurisdictions.csv`](../reference_data/countries/wealth_jurisdictions.csv).
+Jurisdictions where residence itself is the wealth signal — the *whole* jurisdiction is ultra-prime
+with an internationally-mixed resident base, so the correlation is with property wealth, not origin
+(same species as a Mayfair W1 postcode): **Monaco, Jersey, Guernsey, Isle of Man, Liechtenstein,
+Cayman, Bermuda.** On by default, in the `geo` group.
+[`reference_data/countries/wealth_jurisdictions.csv`](../reference_data/countries/wealth_jurisdictions.csv).
 Reason text is factual: *"Monaco — high-value residential jurisdiction (billing)"*.
+
+> **This list is audited against its own criterion.** The document's sharpest claim is that the
+> taxonomy is enforced by inclusion criteria, not names — so the list must survive its own test.
+> **San Marino, Andorra and Gibraltar were struck (2026-07):** ordinary small jurisdictions with
+> modest/mixed housing where most residents are not wealthy — they only ever belonged on the old
+> OECD-flavoured "tax haven" list, which is exactly the trap this document warns against. A row
+> stays only if residential property cost & exclusivity justify it (evidenced in the CSV header).
 
 ### Bucket 2 — structural → `wealth_structure` (ON by default)
 The tell is not geography, it's that a person's shopping is **routed through a wealth-management
@@ -44,19 +51,28 @@ Where the correlation runs to **nationality and origin** rather than property pr
 - **Country-level Gulf** (`gcc_billing`): a UAE / Saudi / Qatar *country* on the address flags a
   population that is heavily Gulf-national and Gulf-diaspora. It fails the effect test permanently and
   **stays off by default** (unchanged).
-- **District-level Gulf** (`gulf_prime_district`, **new, gated**): Emirates Hills, Palm Jumeirah,
-  Downtown Dubai, the Riyadh Diplomatic Quarter and peers are genuinely among the most expensive
-  residential districts on earth, with famously international residents — so district-level Gulf is
-  *arguable* wealth-geography. But even so, in a UK retailer's book a district-level Gulf signal still
-  disproportionately touches Middle-Eastern clients, so the effect test isn't as clean as Monaco's. We
-  therefore keep it **off by default** in the same opt-in tier as the other origin-adjacent signals. A
-  tenant with a genuine, documented Gulf clientele switches it on (`include_origin=True`); everyone
-  else's default stays clean. This is a deliberate bright line: prime Gulf districts were previously
-  scoring on-by-default (inside `hnw_area` / `intl_postcode`) and were **moved out** into this gated
-  signal. Reference:
-  [`gulf_prime_districts.csv`](../reference_data/locations/gulf_prime_districts.csv) +
-  [`gulf_prime_postcodes.csv`](../reference_data/locations/gulf_prime_postcodes.csv).
-  *(Lebanon's prime districts remain in `hnw_area` for now and are a candidate for the same review.)*
+- **Origin-adjacent prime districts** (`origin_adjacent_district`, gated): districts that are
+  genuinely among the most expensive residential markets on earth — Palm Jumeirah's residents, for
+  instance, really are international — but whose flagged population *in a typical UK retailer's book*
+  skews to a single national origin. So a district-level match, though a real property-wealth tell,
+  would in effect sort by origin, and it is held **off by default** in the opt-in tier. Current members:
+  the Gulf (Emirates Hills, Palm Jumeirah, Downtown Dubai, the Riyadh Diplomatic Quarter — the case
+  degrades from Dubai outward) and **Lebanon** (Achrafieh, Solidere, …). These were **moved out** of
+  the on-by-default `hnw_area` / `intl_postcode` lists into this gated signal. A tenant with a genuine,
+  documented clientele from a region switches it on (`include_origin=True`); everyone else's default
+  stays clean.
+  [`origin_adjacent_districts.csv`](../reference_data/locations/origin_adjacent_districts.csv) +
+  [`origin_adjacent_postcodes.csv`](../reference_data/locations/origin_adjacent_postcodes.csv).
+
+**The general review rule (this is the operating rule, not a set of regional verdicts).** Any prime
+district in any location list is reviewed against one question: **does the flagged population, as it
+appears in a typical UK merchant's book, skew to a single national origin?** If yes, it moves to the
+gated `origin_adjacent_district` tier regardless of how expensive the real estate is; if no (Monaco,
+Gstaad, Mayfair), it stays on by default. Gulf and Lebanon are the current members; prime Lagos,
+Mumbai, Moscow and the like go through the *same written test* as they arise — so the answer to "what
+about region X?" is "it goes through the rule", not a fresh debate each time. The location CSVs
+(`hnw_areas.csv`, `intl_hnwi_postcodes.csv`) are **audited against this rule periodically**, and any
+newly-added district must be classified by it.
 
 ## Two disciplines that keep this honest
 1. **Reason text is factual.** Audit/reason strings say "high-value residential jurisdiction", "prime
@@ -110,4 +126,5 @@ twin of the `wealth_structure` address signal).
 ## Where it lives in code
 `scoring/combine.py` is authoritative: `SIGNAL_WEIGHTS`, `SIGNAL_GROUP`, and `ORIGIN_PROXY_SIGNALS`
 (the gate). Signals: `scoring/signals/wealth_jurisdiction.py`, `wealth_structure.py`,
-`gulf_prime_district.py`, `gcc_billing.py`. Keep [dpia-lia-support.md](dpia-lia-support.md) §6 in step.
+`origin_adjacent_district.py`, `gcc_billing.py`, `geo_confirmation.py`. Keep
+[dpia-lia-support.md](dpia-lia-support.md) §6 in step.

@@ -90,7 +90,7 @@ signals override their base weight per-row by *type* (below).
 address (§7).
 
 **Gated by default** (origin proxies — off unless a tenant opts in with a lawful basis):
-`gcc_billing` (2), `gulf_prime_district` (2), `phone_country` (1), `phone_mismatch` (2),
+`gcc_billing` (2), `origin_adjacent_district` (2), `phone_country` (1), `phone_mismatch` (2),
 `foreign_currency` (1), `nobiliary_particle`, `name_structure`, `heritage_surname`.
 
 **Parked** (`CORE_DATA_ONLY=True` — transaction attributes we deliberately don't score):
@@ -262,7 +262,7 @@ and catches favourable treatment by protected characteristic too. Two discipline
 - **The geography taxonomy** ([geography-signal-taxonomy.md](geography-signal-taxonomy.md)) enforces
   "does this sort by where someone is *from*, or by a *wealth fact*?" — Bucket 1 residence-is-wealth
   jurisdictions (`wealth_jurisdiction`, on), Bucket 2 structures (`wealth_structure`, on,
-  origin-neutral), Bucket 3 origin-correlated Gulf (`gcc_billing` country + `gulf_prime_district`,
+  origin-neutral), Bucket 3 origin-correlated Gulf (`gcc_billing` country + `origin_adjacent_district`,
   gated). **Origin fields corroborate, never originate:** phone dialling code and email ccTLD never
   start a score; their sole on-by-default use is `geo_confirmation` — *agreeing* with a high-value
   address nudges confidence up (a decayed +≤1 in the `geo` group), *disagreement does nothing*.

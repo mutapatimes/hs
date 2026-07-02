@@ -96,7 +96,7 @@ Daikanyama,Japan,DAIKANYAMA
 Takanawa,Japan,TAKANAWA
 Ashiya,Japan,ASHIYA
 
-# NOTE: prime Gulf (GCC) districts moved to reference_data/locations/gulf_prime_districts.csv
+# NOTE: prime Gulf (GCC) districts moved to reference_data/locations/origin_adjacent_districts.csv
 # — they are GATED off by default (origin-adjacent). See docs/geography-signal-taxonomy.md.
 
 # --- Globally famous HNW streets / enclaves ---
@@ -201,16 +201,10 @@ Via Gesu,Italy,VIA GESU
 Brera,Italy,BRERA
 CityLife,Italy,CITYLIFE;CITY LIFE MILANO
 Quadrilatero della Moda,Italy,QUADRILATERO DELLA MODA
-# (Saudi Arabia prime districts moved to gulf_prime_districts.csv — gated, see above.)
-# --- Lebanon ---
-Achrafieh,Lebanon,ACHRAFIEH;ASHRAFIEH
-Beirut Central District,Lebanon,SOLIDERE;BEIRUT CENTRAL DISTRICT
-Saifi Village,Lebanon,SAIFI
-Rabieh,Lebanon,RABIEH
-Yarze,Lebanon,YARZE
-Gemmayzeh,Lebanon,GEMMAYZEH
-Ramlet al-Baida,Lebanon,RAMLET AL BAIDA
-Faqra,Lebanon,FAQRA
+# (Saudi Arabia prime districts moved to origin_adjacent_districts.csv — gated, see above.)
+# NOTE: Lebanon prime districts also moved to origin_adjacent_districts.csv (gated) — a
+# district-level Lebanese signal skews to one national origin in a UK book, the same test the
+# Gulf districts failed. See docs/geography-signal-taxonomy.md (the general review rule).
 # --- Ibiza ---
 Es Cubells,Spain,ES CUBELLS
 Cala Jondal,Spain,CALA JONDAL

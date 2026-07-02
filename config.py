@@ -67,10 +67,11 @@ PREMIUM_BINS_FILE = CARDS_DIR / "premium_bins.csv"
 LOCATIONS_DIR = REFERENCE_DIR / "locations"
 HNW_LOCATIONS_FILE = LOCATIONS_DIR / "hnw_locations.csv"
 HNW_AREAS_FILE = LOCATIONS_DIR / "hnw_areas.csv"
-# Prime Gulf districts (Bucket 3 — arguable wealth-geography but origin-adjacent, so GATED
-# off by default). Names matched like hnw_areas; postcodes like intl_hnwi_postcodes.
-GULF_PRIME_DISTRICTS_FILE = LOCATIONS_DIR / "gulf_prime_districts.csv"
-GULF_PRIME_POSTCODES_FILE = LOCATIONS_DIR / "gulf_prime_postcodes.csv"
+# Origin-adjacent prime districts (Bucket 3 — arguable wealth-geography but the flagged
+# population skews to one national origin in a UK book, so GATED off by default). Names matched
+# like hnw_areas; postcodes like intl_hnwi_postcodes. See docs/geography-signal-taxonomy.md.
+ORIGIN_ADJACENT_DISTRICTS_FILE = LOCATIONS_DIR / "origin_adjacent_districts.csv"
+ORIGIN_ADJACENT_POSTCODES_FILE = LOCATIONS_DIR / "origin_adjacent_postcodes.csv"
 
 # Optional MaxMind GeoIP database for IP -> location (not committed; see README).
 GEOIP_DIR = ROOT / "geoip"

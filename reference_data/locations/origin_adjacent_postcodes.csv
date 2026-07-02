@@ -1,0 +1,8 @@
+country,prefix,area
+# Origin-adjacent prime postcodes (Bucket 3). Country-guarded digit-prefix match, exactly like
+# intl_hnwi_postcodes.csv, but GATED off by default (see origin_adjacent_districts.csv and
+# docs/geography-signal-taxonomy.md — the general review rule). Sourced from residential
+# property-market data, never a tax list. Reason text stays factual.
+Saudi Arabia,11693,Riyadh Diplomatic Quarter
+Saudi Arabia,11564,Riyadh
+Kuwait,13001,Kuwait City
