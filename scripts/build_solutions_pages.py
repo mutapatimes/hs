@@ -353,6 +353,10 @@ def render(ind: dict) -> str:
   </div>
 </div></section>
 
+<section class="stmt-sec"><div class="wrap">
+  <p class="stmt reveal">Transaction value is a bad proxy for customer <em>value.</em></p>
+</div></section>
+
 <section class="ipsec"><div class="wrap narrow">
   <div class="case reveal">
     <div class="lab">A client you can't see</div>
