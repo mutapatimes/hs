@@ -1,8 +1,8 @@
-<title>Cookie Policy · Halia</title>
+<title>Sub-processors · Halia</title>
 <!doctype html><html lang="en"><head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="index">
-<meta name="description" content="How Halia uses cookies. We use as few as possible and run no advertising or cross-site tracking cookies in the application.">
+<meta name="description" content="The sub-processors Halia uses to run the service. Because Halia is zero-retention, our list is short: our providers never receive a standing copy of a merchant's customers.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -18,8 +18,11 @@ h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:clam
 .upd{color:#9a9385;font-size:13px;letter-spacing:.04em;margin-bottom:8px;text-transform:uppercase}
 .lead{color:#3a372f;font-size:18px;margin:30px 0 10px}
 h2{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400;font-size:26px;color:#1a1712;margin:46px 0 12px;line-height:1.12}
+h3{font-family:Inter;font-weight:600;font-size:15px;color:#1a1712;margin:24px 0 6px}
 p,li{font-size:15px}ul{padding-left:20px}li{margin:6px 0}
 b,strong{color:#2a2620}
+.note{border:1px solid rgba(20,18,12,.18);background:rgba(20,18,12,.045);border-radius:10px;padding:18px 20px;color:#3a372f;font-size:14.5px;margin:26px 0}
+.tbc{color:#9a7b3a;font-weight:600;font-size:12.5px;letter-spacing:.02em}
 table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
 th,td{text-align:left;vertical-align:top;border:1px solid rgba(20,18,12,.14);padding:9px 12px}
 th{background:rgba(20,18,12,.04);font-weight:600;color:#2a2620}
@@ -28,43 +31,74 @@ footer{border-top:1px solid rgba(20,18,12,.12);padding:34px 0;color:#9a9385;font
 </style></head><body>
 <header><div class="nav"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#1a1712">&#8258;</span>Halia</a><a class="back" href="/">Back to site</a></div></header>
 <main><div class="wrap">
-<div class="upd">Last updated 30 June 2026</div>
-<h1>Cookie Policy</h1>
-<p class="lead">Halia uses as few cookies as possible. We run no advertising or cross-site tracking
-cookies in the application, and none on our marketing site by default.</p>
+<div class="upd">Last updated 3 July 2026</div>
+<h1>Sub-processors</h1>
+<p class="lead">A sub-processor is a company we use to help run Halia and that may process personal
+data in doing so. This page lists them, what they do, and where they operate. We keep it current
+and tell merchants before it materially changes.</p>
 
-<h2>What cookies are</h2>
-<p>Cookies are small text files a site stores on your device. Some are strictly necessary to make a
-service work; others are optional and need your consent. This policy explains the few we use.</p>
+<div class="note"><b>Why the list is short.</b> Halia is zero-retention: a merchant's customers are
+read in memory, scored, and discarded within minutes. We do not copy a merchant's customer database
+onto our servers, so our sub-processors never receive a standing copy of it. The providers below
+support our own operation (hosting, billing, email) &mdash; not a warehouse of your customers.</p>
 
-<h2>Cookies we use</h2>
+<h2>Current sub-processors</h2>
 <table>
-<tr><th>Cookie</th><th>Type</th><th>Purpose</th><th>Duration</th></tr>
-<tr><td><b>halia_t</b></td><td>Strictly necessary</td><td>Holds your private access token so you stay signed in to the dashboard as you move between pages. Not used for tracking.</td><td>Session or short-lived</td></tr>
+<tr><th>Sub-processor</th><th>Purpose</th><th>Data processed</th><th>Region</th></tr>
+<tr>
+  <td><b>Render</b><br>(Render Services, Inc.)</td>
+  <td>Cloud hosting and managed PostgreSQL: runs the Halia application and stores merchant account
+      data and encrypted secrets. <b>No merchant customer data is stored here.</b></td>
+  <td>Account &amp; operational data; encrypted read-only credentials</td>
+  <td>UK/EU <span class="tbc">— region to be confirmed at launch</span></td>
+</tr>
+<tr>
+  <td><b>Stripe</b><br>(Stripe Payments Europe, Ltd.)</td>
+  <td>Subscription billing and payment processing for merchant accounts.</td>
+  <td>Merchant billing details (name, email, card handled by Stripe). Not shopper data.</td>
+  <td>EU / UK <span class="tbc">— entity &amp; region to be confirmed</span></td>
+</tr>
+<tr>
+  <td><b>Brevo</b><br>(Sendinblue SAS)</td>
+  <td>Transactional and alert email: sign-in links, &ldquo;your results are ready&rdquo;, and order alerts.</td>
+  <td>Recipient email address and message content (no shopper profiles).</td>
+  <td>EU (France)</td>
+</tr>
+<tr>
+  <td><b>Platforms you connect</b><br>(e.g. Shopify, WooCommerce, Klaviyo, Mailchimp, Slack)</td>
+  <td>Read your store at your instruction and, where you choose, receive the scores, segments, or
+      alerts Halia sends. These operate under <i>your</i> account and their own terms.</td>
+  <td>As determined by you and the provider</td>
+  <td>Per the provider you choose</td>
+</tr>
 </table>
-<p>The essential cookie is required to provide the service and cannot be switched off without losing
-access. We do not set analytics or advertising cookies in the application.</p>
+<p>We require appropriate confidentiality and security commitments from our sub-processors, and limit
+what each one receives to what it needs. The platforms in the final row are tools you choose to connect
+and control; they are your sub-processors, listed here for transparency.</p>
 
-<h2>This marketing site</h2>
-<p>Our public marketing pages load a web font from Google Fonts to render type. No analytics or
-advertising cookies are set on these pages by default. If we add optional analytics in future, we will
-ask for your consent first and update this policy.</p>
+<h2>How we handle changes</h2>
+<p>Before we add a new sub-processor, or materially change the category of data shared with an existing
+one, we will post the change here at least <b>30 days in advance</b> and note it in the change history
+below. Merchants with a data processing agreement in place may object to a new sub-processor on
+reasonable data-protection grounds by writing to
+<a href="mailto:privacy@halia.app">privacy@halia.app</a>; if we cannot resolve the objection, you may
+terminate the affected service as set out in your agreement.</p>
+<p>To be notified of changes, email <a href="mailto:privacy@halia.app">privacy@halia.app</a> and ask to
+be added to the sub-processor notification list.</p>
 
-<h2>Third-party services</h2>
-<p>When you connect a platform to Halia or follow a link to a third-party service, that service may set
-its own cookies under its own policy. We do not control those cookies.</p>
+<h2>Change history</h2>
+<table>
+<tr><th>Date</th><th>Change</th></tr>
+<tr><td>3 July 2026</td><td>Initial publication (Render, Stripe, Brevo, and connected platforms).</td></tr>
+</table>
 
-<h2>Managing cookies</h2>
-<p>You can clear or block cookies in your browser settings, and most browsers let you manage them per
-site. Blocking the essential cookie will sign you out of the dashboard and stop it from working.</p>
+<div class="note">This page is provided for transparency and is not legal advice. Specific corporate
+entities, regions, and data-residency arrangements are being finalised with our providers and counsel
+ahead of launch; cells marked <span class="tbc">to be confirmed</span> will be completed then. It should
+be read together with our <a href="/privacy">Privacy Policy</a> and, where applicable, your Data
+Processing Agreement.</div>
 
-<h2>Changes</h2>
-<p>We may update this policy if our use of cookies changes. We will change the "last updated" date
-above.</p>
-
-<h2>Contact</h2>
-<p><a href="mailto:hello@halia.app">hello@halia.app</a>.</p>
-<div class="legal-nav"><a href="/responsible">Responsible profiling</a><a href="/brand">Brand</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/cookies">Cookies</a><a href="/security">Security</a><a href="mailto:hello@halia.app">Contact</a></div>
+<div class="legal-nav"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/cookies">Cookies</a><a href="/responsible">Responsible profiling</a><a href="/security">Security</a><a href="mailto:privacy@halia.app">Contact</a></div>
 </div></main>
 <footer class="hfoot"><div class="hf-inner">
   <div class="hf-news">
