@@ -34,6 +34,17 @@ def test_scan_finds_marked_blocks(client):
             "solutions.hero.title", "clienteling.hero.title"} <= keys
 
 
+def test_email_draft_is_a_cms_editable_block(client):
+    _, store = client
+    keys = {b["key"] for b in content.scan_blocks()}
+    assert {"email.draft.subject", "email.draft.body"} <= keys      # shows up in /admin
+    d = content.draft_template()
+    assert d["subject"] == "A personal note" and "{first_name}" in d["body"]   # defaults
+    store.set_content("email.draft.subject", "A note from Aubin")
+    content._bust()
+    assert content.draft_template()["subject"] == "A note from Aubin"          # override wins
+
+
 def test_homepage_serves_default_then_override(client):
     c, store = client
     assert "A sea of records" in c.get("/").text          # default renders; marker is a comment

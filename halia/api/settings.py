@@ -253,6 +253,9 @@ def register(app) -> None:
         s["hubspot_connected"] = bool(store.get_hubspot(shop))
         # Shopify tag write-back is only offered to Shopify tenants (they hold an admin token).
         s["shopify_connected"] = bool(store.get_token(shop))
+        # The 1:1 outreach draft (editable at /admin) — the dashboard's "Draft note" opens it as a mailto.
+        from halia.api.content import draft_template
+        s["email_draft"] = draft_template()
         # Real-time order-alert plumbing: the per-shop webhook URL + the Web Push key.
         import secrets
 

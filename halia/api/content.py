@@ -51,6 +51,28 @@ def _bust() -> None:
     _cache["at"] = 0.0
 
 
+# Editable content that isn't inline in a marketing page — surfaced in /admin under its own group.
+# The featured 1:1 outreach draft the dashboard's Email menu offers as a ready mailto (top option).
+# Placeholders filled per client (by the dashboard's fillTemplate): {first_name}, {sender}.
+EXTRA_BLOCKS = [
+    {"key": "email.draft.subject", "page": "Email draft (1:1 outreach note)",
+     "default": "A personal note"},
+    {"key": "email.draft.body", "page": "Email draft (1:1 outreach note)",
+     "default": ("Dear {first_name},\n\nThank you for being one of our most valued clients. I wanted "
+                 "to reach out personally to say we’re always here for you — if there is ever anything "
+                 "you’d like us to find, set aside, or arrange, just reply to this note.\n\n"
+                 "With warm regards,\n{sender}")},
+]
+
+
+def draft_template() -> dict:
+    """The 1:1 email draft (subject + body), override-or-default. Used by the dashboard mailto."""
+    ov = _overrides()
+    subj = ov.get("email.draft.subject", EXTRA_BLOCKS[0]["default"])
+    body = ov.get("email.draft.body", EXTRA_BLOCKS[1]["default"])
+    return {"subject": subj, "body": body}
+
+
 def apply_overrides(html_text: str) -> str:
     """Replace each <!--cms:key-->default<!--/cms--> with its stored override, if any."""
     if "<!--cms:" not in html_text:
@@ -80,6 +102,9 @@ def scan_blocks() -> list[dict]:
             key = m.group(1)
             if key not in seen:
                 seen[key] = {"key": key, "default": m.group(2), "page": page}
+    # Non-page editable content (e.g. the 1:1 email draft) — always shown in /admin.
+    for b in EXTRA_BLOCKS:
+        seen.setdefault(b["key"], {"key": b["key"], "default": b["default"], "page": b["page"]})
     return list(seen.values())
 
 
