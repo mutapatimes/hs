@@ -452,8 +452,12 @@ _CSS = """
   .exrow .m .v .g{display:inline-block;background:var(--ink);color:var(--bg);border-radius:999px;padding:2px 11px;font:600 13px var(--sans)}
   .chips{display:flex;flex-wrap:wrap;gap:7px}.chip{font:500 12px var(--sans);color:var(--mute);border:1px solid var(--line);padding:5px 11px;border-radius:999px}
   .ltv .l{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
-  .bar{height:38px;border-radius:9px;display:flex;align-items:center;padding:0 14px;color:#fff;font:600 14px var(--sans);white-space:nowrap;margin-bottom:10px;min-width:64px;transition:width 1s cubic-bezier(.2,.6,.2,1)}
+  .bar{height:38px;border-radius:9px;display:flex;align-items:center;padding:0 14px;color:#fff;font:600 14px var(--sans);white-space:nowrap;margin-bottom:10px;min-width:70px;transition:width 1s cubic-bezier(.2,.6,.2,1)}
   .bar.now{background:var(--faint)}.bar.pot{background:var(--gold)}
+  /* the "now" bar is tiny, so its label sits outside the fill in dark text (readable on the page) */
+  .barrow{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+  .barrow .bar{margin-bottom:0;flex:0 0 auto}
+  .barnote{color:var(--mute);font:500 13px var(--sans);white-space:nowrap}
   .ltv .cap{color:var(--mute);font-size:13px;margin-top:6px}
   .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;margin-top:30px}
   table.lt{width:100%;border-collapse:collapse;font-size:14px;min-width:600px}
@@ -741,7 +745,7 @@ def render(ind: dict) -> str:
     </div>
     <div class="ltv reveal d1">
       <div class="l">Value now vs. latent potential</div>
-      <div class="bar now" style="width:{now_w}%">{gbp(now)} <span style="opacity:.85;font-weight:500">&nbsp;{ind["buyer_spend_note"]}</span></div>
+      <div class="barrow"><div class="bar now" style="width:{now_w}%">{gbp(now)}</div><span class="barnote">{ind["buyer_spend_note"]}</span></div>
       <div class="bar pot" style="width:100%">{gbp(pot)} <span style="opacity:.9;font-weight:500">&nbsp;latent / yr</span></div>
       <div class="cap">The gap between what they spend today and what they're worth nurtured &mdash; the number spend-based ranking can't see.</div>
     </div>
