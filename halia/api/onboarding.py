@@ -380,6 +380,18 @@ def _validate_woo(store_url: str, ck: str, cs: str, probe=None) -> tuple[bool, s
         return False, str(exc)[:180]
 
 
+def _validate_bigcommerce(store_hash: str, access_token: str, probe=None) -> tuple[bool, str]:
+    """One live read-only call to confirm BigCommerce store hash + access token work."""
+    try:
+        if probe is None:
+            from scoring.bigcommerce_fetch import http_transport
+            probe = http_transport(store_hash, access_token)
+        probe("orders", {"limit": 1})
+        return True, ""
+    except Exception as exc:  # noqa: BLE001 - surface a short reason to the client
+        return False, str(exc)[:180]
+
+
 # Background-sync status per shop, so the preparing page can reassure / show errors rather than
 # spin forever. Plus a "ready email sent" guard so we email a tenant only once.
 _SYNC_STATUS: dict[str, dict] = {}
@@ -781,12 +793,14 @@ _SHOPIFY_HINTS = ("cdn.shopify.com", "/cdn/shop/", "shopify.shop", "x-shopify", 
                   "myshopify.com", "shopify-section", "shopify.theme")
 _WOO_HINTS = ("woocommerce", "/plugins/woocommerce", "wp-json/wc/", "wc-block", "wc_add_to_cart",
               "woocommerce-page")
+_BIGCOMMERCE_HINTS = ("cdn11.bigcommerce.com", "cdn.bcapp", "bigcommerce.com", "/stencil/",
+                      "data-stencil", "stencil-utils")
 
 
 def _detect_platform(store_url: str, fetch=None) -> dict:
-    """Best-effort: fetch the storefront once and guess Shopify vs WooCommerce.
+    """Best-effort: fetch the storefront once and guess Shopify vs WooCommerce vs BigCommerce.
 
-    Returns {"platform": "shopify"|"woocommerce"|"unknown", "myshopify": domain-or-empty}.
+    Returns {"platform": "shopify"|"woocommerce"|"bigcommerce"|"unknown", "myshopify": …}.
     Never raises; an unknown result simply lets the wizard ask the merchant to choose.
     """
     url = (store_url or "").strip()
@@ -810,10 +824,13 @@ def _detect_platform(store_url: str, fetch=None) -> dict:
     myshop = m.group(1) if m else ""
     shopify = any(h in blob for h in _SHOPIFY_HINTS)
     woo = any(h in blob for h in _WOO_HINTS)
+    bigc = any(h in blob for h in _BIGCOMMERCE_HINTS)
     if shopify and not woo:
         platform = "shopify"
     elif woo and not shopify:
         platform = "woocommerce"
+    elif bigc and not (shopify or woo):
+        platform = "bigcommerce"
     elif shopify and woo:
         platform = "shopify"
     else:
@@ -1029,11 +1046,18 @@ function renderSource(){
       [].forEach.call(b.querySelectorAll('.pcard'),function(x){x.classList.remove('sel');});
       c.classList.add('sel');state.shop_method=c.dataset.sm;renderShopMethod();};});
     if(state.shop_method){var ss=b.querySelector('.pcard[data-sm="'+state.shop_method+'"]');if(ss)ss.classList.add('sel');renderShopMethod();}
+  } else if(state.source==='bigcommerce'){
+    eye.textContent='Your store data · BigCommerce';
+    ti.innerHTML='Connect your orders, <em>safely.</em>';
+    le.textContent='Create a read-only API account in BigCommerce and paste the two values. Halia can read your past orders and nothing else.';
+    b.innerHTML='<ol class="slist"><li>In your BigCommerce control panel, open <b>Settings &rarr; API accounts &rarr; Create API account</b>.</li><li>Name it "Halia" and grant <b>Orders</b> and <b>Customers</b> the <b>read-only</b> scope.</li><li>Save, then copy the <b>Access Token</b> and your <b>store hash</b> (the code in the API path, e.g. stores/<b>abc12def</b>/).</li></ol>'
+      +'<label>Store hash</label><input id="store_hash" placeholder="abc12def" autocomplete="off">'
+      +'<label>API access token</label><input id="access_token" type="password" placeholder="Access token" autocomplete="off">';
   } else {
     eye.textContent='Your store';
     ti.innerHTML='Which platform powers your <em>store?</em>';
     le.textContent='We could not tell automatically, no problem at all. Pick yours and we will show you exactly what to do.';
-    b.innerHTML='<div class="cards"><div class="pcard" data-src="shopify"><div class="pi">S</div><div><h3>Shopify</h3><p>Connect with a read-only Admin API token.</p></div></div><div class="pcard" data-src="woocommerce"><div class="pi">W</div><div><h3>WooCommerce</h3><p>Connect with a read-only REST API key.</p></div></div></div>';
+    b.innerHTML='<div class="cards"><div class="pcard" data-src="shopify"><div class="pi">S</div><div><h3>Shopify</h3><p>Connect with a read-only Admin API token.</p></div></div><div class="pcard" data-src="woocommerce"><div class="pi">W</div><div><h3>WooCommerce</h3><p>Connect with a read-only REST API key.</p></div></div><div class="pcard" data-src="bigcommerce"><div class="pi">B</div><div><h3>BigCommerce</h3><p>Connect with a store hash and API token.</p></div></div></div>';
     [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){state.source=c.dataset.src;renderSource();};});
   }
 }
@@ -1151,6 +1175,8 @@ function valid(n){
       if(!state.woo_method){err('err2','Choose how to connect your store.');return false;}
       if(state.woo_method==='auto'&&!state.woo_token){err('err2','Click Authorize and approve Halia in WooCommerce, then continue.');return false;}
       if(state.woo_method==='manual'&&(!gv('consumer_key')||!gv('consumer_secret'))){err('err2','Paste both your consumer key and secret.');return false;}}
+    else if(state.source==='bigcommerce'){
+      if(!gv('store_hash')||!gv('access_token')){err('err2','Enter your BigCommerce store hash and API access token.');return false;}}
     else{err('err2','Choose your store platform to continue.');return false;}
     if(SIGNUP&&!gv('code')){err('err2','Enter your signup code.');return false;}}
   if(n===4){var key=gv('api_key');if(!key){err('err4','Paste your '+(state.platform==='klaviyo'?'Klaviyo':'Mailchimp')+' key, or go back and choose to connect later.');return false;}
@@ -1177,6 +1203,7 @@ document.getElementById('addmail').onclick=function(){var l=document.getElementB
 function payload(){return{
   label:gv('label'),store_url:gv('store_url'),source:state.source||'',
   consumer_key:gv('consumer_key'),consumer_secret:gv('consumer_secret'),
+  store_hash:gv('store_hash'),access_token:gv('access_token'),
   shop_domain:gv('shop_domain'),admin_token:gv('admin_token'),woo_token:state.woo_token||'',code:gv('code'),
   platform:(!state.platform||state.platform==='later')?'':state.platform,api_key:gv('api_key'),
   email:gv('email'),notify_emails:collectEmails(),
@@ -1312,6 +1339,18 @@ def register(app) -> None:
             store.save_shop(shop, admin_token)
             if shop_token:
                 _shop_pending_pop(shop_token)
+        elif source == "bigcommerce":
+            store_hash = g("store_hash")
+            access_token = g("access_token")
+            if not store_hash or not access_token:
+                raise HTTPException(400, "Add your BigCommerce store hash and API access token.")
+            ok, why = _validate_bigcommerce(store_hash, access_token)
+            if not ok:
+                raise HTTPException(400, f"We could not reach BigCommerce with those credentials: {why}")
+            shop = _slug(store_hash) or store_hash
+            label = label or store_hash
+            store.create_tenant(shop, "bigcommerce", label, hash_token(link_token))
+            store.save_bigcommerce(shop, store_hash, access_token)
         else:
             shop = _slug(store_url)
             if not shop or not store_url.startswith("http"):

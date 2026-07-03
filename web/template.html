@@ -446,6 +446,7 @@
     <button class="bbtn" id="bulklist">Create Klaviyo list</button>
     <button class="bbtn" id="bulkpushmc" style="display:none">Sync to Mailchimp</button>
     <button class="bbtn" id="bulksegmc" style="display:none">Create Mailchimp segment</button>
+    <button class="bbtn" id="bulkpushhs" style="display:none">Sync to HubSpot</button>
     <button class="bbtn" id="bulktag" style="display:none">Tag in Shopify</button>
   </div>
   <button class="bclear" id="bclear" title="Clear">×</button>
@@ -664,6 +665,21 @@ document.getElementById("bulksegmc").onclick=async()=>{
   finally{ btn.disabled=false; btn.textContent=t; }
 };
 
+// bulk action: sync the selected clients to HubSpot (all hidden VICs if none selected)
+document.getElementById("bulkpushhs").onclick=async()=>{
+  const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
+  const btn=document.getElementById("bulkpushhs"); btn.disabled=true; const t=btn.textContent; btn.textContent="Syncing…";
+  try{
+    const r=await fetch("/v1/hubspot/push",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify(cids&&cids.length?{customer_ids:cids}:{})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail||("HTTP "+r.status));
+    toast(`${d.pushed} client${d.pushed===1?"":"s"} synced to HubSpot with their Halia grade.`);
+    selected.clear();renderRows();updateBulk();
+  }catch(e){ toast("HubSpot sync failed: "+e.message); }
+  finally{ btn.disabled=false; btn.textContent=t; }
+};
+
 // bulk action: tag the selected clients back into Shopify (all hidden VICs if none selected)
 document.getElementById("bulktag").onclick=async()=>{
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
@@ -697,7 +713,7 @@ document.getElementById("csvbtn").onclick=async()=>{
 function refreshIntegrationUI(){
   const kv=!!SETTINGS.klaviyo_connected, mc=!!SETTINGS.mailchimp_connected;
   const show=(id,on)=>{const e=document.getElementById(id); if(e) e.style.display=on?"":"none";};
-  show("bulkpush",kv); show("bulklist",kv); show("bulkpushmc",mc); show("bulksegmc",mc);
+  show("bulkpush",kv); show("bulklist",kv); show("bulkpushmc",mc); show("bulksegmc",mc); show("bulkpushhs",!!SETTINGS.hubspot_connected);
   show("bulktag", !!SETTINGS.shopify_connected);
   const sync=document.getElementById("bulkpushmc"); if(sync) sync.classList.toggle("primary", mc&&!kv);
 }
@@ -938,6 +954,7 @@ function openDrawer(id){
         <div id="dwamenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${whatsappItems(c)}</div>
       </div>`:""}
       ${SETTINGS.mailchimp_connected?`<button class="dbtn${SETTINGS.klaviyo_connected?'':' primary'}" id="dpushmc">Push to Mailchimp</button>`:""}
+      ${SETTINGS.hubspot_connected?`<button class="dbtn" id="dpushhs">Push to HubSpot</button>`:""}
       ${SETTINGS.klaviyo_connected?`<button class="dbtn" id="dflow">Trigger Klaviyo flow</button>`:""}
       ${SETTINGS.klaviyo_connected?`<button class="dbtn primary" id="dpush">Open in Klaviyo →</button>`:""}
     </div>`;
@@ -1008,6 +1025,18 @@ function openDrawer(id){
         toast(d.pushed?`Pushed to Mailchimp${d.list_name?" · "+d.list_name:""} with their Halia grade.`:"This client has no email to push."); })
       .catch(e=>toast("Mailchimp push failed: "+e.message))
       .finally(()=>{ dpushmc.disabled=false; dpushmc.textContent=t; });
+  };
+  // Push to HubSpot: upsert this one client to the connected portal with their Halia grade.
+  const dpushhs=document.getElementById("dpushhs");
+  if(dpushhs) dpushhs.onclick=()=>{
+    dpushhs.disabled=true; const t=dpushhs.textContent; dpushhs.textContent="Pushing…";
+    fetch("/v1/hubspot/push",{method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({customer_ids:[c.cid]})})
+      .then(r=>r.json().then(d=>({ok:r.ok,d})))
+      .then(({ok,d})=>{ if(!ok) throw new Error(d.detail||"failed");
+        toast(d.pushed?"Pushed to HubSpot with their Halia grade.":"This client has no email to push."); })
+      .catch(e=>toast("HubSpot push failed: "+e.message))
+      .finally(()=>{ dpushhs.disabled=false; dpushhs.textContent=t; });
   };
 }
 function closeDrawer(){drawer.classList.remove("show");scrim.classList.remove("show");drawer.setAttribute("aria-hidden","true");}
@@ -1106,6 +1135,7 @@ function openSettings(){
   const CHIP="background:#eef1f0;border:1px solid #cdd6d3;border-radius:6px;padding:3px 9px;font:600 12px ui-monospace,SFMono-Regular,monospace;color:#1f564a;cursor:pointer;margin:0 6px 6px 0";
   const kv=SETTINGS.klaviyo_connected;
   const mc=SETTINGS.mailchimp_connected;
+  const hs=SETTINGS.hubspot_connected;
   const calibrated=!!(SETTINGS.signal_weights&&Object.keys(SETTINGS.signal_weights).length);
   function render(){
     settingsEl.innerHTML=`
@@ -1139,6 +1169,17 @@ function openSettings(){
             <button id="setMcConnect" style="${BS}">Connect</button>
           </div>
           ${mc?`<div style="margin-top:12px"><button id="setMcDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect Mailchimp</button></div>`:""}
+        </div>
+
+        <div style="${C}">
+          <div style="${H}">HubSpot connection</div>
+          <p style="${P}">Connect your HubSpot <b>Private App token</b> (starts <b>pat-</b>) to write each client's Halia grade, score, and reasons onto their HubSpot contact.</p>
+          <div style="font:600 13px system-ui;color:${hs?'#0f7b4f':'#616161'};margin-bottom:10px">${hs?"● Connected":"○ Not connected"}</div>
+          <div style="display:flex;gap:8px;max-width:540px">
+            <input id="setHsKey" type="password" placeholder="pat-… (paste to connect or replace)" style="flex:1;${I}">
+            <button id="setHsConnect" style="${BS}">Connect</button>
+          </div>
+          ${hs?`<div style="margin-top:12px"><button id="setHsDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect HubSpot</button></div>`:""}
         </div>
 
         <div style="${C}">
@@ -1255,6 +1296,17 @@ function openSettings(){
     };
     const mdisc=document.getElementById("setMcDisc"); if(mdisc) mdisc.onclick=()=>{
       fetch("/v1/mailchimp/disconnect",{method:"POST"}).then(()=>{SETTINGS.mailchimp_connected=false;toast("Mailchimp disconnected.");render();refreshIntegrationUI();});
+    };
+    const hsc=document.getElementById("setHsConnect"); if(hsc) hsc.onclick=()=>{
+      const key=document.getElementById("setHsKey").value.trim(); if(!key){toast("Paste your HubSpot Private App token first.");return;}
+      hsc.disabled=true;hsc.textContent="Connecting…";
+      fetch("/v1/hubspot/connect",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({api_token:key})})
+        .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
+          SETTINGS.hubspot_connected=true;toast("HubSpot connected · Halia contact properties created.");render();refreshIntegrationUI();})
+        .catch(e=>{toast("Connect failed: "+e.message);hsc.disabled=false;hsc.textContent="Connect";});
+    };
+    const hdisc=document.getElementById("setHsDisc"); if(hdisc) hdisc.onclick=()=>{
+      fetch("/v1/hubspot/disconnect",{method:"POST"}).then(()=>{SETTINGS.hubspot_connected=false;toast("HubSpot disconnected.");render();refreshIntegrationUI();});
     };
     function paintBilling(b){
       const box=document.getElementById("billingBox"); if(!box) return;

@@ -95,7 +95,7 @@ def test_shopify_push_rejects_woocommerce(client):
     store.create_tenant(SHOP, "woocommerce", "Woo store", "hash")
     _seed_cache()
     r = tc.post("/v1/shopify/push", json={}, headers=_auth())
-    assert r.status_code == 400 and "WooCommerce" in r.json()["detail"]
+    assert r.status_code == 400 and "Shopify feature" in r.json()["detail"]
 
 
 def test_shopify_push_without_token(client):

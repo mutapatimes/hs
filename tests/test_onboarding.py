@@ -41,6 +41,18 @@ def test_connect_creates_tenant_and_link(client):
     assert creds["consumer_key"] == "ck_x" and creds["store_url"] == "https://glennorah.co.uk"
 
 
+def test_onboard_bigcommerce_creates_tenant_and_saves_creds(client, monkeypatch):
+    c, store = client
+    monkeypatch.setattr(onboarding, "_validate_bigcommerce", lambda *a, **k: (True, ""))
+    r = c.post("/v1/onboard", json={"source": "bigcommerce", "store_hash": "abc12def",
+                                    "access_token": "tok", "platform": "", "accept_terms": True})
+    assert r.status_code == 200
+    t = store.get_tenant("abc12def")
+    assert t and t["kind"] == "bigcommerce"
+    creds = store.get_bigcommerce("abc12def")
+    assert creds["store_hash"] == "abc12def" and creds["access_token"] == "tok"
+
+
 def test_signup_code_enforced(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr("halia.config.SIGNUP_CODE", "letmein")

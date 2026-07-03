@@ -250,6 +250,7 @@ def register(app) -> None:
         mc = store.get_mailchimp(shop)
         s["mailchimp_connected"] = bool(mc and mc.get("list_id"))
         s["mailchimp_list_name"] = (mc or {}).get("list_name")
+        s["hubspot_connected"] = bool(store.get_hubspot(shop))
         # Shopify tag write-back is only offered to Shopify tenants (they hold an admin token).
         s["shopify_connected"] = bool(store.get_token(shop))
         # Real-time order-alert plumbing: the per-shop webhook URL + the Web Push key.

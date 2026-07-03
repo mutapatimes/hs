@@ -54,6 +54,13 @@ _TABLES = [
         consumer_secret TEXT,
         connected_at    TEXT
     )""",
+    # BigCommerce API-account credentials (store hash + read-only access token), encrypted.
+    """CREATE TABLE IF NOT EXISTS bigcommerce (
+        shop         TEXT PRIMARY KEY,
+        store_hash   TEXT,
+        access_token TEXT,
+        connected_at TEXT
+    )""",
     # Marketing-site newsletter signups (just an email + when). Not customer data.
     """CREATE TABLE IF NOT EXISTS subscribers (
         email        TEXT PRIMARY KEY,
@@ -79,6 +86,13 @@ _TABLES = [
         api_key      TEXT,
         list_id      TEXT,
         list_name    TEXT,
+        connected_at TEXT
+    )""",
+    # Per-shop HubSpot connection: encrypted Private App token + the portal id (for deep links).
+    """CREATE TABLE IF NOT EXISTS hubspot (
+        shop         TEXT PRIMARY KEY,
+        api_token    TEXT,
+        portal_id    TEXT,
         connected_at TEXT
     )""",
     # Per-shop Slack alerts: an encrypted Incoming Webhook URL (contains a secret token).
@@ -256,6 +270,23 @@ class ShopStore(_DB):
                 "consumer_key": crypto.decrypt(row["consumer_key"]),
                 "consumer_secret": crypto.decrypt(row["consumer_secret"])}
 
+    # ── BigCommerce API credentials (store hash + access token, encrypted) ──────
+    def save_bigcommerce(self, shop: str, store_hash: str, access_token: str) -> None:
+        self._run(
+            """INSERT INTO bigcommerce (shop, store_hash, access_token, connected_at)
+               VALUES (:shop, :hash, :token, :at)
+               ON CONFLICT(shop) DO UPDATE SET store_hash=excluded.store_hash,
+                access_token=excluded.access_token, connected_at=excluded.connected_at""",
+            {"shop": shop, "hash": store_hash, "token": crypto.encrypt(access_token), "at": _now()})
+
+    def get_bigcommerce(self, shop: str) -> dict | None:
+        row = self._run("SELECT store_hash, access_token FROM bigcommerce WHERE shop = :shop",
+                        {"shop": shop}, fetch="one")
+        if not row:
+            return None
+        return {"store_hash": row["store_hash"],
+                "access_token": crypto.decrypt(row["access_token"])}
+
     # ── order-alert webhook token ───────────────────────────────────────────────
     def get_webhook_token(self, shop: str) -> str | None:
         row = self._run("SELECT token FROM webhooks WHERE shop = :shop", {"shop": shop}, fetch="one")
@@ -319,6 +350,25 @@ class ShopStore(_DB):
 
     def delete_mailchimp(self, shop: str) -> None:
         self._run("DELETE FROM mailchimp WHERE shop = :shop", {"shop": shop})
+
+    # ── per-shop HubSpot connection (encrypted Private App token + portal id) ────
+    def save_hubspot(self, shop: str, api_token: str, portal_id: str = "") -> None:
+        self._run(
+            """INSERT INTO hubspot (shop, api_token, portal_id, connected_at)
+               VALUES (:shop, :tok, :pid, :at)
+               ON CONFLICT(shop) DO UPDATE SET api_token=excluded.api_token,
+                portal_id=excluded.portal_id, connected_at=excluded.connected_at""",
+            {"shop": shop, "tok": crypto.encrypt(api_token), "pid": portal_id, "at": _now()})
+
+    def get_hubspot(self, shop: str) -> dict | None:
+        row = self._run("SELECT api_token, portal_id FROM hubspot WHERE shop = :shop",
+                        {"shop": shop}, fetch="one")
+        if not row:
+            return None
+        return {"api_token": crypto.decrypt(row["api_token"]), "portal_id": row["portal_id"] or ""}
+
+    def delete_hubspot(self, shop: str) -> None:
+        self._run("DELETE FROM hubspot WHERE shop = :shop", {"shop": shop})
 
     # ── per-shop Slack connection (Incoming Webhook URL, encrypted) ─────────────
     def save_slack(self, shop: str, webhook_url: str, channel: str = "") -> None:
@@ -390,6 +440,7 @@ class ShopStore(_DB):
     # ── deletion (shop/redact + app/uninstalled) ───────────────────────────────
     def delete_shop(self, shop: str) -> None:
         """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""
-        for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "mailchimp",
-                      "slack", "webhooks", "push_subs", "billing", "feedback_stats"):
+        for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "bigcommerce",
+                      "mailchimp", "hubspot", "slack", "webhooks", "push_subs", "billing",
+                      "feedback_stats"):
             self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})

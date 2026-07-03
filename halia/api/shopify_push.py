@@ -33,8 +33,8 @@ def register(app) -> None:
         """Write `Halia:{grade}` tags + `halia.*` metafields back to the shop's customers."""
         store = shop_store()
         tenant = store.get_tenant(shop)
-        if tenant and tenant["kind"] == "woocommerce":
-            raise HTTPException(400, "Tagging back is a Shopify feature — this store is on WooCommerce.")
+        if tenant and tenant["kind"] in ("woocommerce", "bigcommerce"):
+            raise HTTPException(400, "Tagging back is a Shopify feature — this store is not on Shopify.")
         token = store.get_token(shop)
         if not token:
             raise HTTPException(400, "No Shopify connection for this store.")

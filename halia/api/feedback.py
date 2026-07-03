@@ -52,7 +52,8 @@ def register(app) -> None:
         tagged = False
         tenant = shop_store().get_tenant(shop)
         token = shop_store().get_token(shop)
-        if result.customer_id and token and not (tenant and tenant["kind"] == "woocommerce"):
+        if result.customer_id and token and not (
+                tenant and tenant["kind"] in ("woocommerce", "bigcommerce")):
             try:
                 from halia.adapters.shopify_sink import ShopifySink
                 from scoring.shopify_fetch import http_transport

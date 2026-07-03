@@ -88,6 +88,10 @@ HALIA_SHOPIFY_INSTALL_URL = os.environ.get("HALIA_SHOPIFY_INSTALL_URL") or ""
 # for the full history, or another number to taste. Pages are 100 orders each.
 WOO_MAX_PAGES = int(os.environ.get("HALIA_WOO_MAX_PAGES", "60")) or None
 
+# Same cap for BigCommerce. Pages are 250 orders each (BC v2 max), so 60 pages is ~15,000
+# most-recent orders; set HALIA_BIGCOMMERCE_MAX_PAGES=0 for the full history.
+BIGCOMMERCE_MAX_PAGES = int(os.environ.get("HALIA_BIGCOMMERCE_MAX_PAGES", "60")) or None
+
 # Merchant's VIC spend cutoff (the hidden-vs-known gate). Falls back to the engine default.
 VIC_THRESHOLD = float(os.environ.get("HALIA_VIC_THRESHOLD", "5000"))
 
