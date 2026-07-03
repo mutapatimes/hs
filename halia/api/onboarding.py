@@ -524,150 +524,131 @@ def _hosted_head(store: str = "") -> str:
 
 
 _PREPARING = r'''<!doctype html><html lang="en"><head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
-<title>Scoring your store · Halia</title>
+<title>Setting up &middot; Halia</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
-<noscript><meta http-equiv="refresh" content="5"></noscript>
+<noscript><meta http-equiv="refresh" content="6"></noscript>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f4f1ea;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;--serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+:root{--bg:#f4f1ea;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;--line:rgba(20,18,12,.14);--line2:rgba(20,18,12,.07);--ok:#2e9e6b;--serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(1100px 600px at 50% -12%,#fcfaf5,#f4f1ea 62%);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
-.top{max-width:960px;margin:0 auto;padding:22px 28px}
-.brand{font-family:var(--serif);font-size:24px;display:flex;align-items:center;gap:9px}.brand svg{width:20px;height:20px}
-.stage{max-width:640px;margin:0 auto;padding:clamp(40px,12vh,120px) 28px;text-align:center}
-.eyebrow{font:500 12px var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
-h1{font-family:var(--serif);font-weight:300;font-size:clamp(34px,6vw,56px);line-height:1.06;letter-spacing:-.01em;margin:0 0 18px}
-h1 em{font-style:italic;color:var(--gold)}
-.lede{font-size:18px;color:var(--mute);line-height:1.5;min-height:3em;transition:opacity .25s;margin:0 auto;max-width:42ch}
+a{color:inherit;text-decoration:none}
+.hd{max-width:720px;margin:0 auto;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{font-family:var(--serif);font-size:23px;display:flex;align-items:center;gap:9px}
+.who{text-align:right}.who .w1{font:600 14px var(--sans)}.who .w2{font:500 12px var(--sans);color:var(--faint)}
+.wrap{max-width:720px;margin:0 auto;padding:6px 24px 80px;display:flex;flex-direction:column;gap:16px}
+.panel{background:#fffdf8;border:1px solid var(--line);border-radius:16px;padding:22px 24px}
+.prow{display:flex;align-items:center;gap:9px;font:500 12px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.prow .eta{margin-left:auto;color:var(--faint);letter-spacing:.02em;text-transform:none;font-size:12px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:pl 1.1s infinite;flex:none}@keyframes pl{0%,100%{opacity:.3}50%{opacity:1}}
+.prog h1{font-family:var(--serif);font-weight:300;font-size:clamp(26px,4.6vw,40px);line-height:1.08;margin:14px 0 8px}
+.prog h1 em{font-style:italic;color:var(--gold)}
+.lede{font-size:15.5px;color:var(--mute);line-height:1.5;min-height:2.4em;transition:opacity .25s;margin:0}
 .lede b{color:var(--ink);font-weight:600}
-.track{height:6px;background:rgba(20,18,12,.1);border-radius:99px;overflow:hidden;max-width:420px;margin:30px auto 0;position:relative}
+.track{height:7px;background:rgba(20,18,12,.09);border-radius:99px;overflow:hidden;margin:18px 0 0;position:relative}
 .track i{display:block;height:100%;width:8%;background:linear-gradient(90deg,#7a7363,#b7ad99);border-radius:99px;transition:width 1.1s cubic-bezier(.3,.7,.3,1)}
-.track:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-100%);animation:sh 1.8s infinite}
-@keyframes sh{to{transform:translateX(100%)}}
-.fine{font-size:13px;color:var(--faint);margin:22px 0 0}
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-right:8px;vertical-align:middle;animation:pl 1.1s infinite}
-@keyframes pl{0%,100%{opacity:.3}50%{opacity:1}}
-.term{max-width:520px;margin:34px auto 0;background:#0e1012;border:1px solid rgba(20,18,12,.18);border-radius:12px;overflow:hidden;text-align:left;box-shadow:0 34px 70px -34px rgba(0,0,0,.45)}
-.term .bar{display:flex;align-items:center;gap:7px;padding:11px 14px;background:#17191c;border-bottom:1px solid rgba(255,255,255,.06)}
-.term .bar i{width:11px;height:11px;border-radius:50%;background:#3a3d40}
-.term .bar i:nth-child(1){background:#ff5f57}.term .bar i:nth-child(2){background:#febc2e}.term .bar i:nth-child(3){background:#28c840}
-.term .bar span{margin-left:8px;color:#7d8186;font:500 12px var(--sans)}
-.term .body{padding:14px 16px;height:176px;overflow:hidden;font:12.5px/1.72 ui-monospace,SFMono-Regular,Menlo,monospace}
-.term .ln{white-space:pre-wrap;color:#c9cdd2;animation:tin .25s ease}
-@keyframes tin{from{opacity:0}to{opacity:1}}
-.term .ln.ok{color:#5bd6a0}.term .ln.dim{color:#7d8186}.term .ln.calc{color:#8fb6e0}
-.term .pr{color:#5bd6a0}.term .cmd{color:#eaeef2}.term .br{color:#d8b96a}
-.term .caret{display:inline-block;width:8px;height:14px;background:#5bd6a0;vertical-align:-2px;animation:bk 1s step-end infinite}
-@keyframes bk{50%{opacity:0}}
+.track:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);transform:translateX(-100%);animation:sh 1.8s infinite}@keyframes sh{to{transform:translateX(100%)}}
+.fine{font-size:12.5px;color:var(--faint);margin:14px 0 0}
+.deck{padding-bottom:16px}
+.slides{position:relative}
+.slide{display:none;animation:fin .35s ease}.slide.on{display:block}@keyframes fin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.slide h2{font-family:var(--serif);font-weight:300;font-size:26px;margin:0 0 10px}
+.slide>p{color:var(--mute);font-size:15px;line-height:1.55;margin:0}
+.acc{margin-top:4px;border-top:1px solid var(--line2)}
+.acc .it{border-bottom:1px solid var(--line2)}
+.acc .q{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 2px;cursor:pointer;font:600 15px var(--sans)}
+.acc .q .c{color:var(--gold);transition:transform .25s;flex:none;font-weight:400;font-size:18px}
+.acc .it.op .q .c{transform:rotate(45deg)}
+.acc .a{max-height:0;overflow:hidden;transition:max-height .3s ease;color:var(--mute);font-size:14px;line-height:1.55}
+.acc .it.op .a{max-height:220px}
+.acc .a p{margin:0;padding:0 2px 14px}
+.steps{display:flex;flex-direction:column;gap:14px;margin-top:4px}
+.step{display:flex;gap:13px;align-items:flex-start}
+.step .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font:600 13px var(--sans);display:flex;align-items:center;justify-content:center}
+.step .t{font:600 14.5px var(--sans);margin-bottom:2px}.step .d{color:var(--mute);font-size:13.5px;line-height:1.5}
+.deck-foot{display:flex;align-items:center;gap:12px;margin-top:20px}
+.gh,.pr{font:600 13px var(--sans);border-radius:999px;padding:9px 18px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--mute);transition:.2s}
+.gh:hover{color:var(--ink);border-color:var(--ink)}
+.pr{margin-left:auto;background:var(--ink);color:#fff;border-color:var(--ink)}.pr:hover{background:#2a2620}
+.gh[disabled]{opacity:.4;cursor:default}
+.dots{display:flex;gap:7px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--line);cursor:pointer;transition:.2s}.dots i.on{background:var(--gold)}
+.status{display:flex;gap:14px;flex-wrap:wrap}
+.status .st{flex:1;min-width:130px}
+.status .stk{font:500 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.status .stv{font:600 15px var(--sans)}
+.status .stv.ok{color:var(--ok)}
 </style></head><body>
-<header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Halia</a></header>
-<main class="stage">
-  <div class="eyebrow" id="phase"><span class="dot"></span>Scoring your store</div>
-  <h1 id="head">Finding your <em>hidden VICs</em></h1>
-  <p class="lede" id="msg">Reading every order in your store...</p>
-  <div class="track"><i id="bar"></i></div>
-  <div class="term">
-    <div class="bar"><i></i><i></i><i></i><span>halia &middot; scoring engine</span></div>
-    <div class="body"><div id="termlines"></div><div class="ln"><span class="pr">$</span> <span class="caret"></span></div></div>
-  </div>
-  <p class="fine" id="leave">__LEAVE__</p>
+<header class="hd">
+  <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Halia</a>
+  <div class="who"><div class="w1">Welcome, __STORE__</div><div class="w2">Setting up your Halia account</div></div>
+</header>
+<main class="wrap">
+  <section class="panel prog">
+    <div class="prow"><span class="dot"></span><span id="phase">Analysing your customers</span><span class="eta" id="eta">this usually takes a minute or two</span></div>
+    <h1 id="head">Finding your <em>hidden VICs</em></h1>
+    <p class="lede" id="msg">Reading every order in your store&hellip;</p>
+    <div class="track"><i id="bar"></i></div>
+    <p class="fine" id="leave">__LEAVE__</p>
+  </section>
+
+  <section class="panel deck">
+    <div class="slides">
+      <div class="slide on">
+        <h2>Welcome. You&rsquo;re in good hands.</h2>
+        <p>Halia reads your orders and finds the high-value clients hiding in them &mdash; the quiet big spenders and VIPs you&rsquo;re not treating like VIPs yet. It&rsquo;s zero-retention: every customer is scored in the moment and never stored.</p>
+      </div>
+      <div class="slide">
+        <h2>What Halia does</h2>
+        <div class="acc" id="acc">
+          <div class="it op"><div class="q">Identify your hidden VICs<span class="c">+</span></div><div class="a"><p>High-value buyers, collectors, trade and B2B accounts, and the quietly wealthy &mdash; graded, ranked, and explained by the signals behind each one.</p></div></div>
+          <div class="it"><div class="q">Get notified the moment they order<span class="c">+</span></div><div class="a"><p>A web push and an email reach your team when a hidden VIC places an order &mdash; so you can act while you&rsquo;re top of mind.</p></div></div>
+          <div class="it"><div class="q">You choose how to reach out<span class="c">+</span></div><div class="a"><p>Pick a ready template and send &mdash; a welcome, an invitation, early access. Halia never emails your customers for you.</p></div></div>
+          <div class="it"><div class="q">Segment to your tools<span class="c">+</span></div><div class="a"><p>Push hidden-VIC segments to Mailchimp, Klaviyo and more, so the right people get the right sequence.</p></div></div>
+        </div>
+      </div>
+      <div class="slide">
+        <h2>How it works</h2>
+        <div class="steps">
+          <div class="step"><div class="n">1</div><div><div class="t">Your orders sync automatically</div><div class="d">Read-only &mdash; Halia never writes to your store.</div></div></div>
+          <div class="step"><div class="n">2</div><div><div class="t">Halia scores every customer in seconds</div><div class="d">Wealth and intent signals, weighed together &mdash; and nothing about your customers is kept.</div></div></div>
+          <div class="step"><div class="n">3</div><div><div class="t">You&rsquo;re notified, and you act</div><div class="d">Notifications, one-tap outreach, and segments to your email tools.</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="deck-foot">
+      <button class="gh" id="back" disabled>&larr; Back</button>
+      <div class="dots" id="dots"></div>
+      <button class="pr" id="next">Next &rarr;</button>
+    </div>
+  </section>
+
+  <section class="panel status">
+    <div class="st"><div class="stk">Store</div><div class="stv">__STORE__</div></div>
+    <div class="st"><div class="stk">Plan</div><div class="stv">__PLAN__</div></div>
+    <div class="st"><div class="stk">Connection</div><div class="stv ok">&#9679; Connected</div></div>
+  </section>
 </main>
 <script>
-var MSGS=[
- "Reading every order in your store...",
- "Matching customers to the signals behind them...",
- "Spotting the quiet big spenders...",
- "Weighing wealth and intent signals together...",
- "Separating your hidden VICs from the crowd...",
- "Estimating the revenue waiting in your list...",
- "Ranking your clients by what they could be worth...",
- "Finding the few worth more than all the rest...",
- "This is the exciting part..."
-];
+var MSGS=["Reading every order in your store…","Matching customers to the signals behind them…","Spotting the quiet big spenders…","Weighing wealth and intent signals together…","Separating your hidden VICs from the crowd…","Estimating the revenue waiting in your list…","Ranking your clients by what they could be worth…","Almost there…"];
 var msg=document.getElementById('msg'),bar=document.getElementById('bar'),mi=0,prog=8;
 var cyc=setInterval(function(){mi=(mi+1)%MSGS.length;msg.style.opacity=0;setTimeout(function(){msg.textContent=MSGS[mi];msg.style.opacity=1;},250);},2600);
 var creep=setInterval(function(){prog=Math.min(92,prog+Math.random()*7+1.5);bar.style.width=prog+'%';},1300);
 setTimeout(function(){bar.style.width='12%';},80);
-var SCRIPT=[
- {p:'halia engine --version'},
- {d:'Halia scoring engine v2.4.1   zero-retention'},
- {p:'halia connect --read-only'},
- {o:'✓ secure link established (read-only, never writes)'},
- {bar:'pulling recent orders', ms:1900, done:'→ 4,213 orders loaded into memory'},
- {c:'aggregating orders  ->  1,884 unique customers'},
- {p:'halia signals --load'},
- {spin:'loading HNWI postcode index', ms:1500, done:'✓ 41,309 high-value postcodes'},
- {spin:'loading premium domains + wealth-office lists', ms:1500, done:'✓ 12,740 domains · 2,118 firms'},
- {spin:'loading stylist + rich-list directories', ms:1400, done:'✓ stylists 3,025 · rich-list 4,118'},
- {spin:'loading delivery-venue gazetteer', ms:1300, done:'✓ FBOs 318 · marinas 642 · hotels 1,907'},
- {o:'✓ 31 signals registered by Halia'},
- {p:'halia score --calibrate'},
- {c:'weights  work_email·3 hnwi_postcode·3 delivery_venue·3 premium_card·3'},
- {c:'         honorific·2 wealth_office·2 fashion_stylist·2 company_keyword·2'},
- {c:'         post_nominal·2 elite_alumni·2 assistant_order·2  +19 supporting'},
- {c:'venue overrides  private_jet_fbo·5  marina·5    domain:elite·3'},
- {spin:'evaluating 31 signals per customer', ms:2300, done:'✓ signals evaluated for 1,884 customers'},
- {c:'cust#4821  work_email(3) hnwi_postcode(3) honorific(2)   Sw = 8'},
- {spin:'normalizing + weighting', ms:1700, done:'normalize -> 0.71  ->  calibrate -> 84.6  ->  grade A'},
- {c:'cust#1190  delivery_venue:marina(5) premium_card(3)   Sw = 8  ->  A*'},
- {c:'cust#3307  styling_service(3) company_keyword(2)   trade-account flag'},
- {c:'cust#0925  post_nominal(2) elite_alumni(2) premium_email(2)   Sw = 6  ->  B'},
- {spin:'applying supporting-signal rules', ms:1500, done:'✓ never flagged on a sole weak tell'},
- {c:'hidden-VIC rule:  >=1 strong signal AND spend < threshold £5,000'},
- {c:'cust#4821  spend £1,240  <  £5,000   ->  hidden VIC ✓'},
- {c:'cohort  AOV £420 · max-orders 14 · ceiling £18,400'},
- {spin:'estimating latent value', ms:2000, done:'latent = spend + (ceiling - spend)·score = £14,800'},
- {bar:'scoring all customers', ms:2500, done:'✓ 1,884 customers graded  A* -> C'},
- {spin:'ranking by percentile', ms:1700, done:'★ cust#4821 in top 3.2%   signals fired = 7'},
- {c:'grade thresholds  A* >=90   A >=80   B >=65   C <65'},
- {p:'halia surface --hidden-vics'},
- {o:'✓ 87 hidden VICs surfaced and ranked by Halia'},
- {spin:'preparing your dashboard', ms:1300, done:'✓ Halia ready'}
-];
-var termlines=document.getElementById('termlines'),termTick,termStop=false;
-var SPIN=['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
-function cap(){while(termlines.children.length>6)termlines.removeChild(termlines.firstChild);}
-function el(cls){var d=document.createElement('div');d.className='ln'+(cls?' '+cls:'');termlines.appendChild(d);cap();return d;}
-function doneCls(t){return (t&&t.charAt(0)==='✓')?'ln ok':'ln calc';}
-function addStatic(s){
-  var d=el(s.o?'ok':(s.c?'calc':'dim'));
-  if(s.p){d.innerHTML='<span class="pr">$</span> <span class="cmd">'+s.p+'</span>';}
-  else{d.textContent=s.o||s.c||s.d;}
-}
-function spinStep(s,cb){
-  var d=el('dim'),fi=0;
-  var iv=setInterval(function(){if(termStop){clearInterval(iv);return;}d.textContent=SPIN[fi++%SPIN.length]+'  '+s.spin;},80);
-  termTick=setTimeout(function(){clearInterval(iv);d.className=doneCls(s.done);d.textContent=s.done;cb();},s.ms||1500);
-}
-function barStep(s,cb){
-  var d=el('dim'),p=0,W=10;
-  var iv=setInterval(function(){if(termStop){clearInterval(iv);return;}p=Math.min(100,p+Math.random()*15+6);var f=Math.round(p/100*W);d.innerHTML='<span class="br">['+Array(f+1).join('█')+Array(W-f+1).join('░')+']</span> '+Math.round(p)+'%  '+s.bar;},170);
-  termTick=setTimeout(function(){clearInterval(iv);d.className=doneCls(s.done);d.textContent=s.done;cb();},s.ms||2000);
-}
-function next(i,delay){if(termStop)return;termTick=setTimeout(function(){run(i+1);},delay);}
-function run(i){
-  if(termStop)return;
-  var s=SCRIPT[i%SCRIPT.length];
-  if(s.spin){spinStep(s,function(){next(i,500);});}
-  else if(s.bar){barStep(s,function(){next(i,500);});}
-  else{addStatic(s);next(i,s.p?650:(s.c?550:900));}
-}
-if(termlines)run(0);
+var slides=[].slice.call(document.querySelectorAll('.slide')),ci=0,dots=document.getElementById('dots'),back=document.getElementById('back'),next=document.getElementById('next');
+slides.forEach(function(_,i){var d=document.createElement('i');if(i===0)d.className='on';d.onclick=function(){go(i)};dots.appendChild(d);});
+function go(i){ci=Math.max(0,Math.min(slides.length-1,i));slides.forEach(function(s,k){s.className='slide'+(k===ci?' on':'')});[].slice.call(dots.children).forEach(function(d,k){d.className=(k===ci?'on':'')});back.disabled=ci===0;next.textContent=ci===slides.length-1?'Start over':'Next →';}
+back.onclick=function(){go(ci-1)};next.onclick=function(){go(ci===slides.length-1?0:ci+1)};
+document.getElementById('acc').addEventListener('click',function(e){var q=e.target.closest('.q');if(q)q.parentNode.classList.toggle('op');});
 function done(d){
-  clearInterval(cyc);clearInterval(creep);termStop=true;clearTimeout(termTick);bar.style.width='100%';
-  document.getElementById('phase').innerHTML='Ready';
+  clearInterval(cyc);clearInterval(creep);bar.style.width='100%';
+  document.getElementById('phase').textContent='Ready';document.getElementById('eta').textContent='';
   document.getElementById('head').innerHTML='Your VICs are <em>ready.</em>';
   var c=(d&&d.count)||'0',l=(d&&d.latent)||'';
-  msg.style.opacity=0;
-  setTimeout(function(){msg.innerHTML=l?('We found <b>'+c+'</b> hidden VICs worth about <b>'+l+'</b>.'):('We found <b>'+c+'</b> hidden VICs.');msg.style.opacity=1;},250);
-  document.getElementById('leave').textContent='Opening your dashboard...';
-  setTimeout(function(){location.href='/app';},1700);
+  msg.style.opacity=0;setTimeout(function(){msg.innerHTML=l?('We found <b>'+c+'</b> hidden VICs worth about <b>'+l+'</b>.'):('We found <b>'+c+'</b> hidden VICs.');msg.style.opacity=1;},250);
+  document.getElementById('leave').textContent='Opening your dashboard…';
+  setTimeout(function(){location.href='/app';},1600);
 }
-function poll(){
-  fetch('/app/status',{headers:{accept:'application/json'}}).then(function(r){return r.json();})
-   .then(function(d){if(d&&d.state==='done'){done(d);}else{setTimeout(poll,2000);}})
-   .catch(function(){setTimeout(poll,3000);});
-}
+function poll(){fetch('/app/status',{headers:{accept:'application/json'}}).then(function(r){return r.json();}).then(function(d){if(d&&d.state==='done'){done(d);}else if(d&&d.state==='error'){document.getElementById('phase').textContent='That stalled';msg.innerHTML='We hit a snag reading your store. <a href="/app" style="color:var(--gold)">Retry</a>.';setTimeout(poll,5000);}else{setTimeout(poll,2000);}}).catch(function(){setTimeout(poll,3000);});}
 setTimeout(poll,1500);
 </script>
 </body></html>'''
@@ -676,10 +657,22 @@ setTimeout(poll,1500);
 def _preparing_page(shop: str | None = None) -> HTMLResponse:
     from halia import notify as _notify
 
-    leave = ("You can close this tab. We will email you the moment your VICs are ready."
+    store_label, plan = "your store", "Free"
+    if shop:
+        try:
+            from halia.api import billing
+            t = shop_store().get_tenant(shop)
+            store_label = (t["label"] if t else None) or shop
+            plan = "Active" if billing.is_paid(shop) else "Free"
+        except Exception:  # noqa: BLE001
+            pass
+    leave = ("You can close this tab &mdash; we'll email you the moment your VICs are ready."
              if _notify.email_configured() else
-             "Keep this tab open. It opens your dashboard automatically the second it is ready.")
-    resp = HTMLResponse(_PREPARING.replace("__LEAVE__", leave))
+             "Keep this tab open &mdash; it opens your dashboard automatically the second it's ready.")
+    body = (_PREPARING.replace("__LEAVE__", leave)
+                      .replace("__STORE__", html.escape(store_label))
+                      .replace("__PLAN__", html.escape(plan)))
+    resp = HTMLResponse(body)
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
