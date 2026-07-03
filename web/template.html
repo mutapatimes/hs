@@ -448,6 +448,7 @@
     <button class="bbtn" id="bulksegmc" style="display:none">Create Mailchimp segment</button>
     <button class="bbtn" id="bulkpushhs" style="display:none">Sync to HubSpot</button>
     <button class="bbtn" id="bulktag" style="display:none">Tag in Shopify</button>
+    <button class="bbtn" id="bulkshopseg" style="display:none">Create Shopify segment</button>
   </div>
   <button class="bclear" id="bclear" title="Clear">×</button>
 </div>
@@ -695,6 +696,24 @@ document.getElementById("bulktag").onclick=async()=>{
   finally{ btn.disabled=false; btn.textContent=t; }
 };
 
+// bulk action: turn the selection into a native Shopify customer segment to send to from Shopify Email
+document.getElementById("bulkshopseg").onclick=async()=>{
+  const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
+  if(!cids.length) return;
+  const name=prompt("Name this Shopify segment:","Halia potential VICs");
+  if(name===null) return;
+  const btn=document.getElementById("bulkshopseg"); btn.disabled=true; const t=btn.textContent; btn.textContent="Creating…";
+  try{
+    const r=await fetch("/v1/shopify/segment",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({customer_ids:cids,name})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail||("HTTP "+r.status));
+    toast(`Shopify segment "${name}" created with ${d.count} customer${d.count===1?"":"s"} — open Shopify Email and send to it.`);
+    selected.clear();renderRows();updateBulk();
+  }catch(e){ toast("Couldn't create segment: "+e.message); }
+  finally{ btn.disabled=false; btn.textContent=t; }
+};
+
 // download the surfaced potential VICs as a CSV (App Bridge attaches the session token to fetch)
 document.getElementById("csvbtn").onclick=async()=>{
   const btn=document.getElementById("csvbtn"); btn.disabled=true; const t=btn.textContent; btn.textContent="Preparing…";
@@ -715,6 +734,7 @@ function refreshIntegrationUI(){
   const show=(id,on)=>{const e=document.getElementById(id); if(e) e.style.display=on?"":"none";};
   show("bulkpush",kv); show("bulklist",kv); show("bulkpushmc",mc); show("bulksegmc",mc); show("bulkpushhs",!!SETTINGS.hubspot_connected);
   show("bulktag", !!SETTINGS.shopify_connected);
+  show("bulkshopseg", !!SETTINGS.shopify_connected);
   const sync=document.getElementById("bulkpushmc"); if(sync) sync.classList.toggle("primary", mc&&!kv);
 }
 
