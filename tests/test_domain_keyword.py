@@ -29,10 +29,20 @@ def test_ignores_generic_and_known_domains():
 def test_elite_tier_detected_with_marker():
     g, e, ex = _lists()
     for email in ["a@apex-privateequity.com", "b@private-equity.com",
-                  "c@redwoodhedgefund.com", "d@smith-familyoffice.com"]:
+                  "c@redwoodhedgefund.com", "d@smith-familyoffice.com",
+                  # private-office / private-wealth additions
+                  "e@smith-estateoffice.com", "f@rothschild-privateclient.com",
+                  "g@acme-wealthmanagement.co.uk", "h@wealthadvisory.com"]:
         hit, reason, tier = match_domain(email, g, e, ex)
         assert hit and tier == "elite", email
         assert "elite finance" in reason
+
+
+def test_estate_office_but_not_real_estate():
+    g, e, ex = _lists()
+    assert match_domain("a@smith-estateoffice.com", g, e, ex)[0]        # a private estate office
+    assert not match_domain("b@realestate.com", g, e, ex)[0]            # not an estate agency
+    assert not match_domain("c@estate-planning.com", g, e, ex)[0]       # not a mass-market service
 
 
 def test_elite_outranks_general_outranks_generic():
