@@ -37,6 +37,7 @@ from scoring.signals import (
     intl_postcode,
     ip_location,
     landline,
+    name_mismatch,
     name_structure,
     nobiliary_particle,
     origin_adjacent_district,
@@ -83,6 +84,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "wealth_office": 2,
     "elite_alumni": 2,
     "assistant_order": 2,
+    "name_mismatch": 2,  # buyer-name ≠ email-name — corroboration-only (see SUPPORTING_SIGNALS)
     "post_nominal": 2,
     "phone_country": 1,
     "phone_mismatch": 2,  # phone jurisdiction != address country — a cleaner mobility tell
@@ -128,7 +130,7 @@ PROPERTY_TIER_WEIGHTS = {
 # "Supporting" signals are too weak/sensitive to ever flag a customer on their
 # own: they contribute to the score and count ONLY when at least one stronger
 # (non-supporting) signal has also fired. This enforces "never a sole basis".
-SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
+SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order", "name_mismatch",
                       "stylist_directory", "landline",  # a fixed line is common — corroborates,
                       # never surfaces a customer on its own
 
@@ -187,6 +189,7 @@ SIGNAL_GROUP: dict[str, str] = {
     "stylist_directory": "name",
     "heritage_surname": "name",
     "name_structure": "name",
+    "name_mismatch": "name",
     "nobiliary_particle": "name",
     "post_nominal": "name",
     # Payment tells (gated; mostly dormant) — don't let BIN + brand double-count.
@@ -291,6 +294,8 @@ SIGNALS = [
      nobiliary_particle.FLAG_COL, lambda r: r[nobiliary_particle.REASON_COL]),
     ("assistant_order", "Assistant order", assistant_order.flag_assistant_order,
      assistant_order.FLAG_COL, lambda r: r[assistant_order.REASON_COL]),
+    ("name_mismatch", "Name mismatch", name_mismatch.flag_name_mismatch,
+     name_mismatch.FLAG_COL, lambda r: r[name_mismatch.REASON_COL]),
     ("post_nominal", "Post-nominal", post_nominal.flag_post_nominal,
      post_nominal.FLAG_COL, lambda r: r[post_nominal.REASON_COL]),
     ("foreign_currency", "Foreign currency", foreign_currency.flag_foreign_currency,
