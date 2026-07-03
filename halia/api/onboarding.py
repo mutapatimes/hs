@@ -577,6 +577,13 @@ a{color:inherit;text-decoration:none}
 .status .stk{font:500 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
 .status .stv{font:600 15px var(--sans)}
 .status .stv.ok{color:var(--ok)}
+.notify{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.notify input{flex:1;min-width:200px;border:1px solid var(--line);border-radius:999px;padding:11px 16px;font:500 14px var(--sans);background:#fff;color:var(--ink);outline:none}
+.notify input:focus{border-color:var(--gold)}
+.notify button{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:999px;padding:11px 20px;font:600 13px var(--sans);cursor:pointer;transition:.2s;flex:none}
+.notify button:hover{background:#2a2620}.notify button[disabled]{opacity:.55;cursor:default}
+.nprompt{font-size:12.5px;color:var(--mute);margin:16px 0 0}
+.nok{margin-top:10px;font:500 13.5px var(--sans);color:var(--ok)}.nok b{font-weight:600}
 </style></head><body>
 <header class="hd">
   <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Halia</a>
@@ -589,6 +596,12 @@ a{color:inherit;text-decoration:none}
     <p class="lede" id="msg">Reading every order in your store&hellip;</p>
     <div class="track"><i id="bar"></i></div>
     <p class="fine" id="leave">__LEAVE__</p>
+    <p class="nprompt" id="nprompt">Prefer to step away? Add an email and we&rsquo;ll tell you the moment your results are ready.</p>
+    <form class="notify" id="nform" novalidate>
+      <input id="nemail" type="email" autocomplete="email" placeholder="you@example.com" aria-label="Email to notify">
+      <button type="submit">Notify me</button>
+    </form>
+    <div class="nok" id="nok" hidden></div>
   </section>
 
   <section class="panel deck">
@@ -639,6 +652,10 @@ slides.forEach(function(_,i){var d=document.createElement('i');if(i===0)d.classN
 function go(i){ci=Math.max(0,Math.min(slides.length-1,i));slides.forEach(function(s,k){s.className='slide'+(k===ci?' on':'')});[].slice.call(dots.children).forEach(function(d,k){d.className=(k===ci?'on':'')});back.disabled=ci===0;next.textContent=ci===slides.length-1?'Start over':'Next →';}
 back.onclick=function(){go(ci-1)};next.onclick=function(){go(ci===slides.length-1?0:ci+1)};
 document.getElementById('acc').addEventListener('click',function(e){var q=e.target.closest('.q');if(q)q.parentNode.classList.toggle('op');});
+var nform=document.getElementById('nform'),nemail=document.getElementById('nemail'),nok=document.getElementById('nok');
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+if(nform)nform.addEventListener('submit',function(e){e.preventDefault();var em=(nemail.value||'').trim();if(em.indexOf('@')<1){nemail.focus();return;}var b=nform.querySelector('button');b.disabled=true;b.textContent='Saving…';nok.hidden=true;nok.style.color='';
+fetch('/app/notify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:em})}).then(function(r){return r.ok?r.json():Promise.reject();}).then(function(d){nform.style.display='none';document.getElementById('nprompt').style.display='none';nok.hidden=false;nok.innerHTML='✓ We’ll email you at <b>'+esc(d.email||em)+'</b> when it’s ready.';}).catch(function(){b.disabled=false;b.textContent='Notify me';nok.hidden=false;nok.style.color='#8e1f0b';nok.textContent='Could not save that just now — please try again.';});});
 function done(d){
   clearInterval(cyc);clearInterval(creep);bar.style.width='100%';
   document.getElementById('phase').textContent='Ready';document.getElementById('eta').textContent='';
@@ -646,6 +663,7 @@ function done(d){
   var c=(d&&d.count)||'0',l=(d&&d.latent)||'';
   msg.style.opacity=0;setTimeout(function(){msg.innerHTML=l?('We found <b>'+c+'</b> hidden VICs worth about <b>'+l+'</b>.'):('We found <b>'+c+'</b> hidden VICs.');msg.style.opacity=1;},250);
   document.getElementById('leave').textContent='Opening your dashboard…';
+  var nf=document.getElementById('nform'),np=document.getElementById('nprompt');if(nf)nf.style.display='none';if(np)np.style.display='none';
   setTimeout(function(){location.href='/app';},1600);
 }
 function poll(){fetch('/app/status',{headers:{accept:'application/json'}}).then(function(r){return r.json();}).then(function(d){if(d&&d.state==='done'){done(d);}else if(d&&d.state==='error'){document.getElementById('phase').textContent='That stalled';msg.innerHTML='We hit a snag reading your store. <a href="/app" style="color:var(--gold)">Retry</a>.';setTimeout(poll,5000);}else{setTimeout(poll,2000);}}).catch(function(){setTimeout(poll,3000);});}
@@ -1602,3 +1620,31 @@ def register(app) -> None:
         cache.evict(shop)
         entry = data.sync_tenant(shop)
         return {"shop": shop, "hidden_vics": len(data.hidden_results(entry)) if entry else 0}
+
+    @app.post("/app/notify")
+    def app_notify(request: Request, payload: dict = Body(default={})):
+        """From the setup screen: add an email to be told when the first scoring finishes.
+
+        Merges into the tenant's notify recipients (settings_for is read fresh on completion,
+        so a mid-sync add still gets the ready email). Session-auth, no re-score."""
+        import json as _json
+
+        from halia.api.settings import clean_emails
+        shop = require_tenant(request)
+        emails_in = clean_emails((payload or {}).get("email"))
+        if not emails_in:
+            raise HTTPException(400, "Enter a valid email address.")
+        email = emails_in[0]
+        store = shop_store()
+        raw = store.get_settings_raw(shop)
+        settings = _json.loads(raw) if raw else {}
+        current = settings.get("notify_emails")
+        if current is None:
+            current = [settings["notify_email"]] if settings.get("notify_email") else []
+        if email.lower() not in (e.lower() for e in current):
+            current = current + [email]
+        settings["notify_emails"] = current
+        settings["notify_email"] = current[0] if current else ""
+        settings["notify_enabled"] = True
+        store.save_settings(shop, _json.dumps(settings))
+        return {"ok": True, "email": email}

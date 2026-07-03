@@ -123,6 +123,31 @@ def test_app_shows_preparing_without_cache(client):
     assert r.status_code == 200 and "Setting up your Halia account" in r.text
 
 
+def test_notify_me_adds_email_to_recipients(client):
+    """The setup screen's 'notify me' capture merges the email into the tenant's alert list."""
+    import json
+    c, store = client
+    tok = _make_tenant(store)
+    c.cookies.set(COOKIE, tok)
+    r = c.post("/app/notify", json={"email": " Owner@Store.com "})
+    assert r.status_code == 200 and r.json()["ok"] and r.json()["email"] == "Owner@Store.com"
+    saved = json.loads(store.get_settings_raw("shopx"))
+    assert "Owner@Store.com" in saved["notify_emails"] and saved["notify_enabled"] is True
+    # Additive, with case-insensitive de-dup: re-adding (any case) doesn't duplicate; a new one appends.
+    c.post("/app/notify", json={"email": "owner@store.com"})
+    c.post("/app/notify", json={"email": "pa@store.com"})
+    saved = json.loads(store.get_settings_raw("shopx"))
+    lower = [e.lower() for e in saved["notify_emails"]]
+    assert lower.count("owner@store.com") == 1 and "pa@store.com" in saved["notify_emails"]
+
+
+def test_notify_me_rejects_bad_email(client):
+    c, store = client
+    tok = _make_tenant(store)
+    c.cookies.set(COOKIE, tok)
+    assert c.post("/app/notify", json={"email": "not-an-email"}).status_code == 400
+
+
 def test_app_status_done_with_counts(client):
     from halia.cache import cache
     c, store = client
