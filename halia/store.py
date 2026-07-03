@@ -88,6 +88,13 @@ _TABLES = [
         channel      TEXT,
         connected_at TEXT
     )""",
+    # Site-wide editable content (the mini CMS): overrides for <!--cms:key--> blocks in the
+    # marketing pages. Not per-shop, not customer data — just website copy.
+    """CREATE TABLE IF NOT EXISTS content (
+        key        TEXT PRIMARY KEY,
+        value      TEXT,
+        updated_at TEXT
+    )""",
     # Per-shop subscription state (Stripe). Not customer data. status: active / trialing /
     # canceled / comped. customer_id + subscription_id are Stripe references, not secrets.
     """CREATE TABLE IF NOT EXISTS billing (
@@ -331,6 +338,20 @@ class ShopStore(_DB):
 
     def delete_slack(self, shop: str) -> None:
         self._run("DELETE FROM slack WHERE shop = :shop", {"shop": shop})
+
+    # ── site-wide editable content (mini CMS) ───────────────────────────────────
+    def get_content_all(self) -> dict:
+        rows = self._run("SELECT key, value FROM content", fetch="all") or []
+        return {r["key"]: r["value"] for r in rows}
+
+    def set_content(self, key: str, value: str) -> None:
+        self._run(
+            """INSERT INTO content (key, value, updated_at) VALUES (:k, :v, :at)
+               ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at""",
+            {"k": key, "v": value, "at": _now()})
+
+    def delete_content(self, key: str) -> None:
+        self._run("DELETE FROM content WHERE key = :k", {"k": key})
 
     # ── per-shop subscription state (Stripe) ────────────────────────────────────
     def get_billing(self, shop: str) -> dict | None:

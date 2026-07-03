@@ -53,6 +53,10 @@ HALIA_APP_URL = os.environ.get("HALIA_APP_URL", "").rstrip("/")
 # (None) = open onboarding (fine for local dev).
 SIGNUP_CODE = os.environ.get("HALIA_SIGNUP_CODE") or None
 
+# Mini-CMS admin key. When set, /admin lets the operator edit marketing copy (<!--cms:key-->
+# blocks) without touching code. Unset -> /admin is disabled.
+ADMIN_KEY = os.environ.get("HALIA_ADMIN_KEY") or None
+
 # Stripe billing. When STRIPE_SECRET_KEY and STRIPE_PRICE_ID are both set, the hosted
 # dashboard is gated: a newly connected tenant sees a teaser (their hidden-VIC count and
 # latent value) until they subscribe via Stripe Checkout. Unset = billing off, the dashboard

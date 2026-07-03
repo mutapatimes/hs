@@ -54,7 +54,8 @@ _SITE_FILE = _ROOT / "web" / "site" / "index.html"
 
 def _marketing() -> str:
     try:
-        return _SITE_FILE.read_text(encoding="utf-8")
+        from halia.api.content import apply_overrides
+        return apply_overrides(_SITE_FILE.read_text(encoding="utf-8"))
     except OSError:
         return _OPEN_FROM_ADMIN
 

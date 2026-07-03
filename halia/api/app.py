@@ -103,9 +103,10 @@ _SITE_DIR = _ROOT / "web" / "site"
 
 def _serve_page(name: str) -> _HTML:
     # Marketing pages live in web/site/, plain legal pages in web/site/legal/.
+    from halia.api.content import apply_overrides
     for f in (_SITE_DIR / f"{name}.html", _SITE_DIR / "legal" / f"{name}.html"):
         if f.is_file():
-            return _HTML(f.read_text(encoding="utf-8"))
+            return _HTML(apply_overrides(f.read_text(encoding="utf-8")))
     raise HTTPException(404, "Page not found")
 
 
@@ -371,11 +372,12 @@ def pos_score(shop: str = Depends(require_shop),
 # Mount the embedded entry, self-service onboarding, Klaviyo + Shopify write-back, fulfilment
 # view, and compliance webhooks.
 from halia.api import (  # noqa: E402
-    billing, embedded, feedback, fulfilment, integrations, mailchimp_integration, onboarding,
-    realtime, settings, shopify_push, slack_integration, webhooks,
+    billing, content, embedded, feedback, fulfilment, integrations, mailchimp_integration,
+    onboarding, realtime, settings, shopify_push, slack_integration, webhooks,
 )
 
 embedded.register(app)
+content.register(app)
 onboarding.register(app)
 integrations.register(app)
 mailchimp_integration.register(app)
