@@ -3,7 +3,7 @@
 <head><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Halia · Hidden VIC discovery</title>
+<title>Halia · Potential VIC discovery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -323,11 +323,11 @@
   <!-- App canvas -->
   <main class="canvas">
     <div class="wrap">
-      <div class="crumb"><b>Apps</b> › <b>Halia</b> › Hidden VICs</div>
+      <div class="crumb"><b>Apps</b> › <b>Halia</b> › Potential VICs</div>
 
       <div class="head">
         <div>
-          <h1 class="title">Hidden VICs</h1>
+          <h1 class="title">Potential VICs</h1>
           <p class="sub">High-potential clients your spend thresholds miss, surfaced from how they already buy and where they ship.</p>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
@@ -348,9 +348,9 @@
           <div class="n">across <span id="statLatentN">__STAT_COUNT__</span> <span id="statScope">surfaced</span> clients</div>
         </div>
         <div class="stat">
-          <div class="k">Hidden VICs <span id="statCountLbl">surfaced</span></div>
-          <div class="v mono" id="statCount" style="font-family:'Fraunces',serif">__STAT_COUNT__</div>
-          <div class="n up">live from your sample data</div>
+          <div class="k">Potential VICs <span id="statCountLbl">surfaced</span></div>
+          <div class="v mono" id="statTopTier" style="font-family:'Fraunces',serif">__STAT_TOPTIER__</div>
+          <div class="n up">graded A or above</div>
         </div>
         <div class="stat">
           <div class="k">Avg. current spend</div>
@@ -358,9 +358,9 @@
           <div class="n">below your VIC threshold</div>
         </div>
         <div class="stat">
-          <div class="k">Top-tier (A* / A)</div>
-          <div class="v" id="statTopTier">__STAT_TOPTIER__</div>
-          <div class="n">top priority</div>
+          <div class="k">All surfaced</div>
+          <div class="v mono" id="statCount">__STAT_COUNT__</div>
+          <div class="n">including B-grade, ranked below</div>
         </div>
       </div>
 
@@ -394,7 +394,7 @@
         <label class="push">Sort
           <select id="fSort"><option value="score">Score</option><option value="count">Signals</option><option value="latent">Latent value</option><option value="last">Last shopped</option></select>
         </label>
-        <button class="bbtn" id="csvbtn" title="Download the surfaced hidden VICs as CSV">Download CSV</button>
+        <button class="bbtn" id="csvbtn" title="Download the surfaced potential VICs as CSV">Download CSV</button>
       </div>
 
       <!-- table -->
@@ -593,7 +593,7 @@ function updateBulk(){
   bulk.classList.toggle("show",selected.size>0);
 }
 
-// Push hidden VICs to Klaviyo (real). App Bridge attaches the session token to fetch.
+// Push potential VICs to Klaviyo (real). App Bridge attaches the session token to fetch.
 async function haliaPush(cids){
   try{
     const r=await fetch("/v1/klaviyo/push",{method:"POST",headers:{"content-type":"application/json"},
@@ -665,7 +665,7 @@ document.getElementById("bulksegmc").onclick=async()=>{
   finally{ btn.disabled=false; btn.textContent=t; }
 };
 
-// bulk action: sync the selected clients to HubSpot (all hidden VICs if none selected)
+// bulk action: sync the selected clients to HubSpot (all potential VICs if none selected)
 document.getElementById("bulkpushhs").onclick=async()=>{
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   const btn=document.getElementById("bulkpushhs"); btn.disabled=true; const t=btn.textContent; btn.textContent="Syncing…";
@@ -680,7 +680,7 @@ document.getElementById("bulkpushhs").onclick=async()=>{
   finally{ btn.disabled=false; btn.textContent=t; }
 };
 
-// bulk action: tag the selected clients back into Shopify (all hidden VICs if none selected)
+// bulk action: tag the selected clients back into Shopify (all potential VICs if none selected)
 document.getElementById("bulktag").onclick=async()=>{
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   const btn=document.getElementById("bulktag"); btn.disabled=true; const t=btn.textContent; btn.textContent="Tagging…";
@@ -695,7 +695,7 @@ document.getElementById("bulktag").onclick=async()=>{
   finally{ btn.disabled=false; btn.textContent=t; }
 };
 
-// download the surfaced hidden VICs as a CSV (App Bridge attaches the session token to fetch)
+// download the surfaced potential VICs as a CSV (App Bridge attaches the session token to fetch)
 document.getElementById("csvbtn").onclick=async()=>{
   const btn=document.getElementById("csvbtn"); btn.disabled=true; const t=btn.textContent; btn.textContent="Preparing…";
   try{
@@ -704,7 +704,7 @@ document.getElementById("csvbtn").onclick=async()=>{
     const blob=await r.blob(), url=URL.createObjectURL(blob);
     const a=document.createElement("a"); a.href=url; a.download="halia-hidden-vics.csv";
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    toast("Exported your hidden VICs to CSV.");
+    toast("Exported your potential VICs to CSV.");
   }catch(e){ toast("Export failed: "+e.message); }
   finally{ btn.disabled=false; btn.textContent=t; }
 };
@@ -856,7 +856,7 @@ function openOrderDrawer(o){
     </div>
     <div style="padding:18px 22px">
       <div style="display:flex;align-items:center;gap:10px">${ogr(o)}<div style="font:600 16px system-ui">${esc(o.name)}</div>${o.score?`<span style="margin-left:auto;font:700 13px system-ui;color:var(--brand)">Score ${o.score}</span>`:""}</div>
-      ${sigs.length?`<div style="font:600 11px system-ui;color:var(--soft);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.08em">Why this client matters</div>${sigs.map(s=>`<div class="ev"><span class="badge">${SEGMENTS[s.seg]?SEGMENTS[s.seg].label:""}</span><div class="d">${s.d}${s.x?`<small>${s.x}</small>`:""}</div></div>`).join("")}`:`<div style="color:var(--soft);font-size:13px;margin:14px 0">Graded ${o.grade||"this client"}. Open the Clients view for the full signal breakdown on your hidden VICs.</div>`}
+      ${sigs.length?`<div style="font:600 11px system-ui;color:var(--soft);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.08em">Why this client matters</div>${sigs.map(s=>`<div class="ev"><span class="badge">${SEGMENTS[s.seg]?SEGMENTS[s.seg].label:""}</span><div class="d">${s.d}${s.x?`<small>${s.x}</small>`:""}</div></div>`).join("")}`:`<div style="color:var(--soft);font-size:13px;margin:14px 0">Graded ${o.grade||"this client"}. Open the Clients view for the full signal breakdown on your potential VICs.</div>`}
       ${reco?`<div style="font:600 11px system-ui;color:var(--soft);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.08em">Recommended approach</div><div style="font-size:14px;line-height:1.6">${reco}</div>`:""}
       <div style="font:600 11px system-ui;color:var(--soft);margin:20px 0 9px;text-transform:uppercase;letter-spacing:.08em">Send a ${o.status.toLowerCase()} message</div>
       <div style="display:flex;flex-direction:column;gap:8px">${tpls.map((t,j)=>`<a class="obtn${j===0?" primary":""}" style="justify-content:flex-start;text-align:left" href="${href(t)}" target="_top">${t.name}</a>`).join("")}<a class="obtn" style="justify-content:flex-start" href="mailto:${em}" target="_top">Blank email</a></div>
@@ -1183,8 +1183,8 @@ function openSettings(){
         </div>
 
         <div style="${C}">
-          <div style="${H}">Hidden-VIC spend threshold (£)</div>
-          <p style="${P}">Clients who spend below this and show wealth signals are surfaced as hidden VICs. Saving re-scores your store.</p>
+          <div style="${H}">Potential-VIC spend threshold (£)</div>
+          <p style="${P}">Clients who spend below this and show wealth signals are surfaced as potential VICs. Saving re-scores your store.</p>
           <input id="setThreshold" type="number" min="0" value="${esc(SETTINGS.vic_threshold)}" style="width:200px;${I}">
         </div>
 
@@ -1366,7 +1366,7 @@ function openSettings(){
       }
       function step2(){
         box.innerHTML=`<div style="${H};margin-bottom:6px">A parting offer</div>
-          <p style="${P}">Before you cancel — stay and take <b>50% off for the rest of your subscription</b>. The same dashboard and hidden-VIC intelligence, at half the price.</p>
+          <p style="${P}">Before you cancel — stay and take <b>50% off for the rest of your subscription</b>. The same dashboard and potential-VIC intelligence, at half the price.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="cOffer" style="${BP}">Keep Halia at 50% off</button><button id="cNo" style="${BS}">No thanks, continue</button></div>`;
         document.getElementById("cNo").onclick=step3;
         document.getElementById("cOffer").onclick=()=>{const bn=document.getElementById("cOffer");bn.disabled=true;bn.textContent="Applying…";

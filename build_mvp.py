@@ -1,6 +1,6 @@
 """Build the browser MVP: real engine output rendered in the Halia UI.
 
-Runs the scoring engine on the local sample data, transforms the top hidden VICs
+Runs the scoring engine on the local sample data, transforms the top potential VICs
 into the UI's data shape (identities MASKED), injects them into
 ``web/template.html``, and writes ``output/mvp.html``.
 
@@ -28,7 +28,7 @@ from scoring.loader import load_data
 
 TEMPLATE = ROOT / "web" / "template.html"
 OUT = OUTPUT_DIR / "mvp.html"
-# The dashboard renders ALL hidden VICs (ranked), so the filter chips / search
+# The dashboard renders ALL potential VICs (ranked), so the filter chips / search
 # reach every one: not just a top-N slice that buries weak single-signal matches.
 
 # Recommended-approach copy, keyed by the strongest signal that fired.
@@ -45,7 +45,7 @@ RECO = {
     "Premium card": "Premium-card tell. Corroborate, then offer white-glove service.",
     "IP location": "Location tell from checkout: weak alone; watch for a second signal.",
 }
-DEFAULT_RECO = "A genuine hidden-VIC tell on modest current spend. Worth a personal, service-led approach."
+DEFAULT_RECO = "A genuine potential-VIC tell on modest current spend. Worth a personal, service-led approach."
 
 
 def _slug(text: str) -> str:
@@ -351,7 +351,7 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
         1 for _, r in hidden.iterrows() if _tier(_score100(float(r[SCORE_COL]))) in {"A1", "A"}
     )
 
-    # Every scored customer (not just hidden VICs) -> grade/score, so the Orders view can rank
+    # Every scored customer (not just potential VICs) -> grade/score, so the Orders view can rank
     # any order by its client. Keyed by CUST_ID.
     score_map: dict[str, dict] = {}
     for _, r in scored.iterrows():
@@ -410,7 +410,7 @@ def main() -> None:
     OUT.write_text(html, encoding="utf-8")
     hidden_count = int(scored[HIDDEN_COL].sum())
     print(
-        f"Scored {len(scored):,} customers · {hidden_count} hidden VICs "
+        f"Scored {len(scored):,} customers · {hidden_count} potential VICs "
         f"(threshold £{VIC_SPEND_THRESHOLD:,.0f})\n"
         f"Wrote {OUT} :  open it in a browser."
     )
