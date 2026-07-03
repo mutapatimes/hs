@@ -22,11 +22,32 @@ def test_detects_pa_mailbox_and_assistant_substring():
     assert detect("Bob", "assistant.to.ceo@x.com", "1 St")[0]
 
 
+def test_detects_the_household_staff_ecosystem():
+    for local in ("ea", "exec", "office", "diary", "scheduling", "chiefofstaff",   # exec office
+                  "housemanager", "estatemanager", "butler", "housekeeper",         # household & estate
+                  "household", "residence", "nanny", "chauffeur", "wardrobe",
+                  "crew", "captain", "chiefsteward", "chalet", "villa",              # yacht / property
+                  "concierge", "lifestyle", "members",                              # private concierge
+                  "curator", "collection", "stables", "groom",                      # collection / equestrian
+                  "chef", "trustee",                                                # chef / fiduciary
+                  "officeofjohnsmith", "jsmith.office", "the.smith-estateoffice"):  # spelled-out office-of
+        assert detect("Bob", f"{local}@x.com", "1 St")[0], local
+
+
+def test_address_notes_and_office_of_name():
+    assert detect(None, "x@gmail.com", "1 St, office of Lord A")[0]
+    assert detect("Office of Lord Ashcroft", "x@gmail.com", "1 St")[0]
+    assert detect(None, "x@gmail.com", "Please leave with the housekeeper")[0]
+    assert detect(None, "x@gmail.com", "Deliver to the staff entrance")[0]
+
+
 def test_plain_orders_and_lookalike_emails_do_not_fire():
     assert detect("John Smith", "john@gmail.com", "1 Normal Road, London") == (False, None)
     assert detect("Paul Sean", "paul@gmail.com", "1 St") == (False, None)   # 'pa' prefix, not "pa@"
     assert detect("Pat", "pat@x.com", "1 St") == (False, None)              # 'pa' prefix, not "pa@"
     assert detect("Papa Tortelli", "sean@x.com", "1 St") == (False, None)
+    for local in ("realestate", "collections", "helpdesk", "trustpilot", "grooming", "chelsea"):
+        assert detect("Bob", f"{local}@x.com", "1 Normal Road") == (False, None), local
 
 
 def test_flag_frame_and_missing_columns():

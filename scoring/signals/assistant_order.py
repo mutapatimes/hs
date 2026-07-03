@@ -1,12 +1,19 @@
 """Assistant / PA order signal — an order placed by an executive/personal
 assistant on behalf of a wealthy principal (a proxy for a UHNW client).
 
-Detects the administrative-purchase markers EAs/PAs leave in an order:
-  - "c/o", "care of", "FAO", "Attn" in an address line;
-  - a PA / EA / "on behalf of" marker in the customer name;
-  - a role-based email LOCAL-PART: "assistant" anywhere in it (executiveassistant@,
-    assistant.to.ceo@), a "pa@" mailbox, or a role segment (pa, ea, exec, office, ...)
-    matched whole so "paul@"/"sean@" don't false-fire.
+At the top of the wealth distribution the principal rarely buys anything personally, so the
+staffed household is the primary purchase channel. This reads the whole staff layer:
+  - "c/o", "care of", "FAO", "Attn", "office of", or a staffed-household delivery note
+    ("leave with the housekeeper", "staff entrance", "concierge will sign") in the address;
+  - a PA / EA / "on behalf of" / "office of" marker in the customer name;
+  - a role-based email LOCAL-PART — the assistant/office layer (pa, ea, exec, office, diary,
+    scheduling, secretary, chiefofstaff), household & estate (housemanager, estatemanager, butler,
+    housekeeper, household, residence, nanny, driver, chauffeur, security, wardrobe), yacht/property
+    crew (crew, captain, chiefsteward, interiors, villa, chalet), private concierge/lifestyle firms
+    (concierge, lifestyle, members), collection/equestrian (curator, collection, stables, groom),
+    and fiduciary (trustee, trust). Distinctive words match as a substring (executiveassistant@,
+    officeofjohnsmith@); short/ambiguous ones only as a whole segment, so "paul@"/"realestate@" don't
+    false-fire.
 
 These are NOISY alone (a small shop's admin@, or an ordinary "c/o" forward), so
 this is a SUPPORTING signal (see SUPPORTING_SIGNALS in combine.py): it counts
@@ -25,19 +32,45 @@ from scoring.signals.delivery_venue import ALL_ADDRESS_COLS, _combine_rows
 FLAG_COL = "assistant_order"
 REASON_COL = "assistant_order_reason"
 
-# "c/o" / "care of" / "FAO" / "Attn" anywhere in the (raw) address.
-_ADDR_MARKER = re.compile(r"\bc\s*/\s*o\b|\bcare\s+of\b|\bf\.?\s?a\.?\s?o\.?\b|\battn\.?\b", re.I)
-# PA / EA / "on behalf of" / "personal|executive assistant" in the name.
+# c/o, care of, FAO, Attn, "office of", and staffed-household delivery notes in the (raw) address.
+_ADDR_MARKER = re.compile(
+    r"\bc\s*/\s*o\b|\bcare\s+of\b|\bf\.?\s?a\.?\s?o\.?\b|\battn\.?\b|\boffice of\b"
+    r"|\bleave (?:it )?with (?:the )?(?:housekeeper|butler|concierge|staff)\b"
+    r"|\bstaff entrance\b|\bconcierge will sign\b|\bcall the house\b",
+    re.I,
+)
+# PA / EA / "on behalf of" / "office of" / "personal|executive assistant" in the name.
 _NAME_MARKER = re.compile(
-    r"\bon behalf of\b|\b(?:personal|executive)\s+assistant\b|\bassistant\b"
+    r"\bon behalf of\b|\boffice of\b|\b(?:personal|executive)\s+assistant\b|\bassistant\b"
     r"|\b[pe]\.?\s?a\.?\s+to\b|\(\s*[pe]\.?\s?a\.?\s*\)",
     re.I,
 )
-# Role segments in the email local-part (matched as whole segments).
+
+# Distinctive role words matched as a SUBSTRING of the local-part (safe — unlikely inside a normal
+# name), so concatenated constructions fire: executiveassistant@, officeofjohnsmith@,
+# assistantto.jsmith@, thesmith-estateoffice@.
+_ROLE_SUBSTRINGS = {
+    "assistant", "secretary", "concierge", "chauffeur", "housekeeper", "housemanager",
+    "estatemanager", "estateoffice", "privateoffice", "officeof", "chiefofstaff",
+    "chiefstew", "chiefsteward", "artadvisor", "guestservices", "guestrelations", "frontoffice",
+}
+# Shorter/ambiguous role tokens matched only as a WHOLE local-part segment (split on . _ -),
+# so "paul@" / "sean@" / "realestate@" don't false-fire. Grouped by the staff role they signal.
 _ROLE_SEGMENTS = {
-    "pa", "ea", "assistant", "asst", "exec", "execoffice", "office", "admin",
-    "secretary", "concierge", "guestservices", "guestrelations", "butler",
-    "frontoffice", "reservations",
+    # personal / executive office
+    "pa", "ea", "exec", "execoffice", "office", "admin", "asst", "diary", "scheduling",
+    "reception", "desk", "studio", "reservations",
+    # household & estate
+    "household", "thehouse", "residence", "estate", "villa", "chalet", "butler",
+    "nanny", "driver", "security", "wardrobe", "dresser",
+    # yacht / property crew
+    "crew", "captain", "interiors",
+    # private concierge / lifestyle management
+    "lifestyle", "members",
+    # collection / equestrian
+    "curator", "collection", "stables", "yard", "groom",
+    # private chef & fiduciary (the email side of wealth_structure)
+    "chef", "trustee", "trust",
 }
 
 
@@ -54,9 +87,8 @@ def detect(name: object, email: object, address: object) -> tuple[bool, str | No
         return True, f"name marker: {str(name).strip()}"
     local = _email_local(email)
     if local and (
-        "assistant" in local                                    # e.g. executiveassistant@, assistant.to.ceo@
-        or local == "pa"                                        # an email that starts with "pa@" (the PA mailbox)
-        or any(seg in _ROLE_SEGMENTS for seg in re.split(r"[._\-]+", local))
+        any(sub in local for sub in _ROLE_SUBSTRINGS)           # distinctive role word anywhere
+        or any(seg in _ROLE_SEGMENTS for seg in re.split(r"[._\-]+", local))  # short role as a whole segment
     ):
         return True, f"role email: {local}"
     if address:
