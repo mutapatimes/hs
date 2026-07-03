@@ -81,6 +81,13 @@ _TABLES = [
         list_name    TEXT,
         connected_at TEXT
     )""",
+    # Per-shop Slack alerts: an encrypted Incoming Webhook URL (contains a secret token).
+    """CREATE TABLE IF NOT EXISTS slack (
+        shop         TEXT PRIMARY KEY,
+        webhook_url  TEXT,
+        channel      TEXT,
+        connected_at TEXT
+    )""",
     # Per-shop subscription state (Stripe). Not customer data. status: active / trialing /
     # canceled / comped. customer_id + subscription_id are Stripe references, not secrets.
     """CREATE TABLE IF NOT EXISTS billing (
@@ -306,6 +313,25 @@ class ShopStore(_DB):
     def delete_mailchimp(self, shop: str) -> None:
         self._run("DELETE FROM mailchimp WHERE shop = :shop", {"shop": shop})
 
+    # ── per-shop Slack connection (Incoming Webhook URL, encrypted) ─────────────
+    def save_slack(self, shop: str, webhook_url: str, channel: str = "") -> None:
+        self._run(
+            """INSERT INTO slack (shop, webhook_url, channel, connected_at)
+               VALUES (:shop, :url, :ch, :at)
+               ON CONFLICT(shop) DO UPDATE SET webhook_url=excluded.webhook_url,
+                channel=excluded.channel, connected_at=excluded.connected_at""",
+            {"shop": shop, "url": crypto.encrypt(webhook_url), "ch": channel, "at": _now()})
+
+    def get_slack(self, shop: str) -> dict | None:
+        row = self._run("SELECT webhook_url, channel FROM slack WHERE shop = :shop",
+                        {"shop": shop}, fetch="one")
+        if not row:
+            return None
+        return {"webhook_url": crypto.decrypt(row["webhook_url"]), "channel": row["channel"] or ""}
+
+    def delete_slack(self, shop: str) -> None:
+        self._run("DELETE FROM slack WHERE shop = :shop", {"shop": shop})
+
     # ── per-shop subscription state (Stripe) ────────────────────────────────────
     def get_billing(self, shop: str) -> dict | None:
         row = self._run(
@@ -344,5 +370,5 @@ class ShopStore(_DB):
     def delete_shop(self, shop: str) -> None:
         """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""
         for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "mailchimp",
-                      "webhooks", "push_subs", "billing", "feedback_stats"):
+                      "slack", "webhooks", "push_subs", "billing", "feedback_stats"):
             self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})

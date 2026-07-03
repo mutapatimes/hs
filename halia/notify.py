@@ -85,6 +85,27 @@ def send_email(to: str, subject: str, html: str, text: str | None = None) -> boo
         return False
 
 
+# ── Slack (per-shop Incoming Webhook) ────────────────────────────────────────────────
+def send_slack(webhook_url: str, text: str, blocks: list | None = None) -> bool:
+    """Post a message to a Slack Incoming Webhook. Best-effort; never raises.
+
+    `text` is the notification/fallback string; `blocks` is optional Block Kit for the rich
+    in-channel card. Returns True on a 2xx from Slack."""
+    if not webhook_url:
+        return False
+    import requests
+
+    body: dict = {"text": text}
+    if blocks:
+        body["blocks"] = blocks
+    try:
+        resp = requests.post(webhook_url, json=body, timeout=10)
+        return 200 <= resp.status_code < 300
+    except Exception:  # noqa: BLE001 — a Slack failure must never break the webhook
+        traceback.print_exc()
+        return False
+
+
 # ── web push ───────────────────────────────────────────────────────────────────────
 _VAPID: dict | bool | None = None
 

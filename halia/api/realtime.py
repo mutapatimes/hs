@@ -66,6 +66,12 @@ def _dispatch(shop: str, alert: dict, s: dict) -> None:
         html = _email_html(alert, shop)
         for email in emails:
             notify.send_email(email, subject, html)
+    slack = store.get_slack(shop)
+    if slack:
+        from halia import config
+        from halia.api.slack_integration import build_alert_blocks
+        text, blocks = build_alert_blocks(alert, config.HALIA_APP_URL)
+        notify.send_slack(slack["webhook_url"], text, blocks)
 
 
 def register(app) -> None:
