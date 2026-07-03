@@ -87,7 +87,13 @@
   .phero .wrap{max-width:1180px;display:grid;grid-template-columns:1.2fr .85fr;gap:clamp(36px,5vw,72px);align-items:center}
   .phero-media{border-radius:6px;overflow:hidden;aspect-ratio:4/5;margin:0}
   .phero-media img{width:100%;height:100%;object-fit:cover;display:block}
-  @media(max-width:860px){.phero .wrap{grid-template-columns:1fr;gap:26px}.phero-media{aspect-ratio:16/11;max-height:300px}}
+  @media(max-width:860px){.phero .wrap{grid-template-columns:1fr;gap:26px}}
+  /* mobile: every image breaks out to a full-bleed 4:5 */
+  @media(max-width:900px){
+    .phero-media,.split .media,.pb-media{width:100vw;margin-left:calc(50% - 50vw);border-radius:0;aspect-ratio:4/5;max-height:none}
+    .split .media img,.pb-media img{border-radius:0}
+    .pb-media figcaption{padding:0 40px}
+  }
 </style>
 </head>
 <body>
@@ -187,7 +193,7 @@
 
 <!-- HIDDEN A (the Halia thesis) -->
 <div class="wrap"><div class="split reveal" style="padding-top:clamp(80px,11vh,140px)">
-  <div class="media" style="aspect-ratio:auto"><img src="img/luxury_client_pic_also_client_with_wine.jpg" alt="Knowing your clients" loading="lazy"></div>
+  <div class="media"><img src="img/luxury_client_pic_also_client_with_wine.jpg" alt="Knowing your clients" loading="lazy"></div>
   <div class="copy">
     <div class="eyebrow" style="margin-bottom:18px">The part most brands miss</div>
     <h2 class="h2">Your top twenty percent is <em>not fixed.</em></h2>

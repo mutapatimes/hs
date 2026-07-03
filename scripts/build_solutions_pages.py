@@ -471,13 +471,17 @@ _CSS = """
   .final{text-align:center}.final h2{margin-bottom:16px}.pad{padding:clamp(70px,10vh,120px) 0}
   footer{border-top:1px solid var(--line);padding:60px 0 44px;margin-top:20px}
   /* photography */
-  .ih-grid{display:grid;grid-template-columns:1.06fr .94fr;gap:clamp(30px,5vw,66px);align-items:center}
+  .ih-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(30px,5vw,66px);align-items:center}
   .ih-copy .lede{max-width:52ch}.ih-cta{display:flex;gap:13px;flex-wrap:wrap;margin-top:32px}
   figure.shot{margin:0}
   figure.shot img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:14px;display:block;background:var(--bg-2)}
   figure.shot figcaption{font-family:var(--serif);font-style:italic;font-size:15.5px;color:var(--faint);margin-top:13px;max-width:34ch}
-  .do-grid{display:grid;grid-template-columns:1fr .8fr;gap:clamp(30px,5vw,60px);align-items:center;margin-top:2px}
-  @media(max-width:860px){.ih-grid,.do-grid{grid-template-columns:1fr;gap:30px}figure.shot img{aspect-ratio:16/11}}
+  .do-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(30px,5vw,60px);align-items:center;margin-top:2px}
+  /* mobile: images break out of the padded column to a full-bleed 4:5 */
+  @media(max-width:860px){.ih-grid,.do-grid{grid-template-columns:1fr;gap:26px}
+    figure.shot{width:100vw;margin-left:calc(50% - 50vw)}
+    figure.shot img{aspect-ratio:4/5;border-radius:0}
+    figure.shot figcaption{padding:0 40px;max-width:none}}
   /* "what happens next" — one scenario as a timeline that reveals on scroll, ROI at the end */
   .tl{position:relative;margin-top:32px;max-width:620px}
   .tl::before{content:"";position:absolute;left:9px;top:8px;bottom:14px;width:2px;background:var(--line)}
