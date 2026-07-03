@@ -4,8 +4,9 @@ assistant on behalf of a wealthy principal (a proxy for a UHNW client).
 Detects the administrative-purchase markers EAs/PAs leave in an order:
   - "c/o", "care of", "FAO", "Attn" in an address line;
   - a PA / EA / "on behalf of" marker in the customer name;
-  - a role-based email LOCAL-PART segment (pa, ea, assistant, exec, office, ...),
-    matched by segment so "paul@"/"sean@" don't false-fire.
+  - a role-based email LOCAL-PART: "assistant" anywhere in it (executiveassistant@,
+    assistant.to.ceo@), a "pa@" mailbox, or a role segment (pa, ea, exec, office, ...)
+    matched whole so "paul@"/"sean@" don't false-fire.
 
 These are NOISY alone (a small shop's admin@, or an ordinary "c/o" forward), so
 this is a SUPPORTING signal (see SUPPORTING_SIGNALS in combine.py): it counts
@@ -52,7 +53,11 @@ def detect(name: object, email: object, address: object) -> tuple[bool, str | No
     if name and _NAME_MARKER.search(str(name)):
         return True, f"name marker: {str(name).strip()}"
     local = _email_local(email)
-    if local and any(seg in _ROLE_SEGMENTS for seg in re.split(r"[._\-]+", local)):
+    if local and (
+        "assistant" in local                                    # e.g. executiveassistant@, assistant.to.ceo@
+        or local == "pa"                                        # an email that starts with "pa@" (the PA mailbox)
+        or any(seg in _ROLE_SEGMENTS for seg in re.split(r"[._\-]+", local))
+    ):
         return True, f"role email: {local}"
     if address:
         m = _ADDR_MARKER.search(str(address))

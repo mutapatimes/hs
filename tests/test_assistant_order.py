@@ -16,9 +16,16 @@ def test_detects_co_address_pa_name_and_role_email():
     assert r[0] and "role email" in r[1]
 
 
+def test_detects_pa_mailbox_and_assistant_substring():
+    assert detect("Bob", "pa@doverstreetmarket.com", "1 St")[0]        # email starts with "pa@"
+    assert detect("Bob", "executiveassistant@x.com", "1 St")[0]        # "assistant" as a substring
+    assert detect("Bob", "assistant.to.ceo@x.com", "1 St")[0]
+
+
 def test_plain_orders_and_lookalike_emails_do_not_fire():
     assert detect("John Smith", "john@gmail.com", "1 Normal Road, London") == (False, None)
-    assert detect("Paul Sean", "paul@gmail.com", "1 St") == (False, None)   # 'pa'/'ea' substrings
+    assert detect("Paul Sean", "paul@gmail.com", "1 St") == (False, None)   # 'pa' prefix, not "pa@"
+    assert detect("Pat", "pat@x.com", "1 St") == (False, None)              # 'pa' prefix, not "pa@"
     assert detect("Papa Tortelli", "sean@x.com", "1 St") == (False, None)
 
 
