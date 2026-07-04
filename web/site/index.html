@@ -71,11 +71,15 @@
   }
 
   /* integrations */
-  .intg{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .intg{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
   @media(max-width:760px){.intg{grid-template-columns:1fr 1fr}}
-  .ichip{background:#fff;border-radius:16px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:128px;border:1px solid rgba(255,255,255,.06)}
+  .ichip{position:relative;background:#fff;border-radius:16px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:128px;border:1px solid rgba(255,255,255,.06)}
   .ichip img{max-height:56px;max-width:88%;width:auto;object-fit:contain}
-  .ichip span{font:600 12.5px var(--sans);color:#615b50;letter-spacing:.04em}
+  .ichip span{font:600 12.5px var(--sans);color:#615b50;letter-spacing:.04em;text-align:center}
+  .ichip.soon{background:#f0ede6}
+  .ichip.soon img{opacity:.5;filter:grayscale(.25)}
+  .ichip.soon span{color:#9a9385}
+  .ichip .soon-tag{position:absolute;top:10px;right:10px;font:600 9px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:#7a7363;background:rgba(20,18,12,.06);border-radius:999px;padding:3px 8px}
 
   /* hero (content to the right) */
   .hero{position:relative;height:100vh;min-height:680px;display:flex;align-items:center;overflow:hidden}
@@ -439,8 +443,6 @@
  <a class="btn" href="/connect">Find them <span class="arrow">→</span></a>
  <a class="btn ghost" href="#how">How it works</a>
  </div>
- <div class="reveal in d3" style="margin-top:24px;color:var(--mute);font:500 12.5px var(--sans);letter-spacing:.02em">
- Read-only access. Your data stays in your store, and yours alone.</div>
  </div></div>
  <div class="scroll-cue"><span>Scroll</span><span class="ln"></span></div>
 </section>
@@ -453,8 +455,7 @@
 <!-- WHITE: the competitor-spend hook -->
 <section class="pad" style="background:#f4f1ea;color:#13110c;text-align:center">
  <div class="wrap reveal">
- <div class="eyebrow" style="color:#7a7363">The number that should worry you</div>
- <p style="font-family:var(--serif);font-weight:300;font-size:clamp(30px,4.8vw,64px);line-height:1.1;max-width:19ch;margin:24px auto 0;color:#13110c">
+ <p style="font-family:var(--serif);font-weight:300;font-size:clamp(30px,4.8vw,64px);line-height:1.1;max-width:19ch;margin:0 auto;color:#13110c">
  A client who has spent <em style="color:#13110c">£200</em> with you may be spending
  <em style="color:#13110c">£10,000</em> with your competitors. Halia tells you which ones.</p>
  <p style="color:#6b6557;font-size:17px;max-width:48ch;margin:26px auto 0">The wealth signals are already in your <b>own</b> data; Halia simply reads them. It never sees your competitors' books, and it never shares yours. The relationship goes to whichever brand notices first.</p>
@@ -482,10 +483,6 @@
  <p>When an A&#42; or A client checks out, in store at the till or online, Halia alerts your team the
  instant it happens: a desktop notification, an email, and a live feed in the dashboard. So the
  recognition, the appointment, the personal note, happens in the moment, not a week later.</p>
- <div style="margin-top:26px;display:flex;gap:10px;flex-wrap:wrap">
- <span class="tag">At the point of sale</span><span class="tag">Online checkout</span>
- <span class="tag">Desktop &amp; email</span><span class="tag">Live dashboard feed</span>
- </div>
  </div>
  <div class="alerts-mock reveal d1" aria-hidden="true">
  <div class="atoast" style="--d:0s">
@@ -656,8 +653,10 @@
  <div class="ichip"><img src="img/logos/klaviyo.png" alt="Klaviyo" loading="lazy"><span>Klaviyo</span></div>
  <div class="ichip"><img src="img/logos/mailchimp.png" alt="Mailchimp" loading="lazy"><span>Mailchimp</span></div>
  <div class="ichip"><img src="img/logos/hubspot.svg" alt="HubSpot" loading="lazy"><span>HubSpot</span></div>
+ <div class="ichip soon"><span class="soon-tag">Coming soon</span><img src="img/logos/sfmc.svg" alt="Salesforce Marketing Cloud" loading="lazy"><span>Salesforce<br>Marketing Cloud</span></div>
+ <div class="ichip soon"><span class="soon-tag">Coming soon</span><img src="img/logos/sfcc.svg" alt="Salesforce Commerce Cloud" loading="lazy"><span>Salesforce<br>Commerce Cloud</span></div>
  </div>
- <p class="reveal d2" style="text-align:center;color:var(--mute);font-size:14px;margin-top:20px">Sources: Shopify, BigCommerce, WooCommerce &nbsp;·&nbsp; Destinations: Klaviyo, Mailchimp, HubSpot &nbsp;·&nbsp; Alerts: Slack</p>
+ <p class="reveal d2" style="text-align:center;color:var(--mute);font-size:14px;margin-top:20px">Sources: Shopify, BigCommerce, WooCommerce &nbsp;·&nbsp; Destinations: Klaviyo, Mailchimp, HubSpot &nbsp;·&nbsp; Alerts: Slack &nbsp;·&nbsp; Salesforce Marketing Cloud &amp; Commerce Cloud coming soon</p>
 </div></section>
 
 <!-- HOW IT WORKS / ARCHITECTURE -->

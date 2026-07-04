@@ -47,7 +47,7 @@
   /* hero */
   .prhero{padding:150px 0 10px}.prhero h1{margin:16px 0 22px;max-width:16ch}.prhero .lede{max-width:56ch}
   /* tier cards */
-  .ptiers{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:44px;align-items:stretch}
+  .ptiers{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:44px;align-items:stretch}
   .ptier{position:relative;border:1px solid var(--line);border-radius:14px;padding:26px 22px 24px;display:flex;flex-direction:column;background:var(--bg)}
   .ptier.feat{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
   .ptier .pname{font-family:var(--serif);font-size:25px;margin-bottom:2px}
@@ -137,21 +137,12 @@
  <div class="ptiers reveal">
 
  <div class="ptier">
- <div class="pname">Free</div>
- <div class="pwho">Any brand, curious</div>
- <div class="pprice">£0</div>
- <div class="pscan">No scan needed, just connect.</div>
- <div class="prefund">See how many VICs are hiding, and their estimated latent value. Count only, names masked.</div>
- <div class="pcta"><a class="btn ghost" href="/connect">See your count →</a></div>
- </div>
-
- <div class="ptier">
  <div class="pname">Discovery</div>
  <div class="pwho">Smaller premium brands · up to 15k customers</div>
  <div class="pprice">£150<span> / month</span></div>
  <div class="pscan">+ £750 onboarding scan <em>(optional)</em></div>
  <div class="prefund">Unlock who they are and why. Standard signals. Refundable scan if it surfaces under 10 VICs.</div>
- <div class="pcta"><a class="btn ghost" href="/connect">Start free →</a></div>
+ <div class="pcta"><a class="btn ghost" href="/connect">See how many VICs right now →</a></div>
  </div>
 
  <div class="ptier feat">
@@ -161,7 +152,7 @@
  <div class="pprice">£500<span> / month</span></div>
  <div class="pscan">+ £1,250 onboarding scan <em>(optional)</em></div>
  <div class="prefund">Everything in Discovery, plus premium signals, push to CRM/email, ROI reporting and white-glove onboarding. Refundable scan if under 20 VICs.</div>
- <div class="pcta"><a class="btn" href="/connect">Start free →</a></div>
+ <div class="pcta"><a class="btn" href="/connect">See how many VICs right now →</a></div>
  </div>
 
  <div class="ptier">
@@ -169,8 +160,8 @@
  <div class="pwho">Large houses / high volume · 75k+ customers</div>
  <div class="pprice">£1,200<span> / month</span></div>
  <div class="pscan">+ £2,000+ onboarding scan <em>(optional)</em></div>
- <div class="prefund">Everything in Signal, plus multi-surface delivery (fulfilment) and priority support. Refundable scan if under 20 VICs.</div>
- <div class="pcta"><a class="btn ghost" href="/connect">Start free →</a></div>
+ <div class="prefund">Everything in Signal, plus multi-surface delivery (fulfilment), priority support, and Salesforce Marketing Cloud &amp; Commerce Cloud integrations <em>(coming soon)</em>. Refundable scan if under 20 VICs.</div>
+ <div class="pcta"><a class="btn ghost" href="/connect">See how many VICs right now →</a></div>
  </div>
 
  <div class="ptier">
@@ -178,12 +169,12 @@
  <div class="pwho">Groups &amp; largest houses · multi-brand</div>
  <div class="pprice">Custom</div>
  <div class="pscan">Bespoke onboarding</div>
- <div class="prefund">Everything in Atelier, plus custom signals, multi-brand support, a dedicated relationship and bespoke integrations.</div>
- <div class="pcta"><a class="btn ghost" href="mailto:hello@halia.app">Talk to us →</a></div>
+ <div class="prefund">Everything in Atelier, plus custom signals, multi-brand support, a dedicated relationship and bespoke integrations. Salesforce Marketing Cloud &amp; Commerce Cloud included <em>(coming soon)</em>.</div>
+ <div class="pcta"><a class="btn ghost" href="/connect">See how many VICs right now →</a><a href="mailto:hello@halia.app" style="display:block;text-align:center;color:var(--mute);font-size:13px;margin-top:10px">or talk to us →</a></div>
  </div>
 
  </div>
- <p class="undernote">Every plan starts with the free scan, you only pay to unlock identities and the <em>why</em>.</p>
+ <p class="undernote">Every plan starts with the free scan: see your VIC count with just your store connected. Card and billing details are only needed when you upgrade.</p>
 </div></section>
 
 <section class="pad" style="padding-top:0"><div class="wrap reveal">
@@ -195,30 +186,31 @@
  <table class="cmp">
  <thead><tr>
  <th></th>
- <th>Free</th>
  <th>Discovery</th>
  <th class="featcol">Signal<small>Most popular</small></th>
  <th>Atelier</th>
  <th>Maison</th>
  </tr></thead>
  <tbody>
- <tr><td>Database size</td><td class="val">Any</td><td class="val">Up to 15k</td><td class="val featcol">15k–75k</td><td class="val">75k+</td><td class="val">Multi-brand</td></tr>
- <tr><td>Monthly</td><td class="val">£0</td><td class="val">£150</td><td class="val featcol">£500</td><td class="val">£1,200</td><td class="val">Custom</td></tr>
- <tr><td>Onboarding scan (optional, recommended)</td><td class="no">–</td><td class="val">£750</td><td class="val featcol">£1,250</td><td class="val">£2,000+</td><td class="val">Custom</td></tr>
- <tr><td>Refund guarantee</td><td class="no">n/a</td><td class="val">&lt; 10 VICs</td><td class="val featcol">&lt; 20 VICs</td><td class="val">&lt; 20 VICs</td><td class="val">Bespoke</td></tr>
- <tr><td>VIC count (“how many are hiding”)</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
- <tr><td>Who they are (unmasked)</td><td class="no">–</td><td class="yes">✓</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
- <tr><td>The reasons / why</td><td class="no">–</td><td class="yes">✓</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
- <tr><td>Standard signals</td><td class="no">–</td><td class="yes">✓</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
- <tr><td>Premium signal packs</td><td class="no">–</td><td class="val">Add-on</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
- <tr><td>Push to CRM / email</td><td class="no">–</td><td class="no">–</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
- <tr><td>Multi-surface (fulfilment etc.)</td><td class="no">–</td><td class="no">–</td><td class="no featcol">–</td><td class="yes">✓</td><td class="yes">✓</td></tr>
- <tr><td>ROI reporting</td><td class="no">–</td><td class="no">–</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
- <tr><td>White-glove onboarding</td><td class="no">–</td><td class="no">–</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
- <tr><td>Refresh</td><td class="val">One-off</td><td class="val">Monthly</td><td class="val featcol">Weekly</td><td class="val">Weekly / on-demand</td><td class="val">On-demand</td></tr>
- <tr><td>Priority support</td><td class="no">–</td><td class="no">–</td><td class="no featcol">–</td><td class="yes">✓</td><td class="yes">✓</td></tr>
- <tr><td>Custom signals</td><td class="no">–</td><td class="no">–</td><td class="no featcol">–</td><td class="no">–</td><td class="yes">✓</td></tr>
- <tr><td>Dedicated relationship</td><td class="no">–</td><td class="no">–</td><td class="no featcol">–</td><td class="no">–</td><td class="yes">✓</td></tr>
+ <tr><td>Database size</td><td class="val">Up to 15k</td><td class="val featcol">15k–75k</td><td class="val">75k+</td><td class="val">Multi-brand</td></tr>
+ <tr><td>Monthly</td><td class="val">£150</td><td class="val featcol">£500</td><td class="val">£1,200</td><td class="val">Custom</td></tr>
+ <tr><td>Onboarding scan (optional, recommended)</td><td class="val">£750</td><td class="val featcol">£1,250</td><td class="val">£2,000+</td><td class="val">Custom</td></tr>
+ <tr><td>Refund guarantee</td><td class="val">&lt; 10 VICs</td><td class="val featcol">&lt; 20 VICs</td><td class="val">&lt; 20 VICs</td><td class="val">Bespoke</td></tr>
+ <tr><td>VIC count (“how many are hiding”)</td><td class="yes">✓</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+ <tr><td>Who they are (unmasked)</td><td class="yes">✓</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+ <tr><td>The reasons / why</td><td class="yes">✓</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+ <tr><td>Standard signals</td><td class="yes">✓</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+ <tr><td>Premium signal packs</td><td class="val">Add-on</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+ <tr><td>Push to CRM / email</td><td class="no">–</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+ <tr><td>Multi-surface (fulfilment etc.)</td><td class="no">–</td><td class="no featcol">–</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+ <tr><td>ROI reporting</td><td class="no">–</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+ <tr><td>White-glove onboarding</td><td class="no">–</td><td class="yes featcol">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+ <tr><td>Salesforce Marketing Cloud <small style="color:var(--faint)">(coming soon)</small></td><td class="no">–</td><td class="no featcol">–</td><td class="val">Soon</td><td class="val">Soon</td></tr>
+ <tr><td>Salesforce Commerce Cloud <small style="color:var(--faint)">(coming soon)</small></td><td class="no">–</td><td class="no featcol">–</td><td class="val">Soon</td><td class="val">Soon</td></tr>
+ <tr><td>Refresh</td><td class="val">Monthly</td><td class="val featcol">Weekly</td><td class="val">Weekly / on-demand</td><td class="val">On-demand</td></tr>
+ <tr><td>Priority support</td><td class="no">–</td><td class="no featcol">–</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+ <tr><td>Custom signals</td><td class="no">–</td><td class="no featcol">–</td><td class="no">–</td><td class="yes">✓</td></tr>
+ <tr><td>Dedicated relationship</td><td class="no">–</td><td class="no featcol">–</td><td class="no">–</td><td class="yes">✓</td></tr>
  </tbody>
  </table>
  </div>
@@ -259,7 +251,7 @@
 <section class="pad final" style="text-align:center"><div class="wrap reveal">
  <div class="eyebrow" style="margin-bottom:24px">Begin</div>
  <h2 class="h2">See who you have been missing.</h2>
- <p class="lede" style="max-width:36ch;margin:16px auto 34px">Connect your store and see your hidden-VIC count free, usually within the hour.</p>
+ <p class="lede" style="max-width:36ch;margin:16px auto 34px">Connect your store and see your hidden-VIC count free, usually within the hour. Card and billing details come later.</p>
  <a class="btn" href="/connect">Connect &amp; see your count <span class="arrow">→</span></a>
 </div></section>
 
