@@ -111,8 +111,14 @@ def _serve_page(name: str) -> _HTML:
 
 
 for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
-              "responsible", "pricing", "privacy", "terms", "cookies", "subprocessors", "status"):
+              "responsible", "pricing", "privacy", "terms", "cookies", "subprocessors",
+              "status", "docs"):
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
+                      methods=["GET"], include_in_schema=False, response_class=_HTML)
+
+# Documentation sub-pages (web/site/docs/<slug>.html).
+for _doc in ("connect-your-store", "crm-and-email"):
+    app.add_api_route(f"/docs/{_doc}", (lambda n: lambda: _serve_page(f"docs/{n}"))(_doc),
                       methods=["GET"], include_in_schema=False, response_class=_HTML)
 
 # Per-industry solutions pages (web/site/solutions/<slug>.html — see scripts/build_solutions_pages.py).

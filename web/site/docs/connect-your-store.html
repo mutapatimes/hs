@@ -1,0 +1,256 @@
+<title>Connect your store · Halia Docs</title>
+<!doctype html><html lang="en"><head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index">
+<meta name="description" content="Connect Shopify, BigCommerce, or WooCommerce to Halia with read-only access. Step-by-step setup for each platform.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f5f2ea;--bg-2:#efeadd;--ink:#1a1712;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;
+    --line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.07);
+    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}::selection{background:#1a1712;color:#f5f2ea}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 40px}
+  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+  h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.04}
+  .display{font-size:clamp(42px,6.6vw,84px)}
+  em{font-style:italic;color:var(--gold)}
+  .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);line-height:1.5}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:999px;border:1px solid var(--ink);color:#f5f2ea;background:var(--ink);transition:.25s}
+  .btn:hover{background:transparent;color:var(--ink)}.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
+  .arrow{transition:transform .25s}.btn:hover .arrow{transform:translateX(4px)}
+  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(245,242,234,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px}.brand svg{width:22px;height:22px}
+  .nav-links{display:flex;gap:32px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
+  .nav .right{display:flex;gap:20px;align-items:center}.nav .right .si{font:500 14px var(--sans);color:var(--mute)}
+  @media(max-width:900px){.nav-links{display:none}}
+  .burger{display:none;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;flex:none;padding:0}
+  .burger svg{width:20px;height:20px}
+  .mscrim{position:fixed;inset:0;background:rgba(10,10,11,.5);opacity:0;visibility:hidden;transition:opacity .3s;z-index:55}
+  .mscrim.show{opacity:1;visibility:visible}
+  .mdrawer{position:fixed;top:0;right:0;bottom:0;width:min(84vw,330px);background:var(--bg);border-left:1px solid var(--line);z-index:60;transform:translateX(100%);transition:transform .32s cubic-bezier(.2,.7,.2,1);display:flex;flex-direction:column;padding:22px 26px 30px;overflow-y:auto}
+  .mdrawer.show{transform:none}
+  .mdrawer .mclose{align-self:flex-end;background:none;border:none;color:var(--mute);font-size:28px;line-height:1;cursor:pointer;padding:2px 4px;margin-bottom:6px}
+  .mdrawer a{font:500 17px var(--sans);color:var(--ink);padding:14px 0;border-bottom:1px solid var(--line-2)}
+  .mdrawer a.msi{color:var(--mute);font-size:15px}
+  .mdrawer a.mcta{margin-top:20px;border:none;background:var(--ink);color:var(--bg);text-align:center;border-radius:999px;padding:15px;font-weight:600}
+  @media(max-width:900px){.burger{display:inline-flex}}
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .9s cubic-bezier(.2,.6,.2,1),transform .9s cubic-bezier(.2,.6,.2,1)}.reveal.in{opacity:1;transform:none}.reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+
+  /* ── documentation layout ─────────────────────────────────────────── */
+  .doc-hero{padding:150px 0 24px}.doc-hero h1{margin:16px 0 22px;max-width:16ch}.doc-hero .lede{max-width:60ch}
+  .doc-shell{display:grid;grid-template-columns:210px 1fr;gap:64px;align-items:start;padding:36px 0 90px}
+  .doc-nav{position:sticky;top:104px;display:flex;flex-direction:column;gap:1px}
+  .doc-nav .grp{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 8px}
+  .doc-nav a{color:var(--mute);font-size:14px;padding:6px 0}.doc-nav a:hover{color:var(--ink)}
+  .doc-main{max-width:760px;min-width:0}
+  .doc-main section{scroll-margin-top:100px}
+  .doc-main h2{font-size:clamp(26px,3.4vw,38px);margin:60px 0 14px}.doc-main section:first-child h2{margin-top:0}
+  .doc-main h3{font-family:var(--sans);font-weight:600;font-size:16px;margin:28px 0 8px}
+  .doc-main p{color:var(--mute);margin:0 0 14px}
+  .doc-main strong{color:var(--ink);font-weight:600}
+  .doc-main a.inl{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;background:rgba(20,18,12,.06);padding:2px 6px;border-radius:6px;color:var(--ink)}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:20px 0 6px}
+  .steps>li{position:relative;padding:2px 0 22px 52px}
+  .steps>li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:-2px;width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center;font:600 14px var(--sans)}
+  .steps>li::after{content:"";position:absolute;left:15.5px;top:34px;bottom:0;width:1px;background:var(--line)}
+  .steps>li:last-child::after{display:none}
+  .steps>li strong{display:block;margin-bottom:2px}
+  .steps>li p{margin:2px 0 0;font-size:15px}
+  .callout{border:1px solid var(--line);background:rgba(20,18,12,.035);border-radius:12px;padding:16px 20px;margin:22px 0;font-size:15px;color:var(--mute)}
+  .callout strong{color:var(--ink)}
+  .callout.warn{border-color:#c19a3e;background:rgba(193,154,62,.09)}
+  .cred{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:24px 0}
+  .cred-h{display:flex;align-items:center;gap:14px;padding:16px 20px;background:rgba(20,18,12,.03);border-bottom:1px solid var(--line)}
+  .cred-h img{width:36px;height:36px;border-radius:8px;flex:none;object-fit:contain;background:#fff}
+  .cred-h b{font-size:17px}.cred-h .tag{margin-left:auto;font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+  .cred-b{padding:20px}
+  .cred-b>*:first-child{margin-top:0}.cred-b>*:last-child{margin-bottom:0}
+  table.dl{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
+  table.dl th,table.dl td{text-align:left;vertical-align:top;border:1px solid var(--line);padding:9px 12px;color:var(--mute)}
+  table.dl th{background:rgba(20,18,12,.04);font-weight:600;color:var(--ink)}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:34px 0 10px}
+  .card{border:1px solid var(--line);border-radius:16px;padding:28px;transition:.2s;display:block}
+  .card:hover{border-color:var(--ink);transform:translateY(-2px)}
+  .card .k{font:600 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+  .card h3{font-family:var(--serif);font-weight:400;font-size:25px;margin:12px 0 8px}
+  .card p{color:var(--mute);font-size:14.5px;margin:0}
+  .card .go{margin-top:16px;font-size:13px;color:var(--ink);font-weight:500}
+  .need{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0}
+  .need span{border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:13.5px;color:var(--mute)}
+  @media(max-width:860px){.doc-shell{grid-template-columns:1fr;gap:0}.doc-nav{display:none}.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header id="hdr"><div class="wrap nav">
+  <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Halia</a>
+  <nav class="nav-links"><a href="/#how">How it works</a><a href="/clienteling">Clienteling</a><span class="nav-drop"><a href="/solutions">Solutions</a><div class="nav-menu"><a href="/solutions/fashion">Fashion &amp; apparel</a><a href="/solutions/wine">Wine &amp; spirits</a><a href="/solutions/beauty">Beauty &amp; fragrance</a><a href="/solutions/jewellery">Jewellery &amp; watches</a><a href="/solutions/home">Home, furniture &amp; interiors</a><a href="/solutions/gifting">Flowers, food &amp; gifting</a><a href="/solutions/collectibles">Rare books &amp; collectibles</a><a href="/solutions/electronics">Electronics &amp; big-box</a><a class="all" href="/solutions">All solutions &rarr;</a></div></span><a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/docs">Docs</a></nav>
+  <div class="right"><a class="si" href="/#demo">See a demo</a><a class="si" href="/app">Sign in</a><a class="btn" href="/connect">Connect your store <span class="arrow">&rarr;</span></a><button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div>
+</div></header>
+
+<div class="mscrim" id="mscrim"></div>
+<aside class="mdrawer" id="mdrawer" aria-hidden="true">
+  <button class="mclose" id="mclose" aria-label="Close menu">&times;</button>
+  <a href="/#how">How it works</a>
+  <a href="/clienteling">Clienteling</a>
+  <a href="/solutions">Solutions</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/security">Security</a>
+  <a href="/faq">FAQ</a>
+  <a href="/docs">Docs</a>
+  <a class="msi" href="/#demo">See a demo</a>
+  <a class="msi" href="/app">Sign in</a>
+  <a class="mcta" href="/connect">Connect your store</a>
+</aside>
+
+<section class="doc-hero"><div class="wrap reveal in">
+  <div class="eyebrow">Documentation &middot; Sources</div>
+  <h1 class="display">Connect your <em>store.</em></h1>
+  <p class="lede">Halia connects to one storefront at a time, read-only. It can read your customers and
+    orders to score them &mdash; it can never change, delete, or place an order. Pick your platform below.</p>
+</div></section>
+
+<div class="wrap"><div class="doc-shell">
+  <nav class="doc-nav reveal in">
+    <div class="grp">On this page</div>
+    <a href="#overview">Overview</a>
+    <a href="#shopify">Shopify</a>
+    <a href="#woocommerce">WooCommerce</a>
+    <a href="#bigcommerce">BigCommerce</a>
+    <a href="#after">After you connect</a>
+    <a href="#trouble">Troubleshooting</a>
+  </nav>
+  <div class="doc-main">
+
+  <section id="overview" class="reveal">
+    <h2>Overview</h2>
+    <p>Every connection Halia makes to a store is <strong>read-only</strong> and scoped to the minimum it
+      needs: your customers and their order history. Nothing is written back to your storefront unless
+      you explicitly trigger it (for example, applying a <code>Halia:A</code> tag or creating a segment
+      on Shopify). Customer data is scored <strong>in memory</strong> and discarded within minutes &mdash;
+      Halia never stores a copy.</p>
+    <p>You connect <strong>one store per account</strong>. If you run several storefronts, connect them
+      as separate accounts. Ready when you are &mdash; start at the
+      <a class="inl" href="/connect">connect wizard</a>, which detects your platform automatically.</p>
+  </section>
+
+  <section id="shopify" class="reveal">
+    <h2>Shopify</h2>
+    <p>The fastest path: install the Halia app from your admin and approve read access. No keys to copy.</p>
+    <div class="cred">
+      <div class="cred-h"><img src="/img/logos/shopify.png" alt="Shopify"><b>Shopify</b><span class="tag">One-click install</span></div>
+      <div class="cred-b">
+        <ol class="steps">
+          <li><strong>Open the connect wizard</strong><p>Go to <a class="inl" href="/connect">halia.app/connect</a> and enter your <code>your-store.myshopify.com</code> domain.</p></li>
+          <li><strong>Approve read access</strong><p>Shopify shows the permissions Halia requests &mdash; <code>read_customers</code> and <code>read_orders</code>. Approve to continue.</p></li>
+          <li><strong>Halia scores your store</strong><p>Your customers are pulled and graded. For a large back-catalogue the first run can take up to an hour; you'll be emailed when it's ready.</p></li>
+          <li><strong>Open your dashboard</strong><p>Your potential VICs appear, ranked, with the reasons behind every score.</p></li>
+        </ol>
+        <div class="callout"><strong>Why the write permission?</strong> Halia only ever <em>reads</em> to
+          score. A separate <code>write_customers</code> permission is used solely when <em>you</em> ask
+          Halia to tag a customer or build a Shopify segment for outreach &mdash; never automatically.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="woocommerce" class="reveal">
+    <h2>WooCommerce</h2>
+    <p>WooCommerce uses a read-only REST API key you create in your WordPress admin.</p>
+    <div class="cred">
+      <div class="cred-h"><img src="/img/logos/woocommerce.png" alt="WooCommerce"><b>WooCommerce</b><span class="tag">Read-only API key</span></div>
+      <div class="cred-b">
+        <ol class="steps">
+          <li><strong>Open the REST API settings</strong><p>In your WordPress admin, go to <strong>WooCommerce &rarr; Settings &rarr; Advanced &rarr; REST API</strong>.</p></li>
+          <li><strong>Add a key</strong><p>Click <strong>Add key</strong>, give it a description like &ldquo;Halia&rdquo;, and set <strong>Permissions</strong> to <strong>Read</strong>.</p></li>
+          <li><strong>Copy the credentials</strong><p>Copy the <strong>Consumer key</strong> and <strong>Consumer secret</strong> shown once. Keep them safe.</p></li>
+          <li><strong>Paste them into Halia</strong><p>At <a class="inl" href="/connect">halia.app/connect</a>, choose WooCommerce and paste your store URL, consumer key, and secret.</p></li>
+        </ol>
+        <div class="callout"><strong>Requirements.</strong> Your store must be reachable over HTTPS and
+          have the WooCommerce REST API enabled (it is by default). Read permission is all Halia needs.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="bigcommerce" class="reveal">
+    <h2>BigCommerce</h2>
+    <p>BigCommerce uses a store API account with read-only scopes. You'll paste a store hash and access token.</p>
+    <div class="cred">
+      <div class="cred-h"><img src="/img/logos/bigcommerce.svg" alt="BigCommerce"><b>BigCommerce</b><span class="tag">Store-hash + token</span></div>
+      <div class="cred-b">
+        <ol class="steps">
+          <li><strong>Create an API account</strong><p>In your admin, go to <strong>Settings &rarr; API &rarr; Store-level API accounts</strong> and click <strong>Create API account</strong>.</p></li>
+          <li><strong>Grant read-only scopes</strong><p>Set <strong>Orders</strong> and <strong>Customers</strong> to <strong>read-only</strong>. No other scopes are needed.</p></li>
+          <li><strong>Copy the token and store hash</strong><p>Save the <strong>Access Token</strong>. Your <strong>store hash</strong> is the code in your admin URL: <code>store-<b>{hash}</b>.mybigcommerce.com</code>.</p></li>
+          <li><strong>Paste them into Halia</strong><p>At <a class="inl" href="/connect">halia.app/connect</a>, choose BigCommerce and paste the store hash and access token.</p></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="after" class="reveal">
+    <h2>After you connect</h2>
+    <p>Halia scores every customer and opens your dashboard with your potential VICs surfaced and ranked
+      A&#42; to C. From there you can build segments, tag profiles, and draft outreach &mdash; which you
+      send from your own tools.</p>
+    <p>Once connected, Halia also scores <strong>new orders in real time</strong>: the moment a VIC-grade
+      order lands, you can get a web-push and email alert (and a Slack message, if you've connected it).
+      See <a class="inl" href="/docs/crm-and-email">CRM &amp; email connections</a> to send grades onward.</p>
+  </section>
+
+  <section id="trouble" class="reveal">
+    <h2>Troubleshooting</h2>
+    <table class="dl">
+      <tr><th>Symptom</th><th>Fix</th></tr>
+      <tr><td>No customers appear after connecting</td><td>Check the API key has <strong>Read</strong> permission for orders and customers, and that the store has order history.</td></tr>
+      <tr><td>&ldquo;Could not authenticate&rdquo; / 401</td><td>Regenerate the key (WooCommerce) or access token (BigCommerce) and paste the new value. Confirm the store URL / hash is exact.</td></tr>
+      <tr><td>Shopify install won't complete</td><td>Make sure you're signed in to the correct store admin, then reopen <a class="inl" href="/connect">/connect</a> with your <code>.myshopify.com</code> domain.</td></tr>
+      <tr><td>Still stuck</td><td>Email <a class="inl" href="mailto:hello@halia.app">hello@halia.app</a> &mdash; we'll connect it with you.</td></tr>
+    </table>
+    <div style="margin-top:34px"><a class="btn" href="/docs/crm-and-email">Next: CRM &amp; email connections <span class="arrow">&rarr;</span></a></div>
+  </section>
+
+  </div>
+</div></div>
+
+<footer class="hfoot"><div class="hf-inner">
+  <div class="hf-news">
+    <h3>The quiet edge in luxury retail, in your inbox.</h3>
+    <form id="newsForm" novalidate>
+      <input id="newsEmail" type="email" placeholder="Your work email" required>
+      <button type="submit">Subscribe &rarr;</button>
+    </form>
+  </div>
+  <div class="hf-grid">
+    <div>
+      <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:var(--gold,#8a8377)">&#8258;</span>Halia</a>
+      <p class="hf-bio">Halia is hidden-VIC intelligence for considered-purchase retail. Our scoring engine grades every customer and surfaces the high-value clients hiding behind modest spend, or sitting unconverted in your database &mdash; while holding nothing. The deepest read of your data, by the only tool that never keeps it.</p>
+    </div>
+    <div class="hf-col"><h4>Product</h4><a href="/#engine">The engine</a><a href="/#how">How it works</a><a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/docs">Docs</a><a href="/connect">Connect a store</a></div>
+    <div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/brand">Brand</a><a href="mailto:hello@halia.app">Contact</a></div>
+    <div class="hf-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/security">Security &amp; compliance</a></div>
+  </div>
+  <div class="hf-bot">
+    <span>&copy; 2026 Halia. All rights reserved.</span>
+    <span>Zero-retention by design &middot; Shopify &middot; BigCommerce &middot; WooCommerce &middot; Klaviyo &middot; Mailchimp &middot; HubSpot</span>
+  </div>
+</div></footer>
+<script>
+  var hdr=document.getElementById('hdr');addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
+  (function(){
+    var b=document.getElementById('burger'),d=document.getElementById('mdrawer'),s=document.getElementById('mscrim'),c=document.getElementById('mclose');
+    if(!d) return;
+    function open(){d.classList.add('show');s.classList.add('show');d.setAttribute('aria-hidden','false');}
+    function close(){d.classList.remove('show');s.classList.remove('show');d.setAttribute('aria-hidden','true');}
+    if(b) b.onclick=open; if(c) c.onclick=close; if(s) s.onclick=close;
+    d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',close);});
+  })();
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.14,rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el);});
+  (function(){var f=document.getElementById('newsForm');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();var i=document.getElementById('newsEmail');if(!i.value)return;fetch('/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:i.value})}).catch(function(){});i.value='';var b=f.querySelector('button');b.textContent='Thank you';});})();
+</script>
+
+</body></html>

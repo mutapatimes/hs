@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Halia · Find your most valuable clients</title>
-<meta name="description" content="Your most valuable clients are already in your database. Halia reads 40+ wealth and intent signals to find them, grades every customer, and acts in your marketing platform instantly. Zero-retention.">
+<meta name="description" content="Your most valuable clients are already in your database. Halia's scoring engine weighs 40+ wealth and intent signals to find them — precisely, explainably, and without ever keeping a copy. The deepest read of your data, by the only tool that never keeps it.">
 <meta property="og:title" content="Halia · Find your most valuable clients">
-<meta property="og:description" content="A sea of records, and a handful worth the world. Halia finds them.">
+<meta property="og:description" content="A sea of records, and a handful worth the world. The deepest read of your data, by the only tool that never keeps it.">
 <meta property="og:image" content="/img/three_clients.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -71,7 +71,7 @@
   }
 
   /* integrations */
-  .intg{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .intg{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
   @media(max-width:760px){.intg{grid-template-columns:1fr 1fr}}
   .ichip{background:#fff;border-radius:16px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:128px;border:1px solid rgba(255,255,255,.06)}
   .ichip img{max-height:56px;max-width:88%;width:auto;object-fit:contain}
@@ -396,6 +396,7 @@
     <a href="/pricing">Pricing</a>
     <a href="/security">Security</a>
     <a href="/faq">FAQ</a>
+    <a href="/docs">Docs</a>
   </nav>
   <div class="right">
     <a class="si" href="#demo">See a demo</a>
@@ -414,6 +415,7 @@
   <a href="/pricing">Pricing</a>
   <a href="/security">Security</a>
   <a href="/faq">FAQ</a>
+  <a href="/docs">Docs</a>
   <a class="msi" href="#demo">See a demo</a>
   <a class="msi" href="/app">Sign in</a>
   <a class="mcta" href="/connect">Connect your store</a>
@@ -431,7 +433,7 @@
   <div class="wrap"><div class="block">
     <div class="eyebrow reveal in"><!--cms:home.hero.eyebrow-->Hidden-VIC intelligence<!--/cms--></div>
     <h1 class="display reveal in d1"><!--cms:home.hero.title-->Your most valuable clients are already in your <em>database.</em><!--/cms--></h1>
-    <p class="lede reveal in d2"><!--cms:home.hero.sub-->A sea of records, and a handful worth the world. Halia finds them, then helps you fish them out.<!--/cms--></p>
+    <p class="lede reveal in d2"><!--cms:home.hero.sub-->A sea of records, and a handful worth the world. Halia&#39;s scoring engine finds them &mdash; precisely, explainably, and without ever keeping a copy of a single customer.<!--/cms--></p>
     <div class="cta reveal in d3">
       <a class="btn" href="/connect">Find them <span class="arrow">→</span></a>
       <a class="btn ghost" href="#how">How it works</a>
@@ -649,10 +651,13 @@
   </div>
   <div class="intg reveal d1">
     <div class="ichip"><img src="img/logos/shopify.png" alt="Shopify" loading="lazy"><span>Shopify</span></div>
+    <div class="ichip"><img src="img/logos/bigcommerce.svg" alt="BigCommerce" loading="lazy"><span>BigCommerce</span></div>
     <div class="ichip"><img src="img/logos/woocommerce.png" alt="WooCommerce" loading="lazy"><span>WooCommerce</span></div>
     <div class="ichip"><img src="img/logos/klaviyo.png" alt="Klaviyo" loading="lazy"><span>Klaviyo</span></div>
     <div class="ichip"><img src="img/logos/mailchimp.png" alt="Mailchimp" loading="lazy"><span>Mailchimp</span></div>
+    <div class="ichip"><img src="img/logos/hubspot.svg" alt="HubSpot" loading="lazy"><span>HubSpot</span></div>
   </div>
+  <p class="reveal d2" style="text-align:center;color:var(--mute);font-size:14px;margin-top:20px">Sources: Shopify, BigCommerce, WooCommerce &nbsp;·&nbsp; Destinations: Klaviyo, Mailchimp, HubSpot &nbsp;·&nbsp; Alerts: Slack</p>
 </div></section>
 
 <!-- HOW IT WORKS / ARCHITECTURE -->
@@ -665,7 +670,7 @@
     <div class="fnode">
       <div class="fh">Your store</div>
       <div class="fs">Where your customers already are.</div>
-      <div class="chips"><span>Shopify</span><span>WooCommerce</span></div>
+      <div class="chips"><span>Shopify</span><span>BigCommerce</span><span>WooCommerce</span></div>
       <div class="fl">Read-only</div>
     </div>
     <div class="conn"><span class="dot"></span></div>
@@ -679,7 +684,7 @@
     <div class="fnode">
       <div class="fh">Your tools</div>
       <div class="fs">Grades and segments, where you work.</div>
-      <div class="chips"><span>Klaviyo</span><span>Mailchimp</span><span>Your team</span></div>
+      <div class="chips"><span>Klaviyo</span><span>Mailchimp</span><span>HubSpot</span><span>Your team</span></div>
       <div class="fl">Acts instantly</div>
     </div>
   </div>
@@ -688,7 +693,7 @@
     <span class="act">Build a grade segment</span>
     <span class="act">Tag the profile</span>
     <span class="act">Create a list from a selection</span>
-    <span class="act">Trigger a Klaviyo or Mailchimp flow</span>
+    <span class="act">Trigger a Klaviyo, Mailchimp or HubSpot flow</span>
     <span class="act">Brief your store team</span>
   </div>
   <p class="lede reveal d2" style="margin-top:54px;max-width:none">Halia reads your customers through a
@@ -702,10 +707,11 @@
   <div class="copy reveal">
     <div class="eyebrow">The engine</div>
     <h2 class="h2">Forty signals.<br>One quiet score.</h2>
-    <p>Halia reads the tells a great associate would: prime postcodes, premium email domains,
-      the names and companies behind the orders. It weighs more than forty of them across every
-      customer you have, then resolves the lot into a single score and a grade from A&#42; to C.
-      Explainable, defensible, tuned to your store.</p>
+    <p>Halia was built by people who ran clienteling and CRM inside luxury retail &mdash; who spent
+      years learning which quiet details separate a passing customer from a lifelong client. That
+      knowledge is now an algorithm: more than forty wealth and intent signals, weighed, cross-checked
+      and resolved into one score and a grade from A&#42; to C for every customer you have. Not a
+      filter. Not a rule. An algorithm trained on how wealth actually behaves &mdash; quietly.</p>
     <div class="meta">
       <div><b>40+</b><span>Signals read</span></div>
       <div><b>A&#42; to C</b><span>Every customer graded</span></div>
@@ -724,11 +730,12 @@
   <div class="wrap" style="position:relative;z-index:1">
   <div class="sig-head reveal" style="max-width:58ch">
     <div class="eyebrow" style="margin-bottom:20px">Under the hood</div>
-    <h2 class="h2">Knowledge no team could<br>hold in its head.</h2>
-    <p class="lede" style="margin-top:22px;max-width:72ch">It is not just "this looks like a premium email." Every order is checked, in
-      milliseconds, against curated datasets that took years to build and could never be kept by hand,
-      then the matches are weighed together into a single score. No person could do this for one
-      customer, let alone all of them, continuously.</p>
+    <h2 class="h2">Intelligence that cannot<br>be copied.</h2>
+    <p class="lede" style="margin-top:22px;max-width:72ch">Anyone can flag a postcode. Halia checks every order, in milliseconds, against a
+      proprietary body of reference intelligence built and curated by hand over years &mdash; the
+      postcodes, domains, institutions, venues and structures where wealth actually lives, from
+      private-jet terminals to family-office registries. No person could do this for one customer, let
+      alone all of them, continuously.</p>
   </div>
   <div class="kb-stats reveal d1" id="kbstats">
     <div class="kb-stat"><div class="n" data-to="40" data-suffix="+">0</div><div class="l">Signals weighed together</div></div>
@@ -736,8 +743,25 @@
     <div class="kb-stat"><div class="n word">Every</div><div class="l">Private-jet terminal &amp; superyacht marina</div></div>
     <div class="kb-stat"><div class="n word">Milliseconds</div><div class="l">Per customer, scored continuously</div></div>
   </div>
-  <p class="reveal d2" style="color:var(--mute);font-size:16px;margin-top:34px;max-width:64ch">And it does not simply flag. Correlated tells are discounted, so three ways of saying "this client is in Monaco" count as one, and weak signals only surface a client when stronger ones agree. The result is a score you can defend, not a pile of guesses.</p>
+  <p class="reveal d2" style="color:var(--mute);font-size:16px;margin-top:34px;max-width:64ch">And it does not simply flag. The algorithm discounts correlated tells, so three echoes of one fact count once; it silences weak signals unless stronger ones agree; and it separates evidence from noise. The result is a score you can defend, line by line &mdash; not a pile of guesses.</p>
   <div class="reveal d2" style="margin-top:30px"><a class="btn ghost" href="/faq#data">Explore the full data model <span class="arrow">→</span></a></div>
+</div></section>
+
+<!-- PRECISION BY DESIGN -->
+<section class="pad" style="background:var(--bg-2)"><div class="wrap">
+  <div class="sig-head reveal" style="max-width:60ch">
+    <div class="eyebrow" style="margin-bottom:20px">Precision by design</div>
+    <h2 class="h2">Built to be right,<br>not loud.</h2>
+    <p class="lede" style="margin-top:22px;max-width:72ch">Most tools shout about every match. Halia is engineered to stay quiet until
+      the evidence converges &mdash; no client is surfaced on a single weak tell, every score carries its
+      reasons, and the algorithm is tuned to your store&#39;s own data, not a generic model.</p>
+  </div>
+  <div class="sec-points reveal d1" style="margin-top:48px">
+    <div class="spt"><h3><span class="b">01</span>Never on one tell</h3><p>A client surfaces only when independent signals agree. A single weak match is never enough.</p></div>
+    <div class="spt"><h3><span class="b">02</span>Every score, explained</h3><p>Each grade arrives with the reasons behind it &mdash; evidence you can defend, line by line.</p></div>
+    <div class="spt"><h3><span class="b">03</span>Tuned to your store</h3><p>The engine calibrates to your own data, so it surfaces the clients worth your team&#39;s next move.</p></div>
+  </div>
+  <p class="reveal d2" style="color:var(--mute);font-size:16px;margin-top:34px;max-width:66ch">The clients it surfaces are the ones worth acting on &mdash; a &pound;200 customer with a family-office address, or a prospect who has never bought but already fits the profile of your best clients.</p>
 </div></section>
 
 <!-- SIGNALS -->
@@ -818,19 +842,20 @@
   <div class="foot">
     <div>
       <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span>Halia</a>
-      <p class="bio">Halia is hidden-VIC intelligence for considered-purchase retail. We read the wealth
-        and intent signals already sitting in your customer data, grade every customer, and surface
-        the high-value clients you would otherwise treat like everyone else, then help your teams act
-        on them in the tools they already use. We never keep a copy of your customers: they are scored
-        on the spot and nothing about them is stored on our side.</p>
+      <p class="bio">Halia is hidden-VIC intelligence for considered-purchase retail. Our scoring engine
+        &mdash; built from years inside luxury clienteling and a proprietary reference library that
+        cannot be bought or scraped &mdash; grades every customer and surfaces the high-value clients
+        hiding behind modest spend, or sitting unconverted in your database. And it does this holding
+        nothing: every customer is scored in memory and kept nowhere. The deepest read of your data,
+        by the only tool that never keeps it.</p>
     </div>
-    <div class="col"><h4>Product</h4><a href="#engine">The engine</a><a href="#how">How it works</a><a href="#signals">Signals</a><a href="#teams">For teams</a><a href="/connect">Connect a store</a></div>
+    <div class="col"><h4>Product</h4><a href="#engine">The engine</a><a href="#how">How it works</a><a href="#signals">Signals</a><a href="#teams">For teams</a><a href="/docs">Docs</a><a href="/connect">Connect a store</a></div>
     <div class="col"><h4>Company</h4><a href="/clienteling">Clienteling</a><span class="nav-drop"><a href="/solutions">Solutions</a><div class="nav-menu"><a href="/solutions/fashion">Fashion & apparel</a><a href="/solutions/wine">Wine & spirits</a><a href="/solutions/beauty">Beauty & fragrance</a><a href="/solutions/jewellery">Jewellery & watches</a><a href="/solutions/home">Home, furniture & interiors</a><a href="/solutions/gifting">Flowers, food & gifting</a><a href="/solutions/collectibles">Rare books & collectibles</a><a href="/solutions/electronics">Electronics & big-box</a><a class="all" href="/solutions">All solutions &rarr;</a></div></span><a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/brand">Brand</a><a href="mailto:hello@halia.app">Contact</a></div>
-    <div class="col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/cookies">Cookie Policy</a><a href="/subprocessors">Sub-processors</a><a href="/security">Security &amp; compliance</a></div>
+    <div class="col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/security">Security &amp; compliance</a></div>
   </div>
   <div class="foot-bot">
     <span>© 2026 Halia. All rights reserved.</span>
-    <span>Zero-retention by design · Shopify · WooCommerce · Klaviyo · Mailchimp</span>
+    <span>Zero-retention by design · Shopify · BigCommerce · WooCommerce · Klaviyo · Mailchimp · HubSpot</span>
   </div>
 </div></footer>
 
