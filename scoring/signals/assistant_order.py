@@ -6,6 +6,8 @@ staffed household is the primary purchase channel. This reads the whole staff la
   - "c/o", "care of", "FAO", "Attn", "office of", or a staffed-household delivery note
     ("leave with the housekeeper", "staff entrance", "concierge will sign") in the address;
   - a PA / EA / "on behalf of" / "office of" marker in the customer name;
+  - a staff-placing-the-order phrase in the ORDER NOTE / gift message ("on behalf of Mr X",
+    "deliver to his office", "gift for Lord Y") — dormant when the channel carries no note;
   - a role-based email LOCAL-PART — the assistant/office layer (pa, ea, exec, office, diary,
     scheduling, secretary, chiefofstaff), household & estate (housemanager, estatemanager, butler,
     housekeeper, household, residence, nanny, driver, chauffeur, security, wardrobe), yacht/property
@@ -45,6 +47,18 @@ _NAME_MARKER = re.compile(
     r"|\b[pe]\.?\s?a\.?\s+to\b|\(\s*[pe]\.?\s?a\.?\s*\)",
     re.I,
 )
+# Staff-placing-the-order phrasing in an ORDER NOTE / gift message: the name and address
+# markers above, plus a "gift for Mr/Lord …", "deliver to his/her office", "the principal"
+# phrasing that only appears in free-text notes. Deliberately narrow — a plain gift message
+# ("Happy birthday!") must not fire.
+_NOTE_MARKER = re.compile(
+    r"\bon behalf of\b|\boffice of\b|\bc\s*/\s*o\b|\bcare\s+of\b|\bf\.?\s?a\.?\s?o\.?\b"
+    r"|\battn\.?\b|\b(?:personal|executive)\s+assistant\b|\bmy (?:principal|employer|boss)\b"
+    r"|\bthe principal\b|\b(?:his|her) (?:office|assistant|pa|residence|household)\b"
+    r"|\b(?:deliver|leave|drop) (?:it |this )?(?:to|with) (?:the )?(?:housekeeper|butler|concierge|staff|office)\b"
+    r"|\b(?:gift |delivery )?for (?:mr|mrs|ms|dr|lord|lady|sir|madam|baron|baroness|count|countess)\b",
+    re.I,
+)
 
 # Distinctive role words matched as a SUBSTRING of the local-part (safe — unlikely inside a normal
 # name), so concatenated constructions fire: executiveassistant@, officeofjohnsmith@,
@@ -81,7 +95,9 @@ def _email_local(email: object) -> str:
     return text.split("@", 1)[0] if "@" in text else ""
 
 
-def detect(name: object, email: object, address: object) -> tuple[bool, str | None]:
+def detect(
+    name: object, email: object, address: object, note: object = None
+) -> tuple[bool, str | None]:
     """Return (is_assistant_order, reason)."""
     if name and _NAME_MARKER.search(str(name)):
         return True, f"name marker: {str(name).strip()}"
@@ -95,6 +111,10 @@ def detect(name: object, email: object, address: object) -> tuple[bool, str | No
         m = _ADDR_MARKER.search(str(address))
         if m:
             return True, f"c/o address: {m.group(0).strip()}"
+    if note and not (isinstance(note, float) and pd.isna(note)):
+        m = _NOTE_MARKER.search(str(note))
+        if m:
+            return True, f"order note: {m.group(0).strip()}"
     return False, None
 
 
@@ -103,6 +123,7 @@ def flag_assistant_order(
     name_col: str = "Name",
     email_col: str = "EMAIL_ADDR",
     address_cols=None,
+    note_col: str = "ORDER_NOTE",
 ) -> pd.DataFrame:
     """Add assistant-order flag + reason columns to a copy of ``df``."""
     out = df.copy()
@@ -110,9 +131,10 @@ def flag_assistant_order(
     addr = _combine_rows(out, cols) if cols else pd.Series([""] * len(out), index=out.index)
     names = out[name_col] if name_col in out.columns else pd.Series([None] * len(out), index=out.index)
     emails = out[email_col] if email_col in out.columns else pd.Series([None] * len(out), index=out.index)
+    notes = out[note_col] if note_col in out.columns else pd.Series([None] * len(out), index=out.index)
     results = [
-        detect(n, e, a)
-        for n, e, a in zip(names.tolist(), emails.tolist(), addr.tolist())
+        detect(n, e, a, note)
+        for n, e, a, note in zip(names.tolist(), emails.tolist(), addr.tolist(), notes.tolist())
     ]
     out[FLAG_COL] = [hit for hit, _ in results]
     out[REASON_COL] = [reason for _, reason in results]

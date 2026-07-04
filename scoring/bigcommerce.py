@@ -53,6 +53,7 @@ def bigcommerce_to_rest(o: dict) -> dict:
         "total_price": o.get("total_inc_tax") or o.get("total_ex_tax"),
         "total_discounts": o.get("discount_amount"),
         "created_at": _iso(o.get("date_created")),
+        "note": o.get("customer_message"),  # bc: the shopper's order comment
         "tags": "",  # BigCommerce orders have no native tags
         "line_items": [{"quantity": items}] if items else [],
         "billing_address": {

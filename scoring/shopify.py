@@ -20,7 +20,7 @@ LATEST_COLS = [
     "LATEST_BILLING_ADDRESS3", "LATEST_BILLING_ADDRESS4", "LATEST_BILLING_ZIP",
     "LATEST_SHIPPING_ADDRESS1", "LATEST_SHIPPING_ADDRESS2",
     "LATEST_SHIPPING_ADDRESS3", "LATEST_SHIPPING_ADDRESS4", "LATEST_SHIPPING_ZIP",
-    "browser_ip", "credit_card_bin", "credit_card_company",
+    "browser_ip", "credit_card_bin", "credit_card_company", "ORDER_NOTE",
 ]
 KNOWN_VIC_TAGS = {"vip", "vic"}
 SILENT_DAYS = 180  # a single order older than this = "tested us once, then silence"
@@ -40,6 +40,17 @@ def _tags(*sources) -> set[str]:
             continue
         out.update(t.strip().lower() for t in str(src).split(",") if t.strip())
     return out
+
+
+def _order_note(order: dict) -> str | None:
+    """Combine the merchant-facing order note + note attributes (gift messages,
+    delivery instructions) into one scannable string. ``None`` when empty — most
+    channels/exports carry no note, so the notes signal stays dormant then."""
+    parts = [order.get("note")]
+    for attr in order.get("note_attributes") or []:
+        parts.append(f"{attr.get('name') or ''} {attr.get('value') or ''}")
+    text = " | ".join(p.strip() for p in parts if p and str(p).strip())
+    return text or None
 
 
 def _card_from_transactions(transactions) -> tuple[str | None, str | None]:
@@ -93,7 +104,21 @@ def flatten_order(order: dict, transactions: list | None = None) -> dict:
         "browser_ip": order.get("browser_ip") or client.get("browser_ip"),
         "credit_card_bin": card_bin,
         "credit_card_company": card_company,
+        "ORDER_NOTE": _order_note(order),
     }
+
+
+def _join_notes(series) -> str | None:
+    seen, out = set(), []
+    for note in series:
+        if not note or (isinstance(note, float) and pd.isna(note)):
+            continue
+        text = str(note).strip()
+        key = text.lower()
+        if text and key not in seen:
+            seen.add(key)
+            out.append(text)
+    return " | ".join(out) or None
 
 
 def _add_behavioural_features(g: pd.DataFrame, today) -> None:
@@ -148,7 +173,10 @@ def orders_to_customers(
         last_order_at=("Last Shopped", "max"),
         _discounted=("Discounted", "sum"),
         distinct_shipping_addresses=("ShipKey", "nunique"),
-        **{c: (c, "last") for c in LATEST_COLS},
+        # A staffed-household note may sit on any order, not just the latest —
+        # keep every distinct non-empty note so the notes signal can see it.
+        ORDER_NOTE=("ORDER_NOTE", _join_notes),
+        **{c: (c, "last") for c in LATEST_COLS if c != "ORDER_NOTE"},
     )
     grouped["SEGMENT"] = grouped["tags"].apply(
         lambda t: "VIP" if t & KNOWN_VIC_TAGS else "Final Client"

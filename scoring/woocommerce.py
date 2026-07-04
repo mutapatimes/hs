@@ -35,6 +35,7 @@ def woo_order_to_rest(o: dict) -> dict:
         "total_price": o.get("total"),
         "total_discounts": o.get("discount_total"),
         "created_at": o.get("date_created_gmt") or o.get("date_created"),
+        "note": o.get("customer_note"),  # woo: the shopper's order note
         "tags": "",  # WooCommerce orders have no native tags
         "line_items": [{"quantity": li.get("quantity")} for li in (o.get("line_items") or [])],
         "billing_address": {

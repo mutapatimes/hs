@@ -43,6 +43,23 @@ def test_flatten_single_order():
     assert row["tags"] == {"imported", "vip", "loyal"}
 
 
+def test_order_note_and_attributes_carried_through():
+    order = {**SAMPLE_ORDER, "note": "On behalf of Mr Rothschild",
+             "note_attributes": [{"name": "Gift message", "value": "Leave with the housekeeper"}]}
+    row = flatten_order(order)
+    assert "On behalf of Mr Rothschild" in row["ORDER_NOTE"]
+    assert "housekeeper" in row["ORDER_NOTE"]
+    # A note on ANY of a customer's orders survives aggregation (not just the latest).
+    plain = {**SAMPLE_ORDER, "created_at": "2009-01-01T00:00:00Z"}   # newer, no note
+    cust = orders_to_customers([order, plain])
+    assert "Rothschild" in cust.iloc[0]["ORDER_NOTE"]
+
+
+def test_no_note_leaves_column_empty():
+    cust = orders_to_customers([SAMPLE_ORDER])
+    assert pd.isna(cust.iloc[0]["ORDER_NOTE"]) or cust.iloc[0]["ORDER_NOTE"] is None
+
+
 def test_aggregate_two_orders_one_customer():
     older = {**SAMPLE_ORDER, "total_price": "100.00", "created_at": "2007-01-01T00:00:00Z",
              "line_items": [{"quantity": 1}], "tags": ""}

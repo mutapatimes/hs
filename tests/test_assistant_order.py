@@ -41,6 +41,31 @@ def test_address_notes_and_office_of_name():
     assert detect(None, "x@gmail.com", "Deliver to the staff entrance")[0]
 
 
+def test_order_note_staff_phrasing_fires():
+    # Staff placing the order surfaces in the note / gift message.
+    assert detect("Jane", "jane@gmail.com", "1 St", "Ordering on behalf of Mr Rothschild")[0]
+    assert detect("Jane", "jane@gmail.com", "1 St", "Please deliver to his office")[0]
+    r = detect("Jane", "jane@gmail.com", "1 St", "Gift for Lord Ashcroft — leave with the concierge")
+    assert r[0] and "order note" in r[1]
+    assert detect("Jane", "jane@gmail.com", "1 St", "c/o the housekeeper, side gate")[0]
+
+
+def test_plain_gift_notes_do_not_fire():
+    assert detect("John Smith", "john@gmail.com", "1 St", "Happy birthday! Love, the team") == (False, None)
+    assert detect("John Smith", "john@gmail.com", "1 St", "Please gift wrap and no receipt") == (False, None)
+    assert detect("John Smith", "john@gmail.com", "1 St", "Leave at the front door if out") == (False, None)
+
+
+def test_flag_frame_reads_order_note_column():
+    df = pd.DataFrame({
+        "Name": ["Jo Bloggs", "Jo Bloggs"],
+        "EMAIL_ADDR": ["jo@gmail.com", "jo@gmail.com"],
+        "ORDER_NOTE": ["on behalf of Mr X", "just a normal note"],
+    })
+    out = flag_assistant_order(df)
+    assert out["assistant_order"].tolist() == [True, False]
+
+
 def test_plain_orders_and_lookalike_emails_do_not_fire():
     assert detect("John Smith", "john@gmail.com", "1 Normal Road, London") == (False, None)
     assert detect("Paul Sean", "paul@gmail.com", "1 St") == (False, None)   # 'pa' prefix, not "pa@"
