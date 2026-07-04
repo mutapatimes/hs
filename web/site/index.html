@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Halia · Find your most valuable clients</title>
-<meta name="description" content="Your most valuable clients are already in your database. Halia's scoring engine weighs 40+ wealth and intent signals to find them — precisely, explainably, and without ever keeping a copy. The deepest read of your data, by the only tool that never keeps it.">
+<meta name="description" content="Your most valuable clients are already in your database. Halia's scoring engine weighs 40+ wealth and intent signals to find them, precisely and explainably. The deepest read of your data, by the only tool that never keeps it.">
 <meta property="og:title" content="Halia · Find your most valuable clients">
 <meta property="og:description" content="A sea of records, and a handful worth the world. The deepest read of your data, by the only tool that never keeps it.">
 <meta property="og:image" content="/img/three_clients.jpg">
@@ -301,6 +301,7 @@
   .tag{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);
     padding:7px 13px;border-radius:999px;transition:.2s}
   .scell:hover .tag{border-color:rgba(217,213,203,.4);color:var(--ink)}
+  .scell .sdesc{color:var(--mute);font-size:14.5px;line-height:1.55;margin:0}
 
   /* departments */
   .dept-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
@@ -354,6 +355,12 @@
     .split.rev .media{order:0}.sgrid,.sol-grid{grid-template-columns:1fr}
     .dept-grid,.sol-grid{grid-template-columns:1fr 1fr}
     .hero .block{margin:0}
+    /* Footer Solutions: no hover on touch, so show the sub-pages as a static list. */
+    footer .nav-drop{display:block}
+    footer .nav-menu{position:static;transform:none;opacity:1;visibility:visible;box-shadow:none;
+      border:none;background:transparent;padding:0 0 4px 12px;min-width:0;margin:2px 0}
+    footer .nav-menu::before{display:none}
+    footer .nav-menu a{padding:5px 0;white-space:normal}
   }
   /* light (cream) sections */
   .light{background:#f4f1ea;color:#13110c;
@@ -386,471 +393,471 @@
 
 <!-- NAV -->
 <header id="hdr"><div class="wrap nav">
-  <a class="brand" href="/">
-    <span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span>
-    Halia  </a>
-  <nav class="nav-links">
-    <a href="#how">How it works</a>
-    <a href="/clienteling">Clienteling</a>
-    <a href="/solutions">Solutions</a>
-    <a href="/pricing">Pricing</a>
-  </nav>
-  <div class="right">
-    <a class="si" href="#demo">See a demo</a>
-    <a class="si" href="/app">Sign in</a>
-    <a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a>
-    <button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
-  </div>
+ <a class="brand" href="/">
+ <span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span>
+ Halia </a>
+ <nav class="nav-links">
+ <a href="#how">How it works</a>
+ <a href="/clienteling">Clienteling</a>
+ <a href="/solutions">Solutions</a>
+ <a href="/pricing">Pricing</a>
+ </nav>
+ <div class="right">
+ <a class="si" href="#demo">See a demo</a>
+ <a class="si" href="/app">Sign in</a>
+ <a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a>
+ <button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+ </div>
 </div></header>
 
 <div class="mscrim" id="mscrim"></div>
 <aside class="mdrawer" id="mdrawer" aria-hidden="true">
-  <button class="mclose" id="mclose" aria-label="Close menu">&times;</button>
-  <a href="#how">How it works</a>
-  <a href="/clienteling">Clienteling</a>
-  <a href="/solutions">Solutions</a>
-  <a href="/pricing">Pricing</a>
-  <a class="msi" href="#demo">See a demo</a>
-  <a class="msi" href="/app">Sign in</a>
-  <a class="mcta" href="/connect">Connect your store</a>
+ <button class="mclose" id="mclose" aria-label="Close menu">&times;</button>
+ <a href="#how">How it works</a>
+ <a href="/clienteling">Clienteling</a>
+ <a href="/solutions">Solutions</a>
+ <a href="/pricing">Pricing</a>
+ <a class="msi" href="#demo">See a demo</a>
+ <a class="msi" href="/app">Sign in</a>
+ <a class="mcta" href="/connect">Connect your store</a>
 </aside>
 
 <!-- HERO (right) -->
 <section class="hero">
-  <video id="heroVid" autoplay muted loop playsinline poster="img/three_clients.jpg">
-    <source src="img/hero.mp4" type="video/mp4">
-  </video>
-  <img id="heroGif" class="hero-fallback" data-src="img/hero.gif" alt="" aria-hidden="true">
+ <video id="heroVid" autoplay muted loop playsinline poster="img/three_clients.jpg">
+ <source src="img/hero.mp4" type="video/mp4">
+ </video>
+ <img id="heroGif" class="hero-fallback" data-src="img/hero.gif" alt="" aria-hidden="true">
 
-  <canvas id="fish"></canvas>
-  <div class="veil"></div>
-  <div class="wrap"><div class="block">
-    <div class="eyebrow reveal in"><!--cms:home.hero.eyebrow-->Hidden-VIC intelligence<!--/cms--></div>
-    <h1 class="display reveal in d1"><!--cms:home.hero.title-->Your most valuable clients are already in your <em>database.</em><!--/cms--></h1>
-    <p class="lede reveal in d2"><!--cms:home.hero.sub-->A sea of records, and a handful worth the world. Halia&#39;s scoring engine finds them &mdash; precisely, explainably, and without ever keeping a copy of a single customer.<!--/cms--></p>
-    <div class="cta reveal in d3">
-      <a class="btn" href="/connect">Find them <span class="arrow">→</span></a>
-      <a class="btn ghost" href="#how">How it works</a>
-    </div>
-    <div class="reveal in d3" style="margin-top:24px;color:var(--mute);font:500 12.5px var(--sans);letter-spacing:.02em">
-      Read-only access. Your data stays yours: never stored, never shared, never used to train.</div>
-  </div></div>
-  <div class="scroll-cue"><span>Scroll</span><span class="ln"></span></div>
+ <canvas id="fish"></canvas>
+ <div class="veil"></div>
+ <div class="wrap"><div class="block">
+ <div class="eyebrow reveal in"><!--cms:home.hero.eyebrow-->Hidden-VIC intelligence<!--/cms--></div>
+ <h1 class="display reveal in d1"><!--cms:home.hero.title-->Your most valuable clients are already in your <em>database.</em><!--/cms--></h1>
+ <p class="lede reveal in d2"><!--cms:home.hero.sub-->A sea of records, and a handful worth the world. Halia&#39;s scoring engine finds them, precisely, explainably, and without ever keeping a copy of a single customer.<!--/cms--></p>
+ <div class="cta reveal in d3">
+ <a class="btn" href="/connect">Find them <span class="arrow">→</span></a>
+ <a class="btn ghost" href="#how">How it works</a>
+ </div>
+ <div class="reveal in d3" style="margin-top:24px;color:var(--mute);font:500 12.5px var(--sans);letter-spacing:.02em">
+ Read-only access. Your data stays in your store, and yours alone.</div>
+ </div></div>
+ <div class="scroll-cue"><span>Scroll</span><span class="ln"></span></div>
 </section>
 
 <!-- STATEMENT -->
 <section class="pad statement"><div class="wrap reveal">
-  <p>Your top spenders are the whales, impossible to miss from above. <span>But the ocean is full of value that never breaks the surface.</span> Halia is the eye that picks it out.</p>
+ <p>Your top spenders are the whales, impossible to miss from above. <span>But the ocean is full of value that never breaks the surface.</span> Halia is the eye that picks it out.</p>
 </div></section>
 
 <!-- WHITE: the competitor-spend hook -->
 <section class="pad" style="background:#f4f1ea;color:#13110c;text-align:center">
-  <div class="wrap reveal">
-    <div class="eyebrow" style="color:#7a7363">The number that should worry you</div>
-    <p style="font-family:var(--serif);font-weight:300;font-size:clamp(30px,4.8vw,64px);line-height:1.1;max-width:19ch;margin:24px auto 0;color:#13110c">
-      A client who has spent <em style="color:#13110c">£200</em> with you may be spending
-      <em style="color:#13110c">£10,000</em> with your competitors. Halia tells you which ones.</p>
-    <p style="color:#6b6557;font-size:17px;max-width:48ch;margin:26px auto 0">The wealth signals are already in your <b>own</b> data; Halia simply reads them. It never sees your competitors' books, and it never shares yours. The relationship goes to whichever brand notices first.</p>
-    <p style="color:#9a9385;font-size:13.5px;max-width:46ch;margin:18px auto 0">Halia analyses only your data, on your behalf. It never shares it, never pools it with other brands, and never learns from it.</p>
-  </div>
+ <div class="wrap reveal">
+ <div class="eyebrow" style="color:#7a7363">The number that should worry you</div>
+ <p style="font-family:var(--serif);font-weight:300;font-size:clamp(30px,4.8vw,64px);line-height:1.1;max-width:19ch;margin:24px auto 0;color:#13110c">
+ A client who has spent <em style="color:#13110c">£200</em> with you may be spending
+ <em style="color:#13110c">£10,000</em> with your competitors. Halia tells you which ones.</p>
+ <p style="color:#6b6557;font-size:17px;max-width:48ch;margin:26px auto 0">The wealth signals are already in your <b>own</b> data; Halia simply reads them. It never sees your competitors' books, and it never shares yours. The relationship goes to whichever brand notices first.</p>
+ </div>
 </section>
 
 <!-- PRODUCT SCREENSHOT -->
 <section class="pad light" style="padding-top:clamp(20px,4vh,60px)"><div class="wrap">
-  <div class="laptop reveal">
-    <div class="screen">
-      <span class="cam"></span>
-      <img src="img/dashboard.png" alt="The Halia dashboard with hidden VICs surfaced and ranked" style="width:100%;display:block">
-      <div class="cursor"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 2.5l14.5 7.2-6.3 1.7 3.3 6.6-2.7 1.3-3.3-6.6L5 16.5z" fill="#fff" stroke="#111" stroke-width="1.1" stroke-linejoin="round"/></svg><span class="ring"></span></div>
-    </div>
-    <div class="deck"></div>
-  </div>
-  <p class="lede reveal d1" style="text-align:center;max-width:48ch;margin:36px auto 0">Every customer graded, your hidden VICs surfaced and ranked, inside the tools your team already uses.</p>
+ <div class="laptop reveal">
+ <div class="screen">
+ <span class="cam"></span>
+ <img src="img/dashboard.png" alt="The Halia dashboard with hidden VICs surfaced and ranked" style="width:100%;display:block">
+ <div class="cursor"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 2.5l14.5 7.2-6.3 1.7 3.3 6.6-2.7 1.3-3.3-6.6L5 16.5z" fill="#fff" stroke="#111" stroke-width="1.1" stroke-linejoin="round"/></svg><span class="ring"></span></div>
+ </div>
+ <div class="deck"></div>
+ </div>
+ <p class="lede reveal d1" style="text-align:center;max-width:48ch;margin:36px auto 0">Every customer graded, your hidden VICs surfaced and ranked, inside the tools your team already uses.</p>
 </div></section>
 
 <!-- REAL-TIME ALERTS -->
 <section class="pad"><div class="wrap split" style="align-items:center">
-  <div class="copy reveal">
-    <div class="eyebrow">Real-time alerts</div>
-    <h2 class="h2" style="margin:22px 0 24px">The moment they order,<br>your team <em>knows.</em></h2>
-    <p>When an A&#42; or A client checks out, in store at the till or online, Halia alerts your team the
-      instant it happens: a desktop notification, an email, and a live feed in the dashboard. So the
-      recognition, the appointment, the personal note, happens in the moment, not a week later.</p>
-    <div style="margin-top:26px;display:flex;gap:10px;flex-wrap:wrap">
-      <span class="tag">At the point of sale</span><span class="tag">Online checkout</span>
-      <span class="tag">Desktop &amp; email</span><span class="tag">Nothing stored</span>
-    </div>
-  </div>
-  <div class="alerts-mock reveal d1" aria-hidden="true">
-    <div class="atoast" style="--d:0s">
-      <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span></div>
-      <div class="ab"><div class="at"><b>New <span class="g">A&#42;</span> order · Sir James Whitfield</b><span class="atm">now</span></div>
-        <div class="as">Work email · Mayfair postcode · Premium card</div></div>
-    </div>
-    <div class="atoast" style="--d:1.8s">
-      <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span></div>
-      <div class="ab"><div class="at"><b>New <span class="g">A</span> order · Mei Tanaka</b><span class="atm">now</span></div>
-        <div class="as">Premium card · HNW neighbourhood</div></div>
-    </div>
-    <div class="atoast" style="--d:3.6s">
-      <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span></div>
-      <div class="ab"><div class="at"><b>New <span class="g">A&#42;</span> order · Omar Al-Rashid</b><span class="atm">now</span></div>
-        <div class="as">Family office · Concierge delivery</div></div>
-    </div>
-  </div>
+ <div class="copy reveal">
+ <div class="eyebrow">Real-time alerts</div>
+ <h2 class="h2" style="margin:22px 0 24px">The moment they order,<br>your team <em>knows.</em></h2>
+ <p>When an A&#42; or A client checks out, in store at the till or online, Halia alerts your team the
+ instant it happens: a desktop notification, an email, and a live feed in the dashboard. So the
+ recognition, the appointment, the personal note, happens in the moment, not a week later.</p>
+ <div style="margin-top:26px;display:flex;gap:10px;flex-wrap:wrap">
+ <span class="tag">At the point of sale</span><span class="tag">Online checkout</span>
+ <span class="tag">Desktop &amp; email</span><span class="tag">Live dashboard feed</span>
+ </div>
+ </div>
+ <div class="alerts-mock reveal d1" aria-hidden="true">
+ <div class="atoast" style="--d:0s">
+ <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span></div>
+ <div class="ab"><div class="at"><b>New <span class="g">A&#42;</span> order · Sir James Whitfield</b><span class="atm">now</span></div>
+ <div class="as">Work email · Mayfair postcode · Premium card</div></div>
+ </div>
+ <div class="atoast" style="--d:1.8s">
+ <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span></div>
+ <div class="ab"><div class="at"><b>New <span class="g">A</span> order · Mei Tanaka</b><span class="atm">now</span></div>
+ <div class="as">Premium card · HNW neighbourhood</div></div>
+ </div>
+ <div class="atoast" style="--d:3.6s">
+ <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span></div>
+ <div class="ab"><div class="at"><b>New <span class="g">A&#42;</span> order · Omar Al-Rashid</b><span class="atm">now</span></div>
+ <div class="as">Family office · Concierge delivery</div></div>
+ </div>
+ </div>
 </div></section>
 
 <!-- WHITE: from insight to action -->
 <section class="pad light"><div class="wrap">
-  <div class="sig-head reveal" style="max-width:38ch">
-    <div class="eyebrow" style="margin-bottom:20px">From insight to action</div>
-    <h2 class="h2">Finding them is half of it.<br>Halia does the other half.</h2>
-  </div>
-  <div class="split" style="align-items:start">
-    <div class="msgcard reveal">
-      <div class="mm" id="msgMeta">To a new VIC · Personal welcome</div>
-      <div class="mb" id="msgBody">Dear Amara,<br><br>Thank you for being one of our valued clients. I wanted to
-        reach out personally; if there is ever a piece you are looking for, it would be my pleasure to
-        help you find it.<br><br>Warmly,<br>The Aubin London team</div>
-      <div class="mt" id="msgPills">
-        <span class="chip on" data-t="0">Personal welcome</span>
-        <span class="chip" data-t="1">New arrival</span>
-        <span class="chip" data-t="2">Concierge check-in</span>
-        <span class="chip" data-t="3">Win-back</span>
-      </div>
-    </div>
-    <div class="reveal d1">
-      <p style="color:#6b6557;font-size:17px;max-width:42ch;margin:0 0 30px">The hard part is usually the next
-        move. Halia hands your team a ready one: predefined, editable templates and messages built for the
-        moment, so the right client gets the right note in your own voice.</p>
-      <div class="moment"><div class="mi">01</div><h3>At the point of sale</h3><p>A grade on the customer in front of you, so the right people get recognition in the moment, not a week later.</p></div>
-      <div class="moment"><div class="mi">02</div><h3>The first reach-out</h3><p>A personal welcome the instant a hidden VIC appears, ready to send. Recognition, never a discount code.</p></div>
-      <div class="moment"><div class="mi">03</div><h3>Lapsed and at risk</h3><p>Ready-to-shoot win-back notes for the high-value clients who have quietly gone quiet, before they are gone for good.</p></div>
-      <div style="margin-top:24px;color:#9a9385;font-size:14px">Every message is yours to edit in Settings.</div>
-    </div>
-  </div>
+ <div class="sig-head reveal" style="max-width:38ch">
+ <div class="eyebrow" style="margin-bottom:20px">From insight to action</div>
+ <h2 class="h2">Finding them is half of it.<br>Halia does the other half.</h2>
+ </div>
+ <div class="split" style="align-items:start">
+ <div class="msgcard reveal">
+ <div class="mm" id="msgMeta">To a new VIC · Personal welcome</div>
+ <div class="mb" id="msgBody">Dear Amara,<br><br>Thank you for being one of our valued clients. I wanted to
+ reach out personally; if there is ever a piece you are looking for, it would be my pleasure to
+ help you find it.<br><br>Warmly,<br>The Aubin London team</div>
+ <div class="mt" id="msgPills">
+ <span class="chip on" data-t="0">Personal welcome</span>
+ <span class="chip" data-t="1">New arrival</span>
+ <span class="chip" data-t="2">Concierge check-in</span>
+ <span class="chip" data-t="3">Win-back</span>
+ </div>
+ </div>
+ <div class="reveal d1">
+ <p style="color:#6b6557;font-size:17px;max-width:42ch;margin:0 0 30px">The hard part is usually the next
+ move. Halia hands your team a ready one: predefined, editable templates and messages built for the
+ moment, so the right client gets the right note in your own voice.</p>
+ <div class="moment"><div class="mi">01</div><h3>At the point of sale</h3><p>A grade on the customer in front of you, so the right people get recognition in the moment, not a week later.</p></div>
+ <div class="moment"><div class="mi">02</div><h3>The first reach-out</h3><p>A personal welcome the instant a hidden VIC appears, ready to send. Recognition that feels personal and earned.</p></div>
+ <div class="moment"><div class="mi">03</div><h3>Lapsed and at risk</h3><p>Ready-to-shoot win-back notes for the high-value clients who have quietly gone quiet, before they are gone for good.</p></div>
+ <div style="margin-top:24px;color:#9a9385;font-size:14px">Every message is yours to edit in Settings.</div>
+ </div>
+ </div>
 </div></section>
 
 <!-- INSIDE THE DASHBOARD: interactive table + charts -->
 <section id="dashboard" class="pad"><div class="wrap">
-  <div class="sig-head reveal" style="max-width:50ch">
-    <div class="eyebrow" style="margin-bottom:20px">Inside the dashboard</div>
-    <h2 class="h2">A clear read on<br>every customer.</h2>
-  </div>
-  <div class="browser reveal d1">
-    <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.halia.io  ·  Hidden VICs</div></div>
-    <div class="bbody"><div class="tbl">
-      <table id="vicTable"><thead><tr>
-        <th data-k="client">Client</th>
-        <th data-k="grade">Grade</th>
-        <th data-k="score" class="num">Score</th>
-        <th data-k="spend" class="num">Spend</th>
-        <th data-k="latent" class="num">Latent value</th>
-        <th data-k="signals">Signals</th>
-      </tr></thead><tbody></tbody></table>
-      <div class="tbl-hint">Sample data. Click a column to sort.</div>
-    </div></div>
-  </div>
-  <p class="lede reveal d1" style="text-align:center;max-width:48ch;margin:36px auto 0">Sort and filter every customer by grade, score, spend, and the signals that fired — then open any client for the full picture and a recommended approach ready to send.</p>
+ <div class="sig-head reveal" style="max-width:50ch">
+ <div class="eyebrow" style="margin-bottom:20px">Inside the dashboard</div>
+ <h2 class="h2">A clear read on<br>every customer.</h2>
+ </div>
+ <div class="browser reveal d1">
+ <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.halia.io · Hidden VICs</div></div>
+ <div class="bbody"><div class="tbl">
+ <table id="vicTable"><thead><tr>
+ <th data-k="client">Client</th>
+ <th data-k="grade">Grade</th>
+ <th data-k="score" class="num">Score</th>
+ <th data-k="spend" class="num">Spend</th>
+ <th data-k="latent" class="num">Latent value</th>
+ <th data-k="signals">Signals</th>
+ </tr></thead><tbody></tbody></table>
+ <div class="tbl-hint">Sample data. Click a column to sort.</div>
+ </div></div>
+ </div>
+ <p class="lede reveal d1" style="text-align:center;max-width:48ch;margin:36px auto 0">Sort and filter every customer by grade, score, spend, and the signals that fired, then open any client for the full picture and a recommended approach ready to send.</p>
 </div></section>
 
 <!-- STATEMENT: positioning -->
 <section class="stmt-sec"><div class="wrap">
-  <div class="eyebrow reveal">Our promise</div>
-  <p class="stmt reveal d1">Intelligence, not <em>surveillance.</em><span class="sub">We read the signals already in your data to recognise your best clients — never to track them. Every customer is scored in memory and kept nowhere.</span></p>
+ <div class="eyebrow reveal">Our promise</div>
+ <p class="stmt reveal d1">Intelligence, not <em>surveillance.</em><span class="sub">We read the signals already in your data to recognise your best clients, never to track them.</span></p>
 </div></section>
 
 <!-- HIDDEN POTENTIAL → clienteling -->
 <section class="pad light"><div class="wrap split">
-  <div class="media pxmedia reveal"><img src="img/clientimage.jpg" alt="Finding and connecting with hidden VICs" loading="lazy" data-parallax></div>
-  <div class="copy reveal d1">
-    <div class="eyebrow">Hidden potential</div>
-    <h2 class="h2" style="margin:22px 0 24px">The clients worth finding are the ones you cannot <em>see.</em></h2>
-    <p>Your most valuable relationships are not always your biggest spenders today. A single modest
-      order can hide a future VIC, a referral, an inheritance. Halia surfaces that hidden potential,
-      so you can find and connect with the right people before anyone else does.</p>
-    <a class="btn ghost" href="/clienteling" style="margin-top:30px">The case for clienteling <span class="arrow">→</span></a>
-  </div>
+ <div class="media pxmedia reveal"><img src="img/clientimage.jpg" alt="Finding and connecting with hidden VICs" loading="lazy" data-parallax></div>
+ <div class="copy reveal d1">
+ <div class="eyebrow">Hidden potential</div>
+ <h2 class="h2" style="margin:22px 0 24px">The clients worth finding are the ones you cannot <em>see.</em></h2>
+ <p>Your most valuable relationships are not always your biggest spenders today. A single modest
+ order can hide a future VIC, a referral, an inheritance. Halia surfaces that hidden potential,
+ so you can find and connect with the right people before anyone else does.</p>
+ <a class="btn ghost" href="/clienteling" style="margin-top:30px">The case for clienteling <span class="arrow">→</span></a>
+ </div>
 </div></section>
 
 <!-- PARETO 80/20 -->
 <section class="pad" style="background:var(--bg-2)"><div class="wrap">
-  <div class="eyebrow reveal" style="margin-bottom:18px">The eighty-twenty of luxury</div>
-  <h2 class="h2 reveal" style="margin-bottom:14px;max-width:20ch">Twenty percent of clients. Eighty percent of revenue.</h2>
-  <div class="chartwrap">
-    <div class="pareto reveal d1" id="pareto"></div>
-    <div class="chart-side reveal d2">
-      <div class="eyebrow">Why a few matter so much</div>
-      <p>In luxury the imbalance is extreme: a small tier of clients carries most of the revenue,
-        and the very top of it carries most of that. The whole game is finding those people, and the
-        ones about to become them, before anyone else.</p>
-      <a class="btn ghost" href="/clienteling" style="margin-top:24px">The case for clienteling <span class="arrow">→</span></a>
-    </div>
-  </div>
+ <div class="eyebrow reveal" style="margin-bottom:18px">The eighty-twenty of luxury</div>
+ <h2 class="h2 reveal" style="margin-bottom:14px;max-width:20ch">Twenty percent of clients. Eighty percent of revenue.</h2>
+ <div class="chartwrap">
+ <div class="pareto reveal d1" id="pareto"></div>
+ <div class="chart-side reveal d2">
+ <div class="eyebrow">Why a few matter so much</div>
+ <p>In luxury the imbalance is extreme: a small tier of clients carries most of the revenue,
+ and the very top of it carries most of that. The whole game is finding those people, and the
+ ones about to become them, before anyone else.</p>
+ <a class="btn ghost" href="/clienteling" style="margin-top:24px">The case for clienteling <span class="arrow">→</span></a>
+ </div>
+ </div>
 </div></section>
 
 <!-- IMAGE STATEMENT (negative space) -->
 <section class="bleed" style="height:80vh;min-height:520px">
-  <img src="img/general.jpg" alt="" loading="lazy" data-parallax style="position:absolute;left:0;top:-13%;width:100%;height:126%;object-fit:cover;will-change:transform">
-  <div class="veil2" style="background:linear-gradient(90deg,rgba(8,8,9,.6),rgba(8,8,9,.2) 55%,transparent)"></div>
-  <div class="wrap"><div class="inner reveal">
-    <h2 style="max-width:26ch">A handful of clients are worth more than the rest combined.</h2>
-    <p style="max-width:36ch">Halia makes sure you know exactly who they are.</p>
-  </div></div>
+ <img src="img/general.jpg" alt="" loading="lazy" data-parallax style="position:absolute;left:0;top:-13%;width:100%;height:126%;object-fit:cover;will-change:transform">
+ <div class="veil2" style="background:linear-gradient(90deg,rgba(8,8,9,.6),rgba(8,8,9,.2) 55%,transparent)"></div>
+ <div class="wrap"><div class="inner reveal">
+ <h2 style="max-width:26ch">A handful of clients are worth more than the rest combined.</h2>
+ <p style="max-width:36ch">Halia makes sure you know exactly who they are.</p>
+ </div></div>
 </section>
 
 <!-- FOR TEAMS / DEPARTMENTS -->
 <section id="teams" class="pad light"><div class="wrap">
-  <div class="sig-head reveal">
-    <div class="eyebrow" style="margin-bottom:20px">For your teams</div>
-    <h2 class="h2">One score, every team<br>that touches a client.</h2>
-  </div>
-  <div class="dept-grid">
-    <div class="dept reveal"><div class="di">01</div><h3>Clienteling &amp; VIP</h3>
-      <p>Know exactly who deserves a private appointment, an invite, or a handwritten note, before they ask.</p></div>
-    <div class="dept reveal d1"><div class="di">02</div><h3>Retail &amp; store teams</h3>
-      <p>A grade on the customer in front of you at the till, so the right people get the white-glove treatment in the moment.</p></div>
-    <div class="dept reveal d2"><div class="di">03</div><h3>CRM &amp; lifecycle</h3>
-      <p>Build segments that target genuine value, not just past spend, and route each grade into the right journey.</p></div>
-    <div class="dept reveal"><div class="di">04</div><h3>Marketing &amp; automation</h3>
-      <p>Trigger the right flow to the right customer automatically, the instant Halia surfaces them.</p></div>
-    <div class="dept reveal d1"><div class="di">05</div><h3>Ecommerce &amp; growth</h3>
-      <p>Build acquisition lookalikes from your true VICs, and prioritise the spend that compounds.</p></div>
-    <div class="dept reveal d2"><div class="di">06</div><h3>Founders &amp; leadership</h3>
-      <p>See the latent value sitting quietly in your customer base, and the revenue you are leaving on the table.</p></div>
-  </div>
+ <div class="sig-head reveal">
+ <div class="eyebrow" style="margin-bottom:20px">For your teams</div>
+ <h2 class="h2">One score, every team<br>that touches a client.</h2>
+ </div>
+ <div class="dept-grid">
+ <div class="dept reveal"><div class="di">01</div><h3>Clienteling &amp; VIP</h3>
+ <p>Know exactly who deserves a private appointment, an invite, or a handwritten note, before they ask.</p></div>
+ <div class="dept reveal d1"><div class="di">02</div><h3>Retail &amp; store teams</h3>
+ <p>A grade on the customer in front of you at the till, so the right people get the white-glove treatment in the moment.</p></div>
+ <div class="dept reveal d2"><div class="di">03</div><h3>CRM &amp; lifecycle</h3>
+ <p>Build segments that target genuine value, not just past spend, and route each grade into the right journey.</p></div>
+ <div class="dept reveal"><div class="di">04</div><h3>Marketing &amp; automation</h3>
+ <p>Trigger the right flow to the right customer automatically, the instant Halia surfaces them.</p></div>
+ <div class="dept reveal d1"><div class="di">05</div><h3>Ecommerce &amp; growth</h3>
+ <p>Build acquisition lookalikes from your true VICs, and prioritise the spend that compounds.</p></div>
+ <div class="dept reveal d2"><div class="di">06</div><h3>Founders &amp; leadership</h3>
+ <p>See the latent value sitting quietly in your customer base, and the revenue you are leaving on the table.</p></div>
+ </div>
 </div></section>
 
 <!-- SOLUTIONS -->
 <section id="solutions" class="pad"><div class="wrap">
-  <div class="sol-head">
-    <h2 class="h2 reveal">Built for considered<br>purchases.</h2>
-    <p class="lede reveal d1" style="max-width:34ch">Wherever a single, well-treated client is worth more than a thousand one-time buyers.</p>
-  </div>
-  <div class="sol-grid">
-    <div class="sol reveal"><img src="img/fashion.jpg" alt="Fashion" loading="lazy"><div class="lab"><h3>Fashion &amp; Apparel</h3><p>Buyers worth a private appointment.</p></div></div>
-    <div class="sol reveal d1"><img src="img/beauty.jpg" alt="Beauty" loading="lazy"><div class="lab"><h3>Beauty &amp; Fragrance</h3><p>One-time gifters into house clients.</p></div></div>
-    <div class="sol reveal d2"><img src="img/jewellery.jpg" alt="Jewellery" loading="lazy"><div class="lab"><h3>Jewellery &amp; Watches</h3><p>Quiet wealth behind a modest order.</p></div></div>
-    <div class="sol reveal d3"><img src="img/homeware.jpg" alt="Homeware" loading="lazy"><div class="lab"><h3>Home &amp; Lifestyle</h3><p>The trade and trophy-address clients.</p></div></div>
-  </div>
-  <div class="reveal d1" style="margin-top:46px"><a class="btn ghost" href="/solutions">Explore solutions in depth <span class="arrow">→</span></a></div>
+ <div class="sol-head">
+ <h2 class="h2 reveal">Built for considered<br>purchases.</h2>
+ <p class="lede reveal d1" style="max-width:34ch">Wherever a single, well-treated client is worth more than a thousand one-time buyers.</p>
+ </div>
+ <div class="sol-grid">
+ <div class="sol reveal"><img src="img/fashion.jpg" alt="Fashion" loading="lazy"><div class="lab"><h3>Fashion &amp; Apparel</h3><p>Buyers worth a private appointment.</p></div></div>
+ <div class="sol reveal d1"><img src="img/beauty.jpg" alt="Beauty" loading="lazy"><div class="lab"><h3>Beauty &amp; Fragrance</h3><p>One-time gifters into house clients.</p></div></div>
+ <div class="sol reveal d2"><img src="img/jewellery.jpg" alt="Jewellery" loading="lazy"><div class="lab"><h3>Jewellery &amp; Watches</h3><p>Quiet wealth behind a modest order.</p></div></div>
+ <div class="sol reveal d3"><img src="img/homeware.jpg" alt="Homeware" loading="lazy"><div class="lab"><h3>Home &amp; Lifestyle</h3><p>The trade and trophy-address clients.</p></div></div>
+ </div>
+ <div class="reveal d1" style="margin-top:46px"><a class="btn ghost" href="/solutions">Explore solutions in depth <span class="arrow">→</span></a></div>
 </div></section>
 
 <!-- INTEGRATIONS -->
 <section class="pad" style="padding-top:clamp(46px,6vh,86px);padding-bottom:clamp(46px,6vh,86px)"><div class="wrap">
-  <div class="sig-head reveal" style="max-width:48ch;margin-bottom:34px">
-    <div class="eyebrow" style="margin-bottom:18px">Integrations</div>
-    <h2 class="h2">Works with the tools<br>you already use.</h2>
-    <p class="lede" style="margin-top:18px">Connect your store in one click, then send your graded VICs straight to the platform your team already lives in. Nothing to migrate, nothing to learn.</p>
-  </div>
-  <div class="intg reveal d1">
-    <div class="ichip"><img src="img/logos/shopify.png" alt="Shopify" loading="lazy"><span>Shopify</span></div>
-    <div class="ichip"><img src="img/logos/bigcommerce.svg" alt="BigCommerce" loading="lazy"><span>BigCommerce</span></div>
-    <div class="ichip"><img src="img/logos/woocommerce.png" alt="WooCommerce" loading="lazy"><span>WooCommerce</span></div>
-    <div class="ichip"><img src="img/logos/klaviyo.png" alt="Klaviyo" loading="lazy"><span>Klaviyo</span></div>
-    <div class="ichip"><img src="img/logos/mailchimp.png" alt="Mailchimp" loading="lazy"><span>Mailchimp</span></div>
-    <div class="ichip"><img src="img/logos/hubspot.svg" alt="HubSpot" loading="lazy"><span>HubSpot</span></div>
-  </div>
-  <p class="reveal d2" style="text-align:center;color:var(--mute);font-size:14px;margin-top:20px">Sources: Shopify, BigCommerce, WooCommerce &nbsp;·&nbsp; Destinations: Klaviyo, Mailchimp, HubSpot &nbsp;·&nbsp; Alerts: Slack</p>
+ <div class="sig-head reveal" style="max-width:48ch;margin-bottom:34px">
+ <div class="eyebrow" style="margin-bottom:18px">Integrations</div>
+ <h2 class="h2">Works with the tools<br>you already use.</h2>
+ <p class="lede" style="margin-top:18px">Connect your store in one click, then send your graded VICs straight to the platform your team already lives in. It fits the tools and habits your team already has.</p>
+ </div>
+ <div class="intg reveal d1">
+ <div class="ichip"><img src="img/logos/shopify.png" alt="Shopify" loading="lazy"><span>Shopify</span></div>
+ <div class="ichip"><img src="img/logos/bigcommerce.svg" alt="BigCommerce" loading="lazy"><span>BigCommerce</span></div>
+ <div class="ichip"><img src="img/logos/woocommerce.png" alt="WooCommerce" loading="lazy"><span>WooCommerce</span></div>
+ <div class="ichip"><img src="img/logos/klaviyo.png" alt="Klaviyo" loading="lazy"><span>Klaviyo</span></div>
+ <div class="ichip"><img src="img/logos/mailchimp.png" alt="Mailchimp" loading="lazy"><span>Mailchimp</span></div>
+ <div class="ichip"><img src="img/logos/hubspot.svg" alt="HubSpot" loading="lazy"><span>HubSpot</span></div>
+ </div>
+ <p class="reveal d2" style="text-align:center;color:var(--mute);font-size:14px;margin-top:20px">Sources: Shopify, BigCommerce, WooCommerce &nbsp;·&nbsp; Destinations: Klaviyo, Mailchimp, HubSpot &nbsp;·&nbsp; Alerts: Slack</p>
 </div></section>
 
 <!-- HOW IT WORKS / ARCHITECTURE -->
 <section id="how" class="pad" style="background:var(--bg-2)"><div class="wrap">
-  <div class="sig-head reveal" style="max-width:none">
-    <div class="eyebrow" style="margin-bottom:20px">How it works</div>
-    <h2 class="h2">Connected to your stack.<br>Acting in real time.</h2>
-  </div>
-  <div class="flow reveal d1">
-    <div class="fnode">
-      <div class="fh">Your store</div>
-      <div class="fs">Where your customers already are.</div>
-      <div class="chips"><span>Shopify</span><span>BigCommerce</span><span>WooCommerce</span></div>
-      <div class="fl">Read-only</div>
-    </div>
-    <div class="conn"><span class="dot"></span></div>
-    <div class="fnode hub">
-      <div class="fh">Halia</div>
-      <div class="fs">Scores every customer on the spot. Keeps no copy.</div>
-      <div class="chips"><span>40+ signals</span><span>A&#42; to C</span><span>Latent value</span></div>
-      <div class="fl">Scored in seconds</div>
-    </div>
-    <div class="conn d2"><span class="dot"></span></div>
-    <div class="fnode">
-      <div class="fh">Your tools</div>
-      <div class="fs">Grades and segments, where you work.</div>
-      <div class="chips"><span>Klaviyo</span><span>Mailchimp</span><span>HubSpot</span><span>Your team</span></div>
-      <div class="fl">Acts instantly</div>
-    </div>
-  </div>
-  <div class="actions reveal d2">
-    <span class="lbl">The moment a VIC appears, Halia can:</span>
-    <span class="act">Build a grade segment</span>
-    <span class="act">Tag the profile</span>
-    <span class="act">Create a list from a selection</span>
-    <span class="act">Trigger a Klaviyo, Mailchimp or HubSpot flow</span>
-    <span class="act">Brief your store team</span>
-  </div>
-  <p class="lede reveal d2" style="margin-top:54px;max-width:none">Halia reads your customers through a
-    read-only connection, scores them the moment they arrive, and pushes the result straight into the
-    tools your team already lives in. No exports, no spreadsheets, no waiting, and no copy of your
-    customer database sitting on anyone else's servers.</p>
+ <div class="sig-head reveal" style="max-width:none">
+ <div class="eyebrow" style="margin-bottom:20px">How it works</div>
+ <h2 class="h2">Connected to your stack.<br>Acting in real time.</h2>
+ </div>
+ <div class="flow reveal d1">
+ <div class="fnode">
+ <div class="fh">Your store</div>
+ <div class="fs">Where your customers already are.</div>
+ <div class="chips"><span>Shopify</span><span>BigCommerce</span><span>WooCommerce</span></div>
+ <div class="fl">Read-only</div>
+ </div>
+ <div class="conn"><span class="dot"></span></div>
+ <div class="fnode hub">
+ <div class="fh">Halia</div>
+ <div class="fs">Scores every customer on the spot.</div>
+ <div class="chips"><span>40+ signals</span><span>A&#42; to C</span><span>Latent value</span></div>
+ <div class="fl">Scored in seconds</div>
+ </div>
+ <div class="conn d2"><span class="dot"></span></div>
+ <div class="fnode">
+ <div class="fh">Your tools</div>
+ <div class="fs">Grades and segments, where you work.</div>
+ <div class="chips"><span>Klaviyo</span><span>Mailchimp</span><span>HubSpot</span><span>Your team</span></div>
+ <div class="fl">Acts instantly</div>
+ </div>
+ </div>
+ <div class="actions reveal d2">
+ <span class="lbl">The moment a VIC appears, Halia can:</span>
+ <span class="act">Build a grade segment</span>
+ <span class="act">Tag the profile</span>
+ <span class="act">Create a list from a selection</span>
+ <span class="act">Trigger a Klaviyo, Mailchimp or HubSpot flow</span>
+ <span class="act">Brief your store team</span>
+ </div>
+ <p class="lede reveal d2" style="margin-top:54px;max-width:none">Halia reads your customers through a
+ read-only connection, scores them the moment they arrive, and pushes the result straight into the
+ tools your team already lives in. The grades arrive automatically, ready for your team to act on
+ the moment they land.</p>
 </div></section>
 
 <!-- ENGINE (copy left, node graph right) -->
 <section id="engine" class="pad"><div class="wrap split">
-  <div class="copy reveal">
-    <div class="eyebrow">The engine</div>
-    <h2 class="h2">Forty signals.<br>One quiet score.</h2>
-    <p>Halia was built by people who ran clienteling and CRM inside luxury retail &mdash; who spent
-      years learning which quiet details separate a passing customer from a lifelong client. That
-      knowledge is now an algorithm: more than forty wealth and intent signals, weighed, cross-checked
-      and resolved into one score and a grade from A&#42; to C for every customer you have. Not a
-      filter. Not a rule. An algorithm trained on how wealth actually behaves &mdash; quietly.</p>
-    <div class="meta">
-      <div><b>40+</b><span>Signals read</span></div>
-      <div><b>A&#42; to C</b><span>Every customer graded</span></div>
-      <div><b>~1hr</b><span>To first results</span></div>
-    </div>
-  </div>
-  <div class="graph reveal d1" id="graph">
-    <canvas id="nodelines"></canvas>
-    <div class="score-node"><div class="sv" id="scoreVal">0</div><div class="sg"><b id="scoreGrade">C</b> &middot; Halia score</div></div>
-  </div>
+ <div class="copy reveal">
+ <div class="eyebrow">The engine</div>
+ <h2 class="h2">Forty signals.<br>One quiet score.</h2>
+ <p>Halia was built by people who ran clienteling and CRM inside luxury retail, who spent
+ years learning which quiet details separate a passing customer from a lifelong client. That
+ knowledge is now an algorithm: more than forty wealth and intent signals, weighed, cross-checked
+ and resolved into one score and a grade from A&#42; to C for every customer you have. An algorithm
+ that reads how wealth actually behaves: quietly, in the details most tools miss.</p>
+ <div class="meta">
+ <div><b>40+</b><span>Signals read</span></div>
+ <div><b>A&#42; to C</b><span>Every customer graded</span></div>
+ <div><b>~1hr</b><span>To first results</span></div>
+ </div>
+ </div>
+ <div class="graph reveal d1" id="graph">
+ <canvas id="nodelines"></canvas>
+ <div class="score-node"><div class="sv" id="scoreVal">0</div><div class="sg"><b id="scoreGrade">C</b> &middot; Halia score</div></div>
+ </div>
 </div></section>
 
 <!-- UNDER THE HOOD / KNOWLEDGE BASE -->
 <section class="pad" style="position:relative;overflow:hidden">
-  <img src="img/databases.jpg" alt="" loading="lazy" data-parallax style="position:absolute;left:0;top:-14%;width:100%;height:128%;object-fit:cover;opacity:.10;z-index:0;will-change:transform">
-  <div class="wrap" style="position:relative;z-index:1">
-  <div class="sig-head reveal" style="max-width:58ch">
-    <div class="eyebrow" style="margin-bottom:20px">Under the hood</div>
-    <h2 class="h2">Intelligence that cannot<br>be copied.</h2>
-    <p class="lede" style="margin-top:22px;max-width:72ch">Anyone can flag a postcode. Halia checks every order, in milliseconds, against a
-      proprietary body of reference intelligence built and curated by hand over years &mdash; the
-      postcodes, domains, institutions, venues and structures where wealth actually lives, from
-      private-jet terminals to family-office registries. No person could do this for one customer, let
-      alone all of them, continuously.</p>
-  </div>
-  <div class="kb-stats reveal d1" id="kbstats">
-    <div class="kb-stat"><div class="n" data-to="40" data-suffix="+">0</div><div class="l">Signals weighed together</div></div>
-    <div class="kb-stat"><div class="n" data-to="1500" data-suffix="+">0</div><div class="l">Curated reference points</div></div>
-    <div class="kb-stat"><div class="n word">Every</div><div class="l">Private-jet terminal &amp; superyacht marina</div></div>
-    <div class="kb-stat"><div class="n word">Milliseconds</div><div class="l">Per customer, scored continuously</div></div>
-  </div>
-  <p class="reveal d2" style="color:var(--mute);font-size:16px;margin-top:34px;max-width:64ch">And it does not simply flag. The algorithm discounts correlated tells, so three echoes of one fact count once; it silences weak signals unless stronger ones agree; and it separates evidence from noise. The result is a score you can defend, line by line &mdash; not a pile of guesses.</p>
-  <div class="reveal d2" style="margin-top:30px"><a class="btn ghost" href="/faq#data">Explore the full data model <span class="arrow">→</span></a></div>
+ <img src="img/databases.jpg" alt="" loading="lazy" data-parallax style="position:absolute;left:0;top:-14%;width:100%;height:128%;object-fit:cover;opacity:.10;z-index:0;will-change:transform">
+ <div class="wrap" style="position:relative;z-index:1">
+ <div class="sig-head reveal" style="max-width:58ch">
+ <div class="eyebrow" style="margin-bottom:20px">Under the hood</div>
+ <h2 class="h2">Intelligence that cannot<br>be copied.</h2>
+ <p class="lede" style="margin-top:22px;max-width:72ch">Anyone can flag a postcode. Halia checks every order, in milliseconds, against a
+ proprietary body of reference intelligence built and curated by hand over years, the
+ postcodes, domains, institutions, venues and structures where wealth actually lives, from
+ private-jet terminals to family-office registries. No person could do this for one customer, let
+ alone all of them, continuously.</p>
+ </div>
+ <div class="kb-stats reveal d1" id="kbstats">
+ <div class="kb-stat"><div class="n" data-to="40" data-suffix="+">0</div><div class="l">Signals weighed together</div></div>
+ <div class="kb-stat"><div class="n" data-to="1500" data-suffix="+">0</div><div class="l">Curated reference points</div></div>
+ <div class="kb-stat"><div class="n word">Every</div><div class="l">Private-jet terminal &amp; superyacht marina</div></div>
+ <div class="kb-stat"><div class="n word">Milliseconds</div><div class="l">Per customer, scored continuously</div></div>
+ </div>
+ <p class="reveal d2" style="color:var(--mute);font-size:16px;margin-top:34px;max-width:64ch">And it does not simply flag. The algorithm discounts correlated tells, so three echoes of one fact count once; it silences weak signals unless stronger ones agree; and it separates evidence from noise. The result is a score you can defend, line by line.</p>
+ <div class="reveal d2" style="margin-top:30px"><a class="btn ghost" href="/faq#data">Explore the full data model <span class="arrow">→</span></a></div>
 </div></section>
 
 <!-- PRECISION BY DESIGN -->
 <section class="pad" style="background:var(--bg-2)"><div class="wrap">
-  <div class="sig-head reveal" style="max-width:60ch">
-    <div class="eyebrow" style="margin-bottom:20px">Precision by design</div>
-    <h2 class="h2">Built to be right,<br>not loud.</h2>
-    <p class="lede" style="margin-top:22px;max-width:72ch">Most tools shout about every match. Halia is engineered to stay quiet until
-      the evidence converges &mdash; no client is surfaced on a single weak tell, every score carries its
-      reasons, and the algorithm is tuned to your store&#39;s own data, not a generic model.</p>
-  </div>
-  <div class="sec-points reveal d1" style="margin-top:48px">
-    <div class="spt"><h3><span class="b">01</span>Never on one tell</h3><p>A client surfaces only when independent signals agree. A single weak match is never enough.</p></div>
-    <div class="spt"><h3><span class="b">02</span>Every score, explained</h3><p>Each grade arrives with the reasons behind it &mdash; evidence you can defend, line by line.</p></div>
-    <div class="spt"><h3><span class="b">03</span>Tuned to your store</h3><p>The engine calibrates to your own data, so it surfaces the clients worth your team&#39;s next move.</p></div>
-  </div>
-  <p class="reveal d2" style="color:var(--mute);font-size:16px;margin-top:34px;max-width:66ch">The clients it surfaces are the ones worth acting on &mdash; a &pound;200 customer with a family-office address, or a prospect who has never bought but already fits the profile of your best clients.</p>
+ <div class="sig-head reveal" style="max-width:60ch">
+ <div class="eyebrow" style="margin-bottom:20px">Precision by design</div>
+ <h2 class="h2">Built to be right,<br>not loud.</h2>
+ <p class="lede" style="margin-top:22px;max-width:72ch">Most tools shout about every match. Halia is engineered to stay quiet until
+ the evidence converges, no client is surfaced on a single weak tell, every score carries its
+ reasons, and the algorithm is tuned to your store&#39;s own data.</p>
+ </div>
+ <div class="sec-points reveal d1" style="margin-top:48px">
+ <div class="spt"><h3><span class="b">01</span>Never on one tell</h3><p>A client surfaces only when independent signals agree. A single weak match is never enough.</p></div>
+ <div class="spt"><h3><span class="b">02</span>Every score, explained</h3><p>Each grade arrives with the reasons behind it, evidence you can defend, line by line.</p></div>
+ <div class="spt"><h3><span class="b">03</span>Tuned to your store</h3><p>The engine calibrates to your own data, so it surfaces the clients worth your team&#39;s next move.</p></div>
+ </div>
+ <p class="reveal d2" style="color:var(--mute);font-size:16px;margin-top:34px;max-width:66ch">The clients it surfaces are the ones worth acting on, a &pound;200 customer with a family-office address, or a prospect who has never bought but already fits the profile of your best clients.</p>
 </div></section>
 
 <!-- SIGNALS -->
 <section id="signals" class="pad light"><div class="wrap">
-  <div class="sig-head reveal">
-    <div class="eyebrow" style="margin-bottom:20px">What Halia sees</div>
-    <h2 class="h2">The tells of quiet wealth.</h2>
-  </div>
-  <div class="sgrid">
-    <div class="scell reveal"><div class="k"><h3>Geography</h3><span class="num">01</span></div>
-      <div class="tags"><span class="tag">Ultra-prime postcodes</span><span class="tag">Area property values</span><span class="tag">Trophy residences</span><span class="tag">International wealth hubs</span></div></div>
-    <div class="scell reveal d1"><div class="k"><h3>Delivery destinations</h3><span class="num">02</span></div>
-      <div class="tags"><span class="tag">Private-jet terminals</span><span class="tag">Superyacht marinas</span><span class="tag">Luxury hotels</span><span class="tag">Members' clubs</span></div></div>
-    <div class="scell reveal"><div class="k"><h3>Email &amp; domain</h3><span class="num">03</span></div>
-      <div class="tags"><span class="tag">Wealth-employer domains</span><span class="tag">Family offices</span><span class="tag">Private equity &amp; hedge funds</span><span class="tag">Elite alumni</span></div></div>
-    <div class="scell reveal d1"><div class="k"><h3>Identity</h3><span class="num">04</span></div>
-      <div class="tags"><span class="tag">Honorifics</span><span class="tag">Post-nominals</span><span class="tag">Personal shoppers</span><span class="tag">Celebrity stylists</span></div></div>
-    <div class="scell reveal"><div class="k"><h3>Behaviour</h3><span class="num">05</span></div>
-      <div class="tags"><span class="tag">Assistant &amp; PA orders</span><span class="tag">Concierge delivery</span><span class="tag">Company billing</span><span class="tag">High-value reorders</span></div></div>
-    <div class="scell reveal d1"><div class="k"><h3>Payment</h3><span class="num">06</span></div>
-      <div class="tags"><span class="tag">Premium card ranges</span><span class="tag">Black &amp; bespoke cards</span><span class="tag">Corporate &amp; business cards</span><span class="tag">High card tiers</span></div></div>
-  </div>
+ <div class="sig-head reveal">
+ <div class="eyebrow" style="margin-bottom:20px">What Halia sees</div>
+ <h2 class="h2">The tells of quiet wealth.</h2>
+ <p class="lede" style="margin-top:20px;max-width:60ch">Not spend, but the quiet markers of real wealth, read across six dimensions and weighed together into one defensible score.</p>
+ </div>
+ <div class="sgrid">
+ <div class="scell reveal"><div class="k"><h3>Geography</h3><span class="num">01</span></div>
+ <p class="sdesc">Where a customer lives and takes delivery, read against curated maps of genuine wealth rather than guessed from spend.</p></div>
+ <div class="scell reveal d1"><div class="k"><h3>Delivery destinations</h3><span class="num">02</span></div>
+ <p class="sdesc">The nature of the places a customer has orders sent, and what that quietly says about them.</p></div>
+ <div class="scell reveal"><div class="k"><h3>Email &amp; domain</h3><span class="num">03</span></div>
+ <p class="sdesc">What a customer's email address reveals about the world they work in.</p></div>
+ <div class="scell reveal d1"><div class="k"><h3>Identity</h3><span class="num">04</span></div>
+ <p class="sdesc">The small, telling markers of standing that a name and profile can carry.</p></div>
+ <div class="scell reveal"><div class="k"><h3>Behaviour</h3><span class="num">05</span></div>
+ <p class="sdesc">Ordering patterns that reveal a household or an office buying on someone's behalf.</p></div>
+ <div class="scell reveal d1"><div class="k"><h3>Payment</h3><span class="num">06</span></div>
+ <p class="sdesc">What the payment itself signals about real spending power.</p></div>
+ </div>
+ <p class="reveal d2" style="color:var(--faint);font-size:13.5px;margin-top:26px;max-width:62ch">Illustrative, not exhaustive. The specific signals, their sources and their weightings are proprietary.</p>
 </div></section>
 
 <!-- SECURITY (deep) -->
 <section id="security" class="pad" style="background:var(--bg-2)"><div class="wrap">
-  <div class="split" style="margin-bottom:64px">
-    <div class="copy reveal">
-      <div class="eyebrow">Security &amp; data</div>
-      <h2 class="h2" style="margin:22px 0 24px">Built so we never<br>hold your customers.</h2>
-      <p>Most tools copy your whole customer list onto their own servers and keep it there. Halia
-        never does. We look at your customers only for the moment it takes to score them, and we keep
-        no copy. The one thing we hold is permission to look, never to change anything, and you can
-        switch it off whenever you like. There is simply no customer list on our side to lose, leak,
-        or hand to anyone.</p>
-      <a class="btn ghost" href="/security" style="margin-top:30px">Read our security overview <span class="arrow">→</span></a>
-    </div>
-    <div class="media pxmedia reveal d1"><img src="img/we_keep_nothing.jpg" alt="We keep nothing" loading="lazy" data-parallax></div>
-  </div>
-  <div class="sec-points reveal d2">
-    <div class="spt"><h3><span class="b">01</span>We can only look</h3><p>Halia can read your store to score it. It can never change, delete, or place an order.</p></div>
-    <div class="spt"><h3><span class="b">02</span>We keep no copy</h3><p>Your customers are scored on the spot and never saved to anything on our side. Minutes later, gone.</p></div>
-    <div class="spt"><h3><span class="b">03</span>Off whenever you like</h3><p>The one thing we hold is permission to look, kept locked away. Switch it off and access ends at once.</p></div>
-    <div class="spt"><h3><span class="b">04</span>Privacy requests, handled</h3><p>There is nothing of your customers with us to return, export, or delete. Compliance, not paperwork.</p></div>
-    <div class="spt"><h3><span class="b">05</span>You keep every record</h3><p>Your data stays in your store and your own tools. Halia is the lens, never the vault.</p></div>
-    <div class="spt"><h3><span class="b">06</span>Safe in transit</h3><p>Every connection to your store and your tools is encrypted, so nothing can be read along the way.</p></div>
-  </div>
+ <div class="split" style="margin-bottom:64px">
+ <div class="copy reveal">
+ <div class="eyebrow">Security &amp; data</div>
+ <h2 class="h2" style="margin:22px 0 24px">Built so we never<br>hold your customers.</h2>
+ <p>Most tools copy your whole customer list onto their own servers and keep it there. Halia
+ never does. We look at your customers only for the moment it takes to score them, and we keep
+ no copy. The one thing we hold is permission to look, never to change anything, and you can
+ switch it off whenever you like. There is simply no customer list on our side to lose, leak,
+ or hand to anyone.</p>
+ <a class="btn ghost" href="/security" style="margin-top:30px">Read our security overview <span class="arrow">→</span></a>
+ </div>
+ <div class="media pxmedia reveal d1"><img src="img/we_keep_nothing.jpg" alt="We keep nothing" loading="lazy" data-parallax></div>
+ </div>
+ <div class="sec-points reveal d2">
+ <div class="spt"><h3><span class="b">01</span>We can only look</h3><p>Halia can read your store to score it. It can never change, delete, or place an order.</p></div>
+ <div class="spt"><h3><span class="b">02</span>We keep no copy</h3><p>Your customers are scored on the spot and never saved to anything on our side. Minutes later, gone.</p></div>
+ <div class="spt"><h3><span class="b">03</span>Off whenever you like</h3><p>The one thing we hold is permission to look, kept locked away. Switch it off and access ends at once.</p></div>
+ <div class="spt"><h3><span class="b">04</span>Privacy requests, handled</h3><p>There is nothing of your customers with us to return, export, or delete. Compliance, not paperwork.</p></div>
+ <div class="spt"><h3><span class="b">05</span>You keep every record</h3><p>Your data stays in your store and your own tools. Halia is the lens, never the vault.</p></div>
+ <div class="spt"><h3><span class="b">06</span>Safe in transit</h3><p>Every connection to your store and your tools is encrypted, so nothing can be read along the way.</p></div>
+ </div>
 </div></section>
 
 <!-- FINAL / DEMO -->
 <section id="demo" class="pad final" style="overflow:hidden">
-  <img src="img/three_clients.jpg" alt="" loading="lazy"
-       style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.20">
-  <div style="position:absolute;inset:0;background:radial-gradient(75% 80% at 50% 45%,transparent,var(--bg) 88%)"></div>
-  <div class="wrap reveal" style="position:relative;z-index:2">
-    <div class="eyebrow" style="margin-bottom:26px">See it now</div>
-    <h2>Step inside a<br>live Halia dashboard.</h2>
-    <p class="lede" style="margin-bottom:30px">Enter your email and walk straight into a working dashboard, hidden VICs and all. No setup, no call.</p>
-    <form id="demoForm" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <input id="demoEmail" type="email" placeholder="Your work email" required
-        style="background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:14px 22px;color:var(--ink);font:500 15px var(--sans);min-width:280px;outline:none">
-      <button class="btn" type="submit">See demo now <span class="arrow">→</span></button>
-    </form>
-    <div id="demoErr" style="display:none;color:#d9a79f;font-size:13.5px;margin-top:14px"></div>
-    <div style="margin-top:16px"><a href="/connect" style="color:var(--mute);font-size:14px">Or connect your store →</a></div>
-  </div>
+ <img src="img/three_clients.jpg" alt="" loading="lazy"
+ style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.20">
+ <div style="position:absolute;inset:0;background:radial-gradient(75% 80% at 50% 45%,transparent,var(--bg) 88%)"></div>
+ <div class="wrap reveal" style="position:relative;z-index:2">
+ <div class="eyebrow" style="margin-bottom:26px">See it now</div>
+ <h2>Step inside a<br>live Halia dashboard.</h2>
+ <p class="lede" style="margin-bottom:30px">Enter your email and walk straight into a working dashboard, hidden VICs and all. Ready in seconds.</p>
+ <form id="demoForm" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+ <input id="demoEmail" type="email" placeholder="Your work email" required
+ style="background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:14px 22px;color:var(--ink);font:500 15px var(--sans);min-width:280px;outline:none">
+ <button class="btn" type="submit">See demo now <span class="arrow">→</span></button>
+ </form>
+ <div id="demoErr" style="display:none;color:#d9a79f;font-size:13.5px;margin-top:14px"></div>
+ <div style="margin-top:16px"><a href="/connect" style="color:var(--mute);font-size:14px">Or connect your store →</a></div>
+ </div>
 </section>
 
 <!-- FOOTER -->
 <footer><div class="wrap">
-  <div class="news">
-    <h3>The quiet edge in luxury retail, in your inbox.</h3>
-    <form id="newsForm" novalidate>
-      <input id="newsEmail" type="email" placeholder="Your work email" required>
-      <button class="btn" type="submit">Subscribe <span class="arrow">→</span></button>
-    </form>
-  </div>
-  <div class="foot">
-    <div>
-      <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span>Halia</a>
-      <p class="bio">Halia is hidden-VIC intelligence for considered-purchase retail. Our scoring engine
-        &mdash; built from years inside luxury clienteling and a proprietary reference library that
-        cannot be bought or scraped &mdash; grades every customer and surfaces the high-value clients
-        hiding behind modest spend, or sitting unconverted in your database. And it does this holding
-        nothing: every customer is scored in memory and kept nowhere. The deepest read of your data,
-        by the only tool that never keeps it.</p>
-    </div>
-    <div class="col"><h4>Product</h4><a href="#engine">The engine</a><a href="#how">How it works</a><a href="#signals">Signals</a><a href="#teams">For teams</a><a href="/docs">Docs</a><a href="/connect">Connect a store</a></div>
-    <div class="col"><h4>Company</h4><a href="/clienteling">Clienteling</a><span class="nav-drop"><a href="/solutions">Solutions</a><div class="nav-menu"><a href="/solutions/fashion">Fashion & apparel</a><a href="/solutions/wine">Wine & spirits</a><a href="/solutions/beauty">Beauty & fragrance</a><a href="/solutions/jewellery">Jewellery & watches</a><a href="/solutions/home">Home, furniture & interiors</a><a href="/solutions/gifting">Flowers, food & gifting</a><a href="/solutions/collectibles">Rare books & collectibles</a><a href="/solutions/electronics">Electronics & big-box</a><a class="all" href="/solutions">All solutions &rarr;</a></div></span><a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/brand">Brand</a><a href="mailto:hello@halia.app">Contact</a></div>
-    <div class="col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/security">Security &amp; compliance</a></div>
-  </div>
-  <div class="foot-bot">
-    <span>© 2026 Halia. All rights reserved.</span>
-    <span>Zero-retention by design · Shopify · BigCommerce · WooCommerce · Klaviyo · Mailchimp · HubSpot</span>
-  </div>
+ <div class="news">
+ <h3>The quiet edge in luxury retail, in your inbox.</h3>
+ <form id="newsForm" novalidate>
+ <input id="newsEmail" type="email" placeholder="Your work email" required>
+ <button class="btn" type="submit">Subscribe <span class="arrow">→</span></button>
+ </form>
+ </div>
+ <div class="foot">
+ <div>
+ <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span>Halia</a>
+ <p class="bio">Halia is hidden-VIC intelligence for considered-purchase retail. Our scoring engine,
+ built from years inside luxury clienteling and a proprietary reference library that cannot be
+ bought or scraped, grades every customer and surfaces the high-value clients hiding behind modest
+ spend, or sitting unconverted in your database. The deepest read of your data, by the only tool
+ that never keeps it.</p>
+ </div>
+ <div class="col"><h4>Product</h4><a href="#engine">The engine</a><a href="#how">How it works</a><a href="#signals">Signals</a><a href="#teams">For teams</a><a href="/docs">Docs</a><a href="/connect">Connect a store</a></div>
+ <div class="col"><h4>Company</h4><a href="/clienteling">Clienteling</a><span class="nav-drop"><a href="/solutions">Solutions</a><div class="nav-menu"><a href="/solutions/fashion">Fashion & apparel</a><a href="/solutions/wine">Wine & spirits</a><a href="/solutions/beauty">Beauty & fragrance</a><a href="/solutions/jewellery">Jewellery & watches</a><a href="/solutions/home">Home, furniture & interiors</a><a href="/solutions/gifting">Flowers, food & gifting</a><a href="/solutions/collectibles">Rare books & collectibles</a><a href="/solutions/electronics">Electronics & big-box</a><a class="all" href="/solutions">All solutions &rarr;</a></div></span><a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/brand">Brand</a><a href="mailto:hello@halia.app">Contact</a></div>
+ <div class="col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/security">Security &amp; compliance</a></div>
+ </div>
+ <div class="foot-bot">
+ <span>© 2026 Halia. All rights reserved.</span>
+ <span>Zero-retention by design · Shopify · BigCommerce · WooCommerce · Klaviyo · Mailchimp · HubSpot</span>
+ </div>
 </div></footer>
 
 <script>
@@ -967,7 +974,7 @@
     requestAnimationFrame(tick);
   })();
 
-  // engine: a live scoring-engine visualiser , labelled signals fire, feed a centre score
+  // engine: a live scoring-engine visualiser; labelled signals fire, feed a centre score
   (function(){
     var g=document.getElementById('graph'); if(!g) return;
     var cv=document.getElementById('nodelines'), x=cv.getContext('2d');

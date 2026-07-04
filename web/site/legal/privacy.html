@@ -207,35 +207,35 @@ subprocessors do not receive a standing copy of it.</p>
 <div class="note"><b>Why the list is short.</b> Halia is zero-retention: a merchant's customers are
 read in memory, scored, and discarded within minutes. We do not copy a merchant's customer database
 onto our servers, so our sub-processors never receive a standing copy of it. The providers below
-support our own operation (hosting, billing, email) &mdash; not a warehouse of your customers.</div>
+support our own operation (hosting, billing, email), not a warehouse of your customers.</div>
 
 <table>
 <tr><th>Sub-processor</th><th>Purpose</th><th>Data processed</th><th>Region</th></tr>
 <tr>
-  <td><b>Render</b><br>(Render Services, Inc.)</td>
-  <td>Cloud hosting and managed PostgreSQL: runs the Halia application and stores merchant account
-      data and encrypted secrets. <b>No merchant customer data is stored here.</b></td>
-  <td>Account &amp; operational data; encrypted read-only credentials</td>
-  <td>UK/EU <span class="tbc">— region to be confirmed at launch</span></td>
+ <td><b>Render</b><br>(Render Services, Inc.)</td>
+ <td>Cloud hosting and managed PostgreSQL: runs the Halia application and stores merchant account
+ data and encrypted secrets. <b>No merchant customer data is stored here.</b></td>
+ <td>Account &amp; operational data; encrypted read-only credentials</td>
+ <td>UK/EU <span class="tbc">, region to be confirmed at launch</span></td>
 </tr>
 <tr>
-  <td><b>Stripe</b><br>(Stripe Payments Europe, Ltd.)</td>
-  <td>Subscription billing and payment processing for merchant accounts.</td>
-  <td>Merchant billing details (name, email, card handled by Stripe). Not shopper data.</td>
-  <td>EU / UK <span class="tbc">— entity &amp; region to be confirmed</span></td>
+ <td><b>Stripe</b><br>(Stripe Payments Europe, Ltd.)</td>
+ <td>Subscription billing and payment processing for merchant accounts.</td>
+ <td>Merchant billing details (name, email, card handled by Stripe). Not shopper data.</td>
+ <td>EU / UK <span class="tbc">, entity &amp; region to be confirmed</span></td>
 </tr>
 <tr>
-  <td><b>Brevo</b><br>(Sendinblue SAS)</td>
-  <td>Transactional and alert email: sign-in links, &ldquo;your results are ready&rdquo;, and order alerts.</td>
-  <td>Recipient email address and message content (no shopper profiles).</td>
-  <td>EU (France)</td>
+ <td><b>Brevo</b><br>(Sendinblue SAS)</td>
+ <td>Transactional and alert email: sign-in links, &ldquo;your results are ready&rdquo;, and order alerts.</td>
+ <td>Recipient email address and message content (no shopper profiles).</td>
+ <td>EU (France)</td>
 </tr>
 <tr>
-  <td><b>Platforms you connect</b><br>(e.g. Shopify, BigCommerce, WooCommerce, Klaviyo, Mailchimp, HubSpot, Slack)</td>
-  <td>Read your store at your instruction and, where you choose, receive the scores, segments, or
-      alerts Halia sends. These operate under <i>your</i> account and their own terms.</td>
-  <td>As determined by you and the provider</td>
-  <td>Per the provider you choose</td>
+ <td><b>Platforms you connect</b><br>(e.g. Shopify, BigCommerce, WooCommerce, Klaviyo, Mailchimp, HubSpot, Slack)</td>
+ <td>Read your store at your instruction and, where you choose, receive the scores, segments, or
+ alerts Halia sends. These operate under <i>your</i> account and their own terms.</td>
+ <td>As determined by you and the provider</td>
+ <td>Per the provider you choose</td>
 </tr>
 </table>
 <p>We require appropriate confidentiality and security commitments from our sub-processors, and limit
@@ -336,7 +336,7 @@ takes effect indicates acceptance of the updated policy.</p>
 <h2 id="contact">23. Contact</h2>
 <p>Questions or requests: <a href="mailto:hello@halia.app">hello@halia.app</a>.</p>
 
-<h2 id="cookies">Appendix A &mdash; Cookie Policy</h2>
+<h2 id="cookies">Appendix A, Cookie Policy</h2>
 <p>Halia uses as few cookies as possible. We run no advertising or cross-site tracking cookies in the
 application, and none on our marketing site by default.</p>
 <h3>What cookies are</h3>
@@ -363,25 +363,25 @@ site. Blocking the essential cookie will sign you out of the dashboard and stop 
 <div class="legal-nav"><a href="/responsible">Responsible profiling</a><a href="/brand">Brand</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="#cookies">Cookies</a><a href="#subprocessors">Sub-processors</a><a href="/security">Security</a><a href="mailto:hello@halia.app">Contact</a></div>
 </div></main>
 <footer class="hfoot"><div class="hf-inner">
-  <div class="hf-news">
-    <h3>The quiet edge in luxury retail, in your inbox.</h3>
-    <form id="newsForm" novalidate>
-      <input id="newsEmail" type="email" placeholder="Your work email" required>
-      <button type="submit">Subscribe →</button>
-    </form>
-  </div>
-  <div class="hf-grid">
-    <div>
-      <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:var(--gold,#8a8377)">&#8258;</span>Halia</a>
-      <p class="hf-bio">Halia is hidden-VIC intelligence for considered-purchase retail. We read the wealth and intent signals already sitting in your customer data, grade every customer, and surface the high-value clients you would otherwise treat like everyone else, then help your teams act on them in the tools they already use. We never keep a copy of your customers: they are scored on the spot and nothing about them is stored on our side.</p>
-    </div>
-    <div class="hf-col"><h4>Product</h4><a href="/#engine">The engine</a><a href="/#how">How it works</a><a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/docs">Docs</a><a href="/connect">Connect a store</a></div>
-    <div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/brand">Brand</a><a href="mailto:hello@halia.app">Contact</a></div>
-    <div class="hf-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/security">Security &amp; compliance</a></div>
-  </div>
-  <div class="hf-bot">
-    <span>© 2026 Halia. All rights reserved.</span>
-    <span>Zero-retention by design · Shopify · BigCommerce · WooCommerce · Klaviyo · Mailchimp · HubSpot</span>
-  </div>
+ <div class="hf-news">
+ <h3>The quiet edge in luxury retail, in your inbox.</h3>
+ <form id="newsForm" novalidate>
+ <input id="newsEmail" type="email" placeholder="Your work email" required>
+ <button type="submit">Subscribe →</button>
+ </form>
+ </div>
+ <div class="hf-grid">
+ <div>
+ <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:var(--gold,#8a8377)">&#8258;</span>Halia</a>
+ <p class="hf-bio">Halia is hidden-VIC intelligence for considered-purchase retail. We read the wealth and intent signals already sitting in your customer data, grade every customer, and surface the high-value clients you would otherwise treat like everyone else, then help your teams act on them in the tools they already use. We never keep a copy of your customers: they are scored on the spot and nothing about them is stored on our side.</p>
+ </div>
+ <div class="hf-col"><h4>Product</h4><a href="/#engine">The engine</a><a href="/#how">How it works</a><a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/docs">Docs</a><a href="/connect">Connect a store</a></div>
+ <div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a><a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/brand">Brand</a><a href="mailto:hello@halia.app">Contact</a></div>
+ <div class="hf-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/security">Security &amp; compliance</a></div>
+ </div>
+ <div class="hf-bot">
+ <span>© 2026 Halia. All rights reserved.</span>
+ <span>Zero-retention by design · Shopify · BigCommerce · WooCommerce · Klaviyo · Mailchimp · HubSpot</span>
+ </div>
 </div></footer>
 </body></html>
