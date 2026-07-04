@@ -18,13 +18,15 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from fastapi import Body, Depends, FastAPI, HTTPException, Query
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 
 from halia.api import data
 from halia.api.shopify_auth import require_shop, shop_store
 from halia.engine import engine
 
-app = FastAPI(title="Halia", version="1.0", summary="Hidden-VIC scoring — embedded Shopify app")
+# Swagger UI is relocated off /docs so the marketing documentation page can own that path.
+app = FastAPI(title="Halia", version="1.0", summary="Hidden-VIC scoring — embedded Shopify app",
+              docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 # The POS UI extension calls this backend cross-origin from the Shopify POS webview.
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -112,13 +114,29 @@ def _serve_page(name: str) -> _HTML:
 
 for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
               "responsible", "pricing", "privacy", "terms", "cookies", "subprocessors",
-              "status", "docs"):
+              "status"):
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
                       methods=["GET"], include_in_schema=False, response_class=_HTML)
 
-# Documentation sub-pages (web/site/docs/<slug>.html).
-for _doc in ("connect-your-store", "crm-and-email"):
-    app.add_api_route(f"/docs/{_doc}", (lambda n: lambda: _serve_page(f"docs/{n}"))(_doc),
+
+def _docs_handler(request: Request) -> _HTML:
+    """Documentation is gated behind sign-in: only a merchant with a valid Halia
+    session (or access link) can read the setup guides, so we don't hand our
+    onboarding and product playbook to the public / competitors. Unauthenticated
+    visitors get the same sign-in page as the dashboard.
+
+    The page to serve is the request path itself (``/docs`` -> ``docs.html``,
+    ``/docs/using-halia`` -> ``docs/using-halia.html``)."""
+    from halia.api.tenant_auth import resolve_tenant
+    from halia.api.onboarding import _signin_page
+    if not resolve_tenant(request):
+        return _HTML(_signin_page())
+    return _serve_page(request.url.path.strip("/"))
+
+
+# Documentation (web/site/docs.html + web/site/docs/<slug>.html) — sign-in gated.
+for _docpath in ("docs", "docs/connect-your-store", "docs/crm-and-email", "docs/using-halia"):
+    app.add_api_route(f"/{_docpath}", _docs_handler,
                       methods=["GET"], include_in_schema=False, response_class=_HTML)
 
 # Per-industry solutions pages (web/site/solutions/<slug>.html — see scripts/build_solutions_pages.py).

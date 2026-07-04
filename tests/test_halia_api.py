@@ -95,3 +95,19 @@ def test_embedded_home_without_token_serves_marketing_site():
     # A public visitor (no Shopify session token) gets the marketing site, not the app.
     r = TestClient(app).get("/")
     assert r.status_code == 200 and "Connect your store" in r.text and "Halia" in r.text
+
+
+def test_docs_are_gated_behind_signin():
+    # Logged-out visitors (and competitors) must NOT see the setup guides — they get
+    # the sign-in page instead. A signed-in merchant sees the docs.
+    from halia.api.tenant_auth import make_session, SESSION_COOKIE
+
+    out = TestClient(app)
+    for path in ("/docs", "/docs/connect-your-store", "/docs/crm-and-email", "/docs/using-halia"):
+        r = out.get(path)
+        assert r.status_code == 200, path
+        assert "Up and running" not in r.text and "What happens next" not in r.text, path
+
+    signed_in = TestClient(app, cookies={SESSION_COOKIE: make_session("demo.myshopify.com")})
+    assert "Up and running" in signed_in.get("/docs").text
+    assert "What happens next" in signed_in.get("/docs/connect-your-store").text
