@@ -16,7 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from halia import config
 from halia.api import data
 from halia.api.shopify_auth import (
-    ensure_offline_token, require_shop, token_for_request, verify_session_token,
+    require_shop, token_for_request, verify_session_token,
 )
 from halia.cache import cache
 
@@ -94,10 +94,14 @@ def register(app) -> None:
 
         head = _head()
         try:
-            token = ensure_offline_token(shop, session_token)
-            entry = cache.get(shop) or data.sync_shop(shop, token)
+            entry = cache.get(shop) or data.sync_shop_authed(shop, session_token)
             body = render_payload(entry["payload"], head_extra=head)
-        except Exception:
+        except Exception as exc:
+            # Log the exception TYPE only (safe — never customer data) so the operator can tell
+            # which stage failed: ShopifyAuthError=token/scopes, ShopifyError=fetch, HTTPException
+            # =token exchange, anything else=score/render. Full stack follows (no payloads).
+            print(f"[halia] dashboard load failed for {shop}: "
+                  f"{type(exc).__module__}.{type(exc).__name__}")
             traceback.print_exc()  # stack only — no customer payloads are logged
             body = _error_page(head)
 
@@ -108,8 +112,7 @@ def register(app) -> None:
 
     @app.post("/v1/sync")
     def sync_now(request: Request, shop: str = Depends(require_shop)):
-        token = ensure_offline_token(shop, token_for_request(request))
-        entry = data.sync_shop(shop, token)
+        entry = data.sync_shop_authed(shop, token_for_request(request))
         return {"shop": shop, "hidden_vics": len(data.hidden_results(entry))}
 
     @app.get("/v1/dashboard")

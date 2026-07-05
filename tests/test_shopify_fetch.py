@@ -7,10 +7,14 @@ fetch -> aggregate -> score pipeline deterministically.
 import pytest
 
 from scoring.shopify_fetch import (
+    ShopifyAuthError,
     ShopifyError,
+    _is_auth_error,
+    _is_throttled,
     endpoint,
     fetch_orders,
     fetch_scored,
+    http_transport,
 )
 
 
@@ -91,9 +95,44 @@ def test_fetch_scored_runs_the_full_pipeline():
 
 def test_non_throttle_errors_raise():
     def transport(query, variables):
-        return {"errors": [{"message": "Bad scope", "extensions": {"code": "ACCESS_DENIED"}}]}
+        return {"errors": [{"message": "Boom", "extensions": {"code": "INTERNAL"}}]}
     with pytest.raises(ShopifyError):
         fetch_orders(transport)
+
+
+def test_auth_errors_raise_shopify_auth_error():
+    # A scope/permission or revoked-token error is a ShopifyAuthError (a ShopifyError subclass),
+    # so a caller with the session token can re-exchange and retry rather than fail for good.
+    def transport(query, variables):
+        return {"errors": [{"message": "Access denied", "extensions": {"code": "ACCESS_DENIED"}}]}
+    with pytest.raises(ShopifyAuthError):
+        fetch_orders(transport)
+    assert issubclass(ShopifyAuthError, ShopifyError)
+
+
+def test_error_classification_helpers():
+    assert _is_auth_error("[API] Invalid API key or access token")
+    assert _is_auth_error([{"extensions": {"code": "UNAUTHORIZED"}}])
+    assert not _is_auth_error([{"extensions": {"code": "THROTTLED"}}])
+    assert not _is_auth_error([{"message": "generic"}])
+    assert _is_throttled([{"extensions": {"code": "THROTTLED"}}])
+    assert not _is_throttled("some string error")   # a bare string is not throttling
+
+
+def test_http_transport_maps_401_to_auth_error(monkeypatch):
+    requests = pytest.importorskip("requests")
+
+    class FakeResp:
+        status_code = 401
+        def json(self):  # pragma: no cover - shouldn't be reached
+            return {}
+        def raise_for_status(self):  # pragma: no cover - 401 short-circuits before this
+            raise AssertionError("raise_for_status should not run for a 401")
+
+    monkeypatch.setattr(requests, "post", lambda *a, **k: FakeResp())
+    call = http_transport(shop="acme", token="revoked", version="2025-01")
+    with pytest.raises(ShopifyAuthError):
+        call("query { shop { name } }", {})
 
 
 def test_throttling_is_retried_then_succeeds():

@@ -1465,7 +1465,7 @@ def register(app) -> None:
         from urllib.parse import urlencode
 
         tok = _shop_pending_new(domain)
-        params = {"client_id": config.SHOPIFY_API_KEY, "scope": "read_orders,read_customers,write_customers",
+        params = {"client_id": config.SHOPIFY_API_KEY, "scope": "read_orders,read_all_orders,read_customers,write_customers",
                   "redirect_uri": f"{base}/connect/shopify/callback", "state": tok}
         return {"token": tok, "url": f"https://{domain}/admin/oauth/authorize?{urlencode(params)}"}
 

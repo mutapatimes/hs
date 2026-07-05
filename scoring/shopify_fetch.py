@@ -43,6 +43,34 @@ class ShopifyError(RuntimeError):
     """A non-retryable error returned by the Shopify Admin API."""
 
 
+class ShopifyAuthError(ShopifyError):
+    """The Admin API rejected the access token (revoked, uninstalled, or missing a scope).
+
+    Distinct from ShopifyError so a caller holding the session token can re-exchange for a
+    fresh offline token and retry once, instead of failing the whole load permanently.
+    """
+
+
+def _is_throttled(errors: object) -> bool:
+    return isinstance(errors, list) and any(
+        (e.get("extensions") or {}).get("code") == "THROTTLED"
+        for e in errors if isinstance(e, dict)
+    )
+
+
+def _is_auth_error(errors: object) -> bool:
+    """True when a GraphQL error set signals an auth/scope problem (revoked token, or a scope
+    the token doesn't carry) — the classes a fresh token exchange can repair."""
+    if isinstance(errors, str):  # Shopify returns a bare string for some auth failures
+        low = errors.lower()
+        return any(k in low for k in ("access token", "api key", "unauthorized", "unauthenticated"))
+    if isinstance(errors, list):
+        codes = {(e.get("extensions") or {}).get("code")
+                 for e in errors if isinstance(e, dict)}
+        return bool(codes & {"ACCESS_DENIED", "UNAUTHORIZED", "UNAUTHENTICATED"})
+    return False
+
+
 def _shop_domain(shop: str) -> str:
     return shop if shop.endswith(".myshopify.com") else f"{shop}.myshopify.com"
 
@@ -75,6 +103,10 @@ def http_transport(
         resp = requests.post(
             url, headers=headers, json={"query": query, "variables": variables}, timeout=timeout
         )
+        # A revoked/invalid token gets a hard 401/403 here (before any GraphQL parsing). Surface
+        # it as ShopifyAuthError so the caller can re-exchange, not a generic requests HTTPError.
+        if resp.status_code in (401, 403):
+            raise ShopifyAuthError(f"Admin API rejected the token (HTTP {resp.status_code})")
         resp.raise_for_status()
         return resp.json()
 
@@ -88,13 +120,12 @@ def _run(transport: Transport, query: str, variables: dict, retries: int, _sleep
         payload = transport(query, variables)
         errors = payload.get("errors")
         if errors:
-            throttled = any(
-                (e.get("extensions") or {}).get("code") == "THROTTLED" for e in errors
-            )
-            if throttled:
+            if _is_throttled(errors):
                 _sleep(delay)
                 delay = min(delay * 2, 30)
                 continue
+            if _is_auth_error(errors):
+                raise ShopifyAuthError(json.dumps(errors)[:500])
             raise ShopifyError(json.dumps(errors)[:500])
         data = payload.get("data")
         if data is None:

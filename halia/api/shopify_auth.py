@@ -101,10 +101,15 @@ def shop_store() -> ShopStore:
     return _shop_store
 
 
-def ensure_offline_token(shop: str, session_token: str) -> str:
-    """Return the shop's offline token, exchanging + persisting it on first sight."""
+def ensure_offline_token(shop: str, session_token: str, force: bool = False) -> str:
+    """Return the shop's offline token, exchanging + persisting it on first sight.
+
+    ``force`` re-exchanges even when a token is already stored, overwriting it — used to
+    self-heal a revoked/stale token (app reinstalled, scopes changed) that the Admin API has
+    started rejecting, instead of returning the bad token forever.
+    """
     store = shop_store()
-    token = store.get_token(shop)
+    token = None if force else store.get_token(shop)
     if not token:
         token = token_exchange(shop, session_token)
         store.save_shop(shop, token)

@@ -104,6 +104,25 @@ def sync_shop(shop: str, token: str) -> dict:
     return _finalize(shop, *score_shop(shop, token))
 
 
+def sync_shop_authed(shop: str, session_token: str) -> dict:
+    """Sync a Shopify shop, self-healing a revoked/stale offline token.
+
+    Uses the persisted offline token; if the Admin API rejects it (token revoked, app
+    reinstalled, or scopes changed), we force a single fresh token exchange from the caller's
+    session token and retry once — so a bad stored token repairs itself instead of failing
+    every load. Any non-auth failure propagates unchanged.
+    """
+    from halia.api.shopify_auth import ensure_offline_token
+    from scoring.shopify_fetch import ShopifyAuthError
+
+    token = ensure_offline_token(shop, session_token)
+    try:
+        return sync_shop(shop, token)
+    except ShopifyAuthError:
+        token = ensure_offline_token(shop, session_token, force=True)
+        return sync_shop(shop, token)
+
+
 def sync_woo(shop: str) -> dict:
     """WooCommerce pull → score → cache in RAM. Returns the cache entry."""
     return _finalize(shop, *score_woo(shop))
