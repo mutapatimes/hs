@@ -117,18 +117,32 @@ def _row(zip_code):
 
 def test_area_scores_by_default_and_is_not_an_origin_proxy():
     assert "property_area" not in ORIGIN_PROXY_SIGNALS
-    out = score_customers(_row("RG9 2AA")).iloc[0]   # Henley-on-Thames, 'high' district
+    out = score_customers(_row("SW13 9AA")).iloc[0]   # Barnes, 'prime' district
     assert out[COUNT_COL] == 1
-    assert out[SCORE_COL] == PROPERTY_AREA_WEIGHTS["high"]
+    assert out[SCORE_COL] == PROPERTY_AREA_WEIGHTS["prime"]
     assert bool(out[HIDDEN_COL])                      # £200 spend + a signal -> hidden VIC
-    assert "Prime area" in out[REASONS_COL] and "High-value" in out[REASONS_COL]
+    assert "Prime area" in out[REASONS_COL] and "Prime (" in out[REASONS_COL]
 
 
-def test_higher_value_area_outscores_lower():
-    # Barnes (prime district) outscores Henley (high district). Outcodes NOT on the hnwi list,
-    # so property_area is the sole tell.
-    prime = score_customers(_row("SW13 9AA")).iloc[0]   # Barnes, prime
-    high = score_customers(_row("RG9 2AA")).iloc[0]     # Henley, high
-    assert prime[SCORE_COL] == PROPERTY_AREA_WEIGHTS["prime"]
-    assert high[SCORE_COL] == PROPERTY_AREA_WEIGHTS["high"]
+def test_prime_district_fires_but_high_band_district_does_not():
+    # A whole district at the 'high' band (£600k-900k median) is an ordinary UK postcode, not a
+    # wealth tell, so the broad area signal requires prime+ (>=£900k). Barnes (prime) fires;
+    # Henley (high) does not. Outcodes NOT on the hnwi list, so property_area is the sole tell.
+    prime = score_customers(_row("SW13 9AA")).iloc[0]   # Barnes, prime -> fires
+    high = score_customers(_row("RG9 2AA")).iloc[0]      # Henley, high -> no longer fires
+    assert prime[SCORE_COL] == PROPERTY_AREA_WEIGHTS["prime"] and prime[COUNT_COL] == 1
+    assert high[SCORE_COL] == 0 and high[COUNT_COL] == 0 and not bool(high[HIDDEN_COL])
     assert prime[SCORE_COL] > high[SCORE_COL]
+
+
+def test_high_band_counts_at_the_exact_house_but_not_at_the_district():
+    # The high band still carries signal at the EXACT full postcode (the actual house), where
+    # weight scales with the real price; it is only dropped for the broad DISTRICT tell.
+    table = {
+        "N78XY": {"tier": "high", "price": 650_000, "area": "Islington"},  # exact house
+        "N7":    {"tier": "high", "price": 700_000, "area": "Islington"},   # whole district
+    }
+    assert bool(flag_property_value(
+        pd.DataFrame([{"LATEST_BILLING_ZIP": "N7 8XY"}]), table=table).loc[0, FLAG_COL])
+    assert not bool(flag_property_area(
+        pd.DataFrame([{"LATEST_BILLING_ZIP": "N7 8AA"}]), table=table).loc[0, AREA_FLAG_COL])

@@ -38,6 +38,7 @@ RECO = {
     "HNWI postcode": "Ultra-prime billing area. Strong candidate for a private appointment and early access to new drops.",
     "Prime residence": "Trophy-building address signals real wealth. Worth a personal associate assignment.",
     "Property value": "Lives in a high-value area (local property prices well above national). A genuine wealth tell on modest spend: worth a personal, service-led approach.",
+    "Prime location": "Lives in a prime area (postcode, district and local property prices all point the same way). A genuine wealth tell on modest spend: worth a personal, service-led approach.",
     "Delivery": "Notable delivery destination. Offer concierge / in-stay delivery and capture a primary address.",
     "Honorific": "Titled client. Keep handling discreet and service-first.",
     "Company": "Wealth-linked employer on file. A gentle, service-led first approach.",
@@ -194,17 +195,93 @@ def _last_shopped(row: pd.Series) -> tuple[int, str]:
     return int(ts.value // 10**9), ts.strftime("%b %Y")
 
 
-def _parse_signals(reasons: object, seg_labels: dict[str, str]) -> list[dict]:
-    """Split the engine's 'Label: detail; Label: detail' reasons into UI chips."""
-    sigs = []
+# UI presentation only: several engine signals describe the SAME underlying fact,
+# "this client lives in a prime place" (the postcode, its named area, and its property
+# values are one location tell seen from three fields). The engine keeps them separate
+# for scoring (they share the correlated "geo" group and decay together); here we fold
+# them into ONE "Prime location" chip so a client page reads as a single location reason
+# instead of five near-duplicates. Distinct-fact geo tells stay on their own: a delivery
+# venue, a family-office address, and phone/address agreement are separate stories.
+_LOCATION_LABELS = {
+    "HNWI postcode", "US prime ZIP", "Intl prime postcode", "HNW area",
+    "Home value", "Prime area", "Prime residence", "High-value area",
+    "Prime residential district",
+}
+_LOCATION_SEG = "prime-location"
+_LOCATION_LABEL = "Prime location"
+_TIER_ORDER = ["Ultra-prime", "Prime", "High-value"]
+_POSTCODE_RE = re.compile(r"^[A-Z]{1,2}\d[A-Z\d]?(\s*\d[A-Z]{2})?$", re.I)
+
+
+def _place_from(detail: str) -> str:
+    """A human place name out of a location reason detail, or '' if it's just a code.
+
+    'Ultra-prime (Mayfair)' -> 'Mayfair'; 'Knightsbridge (UK)' -> 'Knightsbridge';
+    'Upper West Side NY (10024)' -> 'Upper West Side NY'; 'Ultra-prime (NW7 1RW)' -> '';
+    'SW1X' -> ''. Prefers the text before the parenthetical (usually the name), then the
+    text inside it, rejecting bare tier words, postcodes, country codes and numbers.
+    """
+    head = re.sub(r"\s*\(.*\)\s*$", "", detail).strip()
+    m = re.search(r"\(([^)]+)\)", detail)
+    inner = m.group(1).strip() if m else ""
+    for cand in (head, inner):
+        if (cand and cand not in _TIER_ORDER and any(ch.isalpha() for ch in cand)
+                and not _POSTCODE_RE.match(cand) and cand.upper() not in {"UK", "USA", "US"}):
+            return cand
+    return ""
+
+
+def _postcode_from(detail: str) -> str:
+    """A postcode (outward or full) mentioned in a location detail, else ''."""
+    m = re.search(r"\b[A-Z]{1,2}\d[A-Z\d]?(?:\s*\d[A-Z]{2})?\b", detail)
+    return m.group(0) if m else ""
+
+
+def _merge_location(details: list[tuple[str, str]], outward: str = "") -> str:
+    """One concise place string from the fired location tells (strongest-first).
+
+    Uses the named area when we have one (the meaningful part) and only falls back to a
+    postcode otherwise, so we never glue a named place to an unrelated postcode (the place
+    and a raw postcode can come from different address fields, e.g. billing vs shipping).
+    """
+    tier = ""
+    for _label, d in details:
+        for t in _TIER_ORDER:
+            if d.startswith(t) and (not tier or _TIER_ORDER.index(t) < _TIER_ORDER.index(tier)):
+                tier = t
+    place = next((p for _l, d in details if (p := _place_from(d))), "")
+    code = place or next((p for _l, d in details if (p := _postcode_from(d))), "") or outward
+    lead = f"{tier} · " if tier else ""
+    core = f"{lead}{code}" if code else (tier or "high-value area")
+    n = len(details)
+    return core + (f" · corroborated by {n} location tells" if n > 1 else "")
+
+
+def _parse_signals(reasons: object, seg_labels: dict[str, str],
+                   outward: str = "") -> list[dict]:
+    """Split the engine's 'Label: detail; Label: detail' reasons into UI chips,
+    folding the residential-location tells into one 'Prime location' chip."""
+    sigs: list = []
+    loc_details: list[tuple[str, str]] = []
+    loc_pos: int | None = None
     for part in str(reasons or "").split("; "):
         part = part.strip()
         if not part:
             continue
-        label = part.split(": ", 1)[0]
+        label, _, detail = part.partition(": ")
+        if label in _LOCATION_LABELS:
+            if loc_pos is None:               # reserve the strongest tell's slot (order-preserving)
+                loc_pos = len(sigs)
+                sigs.append(None)
+            loc_details.append((label, detail))
+            continue
         seg = _slug(label)
         seg_labels.setdefault(seg, label)
         sigs.append({"seg": seg, "d": part, "x": ""})
+    if loc_pos is not None:
+        seg_labels.setdefault(_LOCATION_SEG, _LOCATION_LABEL)
+        merged = _merge_location(loc_details, outward)
+        sigs[loc_pos] = {"seg": _LOCATION_SEG, "d": f"{_LOCATION_LABEL}: {merged}", "x": ""}
     return sigs
 
 
@@ -229,12 +306,12 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
     s100 = _score100(raw)
     t = _tier(s100)
     spend = _num(row.get("Spent"))
-    sigs = _parse_signals(row[REASONS_COL], seg_labels)
+    outward, area = _postcode_bits(row)
+    sigs = _parse_signals(row[REASONS_COL], seg_labels, outward)
     top_label = sigs[0]["d"].split(": ", 1)[0] if sigs else ""
     last_sort, last_label = _last_shopped(row)
     cid = row.get("CUST_ID")
     n_orders = _orders(row)
-    outward, area = _postcode_bits(row)
     return {
         "id": f"C-{i + 1:04d}",
         "cid": str(cid) if cid is not None and not pd.isna(cid) else "",

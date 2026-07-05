@@ -9,7 +9,7 @@ from scoring.combine import (
     HIDDEN_COL,
     REASONS_COL,
     SCORE_COL,
-    SIGNALS,
+    active_signals,
     score_customers,
     top_hidden_vics,
 )
@@ -23,8 +23,10 @@ def main() -> None:
 
     scored = score_customers(df)
 
+    # Iterate the signals the engine actually ran (origin-proxy signals are off by
+    # default and never get a flag column), so the tally matches the scored frame.
     print("Customers fired on, per signal:")
-    for _key, label, _apply, flag_col, _reason in SIGNALS:
+    for _key, label, _apply, flag_col, _reason in active_signals():
         print(f"  - {label:<14} {scored[flag_col].fillna(False).sum():>4}")
     print(f"\nAny signal: {(scored[COUNT_COL] > 0).sum()}  |  "
           f"Hidden VICs (spend below threshold): {scored[HIDDEN_COL].sum()}")

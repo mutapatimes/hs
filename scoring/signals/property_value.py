@@ -147,6 +147,13 @@ def _lookup_area(postcode: object, table: dict[str, dict]) -> dict | None:
     entry = table.get(outcode)
     if entry is None:
         return None
+    # A whole DISTRICT at the 'high' band (£600k-900k median) is not a wealth tell in the UK:
+    # that is an ordinary London / commuter-belt postcode (the generic "High-value (London)"
+    # match fired on ~1 in 3 VICs). The high band only carries signal at the EXACT-house
+    # granularity (property_value, weight-scaled by the real price), so the broad district tell
+    # requires prime+ (>=£900k). Drop it here; it still counts when it's the exact full postcode.
+    if entry["tier"] == "high":
+        return None
     grade = GRADE_WORD.get(entry["tier"], entry["tier"].title())
     where = entry["area"] or outcode
     return {"tier": entry["tier"], "price": entry["price"], "reason": f"{grade} ({where})"}
