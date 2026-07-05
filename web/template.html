@@ -403,6 +403,21 @@
   .maplgd .dt{border-radius:50%;background:rgba(31,86,74,.5);border:1.2px solid #fff}
   .ovsub{color:var(--soft);font-size:12.5px;margin:-2px 0 2px}
   .emptybox{padding:40px 16px;text-align:center;color:var(--faint);font-size:13px}
+
+  /* Overview client search + live results dropdown */
+  .ovsearch{position:relative;margin-bottom:18px;max-width:460px}
+  .ovres{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;box-shadow:0 18px 44px -18px rgba(0,0,0,.28);z-index:30;overflow:hidden;max-height:60vh;overflow-y:auto}
+  .ovrow{display:flex;align-items:center;gap:11px;padding:10px 13px;border-top:1px solid var(--line);cursor:pointer}
+  .ovrow:first-child{border-top:0}
+  .ovrow:hover{background:var(--rowhover)}
+  .ovrow .nm{font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ovrow .mt{font-size:11.5px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ovrow .sc{margin-left:auto;flex:none;font-family:'Spline Sans Mono',monospace;font-weight:600;font-size:13px;display:flex;align-items:center;gap:7px}
+  .ovmore{display:block;width:100%;text-align:left;padding:11px 13px;border:0;border-top:1px solid var(--line);
+    background:var(--brand-tint);color:var(--brand-deep);font:600 12.5px 'Hanken Grotesk',sans-serif;cursor:pointer}
+  .ovmore:hover{background:#dcebe5}
+  .ovnone{padding:16px 14px;color:var(--faint);font-size:13px}
 </style>
 </head>
 <body>
@@ -480,6 +495,13 @@
 
       <!-- OVERVIEW (birds-eye) -->
       <div id="viewOverview">
+        <div class="ovsearch">
+          <div class="search" style="max-width:460px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input id="ovq" placeholder="Search any client by name, email, location…" autocomplete="off">
+          </div>
+          <div id="ovResults" class="ovres" style="display:none"></div>
+        </div>
         <div class="grid ov-two" style="margin-bottom:16px">
           <div class="card">
             <div class="ch"><h3>Grade mix</h3><span class="hint">of surfaced potential VICs</span></div>
@@ -688,15 +710,21 @@ function meterSvg(score,tier){
   </svg><div class="num">${score}</div></div>`;
 }
 
+// Shared client search predicate (used by the Clients table and the Overview search).
+function clientMatches(c, q){
+  q = (q||"").trim().toLowerCase();
+  if(!q) return true;
+  const inc = v => (v||"").toString().toLowerCase().includes(q);
+  return inc(c.name) || inc(c.email) || inc(c.phone) || inc(c.loc) || inc(c.city) || inc(c.outward)
+    || c.signals.some(s=>inc(s.d)) || (c.signals[0]&&SEGMENTS[c.signals[0].seg]&&inc(SEGMENTS[c.signals[0].seg].label))
+    || (c.brands&&c.brands.some(b=>inc(b))) || (c.associate&&inc(c.associate));
+}
+
 const rowsEl = document.getElementById("rows");
 function visible(){
   let list = DATA.filter(c=>{
     const segOk = activeSeg==="all" || c.signals.some(s=>s.seg===activeSeg);
-    const q = query.trim().toLowerCase();
-    const inc = v => (v||"").toString().toLowerCase().includes(q);
-    const qOk = !q || inc(c.name) || inc(c.email) || inc(c.phone) || inc(c.loc) || inc(c.city) || inc(c.outward)
-      || c.signals.some(s=>inc(s.d)) || (c.signals[0]&&SEGMENTS[c.signals[0].seg]&&inc(SEGMENTS[c.signals[0].seg].label))
-      || (c.brands&&c.brands.some(b=>inc(b))) || (c.associate&&inc(c.associate));
+    const qOk = clientMatches(c, query);
     const gradeOk = gradeFilter==="all" || c.grade===gradeFilter;
     const cityOk = cityFilter==="all" || c.city===cityFilter;
     const areaOk = !areaFilter || c.area===areaFilter;
@@ -1572,6 +1600,35 @@ function setSort(){
 
 // search
 document.getElementById("q").oninput=e=>{query=e.target.value;areaFilter="";updateAreaBanner();renderRows();};
+
+// Overview search: a live client lookup that works from the birds-eye page.
+(function(){
+  const ovq=document.getElementById("ovq"), ovRes=document.getElementById("ovResults");
+  if(!ovq) return;
+  function jumpToClients(q){
+    query=q; areaFilter=""; document.getElementById("q").value=q;
+    updateAreaBanner(); showView("clients"); renderRows();
+    ovRes.style.display="none"; ovq.value="";
+  }
+  ovq.oninput=()=>{
+    const q=ovq.value.trim();
+    if(q.length<2){ ovRes.style.display="none"; return; }
+    const matches=DATA.filter(c=>clientMatches(c,q)).sort((a,b)=>(b.score-a.score)||(b.latent-a.latent));
+    const top=matches.slice(0,7);
+    ovRes.innerHTML = (top.length?top.map(c=>`<div class="ovrow" data-id="${c.id}">
+        <div class="ava ${c.tier}" style="width:30px;height:30px;font-size:12px;border-radius:8px">${c.init}</div>
+        <div style="min-width:0"><div class="nm">${esc(c.name)}</div><div class="mt">${esc(c.loc)}${c.email?" &middot; "+esc(c.email):""}</div></div>
+        <div class="sc">${c.score} <span class="tier ${c.tier}">${tierLabel(c.tier)}</span></div>
+      </div>`).join(""):`<div class="ovnone">No clients match &ldquo;${esc(q)}&rdquo;.</div>`)
+      + (matches.length?`<button class="ovmore" data-all="1">See all ${matches.length} match${matches.length===1?"":"es"} in Clients &rarr;</button>`:"");
+    ovRes.style.display="block";
+    ovRes.querySelectorAll(".ovrow").forEach(r=>r.onclick=()=>{ ovRes.style.display="none"; openDrawer(r.dataset.id); });
+    const more=ovRes.querySelector("[data-all]"); if(more) more.onclick=()=>jumpToClients(q);
+  };
+  ovq.onkeydown=e=>{ if(e.key==="Enter"&&ovq.value.trim().length>=2) jumpToClients(ovq.value.trim());
+    else if(e.key==="Escape"){ ovRes.style.display="none"; ovq.blur(); } };
+  document.addEventListener("click",e=>{ if(!ovRes.contains(e.target)&&e.target!==ovq) ovRes.style.display="none"; });
+})();
 
 // toast
 let toastT;
