@@ -134,7 +134,9 @@ def _load_existing(path: Path) -> list[list[str]]:
     rows = []
     with path.open(newline="", encoding="utf-8") as fh:
         for row in csv.reader(fh):
-            if row and not row[0].startswith("#") and row[0].strip().lower() != "outcode":
+            first = row[0].strip().lower() if row else ""
+            if row and not first.startswith("#") and first not in ("outcode", "postcode") \
+                    and len(row) >= 4 and row[2].strip().isdigit():
                 rows.append(row)
     return rows
 
