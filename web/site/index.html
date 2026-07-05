@@ -318,15 +318,28 @@
   /* solutions */
   .sol-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:52px;gap:30px;flex-wrap:wrap}
   .sol-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
-  .sol{position:relative;border-radius:4px;overflow:hidden;aspect-ratio:4/5}
+  .sol-carousel{overflow:hidden}
+  .sol-track{display:flex;gap:18px;will-change:transform}
+  .sol{flex:0 0 clamp(232px,26vw,300px);position:relative;border-radius:4px;overflow:hidden;aspect-ratio:4/5;display:block;text-decoration:none}
   .sol img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s cubic-bezier(.2,.6,.2,1);filter:saturate(.92)}
   .sol:hover img{transform:scale(1.06)}
   .sol .lab{position:absolute;inset:auto 0 0;padding:22px;background:linear-gradient(transparent,rgba(8,8,9,.85));z-index:2}
   .sol .lab h3{font-family:var(--sans);font-weight:500;font-size:16px;color:#fff}
   .sol .lab p{font-size:12.5px;color:rgba(255,255,255,.7);margin-top:4px}
+  .sol .lab .go{margin-top:8px;font:500 12px var(--sans);color:var(--gold);opacity:0;transform:translateY(4px);transition:.25s}
+  .sol:hover .lab .go{opacity:1;transform:none}
+  @media(max-width:760px){
+    .sol-track{overflow-x:auto;transform:none!important;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .sol-track::-webkit-scrollbar{display:none}
+    .sol{flex-basis:74vw;scroll-snap-align:start}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .sol-track{overflow-x:auto;transform:none!important;scrollbar-width:none}
+    .sol-track::-webkit-scrollbar{display:none}
+  }
 
   /* security */
-  .sec-points{display:grid;grid-template-columns:repeat(3,1fr);gap:34px;margin-top:8px}
+  .sec-points{display:grid;grid-template-columns:repeat(4,1fr);gap:30px;margin-top:8px}
   .spt h3{font-family:var(--sans);font-weight:500;font-size:16px;margin:0 0 8px}
   .spt h3 .b{color:var(--gold);margin-right:8px}
   .spt p{color:var(--mute);font-size:14px;margin:0}
@@ -630,13 +643,19 @@
  <h2 class="h2 reveal">Built for considered<br>purchases.</h2>
  <p class="lede reveal d1" style="max-width:34ch">Wherever a single, well-treated client is worth more than a thousand one-time buyers.</p>
  </div>
- <div class="sol-grid">
- <div class="sol reveal"><img src="img/fashion.jpg" alt="Fashion" loading="lazy"><div class="lab"><h3>Fashion &amp; Apparel</h3><p>Buyers worth a private appointment.</p></div></div>
- <div class="sol reveal d1"><img src="img/beauty.jpg" alt="Beauty" loading="lazy"><div class="lab"><h3>Beauty &amp; Fragrance</h3><p>One-time gifters into house clients.</p></div></div>
- <div class="sol reveal d2"><img src="img/jewellery.jpg" alt="Jewellery" loading="lazy"><div class="lab"><h3>Jewellery &amp; Watches</h3><p>Quiet wealth behind a modest order.</p></div></div>
- <div class="sol reveal d3"><img src="img/homeware.jpg" alt="Homeware" loading="lazy"><div class="lab"><h3>Home &amp; Lifestyle</h3><p>The trade and trophy-address clients.</p></div></div>
+ <div class="sol-carousel reveal" id="solCarousel">
+ <div class="sol-track" id="solTrack">
+ <a class="sol" href="/solutions/fashion"><img src="img/fashion.jpg" alt="Fashion &amp; apparel" loading="lazy"><div class="lab"><h3>Fashion &amp; Apparel</h3><p>Buyers worth a private appointment.</p><span class="go">Explore →</span></div></a>
+ <a class="sol" href="/solutions/jewellery"><img src="img/jewellery.jpg" alt="Jewellery &amp; watches" loading="lazy"><div class="lab"><h3>Jewellery &amp; Watches</h3><p>Quiet wealth behind a modest order.</p><span class="go">Explore →</span></div></a>
+ <a class="sol" href="/solutions/wine"><img src="img/luxury_client_pic_also_client_with_wine.jpg" alt="Wine &amp; spirits" loading="lazy"><div class="lab"><h3>Wine &amp; Spirits</h3><p>A quiet monthly order, a serious cellar behind it.</p><span class="go">Explore →</span></div></a>
+ <a class="sol" href="/solutions/beauty"><img src="img/beauty.jpg" alt="Beauty &amp; fragrance" loading="lazy"><div class="lab"><h3>Beauty &amp; Fragrance</h3><p>One-time gifters into house clients.</p><span class="go">Explore →</span></div></a>
+ <a class="sol" href="/solutions/home"><img src="img/homeware.jpg" alt="Home, furniture &amp; interiors" loading="lazy"><div class="lab"><h3>Home &amp; Lifestyle</h3><p>The trade and trophy-address clients.</p><span class="go">Explore →</span></div></a>
+ <a class="sol" href="/solutions/gifting"><img src="img/flowers.jpg" alt="Flowers, food &amp; gifting" loading="lazy"><div class="lab"><h3>Flowers &amp; Gifting</h3><p>A standing bouquet, a house account behind it.</p><span class="go">Explore →</span></div></a>
+ <a class="sol" href="/solutions/collectibles"><img src="img/nice_books_with_mug.jpg" alt="Rare books &amp; collectibles" loading="lazy"><div class="lab"><h3>Rare Books &amp; Collectibles</h3><p>Reading copies beside first-edition collectors.</p><span class="go">Explore →</span></div></a>
+ <a class="sol" href="/solutions/electronics"><img src="img/head_phones.jpg" alt="Electronics &amp; big-box" loading="lazy"><div class="lab"><h3>Electronics &amp; Big-Box</h3><p>A trade account hiding in retail volume.</p><span class="go">Explore →</span></div></a>
  </div>
- <div class="reveal d1" style="margin-top:46px"><a class="btn ghost" href="/solutions">Explore solutions in depth <span class="arrow">→</span></a></div>
+ </div>
+ <div class="reveal d1" style="margin-top:46px"><a class="btn ghost" href="/solutions">Explore all solutions in depth <span class="arrow">→</span></a></div>
 </div></section>
 
 <!-- INTEGRATIONS -->
@@ -793,22 +812,18 @@
  <div class="copy reveal">
  <div class="eyebrow">Security &amp; data</div>
  <h2 class="h2" style="margin:22px 0 24px">Built so we never<br>hold your customers.</h2>
- <p>Most tools copy your whole customer list onto their own servers and keep it there. Halia
- never does. We look at your customers only for the moment it takes to score them, and we keep
- no copy. The one thing we hold is permission to look, never to change anything, and you can
- switch it off whenever you like. There is simply no customer list on our side to lose, leak,
- or hand to anyone.</p>
+ <p>Most tools copy your whole customer list onto their servers and keep it there. Halia works the
+ other way: it reads your customers only for the moment it takes to score them, and holds nothing
+ afterward. The access it needs is read-only, and yours to switch off whenever you like.</p>
  <a class="btn ghost" href="/security" style="margin-top:30px">Read our security overview <span class="arrow">→</span></a>
  </div>
  <div class="media pxmedia reveal d1"><img src="img/we_keep_nothing.jpg" alt="We keep nothing" loading="lazy" data-parallax></div>
  </div>
  <div class="sec-points reveal d2">
- <div class="spt"><h3><span class="b">01</span>We can only look</h3><p>Halia can read your store to score it. It can never change, delete, or place an order.</p></div>
- <div class="spt"><h3><span class="b">02</span>We keep no copy</h3><p>Your customers are scored on the spot and never saved to anything on our side. Minutes later, gone.</p></div>
- <div class="spt"><h3><span class="b">03</span>Off whenever you like</h3><p>The one thing we hold is permission to look, kept locked away. Switch it off and access ends at once.</p></div>
- <div class="spt"><h3><span class="b">04</span>Privacy requests, handled</h3><p>There is nothing of your customers with us to return, export, or delete. Compliance, not paperwork.</p></div>
- <div class="spt"><h3><span class="b">05</span>You keep every record</h3><p>Your data stays in your store and your own tools. Halia is the lens, never the vault.</p></div>
- <div class="spt"><h3><span class="b">06</span>Safe in transit</h3><p>Every connection to your store and your tools is encrypted, so nothing can be read along the way.</p></div>
+ <div class="spt"><h3><span class="b">01</span>Read-only</h3><p>Halia can read your store to score it. It can never change, delete, or place an order.</p></div>
+ <div class="spt"><h3><span class="b">02</span>Nothing stored</h3><p>Your customers are scored in memory and discarded within minutes. There is no database of them on our side to breach.</p></div>
+ <div class="spt"><h3><span class="b">03</span>You control access</h3><p>The one permission Halia holds is to look, and you can revoke it in a click. Access ends at once.</p></div>
+ <div class="spt"><h3><span class="b">04</span>Encrypted in transit</h3><p>Every connection to your store and your tools is encrypted, so nothing can be read along the way.</p></div>
  </div>
 </div></section>
 
@@ -943,6 +958,26 @@
         el.style.transform='translate3d(0,'+(prog*-56).toFixed(1)+'px,0)';
       });
       ticking=false;
+    }
+    addEventListener('scroll',function(){if(!ticking){requestAnimationFrame(update);ticking=true;}},{passive:true});
+    addEventListener('resize',update,{passive:true});
+    update();
+  })();
+
+  // solutions: the industry carousel drifts sideways as the section scrolls through view
+  (function(){
+    var car=document.getElementById('solCarousel'),track=document.getElementById('solTrack');
+    if(!car||!track||reduce)return;
+    var ticking=false;
+    function update(){
+      ticking=false;
+      if(innerWidth<=760){track.style.transform='';return;}   // mobile: native swipe
+      var over=track.scrollWidth-car.clientWidth;
+      if(over<=0){track.style.transform='';return;}
+      var r=car.getBoundingClientRect();
+      var p=(innerHeight-r.top)/(innerHeight+r.height);        // 0 entering, 1 leaving
+      p=p<0?0:p>1?1:p;
+      track.style.transform='translate3d('+(-over*p).toFixed(1)+'px,0,0)';
     }
     addEventListener('scroll',function(){if(!ticking){requestAnimationFrame(update);ticking=true;}},{passive:true});
     addEventListener('resize',update,{passive:true});
