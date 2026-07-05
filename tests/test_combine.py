@@ -11,9 +11,40 @@ from scoring.combine import (
     REASONS_COL,
     SCORE_COL,
     SIGNAL_WEIGHTS,
+    reasons_top_n,
     score_customers,
     top_hidden_vics,
 )
+
+
+# --- A2: non-customer suppressor -------------------------------------------
+def test_row_with_no_contactable_identity_is_not_hidden():
+    # A wealth-address signal fires, but there is no name and no email -> not actionable,
+    # so it is never surfaced as a hidden VIC.
+    out = score_customers(_frame([{"Name": None, "EMAIL_ADDR": None, "Spent": 100,
+                                    "LATEST_BILLING_ZIP": "SW1A 1AA"}]))
+    assert out.loc[0, COUNT_COL] >= 0
+    assert not out.loc[0, HIDDEN_COL]
+
+
+def test_placeholder_test_row_is_not_hidden():
+    out = score_customers(_frame([{"Name": "test", "EMAIL_ADDR": "test@example.com",
+                                   "Spent": 100, "LATEST_BILLING_ZIP": "SW1A 1AA"}]))
+    assert not out.loc[0, HIDDEN_COL]
+
+
+def test_real_identity_still_surfaces():
+    out = score_customers(_frame([{"Name": "Jane Rothschild", "EMAIL_ADDR": "jane@gmail.com",
+                                   "Spent": 100, "LATEST_BILLING_ZIP": "SW1A 1AA"}]))
+    if out.loc[0, COUNT_COL] > 0:
+        assert out.loc[0, HIDDEN_COL]
+
+
+# --- A3: reasons roll-up ---------------------------------------------------
+def test_reasons_top_n_caps_and_counts():
+    assert reasons_top_n("A: 1; B: 2; C: 3", n=4) == "A: 1; B: 2; C: 3"     # under cap: unchanged
+    assert reasons_top_n("A: 1; B: 2; C: 3; D: 4; E: 5", n=3) == "A: 1; B: 2; C: 3; and 2 more"
+    assert reasons_top_n("", n=3) == "" and reasons_top_n(None, n=3) == ""
 
 
 def _blank_row(**overrides):

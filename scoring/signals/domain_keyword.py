@@ -78,14 +78,40 @@ def match_domain(email: object, general, elite, excluded) -> tuple[bool, str | N
     return False, None, None
 
 
+def match_company(company: object, general, elite) -> tuple[bool, str | None, str | None]:
+    """Same finance-keyword tells, read from the order's COMPANY_NAME.
+
+    A firm literally named "... Private Equity" / "... Capital Partners" is the
+    same signal as a finance email domain. Single-word keywords match as a whole
+    word (stoplist-aware); the distinctive joined compounds (privateequity,
+    familyoffice, ...) match as a substring so multi-word firm names still fire."""
+    if company is None or (isinstance(company, float) and pd.isna(company)):
+        return False, None, None
+    norm = re.sub(r"[^a-z0-9]+", " ", str(company).lower()).strip()
+    if not norm:
+        return False, None, None
+    segs = [s for s in norm.split() if s]
+    flat = "".join(segs)
+    for kw in elite:
+        if _seg_hit(segs, kw) or (len(kw) >= 10 and kw in flat):
+            return True, f'"{kw}" in company (elite finance)', "elite"
+    for kw in general:
+        if _seg_hit(segs, kw):
+            return True, f'"{kw}" in company', "general"
+    return False, None, None
+
+
 def flag_domain_keyword(
     df: pd.DataFrame,
     general=None,
     elite=None,
     excluded=None,
     email_col: str = "EMAIL_ADDR",
+    company_col: str = "COMPANY_NAME",
 ) -> pd.DataFrame:
-    """Add the domain-keyword flag + reason + tier columns to a copy of ``df``."""
+    """Add the domain-keyword flag + reason + tier columns to a copy of ``df``.
+
+    Fires on a finance keyword in the custom email domain OR in the company field."""
     if general is None:
         general = load_keywords(HIGH_EARNING_KEYWORDS_FILE)
     if elite is None:
@@ -93,13 +119,25 @@ def flag_domain_keyword(
     if excluded is None:
         excluded = load_excluded()
     out = df.copy()
-    if email_col not in out.columns:
+    has_email = email_col in out.columns
+    has_company = company_col in out.columns
+    if not has_email and not has_company:
         out[FLAG_COL] = False
         out[REASON_COL] = None
         out[TYPE_COL] = None
         return out
-    results = out[email_col].apply(lambda e: match_domain(e, general, elite, excluded))
-    out[FLAG_COL] = [hit for hit, _, _ in results]
-    out[REASON_COL] = [reason for _, reason, _ in results]
-    out[TYPE_COL] = [tier for _, _, tier in results]
+
+    emails = out[email_col] if has_email else pd.Series([None] * len(out), index=out.index)
+    companies = out[company_col] if has_company else pd.Series([None] * len(out), index=out.index)
+    flags, reasons, types = [], [], []
+    for email, company in zip(emails.tolist(), companies.tolist()):
+        hit, reason, tier = match_domain(email, general, elite, excluded)
+        if not hit:
+            hit, reason, tier = match_company(company, general, elite)
+        flags.append(hit)
+        reasons.append(reason)
+        types.append(tier)
+    out[FLAG_COL] = flags
+    out[REASON_COL] = reasons
+    out[TYPE_COL] = types
     return out

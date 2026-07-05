@@ -363,6 +363,44 @@ def run_all_signals(df: pd.DataFrame, include_origin: bool = False) -> pd.DataFr
     return out
 
 
+# Rows we should never surface as a hidden VIC even if a stray signal fires: there is
+# nobody to act on. A real order always carries a usable name or email; rows with neither
+# (or an obvious placeholder/test value) are corrupt/internal/test data, not clients.
+_PLACEHOLDER_NAMES = {
+    "test", "testing", "test test", "asdf", "asdfasdf", "na", "n/a", "none", "null",
+    "customer", "guest", "unknown", "no name", "noname", "xxx", "xxxx", "qwerty",
+}
+_PLACEHOLDER_DOMAINS = {"example.com", "example.org", "test.com", "test.test", "email.com",
+                        "none.com", "domain.com", "yourdomain.com"}
+_PLACEHOLDER_LOCALS = {"test", "testing", "noreply", "no-reply", "none", "example"}
+
+
+def _actionable_mask(out: pd.DataFrame) -> np.ndarray:
+    """True where the row has a real, contactable identity (a usable name or email)."""
+    n = len(out)
+    if "Name" not in out.columns and "EMAIL_ADDR" not in out.columns:
+        return np.ones(n, dtype=bool)   # can't tell -> don't suppress
+    names = out["Name"] if "Name" in out.columns else pd.Series([None] * n, index=out.index)
+    emails = out["EMAIL_ADDR"] if "EMAIL_ADDR" in out.columns else pd.Series([None] * n, index=out.index)
+
+    def _s(v: object) -> str:
+        return "" if v is None or (isinstance(v, float) and pd.isna(v)) else str(v).strip()
+
+    def _name_ok(v: object) -> bool:
+        nm = _s(v).lower()
+        return bool(nm) and nm not in _PLACEHOLDER_NAMES and not nm.startswith("test ")
+
+    def _email_ok(v: object) -> bool:
+        e = _s(v).lower()
+        if "@" not in e or "." not in e.rsplit("@", 1)[-1]:
+            return False
+        local, _, domain = e.partition("@")
+        return domain not in _PLACEHOLDER_DOMAINS and local not in _PLACEHOLDER_LOCALS
+
+    return np.array([_name_ok(nm) or _email_ok(e)
+                     for nm, e in zip(names.tolist(), emails.tolist())], dtype=bool)
+
+
 def score_customers(
     df: pd.DataFrame,
     weights: dict[str, int] | None = None,
@@ -431,9 +469,13 @@ def score_customers(
         score = score + (mat * decays).sum(axis=1)
     score = np.round(score, 2)
 
+    # Reasons lead with the strongest evidence (highest base weight), so the first
+    # one shown in the UI is the signal that matters most, not just the first registered.
+    active_by_weight = sorted(active, key=lambda t: -int(weights.get(t[0], 0)))
+
     def build_reasons(row: pd.Series) -> str:
         parts = []
-        for _key, label, _apply, flag_col, reason_fn in active:
+        for _key, label, _apply, flag_col, reason_fn in active_by_weight:
             if bool(row.get(flag_col)):
                 parts.append(f"{label}: {reason_fn(row)}")
         return "; ".join(parts)
@@ -461,8 +503,17 @@ def score_customers(
         spent = pd.to_numeric(out["Spent"], errors="coerce").fillna(0.0)
     else:
         spent = pd.Series(0.0, index=out.index)
-    out[HIDDEN_COL] = (out[COUNT_COL] > 0) & (spent < vic_threshold)
+    out[HIDDEN_COL] = (out[COUNT_COL] > 0) & (spent < vic_threshold) & _actionable_mask(out)
     return out
+
+
+def reasons_top_n(reasons: object, n: int = 4) -> str:
+    """Cap a 'Label: detail; Label: detail' reasons string to the strongest ``n``
+    (reasons are already ordered strongest-first), appending 'and K more'."""
+    parts = [p for p in str(reasons or "").split("; ") if p]
+    if len(parts) <= n:
+        return "; ".join(parts)
+    return "; ".join(parts[:n]) + f"; and {len(parts) - n} more"
 
 
 def top_hidden_vics(df: pd.DataFrame, n: int = 20) -> pd.DataFrame:

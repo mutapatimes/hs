@@ -9,8 +9,10 @@ import pandas as pd
 from scoring.signals.work_email import (
     FLAG_COL,
     REASON_COL,
+    employer_names,
     flag_work_email,
     load_domains,
+    match_company,
     match_email,
 )
 
@@ -61,3 +63,24 @@ def test_blank_or_malformed_email_not_flagged():
     assert match_email(None, domains) == (False, None)
     assert match_email("not-an-email", domains) == (False, None)
     assert match_email("", domains) == (False, None)
+
+
+# --- company-field matching (A1) -------------------------------------------
+def test_employer_named_in_company_field_fires_on_free_email():
+    domains = load_domains()
+    df = pd.DataFrame({
+        "EMAIL_ADDR": ["a@gmail.com", "b@gmail.com", "c@gmail.com"],
+        "COMPANY_NAME": ["Goldman Sachs International", "Bob's Plumbing Ltd", None],
+    })
+    out = flag_work_email(df, domains)
+    assert out[FLAG_COL].tolist() == [True, False, False]
+    assert "Goldman Sachs" in out.loc[0, REASON_COL] and "company field" in out.loc[0, REASON_COL]
+
+
+def test_short_or_ambiguous_employer_names_are_skipped():
+    domains = load_domains()
+    names = employer_names(domains)
+    # distinctive names kept; short single tokens (e.g. UBS, GS) skipped as collision-prone.
+    assert match_company("UBS", names) == (False, None)
+    assert match_company("GS Retail", names) == (False, None)
+    assert match_company(None, names) == (False, None)

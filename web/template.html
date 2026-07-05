@@ -126,19 +126,38 @@
   .controls select:hover{border-color:#B9B5A9}
 
   /* table */
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+  #rows,#orows{overflow:hidden;border-radius:0 0 16px 16px}
   .thead{
-    display:grid;grid-template-columns:34px 56px 1fr 132px 120px 96px;
-    gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);
-    font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700;align-items:center
+    display:grid;grid-template-columns:34px 56px 1fr 132px 120px 92px 96px;
+    gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);border-radius:16px 16px 0 0;
+    font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700;align-items:center;
+    position:sticky;top:0;z-index:6;background:var(--card)
   }
   .thead .sortable{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
   .thead .sortable.act{color:var(--brand)}
+  .thead .sortable svg{transition:transform .18s}
+  .thead .sortable.act.asc svg{transform:rotate(180deg)}   /* caret points up when ascending */
   .row{
-    display:grid;grid-template-columns:34px 56px 1fr 132px 120px 96px;
+    display:grid;grid-template-columns:34px 56px 1fr 132px 120px 92px 96px;
     gap:14px;padding:15px 18px;border-bottom:1px solid var(--line);align-items:center;cursor:pointer;
     transition:background .12s
   }
+  .last-cell{font-size:12.5px;color:var(--soft);font-weight:500}
+  .selall{cursor:pointer}
+  .gradekey{position:relative;display:inline-flex;align-items:center;margin-left:5px}
+  .gradekey .qm{width:14px;height:14px;border-radius:50%;border:1px solid var(--line-strong);color:var(--faint);
+    font-size:9px;font-weight:700;display:grid;place-items:center;cursor:help;text-transform:none}
+  .gradekey .pop{display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
+    width:210px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 16px 40px -18px rgba(0,0,0,.3);
+    padding:12px 14px;z-index:30;text-transform:none;letter-spacing:0;font-weight:400}
+  .gradekey:hover .pop{display:block}
+  .gradekey .pop .gk{display:flex;gap:9px;align-items:baseline;padding:4px 0;font-size:12px;color:var(--soft)}
+  .gradekey .pop .gk b{font-size:13px;min-width:22px}
+  .rated{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;border-radius:999px;
+    padding:1px 7px;margin-left:7px;vertical-align:middle}
+  .rated.fit{background:rgba(58,140,90,.12);color:var(--brand)}
+  .rated.nofit{background:rgba(20,18,12,.06);color:var(--faint)}
   .row:last-child{border-bottom:0}
   .row:hover{background:var(--rowhover)}
   .row.sel{background:var(--brand-tint)}
@@ -261,9 +280,9 @@
     .sidenav{display:none}.admin{grid-template-columns:1fr}
     .stats{grid-template-columns:repeat(2,1fr)}
     .thead{grid-template-columns:28px 1fr 96px;}
-    .thead .h-rank,.thead .h-spend{display:none}
+    .thead .h-rank,.thead .h-spend,.thead .h-last{display:none}
     .row{grid-template-columns:28px 1fr 96px}
-    .row .rank,.row .spend-cell{display:none}
+    .row .rank,.row .spend-cell,.row .last-cell{display:none}
     .canvas{padding:20px 16px 80px}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -400,11 +419,12 @@
       <!-- table -->
       <div class="panel">
         <div class="thead">
-          <div></div>
+          <div class="cbx selall" id="selAll" title="Select all matching"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></div>
           <div class="h-rank">Rank</div>
           <div class="sortable" id="sortCount">Client &amp; signals <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></div>
-          <div class="sortable act" id="sortScore">Score <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="sortable act" id="sortScore">Score <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg><span class="gradekey"><span class="qm">?</span><span class="pop"><div class="gk"><b>A*</b><span>Strongest wealth signals. Reach out personally.</span></div><div class="gk"><b>A</b><span>Clear high-value signs. Worth a personal note.</span></div><div class="gk"><b>B</b><span>Promising; some good signals.</span></div><div class="gk"><b>C</b><span>No strong signals yet.</span></div></span></span></div>
           <div class="sortable h-spend" id="sortValue">Latent / spend</div>
+          <div class="sortable h-last" id="sortLast">Last <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></div>
           <div style="text-align:right">Action</div>
         </div>
         <div id="rows"></div>
@@ -474,11 +494,19 @@ const tierLabel = t => t==="A1"?"A*":t;
 
 let activeSeg = "all";
 let sortKey = "score";
+let sortDir = "desc";            // "desc" (default) or "asc"; toggles when a sort column is re-clicked
 let query = "";
 let gradeFilter = "all";
 let cityFilter = "all";
 let minSignals = 1;
 const selected = new Set();
+const rated = new Map();          // client id -> "fit" | "nofit", so a rated row shows a badge
+function ratedBadge(id){
+  const v = rated.get(id);
+  if(!v) return "";
+  return v==="fit" ? '<span class="rated fit">&#10003; rated</span>'
+                   : '<span class="rated nofit">rated</span>';
+}
 
 // chips
 const segCounts = {};
@@ -503,7 +531,7 @@ function renderChips(){
 document.getElementById("fGrade").onchange=e=>{gradeFilter=e.target.value;renderRows();};
 document.getElementById("fCity").onchange=e=>{cityFilter=e.target.value;renderRows();};
 document.getElementById("fMin").onchange=e=>{minSignals=+e.target.value;renderRows();};
-document.getElementById("fSort").onchange=e=>{sortKey=e.target.value;setSort();};
+document.getElementById("fSort").onchange=e=>{sortKey=e.target.value;sortDir="desc";setSort();};
 
 function meterSvg(score,tier){
   const r=20,c=2*Math.PI*r,off=c*(1-score/100);
@@ -527,10 +555,12 @@ function visible(){
     return segOk && qOk && gradeOk && cityOk && minOk;
   });
   list.sort((a,b)=>{
-    if(sortKey==="count") return (b.count-a.count) || (b.score-a.score) || (b.spend-a.spend);
-    if(sortKey==="latent") return b.latent-a.latent;
-    if(sortKey==="last") return (b.lastSort-a.lastSort) || (b.score-a.score);
-    return (b.score-a.score) || (b.count-a.count);
+    let d;
+    if(sortKey==="count") d = (b.count-a.count) || (b.score-a.score) || (b.spend-a.spend);
+    else if(sortKey==="latent") d = (b.latent-a.latent) || (b.score-a.score);
+    else if(sortKey==="last") d = (b.lastSort-a.lastSort) || (b.score-a.score);
+    else d = (b.score-a.score) || (b.count-a.count);
+    return sortDir==="asc" ? -d : d;
   });
   return list;
 }
@@ -553,6 +583,7 @@ function updateStats(list){
 function renderRows(){
   const list = visible();
   updateStats(list);
+  updateSelAll(list);
   if(!list.length){ rowsEl.innerHTML = `<div style="padding:48px;text-align:center;color:var(--faint)">No clients match this filter. <b style="color:var(--soft)">Try another signal.</b></div>`; return; }
   rowsEl.innerHTML = list.map((c,i)=>{
     const sigChips = c.signals.slice(0,2).map(s=>`<span class="sig">${s.d}</span>`).join("")
@@ -563,7 +594,7 @@ function renderRows(){
       <div class="client">
         <div class="ava ${c.tier}">${c.init}</div>
         <div class="cinfo">
-          <div class="cname">${c.name}</div>
+          <div class="cname">${c.name}${ratedBadge(c.id)}</div>
           <div class="cmeta">${[c.email,c.phone].filter(Boolean).join(" · ")}</div>
           <div class="csignals">${sigChips}</div>
         </div>
@@ -572,6 +603,7 @@ function renderRows(){
       <div class="money latent spend-cell">
         <div class="big">${gbpK(c.latent)}</div><div class="lbl">latent · ${gbp(c.spend)} now</div>
       </div>
+      <div class="last-cell">${c.last||""}</div>
       <div class="go"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
     </div>`;
   }).join("");
@@ -593,6 +625,18 @@ function updateBulk(){
   document.getElementById("bulkN").textContent=selected.size;
   bulk.classList.toggle("show",selected.size>0);
 }
+// Header checkbox: select (or clear) every row matching the current filters in one click.
+function updateSelAll(list){
+  const el=document.getElementById("selAll"); if(!el) return;
+  const all = list.length>0 && list.every(c=>selected.has(c.id));
+  el.classList.toggle("on", all);
+}
+document.getElementById("selAll").onclick=()=>{
+  const list=visible();
+  const all = list.length>0 && list.every(c=>selected.has(c.id));
+  list.forEach(c=> all ? selected.delete(c.id) : selected.add(c.id));
+  renderRows();updateBulk();
+};
 
 // Push potential VICs to Klaviyo (real). App Bridge attaches the session token to fetch.
 async function haliaPush(cids){
@@ -606,7 +650,13 @@ async function haliaPush(cids){
 }
 
 // bulk action: sync the selected clients
+// A quick guard before an irreversible bulk sync/tag, so a stray click can't fire it.
+function confirmBulk(verb,dest){
+  const n=selected.size;
+  return n>0 && window.confirm(`${verb} ${n} client${n===1?"":"s"} ${dest}?`);
+}
 document.getElementById("bulkpush").onclick=async()=>{
+  if(!confirmBulk("Sync","to Klaviyo")) return;
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   const btn=document.getElementById("bulkpush"); btn.disabled=true; btn.textContent="Syncing…";
   await haliaPush(cids);
@@ -635,6 +685,7 @@ document.getElementById("bulklist").onclick=async()=>{
 };
 // bulk action: sync the selected clients to Mailchimp
 document.getElementById("bulkpushmc").onclick=async()=>{
+  if(!confirmBulk("Sync","to Mailchimp")) return;
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   const btn=document.getElementById("bulkpushmc"); btn.disabled=true; const t=btn.textContent; btn.textContent="Syncing…";
   try{
@@ -668,6 +719,7 @@ document.getElementById("bulksegmc").onclick=async()=>{
 
 // bulk action: sync the selected clients to HubSpot (all potential VICs if none selected)
 document.getElementById("bulkpushhs").onclick=async()=>{
+  if(!confirmBulk("Sync","to HubSpot")) return;
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   const btn=document.getElementById("bulkpushhs"); btn.disabled=true; const t=btn.textContent; btn.textContent="Syncing…";
   try{
@@ -683,6 +735,7 @@ document.getElementById("bulkpushhs").onclick=async()=>{
 
 // bulk action: tag the selected clients back into Shopify (all potential VICs if none selected)
 document.getElementById("bulktag").onclick=async()=>{
+  if(!confirmBulk("Tag","in Shopify")) return;
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   const btn=document.getElementById("bulktag"); btn.disabled=true; const t=btn.textContent; btn.textContent="Tagging…";
   try{
@@ -1000,6 +1053,7 @@ function openDrawer(id){
           box.innerHTML='<span style="color:var(--brand);font-size:13px;font-weight:600">Thanks — '
             +(verdict==="fit"?"marked a good call":"marked not a fit")
             +(d.tagged?" &amp; tagged in Shopify":"")+".</span>";
+          rated.set(c.id, verdict); renderRows();   // show a "rated" badge on the row
           toast("Feedback saved.");
         }).catch(e=>{toast("Couldn't save feedback: "+e.message);wire();});
     }
@@ -1071,13 +1125,22 @@ scrim.onclick=()=>{closeDrawer();closeSettings();};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeDrawer();closeSettings();}});
 
 // sorting
-document.getElementById("sortCount").onclick=()=>{sortKey="count";setSort();};
-document.getElementById("sortScore").onclick=()=>{sortKey="score";setSort();};
-document.getElementById("sortValue").onclick=()=>{sortKey="latent";setSort();};
+function setSortKey(k){
+  if(k===sortKey) sortDir = sortDir==="asc" ? "desc" : "asc";   // re-click same column: flip direction
+  else { sortKey = k; sortDir = "desc"; }
+  setSort();
+}
+document.getElementById("sortCount").onclick=()=>setSortKey("count");
+document.getElementById("sortScore").onclick=()=>setSortKey("score");
+document.getElementById("sortValue").onclick=()=>setSortKey("latent");
+document.getElementById("sortLast").onclick=()=>setSortKey("last");
 function setSort(){
-  document.getElementById("sortCount").classList.toggle("act",sortKey==="count");
-  document.getElementById("sortScore").classList.toggle("act",sortKey==="score");
-  document.getElementById("sortValue").classList.toggle("act",sortKey==="latent");
+  const map={sortCount:"count",sortScore:"score",sortValue:"latent",sortLast:"last"};
+  Object.entries(map).forEach(([id,k])=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.classList.toggle("act", sortKey===k);
+    el.classList.toggle("asc", sortKey===k && sortDir==="asc");
+  });
   document.getElementById("fSort").value = sortKey;
   renderRows();
 }

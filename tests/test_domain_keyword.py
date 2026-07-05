@@ -75,5 +75,26 @@ def test_grouped_with_custom_email_no_double_count():
     assert float(r[SCORE_COL]) == 2.5
 
 
+def test_company_field_finance_keyword_fires(monkeypatch):
+    # Free email, but the company name carries the finance tell (A1).
+    df = pd.DataFrame({
+        "EMAIL_ADDR": ["a@gmail.com", "b@gmail.com", "c@gmail.com", "d@gmail.com"],
+        "COMPANY_NAME": ["Smith Family Private Equity", "Acme Ventures LLP",
+                         "Bob's Plumbing Ltd", None],
+    })
+    out = flag_domain_keyword(df)
+    assert out["domain_keyword"].tolist() == [True, True, False, False]
+    assert out.loc[0, "domain_keyword_type"] == "elite"       # "private equity" -> elite
+    assert out.loc[1, "domain_keyword_type"] == "general"     # "ventures" -> general
+    assert "company" in out.loc[0, "domain_keyword_reason"]
+
+
+def test_email_domain_still_wins_over_company():
+    # A finance email domain is scored via the domain (unchanged), not the company.
+    df = pd.DataFrame({"EMAIL_ADDR": ["x@apex-capital.com"], "COMPANY_NAME": ["Acme Ventures"]})
+    out = flag_domain_keyword(df)
+    assert out.loc[0, "domain_keyword"] and "apex-capital.com" in out.loc[0, "domain_keyword_reason"]
+
+
 def test_missing_column_is_dormant():
     assert not flag_domain_keyword(pd.DataFrame({"x": [1]}))["domain_keyword"].any()
