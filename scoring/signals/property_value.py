@@ -4,19 +4,23 @@ Flags customers whose billing/shipping postcode maps to a high median property v
 defined by an editable reference table (see reference_data/postcodes/uk_property_values.csv).
 Property value is a WEALTH FACT, so this signal is ON by default; it is not an origin proxy.
 
-Matching is EXACT FULL POSTCODE first, then district as a fallback. A full UK postcode
-covers only ~15 homes (often one building or street segment), so its median sale price is a
-tight proxy for the actual house at that address, e.g. "SW1A 1AA". If the table has no exact
-row for that postcode, the signal falls back to the OUTCODE / district median (e.g. "SW1A").
-Exact matching is what catches a genuinely valuable address on an ordinary-looking street,
-where the whole-district median would be dragged below the threshold.
+This module exposes TWO separate signals, because "this exact house is worth £X" and "this is
+an expensive area" are different strengths of evidence:
 
-Both the billing and the shipping postcode are scanned; the higher-value match wins.
+  - property_value  -> EXACT full postcode, the actual house (e.g. "SW1A 1AA"). A full UK
+    postcode is ~15 homes (often one building or street segment), so its median sale price is a
+    tight proxy for that specific address. Weight scales CONTINUOUSLY with the median price
+    (a £50M home outweighs a £2M one). This is the strong, precise tell.
+  - property_area   -> the OUTCODE / district (e.g. "SW1A"), a high-net-worth area. Coarser and
+    weaker; graded by tier, not price. This is the broad-coverage tell.
 
-Each listed row carries a tier (ultra / prime / high) that grades how strong the tell is;
-the combiner maps the tier to a weight (see PROPERTY_TIER_WEIGHTS). The seed table is curated
-at district level; regenerate it to full national, full-postcode coverage from HM Land Registry
-Price Paid Data with scripts/build_property_values.py.
+Both scan the billing AND shipping postcode; the higher-value match wins. Neither surfaces the
+raw £ price to the merchant, only a value GRADE (Ultra-prime / Prime / High-value), since showing
+an estimated home price reads as intrusive.
+
+The seed table is curated at district level (so property_area works out of the box; property_value
+starts firing once you add full-postcode rows). Regenerate to full national, full-postcode
+coverage from HM Land Registry Price Paid Data with scripts/build_property_values.py.
 """
 from __future__ import annotations
 
@@ -29,14 +33,25 @@ import pandas as pd
 from config import UK_PROPERTY_VALUES_FILE
 from scoring.signals.hnwi_postcode import PLACEHOLDER_POSTCODES
 
+# Two distinct signals share this table:
+#   property_value  -> EXACT full postcode: the actual house. Weight scales with its median price.
+#   property_area   -> the OUTCODE / district: a high-net-worth area. Weight is a coarse grade.
 FLAG_COL = "property_value"
 TIER_COL = "property_value_tier"
 REASON_COL = "property_value_reason"
-PRICE_COL = "property_value_price"   # the matched median price; combiner scales weight by it
+PRICE_COL = "property_value_price"   # the matched median price; combiner scales weight by it (never shown)
+
+AREA_FLAG_COL = "property_area"
+AREA_TIER_COL = "property_area_tier"
+AREA_REASON_COL = "property_area_reason"
 
 # UK inward code (the part after the space) is always 3 chars: digit + 2 letters.
 _INWARD_LEN = 3
 _VALID_TIERS = {"ultra", "prime", "high"}
+
+# A value GRADE surfaced to the merchant instead of the raw £ price (showing an estimated
+# property price for someone's home reads as intrusive; the grade conveys the tell honestly).
+GRADE_WORD = {"ultra": "Ultra-prime", "prime": "Prime", "high": "High-value"}
 
 
 def _normalize(value: object) -> str | None:
@@ -110,68 +125,82 @@ def load_values(path: Path | str = UK_PROPERTY_VALUES_FILE) -> dict[str, dict]:
     return table
 
 
-def _lookup(postcode: object, table: dict[str, dict]) -> dict | None:
-    """Return {'tier','price','reason'} for the best match, or None.
+def _lookup_exact(postcode: object, table: dict[str, dict]) -> dict | None:
+    """The EXACT full postcode (the actual house), or None. Reason is a value GRADE."""
+    compact = _compact(postcode)
+    if compact is None or len(compact) < 5:
+        return None
+    entry = table.get(compact)
+    if entry is None:
+        return None
+    grade = GRADE_WORD.get(entry["tier"], entry["tier"].title())
+    return {"tier": entry["tier"], "price": entry["price"],
+            "reason": f"{grade} ({_pretty(compact)})"}
 
-    Exact full-postcode match first (the actual house), then the district/outcode fallback."""
+
+def _lookup_area(postcode: object, table: dict[str, dict]) -> dict | None:
+    """The OUTCODE / district (a high-net-worth area), or None. Reason is a value GRADE."""
     compact = _compact(postcode)
     if compact is None:
         return None
-    # 1) exact full postcode — the tightest, actual-address match.
-    if len(compact) >= 5:
-        entry = table.get(compact)
-        if entry is not None:
-            pretty = _pretty(compact)
-            reason = f"{entry['area']} ({pretty})" if entry["area"] else pretty
-            return {"tier": entry["tier"], "price": entry["price"], "reason": reason}
-    # 2) district / outcode fallback.
     outcode = compact[:-_INWARD_LEN] if len(compact) >= 5 else compact
     entry = table.get(outcode)
-    if entry is not None:
-        reason = f"{entry['area']} ({outcode})" if entry["area"] else outcode
-        return {"tier": entry["tier"], "price": entry["price"], "reason": reason}
-    return None
+    if entry is None:
+        return None
+    grade = GRADE_WORD.get(entry["tier"], entry["tier"].title())
+    where = entry["area"] or outcode
+    return {"tier": entry["tier"], "price": entry["price"], "reason": f"{grade} ({where})"}
 
 
 def match_postcode(postcode: object, table: dict[str, dict]) -> tuple[bool, str | None, str | None]:
-    """Return (is_high_value, tier, reason) for one postcode."""
-    m = _lookup(postcode, table)
+    """Return (is_high_value, tier, reason) for one postcode: exact house, else the area."""
+    m = _lookup_exact(postcode, table) or _lookup_area(postcode, table)
     return (True, m["tier"], m["reason"]) if m else (False, None, None)
 
 
-def flag_property_value(
-    df: pd.DataFrame,
-    table: dict[str, dict] | None = None,
-    zip_cols: list[str] | None = None,
-) -> pd.DataFrame:
-    """Add property_value flag + tier + reason + price columns to a copy of ``df``.
-
-    Scans BOTH the billing and shipping ZIP by default; the HIGHER-VALUE address wins,
-    so a customer is graded by (and their weight scaled by) their most valuable property.
-    """
-    if table is None:
-        table = load_values()
+def _flag(df, table, lookup, flag_col, tier_col, reason_col, price_col, zip_cols):
+    """Shared scanner: run ``lookup`` over billing+shipping; the higher-value match wins."""
     out = df.copy()
     cols = [c for c in (zip_cols or ["LATEST_BILLING_ZIP", "LATEST_SHIPPING_ZIP"])
             if c in out.columns]
     if not cols:
-        out[FLAG_COL] = False
-        out[TIER_COL] = None
-        out[REASON_COL] = None
-        out[PRICE_COL] = 0
+        out[flag_col] = False
+        out[tier_col] = None
+        out[reason_col] = None
+        if price_col:
+            out[price_col] = 0
         return out
 
     def _match(row):
         best = None
         for c in cols:
-            m = _lookup(row[c], table)
+            m = lookup(row[c], table)
             if m and (best is None or m["price"] > best["price"]):
                 best = m
         return best
 
     results = out.apply(_match, axis=1)
-    out[FLAG_COL] = [m is not None for m in results]
-    out[TIER_COL] = [m["tier"] if m else None for m in results]
-    out[REASON_COL] = [m["reason"] if m else None for m in results]
-    out[PRICE_COL] = [m["price"] if m else 0 for m in results]
+    out[flag_col] = [m is not None for m in results]
+    out[tier_col] = [m["tier"] if m else None for m in results]
+    out[reason_col] = [m["reason"] if m else None for m in results]
+    if price_col:
+        out[price_col] = [m["price"] if m else 0 for m in results]
     return out
+
+
+def flag_property_value(df: pd.DataFrame, table: dict[str, dict] | None = None,
+                        zip_cols: list[str] | None = None) -> pd.DataFrame:
+    """EXACT full-postcode match (the actual house). Scans billing+shipping; higher value wins;
+    weight scales with the matched median price."""
+    if table is None:
+        table = load_values()
+    return _flag(df, table, _lookup_exact, FLAG_COL, TIER_COL, REASON_COL, PRICE_COL, zip_cols)
+
+
+def flag_property_area(df: pd.DataFrame, table: dict[str, dict] | None = None,
+                       zip_cols: list[str] | None = None) -> pd.DataFrame:
+    """OUTCODE / district match (a high-net-worth area). Coarser than the exact house; graded
+    by tier, not price."""
+    if table is None:
+        table = load_values()
+    return _flag(df, table, _lookup_area, AREA_FLAG_COL, AREA_TIER_COL, AREA_REASON_COL, None, zip_cols)

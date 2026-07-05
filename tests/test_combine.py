@@ -91,14 +91,13 @@ def test_correlated_geo_signals_get_diminishing_returns():
         "LATEST_BILLING_ZIP": "SW10 9SJ",           # hnwi_postcode (geo), w=3
         "LATEST_BILLING_ADDRESS4": "Qatar",         # gcc_billing (geo), w=2
     }]), include_origin=True)  # origin proxies opted in to test geo grouping
-    # SW10 fires both hnwi_postcode AND property_value (Chelsea). Four signals fire, but the
-    # three GEO tells (same location) don't fully stack: they are decayed 1, .5, .25 by rank.
-    # (property_value is now graded by the area's actual median price, so we test the
-    # diminishing-returns PRINCIPLE rather than a brittle exact total.)
-    from scoring.combine import property_value_weight
+    # SW10 fires both hnwi_postcode AND property_area (Chelsea district). Four signals fire, but
+    # the three GEO tells (same location) don't fully stack: decayed 1, .5, .25 by rank. We test
+    # the diminishing-returns PRINCIPLE rather than a brittle exact total.
+    from scoring.combine import PROPERTY_AREA_WEIGHTS
     from scoring.signals.property_value import load_values
-    pw = float(property_value_weight(load_values()["SW10"]["price"]))
-    naive = 3.0 + 3.0 + pw + 2.0                       # work_email + hnwi + property + gcc, undecayed
+    pw = PROPERTY_AREA_WEIGHTS.get(load_values()["SW10"]["tier"], 2)
+    naive = 3.0 + 3.0 + pw + 2.0                       # work_email + hnwi + property_area + gcc, undecayed
     assert out.loc[0, COUNT_COL] == 4
     assert out.loc[0, SCORE_COL] < naive              # correlated geo tells are discounted
     assert out.loc[0, SCORE_COL] > 3.0 + 2.0          # but far more than nothing

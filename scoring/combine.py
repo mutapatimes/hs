@@ -64,7 +64,8 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "us_hnwi_zip": 3,
     "intl_postcode": 3,
     "hnw_area": 3,
-    "property_value": 2,  # base; the tier (ultra/prime/high) overrides, see PROPERTY_TIER_WEIGHTS
+    "property_value": 2,  # EXACT house: base; weight scales with median price (property_value_weight)
+    "property_area": 2,   # district/area: base; the tier overrides (PROPERTY_AREA_WEIGHTS)
     "hotel_concierge": 3,
     "delivery_venue": 3,
     "styling_service": 3,  # B2B trade account — buys for many UHNW clients
@@ -137,11 +138,19 @@ def property_value_weight(price):
     return np.clip(w, PROPERTY_MIN_WEIGHT, PROPERTY_MAX_WEIGHT)
 
 
-# Fallback tier weights, used only when no per-row price is available.
+# Fallback tier weights for the EXACT-house signal, used only when no per-row price is available.
 PROPERTY_TIER_WEIGHTS = {
     "ultra": 4,
     "prime": 3,
     "high": 2,
+}
+
+# The AREA (district) signal is coarser and weaker than the exact house: living in an expensive
+# district is a softer tell than owning a specific high-value address. Graded by tier, not price.
+PROPERTY_AREA_WEIGHTS = {
+    "ultra": 3,
+    "prime": 2,
+    "high": 1,
 }
 
 # "Supporting" signals are too weak/sensitive to ever flag a customer on their
@@ -188,7 +197,8 @@ SIGNAL_GROUP: dict[str, str] = {
     "us_hnwi_zip": "geo",
     "intl_postcode": "geo",
     "hnw_area": "geo",
-    "property_value": "geo",  # area property value echoes the same location
+    "property_value": "geo",  # exact-house value echoes the same location
+    "property_area": "geo",   # district value echoes the same location too
     "prime_residence": "geo",
     "gcc_billing": "geo",
     "wealth_jurisdiction": "geo",  # high-value residential jurisdiction (was tax_haven)
@@ -232,8 +242,8 @@ HIDDEN_COL = "hidden_vic"
 
 # Engine identity for audit: every scored payload can carry a version + a fingerprint of the
 # active weights/gates, so "why did this customer score this way in March" has an exact answer.
-ENGINE_VERSION = "1.2"   # company-field matching, non-customer suppressor, reasons ordering,
-                         # exact-postcode + continuous price-based property weighting
+ENGINE_VERSION = "1.3"   # company-field matching, non-customer suppressor, reasons ordering,
+                         # property split: exact-house (price-scaled) vs district area (graded)
 
 
 def _reason_delivery(row: pd.Series) -> str:
@@ -264,8 +274,10 @@ SIGNALS = [
      intl_postcode.FLAG_COL, lambda r: r[intl_postcode.REASON_COL]),
     ("hnw_area", "HNW area", hnw_area.flag_hnw_area,
      hnw_area.MATCH_COL, lambda r: f"{r[hnw_area.AREA_COL]} ({r[hnw_area.TYPE_COL]})"),
-    ("property_value", "Prime area", property_value.flag_property_value,
+    ("property_value", "Home value", property_value.flag_property_value,
      property_value.FLAG_COL, lambda r: r[property_value.REASON_COL]),
+    ("property_area", "Prime area", property_value.flag_property_area,
+     property_value.AREA_FLAG_COL, lambda r: r[property_value.AREA_REASON_COL]),
     ("wealth_office", "Wealth office", wealth_office.flag_wealth_office,
      wealth_office.MATCH_COL, lambda r: r[wealth_office.OFFICE_COL]),
     ("wealth_structure", "Wealth structure", wealth_structure.flag_wealth_structure,
@@ -479,6 +491,8 @@ def score_customers(
                 type_spec = (domain_keyword.TYPE_COL, DOMAIN_KEYWORD_TYPE_WEIGHTS)
             elif key == "property_value":
                 type_spec = (property_value.TIER_COL, PROPERTY_TIER_WEIGHTS)
+            elif key == "property_area":
+                type_spec = (property_value.AREA_TIER_COL, PROPERTY_AREA_WEIGHTS)
             if type_spec and type_spec[0] in out.columns:
                 type_col, type_weights = type_spec
                 wv = out[type_col].map(

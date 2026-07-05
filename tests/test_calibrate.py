@@ -83,10 +83,10 @@ def test_feedback_calibration_up_down_and_min_sample():
     stats = [{"signal": "Premium email", "fit": 8, "nofit": 2},   # good calls -> up
              {"signal": "Prime area", "fit": 1, "nofit": 9},      # poor calls -> down
              {"signal": "Honorific", "fit": 3, "nofit": 0}]       # too few (n=3) -> kept
-    base = {"premium_email": 2, "property_value": 2, "honorific": 2}
+    base = {"premium_email": 2, "property_area": 2, "honorific": 2}
     new = calibrate_from_feedback(stats, base_weights=base, min_sample=8)
     assert new["premium_email"] >= 3          # up
-    assert new["property_value"] == 1         # down, bounded, never zeroed
+    assert new["property_area"] == 1          # down, bounded, never zeroed ("Prime area" label)
     assert new["honorific"] == 2              # kept (below min_sample)
 
 

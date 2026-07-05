@@ -60,8 +60,11 @@ _RANK = {"ultra": 3, "prime": 2, "high": 1}
 # HM Land Registry serves Price Paid Data from this S3 website endpoint. (The old
 # vanity host prod.publicdata.landregistry.gov.uk no longer resolves.)
 YEARLY_URL = "http://prod.publicdata.landregistry.gov.uk.s3-website-eu-west-1.amazonaws.com/pp-{year}.csv"
-# Land Registry Price Paid columns (headerless): 1 = price, 3 = postcode, 11 = town.
-COL_PRICE, COL_POSTCODE, COL_TOWN = 1, 3, 11
+# Land Registry Price Paid columns (headerless): 1 = price, 3 = postcode, 4 = property type
+# (D/S/T/F/O), 11 = town. Property type "O" (Other) is non-standard / non-residential (offices,
+# land, parking) — excluded so a corporate/commercial address in a prime postcode can't inflate
+# a residential median.
+COL_PRICE, COL_POSTCODE, COL_TYPE, COL_TOWN = 1, 3, 4, 11
 
 
 def _outcode(postcode: str) -> str | None:
@@ -145,6 +148,8 @@ def build(files: list[Path], merge: bool) -> None:
         print(f"scanning {path.name} ...")
         n = 0
         for row in _iter_rows(path):
+            if (row[COL_TYPE] or "").strip().upper() == "O":
+                continue   # non-residential (offices / land / commercial) — not a home
             oc = _outcode(row[COL_POSTCODE])
             if oc is None:
                 continue
