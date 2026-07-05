@@ -1,18 +1,21 @@
-"""Property-value signal (area-level, from open price data).
+"""Property-value signal (from open price data).
 
-Flags customers whose billing/shipping postcode falls in an area with a high
-median property value, defined by an editable reference table keyed on postcode
-OUTCODE (see reference_data/postcodes/uk_property_values.csv). Property value is a
-WEALTH FACT, so this signal is ON by default; it is not an origin proxy.
+Flags customers whose billing/shipping postcode maps to a high median property value,
+defined by an editable reference table (see reference_data/postcodes/uk_property_values.csv).
+Property value is a WEALTH FACT, so this signal is ON by default; it is not an origin proxy.
 
-Each listed outcode carries a tier (ultra / prime / high) that grades how strong the
-tell is; the combiner maps the tier to a weight (see PROPERTY_TIER_WEIGHTS). Matching
-is at outcode (district) granularity: the part of the postcode before the inward code,
-e.g. "SW10 9SJ" -> "SW10". This catches the genuinely valuable address on an ordinary
-looking street that a hand-picked ultra-prime list would miss, and grades by real local
-value rather than mere membership of a famous district.
+Matching is EXACT FULL POSTCODE first, then district as a fallback. A full UK postcode
+covers only ~15 homes (often one building or street segment), so its median sale price is a
+tight proxy for the actual house at that address, e.g. "SW1A 1AA". If the table has no exact
+row for that postcode, the signal falls back to the OUTCODE / district median (e.g. "SW1A").
+Exact matching is what catches a genuinely valuable address on an ordinary-looking street,
+where the whole-district median would be dragged below the threshold.
 
-The seed table is curated; regenerate it to full national coverage from HM Land Registry
+Both the billing and the shipping postcode are scanned; the higher-value match wins.
+
+Each listed row carries a tier (ultra / prime / high) that grades how strong the tell is;
+the combiner maps the tier to a weight (see PROPERTY_TIER_WEIGHTS). The seed table is curated
+at district level; regenerate it to full national, full-postcode coverage from HM Land Registry
 Price Paid Data with scripts/build_property_values.py.
 """
 from __future__ import annotations
@@ -43,18 +46,27 @@ def _normalize(value: object) -> str | None:
     return text or None
 
 
-def _outcode(postcode: object) -> str | None:
-    """The district (outward code) of a UK postcode, e.g. 'SW10 9SJ' -> 'SW10'.
-
-    Returns None for blanks, placeholders, and anything too short to be a real postcode.
-    """
+def _compact(postcode: object) -> str | None:
+    """Spaceless, upper-cased postcode, e.g. 'sw1a 1aa' -> 'SW1A1AA'. None for blanks."""
     norm = _normalize(postcode)
     if norm is None or norm in PLACEHOLDER_POSTCODES:
         return None
     compact = norm.replace(" ", "")
-    if len(compact) <= _INWARD_LEN:
+    return compact if len(compact) >= 2 else None
+
+
+def _outcode(postcode: object) -> str | None:
+    """The district (outward code) of a UK postcode, e.g. 'SW10 9SJ' -> 'SW10'."""
+    compact = _compact(postcode)
+    if compact is None:
         return None
-    return compact[:-_INWARD_LEN]
+    # A full postcode ends with a 3-char inward code; a bare outcode is already the district.
+    return compact[:-_INWARD_LEN] if len(compact) >= 5 else compact
+
+
+def _pretty(compact: str) -> str:
+    """Re-insert the space in a full postcode for display: 'SW1A1AA' -> 'SW1A 1AA'."""
+    return f"{compact[:-_INWARD_LEN]} {compact[-_INWARD_LEN:]}" if len(compact) >= 5 else compact
 
 
 # NOTE: the signal still grades by the area's median sale price internally (it sets the
@@ -64,10 +76,11 @@ def _outcode(postcode: object) -> str | None:
 
 
 def load_values(path: Path | str = UK_PROPERTY_VALUES_FILE) -> dict[str, dict]:
-    """Read the reference table: {OUTCODE: {tier, price, area}}.
+    """Read the reference table: {KEY: {tier, price, area}}.
 
-    Skips comment lines (starting with '#'), the header, and any row whose tier is
-    not one of ultra/prime/high.
+    A KEY is a spaceless upper-cased postcode: either a FULL postcode ("SW1A1AA", used for
+    exact matching) or an OUTCODE ("SW1A", used for the district fallback). Skips comment
+    lines (starting with '#'), the header, and any row whose tier is not ultra/prime/high.
     """
     path = Path(path)
     if not path.exists():
@@ -79,11 +92,11 @@ def load_values(path: Path | str = UK_PROPERTY_VALUES_FILE) -> dict[str, dict]:
             if not row:
                 continue
             first = row[0].strip()
-            if not first or first.startswith("#") or first.lower() == "outcode":
+            if not first or first.startswith("#") or first.lower() in ("outcode", "postcode"):
                 continue
             if len(row) < 4:
                 continue
-            outcode = first.replace(" ", "").upper()
+            key = first.replace(" ", "").upper()
             area = row[1].strip()
             try:
                 price = int(float(row[2]))
@@ -92,20 +105,32 @@ def load_values(path: Path | str = UK_PROPERTY_VALUES_FILE) -> dict[str, dict]:
             tier = row[3].strip().lower()
             if tier not in _VALID_TIERS:
                 continue
-            table[outcode] = {"tier": tier, "price": price, "area": area}
+            table[key] = {"tier": tier, "price": price, "area": area}
     return table
 
 
 def match_postcode(postcode: object, table: dict[str, dict]) -> tuple[bool, str | None, str | None]:
-    """Return (is_high_value, tier, reason) for one postcode."""
-    outcode = _outcode(postcode)
-    if outcode is None:
+    """Return (is_high_value, tier, reason) for one postcode.
+
+    Exact full-postcode match first (the actual house), then the district/outcode fallback."""
+    compact = _compact(postcode)
+    if compact is None:
         return False, None, None
+    # 1) exact full postcode — the tightest, actual-address match.
+    if len(compact) >= 5:
+        entry = table.get(compact)
+        if entry is not None:
+            area = entry["area"]
+            pretty = _pretty(compact)
+            reason = f"{area} ({pretty})" if area else pretty
+            return True, entry["tier"], reason
+    # 2) district / outcode fallback.
+    outcode = compact[:-_INWARD_LEN] if len(compact) >= 5 else compact
     entry = table.get(outcode)
-    if entry is None:
-        return False, None, None
-    reason = f"{entry['area']} ({outcode})"
-    return True, entry["tier"], reason
+    if entry is not None:
+        reason = f"{entry['area']} ({outcode})"
+        return True, entry["tier"], reason
+    return False, None, None
 
 
 def flag_property_value(

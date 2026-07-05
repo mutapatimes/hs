@@ -51,8 +51,11 @@ ULTRA = 1_500_000
 PRIME = 900_000
 HIGH = 600_000
 
-# A robust median needs a few sales; ignore thin outcodes.
-MIN_SALES = 30
+# A robust median needs a few sales. Outcodes see hundreds; a single full postcode
+# (~15 homes) sees only a handful, so it gets a lower bar.
+MIN_SALES = 30       # per district (outcode) fallback row
+MIN_SALES_PC = 4     # per exact full-postcode row
+_RANK = {"ultra": 3, "prime": 2, "high": 1}
 
 # HM Land Registry serves Price Paid Data from this S3 website endpoint. (The old
 # vanity host prod.publicdata.landregistry.gov.uk no longer resolves.)
@@ -66,6 +69,17 @@ def _outcode(postcode: str) -> str | None:
     if len(pc) <= 3:
         return None
     return pc[:-3]
+
+
+def _full(postcode: str) -> str | None:
+    """A real full postcode, spaceless, e.g. 'SW1A1AA'. None if it's not a full postcode."""
+    pc = (postcode or "").strip().upper().replace(" ", "")
+    return pc if len(pc) >= 5 else None
+
+
+def _pretty(compact: str) -> str:
+    """Re-insert the space for a readable CSV: 'SW1A1AA' -> 'SW1A 1AA'."""
+    return f"{compact[:-3]} {compact[-3:]}"
 
 
 def _tier(price: int) -> str | None:
@@ -123,7 +137,8 @@ def _load_existing(path: Path) -> list[list[str]]:
 
 
 def build(files: list[Path], merge: bool) -> None:
-    prices: dict[str, list[int]] = defaultdict(list)
+    oc_prices: dict[str, list[int]] = defaultdict(list)   # district (outcode) -> prices
+    pc_prices: dict[str, list[int]] = defaultdict(list)   # exact full postcode -> prices
     towns: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     for path in files:
@@ -137,7 +152,10 @@ def build(files: list[Path], merge: bool) -> None:
                 price = int(row[COL_PRICE])
             except (TypeError, ValueError):
                 continue
-            prices[oc].append(price)
+            oc_prices[oc].append(price)
+            full = _full(row[COL_POSTCODE])
+            if full:
+                pc_prices[full].append(price)
             town = (row[COL_TOWN] or "").strip().title()
             if town:
                 towns[oc][town] += 1
@@ -151,43 +169,68 @@ def build(files: list[Path], merge: bool) -> None:
         for row in existing if len(row) > 1 and row[1].strip()
     }
 
-    # England & Wales rows from the data.
-    ew_rows: dict[str, list[str]] = {}
-    for oc, plist in prices.items():
+    def _area(oc: str) -> str:
+        # Prefer a hand-curated district label (Land Registry's town is just "LONDON" for
+        # every London outcode, losing the "Mayfair"/"Belgravia" feel), then the most common
+        # town in the data, then the bare outcode.
+        data_town = max(towns[oc].items(), key=lambda kv: kv[1])[0] if towns[oc] else oc
+        return curated_area.get(oc) or data_town
+
+    # District (outcode) rows — the fallback when there is no exact match.
+    oc_rows: dict[str, list[str]] = {}
+    for oc, plist in oc_prices.items():
         if len(plist) < MIN_SALES:
             continue
         med = int(statistics.median(plist))
         tier = _tier(med)
         if tier is None:
             continue
-        # Prefer a hand-curated district label: Land Registry's town column is just
-        # "LONDON" for every London outcode, which loses the "Mayfair"/"Belgravia" feel
-        # the merchant-facing reason string relies on. Fall back to the most common town
-        # in the data, then to the bare outcode.
-        data_town = max(towns[oc].items(), key=lambda kv: kv[1])[0] if towns[oc] else oc
-        area = curated_area.get(oc) or data_town
-        ew_rows[oc] = [oc, area, str(med), tier]
+        oc_rows[oc] = [oc, _area(oc), str(med), tier]
 
-    # Merge: keep any existing row whose outcode the data did NOT cover (e.g. Scotland).
+    # Exact full-postcode rows — written ONLY where they add information beyond the district:
+    # the district isn't listed at all (a valuable address on an ordinary street), or the
+    # postcode is a stronger tier than its district. Keeps the table precise and compact.
+    pc_rows: dict[str, list[str]] = {}
+    for full, plist in pc_prices.items():
+        if len(plist) < MIN_SALES_PC:
+            continue
+        med = int(statistics.median(plist))
+        tier = _tier(med)
+        if tier is None:
+            continue
+        oc = full[:-3]
+        oc_tier = oc_rows.get(oc, [None, None, None, None])[3]
+        if oc_tier is not None and _RANK[tier] <= _RANK[oc_tier]:
+            continue   # the district already covers this at an equal-or-higher tier
+        pc_rows[_pretty(full)] = [_pretty(full), _area(oc), str(med), tier]
+
+    # Merge: keep existing rows the data did NOT cover (e.g. Scotland), then districts, then
+    # exact postcodes (exact wins on key collision, though keys differ by shape anyway).
     final: dict[str, list[str]] = {}
+    covered = set(oc_rows) | {k.replace(" ", "") for k in pc_rows}
     for row in existing:
-        oc = row[0].strip().upper().replace(" ", "")
-        if oc not in ew_rows:
-            final[oc] = row
-    final.update(ew_rows)
+        key = row[0].strip().upper().replace(" ", "")
+        if key not in covered:
+            final[key] = row
+    for oc, row in oc_rows.items():
+        final[oc] = row
+    for k, row in pc_rows.items():
+        final[k.replace(" ", "")] = row
 
     ordered = sorted(final.values(), key=lambda r: -int(r[2]))
     out = UK_PROPERTY_VALUES_FILE
     with out.open("w", newline="", encoding="utf-8") as fh:
-        fh.write("outcode,area,median_price,tier\n")
+        fh.write("postcode,area,median_price,tier\n")
         fh.write("# Generated by scripts/build_property_values.py from HM Land Registry "
-                 "Price Paid Data.\n")
-        fh.write(f"# Tier bands (GBP area median): ultra>={ULTRA:,} prime>={PRIME:,} "
-                 f"high>={HIGH:,}; min {MIN_SALES} sales per outcode.\n")
+                 "Price Paid Data. 'postcode' is a full postcode (exact match) or an outcode "
+                 "(district fallback).\n")
+        fh.write(f"# Tier bands (GBP median): ultra>={ULTRA:,} prime>={PRIME:,} high>={HIGH:,}; "
+                 f"min {MIN_SALES} sales per district, {MIN_SALES_PC} per exact postcode.\n")
         w = csv.writer(fh)
         for row in ordered:
             w.writerow(row)
-    print(f"\nwrote {len(ordered):,} outcodes to {out}")
+    print(f"\nwrote {len(ordered):,} rows ({len(pc_rows):,} exact postcodes, "
+          f"{len(oc_rows):,} districts) to {out}")
 
 
 def main() -> None:

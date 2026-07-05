@@ -51,6 +51,28 @@ def test_unlisted_and_placeholder_postcodes_do_not_match():
     assert match_postcode("SW1A 1AA", TABLE)[0] is False    # Buckingham Palace placeholder
 
 
+# ── exact full-postcode matching ─────────────────────────────────────────────
+def test_exact_full_postcode_matches_the_actual_house():
+    # The exact postcode is 'ultra'; its district is only 'high'. Exact must win.
+    table = {
+        "W1K1BB": {"tier": "ultra", "price": 5_000_000, "area": "Mayfair"},   # the house
+        "W1K":    {"tier": "high",  "price": 650_000,   "area": "Mayfair"},   # the district
+    }
+    hit, tier, reason = match_postcode("W1K 1BB", table)
+    assert hit and tier == "ultra" and "W1K 1BB" in reason      # actual address wins
+
+    # A different postcode in the same district falls back to the district tier.
+    hit2, tier2, reason2 = match_postcode("W1K 9ZZ", table)
+    assert hit2 and tier2 == "high" and "(W1K)" in reason2
+
+
+def test_exact_match_scans_billing_and_shipping():
+    table = {"SW1X7XL": {"tier": "ultra", "price": 6_000_000, "area": "Belgravia"}}
+    df = pd.DataFrame([{"LATEST_BILLING_ZIP": "E1 6AN", "LATEST_SHIPPING_ZIP": "SW1X 7XL"}])
+    out = flag_property_value(df, table=table)
+    assert bool(out.loc[0, FLAG_COL]) and out.loc[0, TIER_COL] == "ultra"
+
+
 def test_best_address_wins_across_billing_and_shipping():
     df = pd.DataFrame([{"LATEST_BILLING_ZIP": "E14 9GU", "LATEST_SHIPPING_ZIP": "W1K 1AA"}])
     out = flag_property_value(df, table=TABLE)
