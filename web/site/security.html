@@ -136,7 +136,7 @@
  <h2 class="h2">We can look. We cannot touch.</h2>
  <p>Halia connects to your store with read-only credentials. We can read orders and customers in
  order to score them. We cannot change, delete, refund, or place anything. The single secret we
- hold is that read-only key, encrypted at rest. Revoke it and Halia goes dark in the same moment.</p>
+ hold is that read-only key. Revoke it and Halia goes dark in the same moment.</p>
  </div>
 </div></div>
 
@@ -171,10 +171,8 @@
  <div class="eyebrow" style="margin-bottom:18px">Scored in memory</div>
  <h2 class="h2">Here for minutes, then gone.</h2>
  <p>When Halia scores your store, customers are processed in memory and never written to a Halia
- database. A scoring run lasts minutes, and when it ends the data is gone. We never share your data,
- never pool it with other brands, and never train on it or reuse it as reference for anyone else.
- Because nothing of your customers lives with us, data-subject access and erasure requests are
- satisfied on our side by design, not by a manual process.</p>
+ database. A scoring run lasts minutes, and when it ends the data is gone. Your data stays yours
+ alone: we never pool it with other brands or reuse it as reference for anyone else.</p>
  </div>
 </div></div>
 
@@ -182,14 +180,12 @@
 <section class="pad"><div class="wrap">
  <div class="eyebrow reveal" style="margin-bottom:40px">The rest of the posture</div>
  <div class="points reveal d1">
- <div class="pt"><div class="pn">01</div><h3>Encryption everywhere</h3><p>Secrets encrypted at rest. Every call to your store and your tools runs over encrypted, authenticated channels.</p></div>
+ <div class="pt"><div class="pn">01</div><h3>Encryption &amp; key isolation</h3><p>Secrets are encrypted at rest, and every call to your store and your tools runs over encrypted, authenticated channels. The key that decrypts your store credential is held apart from the database, so a dump alone can never unlock it.</p></div>
  <div class="pt"><div class="pn">02</div><h3>You are the controller</h3><p>For your customer data you are the controller and Halia is your processor, acting only on your instructions.</p></div>
- <div class="pt"><div class="pn">03</div><h3>Instant revocation</h3><p>Disconnect or revoke the key and our access ends immediately. There is nothing left of your customers to delete.</p></div>
- <div class="pt"><div class="pn">04</div><h3>Audited infrastructure</h3><p>Halia runs on Render, which is SOC&nbsp;2 Type&nbsp;2 and ISO&nbsp;27001 certified and independently penetration-tested every year. We keep our subprocessor list short and share it on request.</p></div>
- <div class="pt"><div class="pn">05</div><h3>Keys held apart</h3><p>The one secret we keep, your read-only store key, is encrypted, and the key that decrypts it is held separately from the database, so a database dump alone can never unlock it.</p></div>
- <div class="pt"><div class="pn">06</div><h3>Rate-limited &amp; monitored</h3><p>Sign-in and scoring endpoints are rate-limited against abuse, our dependencies are monitored for known vulnerabilities, and customer data is never written to our logs.</p></div>
- <div class="pt"><div class="pn">07</div><h3>GDPR-aligned by design</h3><p>Because no standing customer data lives with us, data-subject access, portability, and erasure are largely answered by the architecture itself. We provide a DPA and profiling wording for your own privacy notice.</p></div>
- <div class="pt"><div class="pn">08</div><h3>Responsible disclosure</h3><p>Found something? Email us. We will acknowledge, work with you, and never pursue good-faith research.</p></div>
+ <div class="pt"><div class="pn">03</div><h3>Audited infrastructure</h3><p>Halia runs on Render, which is SOC&nbsp;2 Type&nbsp;2 and ISO&nbsp;27001 certified and independently penetration-tested every year. We keep our subprocessor list short and share it on request.</p></div>
+ <div class="pt"><div class="pn">04</div><h3>Rate-limited &amp; monitored</h3><p>Sign-in and scoring endpoints are rate-limited against abuse, our dependencies are monitored for known vulnerabilities, and customer data is kept out of our logs.</p></div>
+ <div class="pt"><div class="pn">05</div><h3>GDPR-ready</h3><p>We provide a Data Processing Agreement and the profiling wording for your own privacy notice. Because no standing customer data lives with us, access and erasure requests are largely answered by the architecture itself.</p></div>
+ <div class="pt"><div class="pn">06</div><h3>Responsible disclosure</h3><p>Found something? Email us. We will acknowledge, work with you, and welcome good-faith research.</p></div>
  </div>
 </div></section>
 
@@ -323,7 +319,7 @@
     var CMDS={
       'security status':{think:600,lines:[
         ['Halia security posture','head'],
-        ['  architecture       zero-retention — customers scored in RAM, never persisted','dim'],
+        ['  architecture       zero-retention, customers scored in RAM, never persisted','dim'],
         ['  customer database  none  ✓','ok'],
         ['  persisted secret   1 per store · encrypted · read-only','dim'],
         ['  transport          TLS 1.2+ enforced','dim'],
@@ -345,7 +341,7 @@
         ['stored secret: shopify_access_token (per store)','head'],
         ['  scope       read_orders, read_customers  (+write_customers only where tagging is enabled)','dim'],
         ['  at rest     Fernet / AES-128-CBC + HMAC','dim'],
-        ['  key source  HALIA_ENCRYPTION_KEY — held outside the database','dim'],
+        ['  key source  HALIA_ENCRYPTION_KEY, held outside the database','dim'],
         ['  db-dump test → cannot decrypt without the key  ✓','ok']]},
       'host certs --provider render':{think:1500,lines:[
         ['fetching infrastructure attestations from provider…','dim'],
@@ -366,7 +362,7 @@
         ['  api.brevo.com / SMTP   order alerts (name + signals only)','dim'],
         ['  api.stripe.com         billing (store id only)','dim'],
         ['  web-push endpoints     desktop alerts','dim'],
-        ['outbound is a finite, known set — nothing else is contacted.','ok']]},
+        ['outbound is a finite, known set, nothing else is contacted.','ok']]},
       'ratelimit status':{think:500,lines:[
         ['per-IP fixed window (60s):','head'],
         ['  reads   120 / window','dim'],
@@ -375,20 +371,13 @@
       'logs grep customer':{think:1000,lines:[
         ['searching application logs for customer records…','dim'],
         ['  0 matches  ✓','ok'],
-        ['logs hold counts and stack traces only — never a customer row or a token.','']]},
-      'breach --simulate':{think:1400,lines:[
-        ['assuming full application compromise…','warn'],
-        ['  reachable:     1 encrypted, read-only store credential','dim'],
-        ['  reachable:     the in-memory scoring window (small, transient)','dim'],
-        ['  NOT reachable: a customer database — none exists','ok'],
-        ['blast radius: contained. no standing customer data to exfiltrate.','ok'],
-        ['no system is impenetrable — but the design keeps the prize tiny.','']]}
+        ['logs hold counts and stack traces only, never a customer row or a token.','']]},
     };
     var SEQ=['security status','data retention --show','store inspect --customers','keys inspect',
-             'host certs --provider render','egress list','ratelimit status','logs grep customer','breach --simulate'];
+             'host certs --provider render','egress list','ratelimit status','logs grep customer'];
     var HELP=[['available commands:','head']].concat(SEQ.map(function(k){return ['  halia '+k,'dim'];}))
              .concat([['  help · clear · contact','dim']]);
-    var CONTACT=[['Halia — hidden-VIC intelligence; your processor, you remain the controller.','dim'],
+    var CONTACT=[['Halia: hidden-VIC intelligence; your processor, you remain the controller.','dim'],
                  ['security questions → hello@halia.app','ok']];
 
     async function typeCmd(cmd){
@@ -420,7 +409,7 @@
       if(cmd==='help'){await printLines(HELP); return;}
       if(cmd==='contact'||cmd==='whoami'){await printLines(CONTACT); return;}
       if(CMDS[cmd]){await run(cmd); return;}
-      line('term-out warn','command not found: '+cmd+'   — try `help`'); scroll();
+      line('term-out warn','command not found: '+cmd+'  , try `help`'); scroll();
     }
     if(input) input.addEventListener('keydown',function(e){
       if(e.key!=='Enter') return;
@@ -433,7 +422,7 @@
     async function play(){
       if(started) return; started=true;
       for(var i=0;i<SEQ.length;i++){await typeCmd(SEQ[i]); if(!reduce) await sleep(160); await run(SEQ[i]); if(!reduce) await sleep(400);}
-      line('term-out dim','— type `help` to explore, or `clear` to reset —');
+      line('term-out dim','type `help` to explore, or `clear` to reset');
       inputLine.style.display=''; scroll();
     }
     var tio=new IntersectionObserver(function(es){es.forEach(function(e){ if(e.isIntersecting){tio.unobserve(term); play();} });},{threshold:.25});

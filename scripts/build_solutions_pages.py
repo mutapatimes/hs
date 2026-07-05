@@ -1,9 +1,9 @@
 """Generate the per-industry Halia solutions pages (web/site/solutions/<slug>.html).
 
-Each page tells one clear story: (1) the problem — in this industry, transaction value is a bad
+Each page tells one clear story: (1) the problem, in this industry, transaction value is a bad
 proxy for customer value; (2) a single buyer you can't see, with an LTV chart of current spend vs
-latent potential; (3) proof — a "same spend, different worth" table showing how Halia separates
-lookalikes; (4) the solution — what Halia surfaces and the move. Data-forward, simple layout.
+latent potential; (3) proof, a "same spend, different worth" table showing how Halia separates
+lookalikes; (4) the solution, what Halia surfaces and the move. Data-forward, simple layout.
 
 Content lives in INDUSTRIES below (edit freely). Brand shell mirrors web/site/solutions.html.
 
@@ -34,12 +34,12 @@ INDUSTRIES = [
         "slug": "fashion", "name": "Fashion & apparel", "eyebrow": "Solutions · Fashion",
         "h1": "The first modest order that hides your next <em>house client.</em>",
         "lede": "In fashion, a small first order can belong to a stylist, a celebrity's PA, or a "
-                "Mayfair address — and a spend threshold treats them like everyone else.",
+                "Mayfair address, and a spend threshold treats them like everyone else.",
         "problem": "A new client testing you with one piece looks identical to a bargain-hunter. Both "
                    "spent £150. One has a five-figure wardrobe ceiling and a stylist on speed-dial; the "
                    "other you will never see again.",
         "low": "£150 first order", "high": "£40k annual wardrobe",
-        "buyer_line": "A £150 first order — W1 billing, a private-domain email, paid on a premium card.",
+        "buyer_line": "A £150 first order, W1 billing, a private-domain email, paid on a premium card.",
         "buyer_spend": 150, "buyer_spend_note": "spent so far",
         "buyer_cadence": "One order, 3 weeks ago",
         "buyer_signals": ["Prime postcode (W1)", "Premium card", "Private domain"],
@@ -51,14 +51,14 @@ INDUSTRIES = [
         ],
         "surfaces": ["Celebrity stylists", "Prime postcodes", "Premium cards", "Company & PA orders"],
         "move": "Halia flags the tell the moment the order lands and hands your clienteling team a "
-                "ready gesture — a private appointment, early access to the drop — in Shopify and "
+                "ready gesture, a private appointment, early access to the drop, in Shopify and "
                 "Klaviyo, before it sells out.",
     },
     {
         "slug": "wine", "name": "Wine & spirits", "eyebrow": "Solutions · Wine & spirits",
         "h1": "The quiet regular who turns out to be a <em>serious collector.</em>",
         "lede": "Collectors buy everyday drinking wine between allocations, so the person quietly "
-                "ordering modest bottles is invisible to spend-based logic — exactly wrong for the "
+                "ordering modest bottles is invisible to spend-based logic, exactly wrong for the "
                 "client who should be first on the en-primeur list.",
         "problem": "One book holds £12 bottles and £12,000 cases. Spend on any single order tells you "
                    "almost nothing about whose cellar deserves the allocation call.",
@@ -77,12 +77,12 @@ INDUSTRIES = [
                      "Order frequency"],
         "move": "Halia ranks your quiet collectors by the wealth behind their modest orders, so the "
                 "rare-allocation call, the en-primeur invite, and the private tasting reach the people "
-                "most likely to say yes. Allocation lists are already clienteling — this systematises them.",
+                "most likely to say yes. Allocation lists are already clienteling, this systematises them.",
     },
     {
         "slug": "beauty", "name": "Beauty & fragrance", "eyebrow": "Solutions · Beauty & fragrance",
         "h1": "A £30 lipstick looks the same <em>whoever buys it.</em>",
-        "lede": "Bought by a nurse or an heiress, the transaction is identical — but one of those "
+        "lede": "Bought by a nurse or an heiress, the transaction is identical, but one of those "
                 "customers has a five-figure skincare-and-fragrance ceiling. Entry-level luxury is how "
                 "the wealthy shop casually.",
         "problem": "Beauty runs on enormous one-time and gifting volume, clustered at low price points "
@@ -101,19 +101,19 @@ INDUSTRIES = [
         "surfaces": ["Premium & legacy email", "HNW neighbourhoods", "Concierge delivery",
                      "Assistant orders"],
         "move": "Halia separates the quiet high-ceiling customer from the crowd and pushes them into a "
-                "private-shopping invite or a founder note through Klaviyo — the score-to-segment "
+                "private-shopping invite or a founder note through Klaviyo, the score-to-segment "
                 "pipeline you already run, pointed at the right faces.",
     },
     {
         "slug": "jewellery", "name": "Jewellery & watches", "eyebrow": "Solutions · Jewellery & watches",
         "h1": "A £120 strap buyer hiding a <em>£50,000 collector.</em>",
         "lede": "In high-AOV categories a small first purchase is a test. The second can be "
-                "life-changing for the relationship — if you reach the right person while the interest "
+                "life-changing for the relationship, if you reach the right person while the interest "
                 "is still warm.",
         "problem": "The test purchase and the impulse buy look identical. Spend-based ranking can't tell "
                    "a future commission from a one-off, so the personal follow-up never happens.",
         "low": "£140 accessory", "high": "£50k commission",
-        "buyer_line": "A £140 strap — a premium-card BIN, a family-office email domain.",
+        "buyer_line": "A £140 strap, a premium-card BIN, a family-office email domain.",
         "buyer_spend": 140, "buyer_spend_note": "spent so far",
         "buyer_cadence": "One order",
         "buyer_signals": ["Family office", "Premium card BIN", "Prime residence"],
@@ -125,7 +125,7 @@ INDUSTRIES = [
         ],
         "surfaces": ["Family offices", "Prime residences", "Premium card BINs", "Honorifics"],
         "move": "Halia grades the wealth behind the first order and flags it for a named contact, so the "
-                "second conversation is personal and timely — routed to the client's Shopify profile and "
+                "second conversation is personal and timely, routed to the client's Shopify profile and "
                 "your CRM, not a mass email.",
     },
     {
@@ -133,11 +133,11 @@ INDUSTRIES = [
         "h1": "The cushion buyer hiding a <em>whole-house project.</em>",
         "lede": "Interior designers, stylists, and trade buyers place orders that look ordinary and "
                 "recur for years. One accessory can be the front of a five-figure specification.",
-        "problem": "A designer testing your quality with one item looks like any retail shopper — but "
+        "problem": "A designer testing your quality with one item looks like any retail shopper, but "
                    "they buy for clients, repeatedly. Miss the tell and a trade relationship goes to a "
                    "competitor over a one-off discount.",
         "low": "£75 accessory", "high": "£40k room specification",
-        "buyer_line": "A £75 order — company billing, repeat delivery to a Chelsea address.",
+        "buyer_line": "A £75 order, company billing, repeat delivery to a Chelsea address.",
         "buyer_spend": 450, "buyer_spend_note": "per year, today",
         "buyer_cadence": "Three orders in six weeks",
         "buyer_signals": ["Company / trade billing", "Repeat prime address", "Trophy postcode"],
@@ -150,17 +150,17 @@ INDUSTRIES = [
         "surfaces": ["Company & trade billing", "Repeat delivery addresses", "Trophy addresses",
                      "Prime postcodes"],
         "move": "Halia spots company billing, recurring addresses, and prime locations, so you can offer "
-                "terms and a dedicated contact — the difference between a single sale and a multi-year "
+                "terms and a dedicated contact, the difference between a single sale and a multi-year "
                 "trade account.",
     },
     {
         "slug": "gifting", "name": "Flowers, food & gifting", "eyebrow": "Solutions · Flowers, food & gifting",
         "h1": "The standing weekly order that hides a <em>house account.</em>",
-        "lede": "In flowers, food, and gifting, the modest recurring order is often the wealthy one — "
+        "lede": "In flowers, food, and gifting, the modest recurring order is often the wealthy one, "
                 "and a standing subscription can sit in front of an events and corporate budget many "
                 "times its size.",
         "problem": "A £48 weekly subscription looks tiny beside a corporate order, so the standing-order "
-                   "customer ranks at the bottom — exactly wrong for the household most likely to have an "
+                   "customer ranks at the bottom, exactly wrong for the household most likely to have an "
                    "events and gifting budget. And a subscriber gives you the richest signal of all: they "
                    "come back every week.",
         "low": "£48 weekly subscription", "high": "£11k events & corporate gifting",
@@ -177,8 +177,8 @@ INDUSTRIES = [
         "surfaces": ["Prime postcodes & residences", "Standing-order cadence", "Assistant orders",
                      "Company billing"],
         "move": "Halia flags the well-heeled, PA-placed, or company-billed subscriber and prompts the "
-                "conversation the retail order never triggers — a house account, the events and corporate "
-                "budget — before it goes somewhere else.",
+                "conversation the retail order never triggers, a house account, the events and corporate "
+                "budget, before it goes somewhere else.",
     },
     {
         "slug": "collectibles", "name": "Rare books & collectibles", "eyebrow": "Solutions · Rare books & collectibles",
@@ -201,14 +201,14 @@ INDUSTRIES = [
         ],
         "surfaces": ["Prime addresses", "Premium & custom domains", "Honorifics", "Order frequency"],
         "move": "Halia ranks the quiet buyers most likely to be building a collection, so early offers "
-                "and catalogue previews reach them first — the systematised version of what your best "
+                "and catalogue previews reach them first, the systematised version of what your best "
                 "dealer already does on a hunch.",
     },
     {
         "slug": "electronics", "name": "Electronics & big-box", "eyebrow": "Solutions · Electronics & big-box",
         "h1": "In a book this big, the high-value buyer is <em>invisible.</em>",
         "lede": "High-street and big-box electronics move enormous volume at every price point. A £40 "
-                "cable and a £4,000 fit-out sit in the same database — and the multi-property or trade "
+                "cable and a £4,000 fit-out sit in the same database, and the multi-property or trade "
                 "buyer is lost in it.",
         "problem": "When millions of orders span every wealth level, transaction value tells you nothing "
                    "about lifetime potential. The landlord kitting out ten flats and the household "
@@ -226,7 +226,7 @@ INDUSTRIES = [
         ],
         "surfaces": ["Multi-address patterns", "Company & trade billing", "Prime & multiple postcodes",
                      "Premium cards"],
-        "move": "Here Halia is lead qualification for your business / premium division — surfacing the "
+        "move": "Here Halia is lead qualification for your business / premium division, surfacing the "
                 "trade, landlord, and high-ceiling households hiding in retail volume, so a human account "
                 "team can reach them. The engine is the same; the buyer on your side is a premium-account "
                 "function rather than a clienteling desk.",
@@ -237,26 +237,26 @@ INDUSTRIES = [
 # Files live in web/site/img/ (portrait 2:3, warm editorial). Absolute /img/ paths because these
 # pages are served from /solutions/<slug>. Captions tie the picture straight to the thesis.
 IMG = {
-    "fashion": ("man_holding_luxury_bag.jpg", "One modest order &mdash; a five-figure wardrobe behind it.",
+    "fashion": ("man_holding_luxury_bag.jpg", "One modest order, a five-figure wardrobe behind it.",
                 "luxury_bag_detail.jpg", "The second order is where the relationship is won."),
-    "wine": ("luxury_client_pic_also_client_with_wine.jpg", "A quiet monthly order &mdash; a cellar worth the allocation call.",
+    "wine": ("luxury_client_pic_also_client_with_wine.jpg", "A quiet monthly order, a cellar worth the allocation call.",
              "wine_bottle_hug.jpg", "First on the en-primeur list, before it is asked for."),
-    "beauty": ("beauty_influencer.jpg", "A &pound;34 fragrance &mdash; a five-figure ceiling behind it.",
+    "beauty": ("beauty_influencer.jpg", "A &pound;34 fragrance, a five-figure ceiling behind it.",
                "perfume.jpg", "A private-shopping invite, not another discount code."),
-    "jewellery": ("nice_necklace.jpg", "A &pound;140 strap &mdash; a &pound;50,000 collector behind it.",
+    "jewellery": ("nice_necklace.jpg", "A &pound;140 strap, a &pound;50,000 collector behind it.",
                   "pearl_necklace.jpg", "A named contact, while the interest is still warm."),
-    "home": ("client_with_furniture.jpg", "One accessory &mdash; a whole-house project behind it.",
-             "nice_furniture_stools.jpg", "Terms and a dedicated contact &mdash; a trade account, not a sale."),
-    "gifting": ("flowers.jpg", "A &pound;48 standing order &mdash; a house account behind it.",
+    "home": ("client_with_furniture.jpg", "One accessory, a whole-house project behind it.",
+             "nice_furniture_stools.jpg", "Terms and a dedicated contact, a trade account, not a sale."),
+    "gifting": ("flowers.jpg", "A &pound;48 standing order, a house account behind it.",
                 "gifts_wrapped.jpg", "The house-account conversation the retail order never starts."),
     "collectibles": ("nice_books_with_mug.jpg", "&pound;20 reading copies beside &pound;8,000 first editions.",
                      None, None),
-    "electronics": ("head_phones.jpg", "Three &pound;40 orders &mdash; a trade account hiding in retail volume.",
+    "electronics": ("head_phones.jpg", "Three &pound;40 orders, a trade account hiding in retail volume.",
                     "premium_paymen_card.jpg", "The premium-account team reaches them first."),
 }
 
 # The "what happens next" sequence per industry: the order card (who/item + the actions Halia
-# fires), then the two lifecycle emails with their actual copy — one when the order lands, one
+# fires), then the two lifecycle emails with their actual copy, one when the order lands, one
 # when it is fulfilled. Rendered as an auto-playing timeline (see _flow / the flow JS).
 FLOW = {
     "fashion": {
@@ -264,16 +264,16 @@ FLOW = {
         "actions": ["Tagged &middot; Hidden VIC", "Routed to clienteling", "Advisor assigned"],
         "emails": [
             {"subj": "A personal welcome", "body": "&ldquo;Thank you for your first order. I&rsquo;m your personal "
-             "client advisor &mdash; may I set aside early access to our next collection for you?&rdquo;"},
+             "client advisor, may I set aside early access to our next collection for you?&rdquo;"},
             {"subj": "Your order is on its way", "body": "&ldquo;Your pieces have shipped. When they arrive, "
              "I&rsquo;d love to arrange a private fitting at your convenience.&rdquo;"}]},
     "wine": {
         "who": "Quiet regular &middot; Jersey", "item": "Four &pound;15 bottles, shipped monthly",
         "actions": ["Tagged &middot; Collector (latent)", "Added to allocation list", "Advisor notified"],
         "emails": [
-            {"subj": "Welcome &mdash; and a note on allocations", "body": "&ldquo;Thank you for your order. Given your "
+            {"subj": "Welcome, and a note on allocations", "body": "&ldquo;Thank you for your order. Given your "
              "taste, may we add you to our en-primeur allocation list ahead of the next release?&rdquo;"},
-            {"subj": "Shipped &mdash; and an invitation", "body": "&ldquo;Your bottles are on their way. We&rsquo;re "
+            {"subj": "Shipped, and an invitation", "body": "&ldquo;Your bottles are on their way. We&rsquo;re "
              "hosting a private tasting next month and would be glad to reserve you a place.&rdquo;"}]},
     "beauty": {
         "who": "New client &middot; Notting Hill", "item": "A &pound;34 fragrance, gift-wrapped",
@@ -281,13 +281,13 @@ FLOW = {
         "emails": [
             {"subj": "A little welcome gift", "body": "&ldquo;Thank you for discovering us. A complimentary sample, "
              "chosen for you, is on its way with your order.&rdquo;"},
-            {"subj": "On its way &mdash; plus an invitation", "body": "&ldquo;Your order has shipped. As a new client, "
+            {"subj": "On its way, plus an invitation", "body": "&ldquo;Your order has shipped. As a new client, "
              "you&rsquo;re invited to a private virtual consultation with our team.&rdquo;"}]},
     "jewellery": {
         "who": "First-time buyer &middot; family office", "item": "A &pound;140 strap",
         "actions": ["Tagged &middot; Hidden VIC", "Routed to advisor", "Follow-up scheduled"],
         "emails": [
-            {"subj": "Thank you &mdash; from your advisor", "body": "&ldquo;It was a pleasure to receive your order. "
+            {"subj": "Thank you, from your advisor", "body": "&ldquo;It was a pleasure to receive your order. "
              "I&rsquo;m here for anything you need, from sizing to a future commission.&rdquo;"},
             {"subj": "Your piece has shipped", "body": "&ldquo;Your order is on its way. When you&rsquo;re ready to "
              "explore something bespoke, I&rsquo;d be delighted to help.&rdquo;"}]},
@@ -295,9 +295,9 @@ FLOW = {
         "who": "Repeat buyer &middot; Chelsea", "item": "A &pound;75 order &middot; company billing",
         "actions": ["Tagged &middot; Trade / repeat", "Flagged for trade terms", "Account manager assigned"],
         "emails": [
-            {"subj": "Welcome &mdash; and a trade enquiry", "body": "&ldquo;Thank you for your order. If you specify for "
-             "clients, we offer trade terms and a dedicated contact &mdash; shall I set that up?&rdquo;"},
-            {"subj": "Shipped &mdash; your dedicated line", "body": "&ldquo;Your order is on its way. Here is a direct "
+            {"subj": "Welcome, and a trade enquiry", "body": "&ldquo;Thank you for your order. If you specify for "
+             "clients, we offer trade terms and a dedicated contact, shall I set that up?&rdquo;"},
+            {"subj": "Shipped, your dedicated line", "body": "&ldquo;Your order is on its way. Here is a direct "
              "line to your account manager for your next project.&rdquo;"}]},
     "gifting": {
         "who": "Standing order &middot; SW1", "item": "A &pound;48 weekly delivery, PA-placed",
@@ -313,19 +313,19 @@ FLOW = {
         "emails": [
             {"subj": "Welcome to the list", "body": "&ldquo;Thank you for your order. May we send you early previews of "
              "our next catalogue, ahead of the general release?&rdquo;"},
-            {"subj": "Shipped &mdash; and a first look", "body": "&ldquo;Your order is on its way. Here is an early look "
+            {"subj": "Shipped, and a first look", "body": "&ldquo;Your order is on its way. Here is an early look "
              "at three pieces we think you&rsquo;ll want to see first.&rdquo;"}]},
     "electronics": {
         "who": "Multi-address buyer", "item": "Three &pound;40 orders, one billing address",
         "actions": ["Tagged &middot; Trade / multi-site", "Routed to business team", "Callback scheduled"],
         "emails": [
             {"subj": "A note from our business team", "body": "&ldquo;Thanks for your order. It looks like you may be "
-             "buying at scale &mdash; our business division can offer account pricing and support.&rdquo;"},
-            {"subj": "Shipped &mdash; your account contact", "body": "&ldquo;Your order is on its way. Here is a direct "
+             "buying at scale, our business division can offer account pricing and support.&rdquo;"},
+            {"subj": "Shipped, your account contact", "body": "&ldquo;Your order is on its way. Here is a direct "
              "line to your account manager for volume or multi-site orders.&rdquo;"}]},
 }
 
-# A specific, modest product per industry — the order the hidden VIC places.
+# A specific, modest product per industry, the order the hidden VIC places.
 PRODUCT = {
     "fashion": "A silk shirt &middot; &pound;150",
     "wine": "Four midweek reds &middot; &pound;60",
@@ -336,12 +336,12 @@ PRODUCT = {
     "collectibles": "A reading-copy paperback &middot; &pound;20",
     "electronics": "A USB-C charging hub &middot; &pound;40",
 }
-# The templates the merchant can choose from (Halia never sends — it suggests). Each is
-# (button label, subject, body). The first is selected by default. Curly quotes/&mdash; are safe
+# The templates the merchant can choose from (Halia never sends, it suggests). Each is
+# (button label, subject, body). The first is selected by default. Curly quotes/,  are safe
 # inside the double-quoted data-* attributes the buttons carry.
 TEMPLATES = {
     "fashion": [
-        ("Personal welcome", "A personal welcome", "Thank you for your first order. I&rsquo;m your personal client advisor &mdash; may I set aside early access to our next collection for you?"),
+        ("Personal welcome", "A personal welcome", "Thank you for your first order. I&rsquo;m your personal client advisor, may I set aside early access to our next collection for you?"),
         ("Early access", "First look at the new collection", "As one of our valued clients, I&rsquo;d love to offer you a private preview of next season before it launches."),
         ("Private appointment", "A private appointment, whenever suits", "Would you like to book a private styling appointment? I&rsquo;ll have pieces set aside in your size.")],
     "wine": [
@@ -351,32 +351,32 @@ TEMPLATES = {
     "beauty": [
         ("Welcome + sample", "A little welcome gift", "Thank you for discovering us. A complimentary sample, chosen for you, is on its way with your order."),
         ("Consultation", "A private consultation", "As a new client, you&rsquo;re invited to a private virtual consultation with our team."),
-        ("Founder note", "A note from our founder", "I just wanted to personally thank you for your first order &mdash; I hope you love it.")],
+        ("Founder note", "A note from our founder", "I just wanted to personally thank you for your first order, I hope you love it.")],
     "jewellery": [
-        ("Advisor intro", "Thank you &mdash; from your advisor", "It was a pleasure to receive your order. I&rsquo;m here for anything you need, from sizing to a future commission."),
+        ("Advisor intro", "Thank you, from your advisor", "It was a pleasure to receive your order. I&rsquo;m here for anything you need, from sizing to a future commission."),
         ("Bespoke invite", "Something made for you", "When you&rsquo;re ready to explore a bespoke piece, I&rsquo;d be delighted to guide you through it."),
-        ("Sizing help", "Getting the fit right", "If you&rsquo;d like any help with sizing or adjustments, just let me know &mdash; it&rsquo;s on us.")],
+        ("Sizing help", "Getting the fit right", "If you&rsquo;d like any help with sizing or adjustments, just let me know, it&rsquo;s on us.")],
     "home": [
-        ("Trade enquiry", "A trade enquiry", "If you specify for clients, we offer trade terms and a dedicated contact &mdash; shall I set that up?"),
+        ("Trade enquiry", "A trade enquiry", "If you specify for clients, we offer trade terms and a dedicated contact, shall I set that up?"),
         ("Account offer", "An account for your projects", "We&rsquo;d love to open an account for you, with terms and priority on new ranges."),
         ("Project help", "Here to help on your project", "For a larger project, I can help with sourcing, lead times, and samples whenever you need.")],
     "gifting": [
         ("House account", "A house account, whenever suits", "For corporate or event flowers, we can set up a house account so it&rsquo;s one less thing to think about."),
         ("Events offer", "Flowers for your events", "If you have events coming up, we&rsquo;d be glad to handle them with priority and one point of contact."),
-        ("Order thanks", "Thank you for your standing order", "We&rsquo;ll take good care of your weekly delivery &mdash; and we&rsquo;re here if you ever need more.")],
+        ("Order thanks", "Thank you for your standing order", "We&rsquo;ll take good care of your weekly delivery, and we&rsquo;re here if you ever need more.")],
     "collectibles": [
         ("Catalogue preview", "Welcome to the list", "May we send you early previews of our next catalogue, ahead of the general release?"),
         ("First look", "A first look", "Here is an early look at a few pieces we think you&rsquo;ll want to see before anyone else."),
         ("Wants list", "Your wants list", "Tell me what you&rsquo;re hunting for and I&rsquo;ll set pieces aside the moment they come in.")],
     "electronics": [
-        ("Business intro", "A note from our business team", "It looks like you may be buying at scale &mdash; our business division can offer account pricing and support."),
+        ("Business intro", "A note from our business team", "It looks like you may be buying at scale, our business division can offer account pricing and support."),
         ("Account pricing", "Account pricing for you", "We can set you up with account pricing and a named contact for volume or multi-site orders."),
         ("Callback offer", "A quick call?", "Would a short call help? We can talk through pricing, stock, and delivery across sites.")],
 }
 # What Halia actually does automatically when a hidden VIC orders: notify the team. Shared copy,
 # {product}/{grade}/{who} filled per page.
 NOTIFY = {
-    "push": "Hidden VIC just ordered &mdash; {product}",
+    "push": "Hidden VIC just ordered, {product}",
     "alert_subj": "A hidden VIC just placed an order",
     "alert_body": "&ldquo;{who} (grade {grade}) just ordered. Open in Halia to review and, if you&rsquo;d "
                   "like, reach out from a template.&rdquo;",
@@ -486,7 +486,7 @@ _CSS = """
     figure.shot{width:100vw;margin-left:calc(50% - 50vw)}
     figure.shot img{aspect-ratio:4/5;border-radius:0}
     figure.shot figcaption{padding:0 40px;max-width:none}}
-  /* "what happens next" — one scenario as a timeline that reveals on scroll, ROI at the end */
+  /* "what happens next", one scenario as a timeline that reveals on scroll, ROI at the end */
   .tl{position:relative;margin-top:32px;max-width:620px}
   .tl::before{content:"";position:absolute;left:9px;top:8px;bottom:14px;width:2px;background:var(--line)}
   .tstep{position:relative;padding:0 0 26px 40px}
@@ -550,7 +550,7 @@ def _nav() -> str:
         f'<a class="brand" href="/"><span aria-hidden="true" style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">{_ASTER}</span>Halia</a>'
         '<nav class="nav-links"><a href="/#how">How it works</a><a href="/clienteling">Clienteling</a>'
         f'<span class="nav-drop"><a href="/solutions">Solutions</a><div class="nav-menu">{_NAV_MENU}</div></span>'
-        '<a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a></nav>'
+        '<a href="/pricing">Pricing</a></nav>'
         '<div class="right"><a class="si" href="/#demo">See a demo</a><a class="si" href="/app">Sign in</a>'
         '<a class="btn" href="/connect">Connect your store <span class="arrow">&rarr;</span></a>'
         '<button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div>'
@@ -559,7 +559,7 @@ def _nav() -> str:
         '<aside class="mdrawer" id="mdrawer" aria-hidden="true">'
         '<button class="mclose" id="mclose" aria-label="Close menu">&times;</button>'
         '<a href="/#how">How it works</a><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a>'
-        '<a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a>'
+        '<a href="/pricing">Pricing</a>'
         '<a class="msi" href="/#demo">See a demo</a><a class="msi" href="/app">Sign in</a>'
         '<a class="mcta" href="/connect">Connect your store</a></aside>'
     )
@@ -579,15 +579,15 @@ def _footer() -> str:
         'teams act on them in the tools they already use. We never keep a copy of your customers: they '
         'are scored on the spot and nothing about them is stored on our side.</p></div>'
         '<div class="hf-col"><h4>Product</h4><a href="/#engine">The engine</a><a href="/#how">How it works</a>'
-        '<a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/connect">Connect a store</a></div>'
+        '<a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/docs">Docs</a><a href="/connect">Connect a store</a></div>'
         '<div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a>'
         '<a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a>'
         '<a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/brand">Brand</a>'
         '<a href="mailto:hello@halia.app">Contact</a></div>'
         '<div class="hf-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a>'
-        '<a href="/cookies">Cookie Policy</a><a href="/security">Security &amp; compliance</a></div></div>'
+        '<a href="/security">Security &amp; compliance</a></div></div>'
         '<div class="hf-bot"><span>&copy; 2026 Halia. All rights reserved.</span>'
-        '<span>Zero-retention by design &middot; Shopify &middot; WooCommerce &middot; Klaviyo &middot; Mailchimp</span>'
+        '<span>Zero-retention by design &middot; Shopify &middot; BigCommerce &middot; WooCommerce &middot; Klaviyo &middot; Mailchimp &middot; HubSpot</span>'
         '</div></div></footer>'
     )
 
@@ -626,7 +626,7 @@ def _others(current: str) -> str:
 def _rows(ind: dict) -> str:
     out = []
     for who, spend, signal, grade, latent, hot in ind["rows"]:
-        lat = gbp(latent) if latent else "&mdash;"
+        lat = gbp(latent) if latent else ", "
         out.append(
             f'<tr class="{"hot" if hot else ""}"><td class="who">{who}</td>'
             f'<td class="r">{gbp(spend)}</td><td>{signal}</td>'
@@ -649,14 +649,14 @@ def _flow(ind: dict) -> str:
                       for l, v in METRICS[slug])
     roi = gbp(ind["buyer_latent"])
 
-    # Each event is a .tstep .reveal — the shared scroll observer reveals them one by one.
+    # Each event is a .tstep .reveal, the shared scroll observer reveals them one by one.
     step1 = (f'<div class="tstep reveal"><span class="tdot"></span><div class="twhen">The order lands</div>'
              f'<div class="tcard"><div class="oc-top"><span class="oc-who">{who}</span>'
              f'<span class="oc-grade">{grade}</span></div><div class="oc-item">{product}</div>'
              f'<div class="oc-actions">{acts}</div></div></div>')
     step2 = (f'<div class="tstep reveal"><span class="tdot"></span><div class="twhen">Halia notifies you</div>'
              f'<div class="tcard"><div class="tnote"><span class="bell">&#128276;</span>'
-             f'<span><b>Web push + email to your team.</b> &ldquo;{push}&rdquo; &mdash; open in Halia to review. '
+             f'<span><b>Web push + email to your team.</b> &ldquo;{push}&rdquo;, open in Halia to review. '
              f'Halia never emails your customers for you.</span></div></div></div>')
     step3 = (f'<div class="tstep reveal"><span class="tdot"></span><div class="twhen">You choose to reach out</div>'
              f'<div class="composer" data-scene>'
@@ -665,22 +665,22 @@ def _flow(ind: dict) -> str:
              f'<div class="mail"><div class="mail-subj">{t0[1]}</div><div class="mail-body">{t0[2]}</div></div>'
              f'<div class="cmp-foot"><button class="sendbtn" type="button">Send'
              f'<svg class="plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>'
-             f'</button><span class="sent-msg">Sent &mdash; nicely done.</span></div></div></div>')
+             f'</button><span class="sent-msg">Sent, nicely done.</span></div></div></div>')
     step4 = (f'<div class="tstep reveal"><span class="tdot"></span><div class="twhen">The order ships</div>'
              f'<div class="tcard"><div class="tnote"><span>When it&rsquo;s fulfilled, send a follow-up the same '
-             f'way &mdash; a fitting, an invitation, a thank-you &mdash; and the relationship is under way.</span></div></div></div>')
+             f'way, a fitting, an invitation, a thank-you, and the relationship is under way.</span></div></div></div>')
     step5 = (f'<div class="tstep reveal"><span class="tdot"></span><div class="twhen">The return</div>'
              f'<div class="tcard roi"><div class="roi-lead">The relationship this earns</div>'
              f'<div class="roi-big">{roi}<span>realised value / year</span></div>'
              f'<div class="metrics">{metrics}</div>'
-             f'<div class="roi-foot">From {product} &mdash; an order you&rsquo;d otherwise never have flagged.</div></div></div>')
+             f'<div class="roi-foot">From {product}, an order you&rsquo;d otherwise never have flagged.</div></div></div>')
 
     return f"""
 <section class="sec"><div class="wrap">
   <div class="k reveal">What happens next</div>
   <h2 class="h2 reveal">A hidden VIC just ordered. Your move.</h2>
   <p class="p reveal" style="margin-top:12px;max-width:60ch">When a hidden VIC places an order, Halia
-    notifies your team by web push and email. Then <em>you</em> decide whether to reach out &mdash; pick
+    notifies your team by web push and email. Then <em>you</em> decide whether to reach out, pick
     a template and send. It compounds into a relationship worth many times the first order.</p>
   <div class="tl">
     {step1}{step2}{step3}{step4}{step5}
@@ -747,21 +747,11 @@ def render(ind: dict) -> str:
       <div class="l">Value now vs. latent potential</div>
       <div class="barrow"><div class="bar now" style="width:{now_w}%">{gbp(now)}</div><span class="barnote">{ind["buyer_spend_note"]}</span></div>
       <div class="bar pot" style="width:100%">{gbp(pot)} <span style="opacity:.9;font-weight:500">&nbsp;latent / yr</span></div>
-      <div class="cap">The gap between what they spend today and what they're worth nurtured &mdash; the number spend-based ranking can't see.</div>
+      <div class="cap">The gap between what they spend today and what they're worth nurtured, the number spend-based ranking can't see.</div>
     </div>
   </div>
 </div></section>
 {_flow(ind)}
-<section class="sec"><div class="wrap">
-  <div class="k reveal">Same spend, different worth</div>
-  <h2 class="h2 reveal">Three buyers, one price point.</h2>
-  <p class="p reveal" style="margin-top:12px">Identical recent spend &mdash; but Halia grades them on the wealth and intent behind the order, and estimates what each is worth if nurtured.</p>
-  <div class="tbl-wrap reveal d1"><table class="lt">
-    <thead><tr><th>Customer</th><th class="r">Recent spend</th><th>What Halia reads</th><th>Grade</th><th class="r">Est. latent / yr</th></tr></thead>
-    <tbody>{_rows(ind)}</tbody>
-  </table></div>
-</div></section>
-
 <section class="sec"><div class="wrap">
   <div class="k reveal">What Halia does</div>
   <h2 class="h2 reveal">Find them, then make the move.</h2>
