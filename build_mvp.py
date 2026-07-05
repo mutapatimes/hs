@@ -171,6 +171,21 @@ def _city(row: pd.Series) -> str:
     return city.title() if city else "·"
 
 
+def _postcode_bits(row: pd.Series) -> tuple[str, str]:
+    """(outward, area) from the billing postcode, falling back to shipping.
+
+    'SW10 9SJ' -> ('SW10', 'SW'). The area (the leading letters) is the key the
+    dashboard map aggregates VIC concentration by. Returns ('', '') when unknown.
+    """
+    zipc = _text(row.get("LATEST_BILLING_ZIP")) or _text(row.get("LATEST_SHIPPING_ZIP"))
+    if not zipc:
+        return "", ""
+    outward = zipc.upper().split()[0] if " " in zipc else zipc.upper().strip()[:-3]
+    outward = outward.strip()
+    area = re.match(r"[A-Z]+", outward)
+    return outward, (area.group(0) if area else "")
+
+
 def _last_shopped(row: pd.Series) -> tuple[int, str]:
     """Return (sortable epoch seconds, display label) for the last order date."""
     ts = pd.to_datetime(row.get("Last Shopped"), errors="coerce")
@@ -219,6 +234,7 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
     last_sort, last_label = _last_shopped(row)
     cid = row.get("CUST_ID")
     n_orders = _orders(row)
+    outward, area = _postcode_bits(row)
     return {
         "id": f"C-{i + 1:04d}",
         "cid": str(cid) if cid is not None and not pd.isna(cid) else "",
@@ -228,6 +244,8 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
         "phone": _text(row.get("PHONE")),
         "loc": _location(row),
         "city": _city(row),
+        "outward": outward,
+        "area": area,
         "tier": t,
         "grade": GRADE_LABEL.get(t, t),
         "score": s100,

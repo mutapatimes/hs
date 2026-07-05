@@ -181,6 +181,9 @@
     border-radius:6px;padding:2px 7px;white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis
   }
   .sig.more{background:#F1EFE9;color:var(--soft)}
+  .catchip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--soft);background:#F5F4F0;border:1px solid var(--line);border-radius:6px;padding:2px 8px;white-space:nowrap}
+  .catchip .cdot{width:7px;height:7px;border-radius:50%;background:var(--cc,#999);flex:none}
+  .catchip b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:700}
 
   .score{display:flex;align-items:center;gap:10px}
   .meter{width:46px;height:46px;flex:none;position:relative}
@@ -254,6 +257,19 @@
   .ev .d{font-size:13.5px;color:var(--ink);line-height:1.4}
   .ev .d small{display:block;color:var(--soft);font-size:12px;margin-top:2px}
 
+  /* grouped evidence: signals bucketed by what they tell you */
+  .evgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:11px}
+  .evgrp .gh{display:flex;align-items:center;gap:8px;font:600 12.5px 'Hanken Grotesk',sans-serif;color:var(--ink)}
+  .evgrp .gh .gic{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;flex:none;color:#fff}
+  .evgrp .gh .gic svg{width:13px;height:13px}
+  .evgrp .gh .ct{margin-left:auto;font-size:10.5px;font-weight:600;color:var(--faint);letter-spacing:.02em;white-space:nowrap}
+  .evgrp .gd{font-size:11.5px;color:var(--soft);line-height:1.45;margin:7px 0 2px}
+  .evi{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+  .evi .evtag{font:600 10.5px 'Hanken Grotesk',sans-serif;color:var(--brand-deep);background:var(--brand-tint);border-radius:6px;padding:3px 8px;white-space:nowrap;flex:none;margin-top:1px}
+  .evi .evb{min-width:0}
+  .evi .evdt{font-size:13px;color:var(--ink);line-height:1.35;word-break:break-word}
+  .evi .evwy{font-size:11.5px;color:var(--soft);line-height:1.4;margin-top:2px}
+
   .reco{background:#fff;border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:12px;padding:14px 16px;margin-bottom:22px}
   .reco .k{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:6px}
   .reco p{font-size:13.5px;color:var(--ink);line-height:1.5}
@@ -316,6 +332,77 @@
   .ocheck{display:flex;align-items:center;gap:8px;cursor:pointer}
   #viewOrders .controls #oq{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:13px system-ui}
   @media(max-width:820px){.othead .oid,.orow .oid,.odate{display:none}.othead,.orow{grid-template-columns:30px minmax(120px,1fr) 96px 78px 180px}}
+
+  /* ---------- Overview (birds-eye) + Map pages ---------- */
+  .grid{display:grid;gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+  .card .ch{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:16px 18px 4px}
+  .card .ch h3{font-family:'Fraunces',serif;font-weight:500;font-size:16px;letter-spacing:-.01em}
+  .card .ch .hint{font-size:11.5px;color:var(--faint)}
+  .card .cb{padding:8px 18px 18px}
+  .ov-two{grid-template-columns:1.15fr 1fr}
+  .ov-map{grid-template-columns:1.4fr 1fr}
+  @media(max-width:900px){.ov-two,.ov-map{grid-template-columns:1fr}}
+
+  /* donut */
+  .donut{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .donut svg{flex:none}
+  .dlgd{display:flex;flex-direction:column;gap:9px;min-width:120px}
+  .dlgd .li{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--soft)}
+  .dlgd .sw{width:11px;height:11px;border-radius:3px;flex:none}
+  .dlgd .li b{color:var(--ink);font-variant-numeric:tabular-nums;margin-left:auto;font-family:'Spline Sans Mono',monospace;font-weight:600}
+
+  /* horizontal bars */
+  .bars{display:flex;flex-direction:column;gap:11px}
+  .bar{display:grid;grid-template-columns:120px 1fr 54px;align-items:center;gap:12px;font-size:12.5px}
+  .bar .lb{color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+  .bar .tk{height:9px;border-radius:5px;background:var(--brand-tint);overflow:hidden}
+  .bar .tk i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--brand),var(--brand-deep));min-width:3px}
+  .bar .vl{text-align:right;font-family:'Spline Sans Mono',monospace;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+  .bar.g .tk i{background:linear-gradient(90deg,#c9a24a,var(--gold))}
+
+  /* activity sparkline/area */
+  .spark{width:100%;height:132px;display:block}
+  .spark .axis{font:600 10px 'Hanken Grotesk',sans-serif;fill:var(--faint)}
+
+  /* top clients rail */
+  .toplist{display:flex;flex-direction:column}
+  .tl{display:flex;align-items:center;gap:12px;padding:11px 4px;border-top:1px solid var(--line);cursor:pointer}
+  .tl:first-child{border-top:0}
+  .tl:hover{background:var(--rowhover)}
+  .tl .ava{width:32px;height:32px;font-size:13px;border-radius:9px}
+  .tl .nm{font-weight:600;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tl .mt{font-size:11.5px;color:var(--soft)}
+  .tl .sc{margin-left:auto;text-align:right;flex:none}
+  .tl .sc b{font-family:'Spline Sans Mono',monospace;font-size:14px}
+  .tl .sc .g{font-size:10.5px;font-weight:700;letter-spacing:.03em}
+
+  /* region leaderboard */
+  .regions{display:flex;flex-direction:column}
+  .rg{display:grid;grid-template-columns:26px 1fr 60px 62px;align-items:center;gap:10px;padding:9px 4px;border-top:1px solid var(--line);font-size:13px;cursor:pointer}
+  .rg:first-child{border-top:0}
+  .rg:hover{background:var(--rowhover)}
+  .rg .rk{font-family:'Spline Sans Mono',monospace;color:var(--faint);font-size:12px}
+  .rg .pl{font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rg .pl small{color:var(--soft);font-weight:500;margin-left:6px}
+  .rg .ct{text-align:right;font-family:'Spline Sans Mono',monospace;color:var(--soft);font-variant-numeric:tabular-nums}
+  .rg .lv{text-align:right;font-family:'Spline Sans Mono',monospace;font-weight:600;color:var(--brand);font-variant-numeric:tabular-nums}
+
+  /* UK map */
+  .mapwrap{position:relative;width:100%;background:linear-gradient(180deg,#f7f6f2,#eef0ec);border-radius:12px;overflow:hidden}
+  .mapwrap svg{display:block;width:100%;height:auto}
+  .land{fill:#e3e6df;stroke:#cfd3ca;stroke-width:1;stroke-linejoin:round}
+  .bub{fill:rgba(31,86,74,.55);stroke:#fff;stroke-width:1.2;cursor:pointer;transition:fill .15s}
+  .bub:hover{fill:rgba(20,58,50,.85)}
+  .bub.g{fill:rgba(166,124,52,.62)}
+  .bub.g:hover{fill:rgba(166,124,52,.9)}
+  .maptip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;padding:7px 10px;border-radius:9px;opacity:0;transform:translate(-50%,-124%);transition:opacity .12s;white-space:nowrap;z-index:5;box-shadow:0 8px 22px -8px rgba(0,0,0,.4)}
+  .maptip b{font-family:'Spline Sans Mono',monospace}
+  .maplgd{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 2px 0;font-size:12px;color:var(--soft)}
+  .maplgd .bd{display:inline-flex;align-items:center;gap:7px}
+  .maplgd .dt{border-radius:50%;background:rgba(31,86,74,.5);border:1.2px solid #fff}
+  .ovsub{color:var(--soft);font-size:12.5px;margin:-2px 0 2px}
+  .emptybox{padding:40px 16px;text-align:center;color:var(--faint);font-size:13px}
 </style>
 </head>
 <body>
@@ -385,17 +472,53 @@
 
       <!-- view tabs -->
       <div class="views">
-        <button class="vtab on" data-view="clients">Clients</button>
+        <button class="vtab on" data-view="overview">Overview</button>
+        <button class="vtab" data-view="clients">Clients</button>
         <button class="vtab" data-view="orders">Orders</button>
+        <button class="vtab" data-view="map">Map</button>
       </div>
 
-      <div id="viewClients">
+      <!-- OVERVIEW (birds-eye) -->
+      <div id="viewOverview">
+        <div class="grid ov-two" style="margin-bottom:16px">
+          <div class="card">
+            <div class="ch"><h3>Grade mix</h3><span class="hint">of surfaced potential VICs</span></div>
+            <div class="cb"><div class="donut" id="ovDonut"></div></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Latent value by grade</h3><span class="hint">est. if nurtured</span></div>
+            <div class="cb"><div class="bars" id="ovLatent"></div></div>
+          </div>
+        </div>
+        <div class="grid ov-two" style="margin-bottom:16px">
+          <div class="card">
+            <div class="ch"><h3>Strongest signals</h3><span class="hint">clients per signal</span></div>
+            <div class="cb"><div class="bars" id="ovSignals"></div></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Recent activity</h3><span class="hint">last order, by month</span></div>
+            <div class="cb"><svg class="spark" id="ovSpark" viewBox="0 0 460 132" preserveAspectRatio="none"></svg></div>
+          </div>
+        </div>
+        <div class="grid ov-map">
+          <div class="card">
+            <div class="ch"><h3>Where your VICs are</h3><span class="hint" id="ovMapHint"></span></div>
+            <div class="cb"><div class="mapwrap" id="ovMapWrap"></div></div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Highest potential now</h3><span class="hint">top by score</span></div>
+            <div class="cb"><div class="toplist" id="ovTop"></div></div>
+          </div>
+        </div>
+      </div><!-- /viewOverview -->
+
+      <div id="viewClients" style="display:none">
       <!-- toolbar -->
       <div class="toolbar">
         <div class="chips" id="chips"></div>
         <div class="search">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-          <input id="q" placeholder="Search signal or location…" autocomplete="off">
+          <input id="q" placeholder="Search client, email, location, signal…" autocomplete="off">
         </div>
       </div>
 
@@ -450,6 +573,27 @@
         <div class="ofoot" id="ofoot"></div>
       </div>
 
+      <!-- MAP: geographic concentration of potential VICs -->
+      <div id="viewMap" style="display:none">
+        <div class="grid ov-map">
+          <div class="card">
+            <div class="ch"><h3>Concentration map</h3><span class="hint" id="mapHint"></span></div>
+            <div class="cb">
+              <div class="mapwrap" id="mapWrap"></div>
+              <div class="maplgd">
+                <span class="bd"><span class="dt" style="width:9px;height:9px"></span><span class="dt" style="width:15px;height:15px"></span><span class="dt" style="width:22px;height:22px"></span> more clients</span>
+                <span class="bd"><span class="dt" style="width:13px;height:13px;background:rgba(166,124,52,.6)"></span> mostly A-grade</span>
+                <span style="color:var(--faint)">Bubble size = potential VICs in that postcode area · click to see them</span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><h3>Top areas</h3><span class="hint">by potential VICs</span></div>
+            <div class="cb"><div class="regions" id="mapRegions"></div></div>
+          </div>
+        </div>
+      </div><!-- /viewMap -->
+
       <div class="foot">
         Real output from the Halia scoring engine on <b>sample data</b> (fictional store).
         Score and tier are <b>provisional</b> (a working 0–100 mapping). Latent value estimates each client's potential if nurtured into a top client, grown from their current spend toward your ceiling (the higher of <b>your highest lifetime client</b> or <b>AOV × max orders from one client</b>), scaled by the Halia score. Set those numbers in ⚙ Settings; until then it uses a store-AOV fallback.
@@ -499,6 +643,7 @@ let query = "";
 let gradeFilter = "all";
 let cityFilter = "all";
 let minSignals = 1;
+let areaFilter = "";            // postcode area (e.g. "SW"), set by clicking the map
 const selected = new Set();
 const rated = new Map();          // client id -> "fit" | "nofit", so a rated row shows a badge
 function ratedBadge(id){
@@ -548,11 +693,15 @@ function visible(){
   let list = DATA.filter(c=>{
     const segOk = activeSeg==="all" || c.signals.some(s=>s.seg===activeSeg);
     const q = query.trim().toLowerCase();
-    const qOk = !q || c.loc.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.signals.some(s=>s.d.toLowerCase().includes(q)) || SEGMENTS[c.signals[0].seg].label.toLowerCase().includes(q) || (c.brands&&c.brands.some(b=>b.toLowerCase().includes(q))) || (c.associate&&c.associate.toLowerCase().includes(q));
+    const inc = v => (v||"").toString().toLowerCase().includes(q);
+    const qOk = !q || inc(c.name) || inc(c.email) || inc(c.phone) || inc(c.loc) || inc(c.city) || inc(c.outward)
+      || c.signals.some(s=>inc(s.d)) || (c.signals[0]&&SEGMENTS[c.signals[0].seg]&&inc(SEGMENTS[c.signals[0].seg].label))
+      || (c.brands&&c.brands.some(b=>inc(b))) || (c.associate&&inc(c.associate));
     const gradeOk = gradeFilter==="all" || c.grade===gradeFilter;
     const cityOk = cityFilter==="all" || c.city===cityFilter;
+    const areaOk = !areaFilter || c.area===areaFilter;
     const minOk = c.count >= minSignals;
-    return segOk && qOk && gradeOk && cityOk && minOk;
+    return segOk && qOk && gradeOk && cityOk && areaOk && minOk;
   });
   list.sort((a,b)=>{
     let d;
@@ -586,8 +735,7 @@ function renderRows(){
   updateSelAll(list);
   if(!list.length){ rowsEl.innerHTML = `<div style="padding:48px;text-align:center;color:var(--faint)">No clients match this filter. <b style="color:var(--soft)">Try another signal.</b></div>`; return; }
   rowsEl.innerHTML = list.map((c,i)=>{
-    const sigChips = c.signals.slice(0,2).map(s=>`<span class="sig">${s.d}</span>`).join("")
-      + (c.signals.length>2?`<span class="sig more">+${c.signals.length-2}</span>`:"");
+    const sigChips = catChips(c.signals);
     return `<div class="row ${selected.has(c.id)?'sel':''}" data-id="${c.id}">
       <div class="cbx ${selected.has(c.id)?'on':''}" data-cbx="${c.id}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></div>
       <div class="rank">${String(i+1).padStart(2,"0")}</div>
@@ -936,7 +1084,7 @@ function openOrderDrawer(o){
     </div>
     <div style="padding:18px 22px">
       <div style="display:flex;align-items:center;gap:10px">${ogr(o)}<div style="font:600 16px system-ui">${esc(o.name)}</div>${o.score?`<span style="margin-left:auto;font:700 13px system-ui;color:var(--brand)">Score ${o.score}</span>`:""}</div>
-      ${sigs.length?`<div style="font:600 11px system-ui;color:var(--soft);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.08em">Why this client matters</div>${sigs.map(s=>`<div class="ev"><span class="badge">${SEGMENTS[s.seg]?SEGMENTS[s.seg].label:""}</span><div class="d">${s.d}${s.x?`<small>${s.x}</small>`:""}</div></div>`).join("")}`:`<div style="color:var(--soft);font-size:13px;margin:14px 0">Graded ${o.grade||"this client"}. Open the Clients view for the full signal breakdown on your potential VICs.</div>`}
+      ${sigs.length?`<div style="font:600 11px system-ui;color:var(--soft);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.08em">Why this client matters</div>${evidenceHTML(sigs)}`:`<div style="color:var(--soft);font-size:13px;margin:14px 0">Graded ${o.grade||"this client"}. Open the Clients view for the full signal breakdown on your potential VICs.</div>`}
       ${reco?`<div style="font:600 11px system-ui;color:var(--soft);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.08em">Recommended approach</div><div style="font-size:14px;line-height:1.6">${reco}</div>`:""}
       <div style="font:600 11px system-ui;color:var(--soft);margin:20px 0 9px;text-transform:uppercase;letter-spacing:.08em">Send a ${o.status.toLowerCase()} message</div>
       <div style="display:flex;flex-direction:column;gap:8px">${tpls.map((t,j)=>`<a class="obtn${j===0?" primary":""}" style="justify-content:flex-start;text-align:left" href="${href(t)}" target="_top">${t.name}</a>`).join("")}<a class="obtn" style="justify-content:flex-start" href="mailto:${em}" target="_top">Blank email</a></div>
@@ -962,21 +1110,300 @@ function renderOrders(){
 }
 document.addEventListener("click",()=>document.querySelectorAll(".omenu.show").forEach(m=>m.classList.remove("show")));
 ["oAllGrades","oStatus","oq"].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener(e.type==="text"?"input":"change",renderOrders);});
-document.querySelectorAll(".vtab").forEach(t=>t.onclick=()=>{
-  document.querySelectorAll(".vtab").forEach(x=>x.classList.remove("on"));t.classList.add("on");
-  const v=t.dataset.view;
-  document.getElementById("viewClients").style.display=v==="clients"?"":"none";
-  document.getElementById("viewOrders").style.display=v==="orders"?"":"none";
-  if(v==="orders"){
-    document.querySelector(".title").textContent="Orders";
-    document.querySelector(".sub").textContent="Every order, newest first, ranked by the client behind it. Act on each one while it is live, the message matches the order's status.";
-    renderOrders();
+/* ======================= Overview + Map (birds-eye pages) ======================= */
+const GRADE_COL={"A*":"#A67C34","A":"#1F564A","B":"#5E6B74","C":"#B5B9BE"};
+const GRADE_ORDER=["A*","A","B","C"];
+
+function gradeCounts(list){const m={"A*":0,"A":0,"B":0,"C":0};list.forEach(c=>{if(m[c.grade]!=null)m[c.grade]++;});return m;}
+
+// Grade-mix donut
+function renderDonut(el,list){
+  const m=gradeCounts(list),total=list.length||1;
+  const cx=64,cy=64,rr=45,circ=2*Math.PI*rr,sw=20;
+  let off=0,segs="";
+  GRADE_ORDER.forEach(g=>{const n=m[g];if(!n)return;const len=circ*n/total;
+    segs+=`<circle cx="${cx}" cy="${cy}" r="${rr}" fill="none" stroke="${GRADE_COL[g]}" stroke-width="${sw}" stroke-dasharray="${len.toFixed(2)} ${(circ-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    off+=len;});
+  const legend=GRADE_ORDER.map(g=>`<div class="li"><span class="sw" style="background:${GRADE_COL[g]}"></span>${g==="A*"?"A&#42;":g} grade <b>${m[g]}</b></div>`).join("");
+  el.innerHTML=`<svg width="128" height="128" viewBox="0 0 128 128">
+     ${segs||`<circle cx="64" cy="64" r="45" fill="none" stroke="var(--line)" stroke-width="20"/>`}
+     <text x="64" y="60" text-anchor="middle" style="font:500 24px 'Fraunces',serif;fill:var(--ink)">${list.length}</text>
+     <text x="64" y="79" text-anchor="middle" style="font:700 9px 'Hanken Grotesk',sans-serif;fill:var(--faint);letter-spacing:.08em">CLIENTS</text>
+    </svg><div class="dlgd">${legend}</div>`;
+}
+
+// Latent value by grade (horizontal bars)
+function renderLatentBars(el,list){
+  const g={"A*":0,"A":0,"B":0,"C":0};list.forEach(c=>{if(g[c.grade]!=null)g[c.grade]+=c.latent;});
+  const max=Math.max(1,...Object.values(g));
+  el.innerHTML=GRADE_ORDER.map(k=>`<div class="bar ${k==='A*'||k==='A'?'g':''}"><span class="lb">${k==="A*"?"A&#42;":k} grade</span><span class="tk"><i style="width:${Math.round(100*g[k]/max)}%"></i></span><span class="vl">${fmtBig(g[k])}</span></div>`).join("");
+}
+
+// Strongest signals (top 7 by client count)
+function renderSignalBars(el){
+  const arr=Object.keys(segCounts).filter(k=>SEGMENTS[k]).map(k=>({label:SEGMENTS[k].label,n:segCounts[k]})).sort((a,b)=>b.n-a.n).slice(0,7);
+  const max=Math.max(1,...arr.map(a=>a.n));
+  el.innerHTML=arr.length?arr.map(a=>`<div class="bar"><span class="lb" title="${esc(a.label)}">${esc(a.label)}</span><span class="tk"><i style="width:${Math.round(100*a.n/max)}%"></i></span><span class="vl">${a.n}</span></div>`).join(""):`<div class="emptybox">No signals yet.</div>`;
+}
+
+// Recent activity: potential VICs by last-order month
+function renderSpark(svg,list){
+  const W=460,H=132,pl=6,pr=6,pt=12,pb=20;
+  const months={};
+  list.forEach(c=>{if(!c.lastSort)return;const d=new Date(c.lastSort*1000);
+    const key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");months[key]=(months[key]||0)+1;});
+  let keys=Object.keys(months).sort().slice(-12);
+  if(keys.length<2){svg.innerHTML=`<text x="230" y="70" text-anchor="middle" class="axis">Not enough dated orders to chart yet.</text>`;return;}
+  const iw=W-pl-pr,ih=H-pt-pb,max=Math.max(...keys.map(k=>months[k]));
+  const X=i=>pl+iw*i/(keys.length-1),Y=v=>pt+ih*(1-v/max);
+  const pts=keys.map((k,i)=>[X(i),Y(months[k])]);
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=`M${pts[0][0].toFixed(1)} ${(pt+ih).toFixed(1)} `+pts.map(p=>'L'+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+` L${pts[pts.length-1][0].toFixed(1)} ${(pt+ih).toFixed(1)} Z`;
+  const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const every=keys.length>7?2:1;
+  const ticks=keys.map((k,i)=>i%every?"":`<text x="${X(i).toFixed(1)}" y="${H-6}" text-anchor="middle" class="axis">${MON[+k.split("-")[1]-1]}</text>`).join("");
+  const end=pts[pts.length-1];
+  svg.innerHTML=`<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(31,86,74,.26)"/><stop offset="1" stop-color="rgba(31,86,74,0)"/></linearGradient></defs>
+    <path d="${area}" fill="url(#sg)"/>
+    <path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${end[0].toFixed(1)}" cy="${end[1].toFixed(1)}" r="3.5" fill="var(--brand-deep)"/>${ticks}`;
+}
+
+// Highest-potential rail
+function renderTopList(el){
+  const top=[...DATA].sort((a,b)=>(b.score-a.score)||(b.latent-a.latent)).slice(0,6);
+  el.innerHTML=top.map(c=>`<div class="tl" data-id="${c.id}">
+    <div class="ava ${c.tier}">${c.init}</div>
+    <div style="min-width:0"><div class="nm">${esc(c.name)}</div><div class="mt">${esc(c.loc)} &middot; ${gbpK(c.latent)} latent</div></div>
+    <div class="sc"><b>${c.score}</b><div class="g tier ${c.tier}">${tierLabel(c.tier)}</div></div>
+  </div>`).join("");
+  el.querySelectorAll(".tl").forEach(r=>r.onclick=()=>openDrawer(r.dataset.id));
+}
+
+/* ---- UK map: postcode-area centroids + a simplified GB/NI coastline ---- */
+const PC_CENTROIDS={
+ E:[51.53,-0.03],EC:[51.52,-0.09],N:[51.57,-0.11],NW:[51.55,-0.20],SE:[51.47,-0.05],SW:[51.46,-0.16],W:[51.51,-0.20],WC:[51.52,-0.12],
+ BR:[51.40,0.02],CR:[51.35,-0.10],DA:[51.44,0.22],EN:[51.65,-0.08],HA:[51.59,-0.34],IG:[51.56,0.07],KT:[51.35,-0.30],RM:[51.57,0.18],SM:[51.36,-0.19],TW:[51.45,-0.34],UB:[51.53,-0.42],WD:[51.66,-0.40],
+ AL:[51.75,-0.33],CB:[52.20,0.13],CM:[51.73,0.47],CO:[51.89,0.90],GU:[51.24,-0.57],HP:[51.73,-0.61],LU:[51.88,-0.42],ME:[51.38,0.55],MK:[52.04,-0.76],OX:[51.75,-1.26],RG:[51.46,-0.97],RH:[51.10,-0.18],SG:[51.90,-0.20],SL:[51.51,-0.59],SS:[51.55,0.70],TN:[51.13,0.26],
+ BN:[50.83,-0.14],CT:[51.28,1.08],PO:[50.80,-1.09],SO:[50.92,-1.40],
+ BA:[51.38,-2.36],BH:[50.72,-1.88],BS:[51.45,-2.59],DT:[50.71,-2.44],EX:[50.72,-3.53],GL:[51.86,-2.24],PL:[50.37,-4.14],SN:[51.56,-1.78],SP:[51.07,-1.80],TA:[51.02,-3.10],TQ:[50.46,-3.53],TR:[50.26,-5.05],
+ IP:[52.06,1.16],NR:[52.63,1.30],PE:[52.57,-0.24],
+ DE:[52.92,-1.48],DN:[53.52,-1.13],LE:[52.63,-1.13],LN:[53.23,-0.54],NG:[52.95,-1.15],NN:[52.24,-0.90],
+ B:[52.48,-1.90],CV:[52.41,-1.51],DY:[52.51,-2.09],HR:[52.06,-2.72],ST:[52.90,-2.12],SY:[52.71,-2.75],TF:[52.68,-2.45],WR:[52.19,-2.22],WS:[52.59,-1.98],WV:[52.59,-2.13],
+ BB:[53.75,-2.48],BL:[53.58,-2.43],CA:[54.65,-2.93],CH:[53.20,-2.89],CW:[53.16,-2.44],FY:[53.82,-3.02],L:[53.41,-2.98],LA:[54.05,-2.80],M:[53.48,-2.24],OL:[53.55,-2.11],PR:[53.76,-2.70],SK:[53.41,-2.16],WA:[53.39,-2.59],WN:[53.55,-2.63],
+ BD:[53.79,-1.75],DH:[54.78,-1.58],DL:[54.53,-1.55],HD:[53.65,-1.78],HG:[53.99,-1.54],HU:[53.74,-0.33],HX:[53.72,-1.86],LS:[53.80,-1.55],NE:[54.98,-1.61],S:[53.38,-1.47],SR:[54.90,-1.38],TS:[54.57,-1.23],WF:[53.68,-1.50],YO:[53.96,-1.08],
+ CF:[51.48,-3.18],LD:[52.24,-3.38],LL:[53.14,-4.13],NP:[51.58,-3.00],SA:[51.62,-3.94],
+ AB:[57.14,-2.10],DD:[56.46,-2.97],DG:[55.07,-3.60],EH:[55.95,-3.19],FK:[56.00,-3.78],G:[55.86,-4.25],HS:[57.90,-6.80],IV:[57.48,-4.22],KA:[55.61,-4.50],KW:[58.45,-3.30],KY:[56.14,-3.16],ML:[55.79,-3.90],PA:[55.85,-4.43],PH:[56.40,-3.43],TD:[55.55,-2.79],ZE:[60.15,-1.15],
+ BT:[54.60,-5.93],IM:[54.24,-4.55],GY:[49.46,-2.58],JE:[49.21,-2.13]
+};
+// Simplified GB coastline as [lat,lng] anchors (clockwise from Land's End), projected identically to the bubbles.
+const GB_OUTLINE=[[50.07,-5.71],[49.96,-5.20],[50.20,-4.78],[50.36,-4.14],[50.61,-3.41],[50.57,-2.45],[50.72,-1.88],[50.79,-1.09],[50.77,-0.28],[50.83,0.28],[51.00,0.78],[51.13,1.33],[51.38,1.42],[51.44,0.75],[51.53,0.72],[51.72,0.94],[51.95,1.28],[52.06,1.62],[52.48,1.75],[52.62,1.73],[52.93,1.30],[52.90,0.44],[52.80,0.18],[52.93,0.15],[53.06,0.28],[53.14,0.34],[53.58,-0.08],[53.68,-0.20],[53.73,-0.06],[54.08,-0.19],[54.28,-0.40],[54.49,-0.61],[54.64,-1.19],[54.90,-1.34],[55.02,-1.42],[55.28,-1.55],[55.77,-2.00],[56.06,-2.60],[56.28,-2.58],[56.36,-2.80],[56.46,-2.97],[57.14,-2.09],[57.50,-1.78],[57.69,-2.00],[57.68,-3.55],[57.60,-4.05],[57.66,-4.02],[58.30,-3.05],[58.64,-3.07],[58.51,-4.75],[58.62,-4.99],[58.20,-5.30],[57.90,-5.16],[57.55,-5.80],[57.28,-5.71],[57.00,-5.85],[56.80,-5.83],[56.40,-5.90],[55.90,-5.35],[55.31,-5.80],[55.35,-5.00],[55.00,-4.90],[54.86,-5.02],[54.63,-4.86],[54.85,-4.30],[54.98,-3.60],[54.90,-3.60],[54.55,-3.59],[54.20,-3.30],[54.11,-3.22],[54.10,-2.90],[53.95,-3.02],[53.82,-3.05],[53.72,-2.98],[53.42,-3.02],[53.35,-3.10],[53.32,-3.82],[53.30,-4.34],[53.31,-4.63],[52.92,-4.50],[52.79,-4.15],[52.53,-4.06],[52.41,-4.08],[52.11,-4.35],[51.88,-5.27],[51.67,-5.05],[51.62,-4.30],[51.53,-3.98],[51.62,-3.94],[51.46,-3.55],[51.46,-3.17],[51.38,-2.99],[51.21,-4.12],[51.00,-4.20],[50.83,-4.55],[50.55,-4.86],[50.42,-5.08],[50.20,-5.48]];
+const NI_OUTLINE=[[55.24,-6.49],[55.18,-6.05],[54.98,-5.72],[54.66,-5.67],[54.49,-5.44],[54.25,-5.55],[54.10,-6.27],[54.20,-6.65],[54.34,-7.63],[54.65,-8.15],[55.05,-7.20],[55.20,-7.15]];
+const MAP_W=420,MAP_H=660,MB={latMax:59.4,latMin:49.7,lngMin:-8.3,lngMax:2.0};
+function proj(lat,lng){return [(lng-MB.lngMin)/(MB.lngMax-MB.lngMin)*MAP_W,(MB.latMax-lat)/(MB.latMax-MB.latMin)*MAP_H];}
+function pathFrom(pts){return pts.map((p,i)=>{const c=proj(p[0],p[1]);return (i?'L':'M')+c[0].toFixed(1)+' '+c[1].toFixed(1);}).join('')+'Z';}
+
+function geoAgg(){
+  const m={};
+  DATA.forEach(c=>{const a=(c.area||"").toUpperCase();if(!a||!PC_CENTROIDS[a])return;
+    const o=m[a]||(m[a]={area:a,n:0,latent:0,top:0,city:{}});
+    o.n++;o.latent+=c.latent;if(c.grade==="A*"||c.grade==="A")o.top++;
+    if(c.city&&c.city!=="·")o.city[c.city]=(o.city[c.city]||0)+1;});
+  return Object.values(m).map(o=>({area:o.area,n:o.n,latent:o.latent,top:o.top,ll:PC_CENTROIDS[o.area],
+    topCity:Object.keys(o.city).sort((x,y)=>o.city[y]-o.city[x])[0]||""})).sort((a,b)=>b.n-a.n);
+}
+
+function buildMap(wrap,onClick){
+  const areas=geoAgg(),maxN=Math.max(1,...areas.map(a=>a.n));
+  const bubbles=areas.map(a=>{const c=proj(a.ll[0],a.ll[1]);const rad=6+18*Math.sqrt(a.n/maxN);const gold=a.top/a.n>=0.5;
+    return `<circle class="bub ${gold?'g':''}" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${rad.toFixed(1)}" data-area="${a.area}" data-n="${a.n}" data-latent="${a.latent}" data-city="${esc(a.topCity)}"/>`;
+  }).join("");
+  wrap.innerHTML=`<svg viewBox="0 0 ${MAP_W} ${MAP_H}"><path class="land" d="${pathFrom(GB_OUTLINE)}"/><path class="land" d="${pathFrom(NI_OUTLINE)}"/>${bubbles}</svg><div class="maptip" id="${wrap.id}-tip"></div>`;
+  const tip=document.getElementById(wrap.id+"-tip");
+  wrap.querySelectorAll(".bub").forEach(b=>{
+    b.addEventListener("mousemove",e=>{const r=wrap.getBoundingClientRect();
+      tip.style.left=(e.clientX-r.left)+"px";tip.style.top=(e.clientY-r.top)+"px";
+      const n=+b.dataset.n;tip.innerHTML=`<b>${b.dataset.area}</b>${b.dataset.city?" &middot; "+esc(b.dataset.city):""}<br>${n} VIC${n===1?"":"s"} &middot; ${fmtBig(+b.dataset.latent)} latent`;
+      tip.style.opacity=1;});
+    b.addEventListener("mouseleave",()=>tip.style.opacity=0);
+    if(onClick) b.addEventListener("click",()=>onClick(b.dataset.area));
+  });
+  return areas;
+}
+function renderRegions(el,areas){
+  el.innerHTML=areas.length?areas.slice(0,12).map((a,i)=>`<div class="rg" data-area="${a.area}">
+    <span class="rk">${i+1}</span><span class="pl">${a.area}<small>${esc(a.topCity||"")}</small></span>
+    <span class="ct">${a.n}</span><span class="lv">${fmtBig(a.latent)}</span></div>`).join(""):`<div class="emptybox">No mapped postcodes yet.</div>`;
+  el.querySelectorAll(".rg").forEach(r=>r.onclick=()=>filterToArea(r.dataset.area));
+}
+// Click a bubble/region -> jump to Clients filtered to that postcode area.
+function filterToArea(area){
+  areaFilter=area;query="";document.getElementById("q").value="";
+  showView("clients");updateAreaBanner();renderRows();
+}
+function updateAreaBanner(){
+  let el=document.getElementById("areaBanner");
+  if(!areaFilter){if(el)el.remove();return;}
+  if(!el){el=document.createElement("div");el.id="areaBanner";
+    el.style.cssText="display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:9px 13px;background:var(--brand-tint);border:1px solid #c9ddd5;border-radius:10px;font-size:13px;color:var(--brand-deep)";
+    const vc=document.getElementById("viewClients");vc.insertBefore(el,vc.firstChild);}
+  el.innerHTML=`<b>Postcode area ${areaFilter}</b> <span style="color:var(--soft)">filtered from the map</span>
+    <button id="areaClear" style="margin-left:auto;background:#fff;border:1px solid #c9ddd5;border-radius:8px;padding:4px 10px;font:600 12px system-ui;color:var(--brand-deep);cursor:pointer">Clear ×</button>`;
+  document.getElementById("areaClear").onclick=()=>{areaFilter="";updateAreaBanner();renderRows();};
+}
+
+function renderOverview(){
+  renderDonut(document.getElementById("ovDonut"),DATA);
+  renderLatentBars(document.getElementById("ovLatent"),DATA);
+  renderSignalBars(document.getElementById("ovSignals"));
+  renderSpark(document.getElementById("ovSpark"),DATA);
+  const areas=buildMap(document.getElementById("ovMapWrap"),filterToArea);
+  const mapped=areas.reduce((s,a)=>s+a.n,0);
+  document.getElementById("ovMapHint").textContent=areas.length?`${mapped} located · ${areas.length} area${areas.length===1?"":"s"}`:"";
+  renderTopList(document.getElementById("ovTop"));
+}
+function renderMap(){
+  const areas=buildMap(document.getElementById("mapWrap"),filterToArea);
+  renderRegions(document.getElementById("mapRegions"),areas);
+  const mapped=areas.reduce((s,a)=>s+a.n,0);
+  document.getElementById("mapHint").textContent=`${mapped} of ${DATA.length} located · ${areas.length} area${areas.length===1?"":"s"}`;
+}
+
+/* ---- page router ---- */
+const ORIG_STATS_DISPLAY=document.querySelector(".stats").style.display||"";
+const PAGE_META={
+  overview:{t:"Overview",s:"A birds-eye view of the potential VICs Halia surfaced from your store: who they are, what they are worth, and where they are."},
+  orders:{t:"Orders",s:"Every order, newest first, ranked by the client behind it. Act on each one while it is live, the message matches the order's status."},
+  map:{t:"Where your VICs are",s:"Geographic concentration of your potential VICs across the UK, by postcode area. Click a bubble to see the clients there."}
+};
+function showView(v){
+  document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("on",x.dataset.view===v));
+  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"]].forEach(([k,id])=>{
+    const el=document.getElementById(id);if(el)el.style.display=k===v?"":"none";});
+  const statsEl=document.querySelector(".stats");
+  if(v==="clients"){
+    document.querySelector(".title").textContent=ORIG_TITLE;document.querySelector(".sub").textContent=ORIG_SUB;
+    statsEl.style.display=ORIG_STATS_DISPLAY;statsEl.innerHTML=ORIG_STATS;renderRows();
+  } else if(v==="orders"){
+    document.querySelector(".title").textContent=PAGE_META.orders.t;document.querySelector(".sub").textContent=PAGE_META.orders.s;
+    statsEl.style.display=ORIG_STATS_DISPLAY;renderOrders();
+  } else if(v==="overview"){
+    document.querySelector(".title").textContent=PAGE_META.overview.t;document.querySelector(".sub").textContent=PAGE_META.overview.s;
+    statsEl.style.display=ORIG_STATS_DISPLAY;statsEl.innerHTML=ORIG_STATS;   // headline KPIs above the charts
+    renderOverview();
   } else {
-    document.querySelector(".title").textContent=ORIG_TITLE;
-    document.querySelector(".sub").textContent=ORIG_SUB;
-    document.querySelector(".stats").innerHTML=ORIG_STATS;
+    document.querySelector(".title").textContent=PAGE_META.map.t;document.querySelector(".sub").textContent=PAGE_META.map.s;
+    statsEl.style.display="none";
+    renderMap();
   }
-});
+}
+document.querySelectorAll(".vtab").forEach(t=>t.onclick=()=>showView(t.dataset.view));
+
+/* ---- Evidence, grouped by what each signal actually tells you ----
+   Several tells often describe the SAME fact (SW10 as an HNWI postcode, its homes'
+   value, and the prime area around it). Bucketing them makes clear they corroborate
+   one thing rather than reading as many independent reasons, and matches how the
+   engine scores them (correlated tells in a group are counted together, not stacked). */
+const _ICON={
+  home:'<path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/>',
+  work:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>',
+  payment:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  name:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+  contact:'<path d="M5 4h4l2 5-3 2a12 12 0 006 6l2-3 5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',
+  other:'<circle cx="12" cy="12" r="3"/>'};
+const CATS={
+  home:{t:"Home & address",c:"var(--brand)",d:"Where they live and ship to. Several tells can describe the same place; Halia counts them together, not stacked."},
+  work:{t:"Work & wealth",c:"var(--gold)",d:"Their employer, profession or company."},
+  payment:{t:"Payment",c:"#5E6B74",d:"How they pay."},
+  name:{t:"Name & title",c:"var(--brand-deep)",d:"Titles and recognisable names. Weaker alone; used to corroborate."},
+  contact:{t:"Contact",c:"#7A8089",d:"Phone and identity consistency checks."},
+  other:{t:"Other signals",c:"var(--faint)",d:""}};
+const CAT_ORDER=["home","work","payment","name","contact","other"];
+const SIG_CAT={
+  "hnwi-postcode":"home","us-prime-zip":"home","intl-prime-postcode":"home","hnw-area":"home",
+  "home-value":"home","prime-area":"home","prime-residence":"home","high-value-area":"home",
+  "prime-residential-district":"home","delivery":"home","wealth-office":"home","hotel-concierge":"home",
+  "geo-confirmation":"home","ip-location":"home","gcc-billing":"home",
+  "work-email":"work","premium-email":"work","custom-domain":"work","high-earning-domain":"work",
+  "ivy-alumni":"work","styling-service-b2b":"work","company":"work","companies-house":"work",
+  "wealth-structure":"work","fashion-stylist":"work","possible-stylist":"work",
+  "premium-card":"payment","premium-card-brand":"payment","foreign-currency":"payment",
+  "honorific":"name","post-nominal":"name","nobiliary-particle":"name","name-structure":"name",
+  "heritage-surname":"name","rich-list":"name","name-mismatch":"name",
+  "phone":"contact","phone-address":"contact","shared-phone":"contact","landline":"contact","assistant-order":"contact"};
+const SIG_WHY={
+  "hnwi-postcode":"This postcode area is on our list of the UK's highest-value residential districts.",
+  "home-value":"Homes in their exact postcode sell in the top price band.",
+  "prime-area":"The wider district is a recognised high-net-worth area.",
+  "prime-residence":"Their address is a trophy building known for wealthy residents.",
+  "high-value-area":"Their area is a high-value location.",
+  "prime-residential-district":"Their district is a prime residential area.",
+  "us-prime-zip":"Their ZIP is among the highest-value US areas.",
+  "intl-prime-postcode":"Their postcode is a recognised prime international address.",
+  "hnw-area":"Their area is a known high-net-worth location.",
+  "delivery":"They ship to a notable destination (marina, members' venue, hotel).",
+  "wealth-office":"Their address matches a family office or private-wealth firm.",
+  "hotel-concierge":"Their order was handled via a luxury-hotel concierge.",
+  "geo-confirmation":"Their phone's country matches their billing address, so the location tells agree.",
+  "ip-location":"Their checkout location matched a wealthy area. Weak on its own.",
+  "gcc-billing":"Their billing country is a high-wealth jurisdiction.",
+  "work-email":"Their email domain belongs to a firm associated with high earners.",
+  "premium-email":"They use a premium or paid email service.",
+  "custom-domain":"They use their own custom email domain.",
+  "high-earning-domain":"A high-earning profession keyword appears in their email or company.",
+  "ivy-alumni":"Their email is from an elite university.",
+  "styling-service-b2b":"A trade/stylist account that buys for wealthy clients.",
+  "company":"A wealth-linked keyword appears in the company on their order.",
+  "companies-house":"Their name matches a company officer on the public register.",
+  "wealth-structure":"A trust, family office or holding-company pattern.",
+  "fashion-stylist":"A professional stylist who buys for high-value clients.",
+  "possible-stylist":"Possibly a stylist buying on behalf of clients.",
+  "premium-card":"They paid with a premium card tier (e.g. Amex Centurion).",
+  "premium-card-brand":"Their card brand skews premium.",
+  "foreign-currency":"They paid in a high-wealth foreign currency.",
+  "honorific":"Their name carries a title (Sir, Lady, Lord, and similar).",
+  "post-nominal":"Their name carries post-nominal letters (e.g. OBE, QC).",
+  "nobiliary-particle":"Their surname carries a nobiliary particle (von, de, etc.).",
+  "name-structure":"Their name pattern is one common among high-net-worth clients.",
+  "heritage-surname":"Their surname is a recognised heritage / old-wealth name.",
+  "rich-list":"Their name matches a public rich-list entry. Verify before acting.",
+  "name-mismatch":"The order name differs from the account, often an assistant or gift buyer.",
+  "phone":"Their phone number's jurisdiction is a wealth signal.",
+  "phone-address":"Their phone country differs from their billing address.",
+  "shared-phone":"Their phone is shared across accounts (household or office).",
+  "landline":"They gave a landline, more common among established households.",
+  "assistant-order":"The order looks placed by an assistant on someone's behalf."};
+// Row chips: one small chip per category with a count (e.g. "Home 5 · Work 3"), so the
+// table reads as "what kind of client" not a wall of raw signal strings.
+function catChips(signals){
+  if(!signals||!signals.length) return "";
+  const counts={};
+  signals.forEach(s=>{const c=SIG_CAT[s.seg]||"other";counts[c]=(counts[c]||0)+1;});
+  return CAT_ORDER.filter(c=>counts[c]).map(c=>{
+    const m=CATS[c];
+    return `<span class="catchip" style="--cc:${m.c}"><span class="cdot"></span>${m.t.split(" ")[0]} <b>${counts[c]}</b></span>`;
+  }).join("");
+}
+function _sigName(s){return SEGMENTS[s.seg]?SEGMENTS[s.seg].label:(s.d.split(": ")[0]||"");}
+function _sigDetail(s){const i=s.d.indexOf(": ");return i>=0?s.d.slice(i+2):s.d;}
+function evidenceHTML(signals){
+  if(!signals||!signals.length) return "";
+  const groups={};
+  signals.forEach(s=>{const c=SIG_CAT[s.seg]||"other";(groups[c]||(groups[c]=[])).push(s);});
+  return CAT_ORDER.filter(c=>groups[c]).map(c=>{
+    const meta=CATS[c],items=groups[c];
+    const tag=items.length>1?`${items.length} tells &middot; corroborating`:"1 tell";
+    const rows=items.map(s=>{const why=SIG_WHY[s.seg]||"";
+      return `<div class="evi"><span class="evtag">${esc(_sigName(s))}</span>
+        <div class="evb"><div class="evdt">${esc(_sigDetail(s))||"&mdash;"}</div>${why?`<div class="evwy">${why}</div>`:""}</div></div>`;
+    }).join("");
+    return `<div class="evgrp">
+      <div class="gh"><span class="gic" style="background:${meta.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">${_ICON[c]}</svg></span>${meta.t}<span class="ct">${tag}</span></div>
+      ${meta.d?`<div class="gd">${meta.d}</div>`:""}${rows}</div>`;
+  }).join("");
+}
+
 function openDrawer(id){
   const c=DATA.find(x=>x.id===id);
   drawer.innerHTML=`
@@ -995,15 +1422,13 @@ function openDrawer(id){
     </div>
     <div class="dbody">
       <div class="dscore">
-        <div class="dcard accent"><div class="k">Halia score</div><div class="v mono">${c.score}<span style="font-size:13px;opacity:.7"> / 100 · ${tierLabel(c.tier)}</span></div>${c.confidence?`<div style="font-size:11px;opacity:.75;margin-top:3px">${c.confidence>=2?("Corroborated · "+c.confidence+" sources"):"Single source"}</div>`:""}</div>
+        <div class="dcard accent"><div class="k">Halia score</div><div class="v mono">${c.score}<span style="font-size:13px;opacity:.7"> / 100 · ${tierLabel(c.tier)}</span></div>${c.confidence?`<div style="font-size:11px;color:#B9D4CC;margin-top:3px">${c.confidence>=2?("Corroborated · "+c.confidence+" sources"):"Single source"}</div>`:""}</div>
         <div class="dcard"><div class="k">Latent value</div><div class="v">${gbpK(c.latent)}</div></div>
         <div class="dcard"><div class="k">Spend now</div><div class="v">${gbp(c.spend)}</div></div>
       </div>
 
       <div class="dlabel">Why this client surfaced</div>
-      <div class="evidence">
-        ${c.signals.map(s=>`<div class="ev"><span class="badge">${SEGMENTS[s.seg].label}</span><div class="d">${s.d}${s.x?`<small>${s.x}</small>`:""}</div></div>`).join("")}
-      </div>
+      <div class="evidence">${evidenceHTML(c.signals)}</div>
 
       <div class="dlabel">Was this a good call?</div>
       <div id="dfb" style="display:flex;gap:8px">
@@ -1146,7 +1571,7 @@ function setSort(){
 }
 
 // search
-document.getElementById("q").oninput=e=>{query=e.target.value;renderRows();};
+document.getElementById("q").oninput=e=>{query=e.target.value;areaFilter="";updateAreaBanner();renderRows();};
 
 // toast
 let toastT;
@@ -1195,7 +1620,8 @@ function closeSettings(){settingsEl.style.display="none";}
 function openSettings(){
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
   let otmpl=JSON.parse(JSON.stringify(ORDER_TEMPLATES||{new:[],fulfilled:[],refunded:[],cancelled:[]}));
-  let tab="client", ostatus="new", lastField=null;
+  let tab="client", ostatus="new", lastField=null, spage="integrations";
+  const SPAGES=[["integrations","Integrations"],["scoring","Scoring"],["alerts","Alerts"],["templates","Templates"],["billing","Billing"],["privacy","Privacy"]];
   const OSTAT=["new","fulfilled","refunded","cancelled"];
   const OSTLBL={new:"New",fulfilled:"Fulfilled",refunded:"Refunded",cancelled:"Cancelled"};
   function currentList(){return tab==="client"?tmpl:(otmpl[ostatus]=otmpl[ostatus]||[]);}
@@ -1212,34 +1638,41 @@ function openSettings(){
   function insertToken(tok){const el=lastField;if(!el){toast("Tap a template field first, then insert.");return;}
     const s=el.selectionStart==null?el.value.length:el.selectionStart, e=el.selectionEnd==null?el.value.length:el.selectionEnd;
     el.value=el.value.slice(0,s)+tok+el.value.slice(e);el.focus();el.selectionStart=el.selectionEnd=s+tok.length;}
-  const I="box-sizing:border-box;padding:8px 12px;border:1px solid #8a8a8a;border-radius:8px;font:14px system-ui;color:#303030;background:#fff";
-  const C="background:#fff;border:1px solid #e3e3e3;border-radius:12px;padding:18px 20px;margin-bottom:16px";
-  const H="font:650 14px system-ui;color:#303030;margin:0 0 4px";
-  const P="font:13px/1.5 system-ui;color:#616161;margin:0 0 14px";
-  const BP="background:#303030;color:#fff;border:none;border-radius:8px;padding:11px 20px;font:600 13px system-ui;cursor:pointer";
-  const BS="background:#fff;color:#303030;border:1px solid #999;border-radius:8px;padding:9px 15px;font:600 13px system-ui;cursor:pointer";
-  const LBL="font:500 12px system-ui;color:#616161;margin-bottom:5px";
-  const TAB_ON="background:#303030;color:#fff;border:1px solid #303030;border-radius:8px;padding:8px 16px;font:600 13px system-ui;cursor:pointer";
-  const TAB_OFF="background:#fff;color:#616161;border:1px solid #ccc;border-radius:8px;padding:8px 16px;font:600 13px system-ui;cursor:pointer";
-  const SUB_ON="background:#1f564a;color:#fff;border:none;border-radius:999px;padding:6px 13px;font:600 12px system-ui;cursor:pointer";
-  const SUB_OFF="background:#ececec;color:#555;border:none;border-radius:999px;padding:6px 13px;font:600 12px system-ui;cursor:pointer";
-  const CHIP="background:#eef1f0;border:1px solid #cdd6d3;border-radius:6px;padding:3px 9px;font:600 12px ui-monospace,SFMono-Regular,monospace;color:#1f564a;cursor:pointer;margin:0 6px 6px 0";
+  const SF="'Hanken Grotesk',system-ui,sans-serif";
+  const I="box-sizing:border-box;padding:10px 13px;border:1px solid var(--line-strong);border-radius:10px;font:14px "+SF+";color:var(--ink);background:#fff;outline:none";
+  const C="background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:14px;box-shadow:var(--shadow)";
+  const H="font:500 17px 'Fraunces',serif;letter-spacing:-.01em;color:var(--ink);margin:0 0 5px";
+  const P="font:13.5px/1.55 "+SF+";color:var(--soft);margin:0 0 16px";
+  const BP="background:var(--brand-deep);color:#fff;border:none;border-radius:10px;padding:11px 20px;font:600 13px "+SF+";cursor:pointer";
+  const BS="background:#fff;color:var(--ink);border:1px solid var(--line-strong);border-radius:10px;padding:10px 16px;font:600 13px "+SF+";cursor:pointer";
+  const LBL="font:600 12px "+SF+";color:var(--faint);letter-spacing:.02em;margin-bottom:6px";
+  const TAB_ON="background:var(--brand-deep);color:#fff;border:1px solid var(--brand-deep);border-radius:9px;padding:8px 16px;font:600 13px "+SF+";cursor:pointer";
+  const TAB_OFF="background:#fff;color:var(--soft);border:1px solid var(--line-strong);border-radius:9px;padding:8px 16px;font:600 13px "+SF+";cursor:pointer";
+  const SUB_ON="background:var(--brand);color:#fff;border:none;border-radius:999px;padding:6px 13px;font:600 12px "+SF+";cursor:pointer";
+  const SUB_OFF="background:var(--shell);color:var(--soft);border:none;border-radius:999px;padding:6px 13px;font:600 12px "+SF+";cursor:pointer";
+  const CHIP="background:var(--brand-tint);border:1px solid #c9ddd5;border-radius:6px;padding:3px 9px;font:600 12px 'Spline Sans Mono',ui-monospace,monospace;color:var(--brand-deep);cursor:pointer;margin:0 6px 6px 0";
+  // top page-tabs (underline style, like a real settings nav)
+  const STAB_ON="background:none;border:none;border-bottom:2px solid var(--brand);color:var(--ink);padding:10px 4px;margin-right:22px;font:600 14px "+SF+";cursor:pointer;white-space:nowrap";
+  const STAB_OFF="background:none;border:none;border-bottom:2px solid transparent;color:var(--soft);padding:10px 4px;margin-right:22px;font:600 14px "+SF+";cursor:pointer;white-space:nowrap";
   const kv=SETTINGS.klaviyo_connected;
   const mc=SETTINGS.mailchimp_connected;
   const hs=SETTINGS.hubspot_connected;
   const calibrated=!!(SETTINGS.signal_weights&&Object.keys(SETTINGS.signal_weights).length);
   function render(){
     settingsEl.innerHTML=`
-     <div style="position:fixed;inset:0;background:#f1f1f1;z-index:300;overflow:auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
-      <div style="max-width:800px;margin:0 auto;padding:18px 16px 100px">
-        <button id="sback" style="display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:#616161;font:600 13px system-ui;cursor:pointer;padding:6px 0">← Back to dashboard</button>
-        <h1 style="margin:2px 0 20px;font:650 22px/1.2 system-ui;color:#303030">Settings</h1>
-
-        <div style="${C}">
-          <div style="${H}">Billing</div>
-          <div id="billingBox"><div style="${P};margin:0">Loading…</div></div>
+     <div id="sScroll" style="position:fixed;inset:0;background:var(--bg);z-index:300;overflow:auto;font-family:${SF}">
+      <div style="max-width:880px;margin:0 auto;padding:0 20px 120px">
+        <div style="position:sticky;top:0;background:var(--bg);z-index:2;padding-top:18px">
+          <button id="sback" style="display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--soft);font:600 13px ${SF};cursor:pointer;padding:6px 0">&#8592; Back to dashboard</button>
+          <h1 style="margin:4px 0 4px;font:500 30px/1.1 'Fraunces',serif;letter-spacing:-.01em;color:var(--ink)">Settings</h1>
+          <p style="font:14px/1.5 ${SF};color:var(--soft);margin:0 0 14px">Manage your integrations, scoring, alerts, templates and billing.</p>
+          <div style="display:flex;border-bottom:1px solid var(--line);overflow-x:auto">
+            ${SPAGES.map(([k,label])=>`<button data-goto="${k}" style="${spage===k?STAB_ON:STAB_OFF}">${label}</button>`).join("")}
+          </div>
         </div>
+        <div style="height:20px"></div>
 
+        <div class="spage" data-page="integrations" style="display:${spage==='integrations'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Klaviyo connection</div>
           <p style="${P}">Connect your Klaviyo <b>private</b> API key (pk_…) to push grades, build segments, and email clients.</p>
@@ -1273,6 +1706,9 @@ function openSettings(){
           ${hs?`<div style="margin-top:12px"><button id="setHsDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect HubSpot</button></div>`:""}
         </div>
 
+        </div><!-- /integrations -->
+
+        <div class="spage" data-page="scoring" style="display:${spage==='scoring'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Potential-VIC spend threshold (£)</div>
           <p style="${P}">Clients who spend below this and show wealth signals are surfaced as potential VICs. Saving re-scores your store.</p>
@@ -1309,6 +1745,9 @@ function openSettings(){
           <div id="fbResult" style="margin-top:14px"></div>
         </div>
 
+        </div><!-- /scoring -->
+
+        <div class="spage" data-page="alerts" style="display:${spage==='alerts'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Order alerts</div>
           <p style="${P}">Get notified the moment a high-grade client places an order, so your team can recognise them in the moment, at the till or online.</p>
@@ -1329,6 +1768,9 @@ function openSettings(){
             <p style="${P};margin-top:8px;font-size:12px">Add this as an “Order created” webhook in your store (WooCommerce → Settings → Advanced → Webhooks, or a Shopify orders/create webhook) for instant alerts even when Halia is closed. Nothing about your customers is stored to power them.</p></div>
         </div>
 
+        </div><!-- /alerts -->
+
+        <div class="spage" data-page="templates" style="display:${spage==='templates'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Email sign-off name</div>
           <p style="${P}">Inserted wherever a template uses {sender}.</p>
@@ -1348,6 +1790,16 @@ function openSettings(){
           <button id="addTmpl" style="${BS};margin-top:4px">+ Add template</button>
         </div>
 
+        </div><!-- /templates -->
+
+        <div class="spage" data-page="billing" style="display:${spage==='billing'?'':'none'}">
+        <div style="${C}">
+          <div style="${H}">Billing</div>
+          <div id="billingBox"><div style="${P};margin:0">Loading&hellip;</div></div>
+        </div>
+        </div><!-- /billing -->
+
+        <div class="spage" data-page="privacy" style="display:${spage==='privacy'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Privacy wording for your policy</div>
           <p style="${P}">Suggested wording to add to your own privacy policy — a starting point, not legal advice. Need the full paperwork? <a href="mailto:hello@halia.app?subject=Halia%20compliance%20pack" style="color:#1f564a;font-weight:600">Request the DPA &amp; compliance pack</a>.</p>
@@ -1356,10 +1808,22 @@ function openSettings(){
             <div style="font:13px/1.55 system-ui;color:#444">${esc(p.body)}</div></div>`).join("")}
         </div>
 
-        <button id="saveSettings" style="${BP}">Save settings</button>
+        </div><!-- /privacy -->
+
+        <div id="saveBar" style="display:${['scoring','alerts','templates'].includes(spage)?'':'none'};margin-top:4px">
+          <button id="saveSettings" style="${BP}">Save settings</button>
+        </div>
       </div>
      </div>`;
     document.getElementById("sback").onclick=closeSettings;
+    // top page-tabs: show one settings page at a time (all stay in the DOM so every handler keeps working)
+    settingsEl.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>{
+      spage=b.dataset.goto;
+      settingsEl.querySelectorAll(".spage").forEach(p=>{p.style.display=p.dataset.page===spage?"":"none";});
+      settingsEl.querySelectorAll("[data-goto]").forEach(t=>t.setAttribute("style",t.dataset.goto===spage?STAB_ON:STAB_OFF));
+      const sb=document.getElementById("saveBar"); if(sb) sb.style.display=["scoring","alerts","templates"].includes(spage)?"":"none";
+      const sc=document.getElementById("sScroll"); if(sc) sc.scrollTop=0;
+    });
     document.getElementById("addTmpl").onclick=()=>{collect();currentList().push({name:"New template",subject:"",body:(tab==='order'?"Hi {first_name},\n\n\n\n{sender}":"Dear {first_name},\n\n\n\n{sender}")});render();};
     settingsEl.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{collect();currentList().splice(+b.dataset.td,1);render();});
     settingsEl.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{collect();tab=b.dataset.tab;render();});
@@ -1579,7 +2043,7 @@ function openSettings(){
 }
 document.getElementById("openSettings").onclick=openSettings;
 
-renderChips();renderRows();
+renderChips();renderRows();showView("overview");
 loadSettings().then(s=>{ if(!s.klaviyo_connected&&!s.mailchimp_connected) showConnectBanner(); initAlerts(s); refreshIntegrationUI(); });
 
 // Live high-grade order alerts (in-dashboard feed + desktop notifications).
