@@ -10,9 +10,11 @@ from scoring.combine import (
     COUNT_COL,
     HIDDEN_COL,
     ORIGIN_PROXY_SIGNALS,
-    PROPERTY_TIER_WEIGHTS,
+    PROPERTY_MAX_WEIGHT,
+    PROPERTY_MIN_WEIGHT,
     REASONS_COL,
     SCORE_COL,
+    property_value_weight,
     score_customers,
 )
 from scoring.signals.property_value import (
@@ -91,21 +93,29 @@ def _row(zip_code):
                           "LATEST_BILLING_ADDRESS4": "United Kingdom"}])
 
 
+def test_property_weight_scales_with_the_actual_value():
+    # A £50M home must outweigh a £2M, which must outweigh a £700k.
+    w700 = float(property_value_weight(700_000))
+    w2m = float(property_value_weight(2_000_000))
+    w50m = float(property_value_weight(50_000_000))
+    assert w700 < w2m < w50m
+    assert abs(float(property_value_weight(600_000)) - PROPERTY_MIN_WEIGHT) < 1e-9   # floor anchor
+    assert float(property_value_weight(500_000_000)) == PROPERTY_MAX_WEIGHT          # bounded
+
+
 def test_property_value_scores_by_default_and_is_not_an_origin_proxy():
     assert "property_value" not in ORIGIN_PROXY_SIGNALS
     # A customer whose ONLY tell is living in a high-value area, on the DEFAULT path.
     out = score_customers(_row("RG9 2AA")).iloc[0]   # Henley-on-Thames, 'high'
     assert out[COUNT_COL] == 1
-    assert out[SCORE_COL] == PROPERTY_TIER_WEIGHTS["high"]
+    assert out[SCORE_COL] >= PROPERTY_MIN_WEIGHT      # at least the floor weight
     assert bool(out[HIDDEN_COL])                      # £200 spend + a signal -> hidden VIC
     assert "Prime area" in out[REASONS_COL]
 
 
-def test_tier_grades_the_weight():
-    # Barnes (prime) outscores Henley (high) on the same machinery. Use postcodes whose
-    # outcode is NOT also on the hnwi list, so property_value is the sole geo tell.
-    prime = score_customers(_row("SW13 9AA")).iloc[0]   # Barnes, 'prime', w3
-    high = score_customers(_row("RG9 2AA")).iloc[0]     # Henley, 'high', w2
-    assert prime[SCORE_COL] == PROPERTY_TIER_WEIGHTS["prime"]
-    assert high[SCORE_COL] == PROPERTY_TIER_WEIGHTS["high"]
-    assert prime[SCORE_COL] > high[SCORE_COL]
+def test_higher_value_area_outscores_lower():
+    # Barnes (pricier, prime) outscores Henley (high) on the same machinery, now graded by
+    # the actual median price. Outcodes NOT on the hnwi list, so property_value is the sole tell.
+    prime = score_customers(_row("SW13 9AA")).iloc[0]   # Barnes, prime
+    high = score_customers(_row("RG9 2AA")).iloc[0]     # Henley, high
+    assert prime[SCORE_COL] > high[SCORE_COL] >= PROPERTY_MIN_WEIGHT

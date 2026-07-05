@@ -119,8 +119,25 @@ DOMAIN_KEYWORD_TYPE_WEIGHTS = {
     "general": 2,
 }
 
-# Within property_value, the area's value TIER grades the tell: an ultra-prime area
-# median outweighs a merely high-value one. Overrides the signal's base weight.
+# property_value is graded CONTINUOUSLY by the actual median price, not just a tier:
+# a £50M home must outweigh a £2M one, which must outweigh a £700k one. The weight
+# anchors at the 'high' floor (£600k -> 2) and rises ~1 per doubling of price, bounded
+# so a single geography signal can't run away. PROPERTY_TIER_WEIGHTS below is kept as a
+# fallback for any row that fired without a price (e.g. a hand-curated tier-only entry).
+PROPERTY_PRICE_FLOOR = 600_000.0
+PROPERTY_MIN_WEIGHT = 2.0
+PROPERTY_MAX_WEIGHT = 6.0
+PROPERTY_WEIGHT_PER_DOUBLING = 1.0
+
+
+def property_value_weight(price):
+    """Continuous property weight from the median price (scalar or numpy array)."""
+    p = np.maximum(np.asarray(price, dtype=float), PROPERTY_PRICE_FLOOR)
+    w = PROPERTY_MIN_WEIGHT + PROPERTY_WEIGHT_PER_DOUBLING * np.log2(p / PROPERTY_PRICE_FLOOR)
+    return np.clip(w, PROPERTY_MIN_WEIGHT, PROPERTY_MAX_WEIGHT)
+
+
+# Fallback tier weights, used only when no per-row price is available.
 PROPERTY_TIER_WEIGHTS = {
     "ultra": 4,
     "prime": 3,
@@ -215,7 +232,8 @@ HIDDEN_COL = "hidden_vic"
 
 # Engine identity for audit: every scored payload can carry a version + a fingerprint of the
 # active weights/gates, so "why did this customer score this way in March" has an exact answer.
-ENGINE_VERSION = "1.1"
+ENGINE_VERSION = "1.2"   # company-field matching, non-customer suppressor, reasons ordering,
+                         # exact-postcode + continuous price-based property weighting
 
 
 def _reason_delivery(row: pd.Series) -> str:
@@ -447,6 +465,13 @@ def score_customers(
             fired = fired_of[key]
             count = count + fired.astype(int)
             base = int(weights.get(key, 0))
+            # property_value: continuous weight from the actual median price, scaled by the
+            # merchant's tuned base (so calibration still moves it up/down proportionally).
+            if key == "property_value" and property_value.PRICE_COL in out.columns:
+                price = pd.to_numeric(out[property_value.PRICE_COL], errors="coerce").fillna(0.0).to_numpy()
+                scale = base / PROPERTY_MIN_WEIGHT if PROPERTY_MIN_WEIGHT else 1.0
+                cols.append(fired * property_value_weight(price) * scale)
+                continue
             type_spec = None
             if key == "delivery_venue":
                 type_spec = (delivery_venue.TYPE_COL, DELIVERY_TYPE_WEIGHTS)
@@ -543,6 +568,8 @@ def config_fingerprint() -> dict:
         "parked": sorted(PARKED_SIGNALS),
         "core_data_only": CORE_DATA_ONLY,
         "vic_threshold": VIC_SPEND_THRESHOLD,
+        "property_weight": [PROPERTY_PRICE_FLOOR, PROPERTY_MIN_WEIGHT,
+                            PROPERTY_MAX_WEIGHT, PROPERTY_WEIGHT_PER_DOUBLING],
     }
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()[:12]
     return {"version": ENGINE_VERSION, "hash": digest}

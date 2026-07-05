@@ -32,6 +32,7 @@ from scoring.signals.hnwi_postcode import PLACEHOLDER_POSTCODES
 FLAG_COL = "property_value"
 TIER_COL = "property_value_tier"
 REASON_COL = "property_value_reason"
+PRICE_COL = "property_value_price"   # the matched median price; combiner scales weight by it
 
 # UK inward code (the part after the space) is always 3 chars: digit + 2 letters.
 _INWARD_LEN = 3
@@ -109,28 +110,33 @@ def load_values(path: Path | str = UK_PROPERTY_VALUES_FILE) -> dict[str, dict]:
     return table
 
 
-def match_postcode(postcode: object, table: dict[str, dict]) -> tuple[bool, str | None, str | None]:
-    """Return (is_high_value, tier, reason) for one postcode.
+def _lookup(postcode: object, table: dict[str, dict]) -> dict | None:
+    """Return {'tier','price','reason'} for the best match, or None.
 
     Exact full-postcode match first (the actual house), then the district/outcode fallback."""
     compact = _compact(postcode)
     if compact is None:
-        return False, None, None
+        return None
     # 1) exact full postcode — the tightest, actual-address match.
     if len(compact) >= 5:
         entry = table.get(compact)
         if entry is not None:
-            area = entry["area"]
             pretty = _pretty(compact)
-            reason = f"{area} ({pretty})" if area else pretty
-            return True, entry["tier"], reason
+            reason = f"{entry['area']} ({pretty})" if entry["area"] else pretty
+            return {"tier": entry["tier"], "price": entry["price"], "reason": reason}
     # 2) district / outcode fallback.
     outcode = compact[:-_INWARD_LEN] if len(compact) >= 5 else compact
     entry = table.get(outcode)
     if entry is not None:
-        reason = f"{entry['area']} ({outcode})"
-        return True, entry["tier"], reason
-    return False, None, None
+        reason = f"{entry['area']} ({outcode})" if entry["area"] else outcode
+        return {"tier": entry["tier"], "price": entry["price"], "reason": reason}
+    return None
+
+
+def match_postcode(postcode: object, table: dict[str, dict]) -> tuple[bool, str | None, str | None]:
+    """Return (is_high_value, tier, reason) for one postcode."""
+    m = _lookup(postcode, table)
+    return (True, m["tier"], m["reason"]) if m else (False, None, None)
 
 
 def flag_property_value(
@@ -138,10 +144,10 @@ def flag_property_value(
     table: dict[str, dict] | None = None,
     zip_cols: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Add property_value flag + tier + reason columns to a copy of ``df``.
+    """Add property_value flag + tier + reason + price columns to a copy of ``df``.
 
-    Scans BOTH the billing and shipping ZIP by default (the higher-value area wins, so
-    a customer is graded by their best address).
+    Scans BOTH the billing and shipping ZIP by default; the HIGHER-VALUE address wins,
+    so a customer is graded by (and their weight scaled by) their most valuable property.
     """
     if table is None:
         table = load_values()
@@ -152,21 +158,20 @@ def flag_property_value(
         out[FLAG_COL] = False
         out[TIER_COL] = None
         out[REASON_COL] = None
+        out[PRICE_COL] = 0
         return out
 
-    _rank = {"ultra": 3, "prime": 2, "high": 1}
-
     def _match(row):
-        best = (False, None, None)
-        best_rank = 0
+        best = None
         for c in cols:
-            hit, tier, reason = match_postcode(row[c], table)
-            if hit and _rank.get(tier, 0) > best_rank:
-                best, best_rank = (hit, tier, reason), _rank.get(tier, 0)
+            m = _lookup(row[c], table)
+            if m and (best is None or m["price"] > best["price"]):
+                best = m
         return best
 
     results = out.apply(_match, axis=1)
-    out[FLAG_COL] = [hit for hit, _, _ in results]
-    out[TIER_COL] = [tier for _, tier, _ in results]
-    out[REASON_COL] = [reason for _, _, reason in results]
+    out[FLAG_COL] = [m is not None for m in results]
+    out[TIER_COL] = [m["tier"] if m else None for m in results]
+    out[REASON_COL] = [m["reason"] if m else None for m in results]
+    out[PRICE_COL] = [m["price"] if m else 0 for m in results]
     return out
