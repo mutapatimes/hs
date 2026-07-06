@@ -43,6 +43,14 @@ services:
         sync: false
       - key: HALIA_ADMIN_KEY            # password for /admin, the content (CMS) editor. Use the SAME
         sync: false                     # value as HALIA_CONSOLE_KEY for one shared sign-in across both.
+      # Brevo transactional email — powers magic-link sign-in, order alerts, and the
+      # "your VICs are ready" email. Without the API key these degrade silently (no email).
+      - key: HALIA_BREVO_API_KEY        # xkeysib-… from Brevo → SMTP & API → API Keys
+        sync: false
+      - key: HALIA_EMAIL_FROM           # must be a VERIFIED sender in Brevo (Senders)
+        value: "haliasearch@gmail.com"
+      - key: HALIA_EMAIL_FROM_NAME
+        value: "Halia"
 
 databases:
   - name: halia-db
