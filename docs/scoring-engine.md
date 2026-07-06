@@ -85,7 +85,8 @@ estimated property value for a customer reads as surveillance.
 `post_nominal` (2), `premium_card` (3), `ip_location` (1).
 
 **Name-based (group `name`, correlated)**: `rich_list` (1), `companies_house` (1), `charity_trustee`
-(1), `heritage_surname` (1), `name_structure` (1), `nobiliary_particle` (1).
+(3, eponymous-foundation trustee — high precision), `heritage_surname` (1), `name_structure` (1),
+`nobiliary_particle` (1).
 
 **Household linkage**: `shared_phone` (2), `landline` (1).
 
