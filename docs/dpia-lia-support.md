@@ -112,7 +112,17 @@ value (median sale price of the postcode district, from HM Land Registry open da
 concierge, delivery venue, styling service, prime residence, premium card, honorific, company
 keyword, premium email, wealth office, elite alumni, assistant order, post-nominal, fashion
 stylist, stylist directory, IP location, domain keyword, custom email, rich-list surname,
-Companies House control.
+Companies House control, Charity Commission trusteeship.
+
+*Charity Commission trusteeship (added 2026-07).* Sourced from the free daily Charity Commission
+for England & Wales register extract (Open Government Licence v3.0). It flags only the high-precision
+**eponymous-foundation** subset: a person whose own surname is in their charity's name and who is a
+listed trustee of it (a two-factor match applied when the reference table is built, plus a
+common-surname dampener). Legal shape is identical to Companies House control: a factual entry on a
+statutory **public** register, not inferred from any protected characteristic. It is a *new
+processing purpose*, so it belongs in this LIA and feeds the Article 22 analysis, and it is
+**corroboration-only** in the combiner (never a sole basis). Trustee names are personal data, so the
+seed ships inert and real individuals only ever enter the table on the operator's own machine.
 
 **Off by default (origin proxies; enable per-tenant only with a documented lawful basis):**
 billing country as an origin proxy (GCC), origin-adjacent prime district, phone dialling-code country,

@@ -1,0 +1,20 @@
+# UK charity trustees — Charity Commission (England & Wales) eponymous-foundation reference (SEED).
+#
+# Read by scoring/signals/charity_trustee.py. A customer whose name matches an entry here is
+# flagged as a trustee of a UK registered charity whose name carries their own surname (a family
+# foundation), which is a strong wealth/governance fact.
+#
+# This ships INTENTIONALLY INERT: the only row below is FICTIONAL, present so the signal has
+# deterministic out-of-the-box behaviour and tests have something to match. Real, private
+# individuals are NOT committed to the repo. Regenerate to real national coverage on your own
+# machine from the free daily Charity Commission data extract:
+#
+#     python scripts/build_charity_trustees.py --trustees charity_trustee.json --charities charity.json
+#
+# Matching is on NAME ALONE against a public statutory register, so the signal is
+# CORROBORATION-ONLY (never a sole basis) in the combiner. Licence: Open Government Licence v3.0
+# (Charity Commission), commercial reuse permitted with attribution.
+#
+# Columns: name,charity
+name,charity
+Ada Placeholder,The Placeholder Family Foundation

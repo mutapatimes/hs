@@ -18,6 +18,7 @@ from scoring.signals import (
     assistant_order,
     card_bin,
     card_brand,
+    charity_trustee,
     companies_house,
     company_keyword,
     custom_email,
@@ -95,6 +96,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "card_brand": 1,
     "rich_list": 1,
     "companies_house": 1,  # PSC/director name match — very broad, corroboration-only (see SUPPORTING_SIGNALS)
+    "charity_trustee": 1,  # eponymous-foundation trustee name match — corroboration-only (see SUPPORTING_SIGNALS)
     "fashion_stylist": 2,  # celebrity stylist / personal shopper — high-value, name-match (verify)
     "stylist_directory": 1,  # broad stylist directory — corroboration-only (see SUPPORTING_SIGNALS)
     "ip_location": 1,
@@ -171,6 +173,10 @@ SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
                       # rich_list, it must never be a sole basis — it only corroborates.
                       "companies_house",
 
+                      # A charity-trustee name match is drawn from the same kind of large public
+                      # register, so it too is name-alone corroboration only, never a sole basis.
+                      "charity_trustee",
+
                       # geo_confirmation is agreement-as-confidence: a phone/email jurisdiction
                       # AGREEING with a high-value address. It requires a wealth-geo signal to
                       # have fired, so it can never originate a score — pure corroboration.
@@ -212,6 +218,7 @@ SIGNAL_GROUP: dict[str, str] = {
     # so a rich-list + dynasty-surname + name-structure pile-up doesn't stack.
     "rich_list": "name",
     "companies_house": "name",  # a name-based control tell — correlated with other name tells
+    "charity_trustee": "name",  # a name-based governance tell — correlated with other name tells
     "fashion_stylist": "name",
     "stylist_directory": "name",
     "heritage_surname": "name",
@@ -308,6 +315,8 @@ SIGNALS = [
      rich_list.FLAG_COL, lambda r: r[rich_list.REASON_COL]),
     ("companies_house", "Companies House", companies_house.flag_companies_house,
      companies_house.FLAG_COL, lambda r: r[companies_house.REASON_COL]),
+    ("charity_trustee", "Charity trustee", charity_trustee.flag_charity_trustee,
+     charity_trustee.FLAG_COL, lambda r: r[charity_trustee.REASON_COL]),
     ("fashion_stylist", "Fashion stylist", fashion_stylist.flag_fashion_stylist,
      fashion_stylist.FLAG_COL, lambda r: r[fashion_stylist.REASON_COL]),
     ("stylist_directory", "Possible stylist", stylist_directory.flag_stylist_directory,

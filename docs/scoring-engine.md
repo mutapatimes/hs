@@ -84,8 +84,8 @@ estimated property value for a customer reads as surveillance.
 `assistant_order` (2), `fashion_stylist` (2), `stylist_directory` (1), `honorific` (2),
 `post_nominal` (2), `premium_card` (3), `ip_location` (1).
 
-**Name-based (group `name`, correlated)**: `rich_list` (1), `companies_house` (1), `heritage_surname`
-(1), `name_structure` (1), `nobiliary_particle` (1).
+**Name-based (group `name`, correlated)**: `rich_list` (1), `companies_house` (1), `charity_trustee`
+(1), `heritage_surname` (1), `name_structure` (1), `nobiliary_particle` (1).
 
 **Household linkage**: `shared_phone` (2), `landline` (1).
 
@@ -147,7 +147,8 @@ descending, multiplies by `0.5 ** np.arange(width)`, sums.
 
 ### 4.3 The supporting-signal gate ("never a sole basis")
 `SUPPORTING_SIGNALS` = `{name_structure, nobiliary_particle, assistant_order, stylist_directory,
-landline, custom_email, companies_house, geo_confirmation, rich_list, fashion_stylist, post_nominal}`.
+landline, custom_email, companies_house, charity_trustee, geo_confirmation, rich_list,
+fashion_stylist, post_nominal}`.
 A supporting signal is **zeroed unless at least one non-supporting ("core") signal also fired** for
 that customer. This now includes a **name-match bright line**: no name-only match (`rich_list`,
 `fashion_stylist`, `companies_house`, `post_nominal`) ever surfaces a customer *alone* — a namesake
