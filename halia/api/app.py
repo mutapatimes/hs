@@ -169,12 +169,11 @@ def _fmt_uptime(secs: float) -> str:
     return f"{m}m {s}s" if m else f"{s}s"
 
 
-@app.get("/status.json", include_in_schema=False)
-def status_json() -> dict:
-    """Public health snapshot for the status page: uptime + component checks.
+def system_status() -> dict:
+    """Health snapshot: uptime + component checks. No customer data — subsystem liveness only.
 
-    No customer data — reports subsystem liveness only. Each check is 'operational'
-    or 'degraded' so the page can render honestly even when a dependency is down.
+    Each check is 'operational' or 'degraded'. Shared by the public status page (/status.json)
+    and the authenticated console dashboard (/console) so both read one source of truth.
     """
     checks = []
 
@@ -227,6 +226,12 @@ def status_json() -> dict:
         "host": "Render",
         "checks": checks,
     }
+
+
+@app.get("/status.json", include_in_schema=False)
+def status_json() -> dict:
+    """Public health snapshot for the status page (delegates to ``system_status``)."""
+    return system_status()
 
 
 @app.post("/subscribe", include_in_schema=False)
@@ -384,6 +389,7 @@ def pos_score(shop: str = Depends(require_shop),
 
     if not customer_id and not email:
         raise HTTPException(422, "Provide ?customer_id= or ?email=")
+    data.record_activity(shop, "pos_lookup")  # at-the-till usage, for the console dashboard
     entry = cache.get(shop)  # warm path only — do NOT call results_for (it would full-sync)
     r = _pos_match_cached(entry, customer_id, email) if entry else None
     if r is None:
@@ -397,12 +403,13 @@ def pos_score(shop: str = Depends(require_shop),
 # view, and compliance webhooks.
 from halia.api import (  # noqa: E402
     billing, content, embedded, feedback, fulfilment, hubspot_integration, integrations,
-    mailchimp_integration, onboarding, realtime, settings, shopify_push, shopify_segments,
+    mailchimp_integration, onboarding, console, realtime, settings, shopify_push, shopify_segments,
     slack_integration, webhooks,
 )
 
 embedded.register(app)
 content.register(app)
+console.register(app)
 onboarding.register(app)
 integrations.register(app)
 mailchimp_integration.register(app)

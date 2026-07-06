@@ -59,19 +59,19 @@ def _dispatch(shop: str, alert: dict, s: dict) -> None:
         notify.send_web_push(subs, {
             "title": f"New {alert['grade']} order · {alert['name']}",
             "body": " · ".join(alert.get("signals") or []) or "A high-grade client just ordered.",
-            "tag": "halia-" + str(alert.get("order_id")), "url": "/app"})
+            "tag": "halia-" + str(alert.get("order_id")), "url": "/app"}, shop=shop)
     emails = s.get("notify_emails") or ([s["notify_email"]] if s.get("notify_email") else [])
     if emails and notify.email_configured():
         subject = f"New {alert['grade']} order · {alert['name']}"
         html = _email_html(alert, shop)
         for email in emails:
-            notify.send_email(email, subject, html)
+            notify.send_email(email, subject, html, shop=shop)
     slack = store.get_slack(shop)
     if slack:
         from halia import config
         from halia.api.slack_integration import build_alert_blocks
         text, blocks = build_alert_blocks(alert, config.HALIA_APP_URL)
-        notify.send_slack(slack["webhook_url"], text, blocks)
+        notify.send_slack(slack["webhook_url"], text, blocks, shop=shop)
 
 
 def register(app) -> None:

@@ -57,4 +57,5 @@ def register(app) -> None:
                 raise HTTPException(
                     400, "Reconnect Shopify with the write_customers permission to tag customers.")
             raise HTTPException(502, f"Shopify rejected the write: {msg}")
+        data.record_activity(shop, "action_shopify_push", len(targets))
         return {"pushed": len(targets)}

@@ -68,6 +68,7 @@ def register(app) -> None:
             fire_event(key, result)
         except KlaviyoError as exc:
             raise HTTPException(502, f"Klaviyo rejected it: {exc}")
+        data.record_activity(shop, "action_klaviyo_email")
         return {"ok": True, "metric": METRIC, "email": result.email}
 
     @app.post("/v1/klaviyo/open")
@@ -130,4 +131,5 @@ def register(app) -> None:
             KlaviyoSink(api_key=key).push_many(targets)
         except KlaviyoError as exc:
             raise HTTPException(502, f"Klaviyo rejected the push: {exc}")
+        data.record_activity(shop, "action_klaviyo_push", len(targets))
         return {"pushed": len(targets)}

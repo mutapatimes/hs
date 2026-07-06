@@ -85,6 +85,19 @@ def score_woo(shop: str):
                            include_origin=_include_origin(shop)), orders
 
 
+def record_activity(shop: str, metric: str, n: int = 1) -> None:
+    """Increment a console-dashboard activity counter, swallowing any failure.
+
+    Metrics must NEVER break a real request (a sync, an email, a segment push), so this is
+    best-effort: a bad DB or a bad shop key is logged-and-ignored, not raised. See
+    ``halia.store.ShopStore.bump_metric`` for the (shop, week, metric) counter model.
+    """
+    try:
+        shop_store().bump_metric(shop, metric, n)
+    except Exception:  # pragma: no cover - defensive; counters are non-critical
+        pass
+
+
 def _finalize(shop: str, scored, orders: list[dict]) -> dict:
     """Score frame + orders -> RAM cache entry (never persisted). Shared by all sources."""
     from build_mvp import dashboard_payload
@@ -96,7 +109,15 @@ def _finalize(shop: str, scored, orders: list[dict]) -> dict:
     benchmarks = {"aov": s["aov"], "max_orders": s["max_orders"], "highest_lt": s["highest_lt"]}
     payload = dashboard_payload(scored, _history(orders), shop, benchmarks, raw_orders=orders)
     cache.set(shop, results, payload, _order_index(orders))
-    return cache.get(shop)
+    entry = cache.get(shop)
+
+    # Console-dashboard activity: one scan, N customers scanned, M hidden VICs surfaced. Aggregate
+    # counters only (no customer data); best-effort so a metrics hiccup never fails the sync.
+    hidden_n = sum(1 for r in results if r.flagged and r.hidden_vic)
+    record_activity(shop, "scan")
+    record_activity(shop, "customers_scanned", len(results))
+    record_activity(shop, "hidden_vics", hidden_n)
+    return entry
 
 
 def sync_shop(shop: str, token: str) -> dict:

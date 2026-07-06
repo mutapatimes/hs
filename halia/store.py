@@ -129,6 +129,18 @@ _TABLES = [
         nofit  INTEGER DEFAULT 0,
         PRIMARY KEY (shop, signal)
     )""",
+    # Activity counters for the console dashboard, AGGREGATE ONLY. A row is a per-shop, per-ISO-week
+    # tally of an activity metric (scans run, customers scanned, hidden VICs surfaced, emails sent,
+    # actions pushed to a sink). No customer identifier is ever stored — a shop domain, a week
+    # bucket, a metric name and an integer are not customer data, so this keeps zero-retention while
+    # giving you a birds-eye view of what is happening across tenants over time.
+    """CREATE TABLE IF NOT EXISTS metrics (
+        shop   TEXT,
+        week   TEXT,
+        metric TEXT,
+        count  INTEGER DEFAULT 0,
+        PRIMARY KEY (shop, week, metric)
+    )""",
 ]
 # Earlier versions cached customer PII in these tables. Drop them so any deploy purges it.
 _DROP_LEGACY = [
@@ -140,6 +152,30 @@ _DROP_LEGACY = [
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _iso_week(when: datetime | None = None) -> str:
+    """Current ISO week bucket in UTC, e.g. '2026-W27'. The key metrics roll up by."""
+    return (when or datetime.now(timezone.utc)).strftime("%G-W%V")
+
+
+def _week_of(iso_timestamp: str | None) -> str | None:
+    """ISO week bucket of a stored ISO-8601 timestamp string ('2026-07-06T...'), or None."""
+    if not iso_timestamp:
+        return None
+    try:
+        return datetime.fromisoformat(iso_timestamp).strftime("%G-W%V")
+    except (ValueError, TypeError):
+        return None
+
+
+def recent_weeks(n: int = 8) -> list[str]:
+    """The last ``n`` ISO week buckets, oldest first, ending with the current week."""
+    from datetime import timedelta
+
+    today = datetime.now(timezone.utc)
+    weeks = [( today - timedelta(weeks=i) ).strftime("%G-W%V") for i in range(n)]
+    return list(reversed(weeks))
 
 
 class _DB:
@@ -437,10 +473,127 @@ class ShopStore(_DB):
                          {"shop": shop}, fetch="all") or []
         return [dict(r) for r in rows]
 
+    def feedback_by_shop(self) -> dict[str, dict[str, int]]:
+        """{shop: {fit, nofit}} summed across signals (lifetime; per-signal over-count caveat)."""
+        rows = self._run("SELECT shop, SUM(fit) AS fit, SUM(nofit) AS nofit FROM feedback_stats "
+                         "GROUP BY shop", fetch="all") or []
+        return {r["shop"]: {"fit": int(r["fit"] or 0), "nofit": int(r["nofit"] or 0)} for r in rows}
+
+    # ── console-dashboard activity counters (aggregate, per shop + ISO week) ───────
+    def bump_metric(self, shop: str, metric: str, n: int = 1, week: str | None = None) -> None:
+        """Increment a per-shop, per-week activity counter. Never raises on a zero/negative n."""
+        if n <= 0:
+            return
+        self._run(
+            """INSERT INTO metrics (shop, week, metric, count) VALUES (:shop, :week, :metric, :n)
+               ON CONFLICT(shop, week, metric) DO UPDATE SET count = metrics.count + :n""",
+            {"shop": shop, "week": week or _iso_week(), "metric": metric, "n": int(n)})
+
+    def metric_totals(self, weeks: list[str] | None = None) -> dict[str, int]:
+        """Sum each metric across all shops, optionally restricted to a set of week buckets."""
+        if weeks:
+            placeholders = ",".join(f":w{i}" for i in range(len(weeks)))
+            params = {f"w{i}": w for i, w in enumerate(weeks)}
+            rows = self._run(
+                f"SELECT metric, SUM(count) AS total FROM metrics WHERE week IN ({placeholders}) "
+                "GROUP BY metric", params, fetch="all") or []
+        else:
+            rows = self._run(
+                "SELECT metric, SUM(count) AS total FROM metrics GROUP BY metric", fetch="all") or []
+        return {r["metric"]: int(r["total"] or 0) for r in rows}
+
+    def metric_weekly(self, metric: str, weeks: list[str]) -> dict[str, int]:
+        """Per-week totals (across shops) for one metric, keyed by week (0 for weeks with no rows)."""
+        if not weeks:
+            return {}
+        placeholders = ",".join(f":w{i}" for i in range(len(weeks)))
+        params = {f"w{i}": w for i, w in enumerate(weeks)}
+        params["metric"] = metric
+        rows = self._run(
+            f"SELECT week, SUM(count) AS total FROM metrics WHERE metric = :metric "
+            f"AND week IN ({placeholders}) GROUP BY week", params, fetch="all") or []
+        got = {r["week"]: int(r["total"] or 0) for r in rows}
+        return {w: got.get(w, 0) for w in weeks}
+
+    def metric_by_shop(self, weeks: list[str] | None = None) -> dict[str, dict[str, int]]:
+        """{shop: {metric: total}} across the given weeks (all-time if None) — per-tenant activity."""
+        if weeks:
+            placeholders = ",".join(f":w{i}" for i in range(len(weeks)))
+            params = {f"w{i}": w for i, w in enumerate(weeks)}
+            rows = self._run(
+                f"SELECT shop, metric, SUM(count) AS total FROM metrics WHERE week IN "
+                f"({placeholders}) GROUP BY shop, metric", params, fetch="all") or []
+        else:
+            rows = self._run(
+                "SELECT shop, metric, SUM(count) AS total FROM metrics GROUP BY shop, metric",
+                fetch="all") or []
+        out: dict[str, dict[str, int]] = {}
+        for r in rows:
+            out.setdefault(r["shop"], {})[r["metric"]] = int(r["total"] or 0)
+        return out
+
+    # ── console-dashboard overview counts (config/connection data, no new storage) ─
+    def count_tenants_by_kind(self) -> dict[str, int]:
+        rows = self._run("SELECT kind, COUNT(*) AS n FROM tenants GROUP BY kind", fetch="all") or []
+        return {r["kind"]: int(r["n"]) for r in rows}
+
+    def count_shops(self) -> int:
+        row = self._run("SELECT COUNT(*) AS n FROM shops", fetch="one")
+        return int(row["n"]) if row else 0
+
+    def integration_counts(self) -> dict[str, dict[str, int]]:
+        """{integration: {total, this_week}} from each connection table's connected_at."""
+        this_week = _iso_week()
+        out: dict[str, dict[str, int]] = {}
+        for table in ("klaviyo", "mailchimp", "hubspot", "slack", "woocommerce", "bigcommerce"):
+            rows = self._run(f"SELECT connected_at FROM {table}", fetch="all") or []
+            total = len(rows)
+            recent = sum(1 for r in rows
+                         if _week_of(r["connected_at"]) == this_week)
+            out[table] = {"total": total, "this_week": recent}
+        return out
+
+    def billing_breakdown(self) -> dict[str, int]:
+        rows = self._run("SELECT status, COUNT(*) AS n FROM billing GROUP BY status",
+                         fetch="all") or []
+        return {(r["status"] or "unknown"): int(r["n"]) for r in rows}
+
+    def count_subscribers(self) -> int:
+        row = self._run("SELECT COUNT(*) AS n FROM subscribers", fetch="one")
+        return int(row["n"]) if row else 0
+
+    def count_push_subs(self) -> int:
+        row = self._run("SELECT COUNT(*) AS n FROM push_subs", fetch="one")
+        return int(row["n"]) if row else 0
+
+    def new_tenants(self, week: str | None = None) -> int:
+        """Tenants whose created_at falls in the given ISO week (this week by default)."""
+        target = week or _iso_week()
+        rows = self._run("SELECT created_at FROM tenants", fetch="all") or []
+        return sum(1 for r in rows if _week_of(r["created_at"]) == target)
+
+    def all_shops(self) -> list[str]:
+        """Every Shopify shop domain with a stored offline token (may exceed `tenants`)."""
+        rows = self._run("SELECT shop FROM shops", fetch="all") or []
+        return [r["shop"] for r in rows]
+
+    def billing_by_shop(self) -> dict[str, str]:
+        rows = self._run("SELECT shop, status FROM billing", fetch="all") or []
+        return {r["shop"]: (r["status"] or "unknown") for r in rows}
+
+    def integrations_by_shop(self) -> dict[str, list[str]]:
+        """{shop: [integration names connected]} across every per-shop connection table."""
+        out: dict[str, list[str]] = {}
+        for table in ("klaviyo", "mailchimp", "hubspot", "slack", "woocommerce", "bigcommerce"):
+            rows = self._run(f"SELECT shop FROM {table}", fetch="all") or []
+            for r in rows:
+                out.setdefault(r["shop"], []).append(table)
+        return out
+
     # ── deletion (shop/redact + app/uninstalled) ───────────────────────────────
     def delete_shop(self, shop: str) -> None:
         """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""
         for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "bigcommerce",
                       "mailchimp", "hubspot", "slack", "webhooks", "push_subs", "billing",
-                      "feedback_stats"):
+                      "feedback_stats", "metrics"):
             self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})

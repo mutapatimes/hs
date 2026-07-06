@@ -87,6 +87,7 @@ def register(app) -> None:
             pushed = MailchimpSink(conn["api_key"], conn["list_id"]).push_many(targets)
         except MailchimpError as exc:
             raise HTTPException(502, f"Mailchimp rejected the push: {exc}")
+        data.record_activity(shop, "action_mailchimp_push", pushed)
         return {"pushed": pushed, "list_name": conn["list_name"]}
 
     @app.post("/v1/mailchimp/segment")
@@ -109,4 +110,5 @@ def register(app) -> None:
                                         [r.email for r in targets])
         except MailchimpError as exc:
             raise HTTPException(502, f"Mailchimp rejected it: {exc}")
+        data.record_activity(shop, "action_mailchimp_segment")
         return {"segment": seg, "count": len(targets), "list_name": conn["list_name"]}

@@ -31,11 +31,17 @@ def billing_enabled() -> bool:
     return bool(config.STRIPE_SECRET_KEY and config.STRIPE_PRICE_ID)
 
 
+def _free_shops():
+    """Comped tenant keys: the console's dashboard override, else env HALIA_FREE_SHOPS."""
+    from halia.console_config import console_setting
+    return console_setting("free_shops", config.HALIA_FREE_SHOPS)
+
+
 def is_paid(shop: str) -> bool:
     """True if this tenant may see the full dashboard. Open when billing is off or comped."""
     if not billing_enabled():
         return True
-    if shop in config.HALIA_FREE_SHOPS:
+    if shop in _free_shops():
         return True
     b = shop_store().get_billing(shop)
     return bool(b and b.get("status") in _ACTIVE)
@@ -140,7 +146,7 @@ def _record_cancel_reason(shop: str, reason: str = "", detail: str = "") -> None
 def billing_state(shop: str) -> dict:
     """A small, UI-friendly summary of this tenant's billing state."""
     b = shop_store().get_billing(shop) or {}
-    comped = shop in config.HALIA_FREE_SHOPS
+    comped = shop in _free_shops()
     status = "comped" if comped else (b.get("status") or "free")
     manageable = bool(billing_enabled() and b.get("customer_id") and not comped)
     state = {

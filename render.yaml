@@ -39,6 +39,10 @@ services:
         sync: false
       - key: HALIA_FREE_SHOPS         # comma-separated tenant keys to comp (e.g. your first client)
         sync: false
+      - key: HALIA_CONSOLE_KEY          # password for /console, the cross-tenant console dashboard
+        sync: false
+      - key: HALIA_ADMIN_KEY            # password for /admin, the content (CMS) editor. Use the SAME
+        sync: false                     # value as HALIA_CONSOLE_KEY for one shared sign-in across both.
 
 databases:
   - name: halia-db

@@ -57,6 +57,11 @@ SIGNUP_CODE = os.environ.get("HALIA_SIGNUP_CODE") or None
 # blocks) without touching code. Unset -> /admin is disabled.
 ADMIN_KEY = os.environ.get("HALIA_ADMIN_KEY") or None
 
+# Console dashboard key. When set, /console gives you a cross-tenant birds-eye view
+# (client counts, weekly activity, billing, live status). Kept separate from ADMIN_KEY because
+# this surface exposes business metrics across every tenant. Unset -> /console is disabled.
+CONSOLE_KEY = os.environ.get("HALIA_CONSOLE_KEY") or None
+
 # Stripe billing. When STRIPE_SECRET_KEY and STRIPE_PRICE_ID are both set, the hosted
 # dashboard is gated: a newly connected tenant sees a teaser (their hidden-VIC count and
 # latent value) until they subscribe via Stripe Checkout. Unset = billing off, the dashboard

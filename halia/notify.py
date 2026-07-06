@@ -36,6 +36,16 @@ def _env(*names: str) -> str | None:
     return None
 
 
+def _record(shop: str | None, metric: str, n: int = 1) -> None:
+    """Best-effort console-dashboard counter for a successful send. Lazy-imported so this
+    low-level module stays decoupled, and never raised so a metrics hiccup can't break a send."""
+    try:
+        from halia.api.data import record_activity
+        record_activity(shop or "_system", metric, n)
+    except Exception:  # pragma: no cover - counters are non-critical
+        pass
+
+
 # ── email ────────────────────────────────────────────────────────────────────────
 def email_configured() -> bool:
     return bool(_env("HALIA_BREVO_API_KEY") or _env("HALIA_SMTP_HOST"))
@@ -58,9 +68,19 @@ def _send_brevo(to: str, subject: str, html: str) -> bool:
         return False
 
 
-def send_email(to: str, subject: str, html: str, text: str | None = None) -> bool:
+def send_email(to: str, subject: str, html: str, text: str | None = None,
+               shop: str | None = None) -> bool:
+    """Send one email (Brevo API, else SMTP). On success, count it for the console dashboard,
+    bucketed under ``shop`` (or '_system' for console/lifecycle mail with no shop context)."""
     if not to:
         return False
+    ok = _send_email_raw(to, subject, html, text)
+    if ok:
+        _record(shop, "email")
+    return ok
+
+
+def _send_email_raw(to: str, subject: str, html: str, text: str | None) -> bool:
     if _env("HALIA_BREVO_API_KEY"):
         return _send_brevo(to, subject, html)
     host = _env("HALIA_SMTP_HOST")
@@ -86,7 +106,8 @@ def send_email(to: str, subject: str, html: str, text: str | None = None) -> boo
 
 
 # ── Slack (per-shop Incoming Webhook) ────────────────────────────────────────────────
-def send_slack(webhook_url: str, text: str, blocks: list | None = None) -> bool:
+def send_slack(webhook_url: str, text: str, blocks: list | None = None,
+               shop: str | None = None) -> bool:
     """Post a message to a Slack Incoming Webhook. Best-effort; never raises.
 
     `text` is the notification/fallback string; `blocks` is optional Block Kit for the rich
@@ -100,10 +121,13 @@ def send_slack(webhook_url: str, text: str, blocks: list | None = None) -> bool:
         body["blocks"] = blocks
     try:
         resp = requests.post(webhook_url, json=body, timeout=10)
-        return 200 <= resp.status_code < 300
+        ok = 200 <= resp.status_code < 300
     except Exception:  # noqa: BLE001 — a Slack failure must never break the webhook
         traceback.print_exc()
         return False
+    if ok:
+        _record(shop, "notify_slack")
+    return ok
 
 
 # ── web push ───────────────────────────────────────────────────────────────────────
@@ -149,7 +173,7 @@ def vapid_public() -> str | None:
     return v["public"] if v else None
 
 
-def send_web_push(subscriptions: list[dict], payload: dict) -> int:
+def send_web_push(subscriptions: list[dict], payload: dict, shop: str | None = None) -> int:
     """Push a payload to each subscription. Returns how many succeeded. Best-effort."""
     v = vapid_keys()
     if not v or not subscriptions:
@@ -166,4 +190,6 @@ def send_web_push(subscriptions: list[dict], payload: dict) -> int:
             sent += 1
         except Exception:  # noqa: BLE001 — dead/expired subscription; ignore
             pass
+    if sent:
+        _record(shop, "notify_push", sent)
     return sent

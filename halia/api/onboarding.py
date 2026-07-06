@@ -43,6 +43,12 @@ from halia.cache import cache
 _SYNCING: set[str] = set()
 _LOCK = threading.Lock()
 
+
+def _signup_code():
+    """The active self-serve signup code: the console dashboard override, else the env value."""
+    from halia.console_config import console_setting
+    return console_setting("signup_code", config.SIGNUP_CODE)
+
 # The version of the Terms/Privacy a client accepts at onboarding (recorded for the audit
 # trail). Bump when the legal terms change materially.
 TERMS_VERSION = "2026-06-30"
@@ -429,7 +435,7 @@ def _send_ready_email(shop: str, entry: dict | None) -> None:
                 f"<p style='color:#888;font-size:13px'>Open it on the device you set Halia up on, "
                 f"so you go straight in.</p>")
         for em in recipients:
-            _notify.send_email(em, "Your hidden VICs are ready · Halia", html)
+            _notify.send_email(em, "Your hidden VICs are ready · Halia", html, shop=shop)
     except Exception:  # noqa: BLE001
         traceback.print_exc()
 
@@ -465,7 +471,7 @@ def _start_sync(shop: str, notify: bool = False) -> None:
 def _connect_form(error: str = "", values: dict | None = None) -> str:
     v = values or {}
     code_field = ""
-    if config.SIGNUP_CODE:
+    if _signup_code():
         code_field = ("<label>Signup code</label>"
                       "<input name=code type=password placeholder='from your Halia contact'>"
                       "<div class=help>Required to create an account.</div>")
@@ -1288,7 +1294,7 @@ def register(app) -> None:
     def connect_form():
         import json
         return HTMLResponse(
-            _WIZARD.replace("__SIGNUP_REQUIRED__", "true" if config.SIGNUP_CODE else "false")
+            _WIZARD.replace("__SIGNUP_REQUIRED__", "true" if _signup_code() else "false")
                    .replace("__SHOP_INSTALL_URL__", json.dumps(config.HALIA_SHOPIFY_INSTALL_URL or "")))
 
     @app.post("/v1/onboard")
@@ -1304,7 +1310,8 @@ def register(app) -> None:
             except (TypeError, ValueError):
                 return 0.0
 
-        if config.SIGNUP_CODE and g("code") != config.SIGNUP_CODE:
+        _code = _signup_code()
+        if _code and g("code") != _code:
             raise HTTPException(403, "That signup code is not right. Check with your Halia contact.")
 
         if not bool(p.get("accept_terms")):
@@ -1512,7 +1519,8 @@ def register(app) -> None:
         code: str = Form(""),
     ):
         values = {"store_url": store_url, "consumer_key": consumer_key, "label": label}
-        if config.SIGNUP_CODE and code.strip() != config.SIGNUP_CODE:
+        _code = _signup_code()
+        if _code and code.strip() != _code:
             return HTMLResponse(_connect_form("Wrong signup code.", values), status_code=403)
 
         store_url = store_url.strip().rstrip("/")

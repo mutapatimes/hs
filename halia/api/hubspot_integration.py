@@ -77,6 +77,7 @@ def register(app) -> None:
             pushed = HubSpotSink(conn["api_token"]).push_many(targets)
         except HubSpotError as exc:
             raise HTTPException(502, f"HubSpot rejected the push: {exc}")
+        data.record_activity(shop, "action_hubspot_push", pushed)
         return {"pushed": pushed}
 
     @app.post("/v1/hubspot/list")
@@ -96,4 +97,5 @@ def register(app) -> None:
             lst = create_static_list(conn["api_token"], name, contact_ids)
         except HubSpotError as exc:
             raise HTTPException(502, f"HubSpot rejected it: {exc}")
+        data.record_activity(shop, "action_hubspot_list")
         return {"list": lst, "count": len(targets)}

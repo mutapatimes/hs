@@ -155,8 +155,13 @@ def settings_for(shop: str) -> dict:
     emails = d.get("notify_emails")
     if emails is None:
         emails = [d["notify_email"]] if d.get("notify_email") else []
+    # New-client defaults (threshold, alert grades) are console-editable on the /console dashboard,
+    # falling back to the built-in constants when the console has not set them.
+    from halia.console_config import console_setting
+    default_threshold = console_setting("default_vic_threshold", DEFAULT_VIC_THRESHOLD)
+    default_grades = console_setting("default_notify_grades", ["A*", "A"])
     return {
-        "vic_threshold": d.get("vic_threshold", DEFAULT_VIC_THRESHOLD),
+        "vic_threshold": d.get("vic_threshold", default_threshold),
         "sender_name": d.get("sender_name", ""),
         "email_templates": d.get("email_templates") or DEFAULT_TEMPLATES,
         "order_templates": d.get("order_templates") or DEFAULT_ORDER_TEMPLATES,
@@ -168,7 +173,7 @@ def settings_for(shop: str) -> dict:
         "account_email": d.get("account_email", ""),
         # Desktop + email alerts for new high-grade orders.
         "notify_enabled": bool(d.get("notify_enabled", False)),
-        "notify_grades": d.get("notify_grades") or ["A*", "A"],
+        "notify_grades": d.get("notify_grades") or default_grades,
         "notify_emails": emails,
         "notify_email": emails[0] if emails else "",  # back-compat (first recipient)
         # Per-merchant calibrated signal weights (see scoring.calibrate). None = engine defaults.

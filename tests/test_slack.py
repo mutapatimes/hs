@@ -97,7 +97,8 @@ def test_dispatch_posts_to_slack_when_connected(client, monkeypatch):
     c, store = client
     store.save_slack("shops", HOOK)
     posted = []
-    monkeypatch.setattr(notify, "send_slack", lambda url, text, blocks=None: (posted.append(url), True)[1])
+    monkeypatch.setattr(notify, "send_slack",
+                        lambda url, text, blocks=None, shop=None: (posted.append(url), True)[1])
     monkeypatch.setattr(notify, "email_configured", lambda: False)      # isolate the Slack path
     alert = {"grade": "A*", "name": "A VIC", "order_id": "#9", "spend": 500, "signals": ["Work email"]}
     realtime._dispatch("shops", alert, {"notify_emails": []})

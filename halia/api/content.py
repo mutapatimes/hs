@@ -24,6 +24,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from config import ROOT
 from halia import config
+from halia.api import console, staff_auth
 from halia.api.shopify_auth import shop_store
 from halia.api.tenant_auth import _secret
 
@@ -121,6 +122,8 @@ def _make_cookie(ttl: int = 60 * 60 * 12) -> str:
 def _admin_ok(request: Request) -> bool:
     if not config.ADMIN_KEY:
         return False
+    if staff_auth.session_ok(request):        # shared single sign-on (also set by the console)
+        return True
     raw = request.cookies.get(_ADMIN_COOKIE) or ""
     try:
         exp_s, sig = raw.split("|", 1)
@@ -130,75 +133,49 @@ def _admin_ok(request: Request) -> bool:
     return exp >= int(time.time()) and hmac.compare_digest(sig, _sign(exp))
 
 
-# ── admin UI ─────────────────────────────────────────────────────────────────────
-_CSS = (
-    "body{margin:0;background:#f4f1ea;color:#1a1712;font-family:Inter,-apple-system,system-ui,"
-    "sans-serif;line-height:1.6}a{color:#1a1712}.wrap{max-width:820px;margin:0 auto;padding:40px 24px 90px}"
-    "h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:40px;margin:0 0 6px}"
-    ".sub{color:#6b675e;font-size:14px;margin:0 0 26px}"
-    ".bar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px}"
-    ".ok{background:#e6f2ea;border:1px solid #b7d9c4;color:#1f6b45;border-radius:10px;padding:11px 14px;font-size:14px;margin-bottom:22px}"
-    ".pg{font:600 11px Inter;letter-spacing:.14em;text-transform:uppercase;color:#9a9385;margin:30px 0 10px;border-top:1px solid rgba(20,18,12,.12);padding-top:22px}"
-    ".blk{margin:0 0 18px}.blk label{display:block;font:600 12.5px Inter;color:#3a372f;margin-bottom:6px}"
-    ".blk .k{color:#9a9385;font-weight:500}"
-    "textarea{width:100%;box-sizing:border-box;border:1px solid rgba(20,18,12,.2);border-radius:9px;"
-    "padding:11px 13px;font:14px/1.5 ui-monospace,Menlo,monospace;background:#fffdf8;color:#1a1712;resize:vertical;min-height:56px}"
-    "textarea:focus{outline:none;border-color:#7a7363}"
-    ".btn{display:inline-flex;align-items:center;gap:8px;font:600 14px Inter;padding:12px 22px;border-radius:999px;"
-    "border:1px solid #1a1712;background:#1a1712;color:#f4f1ea;cursor:pointer;text-decoration:none}"
-    ".btn.ghost{background:transparent;color:#1a1712}"
-    ".save{position:sticky;bottom:0;background:linear-gradient(transparent,#f4f1ea 40%);padding:22px 0 6px;margin-top:10px}"
-    "input[type=password]{border:1px solid rgba(20,18,12,.2);border-radius:9px;padding:12px 14px;font:15px Inter;min-width:260px}"
-)
-
-
-def _page(title: str, body: str) -> str:
-    return (
-        f"<!doctype html><html lang=en><head><meta charset=utf-8><title>{title} · Halia</title>"
-        "<meta name=viewport content='width=device-width,initial-scale=1'><meta name=robots content=noindex>"
-        "<link rel=preconnect href=https://fonts.googleapis.com>"
-        "<link href='https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300&family=Inter:wght@400;500;600&display=swap' rel=stylesheet>"
-        f"<style>{_CSS}</style></head><body><div class=wrap>{body}</div></body></html>"
-    )
-
-
+# ── admin UI (rendered inside the shared console shell, so /admin and /console feel like
+#    one dashboard: same sidebar nav, same look, one sign-in) ───────────────────────
 def _login_form(error: str = "") -> str:
-    err = f"<p style='color:#8e1f0b;font-size:14px'>{_html.escape(error)}</p>" if error else ""
-    return _page("Admin", (
-        "<h1>Content editor</h1><p class=sub>Sign in to edit the site copy.</p>"
-        f"{err}<form method=post action=/admin/login>"
-        "<input type=password name=key placeholder='Admin key' autofocus> "
-        "<button class=btn type=submit>Sign in</button></form>"))
+    return console._login_form(error, action="/admin/login", heading="Content editor",
+                               intro="Sign in to edit the site copy.")
+
+
+def _disabled_page() -> str:
+    return console._page("Content editor disabled",
+        "<div class=authwrap><div class=card><h1 style='font-size:22px;margin:0 0 6px'>"
+        "Content editor</h1><p class=sub>Set <code>HALIA_ADMIN_KEY</code> in the environment to "
+        "enable editing.</p></div></div>")
 
 
 def _editor(request: Request) -> str:
     blocks = scan_blocks()
     ov = shop_store().get_content_all()
-    saved = "<div class=ok>Saved. Your changes are live.</div>" if request.query_params.get("saved") else ""
+    saved = "<div class=ok2>Saved. Your changes are live.</div>" if request.query_params.get("saved") else ""
     by_page: dict[str, list] = {}
     for b in blocks:
         by_page.setdefault(b["page"], []).append(b)
     rows = []
     for page in sorted(by_page):
-        rows.append(f"<div class=pg>{_html.escape(page)}</div>")
+        rows.append(f"<div class=sec>{_html.escape(page)}</div>")
         for b in by_page[page]:
             cur = ov.get(b["key"], b["default"])
-            lines = min(6, max(2, cur.count("\n") + len(cur) // 70 + 1))
+            lines = min(8, max(2, cur.count("\n") + len(cur) // 70 + 1))
             edited = " · edited" if b["key"] in ov else ""
             rows.append(
-                f"<div class=blk><label>{_html.escape(b['key'])}<span class=k>{edited}</span></label>"
+                f"<div class=f><label>{_html.escape(b['key'])}"
+                f"<span class=mut style='font-weight:500'>{edited}</span></label>"
                 f"<textarea name='blk_{_html.escape(b['key'])}' rows={lines}>{_html.escape(cur)}</textarea></div>")
     body = (
-        "<div class=bar><div><h1>Content editor</h1>"
-        "<p class=sub>Edit the site copy below. HTML like &lt;em&gt; is allowed. Blank a field or set it "
-        "back to the original to revert.</p></div>"
-        "<div style='display:flex;gap:10px'><a class='btn ghost' href='/' target=_blank>View site ↗</a>"
-        "<a class='btn ghost' href=/admin/logout>Sign out</a></div></div>"
-        f"{saved}<form method=post action=/admin/save>{''.join(rows)}"
+        saved
+        + "<p class=sub style='margin:-4px 0 20px'>Edit the site copy below. HTML like &lt;em&gt; is "
+        "allowed. Blank a field or set it back to the original to revert.</p>"
+        f"<form method=post action=/admin/save>{''.join(rows)}"
         "<div class=save><button class=btn type=submit>Save changes</button></div></form>")
     if not blocks:
         body += "<p class=sub>No editable blocks found yet.</p>"
-    return _page("Content editor", body)
+    actions = "<a class='btn ghost' href='/' target=_blank>View site &#8599;</a>"
+    return console._shell("content", "Content editor", body,
+                          subtitle="Edit the public site copy", actions=actions)
 
 
 def register(app) -> None:
@@ -206,9 +183,7 @@ def register(app) -> None:
     @app.get("/admin", response_class=HTMLResponse)
     def admin_home(request: Request):
         if not config.ADMIN_KEY:
-            return HTMLResponse(_page("Admin disabled",
-                "<h1>Content editor</h1><p class=sub>Set <code>HALIA_ADMIN_KEY</code> in the "
-                "environment to enable editing.</p>"))
+            return HTMLResponse(_disabled_page())
         if not _admin_ok(request):
             return HTMLResponse(_login_form())
         return HTMLResponse(_editor(request))
@@ -221,12 +196,14 @@ def register(app) -> None:
         resp.set_cookie(_ADMIN_COOKIE, _make_cookie(), httponly=True,
                         secure=(config.HALIA_APP_URL or "").startswith("https"),
                         samesite="lax", max_age=60 * 60 * 12)
+        staff_auth.set_session(resp)          # also open the console (one sign-in for both)
         return resp
 
     @app.get("/admin/logout")
     def admin_logout():
         resp = RedirectResponse("/admin", status_code=303)
         resp.delete_cookie(_ADMIN_COOKIE)
+        staff_auth.clear_session(resp)        # signing out here signs out of the console too
         return resp
 
     @app.post("/admin/save")

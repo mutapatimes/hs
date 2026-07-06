@@ -44,9 +44,10 @@ def test_order_webhook_adds_alert_and_dispatches(client, monkeypatch):
              "signals": ["Work email"], "when": "2026-06-30"}
     monkeypatch.setattr(data, "score_order", lambda shop, p: alert)
     pushed, mailed = {}, {}
-    monkeypatch.setattr(notify, "send_web_push", lambda subs, p: (pushed.update(p) or 1))
+    monkeypatch.setattr(notify, "send_web_push", lambda subs, p, shop=None: (pushed.update(p) or 1))
     monkeypatch.setattr(notify, "email_configured", lambda: True)
-    monkeypatch.setattr(notify, "send_email", lambda to, subj, h: (mailed.update({"to": to, "subj": subj}) or True))
+    monkeypatch.setattr(notify, "send_email",
+                        lambda to, subj, h, shop=None: (mailed.update({"to": to, "subj": subj}) or True))
 
     r = c.post(f"/webhooks/orders/{token}", json={"id": 9001})
     assert r.status_code == 200

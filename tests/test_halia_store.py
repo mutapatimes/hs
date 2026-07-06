@@ -40,3 +40,55 @@ def test_schema_holds_no_customer_tables(tmp_path):
     tables = {r["name"] for r in rows}
     assert "shops" in tables and "klaviyo" in tables
     assert {"scores", "orders", "dashboards"} & tables == set()  # purged / never created
+
+
+# ── owner-dashboard activity counters ────────────────────────────────────────
+def test_bump_metric_increments_within_a_week(tmp_path):
+    from halia.store import _iso_week
+
+    s = ShopStore(db_path=tmp_path / "m.db")
+    wk = _iso_week()
+    s.bump_metric(SHOP, "scan")
+    s.bump_metric(SHOP, "scan")
+    s.bump_metric(SHOP, "customers_scanned", 40)
+    s.bump_metric(SHOP, "scan", 0)          # no-op, must not create noise
+    s.bump_metric(SHOP, "scan", -5)         # negative, ignored
+    assert s.metric_totals() == {"scan": 2, "customers_scanned": 40}
+    assert s.metric_totals([wk]) == {"scan": 2, "customers_scanned": 40}
+    assert s.metric_totals(["1999-W01"]) == {}   # a week with no rows
+
+
+def test_metric_weekly_and_by_shop_buckets(tmp_path):
+    from halia.store import recent_weeks
+
+    s = ShopStore(db_path=tmp_path / "m.db")
+    weeks = recent_weeks(3)
+    s.bump_metric(SHOP, "scan", 3, week=weeks[0])
+    s.bump_metric(SHOP, "scan", 5, week=weeks[2])
+    s.bump_metric("bella.example.com", "scan", 1, week=weeks[2])
+    assert s.metric_weekly("scan", weeks) == {weeks[0]: 3, weeks[1]: 0, weeks[2]: 6}
+    by_shop = s.metric_by_shop([weeks[2]])
+    assert by_shop == {SHOP: {"scan": 5}, "bella.example.com": {"scan": 1}}
+
+
+def test_delete_shop_clears_metrics(tmp_path):
+    s = ShopStore(db_path=tmp_path / "m.db")
+    s.bump_metric(SHOP, "scan", 4)
+    s.delete_shop(SHOP)
+    assert s.metric_totals() == {}
+
+
+def test_overview_count_helpers(tmp_path):
+    s = ShopStore(db_path=tmp_path / "m.db")
+    s.create_tenant(SHOP, "shopify", "Acme", "h1")
+    s.create_tenant("bella.example.com", "woocommerce", "Bella", "h2")
+    s.save_shop(SHOP, "shpat_x")
+    s.save_klaviyo(SHOP, "pk_x")
+    s.record_feedback(SHOP, ["sig_a", "sig_b"], "fit")
+    s.record_feedback(SHOP, ["sig_a"], "nofit")
+    assert s.count_tenants_by_kind() == {"shopify": 1, "woocommerce": 1}
+    assert s.all_shops() == [SHOP]
+    assert s.integrations_by_shop() == {SHOP: ["klaviyo"]}
+    assert s.feedback_by_shop() == {SHOP: {"fit": 2, "nofit": 1}}
+    assert s.new_tenants() == 2          # both created this week
+    assert s.integration_counts()["klaviyo"]["total"] == 1

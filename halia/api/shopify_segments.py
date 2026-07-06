@@ -57,4 +57,5 @@ def register(app) -> None:
 
         num = segment_numeric_id(seg.get("id") or "")
         admin_url = f"https://{shop}/admin/customers/segments/{num}" if num else ""
+        data.record_activity(shop, "action_shopify_segment")
         return {"segment": seg, "count": len(targets), "admin_url": admin_url}
