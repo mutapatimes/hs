@@ -96,7 +96,8 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "card_brand": 1,
     "rich_list": 1,
     "companies_house": 1,  # PSC/director name match — very broad, corroboration-only (see SUPPORTING_SIGNALS)
-    "charity_trustee": 1,  # eponymous-foundation trustee name match — corroboration-only (see SUPPORTING_SIGNALS)
+    "charity_trustee": 3,  # eponymous-foundation trustee (surname IN the charity name) — a near-pure
+                           # UHNW tell, so weighted heavily; still corroboration-only (name bright line)
     "fashion_stylist": 2,  # celebrity stylist / personal shopper — high-value, name-match (verify)
     "stylist_directory": 1,  # broad stylist directory — corroboration-only (see SUPPORTING_SIGNALS)
     "ip_location": 1,
