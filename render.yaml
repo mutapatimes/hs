@@ -57,6 +57,26 @@ services:
         value: "3"
       - key: HALIA_BREVO_LIST_CLIENTS
         value: "4"
+      - key: HALIA_CRON_KEY            # shared secret the cron job below uses to POST the scheduler
+        sync: false
+
+  # Fires the lifecycle-email scheduler hourly (demo nurture, client welcome, weekly nudges).
+  # Runs a tiny stdlib POST to /internal/cron/run with the X-Cron-Key header. No extra deps.
+  - type: cron
+    name: halia-journeys
+    runtime: python
+    plan: free
+    schedule: "0 * * * *"
+    buildCommand: "echo no build needed"
+    startCommand: >-
+      python -c "import os,urllib.request as u;
+      r=u.Request(os.environ['HALIA_APP_URL'].rstrip('/')+'/internal/cron/run',method='POST',
+      headers={'X-Cron-Key':os.environ['HALIA_CRON_KEY']});print(u.urlopen(r,timeout=60).read())"
+    envVars:
+      - key: HALIA_APP_URL
+        value: "https://haliascore.com"
+      - key: HALIA_CRON_KEY
+        sync: false
 
 databases:
   - name: halia-db

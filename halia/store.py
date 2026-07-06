@@ -141,6 +141,27 @@ _TABLES = [
         count  INTEGER DEFAULT 0,
         PRIMARY KEY (shop, week, metric)
     )""",
+    # Halia's own lifecycle email journeys (demo nurture, client welcome, recurring weekly nudge).
+    # These hold Halia's OWN business contacts (leads/clients), not merchant customers — same
+    # footing as `subscribers`. `journey` in {demo, client, weekly}; `step` is the next index to
+    # send; `next_at` is when it's due; `data` is a small JSON blob (first name, shop).
+    """CREATE TABLE IF NOT EXISTS email_journeys (
+        email      TEXT,
+        journey    TEXT,
+        step       INTEGER DEFAULT 0,
+        next_at    TEXT,
+        data       TEXT,
+        done       INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT,
+        PRIMARY KEY (email, journey)
+    )""",
+    # One-click unsubscribe suppression. Checked before every lifecycle send.
+    """CREATE TABLE IF NOT EXISTS email_suppressions (
+        email      TEXT PRIMARY KEY,
+        reason     TEXT,
+        created_at TEXT
+    )""",
 ]
 # Earlier versions cached customer PII in these tables. Drop them so any deploy purges it.
 _DROP_LEGACY = [
@@ -365,6 +386,48 @@ class ShopStore(_DB):
             """INSERT INTO subscribers (email, subscribed_at) VALUES (:e, :at)
                ON CONFLICT(email) DO NOTHING""",
             {"e": email, "at": _now()})
+
+    # ── lifecycle email journeys + unsubscribe suppression ──────────────────────
+    def enroll_journey(self, email: str, journey: str, next_at: str, data_json: str = "{}") -> None:
+        """Start ``email`` on ``journey`` due at ``next_at``. Idempotent — an existing enrolment
+        (even a completed one) is left as-is so re-submitting a form never restarts a sequence."""
+        self._run(
+            """INSERT INTO email_journeys (email, journey, step, next_at, data, done,
+                                           created_at, updated_at)
+               VALUES (:e, :j, 0, :n, :d, 0, :at, :at)
+               ON CONFLICT(email, journey) DO NOTHING""",
+            {"e": email.strip().lower(), "j": journey, "n": next_at, "d": data_json, "at": _now()})
+
+    def due_journeys(self, now_iso: str) -> list[dict]:
+        """Enrolments whose next step is due and not done, excluding unsubscribed emails."""
+        rows = self._run(
+            """SELECT j.email, j.journey, j.step, j.data FROM email_journeys j
+               LEFT JOIN email_suppressions s ON s.email = j.email
+               WHERE j.done = 0 AND j.next_at <= :now AND s.email IS NULL""",
+            {"now": now_iso}, fetch="all") or []
+        return [dict(r) for r in rows]
+
+    def advance_journey(self, email: str, journey: str, step: int, next_at: str) -> None:
+        self._run(
+            """UPDATE email_journeys SET step = :s, next_at = :n, updated_at = :at
+               WHERE email = :e AND journey = :j""",
+            {"s": step, "n": next_at, "at": _now(), "e": email.strip().lower(), "j": journey})
+
+    def finish_journey(self, email: str, journey: str) -> None:
+        self._run(
+            """UPDATE email_journeys SET done = 1, updated_at = :at
+               WHERE email = :e AND journey = :j""",
+            {"at": _now(), "e": email.strip().lower(), "j": journey})
+
+    def suppress_email(self, email: str, reason: str = "unsubscribe") -> None:
+        self._run(
+            """INSERT INTO email_suppressions (email, reason, created_at) VALUES (:e, :r, :at)
+               ON CONFLICT(email) DO NOTHING""",
+            {"e": email.strip().lower(), "r": reason, "at": _now()})
+
+    def is_suppressed(self, email: str) -> bool:
+        return bool(self._run("SELECT 1 FROM email_suppressions WHERE email = :e",
+                              {"e": (email or "").strip().lower()}, fetch="one"))
 
     # ── per-shop Mailchimp connection (key + chosen audience) ───────────────────
     def save_mailchimp(self, shop: str, api_key: str, list_id: str, list_name: str) -> None:

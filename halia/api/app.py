@@ -247,7 +247,12 @@ def subscribe(payload: Any = Body(...)) -> dict:
     # automation ("we'll be in touch" + the 3-email drip). Best-effort; never blocks the response.
     if str((payload or {}).get("source", "")).lower() == "demo":
         import halia.notify_brevo as notify_brevo
-        notify_brevo.add_demo_lead(email)
+        notify_brevo.add_demo_lead(email)          # record on the Brevo Demo list
+        try:
+            from halia import journeys
+            journeys.enroll_demo(email)            # start the Halia-sent demo nurture
+        except Exception:  # noqa: BLE001
+            pass
     return {"ok": True}
 
 
@@ -408,8 +413,8 @@ def pos_score(shop: str = Depends(require_shop),
 # view, and compliance webhooks.
 from halia.api import (  # noqa: E402
     billing, content, embedded, feedback, fulfilment, hubspot_integration, integrations,
-    mailchimp_integration, onboarding, console, realtime, settings, shopify_push, shopify_segments,
-    slack_integration, webhooks,
+    lifecycle, mailchimp_integration, onboarding, console, realtime, settings, shopify_push,
+    shopify_segments, slack_integration, webhooks,
 )
 
 embedded.register(app)
@@ -426,5 +431,6 @@ settings.register(app)
 fulfilment.register(app)
 webhooks.register(app)
 billing.register(app)
+lifecycle.register(app)
 shopify_push.register(app)
 feedback.register(app)

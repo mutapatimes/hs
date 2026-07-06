@@ -1407,6 +1407,8 @@ def register(app) -> None:
         try:
             import halia.notify_brevo as notify_brevo
             notify_brevo.add_client(acct, attributes={"FIRSTNAME": label} if label else None)
+            from halia import journeys
+            journeys.enroll_client(acct, first=label, shop=shop)  # welcome series + weekly nudge
         except Exception:  # noqa: BLE001
             pass
         resp = JSONResponse({"ok": True, "app_url": "/app", "emailed": emailed, "email": acct,

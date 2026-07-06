@@ -55,6 +55,10 @@ HALIA_APP_URL = os.environ.get("HALIA_APP_URL", "").rstrip("/")
 BREVO_LIST_DEMO = os.environ.get("HALIA_BREVO_LIST_DEMO", "3")
 BREVO_LIST_CLIENTS = os.environ.get("HALIA_BREVO_LIST_CLIENTS", "4")
 
+# Shared secret for the lifecycle-email scheduler. A Render Cron Job POSTs /internal/cron/run
+# with this in the X-Cron-Key header to fire due journey emails. Unset -> the endpoint is disabled.
+CRON_KEY = os.environ.get("HALIA_CRON_KEY") or None
+
 # Self-service onboarding gate. When set, the /connect page requires this code so the
 # public can't create tenants; share it with a client to let them self-onboard. Unset
 # (None) = open onboarding (fine for local dev).
