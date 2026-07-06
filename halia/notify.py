@@ -25,7 +25,7 @@ from pathlib import Path
 
 from config import OUTPUT_DIR
 
-VAPID_SUBJECT = os.environ.get("HALIA_VAPID_SUBJECT", "mailto:alerts@halia.app")
+VAPID_SUBJECT = os.environ.get("HALIA_VAPID_SUBJECT", "mailto:alerts@haliascore.com")
 
 
 def _env(*names: str) -> str | None:
@@ -54,7 +54,7 @@ def email_configured() -> bool:
 def _send_brevo(to: str, subject: str, html: str) -> bool:
     import requests
 
-    sender = _env("HALIA_EMAIL_FROM", "HALIA_SMTP_FROM") or "alerts@halia.app"
+    sender = _env("HALIA_EMAIL_FROM", "HALIA_SMTP_FROM") or "alerts@haliascore.com"
     body = {"sender": {"email": sender, "name": _env("HALIA_EMAIL_FROM_NAME") or "Halia"},
             "to": [{"email": to}], "subject": subject, "htmlContent": html}
     try:
@@ -88,7 +88,7 @@ def _send_email_raw(to: str, subject: str, html: str, text: str | None) -> bool:
         return False
     port = int(_env("HALIA_SMTP_PORT") or 587)
     user, pw = _env("HALIA_SMTP_USER"), _env("HALIA_SMTP_PASS")
-    sender = _env("HALIA_SMTP_FROM") or user or "alerts@halia.app"
+    sender = _env("HALIA_SMTP_FROM") or user or "alerts@haliascore.com"
     msg = EmailMessage()
     msg["Subject"], msg["From"], msg["To"] = subject, sender, to
     msg.set_content(text or "Open Halia to see the details.")

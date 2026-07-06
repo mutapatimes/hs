@@ -1861,7 +1861,7 @@ function openSettings(){
         <div class="spage" data-page="privacy" style="display:${spage==='privacy'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Privacy wording for your policy</div>
-          <p style="${P}">Suggested wording to add to your own privacy policy — a starting point, not legal advice. Need the full paperwork? <a href="mailto:hello@halia.app?subject=Halia%20compliance%20pack" style="color:#1f564a;font-weight:600">Request the DPA &amp; compliance pack</a>.</p>
+          <p style="${P}">Suggested wording to add to your own privacy policy — a starting point, not legal advice. Need the full paperwork? <a href="mailto:hello@haliascore.com?subject=Halia%20compliance%20pack" style="color:#1f564a;font-weight:600">Request the DPA &amp; compliance pack</a>.</p>
           ${PRIVACY_INSERTS.map((p,i)=>`<div style="border:1px solid #e3e3e3;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafafa">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px"><div style="font:650 13px system-ui;color:#303030">${p.h}</div><button data-copy="${i}" style="${BS};padding:5px 12px">Copy</button></div>
             <div style="font:13px/1.55 system-ui;color:#444">${esc(p.body)}</div></div>`).join("")}

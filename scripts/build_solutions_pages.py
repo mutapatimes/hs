@@ -583,7 +583,7 @@ def _footer() -> str:
         '<div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a>'
         '<a href="/pricing">Pricing</a><a href="/security">Security</a><a href="/faq">FAQ</a>'
         '<a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/brand">Brand</a>'
-        '<a href="mailto:hello@halia.app">Contact</a></div>'
+        '<a href="mailto:hello@haliascore.com">Contact</a></div>'
         '<div class="hf-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a>'
         '<a href="/security">Security &amp; compliance</a></div></div>'
         '<div class="hf-bot"><span>&copy; 2026 Halia. All rights reserved.</span>'
