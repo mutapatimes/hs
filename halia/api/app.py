@@ -108,7 +108,12 @@ def _serve_page(name: str) -> _HTML:
     from halia.api.content import apply_overrides
     for f in (_SITE_DIR / f"{name}.html", _SITE_DIR / "legal" / f"{name}.html"):
         if f.is_file():
-            return _HTML(apply_overrides(f.read_text(encoding="utf-8")))
+            html = apply_overrides(f.read_text(encoding="utf-8"))
+            # Any page carrying the corporate small print (Midnight Lantern) is kept out of
+            # search — a noindex header on top of the page's meta tag, applied by content so it
+            # covers any future page too.
+            headers = {"X-Robots-Tag": "noindex, nofollow"} if "Midnight Lantern" in html else None
+            return _HTML(html, headers=headers)
     raise HTTPException(404, "Page not found")
 
 
