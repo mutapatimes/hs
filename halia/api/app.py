@@ -236,13 +236,18 @@ def status_json() -> dict:
 
 @app.post("/subscribe", include_in_schema=False)
 def subscribe(payload: Any = Body(...)) -> dict:
-    """Marketing-site newsletter signup. Stores just the email."""
+    """Marketing-site email capture. Stores the email; demo requests also start the Brevo journey."""
     from halia.api.shopify_auth import shop_store
 
     email = str((payload or {}).get("email", "")).strip().lower()
     if "@" not in email or "." not in email.split("@")[-1] or len(email) > 200:
         raise HTTPException(422, "Enter a valid email address.")
     shop_store().add_subscriber(email)
+    # A demo request (source=demo) is added to the Brevo Demo list, which fires the demo-nurture
+    # automation ("we'll be in touch" + the 3-email drip). Best-effort; never blocks the response.
+    if str((payload or {}).get("source", "")).lower() == "demo":
+        import halia.notify_brevo as notify_brevo
+        notify_brevo.add_demo_lead(email)
     return {"ok": True}
 
 

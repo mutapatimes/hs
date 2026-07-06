@@ -51,6 +51,12 @@ services:
         value: "haliasearch@gmail.com"
       - key: HALIA_EMAIL_FROM_NAME
         value: "Halia"
+      # Halia's own Brevo contact lists — demo leads and new clients are auto-added so the
+      # demo-nurture and client-welcome AUTOMATIONS fire. IDs from Brevo → Contacts → Lists.
+      - key: HALIA_BREVO_LIST_DEMO
+        value: "3"
+      - key: HALIA_BREVO_LIST_CLIENTS
+        value: "4"
 
 databases:
   - name: halia-db

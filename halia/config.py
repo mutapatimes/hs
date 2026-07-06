@@ -48,6 +48,13 @@ SHOPIFY_API_KEY = os.environ.get("SHOPIFY_API_KEY")
 SHOPIFY_API_SECRET = os.environ.get("SHOPIFY_API_SECRET")
 HALIA_APP_URL = os.environ.get("HALIA_APP_URL", "").rstrip("/")
 
+# Halia's own Brevo contact lists (NOT the merchant's audience — those are the CRM sinks).
+# Demo leads and new clients are auto-added to these so Brevo automations (demo nurture,
+# client welcome series) fire. IDs from Brevo → Contacts → Lists. Defaults match the
+# Demo (#3) / Clients (#4) lists. Sync is best-effort and no-ops when the API key is unset.
+BREVO_LIST_DEMO = os.environ.get("HALIA_BREVO_LIST_DEMO", "3")
+BREVO_LIST_CLIENTS = os.environ.get("HALIA_BREVO_LIST_CLIENTS", "4")
+
 # Self-service onboarding gate. When set, the /connect page requires this code so the
 # public can't create tenants; share it with a client to let them self-onboard. Unset
 # (None) = open onboarding (fine for local dev).

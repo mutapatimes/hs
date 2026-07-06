@@ -1402,6 +1402,13 @@ def register(app) -> None:
         # Sign this browser in directly (signed session cookie) — no raw token in the URL —
         # and email the durable sign-in link for their other devices / next time.
         emailed = _send_welcome_signin_email(acct, f"/app?t={link_token}", label)
+        # Add them to the Brevo Clients list (and unlink Demo) so the client welcome/onboarding
+        # automation fires and any demo drip stops. Best-effort; never blocks onboarding.
+        try:
+            import halia.notify_brevo as notify_brevo
+            notify_brevo.add_client(acct, attributes={"FIRSTNAME": label} if label else None)
+        except Exception:  # noqa: BLE001
+            pass
         resp = JSONResponse({"ok": True, "app_url": "/app", "emailed": emailed, "email": acct,
                              "label": label, "platform_connected": connected,
                              "platform_warning": warning})
