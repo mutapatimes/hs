@@ -28,10 +28,16 @@ from pathlib import Path
 
 import pandas as pd
 
-from config import UK_CHARITY_TRUSTEES_FILE
+from config import UK_CHARITY_TRUSTEES_FILE, UK_CHARITY_TRUSTEES_LOCAL_FILE
 
 FLAG_COL = "charity_trustee"
 REASON_COL = "charity_trustee_reason"
+
+
+def _default_path() -> Path:
+    """Prefer the operator's git-ignored real table when it exists, else the committed seed."""
+    local = Path(UK_CHARITY_TRUSTEES_LOCAL_FILE)
+    return local if local.exists() else Path(UK_CHARITY_TRUSTEES_FILE)
 
 
 def _normalize(value: object) -> str:
@@ -42,7 +48,7 @@ def _normalize(value: object) -> str:
     return re.sub(r"\s+", " ", t).strip()
 
 
-def load_trustees(path: Path | str = UK_CHARITY_TRUSTEES_FILE) -> dict[str, str]:
+def load_trustees(path: Path | str | None = None) -> dict[str, str]:
     """Read {normalized_trustee_name: display_reason}.
 
     CSV columns: name[, charity]. Blank/comment/header rows are skipped. The optional
@@ -50,7 +56,7 @@ def load_trustees(path: Path | str = UK_CHARITY_TRUSTEES_FILE) -> dict[str, str]
     exact normalized-name key is used deliberately: the regenerated table can be large, so
     matching must be O(1), and exact-name equality is more precise than substring matching.
     """
-    path = Path(path)
+    path = Path(path) if path is not None else _default_path()
     if not path.exists():
         raise FileNotFoundError(f"Charity-trustees reference not found: {path}")
     table: dict[str, str] = {}

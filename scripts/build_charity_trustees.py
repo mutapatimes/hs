@@ -42,7 +42,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from config import UK_CHARITY_TRUSTEES_FILE  # noqa: E402
+from config import UK_CHARITY_TRUSTEES_LOCAL_FILE  # noqa: E402
 
 # Very common GB surnames — an eponymous "Smith Foundation" match tells you little, so drop these.
 _COMMON_SURNAMES = {
@@ -84,27 +84,39 @@ def _surname(trustee_name: str) -> str:
 
 
 def _iter_records(path: Path):
-    """Yield dict records from a Charity Commission extract file (JSON array or NDJSON)."""
+    """Yield dict records from a Charity Commission extract file.
+
+    The extracts are JSON arrays but pretty-printed one object per line, so we STREAM line by line
+    (stripping the array brackets and trailing commas) to keep memory flat on the 250-500MB files.
+    Falls back to a whole-file json.load only if line-streaming yields nothing (a compact array).
+    """
+    yielded = 0
     with path.open("r", encoding="utf-8-sig", errors="replace") as fh:
-        head = fh.read(1)
-        while head and head.isspace():
-            head = fh.read(1)
-        fh.seek(0)
-        if head == "[":                          # a single JSON array
-            for rec in json.load(fh):
-                if isinstance(rec, dict):
-                    yield rec
-            return
-        for line in fh:                          # newline-delimited JSON
-            line = line.strip().rstrip(",")
-            if not line or line in "[]":
+        for line in fh:
+            s = line.strip()
+            if s.startswith("["):            # first line: "[{...}"
+                s = s[1:].strip()
+            if s.startswith(","):            # this extract leads each row with a comma: ",{...}"
+                s = s[1:].strip()
+            if s.endswith("]"):              # last line: "{...}]"
+                s = s[:-1].strip()
+            s = s.rstrip(",").strip()
+            if not s:
                 continue
             try:
-                rec = json.loads(line)
+                rec = json.loads(s)
             except json.JSONDecodeError:
                 continue
             if isinstance(rec, dict):
+                yielded += 1
                 yield rec
+    if yielded:
+        return
+    with path.open("r", encoding="utf-8-sig", errors="replace") as fh:  # compact single-line array
+        data = json.load(fh)
+    for rec in (data if isinstance(data, list) else []):
+        if isinstance(rec, dict):
+            yield rec
 
 
 def _get(rec: dict, *keys, default=""):
@@ -201,7 +213,8 @@ def main() -> None:
     ap.add_argument("--min-income", type=float, default=0.0,
                     help="only keep charities with latest income >= this (GBP). 0 = no floor.")
     ap.add_argument("--replace", action="store_true", help="overwrite instead of merging the seed")
-    ap.add_argument("--out", type=Path, default=Path(UK_CHARITY_TRUSTEES_FILE))
+    ap.add_argument("--out", type=Path, default=Path(UK_CHARITY_TRUSTEES_LOCAL_FILE),
+                    help="output CSV (default: the git-ignored local table the signal prefers)")
     a = ap.parse_args()
     for p in (a.trustees, a.charities):
         if not p.exists():

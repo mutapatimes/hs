@@ -64,6 +64,9 @@ COMPANY_KEYWORDS_FILE = COMPANIES_DIR / "company_keywords.csv"
 UK_COMPANY_CONTROLLERS_FILE = COMPANIES_DIR / "uk_company_controllers.csv"
 CHARITIES_DIR = REFERENCE_DIR / "charities"
 UK_CHARITY_TRUSTEES_FILE = CHARITIES_DIR / "uk_charity_trustees.csv"
+# Operator-generated real table (from scripts/build_charity_trustees.py). GIT-IGNORED, because it
+# holds named private individuals. When present it is preferred over the committed inert seed.
+UK_CHARITY_TRUSTEES_LOCAL_FILE = CHARITIES_DIR / "uk_charity_trustees.local.csv"
 CARDS_DIR = REFERENCE_DIR / "cards"
 PREMIUM_BINS_FILE = CARDS_DIR / "premium_bins.csv"
 LOCATIONS_DIR = REFERENCE_DIR / "locations"

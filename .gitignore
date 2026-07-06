@@ -53,3 +53,6 @@ node_modules/
 dist/
 .shopify/
 *.log
+
+# Operator-generated charity trustees (real named individuals — never commit)
+reference_data/charities/uk_charity_trustees.local.csv

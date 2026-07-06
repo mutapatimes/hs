@@ -47,7 +47,8 @@ def test_missing_name_column_is_safe():
 
 
 def test_seed_table_loads_inert_example():
-    table = ct.load_trustees()
+    # Load the committed seed explicitly (a local override, if present, would replace it).
+    table = ct.load_trustees(ct.UK_CHARITY_TRUSTEES_FILE)
     assert ct._normalize("Ada Placeholder") in table          # the shipped fictional seed row
 
 
