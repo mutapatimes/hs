@@ -39,7 +39,31 @@ def _p(text: str) -> str:
     return f"<p style='margin:0 0 16px;font:16px/1.65 {_SANS};color:{_INK}'>{text}</p>"
 
 
-def _layout(subject: str, greeting: str, body_html: str, unsub_url: str) -> str:
+# Per-journey eyebrow shown in the masthead hero (keyed by the template prefix).
+_EYEBROW = {
+    "demo": "An introduction",
+    "client": "Welcome to Halia",
+    "weekly": "Your week with Halia",
+}
+
+
+def _hero(eyebrow: str) -> str:
+    """A self-composed, image-free masthead hero: the mark, wordmark, a hairline, and an eyebrow.
+
+    No external image on purpose — it renders identically in every client, carries no deliverability
+    weight, and cannot break before the domain is serving. A hosted banner can layer on later.
+    """
+    return (
+        f"<tr><td align=center style='padding:10px 0 26px'>"
+        f"<div style='font:400 34px {_SERIF};color:{_ACCENT};line-height:1'>&#8258;</div>"
+        f"<div style='font:300 30px {_SERIF};color:{_INK};letter-spacing:.03em;margin-top:8px'>Halia</div>"
+        f"<div style='width:44px;height:1px;background:{_ACCENT};opacity:.5;margin:16px auto 12px'></div>"
+        f"<div style='font:600 11px {_SANS};letter-spacing:.22em;text-transform:uppercase;"
+        f"color:{_MUT}'>{_html.escape(eyebrow)}</div>"
+        f"</td></tr>")
+
+
+def _layout(subject: str, greeting: str, body_html: str, unsub_url: str, eyebrow: str) -> str:
     """Wrap a body in the shared shell. ``body_html`` is pre-built paragraphs/buttons."""
     year = "2026"
     return (
@@ -48,13 +72,11 @@ def _layout(subject: str, greeting: str, body_html: str, unsub_url: str) -> str:
         f"<meta name=color-scheme content='light'><title>{_html.escape(subject)}</title></head>"
         f"<body style='margin:0;padding:0;background:{_CREAM}'>"
         f"<table role=presentation width=100% cellpadding=0 cellspacing=0 style='background:{_CREAM}'>"
-        f"<tr><td align=center style='padding:32px 16px'>"
+        f"<tr><td align=center style='padding:34px 16px'>"
         f"<table role=presentation width=560 cellpadding=0 cellspacing=0 "
         f"style='max-width:560px;width:100%'>"
-        # wordmark
-        f"<tr><td style='padding:4px 6px 20px'>"
-        f"<span style='font:300 24px {_SERIF};color:{_INK};letter-spacing:.02em'>"
-        f"<span style='color:{_ACCENT}'>&#8258;</span>&nbsp;Halia</span></td></tr>"
+        # masthead hero
+        f"{_hero(eyebrow)}"
         # card
         f"<tr><td style='background:#ffffff;border:1px solid {_LINE};border-radius:16px;"
         f"padding:34px 34px 28px'>"
@@ -223,5 +245,6 @@ def render(template_key: str, data: dict, unsub_url: str) -> tuple[str, str, str
     """Return (subject, html, text) for a template, wrapped in the shared branded layout."""
     builder = _TEMPLATES[template_key]
     subject, body_html, body_text = builder(data or {})
-    html = _layout(subject, _greeting(data or {}), body_html, unsub_url)
+    eyebrow = _EYEBROW.get(template_key.split("_", 1)[0], "Halia")
+    html = _layout(subject, _greeting(data or {}), body_html, unsub_url, eyebrow)
     return subject, html, body_text
