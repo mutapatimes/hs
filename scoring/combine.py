@@ -95,7 +95,9 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "foreign_currency": 1,
     "card_brand": 1,
     "rich_list": 1,
-    "companies_house": 1,  # PSC/director name match — very broad, corroboration-only (see SUPPORTING_SIGNALS)
+    "companies_house": 2,  # eponymous company owner (surname IN the company name, 75%+ control) —
+                           # base tier; COMPANIES_HOUSE_TIER_WEIGHTS lifts it for large / wealth-SIC
+                           # companies. Still corroboration-only, name bright line (see SUPPORTING_SIGNALS)
     "charity_trustee": 3,  # eponymous-foundation trustee (surname IN the charity name) — a near-pure
                            # UHNW tell, so weighted heavily; still corroboration-only (name bright line)
     "fashion_stylist": 2,  # celebrity stylist / personal shopper — high-value, name-match (verify)
@@ -121,6 +123,16 @@ DELIVERY_TYPE_WEIGHTS = {
 DOMAIN_KEYWORD_TYPE_WEIGHTS = {
     "elite": 3,
     "general": 2,
+}
+
+# Within companies_house, an eponymous company is graded by how telling it is (built into the
+# table): a plain smaller company is the base, a LARGE company (Medium/Full/Group/audited or PLC)
+# OR a wealth-industry SIC (real estate, investment/holding, architecture, design, art) lifts it,
+# and being BOTH large and a wealth industry is the strongest. These override the base weight.
+COMPANIES_HOUSE_TIER_WEIGHTS = {
+    "prime": 6,
+    "high": 4,
+    "match": 2,
 }
 
 # property_value is graded CONTINUOUSLY by the actual median price, not just a tier:
@@ -169,9 +181,9 @@ SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
                       # postcode) but never surfaces a customer by itself.
                       "custom_email",
 
-                      # A Companies House PSC/director name match is drawn from a register of
-                      # millions, so name-alone collisions are common. Unlike the curated
-                      # rich_list, it must never be a sole basis — it only corroborates.
+                      # A Companies House match (eponymous company owner, 75%+ control) is precise,
+                      # but it is still a match on NAME ALONE against a public register, so — like
+                      # charity_trustee — it must never be a sole basis; it only corroborates.
                       "companies_house",
 
                       # A charity-trustee name match is drawn from the same kind of large public
@@ -503,6 +515,8 @@ def score_customers(
                 type_spec = (property_value.TIER_COL, PROPERTY_TIER_WEIGHTS)
             elif key == "property_area":
                 type_spec = (property_value.AREA_TIER_COL, PROPERTY_AREA_WEIGHTS)
+            elif key == "companies_house":
+                type_spec = (companies_house.TYPE_COL, COMPANIES_HOUSE_TIER_WEIGHTS)
             if type_spec and type_spec[0] in out.columns:
                 type_col, type_weights = type_spec
                 wv = out[type_col].map(

@@ -1,29 +1,20 @@
-# UK company controllers — Companies House PSC / director name reference (SEED).
+# UK company controllers — Companies House "eponymous company owner" reference (INERT SEED).
 #
-# Read by scoring/signals/companies_house.py. A customer whose name matches an entry
-# here is flagged as someone who owns or controls a UK company (a wealth/work fact).
+# Read by scoring/signals/companies_house.py. A customer whose name matches an entry here is
+# flagged as someone who owns/controls a UK company named after them (a wealth/work fact).
 #
-# This is a small SEED for out-of-the-box behaviour and tests. Matching is on NAME ALONE
-# against a public register, so it is CORROBORATION-ONLY (never a sole basis) in the
-# combiner. Regenerate to national coverage from the free Companies House "People with
-# Significant Control (PSC) snapshot" with:
+# This seed ships INERT: one fictional example only. Naming private controllers in the repo is
+# exactly the sensitivity Halia avoids, so real people only ever enter the table on the operator's
+# own machine. Regenerate the real, git-ignored table (reference_data/companies/
+# uk_company_controllers.local.csv, preferred when present) from the free Companies House PSC
+# snapshot joined to Basic Company Data with:
 #
-#     python scripts/build_company_controllers.py
+#     python scripts/build_company_controllers.py --psc <snapshot.zip> --companies <basic-data.zip>
 #
-# Columns: name, role   (role is optional; used only in the human-readable reason)
-name,role
-James Dyson,Founder & PSC
-Richard Branson,Founder & PSC
-Anita Roddick,Founder
-Charles Dunstone,Founder & PSC
-Brent Hoberman,Founder & Director
-Martha Lane Fox,Founder & Director
-Michael Ashley,Founder & PSC
-Peter Hargreaves,Co-founder & PSC
-Stephen Lansdown,Co-founder & PSC
-Denise Coates,Founder & PSC
-Alex Chesterman,Founder & Director
-Nick Jones,Founder & Director
-Tom Blomfield,Founder & Director
-Rishi Khosla,Co-founder & PSC
-Anne Boden,Founder & Director
+# Matching is on NAME ALONE against a public register, so it is CORROBORATION-ONLY (never a sole
+# basis) in the combiner. Columns: name, tier, company, industry
+#   tier     : match | high | prime  (drives COMPANIES_HOUSE_TIER_WEIGHTS in the combiner)
+#   company  : the eponymous company (named in the reason)
+#   industry : what the company's SIC code indicates (real estate, investment, ...) or blank
+name,tier,company,industry
+Ada Placeholder,match,Placeholder Holdings Ltd,holding

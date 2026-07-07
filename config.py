@@ -62,6 +62,9 @@ DIALING_CODE_COUNTRIES_FILE = PHONE_DIR / "dialing_code_countries.csv"
 COMPANIES_DIR = REFERENCE_DIR / "companies"
 COMPANY_KEYWORDS_FILE = COMPANIES_DIR / "company_keywords.csv"
 UK_COMPANY_CONTROLLERS_FILE = COMPANIES_DIR / "uk_company_controllers.csv"
+# Operator-generated real table (from scripts/build_company_controllers.py). GIT-IGNORED, because it
+# holds named private individuals. When present it is preferred over the committed inert seed.
+UK_COMPANY_CONTROLLERS_LOCAL_FILE = COMPANIES_DIR / "uk_company_controllers.local.csv"
 CHARITIES_DIR = REFERENCE_DIR / "charities"
 UK_CHARITY_TRUSTEES_FILE = CHARITIES_DIR / "uk_charity_trustees.csv"
 # Operator-generated real table (from scripts/build_charity_trustees.py). GIT-IGNORED, because it

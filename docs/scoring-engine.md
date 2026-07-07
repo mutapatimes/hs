@@ -84,9 +84,10 @@ estimated property value for a customer reads as surveillance.
 `assistant_order` (2), `fashion_stylist` (2), `stylist_directory` (1), `honorific` (2),
 `post_nominal` (2), `premium_card` (3), `ip_location` (1).
 
-**Name-based (group `name`, correlated)**: `rich_list` (1), `companies_house` (1), `charity_trustee`
-(3, eponymous-foundation trustee — high precision), `heritage_surname` (1), `name_structure` (1),
-`nobiliary_particle` (1).
+**Name-based (group `name`, correlated)**: `rich_list` (1), `companies_house` (tiered 2/4/6 —
+eponymous company owner with 75%+ control; higher for large or wealth-industry-SIC companies),
+`charity_trustee` (3, eponymous-foundation trustee — high precision), `heritage_surname` (1),
+`name_structure` (1), `nobiliary_particle` (1).
 
 **Household linkage**: `shared_phone` (2), `landline` (1).
 
@@ -160,8 +161,9 @@ has_core = (count of fired non-supporting signals) > 0
 for each supporting signal: fired = fired AND has_core     # and its reason is suppressed too
 ```
 
-Rationale: a name matching one of millions of Companies-House PSCs, or a phone merely *agreeing* with
-an address, is real corroboration but far too broad to surface someone on its own. `geo_confirmation`
+Rationale: even a precise name match (e.g. an eponymous company owner in `companies_house`), or a
+phone merely *agreeing* with an address, is real corroboration but is still a name-alone match with
+a residual namesake-collision risk, so it never surfaces someone on its own. `geo_confirmation`
 additionally can't fire at all unless a wealth-geo signal fired (it reads those flags — it runs
 **last** in `SIGNALS` for exactly this reason), so it is doubly precondition-gated.
 
