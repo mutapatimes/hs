@@ -19,9 +19,12 @@ Two free Companies House bulk products are joined (offline — never a live per-
 Precision (all applied here at BUILD time so the runtime match stays a simple O(1) name lookup):
   - keep only individual PSCs with a 75-100% ownership/voting band (``--min-control`` 75 or 50)
   - drop common surnames (an eponymous "Smith Ltd" tells you little)
-  - drop AMBIGUOUS full names: when more than one distinct person (by public birth month/year)
-    on the register carries the same full name, a customer matching it can never be a certain
-    match, so the name is excluded entirely
+  - gate AMBIGUOUS full names on ADDRESS: when more than one distinct person (by public birth
+    month/year) on the register carries the same full name, a name match alone can never be
+    certain. Instead of dropping the person, their row is emitted with the postcode DISTRICT of
+    their PSC service address, and the runtime signal only fires when the customer's billing or
+    shipping postcode lands in that district (name + address agreeing across two independent
+    sources). An ambiguous person with no usable postcode is dropped.
   - require the surname to be a word in the company name (the eponymous two-factor) UNLESS the
     company is BOTH large and a wealth industry (a strong-enough wealth fact to stand without it)
   - require the company to be ACTIVE and not a dormant / micro-entity shell (with one exception:
@@ -127,13 +130,22 @@ def _normalize(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9]+", " ", (text or "").upper())).strip()
 
 
-def _person_from_record(rec: dict) -> tuple[str, str, str, bool, str] | None:
-    """Return (display_name, surname, company_number, high_control, dob_key) for an individual
-    PSC record, else None.
+def _outcode(postcode: str) -> str:
+    """UK postcode district ('SW10 9SJ' -> 'SW10'); '' when unusable."""
+    compact = re.sub(r"\s+", "", (postcode or "").upper())
+    if len(compact) < 2:
+        return ""
+    return compact[:-3] if len(compact) >= 5 else compact
+
+
+def _person_from_record(rec: dict) -> tuple[str, str, str, bool, str, str] | None:
+    """Return (display_name, surname, company_number, high_control, dob_key, district) for an
+    individual PSC record, else None.
 
     ``high_control`` says whether natures_of_control includes a qualifying band; ``dob_key`` is
     the public birth month/year — used to count DISTINCT PEOPLE sharing a full name, so ambiguous
-    (namesake-prone) names can be dropped entirely.
+    (namesake-prone) names can be address-gated; ``district`` is the postcode district of the
+    person's PSC service address (the address the runtime gate corroborates against).
     """
     data = rec.get("data") or rec
     if data.get("kind") != INDIVIDUAL_KIND:
@@ -155,7 +167,8 @@ def _person_from_record(rec: dict) -> tuple[str, str, str, bool, str] | None:
     display = _title(full) if full.isupper() else full
     dob = data.get("date_of_birth") or {}
     dob_key = f"{dob.get('year', '')}-{dob.get('month', '')}"
-    return display, _normalize(surname), company_number, high_control, dob_key
+    district = _outcode(str((data.get("address") or {}).get("postal_code") or ""))
+    return display, _normalize(surname), company_number, high_control, dob_key, district
 
 
 # Set by main() from --min-control; natures_of_control substrings accepted as "high" control.
@@ -259,10 +272,12 @@ def _is_micro(account_cat: str) -> bool:
 def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int) -> None:
     # Pass 1: stream PSC, collect eligible candidates keyed by company number, and track how
     # many DISTINCT PEOPLE (by public birth month/year) share each full name across the WHOLE
-    # register. A name carried by more than one person is inherently ambiguous — a customer
-    # matching it can never be a certain match — so it is dropped at emit time. The same person
-    # controlling several companies (same name + same birth month/year) is NOT ambiguous.
-    candidates: dict[str, list[tuple[str, str]]] = {}
+    # register. A name carried by more than one person is inherently ambiguous — a bare name
+    # match can never be certain — so at emit time those rows carry the postcode DISTRICT of the
+    # person's PSC service address, and the runtime signal only fires when the customer's
+    # billing/shipping postcode corroborates it. The same person controlling several companies
+    # (same name + same birth month/year) is NOT ambiguous.
+    candidates: dict[str, list[tuple[str, str, str]]] = {}
     first_dob: dict[str, str] = {}
     ambiguous: set[str] = set()
     scanned = eligible = 0
@@ -274,7 +289,7 @@ def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int
         got = _person_from_record(rec)
         if not got:
             continue
-        display, surname, company_number, high_control, dob_key = got
+        display, surname, company_number, high_control, dob_key, district = got
         norm = _normalize(display)
         if norm:
             prev = first_dob.get(norm)
@@ -286,7 +301,7 @@ def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int
             continue
         if not surname or surname in _COMMON_SURNAMES:
             continue
-        candidates.setdefault(company_number, []).append((display, surname))
+        candidates.setdefault(company_number, []).append((display, surname, district))
         eligible += 1
     print(f"PSC scanned: {scanned:,}  high-control eligible people: {eligible:,}  "
           f"companies to check: {len(candidates):,}  ambiguous names: {len(ambiguous):,}",
@@ -295,9 +310,11 @@ def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int
     # Pass 2: stream Basic Company Data; for each candidate company, apply the eponymous +
     # active + non-shell test and tier by size/industry. When a person controls several kept
     # companies, their HIGHEST tier wins (not whichever company happens to stream first).
+    # Rows are keyed (name, district-requirement): '' = unconditional (unique name), a district
+    # = address-gated (ambiguous name; the runtime requires the customer postcode to agree).
     tier_rank = {"match": 0, "high": 1, "prime": 2}
-    rows: dict[str, tuple[str, str, str, str]] = {}   # norm name -> (name, tier, company, industry)
-    kept = 0
+    rows: dict[tuple[str, str], tuple[str, str, str, str, str]] = {}
+    kept = gated = 0
     for row in _open_company_csv(companies):
         number = _col(row, "CompanyNumber", "company_number")
         if number not in candidates:
@@ -316,7 +333,7 @@ def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int
         pool = set(_norm_tokens(name)) - _STOPWORDS
         is_large, is_wealth, industry = _classify(account_cat, company_cat, sic_texts)
         company_display = _title(name) if name.isupper() else name
-        for display, surname in candidates[number]:
+        for display, surname, district in candidates[number]:
             eponymous = surname in pool
             if _is_micro(account_cat):
                 # Micro-entity: a shell UNLESS it reads as a quiet family wealth vehicle —
@@ -329,19 +346,29 @@ def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int
             if not keep:
                 continue
             norm = _normalize(display)
-            if not norm or norm in ambiguous:     # more than one person has this name — uncertain
+            if not norm:
                 continue
-            prev = rows.get(norm)
+            if norm in ambiguous:
+                # More than one person has this name: keep only with an address gate. No
+                # usable service-address district means the match can never be confirmed.
+                if not district:
+                    continue
+                need = district
+            else:
+                need = ""
+            key = (norm, need)
+            prev = rows.get(key)
             if prev is None:
-                rows[norm] = (display, tier, company_display, industry)
+                rows[key] = (display, tier, company_display, industry, need)
                 kept += 1
+                gated += bool(need)
             elif tier_rank.get(tier, 0) > tier_rank.get(prev[1], 0):
-                rows[norm] = (display, tier, company_display, industry)
+                rows[key] = (display, tier, company_display, industry, need)
         if limit and kept >= limit:
             break
 
-    # Merge with the existing table unless --replace, then write name,tier,company,industry.
-    existing: dict[str, tuple[str, str, str, str]] = {}
+    # Merge with the existing table unless --replace, then write name,tier,company,industry,district.
+    existing: dict[tuple[str, str], tuple[str, str, str, str, str]] = {}
     if not replace and out.exists():
         with out.open(newline="", encoding="utf-8") as fh:
             for row in csv.reader(fh):
@@ -349,11 +376,13 @@ def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int
                     continue
                 nm = row[0].strip()
                 norm = _normalize(nm)
-                existing.setdefault(norm, (
+                district = row[4].strip().upper() if len(row) > 4 else ""
+                existing.setdefault((norm, district), (
                     nm,
                     row[1].strip() if len(row) > 1 else "match",
                     row[2].strip() if len(row) > 2 else "",
                     row[3].strip() if len(row) > 3 else "",
+                    district,
                 ))
     merged = {**existing, **rows}
 
@@ -361,15 +390,17 @@ def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int
     with out.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         fh.write("# UK company controllers (75%+ owners: eponymous, or large wealth-industry) — Companies House, OGL v3.0.\n")
-        fh.write("# Generated by scripts/build_company_controllers.py. Columns: name,tier,company,industry\n")
-        w.writerow(["name", "tier", "company", "industry"])
-        for nm, tier, company, industry in sorted(merged.values(), key=lambda x: x[0].lower()):
-            w.writerow([nm, tier, company, industry])
+        fh.write("# Generated by scripts/build_company_controllers.py. Columns: name,tier,company,industry,district\n")
+        fh.write("# district (when set) = the person's PSC service-address postcode district; the signal\n")
+        fh.write("# only fires when a customer billing/shipping postcode matches it (ambiguous-name gate).\n")
+        w.writerow(["name", "tier", "company", "industry", "district"])
+        for nm, tier, company, industry, district in sorted(merged.values(), key=lambda x: x[0].lower()):
+            w.writerow([nm, tier, company, industry, district])
 
     tiers = {}
-    for _, tier, _, _ in merged.values():
+    for _, tier, _, _, _ in merged.values():
         tiers[tier] = tiers.get(tier, 0) + 1
-    print(f"eponymous owners kept: {kept:,}  unique written: {len(merged):,}  "
+    print(f"owners kept: {kept:,}  of which address-gated: {gated:,}  unique written: {len(merged):,}  "
           f"tiers: {tiers}  -> {out}", file=sys.stderr)
 
 

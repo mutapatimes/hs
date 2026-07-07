@@ -122,9 +122,12 @@ company that is either **named after them** (their surname is a word in the comp
 two-factor match, plus a common-surname dampener and removal of dormant / micro-entity shells —
 except an eponymous wealth-industry micro-entity, the classic quiet family investment vehicle,
 kept at the lowest tier) OR is **both large and in a wealth industry** (a strong-enough wealth
-fact to stand without the name match). An **ambiguity gate** then drops any full name carried by
-more than one distinct person on the register (compared by the public birth month/year): an
-ambiguous name can never be a certain match, so it is excluded entirely rather than risked. Kept owners are tiered by company size (Full/Medium/Group
+fact to stand without the name match). An **ambiguity gate** then applies to any full name carried by
+more than one distinct person on the register (compared by the public birth month/year): a bare
+name match can never be certain, so those entries carry the postcode district of the person's PSC
+service address and only fire when the customer's billing/shipping postcode agrees — name and
+address corroborating each other across two independent sources. An ambiguous person with no
+usable register postcode is excluded entirely. Kept owners are tiered by company size (Full/Medium/Group
 accounts, or a PLC) and by a wealth-industry SIC code (real estate, investment/holding,
 architecture, design, art), which lifts the weight (2 → 4 → 6) and is named in the human reason
 ("controls Marandi Investments Ltd, a real estate company"). It is a factual entry on a statutory

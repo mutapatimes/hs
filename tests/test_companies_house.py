@@ -1,4 +1,4 @@
-"""Companies House control signal: matching, tiering + corroboration-only behaviour."""
+"""Companies House control signal: matching, tiering, namesake gate + corroboration-only."""
 from __future__ import annotations
 
 import pandas as pd
@@ -9,17 +9,27 @@ from scoring.signals import companies_house as ch
 
 
 def _table():
-    # {normalized name: (reason, tier)}, mirroring load_controllers' shape.
+    # {normalized name: [(reason, tier, required_district)]}, mirroring load_controllers.
     return {
-        ch._normalize("Anne Boden"): ("Anne Boden — controls Boden Ventures Ltd (Companies House)", "match"),
-        ch._normalize("Tom Blomfield"): ("Tom Blomfield — controls Blomfield Capital Ltd, a "
-                                          "real estate company (Companies House)", "prime"),
+        ch._normalize("Anne Boden"): [
+            ("Anne Boden — controls Boden Ventures Ltd (Companies House)", "match", ""),
+        ],
+        ch._normalize("Tom Blomfield"): [
+            ("Tom Blomfield — controls Blomfield Capital Ltd, a real estate company "
+             "(Companies House)", "prime", ""),
+        ],
+        # An AMBIGUOUS name (several people on the register): only fires when the customer's
+        # billing/shipping postcode district agrees with the register address.
+        ch._normalize("James Whitmore"): [
+            ("James Whitmore — controls Whitmore Estates Ltd, a real estate company "
+             "(Companies House)", "high", "GL54"),
+        ],
     }
 
 
 @pytest.fixture
 def seeded_table(monkeypatch):
-    """Make the whole engine score against ``_table()`` (the inert seed has only a placeholder)."""
+    """Make the whole engine score against ``_table()`` (the inert seed has only placeholders)."""
     monkeypatch.setattr(ch, "load_controllers", lambda *a, **k: _table())
     return _table()
 
@@ -43,12 +53,41 @@ def test_partial_or_extra_tokens_do_not_match():
     assert not ch.match_name("Anne Bodenham", table)[0]
 
 
+def test_gated_entry_needs_matching_district():
+    table = _table()
+    # name alone: no match — the register has more than one James Whitmore
+    assert not ch.match_name("James Whitmore", table)[0]
+    # customer postcode in the register person's district: fires, and says why
+    hit, reason, tier = ch.match_name("James Whitmore", table, districts={"GL54"})
+    assert hit and tier == "high" and reason.endswith("; register address matches)")
+    # a different district: still no match
+    assert not ch.match_name("James Whitmore", table, districts={"SW10"})[0]
+
+
 def test_flag_adds_columns():
     df = pd.DataFrame({"Name": ["Anne Boden", "Someone Else"]})
     out = ch.flag_companies_house(df, table=_table())
     assert list(out[ch.FLAG_COL]) == [True, False]
     assert out.loc[0, ch.REASON_COL] and out.loc[1, ch.REASON_COL] is None
     assert out.loc[0, ch.TYPE_COL] == "match" and out.loc[1, ch.TYPE_COL] is None
+
+
+def test_flag_applies_the_district_gate():
+    df = pd.DataFrame([
+        {"Name": "James Whitmore", "LATEST_BILLING_ZIP": "GL54 1AB"},   # agrees -> fires
+        {"Name": "James Whitmore", "LATEST_BILLING_ZIP": "M1 4BT"},     # disagrees -> silent
+        {"Name": "James Whitmore"},                                     # no postcode -> silent
+    ])
+    out = ch.flag_companies_house(df, table=_table())
+    assert list(out[ch.FLAG_COL]) == [True, False, False]
+    assert "register address matches" in out.loc[0, ch.REASON_COL]
+
+
+def test_gate_accepts_shipping_postcode_too():
+    df = pd.DataFrame([{"Name": "James Whitmore", "LATEST_BILLING_ZIP": "M1 4BT",
+                        "LATEST_SHIPPING_ZIP": "GL54 2XY"}])
+    out = ch.flag_companies_house(df, table=_table())
+    assert bool(out.loc[0, ch.FLAG_COL])
 
 
 def test_missing_name_column_is_safe():
@@ -67,11 +106,12 @@ def test_reason_names_industry():
 
 
 def test_seed_table_loads_inert_placeholder():
-    # The committed seed ships INERT: the fictional placeholder loads, no real individual.
+    # The committed seed ships INERT: the fictional placeholders load, no real individual.
     table = ch.load_controllers(ch.UK_COMPANY_CONTROLLERS_FILE)
-    assert ch._normalize("Ada Placeholder") in table
-    reason, tier = table[ch._normalize("Ada Placeholder")]
-    assert "Placeholder Holdings Ltd" in reason and tier == "match"
+    reason, tier, district = table[ch._normalize("Ada Placeholder")][0]
+    assert "Placeholder Holdings Ltd" in reason and tier == "match" and district == ""
+    reason, tier, district = table[ch._normalize("Bea Placeholder")][0]
+    assert tier == "high" and district == "SW10"       # the gated fictional example
 
 
 def test_corroboration_only_never_a_sole_basis(seeded_table):

@@ -67,12 +67,14 @@ _PSC_LINES = [
     '{"company_number":"10000012","data":{"kind":"individual-person-with-significant-control",'
     '"name_elements":{"forename":"Omar","surname":"Vanterpool"},'
     '"natures_of_control":["ownership-of-shares-75-to-100-percent"]}}',
-    # TWO DISTINCT PEOPLE (different birth month/year) share the name "Oliver Hartwell"; each
-    # would otherwise be a perfect prime candidate, but the name is ambiguous -> both dropped.
-    # (Rex above appears twice with the SAME dob key: one person, many companies — kept.)
+    # TWO DISTINCT PEOPLE (different birth month/year) share the name "Oliver Hartwell"; the name
+    # is ambiguous, so a bare name match is never certain. The one WITH a service address is kept
+    # as an ADDRESS-GATED row (district GL54); the one without a usable address is dropped.
+    # (Rex above appears twice with the SAME dob key: one person, many companies — kept, ungated.)
     '{"company_number":"10000013","data":{"kind":"individual-person-with-significant-control",'
     '"name_elements":{"forename":"Oliver","surname":"Hartwell"},'
     '"date_of_birth":{"month":3,"year":1970},'
+    '"address":{"postal_code":"GL54 1AB"},'
     '"natures_of_control":["ownership-of-shares-75-to-100-percent"]}}',
     '{"company_number":"10000014","data":{"kind":"individual-person-with-significant-control",'
     '"name_elements":{"forename":"Oliver","surname":"Hartwell"},'
@@ -101,7 +103,7 @@ HARTWELL INVESTMENTS LTD,10000014,Active,Private Limited Company,FULL,64209 - Ac
 
 @pytest.fixture(scope="module")
 def built(tmp_path_factory):
-    """Run the script once against the fixtures; return {name: (tier, company, industry)}."""
+    """Run the script once against the fixtures; return {name: [(tier, company, industry, district)]}."""
     tmp = tmp_path_factory.mktemp("chbuild")
     psc = tmp / "psc.txt"
     psc.write_text("\n".join(_PSC_LINES) + "\n", encoding="utf-8")
@@ -119,30 +121,41 @@ def built(tmp_path_factory):
         for row in csv.reader(fh):
             if not row or row[0].startswith("#") or row[0].strip().lower() == "name":
                 continue
-            rows[row[0]] = (row[1], row[2], row[3])
+            rows.setdefault(row[0], []).append((row[1], row[2], row[3], row[4]))
     return rows
 
 
 def test_eponymous_large_wealth_is_prime(built):
-    tier, company, industry = built["Jane Marandi"]
+    tier, company, industry, district = built["Jane Marandi"][0]
     assert tier == "prime" and company == "Marandi Investments Ltd" and industry == "real estate"
+    assert district == ""              # unique name: matches on name alone
 
 
 def test_non_eponymous_large_wealth_kept_at_high(built):
-    tier, company, industry = built["Nadia Okonkwo"]
+    tier, company, industry, _ = built["Nadia Okonkwo"][0]
     assert tier == "high" and industry == "real estate"
 
 
 def test_multi_company_owner_takes_highest_tier(built):
     # Rex's small trading company streams before his large estates company; prime must win.
-    tier, company, _ = built["Rex Hollingsworth"]
+    tier, company, _, district = built["Rex Hollingsworth"][0]
     assert tier == "prime" and company == "Hollingsworth Estates Ltd"
+    assert district == ""              # one person (same dob key twice): no gate needed
 
 
 def test_micro_family_vehicle_kept_at_match(built):
     # Eponymous + wealth-SIC micro-entity: the quiet family vehicle exception, dampened tier.
-    tier, _, industry = built["Tessa Winterbourne"]
+    tier, _, industry, _ = built["Tessa Winterbourne"][0]
     assert tier == "match" and industry == "holding"
+
+
+def test_ambiguous_name_kept_only_with_address_gate(built):
+    # Two people share "Oliver Hartwell": the one with a service address survives as a gated
+    # row carrying their postcode district; the one without an address is dropped.
+    entries = built["Oliver Hartwell"]
+    assert len(entries) == 1
+    tier, company, _, district = entries[0]
+    assert district == "GL54" and company == "Hartwell Estates Ltd" and tier == "prime"
 
 
 def test_dropped_candidates(built):
@@ -152,23 +165,27 @@ def test_dropped_candidates(built):
                  "Hugo Brantfield",    # micro-entity, generic industry
                  "Zara Quillon",       # dormant
                  "Mira Castellane",    # TOTAL EXEMPTION FULL = small, not "FULL" (substring trap)
-                 "Omar Vanterpool",    # UNAUDITED ABRIDGED = small, not "AUDITED" (substring trap)
-                 "Oliver Hartwell"):   # two distinct people share the name — ambiguous
+                 "Omar Vanterpool"):   # UNAUDITED ABRIDGED = small, not "AUDITED" (substring trap)
         assert name not in built
-    assert len(built) == 4             # nothing else slipped through
+    assert len(built) == 5             # the 4 unconditional + the gated Hartwell
 
 
 def test_output_loads_into_signal(built, tmp_path):
-    # The written schema must round-trip through the signal loader with the industry in the reason.
+    # The written schema must round-trip through the signal loader: industry in the reason,
+    # and the gated row keeping its district requirement.
     from scoring.signals import companies_house as ch
     out = tmp_path / "table.csv"
     with out.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
-        w.writerow(["name", "tier", "company", "industry"])
-        for name, (tier, company, industry) in built.items():
-            w.writerow([name, tier, company, industry])
+        w.writerow(["name", "tier", "company", "industry", "district"])
+        for name, entries in built.items():
+            for tier, company, industry, district in entries:
+                w.writerow([name, tier, company, industry, district])
     table = ch.load_controllers(out)
-    reason, tier = table[ch._normalize("Jane Marandi")]
-    assert tier == "prime"
+    reason, tier, district = table[ch._normalize("Jane Marandi")][0]
+    assert tier == "prime" and district == ""
     assert reason == ("Jane Marandi — controls Marandi Investments Ltd, a real estate company "
                       "(Companies House)")
+    # the gated Hartwell row round-trips and only matches with the agreeing postcode
+    assert not ch.match_name("Oliver Hartwell", table)[0]
+    assert ch.match_name("Oliver Hartwell", table, districts={"GL54"})[0]
