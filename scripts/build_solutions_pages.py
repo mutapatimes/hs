@@ -121,12 +121,12 @@ INDUSTRIES = [
         "rows": [
             ("Family-office domain · prime residence", 140, "Wealth structure", "A*", 46000, True),
             ("Gift buyer · standard card", 140, "None of note", "C", 400, False),
-            ("Repair/strap only · regional", 140, "Service, not a buyer", "C", 250, False),
+            ("Repair/strap only · regional", 140, "Service visit only", "C", 250, False),
         ],
         "surfaces": ["Family offices", "Prime residences", "Premium card BINs", "Honorifics"],
         "move": "Halia grades the wealth behind the first order and flags it for a named contact, so the "
-                "second conversation is personal and timely, routed to the client's Shopify profile and "
-                "your CRM, not a mass email.",
+                "second conversation is personal and timely, routed straight to the client's Shopify "
+                "profile and your CRM for a named follow-up.",
     },
     {
         "slug": "home", "name": "Home, furniture & interiors", "eyebrow": "Solutions · Home & interiors",
@@ -242,11 +242,11 @@ IMG = {
     "wine": ("luxury_client_pic_also_client_with_wine.jpg", "A quiet monthly order, a cellar worth the allocation call.",
              "wine_bottle_hug.jpg", "First on the en-primeur list, before it is asked for."),
     "beauty": ("beauty_influencer.jpg", "A &pound;34 fragrance, a five-figure ceiling behind it.",
-               "perfume.jpg", "A private-shopping invite, not another discount code."),
+               "perfume.jpg", "A private-shopping invite, in the first week."),
     "jewellery": ("nice_necklace.jpg", "A &pound;140 strap, a &pound;50,000 collector behind it.",
                   "pearl_necklace.jpg", "A named contact, while the interest is still warm."),
     "home": ("client_with_furniture.jpg", "One accessory, a whole-house project behind it.",
-             "nice_furniture_stools.jpg", "Terms and a dedicated contact, a trade account, not a sale."),
+             "nice_furniture_stools.jpg", "Terms and a dedicated contact: the start of a trade account."),
     "gifting": ("flowers.jpg", "A &pound;48 standing order, a house account behind it.",
                 "gifts_wrapped.jpg", "The house-account conversation the retail order never starts."),
     "collectibles": ("nice_books_with_mug.jpg", "&pound;20 reading copies beside &pound;8,000 first editions.",
@@ -573,11 +573,11 @@ def _footer() -> str:
         '<button type="submit">Subscribe &rarr;</button></form></div>'
         '<div class="hf-grid"><div>'
         f'<a class="brand" href="/"><span aria-hidden="true" style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:22px;line-height:1;color:var(--gold,#8a8377)">{_ASTER}</span>Halia</a>'
-        '<p class="hf-bio">Halia is hidden-VIC intelligence for considered-purchase retail. We read the '
-        'wealth and intent signals already sitting in your customer data, grade every customer, and '
-        'surface the high-value clients you would otherwise treat like everyone else, then help your '
-        'teams act on them in the tools they already use. We never keep a copy of your customers: they '
-        'are scored on the spot and nothing about them is stored on our side.</p></div>'
+        '<p class="hf-bio">Halia is private client intelligence for luxury retail. We read the '
+        'wealth signals already sitting in your customer data, grade every customer from A&#42; to C, '
+        'and surface the high-value clients hiding behind modest spend, then help your teams act on '
+        'them in the tools they already use. Customers are scored in memory, on the spot, and the '
+        'data is released the moment the work is done. Zero retention, by architecture.</p></div>'
         '<div class="hf-col"><h4>Product</h4><a href="/#engine">The engine</a><a href="/#how">How it works</a>'
         '<a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/docs">Docs</a><a href="/connect">Connect a store</a></div>'
         '<div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/solutions">Solutions</a>'

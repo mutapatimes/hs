@@ -33,8 +33,8 @@ OUT = OUTPUT_DIR / "mvp.html"
 
 # Recommended-approach copy, keyed by the strongest signal that fired.
 RECO = {
-    "Work email": "High earning potential masked by modest spend. Lead with a personal, service-led approach: recognition, not a discount.",
-    "Styling service (B2B)": "B2B trade account: this buyer styles many UHNW clients. Open a wholesale/trade relationship with a dedicated contact and recurring-order terms, not a one-off discount. Highest-value relationship to win.",
+    "Work email": "High earning potential masked by modest spend. Lead with a personal, service-led approach: recognition over discounting.",
+    "Styling service (B2B)": "B2B trade account: this buyer styles many UHNW clients. Open a wholesale/trade relationship with a dedicated contact and recurring-order terms. Highest-value relationship to win.",
     "HNWI postcode": "Ultra-prime billing area. Strong candidate for a private appointment and early access to new drops.",
     "Prime residence": "Trophy-building address signals real wealth. Worth a personal associate assignment.",
     "Property value": "Lives in a high-value area (local property prices well above national). A genuine wealth tell on modest spend: worth a personal, service-led approach.",
