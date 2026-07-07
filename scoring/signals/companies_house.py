@@ -62,7 +62,8 @@ def _normalize(value: object) -> str:
 def _reason(name: str, company: str, industry: str) -> str:
     """Human reason naming the company and (when known) what its SIC code indicates."""
     if company and industry:
-        return f"{name} — controls {company}, a {industry} company (Companies House)"
+        article = "an" if industry[:1].lower() in "aeiou" else "a"
+        return f"{name} — controls {company}, {article} {industry} company (Companies House)"
     if company:
         return f"{name} — controls {company} (Companies House)"
     return f"{name} — controls a UK company (Companies House)"

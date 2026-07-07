@@ -61,6 +61,9 @@ def test_reason_names_industry():
     assert ch._reason("Jane Marandi", "Marandi Investments Ltd", "real estate") == (
         "Jane Marandi — controls Marandi Investments Ltd, a real estate company (Companies House)")
     assert ch._reason("A B", "AB Ltd", "") == "A B — controls AB Ltd (Companies House)"
+    # vowel-initial industries take "an"
+    assert ", an architecture company" in ch._reason("F M", "FM Architecture Ltd", "architecture")
+    assert ", an investment company" in ch._reason("D C", "DC IFA Ltd", "investment")
 
 
 def test_seed_table_loads_inert_placeholder():
