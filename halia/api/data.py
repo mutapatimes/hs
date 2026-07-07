@@ -175,6 +175,32 @@ def sync_bigc(shop: str) -> dict:
     return _finalize(shop, *score_bigc(shop))
 
 
+def score_centra(shop: str):
+    """Live: pull + score one Centra tenant's customers (using its stored creds)."""
+    from halia import config as hcfg
+    from halia.api.settings import settings_for
+    from scoring.centra import centra_order_to_rest
+    from scoring.centra_fetch import fetch_orders, http_transport
+    from scoring.combine import score_customers
+    from scoring.shopify import orders_to_customers
+
+    creds = shop_store().get_centra(shop)
+    if not creds:
+        raise RuntimeError("No Centra credentials connected for this tenant")
+    transport = http_transport(creds["base_url"], creds["api_token"])
+    orders = [centra_order_to_rest(o) for o in fetch_orders(transport, max_pages=hcfg.CENTRA_MAX_PAGES)]
+    customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
+    s = settings_for(shop)
+    return score_customers(customers, weights=s.get("signal_weights"),
+                           vic_threshold=s["vic_threshold"],
+                           include_origin=_include_origin(shop)), orders
+
+
+def sync_centra(shop: str) -> dict:
+    """Centra pull → score → cache in RAM. Returns the cache entry."""
+    return _finalize(shop, *score_centra(shop))
+
+
 def scored_frame_for(shop: str):
     """Re-pull + score this shop's customers, returning the scored DataFrame (flag columns
     + Spent) for calibration. Source-aware like sync_tenant. None if no source is connected.
@@ -186,6 +212,8 @@ def scored_frame_for(shop: str):
         return score_woo(shop)[0]
     if tenant and tenant["kind"] == "bigcommerce":
         return score_bigc(shop)[0]
+    if tenant and tenant["kind"] == "centra":
+        return score_centra(shop)[0]
     token = shop_store().get_token(shop)
     return score_shop(shop, token)[0] if token else None
 
@@ -197,6 +225,8 @@ def sync_tenant(shop: str) -> dict | None:
         return sync_woo(shop)
     if tenant and tenant["kind"] == "bigcommerce":
         return sync_bigc(shop)
+    if tenant and tenant["kind"] == "centra":
+        return sync_centra(shop)
     token = shop_store().get_token(shop)
     return sync_shop(shop, token) if token else None
 
@@ -256,6 +286,9 @@ def score_order(shop: str, payload: dict) -> dict | None:
     elif kind == "bigcommerce":
         from scoring.bigcommerce import bigcommerce_to_rest
         rest = bigcommerce_to_rest(payload)
+    elif kind == "centra":
+        from scoring.centra import centra_order_to_rest
+        rest = centra_order_to_rest(payload)
     else:
         rest = payload  # Shopify REST order shape
     customers = orders_to_customers([rest]).rename(columns={"orders_count": "Count of CUST_ID"})

@@ -398,6 +398,18 @@ def _validate_bigcommerce(store_hash: str, access_token: str, probe=None) -> tup
         return False, str(exc)[:180]
 
 
+def _validate_centra(base_url: str, api_token: str, probe=None) -> tuple[bool, str]:
+    """One live read-only GraphQL call to confirm the Centra base URL + token work."""
+    try:
+        if probe is None:
+            from scoring.centra_fetch import http_transport
+            probe = http_transport(base_url, api_token)
+        probe("query HaliaPing { orderConnection(first: 1) { totalCount } }", {})
+        return True, ""
+    except Exception as exc:  # noqa: BLE001 - surface a short reason to the client
+        return False, str(exc)[:180]
+
+
 # Background-sync status per shop, so the preparing page can reassure / show errors rather than
 # spin forever. Plus a "ready email sent" guard so we email a tenant only once.
 _SYNC_STATUS: dict[str, dict] = {}
@@ -1059,11 +1071,18 @@ function renderSource(){
     b.innerHTML='<ol class="slist"><li>In your BigCommerce control panel, open <b>Settings &rarr; API accounts &rarr; Create API account</b>.</li><li>Name it "Halia" and grant <b>Orders</b> and <b>Customers</b> the <b>read-only</b> scope.</li><li>Save, then copy the <b>Access Token</b> and your <b>store hash</b> (the code in the API path, e.g. stores/<b>abc12def</b>/).</li></ol>'
       +'<label>Store hash</label><input id="store_hash" placeholder="abc12def" autocomplete="off">'
       +'<label>API access token</label><input id="access_token" type="password" placeholder="Access token" autocomplete="off">';
+  } else if(state.source==='centra'){
+    eye.textContent='Your store data · Centra';
+    ti.innerHTML='Connect your orders, <em>safely.</em>';
+    le.textContent='Create an Integration API token in Centra restricted to reading orders, and paste it with your instance address. Halia can read your past orders and nothing else.';
+    b.innerHTML='<ol class="slist"><li>In your Centra admin, open <b>System &rarr; API Tokens</b> and click <b>+ Integration API token</b>.</li><li>Name it "Halia" and grant only the <b>Order:read</b> permission.</li><li>Save, then copy the token and your instance address (e.g. https://<b>yourbrand</b>.centra.com).</li></ol>'
+      +'<label>Centra instance URL</label><input id="centra_url" placeholder="https://yourbrand.centra.com" autocomplete="off">'
+      +'<label>Integration API token</label><input id="centra_token" type="password" placeholder="API token" autocomplete="off">';
   } else {
     eye.textContent='Your store';
     ti.innerHTML='Which platform powers your <em>store?</em>';
     le.textContent='We could not tell automatically, no problem at all. Pick yours and we will show you exactly what to do.';
-    b.innerHTML='<div class="cards"><div class="pcard" data-src="shopify"><div class="pi">S</div><div><h3>Shopify</h3><p>Connect with a read-only Admin API token.</p></div></div><div class="pcard" data-src="woocommerce"><div class="pi">W</div><div><h3>WooCommerce</h3><p>Connect with a read-only REST API key.</p></div></div><div class="pcard" data-src="bigcommerce"><div class="pi">B</div><div><h3>BigCommerce</h3><p>Connect with a store hash and API token.</p></div></div></div>';
+    b.innerHTML='<div class="cards"><div class="pcard" data-src="shopify"><div class="pi">S</div><div><h3>Shopify</h3><p>Connect with a read-only Admin API token.</p></div></div><div class="pcard" data-src="woocommerce"><div class="pi">W</div><div><h3>WooCommerce</h3><p>Connect with a read-only REST API key.</p></div></div><div class="pcard" data-src="bigcommerce"><div class="pi">B</div><div><h3>BigCommerce</h3><p>Connect with a store hash and API token.</p></div></div><div class="pcard" data-src="centra"><div class="pi">C</div><div><h3>Centra</h3><p>Connect with an Order:read Integration API token.</p></div></div></div>';
     [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){state.source=c.dataset.src;renderSource();};});
   }
 }
@@ -1183,6 +1202,8 @@ function valid(n){
       if(state.woo_method==='manual'&&(!gv('consumer_key')||!gv('consumer_secret'))){err('err2','Paste both your consumer key and secret.');return false;}}
     else if(state.source==='bigcommerce'){
       if(!gv('store_hash')||!gv('access_token')){err('err2','Enter your BigCommerce store hash and API access token.');return false;}}
+    else if(state.source==='centra'){
+      if(!gv('centra_url')||!gv('centra_token')){err('err2','Enter your Centra instance URL and Integration API token.');return false;}}
     else{err('err2','Choose your store platform to continue.');return false;}
     if(SIGNUP&&!gv('code')){err('err2','Enter your signup code.');return false;}}
   if(n===4){var key=gv('api_key');if(!key){err('err4','Paste your '+(state.platform==='klaviyo'?'Klaviyo':'Mailchimp')+' key, or go back and choose to connect later.');return false;}
@@ -1210,6 +1231,7 @@ function payload(){return{
   label:gv('label'),store_url:gv('store_url'),source:state.source||'',
   consumer_key:gv('consumer_key'),consumer_secret:gv('consumer_secret'),
   store_hash:gv('store_hash'),access_token:gv('access_token'),
+  centra_url:gv('centra_url'),centra_token:gv('centra_token'),
   shop_domain:gv('shop_domain'),admin_token:gv('admin_token'),woo_token:state.woo_token||'',code:gv('code'),
   platform:(!state.platform||state.platform==='later')?'':state.platform,api_key:gv('api_key'),
   email:gv('email'),notify_emails:collectEmails(),
@@ -1358,6 +1380,22 @@ def register(app) -> None:
             label = label or store_hash
             store.create_tenant(shop, "bigcommerce", label, hash_token(link_token))
             store.save_bigcommerce(shop, store_hash, access_token)
+        elif source == "centra":
+            centra_url = g("centra_url")
+            centra_token = g("centra_token")
+            if not centra_url or not centra_token:
+                raise HTTPException(400, "Add your Centra instance URL and Integration API token.")
+            if not centra_url.startswith("http"):
+                raise HTTPException(400, "Enter your full Centra instance address, starting with https://")
+            ok, why = _validate_centra(centra_url, centra_token)
+            if not ok:
+                raise HTTPException(400, f"We could not reach Centra with that token: {why}")
+            shop = _slug(centra_url)
+            if not shop:
+                raise HTTPException(400, "That Centra instance address does not look right.")
+            label = label or shop
+            store.create_tenant(shop, "centra", label, hash_token(link_token))
+            store.save_centra(shop, centra_url, centra_token)
         else:
             shop = _slug(store_url)
             if not shop or not store_url.startswith("http"):

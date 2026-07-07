@@ -53,6 +53,18 @@ def test_onboard_bigcommerce_creates_tenant_and_saves_creds(client, monkeypatch)
     assert creds["store_hash"] == "abc12def" and creds["access_token"] == "tok"
 
 
+def test_onboard_centra_creates_tenant_and_saves_creds(client, monkeypatch):
+    c, store = client
+    monkeypatch.setattr(onboarding, "_validate_centra", lambda *a, **k: (True, ""))
+    r = c.post("/v1/onboard", json={"source": "centra", "centra_url": "https://yourbrand.centra.com",
+                                    "centra_token": "tok", "platform": "", "accept_terms": True})
+    assert r.status_code == 200
+    t = store.get_tenant("yourbrand-centra-com")
+    assert t and t["kind"] == "centra"
+    creds = store.get_centra("yourbrand-centra-com")
+    assert creds["base_url"] == "https://yourbrand.centra.com" and creds["api_token"] == "tok"
+
+
 def test_signup_code_enforced(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr("halia.config.SIGNUP_CODE", "letmein")

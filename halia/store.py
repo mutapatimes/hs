@@ -61,6 +61,13 @@ _TABLES = [
         access_token TEXT,
         connected_at TEXT
     )""",
+    # Centra Integration-API credentials (instance base URL + Order:read token), encrypted.
+    """CREATE TABLE IF NOT EXISTS centra (
+        shop         TEXT PRIMARY KEY,
+        base_url     TEXT,
+        api_token    TEXT,
+        connected_at TEXT
+    )""",
     # Marketing-site newsletter signups (just an email + when). Not customer data.
     """CREATE TABLE IF NOT EXISTS subscribers (
         email        TEXT PRIMARY KEY,
@@ -344,6 +351,23 @@ class ShopStore(_DB):
         return {"store_hash": row["store_hash"],
                 "access_token": crypto.decrypt(row["access_token"])}
 
+    # ── Centra Integration-API credentials (base URL + Order:read token, encrypted) ─
+    def save_centra(self, shop: str, base_url: str, api_token: str) -> None:
+        self._run(
+            """INSERT INTO centra (shop, base_url, api_token, connected_at)
+               VALUES (:shop, :url, :token, :at)
+               ON CONFLICT(shop) DO UPDATE SET base_url=excluded.base_url,
+                api_token=excluded.api_token, connected_at=excluded.connected_at""",
+            {"shop": shop, "url": base_url, "token": crypto.encrypt(api_token), "at": _now()})
+
+    def get_centra(self, shop: str) -> dict | None:
+        row = self._run("SELECT base_url, api_token FROM centra WHERE shop = :shop",
+                        {"shop": shop}, fetch="one")
+        if not row:
+            return None
+        return {"base_url": row["base_url"],
+                "api_token": crypto.decrypt(row["api_token"])}
+
     # ── order-alert webhook token ───────────────────────────────────────────────
     def get_webhook_token(self, shop: str) -> str | None:
         row = self._run("SELECT token FROM webhooks WHERE shop = :shop", {"shop": shop}, fetch="one")
@@ -608,7 +632,7 @@ class ShopStore(_DB):
         """{integration: {total, this_week}} from each connection table's connected_at."""
         this_week = _iso_week()
         out: dict[str, dict[str, int]] = {}
-        for table in ("klaviyo", "mailchimp", "hubspot", "slack", "woocommerce", "bigcommerce"):
+        for table in ("klaviyo", "mailchimp", "hubspot", "slack", "woocommerce", "bigcommerce", "centra"):
             rows = self._run(f"SELECT connected_at FROM {table}", fetch="all") or []
             total = len(rows)
             recent = sum(1 for r in rows
@@ -647,7 +671,7 @@ class ShopStore(_DB):
     def integrations_by_shop(self) -> dict[str, list[str]]:
         """{shop: [integration names connected]} across every per-shop connection table."""
         out: dict[str, list[str]] = {}
-        for table in ("klaviyo", "mailchimp", "hubspot", "slack", "woocommerce", "bigcommerce"):
+        for table in ("klaviyo", "mailchimp", "hubspot", "slack", "woocommerce", "bigcommerce", "centra"):
             rows = self._run(f"SELECT shop FROM {table}", fetch="all") or []
             for r in rows:
                 out.setdefault(r["shop"], []).append(table)
@@ -656,7 +680,7 @@ class ShopStore(_DB):
     # ── deletion (shop/redact + app/uninstalled) ───────────────────────────────
     def delete_shop(self, shop: str) -> None:
         """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""
-        for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "bigcommerce",
+        for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "bigcommerce", "centra",
                       "mailchimp", "hubspot", "slack", "webhooks", "push_subs", "billing",
                       "feedback_stats", "metrics"):
             self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})
