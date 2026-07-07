@@ -119,9 +119,10 @@ bulk products under the Open Government Licence v3.0: the People with Significan
 snapshot joined **offline** to Basic Company Data (there is no live per-name API call at scoring
 time). It keeps only a high-precision subset: a person who owns or controls **75%+** of an **active** UK
 company that is either **named after them** (their surname is a word in the company name, a
-two-factor match, plus a common-surname dampener and removal of dormant / micro-entity shells) OR
-is **both large and in a wealth industry** (a strong-enough wealth fact to stand without the name
-match). Kept owners are tiered by company size (Medium/Full/Group
+two-factor match, plus a common-surname dampener and removal of dormant / micro-entity shells —
+except an eponymous wealth-industry micro-entity, the classic quiet family investment vehicle,
+kept at the lowest tier) OR is **both large and in a wealth industry** (a strong-enough wealth
+fact to stand without the name match). Kept owners are tiered by company size (Medium/Full/Group
 or audited accounts, or a PLC) and by a wealth-industry SIC code (real estate, investment/holding,
 architecture, design, art), which lifts the weight (2 → 4 → 6) and is named in the human reason
 ("controls Marandi Investments Ltd, a real estate company"). It is a factual entry on a statutory

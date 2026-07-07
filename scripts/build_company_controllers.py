@@ -21,7 +21,9 @@ Precision (all applied here at BUILD time so the runtime match stays a simple O(
   - drop common surnames (an eponymous "Smith Ltd" tells you little)
   - require the surname to be a word in the company name (the eponymous two-factor) UNLESS the
     company is BOTH large and a wealth industry (a strong-enough wealth fact to stand without it)
-  - require the company to be ACTIVE and not a dormant / micro-entity shell
+  - require the company to be ACTIVE and not a dormant / micro-entity shell (with one exception:
+    an eponymous + wealth-SIC micro-entity — the quiet family investment vehicle — is kept at
+    the dampened ``match`` tier)
   - tier by size (Medium/Full/Group/audited or PLC = large) and wealth-industry SIC; eponymy earns
     the top ``prime`` band, a non-eponymous large+wealth owner lands at ``high``
 
@@ -81,9 +83,12 @@ _STOPWORDS = {
 }
 
 # Accounts categories that indicate a materially LARGE company (turnover thresholds: small <=£10.2M,
-# medium <=£36M, large/full above). Micro-entity and dormant are shells we drop entirely.
+# medium <=£36M, large/full above). Dormant / never-filed are shells we drop entirely. Micro-entity
+# is USUALLY a shell too — except the quiet family wealth vehicle ("[Surname] Investments Ltd"
+# filing micro accounts on purpose), so an eponymous + wealth-SIC micro is kept, dampened to
+# the 'match' tier (micro accounts tell us nothing about scale).
 _LARGE_ACCOUNTS = {"MEDIUM", "FULL", "GROUP"}     # substring test also catches "…AUDITED…"
-_SHELL_ACCOUNTS = {"DORMANT", "MICRO ENTITY", "NO ACCOUNTS FILED"}
+_ALWAYS_SHELL = {"DORMANT", "NO ACCOUNTS FILED"}
 
 # SIC (Standard Industrial Classification) codes -> the wealth-industry label shown in the reason.
 # These are the sectors that read as HNW wealth / creative-professional vehicles.
@@ -237,7 +242,11 @@ def _tier(eponymous: bool, is_large: bool, is_wealth: bool) -> tuple[bool, str]:
 
 def _is_shell(account_cat: str) -> bool:
     ac = account_cat.upper()
-    return any(s in ac for s in _SHELL_ACCOUNTS)
+    return any(s in ac for s in _ALWAYS_SHELL)
+
+
+def _is_micro(account_cat: str) -> bool:
+    return "MICRO" in account_cat.upper()
 
 
 def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int) -> None:
@@ -286,7 +295,15 @@ def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int
         is_large, is_wealth, industry = _classify(account_cat, company_cat, sic_texts)
         company_display = _title(name) if name.isupper() else name
         for display, surname in candidates[number]:
-            keep, tier = _tier(surname in pool, is_large, is_wealth)
+            eponymous = surname in pool
+            if _is_micro(account_cat):
+                # Micro-entity: a shell UNLESS it reads as a quiet family wealth vehicle —
+                # eponymous AND a wealth-industry SIC — kept at the dampened 'match' tier.
+                if not (eponymous and is_wealth):
+                    continue
+                keep, tier = True, "match"
+            else:
+                keep, tier = _tier(eponymous, is_large, is_wealth)
             if not keep:
                 continue
             norm = _normalize(display)
