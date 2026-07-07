@@ -108,7 +108,7 @@ Some signals grade their own strength per row and override the base weight:
 |---|---|---|
 | `property_value` | area value tier | `ultra`=4, `prime`=3, `high`=2 |
 | `delivery_venue` | venue type | `private_jet_fbo`=5, `marina`=5, else base 3 |
-| `domain_keyword` | finance tier | `elite`=3 (PE/hedge/family office/trust/chambers/yacht), `general`=2 |
+| `domain_keyword` | keyword tier | `elite`=3 (PE/hedge/family office/trust/chambers/yacht), `talent`=3 ("mgmt" domains/inboxes, talent-agency compounds — represented talent or their agent), `general`=2 |
 
 ---
 

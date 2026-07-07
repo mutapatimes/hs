@@ -120,8 +120,11 @@ DELIVERY_TYPE_WEIGHTS = {
 
 # Within domain_keyword, an ELITE-finance domain (private equity / hedge fund /
 # family office) outweighs a general high-earning one — weight 3 vs the base 2.
+# TALENT / artist-management ("mgmt" domains and inboxes, talent-agency compounds)
+# also outweighs general: the customer is likely represented talent or their agent.
 DOMAIN_KEYWORD_TYPE_WEIGHTS = {
     "elite": 3,
+    "talent": 3,
     "general": 2,
 }
 

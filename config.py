@@ -31,6 +31,7 @@ ELITE_ALUMNI_FILE = DOMAINS_DIR / "elite_alumni_domains.csv"
 HOTEL_DOMAINS_FILE = DOMAINS_DIR / "hotel_domains.csv"
 HIGH_EARNING_KEYWORDS_FILE = DOMAINS_DIR / "high_earning_keywords.csv"
 ELITE_FINANCE_KEYWORDS_FILE = DOMAINS_DIR / "elite_finance_keywords.csv"
+TALENT_MGMT_KEYWORDS_FILE = DOMAINS_DIR / "talent_mgmt_keywords.csv"
 STYLING_SERVICES_FILE = DOMAINS_DIR / "styling_services.csv"
 HOTEL_CHAIN_DOMAINS_FILE = DOMAINS_DIR / "hotel_chain_domains.csv"
 CCTLD_COUNTRIES_FILE = DOMAINS_DIR / "cctld_countries.csv"  # email ccTLD -> country (corroboration only)

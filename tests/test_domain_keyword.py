@@ -98,3 +98,51 @@ def test_email_domain_still_wins_over_company():
 
 def test_missing_column_is_dormant():
     assert not flag_domain_keyword(pd.DataFrame({"x": [1]}))["domain_keyword"].any()
+
+
+def test_talent_mgmt_domain_fires():
+    # "<name>mgmt.com" agency domains and talent-management compounds -> talent tier.
+    df = pd.DataFrame({"EMAIL_ADDR": [
+        "office@sallyclarkemgmt.com",          # mgmt as a segment suffix
+        "a@xyz-talent-management.com",         # compound across hyphens
+        "b@bobsplumbing.com",                  # generic custom: silent
+    ]})
+    out = flag_domain_keyword(df)
+    assert out["domain_keyword"].tolist() == [True, True, False]
+    assert out.loc[0, "domain_keyword_type"] == "talent"
+    assert "talent / artist management" in out.loc[0, "domain_keyword_reason"]
+
+
+def test_talent_mgmt_local_part_fires_even_on_free_domains():
+    df = pd.DataFrame({"EMAIL_ADDR": [
+        "mgmt@sadiecoles.com",                 # a management inbox on the talent's own domain
+        "sarahmgmt@gmail.com",                 # an agent's mailbox on a free provider
+        "info@gmail.com",                      # ordinary free mailbox: silent
+    ]})
+    out = flag_domain_keyword(df)
+    assert out["domain_keyword"].tolist() == [True, True, False]
+    assert out.loc[1, "domain_keyword_type"] == "talent"
+    assert "email address" in out.loc[1, "domain_keyword_reason"]
+
+
+def test_non_talent_mgmt_compounds_are_stoplisted():
+    df = pd.DataFrame({"EMAIL_ADDR": [
+        "propertymgmt@gmail.com",              # property management, not talent
+        "a@projectmgmt.com",                   # project management, not talent
+    ]})
+    out = flag_domain_keyword(df)
+    assert out["domain_keyword"].tolist() == [False, False]
+
+
+def test_talent_company_field_fires():
+    df = pd.DataFrame({"EMAIL_ADDR": ["a@gmail.com"],
+                       "COMPANY_NAME": ["Riverdale Talent Management"]})
+    out = flag_domain_keyword(df)
+    assert out.loc[0, "domain_keyword"] and out.loc[0, "domain_keyword_type"] == "talent"
+
+
+def test_talent_tier_scores_like_elite():
+    talent = score_customers(pd.DataFrame([{"Name": "A", "Spent": 200,
+        "EMAIL_ADDR": "a@sallyclarkemgmt.com"}])).iloc[0]
+    # talent (3) + custom-email corroboration (0.5) = 3.5, same as elite finance.
+    assert float(talent[SCORE_COL]) == 3.5

@@ -1,0 +1,22 @@
+keyword
+# TALENT / ARTIST MANAGEMENT keywords — an email domain (or company name) bearing one of
+# these is a talent-management tell: the customer is likely represented talent (artist,
+# designer, musician, model, creative) or their agent ordering on their behalf. Weighted 3
+# in the combiner (DOMAIN_KEYWORD_TYPE_WEIGHTS["talent"]), checked after elite finance.
+#
+# "mgmt" matches as a SEGMENT SUFFIX too ("sallyclarkemgmt.com"), which is safe because no
+# ordinary word ends in "mgmt"; non-talent compounds (propertymgmt, projectmgmt, ...) are
+# stoplisted in the signal. The longer compounds below match by the normal >=6-char suffix
+# rule. EDIT freely.
+mgmt
+talentmanagement
+talentagency
+talentgroup
+artistmanagement
+artistsmanagement
+artistagency
+artistsagency
+modelmanagement
+modelsmanagement
+musicmanagement
+creativemanagement
