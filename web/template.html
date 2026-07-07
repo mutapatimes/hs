@@ -234,6 +234,12 @@
     z-index:70;display:flex;flex-direction:column
   }
   .drawer.show{transform:none}
+  .drawer.wide{width:920px}
+  .dctl{display:flex;gap:8px;align-items:center;flex:none}
+  .dexpand{background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:9px;cursor:pointer;color:var(--soft);display:grid;place-items:center}
+  .dexpand:hover{background:var(--rowhover);color:var(--ink)}
+  .dexpand svg{width:15px;height:15px}
+  @media(max-width:960px){.drawer.wide{width:92vw}}
   .dhead{padding:22px 24px 18px;border-bottom:1px solid var(--line);background:var(--card)}
   .dtop{display:flex;justify-content:space-between;align-items:flex-start}
   .dclose{background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:9px;cursor:pointer;color:var(--soft);font-size:16px;display:grid;place-items:center}
@@ -1185,8 +1191,8 @@ function openOrderDrawer(o){
   const tpls=ORDER_TEMPLATES[o.statusCat]||ORDER_TEMPLATES.new;
   const href=t=>`mailto:${em}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(fillTemplate(t.body,o))}`;
   drawer.innerHTML=`
-    <div class="dhead">
-      <button class="dclose" id="dclose">&times;</button>
+    <div class="dhead" style="position:relative">
+      <div style="position:absolute;top:18px;right:20px">${drawerCtl()}</div>
       <div style="font:600 11px system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--soft)">Order</div>
       <div style="display:flex;align-items:center;gap:11px;margin-top:5px"><div style="font:700 22px 'Fraunces',serif">#${esc(o.orderId)}</div>${osb(o)}</div>
       <div style="color:var(--soft);font-size:13px;margin-top:7px">${o.date||""} &middot; £${(o.amount||0).toLocaleString()}${o.items?` &middot; ${o.items} item${o.items===1?"":"s"}`:""}</div>
@@ -1199,7 +1205,7 @@ function openOrderDrawer(o){
       <div style="display:flex;flex-direction:column;gap:8px">${tpls.map((t,j)=>`<a class="obtn${j===0?" primary":""}" style="justify-content:flex-start;text-align:left" href="${href(t)}" target="_top">${t.name}</a>`).join("")}<a class="obtn" style="justify-content:flex-start" href="mailto:${em}" target="_top">Blank email</a></div>
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
-  document.getElementById("dclose").onclick=closeDrawer;
+  wireDrawerCtl();
 }
 function renderOrders(){
   const onlyTop=!document.getElementById("oAllGrades").checked;
@@ -1538,7 +1544,7 @@ function openDrawer(id){
             <div class="dmeta">${[c.email,c.phone].filter(Boolean).join(" · ")}</div>
           </div>
         </div>
-        <button class="dclose" id="dclose">×</button>
+        ${drawerCtl()}
       </div>
     </div>
     <div class="dbody">
@@ -1597,7 +1603,7 @@ function openDrawer(id){
       ${SETTINGS.klaviyo_connected?`<button class="dbtn primary" id="dpush">Open in Klaviyo →</button>`:""}
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
-  document.getElementById("dclose").onclick=closeDrawer;
+  wireDrawerCtl();
   // Associate feedback loop: one tap records an anonymous per-signal tally (Halia) + tags the
   // client in the merchant's own store. This is the label that later fixes calibration direction.
   (function(){
@@ -1678,7 +1684,13 @@ function openDrawer(id){
       .finally(()=>{ dpushhs.disabled=false; dpushhs.textContent=t; });
   };
 }
-function closeDrawer(){drawer.classList.remove("show");scrim.classList.remove("show");drawer.setAttribute("aria-hidden","true");}
+function closeDrawer(){drawer.classList.remove("show","wide");scrim.classList.remove("show");drawer.setAttribute("aria-hidden","true");}
+// Enlarge / shrink the open drawer (works for both the client and order drawers).
+const EXPAND_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H4a1 1 0 00-1 1v5M15 3h5a1 1 0 011 1v5M9 21H4a1 1 0 01-1-1v-5M15 21h5a1 1 0 001-1v-5"/></svg>';
+const COMPRESS_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/></svg>';
+function drawerCtl(){return `<div class="dctl"><button class="dexpand" id="dexpand" title="Enlarge">${EXPAND_ICON}</button><button class="dclose" id="dclose">&times;</button></div>`;}
+function toggleDrawerWide(){const w=drawer.classList.toggle("wide");const b=document.getElementById("dexpand");if(b){b.innerHTML=w?COMPRESS_ICON:EXPAND_ICON;b.title=w?"Shrink":"Enlarge";}}
+function wireDrawerCtl(){const c=document.getElementById("dclose");if(c)c.onclick=closeDrawer;const e=document.getElementById("dexpand");if(e)e.onclick=toggleDrawerWide;}
 scrim.onclick=()=>{closeDrawer();closeSettings();};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeDrawer();closeSettings();}});
 
@@ -1748,13 +1760,18 @@ function toast(msg){
 // ---- Settings (Klaviyo, VIC threshold, sign-off, email templates) ----
 let SETTINGS={vic_threshold:5000,sender_name:"",email_templates:EMAIL_TEMPLATES,klaviyo_connected:false};
 function loadSettings(){
-  return fetch("/v1/settings").then(r=>r.json()).then(s=>{
+  return Promise.all([
+    fetch("/v1/settings").then(r=>r.json()),
+    fetch("/v1/slack/status").then(r=>r.json()).catch(()=>({connected:false})),
+  ]).then(([s,slack])=>{
     SETTINGS=s;
+    SETTINGS.slack_connected=!!(slack&&slack.connected);
+    SETTINGS.slack_webhook=(slack&&slack.webhook)||"";
     if(s.email_templates&&s.email_templates.length) EMAIL_TEMPLATES=s.email_templates;
     if(s.order_templates) ORDER_TEMPLATES=s.order_templates;
     if(s.email_draft) CMS_DRAFT=s.email_draft;
     SENDER=s.sender_name||"";
-    return s;
+    return SETTINGS;
   }).catch(()=>SETTINGS);
 }
 const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
@@ -1784,20 +1801,34 @@ function openSettings(){
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
   let otmpl=JSON.parse(JSON.stringify(ORDER_TEMPLATES||{new:[],fulfilled:[],refunded:[],cancelled:[]}));
   let tab="client", ostatus="new", lastField=null, spage="integrations";
+  let integ = SETTINGS.mailchimp_connected?"mailchimp":(SETTINGS.hubspot_connected?"hubspot":"klaviyo");
+  let tsel = 0;   // selected template index in the two-pane template editor
   const SPAGES=[["integrations","Integrations"],["scoring","Scoring"],["alerts","Alerts"],["templates","Templates"],["billing","Billing"],["privacy","Privacy"]];
   const OSTAT=["new","fulfilled","refunded","cancelled"];
   const OSTLBL={new:"New",fulfilled:"Fulfilled",refunded:"Refunded",cancelled:"Cancelled"};
   function currentList(){return tab==="client"?tmpl:(otmpl[ostatus]=otmpl[ostatus]||[]);}
-  function rows(){return currentList().map((t,i)=>`<div style="border:1px solid #e3e3e3;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafafa">
-      <input data-tn="${i}" value="${esc(t.name)}" placeholder="Template name" style="width:100%;${I};margin-bottom:8px">
-      <input data-ts="${i}" value="${esc(t.subject)}" placeholder="Subject (email only)" style="width:100%;${I};margin-bottom:8px">
-      <textarea data-tb="${i}" rows="5" placeholder="Body" style="width:100%;${I};resize:vertical">${esc(t.body)}</textarea>
-      <button data-td="${i}" style="margin-top:8px;background:none;border:none;color:#8e1f0b;font:600 12.5px system-ui;cursor:pointer;padding:0">Delete</button></div>`).join("");}
-  function collect(){const list=currentList();
-    settingsEl.querySelectorAll("[data-tn]").forEach(el=>list[+el.dataset.tn].name=el.value);
-    settingsEl.querySelectorAll("[data-ts]").forEach(el=>list[+el.dataset.ts].subject=el.value);
-    settingsEl.querySelectorAll("[data-tb]").forEach(el=>list[+el.dataset.tb].body=el.value);
+  // Two-pane template editor: a selectable list on the left, one big editor on the right.
+  function collect(){const list=currentList(); if(!list.length||tsel<0||tsel>=list.length) return;
+    const n=settingsEl.querySelector("#tEditName"), s=settingsEl.querySelector("#tEditSubject"), b=settingsEl.querySelector("#tEditBody");
+    if(n) list[tsel].name=n.value;
+    if(s) list[tsel].subject=s.value;
+    if(b) list[tsel].body=b.value;
   }
+  function tListPane(){const list=currentList();
+    return list.map((t,i)=>`<button data-sel="${i}" style="display:block;width:100%;text-align:left;margin-bottom:6px;padding:10px 12px;border-radius:9px;border:1px solid ${i===tsel?'var(--brand)':'var(--line-strong)'};background:${i===tsel?'var(--brand-tint)':'#fff'};color:var(--ink);font:600 13px ${SF};cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name||'Untitled')}</button>`).join("")
+      +`<button id="addTmpl" style="${BS};margin-top:6px;width:100%">+ Add template</button>`;}
+  function tEditorPane(){const list=currentList();
+    if(!list.length) return `<div style="${P};margin:0">No templates yet. Add one on the left.</div>`;
+    if(tsel>=list.length) tsel=list.length-1; if(tsel<0) tsel=0;
+    const t=list[tsel];
+    const toks=(tab==='order'?["{first_name}","{sender}","{order_number}","{order_total}"]:["{first_name}","{sender}"]);
+    return `<input id="tEditName" value="${esc(t.name)}" placeholder="Template name" style="width:100%;${I};margin-bottom:10px">
+      <input id="tEditSubject" value="${esc(t.subject)}" placeholder="Subject line" style="width:100%;${I};margin-bottom:10px">
+      <textarea id="tEditBody" placeholder="Write your message…" style="width:100%;min-height:320px;${I};resize:vertical;line-height:1.6">${esc(t.body)}</textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap">
+        <div style="${LBL};margin:0">Insert: ${toks.map(tk=>`<button type="button" data-chip="${tk}" style="${CHIP}">${tk}</button>`).join("")}</div>
+        <button id="delTmpl" style="background:none;border:none;color:#8e1f0b;font:600 12.5px ${SF};cursor:pointer;padding:0">Delete this template</button>
+      </div>`;}
   function insertToken(tok){const el=lastField;if(!el){toast("Tap a template field first, then insert.");return;}
     const s=el.selectionStart==null?el.value.length:el.selectionStart, e=el.selectionEnd==null?el.value.length:el.selectionEnd;
     el.value=el.value.slice(0,s)+tok+el.value.slice(e);el.focus();el.selectionStart=el.selectionEnd=s+tok.length;}
@@ -1820,6 +1851,7 @@ function openSettings(){
   const kv=SETTINGS.klaviyo_connected;
   const mc=SETTINGS.mailchimp_connected;
   const hs=SETTINGS.hubspot_connected;
+  const sl=SETTINGS.slack_connected;
   const calibrated=!!(SETTINGS.signal_weights&&Object.keys(SETTINGS.signal_weights).length);
   function render(){
     settingsEl.innerHTML=`
@@ -1837,36 +1869,49 @@ function openSettings(){
 
         <div class="spage" data-page="integrations" style="display:${spage==='integrations'?'':'none'}">
         <div style="${C}">
-          <div style="${H}">Klaviyo connection</div>
-          <p style="${P}">Connect your Klaviyo <b>private</b> API key (pk_…) to push grades, build segments, and email clients.</p>
-          <div style="font:600 13px system-ui;color:${kv?'#0f7b4f':'#616161'};margin-bottom:10px">${kv?"● Connected":"○ Not connected"}</div>
-          <div style="display:flex;gap:8px;max-width:540px">
-            <input id="setKvKey" type="password" placeholder="pk_live_… (paste to connect or replace)" style="flex:1;${I}">
-            <button id="setKvConnect" style="${BS}">Connect</button>
+          <div style="${H}">Connect your marketing platform</div>
+          <p style="${P}">Choose the platform you use, then paste your key. Halia writes each client's grade, score and reasons across so you can segment and email them where you already work.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:620px">
+            ${[["klaviyo","Klaviyo",kv],["mailchimp","Mailchimp",mc],["hubspot","HubSpot",hs]].map(([k,label,on])=>`
+              <button data-integ="${k}" style="text-align:left;padding:14px 15px;border-radius:12px;border:1px solid ${integ===k?'var(--brand)':'var(--line-strong)'};background:${integ===k?'var(--brand-tint)':'#fff'};cursor:pointer">
+                <div style="font:600 14px ${SF};color:var(--ink)">${label}</div>
+                <div style="font:600 12px ${SF};color:${on?'#0f7b4f':'var(--faint)'};margin-top:5px">${on?'● Connected':'○ Not connected'}</div>
+              </button>`).join("")}
           </div>
-          ${kv?`<div style="margin-top:12px"><button id="setKvDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect Klaviyo</button></div>`:""}
         </div>
 
         <div style="${C}">
-          <div style="${H}">Mailchimp connection</div>
-          <p style="${P}">Connect your Mailchimp API key (ends in <b>-usXX</b>) to push grades, tags, and segments to your audience.</p>
-          <div style="font:600 13px system-ui;color:${mc?'#0f7b4f':'#616161'};margin-bottom:10px">${mc?"● Connected"+(SETTINGS.mailchimp_list_name?" · "+SETTINGS.mailchimp_list_name:""):"○ Not connected"}</div>
-          <div style="display:flex;gap:8px;max-width:540px">
-            <input id="setMcKey" type="password" placeholder="xxxxxxxx-us21 (paste to connect or replace)" style="flex:1;${I}">
-            <button id="setMcConnect" style="${BS}">Connect</button>
-          </div>
-          ${mc?`<div style="margin-top:12px"><button id="setMcDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect Mailchimp</button></div>`:""}
-        </div>
-
-        <div style="${C}">
-          <div style="${H}">HubSpot connection</div>
-          <p style="${P}">Connect your HubSpot <b>Private App token</b> (starts <b>pat-</b>) to write each client's Halia grade, score, and reasons onto their HubSpot contact.</p>
-          <div style="font:600 13px system-ui;color:${hs?'#0f7b4f':'#616161'};margin-bottom:10px">${hs?"● Connected":"○ Not connected"}</div>
-          <div style="display:flex;gap:8px;max-width:540px">
-            <input id="setHsKey" type="password" placeholder="pat-… (paste to connect or replace)" style="flex:1;${I}">
-            <button id="setHsConnect" style="${BS}">Connect</button>
-          </div>
-          ${hs?`<div style="margin-top:12px"><button id="setHsDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect HubSpot</button></div>`:""}
+          ${integ==='klaviyo'?`
+            <div style="${H}">Klaviyo</div>
+            <p style="${P}">Push grades, build segments, and email clients. Uses your <b>private</b> API key (starts <code>pk_</code>).</p>
+            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:10px;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Klaviyo, go to <b>Account → Settings → API keys → Create Private API Key</b>. Give it full access to Profiles and Segments. The key starts <code>pk_</code>.</div>
+            <div style="font:600 13px system-ui;color:${kv?'#0f7b4f':'#616161'};margin-bottom:10px">${kv?"● Connected":"○ Not connected"}</div>
+            <div style="display:flex;gap:8px;max-width:540px">
+              <input id="setKvKey" type="password" placeholder="pk_live_… (paste to connect or replace)" style="flex:1;${I}">
+              <button id="setKvConnect" style="${BS}">Connect</button>
+            </div>
+            ${kv?`<div style="margin-top:12px"><button id="setKvDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect Klaviyo</button></div>`:""}
+          `:integ==='mailchimp'?`
+            <div style="${H}">Mailchimp</div>
+            <p style="${P}">Push grades, tags, and segments to your audience. Uses an API key that ends in <b>-usXX</b> (your data centre).</p>
+            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:10px;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Mailchimp, go to <b>Account → Extras → API keys → Create A Key</b>. Copy the whole key; it ends in a data-centre suffix like <code>-us21</code>.</div>
+            <div style="font:600 13px system-ui;color:${mc?'#0f7b4f':'#616161'};margin-bottom:10px">${mc?"● Connected"+(SETTINGS.mailchimp_list_name?" · "+esc(SETTINGS.mailchimp_list_name):""):"○ Not connected"}</div>
+            <div style="display:flex;gap:8px;max-width:540px">
+              <input id="setMcKey" type="password" placeholder="xxxxxxxx-us21 (paste to connect or replace)" style="flex:1;${I}">
+              <button id="setMcConnect" style="${BS}">Connect</button>
+            </div>
+            ${mc?`<div style="margin-top:12px"><button id="setMcDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect Mailchimp</button></div>`:""}
+          `:`
+            <div style="${H}">HubSpot</div>
+            <p style="${P}">Write each client's Halia grade, score, and reasons onto their HubSpot contact. Uses a <b>Private App token</b> (starts <code>pat-</code>).</p>
+            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:10px;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in HubSpot, go to <b>Settings → Integrations → Private Apps → Create a private app</b>. Grant the CRM contact read + write scopes. The token starts <code>pat-</code>.</div>
+            <div style="font:600 13px system-ui;color:${hs?'#0f7b4f':'#616161'};margin-bottom:10px">${hs?"● Connected":"○ Not connected"}</div>
+            <div style="display:flex;gap:8px;max-width:540px">
+              <input id="setHsKey" type="password" placeholder="pat-… (paste to connect or replace)" style="flex:1;${I}">
+              <button id="setHsConnect" style="${BS}">Connect</button>
+            </div>
+            ${hs?`<div style="margin-top:12px"><button id="setHsDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect HubSpot</button></div>`:""}
+          `}
         </div>
 
         </div><!-- /integrations -->
@@ -1931,6 +1976,18 @@ function openSettings(){
             <p style="${P};margin-top:8px;font-size:12px">Add this as an “Order created” webhook in your store (WooCommerce → Settings → Advanced → Webhooks, or a Shopify orders/create webhook) for instant alerts even when Halia is closed. Nothing about your customers is stored to power them.</p></div>
         </div>
 
+        <div style="${C}">
+          <div style="${H}">Slack alerts</div>
+          <p style="${P}">Post to a Slack channel the moment a high-grade client orders, so your team can recognise them in the moment. Nothing about your customers is stored to power this.</p>
+          <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:10px;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Slack, go to <b>Apps → Incoming Webhooks → Add to Slack</b>, pick the channel, and copy the webhook URL. It starts <code>https://hooks.slack.com/</code>.</div>
+          <div style="font:600 13px system-ui;color:${sl?'#0f7b4f':'#616161'};margin-bottom:10px">${sl?"● Connected"+(SETTINGS.slack_webhook?" · "+esc(SETTINGS.slack_webhook):""):"○ Not connected"}</div>
+          <div style="display:flex;gap:8px;max-width:540px">
+            <input id="setSlackHook" type="password" placeholder="https://hooks.slack.com/services/… (paste to connect or replace)" style="flex:1;${I}">
+            <button id="setSlackConnect" style="${BS}">Connect</button>
+          </div>
+          ${sl?`<div style="margin-top:12px;display:flex;gap:16px"><button id="setSlackTest" style="background:none;border:none;color:#1f564a;font:600 13px system-ui;cursor:pointer;padding:0">Send test alert</button><button id="setSlackDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect Slack</button></div>`:""}
+        </div>
+
         </div><!-- /alerts -->
 
         <div class="spage" data-page="templates" style="display:${spage==='templates'?'':'none'}">
@@ -1942,15 +1999,16 @@ function openSettings(){
 
         <div style="${C}">
           <div style="${H}">Message templates</div>
-          <p style="${P}"><b>Client emails</b> power the per-client “Email ▾” / “WhatsApp ▾” menus. <b>Order actions</b> power the status buttons in the Orders view.</p>
+          <p style="${P}"><b>Client emails</b> power the per-client “Email ▾” / “WhatsApp ▾” menus. <b>Order actions</b> power the status buttons in the Orders view. Pick a template on the left; edit it on the right.</p>
           <div style="display:flex;gap:8px;margin-bottom:14px">
             <button data-tab="client" style="${tab==='client'?TAB_ON:TAB_OFF}">Client emails</button>
             <button data-tab="order" style="${tab==='order'?TAB_ON:TAB_OFF}">Order actions</button>
           </div>
           ${tab==='order'?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${OSTAT.map(st=>`<button data-ost="${st}" style="${st===ostatus?SUB_ON:SUB_OFF}">${OSTLBL[st]}</button>`).join("")}</div>`:""}
-          <div style="${LBL};margin-bottom:8px">Insert: ${(tab==='order'?["{first_name}","{sender}","{order_number}","{order_total}"]:["{first_name}","{sender}"]).map(t=>`<button type="button" data-chip="${t}" style="${CHIP}">${t}</button>`).join("")}</div>
-          <div id="tmplList">${rows()}</div>
-          <button id="addTmpl" style="${BS};margin-top:4px">+ Add template</button>
+          <div style="display:grid;grid-template-columns:230px 1fr;gap:16px;align-items:start">
+            <div id="tmplList">${tListPane()}</div>
+            <div id="tmplEditor">${tEditorPane()}</div>
+          </div>
         </div>
 
         </div><!-- /templates -->
@@ -1987,16 +2045,22 @@ function openSettings(){
       const sb=document.getElementById("saveBar"); if(sb) sb.style.display=["scoring","alerts","templates"].includes(spage)?"":"none";
       const sc=document.getElementById("sScroll"); if(sc) sc.scrollTop=0;
     });
-    document.getElementById("addTmpl").onclick=()=>{collect();currentList().push({name:"New template",subject:"",body:(tab==='order'?"Hi {first_name},\n\n\n\n{sender}":"Dear {first_name},\n\n\n\n{sender}")});render();};
-    settingsEl.querySelectorAll("[data-td]").forEach(b=>b.onclick=()=>{collect();currentList().splice(+b.dataset.td,1);render();});
-    settingsEl.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{collect();tab=b.dataset.tab;render();});
-    settingsEl.querySelectorAll("[data-ost]").forEach(b=>b.onclick=()=>{collect();ostatus=b.dataset.ost;render();});
+    const addBtn=document.getElementById("addTmpl");
+    if(addBtn) addBtn.onclick=()=>{collect();currentList().push({name:"New template",subject:"",body:(tab==='order'?"Hi {first_name},\n\n\n\n{sender}":"Dear {first_name},\n\n\n\n{sender}")});tsel=currentList().length-1;render();};
+    settingsEl.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{const sc=document.getElementById("sScroll");const y=sc?sc.scrollTop:0;collect();tsel=+b.dataset.sel;render();const sc2=document.getElementById("sScroll");if(sc2)sc2.scrollTop=y;});
+    const delBtn=document.getElementById("delTmpl");
+    if(delBtn) delBtn.onclick=()=>{collect();currentList().splice(tsel,1);if(tsel>0)tsel--;render();};
+    settingsEl.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{collect();tab=b.dataset.tab;tsel=0;render();});
+    settingsEl.querySelectorAll("[data-ost]").forEach(b=>b.onclick=()=>{collect();ostatus=b.dataset.ost;tsel=0;render();});
+    settingsEl.querySelectorAll("[data-integ]").forEach(b=>b.onclick=()=>{integ=b.dataset.integ;render();});
     settingsEl.querySelectorAll("[data-chip]").forEach(b=>b.onclick=()=>insertToken(b.dataset.chip));
     settingsEl.querySelectorAll("[data-copy]").forEach(b=>b.onclick=()=>copyText(PRIVACY_INSERTS[+b.dataset.copy].body));
-    settingsEl.querySelectorAll("[data-tn],[data-ts],[data-tb]").forEach(el=>el.addEventListener("focus",()=>{lastField=el;}));
-    document.getElementById("setKvConnect").onclick=()=>{
+    settingsEl.querySelectorAll("#tEditName,#tEditSubject,#tEditBody").forEach(el=>el.addEventListener("focus",()=>{lastField=el;}));
+    lastField=settingsEl.querySelector("#tEditBody")||lastField;
+    const kvc=document.getElementById("setKvConnect");
+    if(kvc) kvc.onclick=()=>{
       const key=document.getElementById("setKvKey").value.trim(); if(!key){toast("Paste your Klaviyo key first.");return;}
-      const b=document.getElementById("setKvConnect");b.disabled=true;b.textContent="Connecting…";
+      const b=kvc;b.disabled=true;b.textContent="Connecting…";
       fetch("/v1/klaviyo/connect",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({api_key:key})})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");SETTINGS.klaviyo_connected=true;toast("Klaviyo connected. Segments created.");render();refreshIntegrationUI();})
         .catch(e=>{toast("Connect failed: "+e.message);b.disabled=false;b.textContent="Connect";});
@@ -2004,9 +2068,10 @@ function openSettings(){
     const disc=document.getElementById("setKvDisc"); if(disc) disc.onclick=()=>{
       fetch("/v1/klaviyo/disconnect",{method:"POST"}).then(()=>{SETTINGS.klaviyo_connected=false;toast("Klaviyo disconnected.");render();refreshIntegrationUI();});
     };
-    document.getElementById("setMcConnect").onclick=()=>{
+    const mcc=document.getElementById("setMcConnect");
+    if(mcc) mcc.onclick=()=>{
       const key=document.getElementById("setMcKey").value.trim(); if(!key){toast("Paste your Mailchimp key first.");return;}
-      const b=document.getElementById("setMcConnect");b.disabled=true;b.textContent="Connecting…";
+      const b=mcc;b.disabled=true;b.textContent="Connecting…";
       fetch("/v1/mailchimp/connect",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({api_key:key})})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
           SETTINGS.mailchimp_connected=true;SETTINGS.mailchimp_list_name=d.list_name;toast("Mailchimp connected · "+(d.list_name||"audience"));render();refreshIntegrationUI();})
@@ -2025,6 +2090,21 @@ function openSettings(){
     };
     const hdisc=document.getElementById("setHsDisc"); if(hdisc) hdisc.onclick=()=>{
       fetch("/v1/hubspot/disconnect",{method:"POST"}).then(()=>{SETTINGS.hubspot_connected=false;toast("HubSpot disconnected.");render();refreshIntegrationUI();});
+    };
+    const slc=document.getElementById("setSlackConnect"); if(slc) slc.onclick=()=>{
+      const url=document.getElementById("setSlackHook").value.trim(); if(!url){toast("Paste your Slack webhook URL first.");return;}
+      slc.disabled=true;slc.textContent="Connecting…";
+      fetch("/v1/slack/connect",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({webhook_url:url})})
+        .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
+          SETTINGS.slack_connected=true;SETTINGS.slack_webhook=(d&&d.webhook)||"";toast("Slack connected. A hello was posted to your channel.");render();})
+        .catch(e=>{toast("Connect failed: "+e.message);slc.disabled=false;slc.textContent="Connect";});
+    };
+    const slt=document.getElementById("setSlackTest"); if(slt) slt.onclick=()=>{
+      slt.disabled=true;fetch("/v1/slack/test",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+        if(!ok)throw new Error((d&&d.detail)||"failed");toast("Test alert sent to Slack.");}).catch(e=>toast("Couldn't send test: "+e.message)).finally(()=>{slt.disabled=false;});
+    };
+    const sldisc=document.getElementById("setSlackDisc"); if(sldisc) sldisc.onclick=()=>{
+      fetch("/v1/slack/disconnect",{method:"POST"}).then(()=>{SETTINGS.slack_connected=false;SETTINGS.slack_webhook="";toast("Slack disconnected.");render();});
     };
     function paintBilling(b){
       const box=document.getElementById("billingBox"); if(!box) return;
