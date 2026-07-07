@@ -19,6 +19,9 @@ Two free Companies House bulk products are joined (offline — never a live per-
 Precision (all applied here at BUILD time so the runtime match stays a simple O(1) name lookup):
   - keep only individual PSCs with a 75-100% ownership/voting band (``--min-control`` 75 or 50)
   - drop common surnames (an eponymous "Smith Ltd" tells you little)
+  - drop AMBIGUOUS full names: when more than one distinct person (by public birth month/year)
+    on the register carries the same full name, a customer matching it can never be a certain
+    match, so the name is excluded entirely
   - require the surname to be a word in the company name (the eponymous two-factor) UNLESS the
     company is BOTH large and a wealth industry (a strong-enough wealth fact to stand without it)
   - require the company to be ACTIVE and not a dormant / micro-entity shell (with one exception:
@@ -124,20 +127,20 @@ def _normalize(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9]+", " ", (text or "").upper())).strip()
 
 
-def _person_from_record(rec: dict) -> tuple[str, str, str] | None:
-    """Return (display_name, surname, company_number) for a qualifying individual PSC, else None.
+def _person_from_record(rec: dict) -> tuple[str, str, str, bool, str] | None:
+    """Return (display_name, surname, company_number, high_control, dob_key) for an individual
+    PSC record, else None.
 
-    Qualifies only when kind is an individual PSC AND natures_of_control includes a high band.
+    ``high_control`` says whether natures_of_control includes a qualifying band; ``dob_key`` is
+    the public birth month/year — used to count DISTINCT PEOPLE sharing a full name, so ambiguous
+    (namesake-prone) names can be dropped entirely.
     """
     data = rec.get("data") or rec
     if data.get("kind") != INDIVIDUAL_KIND:
         return None
     company_number = str(rec.get("company_number") or data.get("company_number") or "").strip()
-    if not company_number:
-        return None
     natures = data.get("natures_of_control") or []
-    if not any(band in str(n) for band in _HIGH_BANDS for n in natures):
-        return None
+    high_control = any(band in str(n) for band in _HIGH_BANDS for n in natures)
     elements = data.get("name_elements") or {}
     forename = (elements.get("forename") or "").strip()
     surname = (elements.get("surname") or "").strip()
@@ -150,7 +153,9 @@ def _person_from_record(rec: dict) -> tuple[str, str, str] | None:
     if not full or not surname:
         return None
     display = _title(full) if full.isupper() else full
-    return display, _normalize(surname), company_number
+    dob = data.get("date_of_birth") or {}
+    dob_key = f"{dob.get('year', '')}-{dob.get('month', '')}"
+    return display, _normalize(surname), company_number, high_control, dob_key
 
 
 # Set by main() from --min-control; natures_of_control substrings accepted as "high" control.
@@ -252,9 +257,14 @@ def _is_micro(account_cat: str) -> bool:
 
 
 def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int) -> None:
-    # Pass 1: stream PSC, collect eligible eponymous candidates keyed by company number.
-    # candidates[company_number] = list of (display_name, surname)
+    # Pass 1: stream PSC, collect eligible candidates keyed by company number, and track how
+    # many DISTINCT PEOPLE (by public birth month/year) share each full name across the WHOLE
+    # register. A name carried by more than one person is inherently ambiguous — a customer
+    # matching it can never be a certain match — so it is dropped at emit time. The same person
+    # controlling several companies (same name + same birth month/year) is NOT ambiguous.
     candidates: dict[str, list[tuple[str, str]]] = {}
+    first_dob: dict[str, str] = {}
+    ambiguous: set[str] = set()
     scanned = eligible = 0
     for rec in _iter_psc(psc):
         scanned += 1
@@ -264,13 +274,23 @@ def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int
         got = _person_from_record(rec)
         if not got:
             continue
-        display, surname, company_number = got
+        display, surname, company_number, high_control, dob_key = got
+        norm = _normalize(display)
+        if norm:
+            prev = first_dob.get(norm)
+            if prev is None:
+                first_dob[norm] = dob_key
+            elif prev != dob_key:
+                ambiguous.add(norm)
+        if not high_control or not company_number:
+            continue
         if not surname or surname in _COMMON_SURNAMES:
             continue
         candidates.setdefault(company_number, []).append((display, surname))
         eligible += 1
     print(f"PSC scanned: {scanned:,}  high-control eligible people: {eligible:,}  "
-          f"companies to check: {len(candidates):,}", file=sys.stderr)
+          f"companies to check: {len(candidates):,}  ambiguous names: {len(ambiguous):,}",
+          file=sys.stderr)
 
     # Pass 2: stream Basic Company Data; for each candidate company, apply the eponymous +
     # active + non-shell test and tier by size/industry. When a person controls several kept
@@ -309,7 +329,7 @@ def build(psc: list[Path], companies: Path, out: Path, replace: bool, limit: int
             if not keep:
                 continue
             norm = _normalize(display)
-            if not norm:
+            if not norm or norm in ambiguous:     # more than one person has this name — uncertain
                 continue
             prev = rows.get(norm)
             if prev is None:

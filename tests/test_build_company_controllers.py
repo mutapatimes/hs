@@ -67,6 +67,17 @@ _PSC_LINES = [
     '{"company_number":"10000012","data":{"kind":"individual-person-with-significant-control",'
     '"name_elements":{"forename":"Omar","surname":"Vanterpool"},'
     '"natures_of_control":["ownership-of-shares-75-to-100-percent"]}}',
+    # TWO DISTINCT PEOPLE (different birth month/year) share the name "Oliver Hartwell"; each
+    # would otherwise be a perfect prime candidate, but the name is ambiguous -> both dropped.
+    # (Rex above appears twice with the SAME dob key: one person, many companies — kept.)
+    '{"company_number":"10000013","data":{"kind":"individual-person-with-significant-control",'
+    '"name_elements":{"forename":"Oliver","surname":"Hartwell"},'
+    '"date_of_birth":{"month":3,"year":1970},'
+    '"natures_of_control":["ownership-of-shares-75-to-100-percent"]}}',
+    '{"company_number":"10000014","data":{"kind":"individual-person-with-significant-control",'
+    '"name_elements":{"forename":"Oliver","surname":"Hartwell"},'
+    '"date_of_birth":{"month":11,"year":1985},'
+    '"natures_of_control":["ownership-of-shares-75-to-100-percent"]}}',
 ]
 
 # Basic Company Data ships header names with a leading space on most columns; mirror that.
@@ -83,6 +94,8 @@ BRANTFIELD JOINERY LTD,10000009,Active,Private Limited Company,MICRO ENTITY,4332
 QUILLON INVESTMENTS LTD,10000010,Active,Private Limited Company,DORMANT,64209 - Activities of other holding companies
 RIVERSIDE PROPERTY HOLDINGS LTD,10000011,Active,Private Limited Company,TOTAL EXEMPTION FULL,68100 - Buying and selling of own real estate
 CITYVIEW LETTINGS LTD,10000012,Active,Private Limited Company,UNAUDITED ABRIDGED,68209 - Other letting and operating of own or leased real estate
+HARTWELL ESTATES LTD,10000013,Active,Private Limited Company,FULL,68100 - Buying and selling of own real estate
+HARTWELL INVESTMENTS LTD,10000014,Active,Private Limited Company,FULL,64209 - Activities of other holding companies
 """
 
 
@@ -139,7 +152,8 @@ def test_dropped_candidates(built):
                  "Hugo Brantfield",    # micro-entity, generic industry
                  "Zara Quillon",       # dormant
                  "Mira Castellane",    # TOTAL EXEMPTION FULL = small, not "FULL" (substring trap)
-                 "Omar Vanterpool"):   # UNAUDITED ABRIDGED = small, not "AUDITED" (substring trap)
+                 "Omar Vanterpool",    # UNAUDITED ABRIDGED = small, not "AUDITED" (substring trap)
+                 "Oliver Hartwell"):   # two distinct people share the name — ambiguous
         assert name not in built
     assert len(built) == 4             # nothing else slipped through
 
