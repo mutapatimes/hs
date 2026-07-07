@@ -131,3 +131,25 @@ def test_blank_address_not_flagged():
     assert match_address(None, venues) == (False, None, None)
     assert match_address("", venues) == (False, None, None)
     assert match_address("   |  | ", venues) == (False, None, None)
+
+
+def test_generic_yacht_prefix_fires_anywhere():
+    # "M/Y <name>" / "S/Y <name>" is a yacht delivery even at a marina we haven't listed.
+    venues = load_venues()
+    df = pd.DataFrame({"LATEST_SHIPPING_ADDRESS1": [
+        "M/Y Serenity, Port Camille Rayon",   # unlisted French marina
+        "S/Y Kokomo, Marina Ibiza",
+        "Superyacht Aurora, Berth 14",
+    ]})
+    out = flag_delivery_venue(df, venues)
+    assert out[MATCH_COL].all()
+    assert (out[TYPE_COL] == "marina").all()
+
+
+def test_bare_my_never_fires_the_yacht_row():
+    venues = load_venues()
+    df = pd.DataFrame({"LATEST_SHIPPING_ADDRESS1": [
+        "bring it to my house", "123 My Street", "Myrtle Cottage, Elm Lane",
+    ]})
+    out = flag_delivery_venue(df, venues)
+    assert not out[MATCH_COL].any()

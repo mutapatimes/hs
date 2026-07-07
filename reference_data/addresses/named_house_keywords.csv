@@ -1,0 +1,25 @@
+keyword,position
+# NAMED-HOUSE keywords — a street line whose comma-segment is a NAMED property instead of a
+# numbered address ("The Old Rectory" / "Whitfield Manor" / "Chalet Eugenia") is a classic
+# quiet-wealth marker. Read by scoring/signals/named_house.py.
+#
+#   position=suffix : fires when the keyword is the LAST word of the segment (UK estates) —
+#                     so "Manor Road" / "Hall Lane" can never fire.
+#   position=prefix : fires when the keyword is the FIRST word (continental), street-suffix
+#                     guarded so "Villa Road" stays silent.
+#
+# Deliberately EXCLUDED as too common/ambiguous: HOUSE, COURT, COTTAGE, PARK, LODGE-as-prefix.
+# EDIT freely; keywords are matched case-insensitively after accent folding.
+manor,suffix
+hall,suffix
+grange,suffix
+rectory,suffix
+vicarage,suffix
+priory,suffix
+abbey,suffix
+castle,suffix
+farmhouse,suffix
+lodge,suffix
+chalet,prefix
+villa,prefix
+chateau,prefix

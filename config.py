@@ -46,6 +46,9 @@ PRIME_RESIDENCES_FILE = ADDRESSES_DIR / "prime_residences.csv"
 # Wealth-management structures (Bucket 2 — address routed through a trust company / family
 # office / registered agent / offshore PO box). Origin-neutral, on by default.
 WEALTH_STRUCTURES_FILE = ADDRESSES_DIR / "wealth_structures.csv"
+# Named-property words ("The Old Rectory", "Whitfield Manor", "Chalet …") — a street line that is
+# a NAMED house instead of a numbered address. On by default (a wealth-address fact).
+NAMED_HOUSE_KEYWORDS_FILE = ADDRESSES_DIR / "named_house_keywords.csv"
 NAMES_DIR = REFERENCE_DIR / "names"
 HONORIFICS_FILE = NAMES_DIR / "honorifics.csv"
 RICH_LIST_FILE = NAMES_DIR / "rich_list.csv"

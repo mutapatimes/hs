@@ -106,7 +106,8 @@ safeguards). Keep the human and the "elevate-only" effect real.
 
 **On by default (wealth / work / specific-address / structure facts):**
 work email, HNWI postcode, US HNWI ZIP, international prime postcode, prime neighbourhood (HNW
-area, non-Gulf), high-value residential jurisdiction (Monaco/Jersey/… — was "tax haven"),
+area, non-Gulf), named property (street line reads as a named house/chalet — "The Old Rectory" —
+instead of a numbered address), high-value residential jurisdiction (Monaco/Jersey/… — was "tax haven"),
 wealth-management structure (trust company / family office / registered agent), area property
 value (median sale price of the postcode district, from HM Land Registry open data), hotel
 concierge, delivery venue, styling service, prime residence, premium card, honorific, company

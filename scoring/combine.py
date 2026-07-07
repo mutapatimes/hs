@@ -40,6 +40,7 @@ from scoring.signals import (
     landline,
     name_mismatch,
     name_structure,
+    named_house,
     nobiliary_particle,
     origin_adjacent_district,
     phone_country,
@@ -65,6 +66,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "us_hnwi_zip": 3,
     "intl_postcode": 3,
     "hnw_area": 3,
+    "named_house": 2,  # street line is a NAMED property ("The Old Rectory") — quiet-wealth address fact
     "property_value": 2,  # EXACT house: base; weight scales with median price (property_value_weight)
     "property_area": 2,   # district/area: base; the tier overrides (PROPERTY_AREA_WEIGHTS)
     "hotel_concierge": 3,
@@ -219,6 +221,7 @@ SIGNAL_GROUP: dict[str, str] = {
     "us_hnwi_zip": "geo",
     "intl_postcode": "geo",
     "hnw_area": "geo",
+    "named_house": "geo",     # a named property echoes the same location species
     "property_value": "geo",  # exact-house value echoes the same location
     "property_area": "geo",   # district value echoes the same location too
     "prime_residence": "geo",
@@ -297,6 +300,8 @@ SIGNALS = [
      intl_postcode.FLAG_COL, lambda r: r[intl_postcode.REASON_COL]),
     ("hnw_area", "HNW area", hnw_area.flag_hnw_area,
      hnw_area.MATCH_COL, lambda r: f"{r[hnw_area.AREA_COL]} ({r[hnw_area.TYPE_COL]})"),
+    ("named_house", "Named property", named_house.flag_named_house,
+     named_house.FLAG_COL, lambda r: r[named_house.REASON_COL]),
     ("property_value", "Home value", property_value.flag_property_value,
      property_value.FLAG_COL, lambda r: r[property_value.REASON_COL]),
     ("property_area", "Prime area", property_value.flag_property_area,

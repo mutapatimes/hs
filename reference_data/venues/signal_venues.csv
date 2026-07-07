@@ -109,6 +109,10 @@ The Upper House,luxury_hotel,THE UPPER HOUSE
 Rosewood Sand Hill,luxury_hotel,ROSEWOOD SAND HILL
 Jumeirah Al Naseem,luxury_hotel,JUMEIRAH AL NASEEM
 # --- Marinas / superyacht berths ---
+# Generic yacht delivery: a vessel prefix in the address ("M/Y Serenity" normalizes to
+# "M Y SERENITY") is a yacht delivery ANYWHERE, not just the named marinas below. Whole-word
+# matching means bare "my" can never fire (it stays one token; "M Y" only arises from "M/Y").
+yacht (generic),marina,M Y;S Y;MOTOR YACHT;SAILING YACHT;SUPERYACHT;MEGA YACHT;MEGAYACHT
 Port Hercule (Monaco),marina,PORT HERCULE
 Port Vauban (Antibes),marina,PORT VAUBAN
 Puerto Banus,marina,PUERTO BANUS

@@ -492,9 +492,60 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     return html
 
 
+def known_vips_strip(scored, n: int = 8) -> str:
+    """A demo-only section: top KNOWN spenders whose evidence is also strong.
+
+    The hidden-VIC list deliberately excludes customers already spending above the VIC
+    threshold — but in a demo, showing the engine reading names the merchant can verify
+    ("we understood your existing VIPs") is what makes the hidden list credible. Empty
+    when no known client carries a signal. Rendered as ``body_extra`` on the SAMPLE
+    pages only; the live tenant dashboard is untouched.
+    """
+    import html as _html
+
+    if HIDDEN_COL not in scored.columns or "Spent" not in scored.columns:
+        return ""
+    known = scored[
+        (~scored[HIDDEN_COL].fillna(False).astype(bool))
+        & (pd.to_numeric(scored["Spent"], errors="coerce").fillna(0) >= VIC_SPEND_THRESHOLD)
+        & (pd.to_numeric(scored.get("signal_count"), errors="coerce").fillna(0) >= 1)
+    ].sort_values(SCORE_COL, ascending=False).head(n)
+    if known.empty:
+        return ""
+    cards = []
+    for _, r in known.iterrows():
+        name = _html.escape(_display_name(r.get("Name")))
+        spent = _fmt_money(_num(r.get("Spent")))
+        t = _tier(_score100(_num(r[SCORE_COL])))
+        grade = _html.escape(GRADE_LABEL.get(t, t))
+        chips = "".join(
+            f'<span style="display:inline-block;margin:2px 4px 0 0;padding:3px 9px;'
+            f'border:1px solid #d9d6cd;border-radius:999px;font-size:11.5px;color:#4c4f58">'
+            f'{_html.escape(reason.strip())}</span>'
+            for reason in str(r.get(REASONS_COL) or "").split(";")[:3] if reason.strip()
+        )
+        cards.append(
+            '<div style="background:#fff;border:1px solid #e4e2da;border-radius:14px;'
+            'padding:14px 16px;min-width:240px;flex:1 1 240px;max-width:340px">'
+            f'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">'
+            f'<strong style="font-size:14px;color:#1A1C22">{name}</strong>'
+            f'<span style="font-size:12px;color:#7a7363;white-space:nowrap">{spent} · {grade}</span>'
+            f'</div><div style="margin-top:8px">{chips}</div></div>'
+        )
+    return (
+        '<section style="max-width:1180px;margin:28px auto 40px;padding:0 24px;'
+        "font-family:'Hanken Grotesk',system-ui,sans-serif\">"
+        '<h2 style="font-size:16px;color:#1A1C22;margin:0 0 4px">Known VIPs, understood</h2>'
+        '<p style="font-size:13px;color:#6b6e78;margin:0 0 14px">Top spenders whose evidence '
+        'the engine also reads — the same signals that surface the hidden list.</p>'
+        f'<div style="display:flex;flex-wrap:wrap;gap:12px">{"".join(cards)}</div></section>'
+    )
+
+
 def render_dashboard(scored, head_extra: str = "") -> str:
     """Render the dashboard directly from a scored frame (local build path)."""
-    return render_payload(dashboard_payload(scored), head_extra)
+    return render_payload(dashboard_payload(scored), head_extra,
+                          body_extra=known_vips_strip(scored))
 
 
 def main() -> None:

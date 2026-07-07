@@ -70,6 +70,8 @@ signals override their base weight per-row by *type* (below).
 
 **Location / address (group `geo`)** — where someone lives is a wealth fact:
 `hnwi_postcode` (3), `us_hnwi_zip` (3), `intl_postcode` (3), `hnw_area` (3), `prime_residence` (3),
+`named_house` (2 — street line is a NAMED property, "The Old Rectory" / "Whitfield Manor" /
+"Chalet …", structurally guarded so "Manor Road" and "Flat 3, Priory Court" never fire),
 `property_value` (2 base), `wealth_jurisdiction` (2). All on by default. `property_value` still
 grades by the area's median sale price *internally* (it sets the tier below) but is **displayed
 non-intrusively** — label "Prime area", area name only, **no money figure** — showing a merchant an
@@ -80,7 +82,9 @@ estimated property value for a customer reads as surveillance.
 **Work / email (groups `email`, standalone)**: `work_email` (3), `domain_keyword` (2 base),
 `custom_email` (1), `premium_email` (2), `elite_alumni` (2), `company_keyword` (2), `wealth_office` (2).
 
-**Service / behaviour**: `hotel_concierge` (3), `delivery_venue` (3 base), `styling_service` (3),
+**Service / behaviour**: `hotel_concierge` (3), `delivery_venue` (3 base; generic yacht aliases —
+"M/Y", "S/Y", "Superyacht" — fire the `marina` tier (5) for a yacht delivery anywhere, not just
+the named berths), `styling_service` (3),
 `assistant_order` (2), `fashion_stylist` (2), `stylist_directory` (1), `honorific` (2),
 `post_nominal` (2), `premium_card` (3), `ip_location` (1).
 
