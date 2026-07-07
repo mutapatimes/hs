@@ -89,7 +89,8 @@
 
   /* stat strip */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 8px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow)}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s}
+  .stat:hover{transform:translateY(-1px);box-shadow:0 2px 4px rgba(26,28,34,.06),0 14px 32px rgba(26,28,34,.09)}
   .stat .k{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);font-weight:600}
   .stat .v{font-family:'Fraunces',serif;font-weight:500;font-size:25px;margin-top:7px;letter-spacing:-.01em}
   .stat .n{font-size:12px;color:var(--soft);margin-top:3px}
@@ -304,9 +305,10 @@
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
   :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
   /* view tabs + Orders view */
-  .views{display:inline-flex;gap:4px;background:#eef0ee;border-radius:11px;padding:4px;margin:0 0 16px}
-  .vtab{border:none;background:transparent;font:600 13px system-ui;color:#5b5f5b;padding:7px 18px;border-radius:8px;cursor:pointer}
-  .vtab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.09)}
+  .views{display:inline-flex;gap:4px;background:var(--shell);border:1px solid var(--line);border-radius:12px;padding:4px;margin:0 0 18px}
+  .vtab{border:none;background:transparent;font:600 13px 'Hanken Grotesk',sans-serif;color:var(--soft);padding:8px 18px;border-radius:9px;cursor:pointer;transition:color .15s,background .15s}
+  .vtab:hover{color:var(--ink)}
+  .vtab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .othead{grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px}
   .orow{display:grid;grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line);font-size:13px}
   .orow:hover{background:#fafbfa}
@@ -329,6 +331,15 @@
   .omi:last-child{border-bottom:0}.omi:hover{background:#f4f6f4}
   .oempty{padding:34px 16px;color:var(--soft);text-align:center;font-size:13px}
   .ofoot{color:var(--soft);font-size:12.5px;padding:12px 4px}
+
+  /* ---------- Clients summary bar ---------- */
+  .clientsum{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 16px;font-size:12.5px;color:var(--soft)}
+  .clientsum:empty{display:none}
+  .csm{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:5px 12px}
+  .csm b{color:var(--ink);font-family:'Spline Sans Mono',monospace;font-weight:600}
+  .csm .gd{width:9px;height:9px;border-radius:3px;flex:none}
+  .csm.lead{color:var(--faint)}
 
   /* ---------- pagination ---------- */
   .pager{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 2px 0;flex-wrap:wrap}
@@ -547,6 +558,7 @@
       </div><!-- /viewOverview -->
 
       <div id="viewClients" style="display:none">
+      <div class="clientsum" id="clientSum"></div>
       <!-- toolbar -->
       <div class="toolbar">
         <div class="chips" id="chips"></div>
@@ -797,9 +809,24 @@ function updateStats(list){
   document.getElementById("statTopTier").textContent = topTier.toLocaleString("en-GB");
 }
 
+const GRADE_SW = {"A*":"var(--gold)","A":"var(--brand)","B":"var(--tierB)","C":"var(--faint)"};
+function renderClientSum(full){
+  const el = document.getElementById("clientSum"); if(!el) return;
+  if(!full.length){ el.innerHTML=""; return; }
+  const gc = {"A*":0,"A":0,"B":0,"C":0};
+  const ac = {};
+  full.forEach(c=>{ if(gc[c.grade]!==undefined) gc[c.grade]++;
+    if(c.area) ac[c.area]=(ac[c.area]||0)+1; });
+  const grades = Object.keys(gc).filter(g=>gc[g]).map(g=>
+    `<span class="csm"><span class="gd" style="background:${GRADE_SW[g]}"></span>${g} <b>${gc[g].toLocaleString("en-GB")}</b></span>`).join("");
+  const topArea = Object.keys(ac).sort((x,y)=>ac[y]-ac[x])[0];
+  const area = topArea ? `<span class="csm">Top area <b>${topArea}</b> · ${ac[topArea]} client${ac[topArea]===1?"":"s"}</span>` : "";
+  el.innerHTML = `<span class="csm lead">Grade mix</span>${grades}${area}`;
+}
 function renderRows(){
   const full = visible();
   updateStats(full);
+  renderClientSum(full);
   updateSelAll(full);
   const pages = Math.max(1, Math.ceil(full.length/PAGE_SIZE));
   if(page > pages) page = pages;
@@ -1524,6 +1551,18 @@ function openDrawer(id){
       <div class="dlabel">Why this client surfaced</div>
       <div class="evidence">${evidenceHTML(c.signals)}</div>
 
+      ${c.reco?`<div class="reco"><div class="k">Recommended approach</div><p>${esc(c.reco)}</p></div>`:""}
+
+      <div class="dlabel">Latent value, explained</div>
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:22px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13.5px">
+          <span class="mono" style="color:var(--soft)">${gbp(c.spend)}</span>
+          <span style="flex:1;height:6px;border-radius:4px;background:linear-gradient(90deg,var(--brand-tint),var(--brand));position:relative;min-width:60px"><span style="position:absolute;top:-3px;left:calc(${Math.max(2,Math.min(96,c.spend/Math.max(1,c.latent)*100)).toFixed(0)}% - 6px);width:12px;height:12px;border-radius:50%;background:var(--brand);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></span>
+          <span class="mono" style="color:var(--brand);font-weight:600">${gbpK(c.latent)}</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--soft);margin-top:9px;line-height:1.5">Grown from their current spend toward your client ceiling, scaled by a Halia score of <b>${c.score}</b>. An estimate of the annual value if nurtured into a top client, not a forecast.</div>
+      </div>
+
       <div class="dlabel">Was this a good call?</div>
       <div id="dfb" style="display:flex;gap:8px">
         <button class="dbtn" id="dfbYes">&#128077; Good call</button>
@@ -2167,7 +2206,32 @@ function openSettings(){
 }
 document.getElementById("openSettings").onclick=openSettings;
 
-renderChips();renderRows();showView("overview");
+// First-run / mid-sync: a fresh tenant has no scored clients yet. Rather than empty
+// tables and zero stats, show a single clear call to action. (The MVP always ships
+// with data, so this branch is embedded-app only.)
+function showFirstRun(){
+  const wrap=document.querySelector(".wrap");
+  const views=document.querySelector(".views"), stats=document.querySelector(".stats");
+  if(views) views.style.display="none";
+  if(stats) stats.style.display="none";
+  ["viewOverview","viewClients","viewOrders","viewMap"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
+  const box=document.createElement("div");
+  box.innerHTML=`<div style="max-width:520px;margin:52px auto;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:44px 36px;box-shadow:var(--shadow)">
+    <div style="width:56px;height:56px;border-radius:15px;margin:0 auto 18px;background:var(--brand-tint);display:grid;place-items:center;color:var(--brand-deep);font:600 26px 'Fraunces',serif">&#8258;</div>
+    <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:22px;letter-spacing:-.01em">No potential VICs surfaced yet</h2>
+    <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">Halia hasn't scored your customers yet. Run a sync to pull your orders from Shopify and surface the high-potential clients your spend thresholds miss.</p>
+    <button id="firstRunSync" style="margin-top:22px;padding:11px 22px;border-radius:10px;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">Score my customers</button>
+    <p style="color:var(--faint);font-size:12px;margin-top:14px">This usually takes under a minute.</p>
+  </div>`;
+  wrap.appendChild(box);
+  const btn=document.getElementById("firstRunSync");
+  if(btn) btn.onclick=()=>{btn.disabled=true;btn.textContent="Scoring…";
+    fetch("/v1/sync",{method:"POST"}).then(r=>r.json()).then(()=>location.reload())
+      .catch(()=>{btn.textContent="Sync failed — retry";btn.disabled=false;});};
+}
+
+if(!DATA.length){ showFirstRun(); }
+else { renderChips();renderRows();showView("overview"); }
 loadSettings().then(s=>{ if(!s.klaviyo_connected&&!s.mailchimp_connected) showConnectBanner(); initAlerts(s); refreshIntegrationUI(); });
 
 // Live high-grade order alerts (in-dashboard feed + desktop notifications).
