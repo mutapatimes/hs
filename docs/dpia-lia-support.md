@@ -122,8 +122,8 @@ company that is either **named after them** (their surname is a word in the comp
 two-factor match, plus a common-surname dampener and removal of dormant / micro-entity shells —
 except an eponymous wealth-industry micro-entity, the classic quiet family investment vehicle,
 kept at the lowest tier) OR is **both large and in a wealth industry** (a strong-enough wealth
-fact to stand without the name match). Kept owners are tiered by company size (Medium/Full/Group
-or audited accounts, or a PLC) and by a wealth-industry SIC code (real estate, investment/holding,
+fact to stand without the name match). Kept owners are tiered by company size (Full/Medium/Group
+accounts, or a PLC) and by a wealth-industry SIC code (real estate, investment/holding,
 architecture, design, art), which lifts the weight (2 → 4 → 6) and is named in the human reason
 ("controls Marandi Investments Ltd, a real estate company"). It is a factual entry on a statutory
 **public** register, not inferred from any protected characteristic, and remains

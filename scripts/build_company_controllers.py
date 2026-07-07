@@ -24,7 +24,7 @@ Precision (all applied here at BUILD time so the runtime match stays a simple O(
   - require the company to be ACTIVE and not a dormant / micro-entity shell (with one exception:
     an eponymous + wealth-SIC micro-entity — the quiet family investment vehicle — is kept at
     the dampened ``match`` tier)
-  - tier by size (Medium/Full/Group/audited or PLC = large) and wealth-industry SIC; eponymy earns
+  - tier by size (Full/Medium/Group accounts or PLC = large) and wealth-industry SIC; eponymy earns
     the top ``prime`` band, a non-eponymous large+wealth owner lands at ``high``
 
 Stand-alone operator tool (NOT imported by the app or tests); standard library only.
@@ -83,11 +83,13 @@ _STOPWORDS = {
 }
 
 # Accounts categories that indicate a materially LARGE company (turnover thresholds: small <=£10.2M,
-# medium <=£36M, large/full above). Dormant / never-filed are shells we drop entirely. Micro-entity
-# is USUALLY a shell too — except the quiet family wealth vehicle ("[Surname] Investments Ltd"
-# filing micro accounts on purpose), so an eponymous + wealth-SIC micro is kept, dampened to
-# the 'match' tier (micro accounts tell us nothing about scale).
-_LARGE_ACCOUNTS = {"MEDIUM", "FULL", "GROUP"}     # substring test also catches "…AUDITED…"
+# medium <=£36M, large/full above). EXACT match only: the register also has "TOTAL EXEMPTION FULL"
+# (1.3M small companies) and "UNAUDITED ABRIDGED" (small), which a substring test wrongly reads as
+# FULL / AUDITED — abridged accounts are a small-company regime, so neither is large.
+# Dormant / never-filed are shells we drop entirely. Micro-entity is USUALLY a shell too — except
+# the quiet family wealth vehicle ("[Surname] Investments Ltd" filing micro accounts on purpose),
+# so an eponymous + wealth-SIC micro is kept, dampened to the 'match' tier.
+_LARGE_ACCOUNTS = {"FULL", "MEDIUM", "GROUP"}
 _ALWAYS_SHELL = {"DORMANT", "NO ACCOUNTS FILED"}
 
 # SIC (Standard Industrial Classification) codes -> the wealth-industry label shown in the reason.
@@ -214,8 +216,8 @@ def _col(row: dict, *names: str) -> str:
 
 def _classify(account_cat: str, company_cat: str, sic_texts: list[str]):
     """Return (is_large, is_wealth, industry_label). industry '' when not a wealth-industry SIC."""
-    ac = account_cat.upper()
-    is_large = (any(w in ac for w in _LARGE_ACCOUNTS) or "AUDITED" in ac
+    ac = account_cat.upper().strip()
+    is_large = (ac in _LARGE_ACCOUNTS
                 or "PUBLIC LIMITED" in company_cat.upper() or company_cat.upper() == "PLC")
     industry = ""
     for text in sic_texts:

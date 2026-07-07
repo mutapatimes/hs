@@ -58,6 +58,15 @@ _PSC_LINES = [
     # corporate PSC -> never a person, ignored
     '{"company_number":"10000001","data":{"kind":"corporate-entity-person-with-significant-control",'
     '"name":"BigCo Nominees Ltd","natures_of_control":["ownership-of-shares-75-to-100-percent"]}}',
+    # non-eponymous + wealth SIC but "TOTAL EXEMPTION FULL" accounts = a SMALL company: its
+    # category contains the word FULL, which a substring size test wrongly read as large -> dropped
+    '{"company_number":"10000011","data":{"kind":"individual-person-with-significant-control",'
+    '"name_elements":{"forename":"Mira","surname":"Castellane"},'
+    '"natures_of_control":["ownership-of-shares-75-to-100-percent"]}}',
+    # same trap for "UNAUDITED ABRIDGED" (contains AUDITED; abridged = small regime) -> dropped
+    '{"company_number":"10000012","data":{"kind":"individual-person-with-significant-control",'
+    '"name_elements":{"forename":"Omar","surname":"Vanterpool"},'
+    '"natures_of_control":["ownership-of-shares-75-to-100-percent"]}}',
 ]
 
 # Basic Company Data ships header names with a leading space on most columns; mirror that.
@@ -72,6 +81,8 @@ NORTHERN STEEL FABRICATION LTD,10000007,Active,Private Limited Company,FULL,2511
 WINTERBOURNE INVESTMENTS LTD,10000008,Active,Private Limited Company,MICRO ENTITY,64209 - Activities of other holding companies
 BRANTFIELD JOINERY LTD,10000009,Active,Private Limited Company,MICRO ENTITY,43320 - Joinery installation
 QUILLON INVESTMENTS LTD,10000010,Active,Private Limited Company,DORMANT,64209 - Activities of other holding companies
+RIVERSIDE PROPERTY HOLDINGS LTD,10000011,Active,Private Limited Company,TOTAL EXEMPTION FULL,68100 - Buying and selling of own real estate
+CITYVIEW LETTINGS LTD,10000012,Active,Private Limited Company,UNAUDITED ABRIDGED,68209 - Other letting and operating of own or leased real estate
 """
 
 
@@ -126,7 +137,9 @@ def test_dropped_candidates(built):
                  "Priya Aldingham",    # below 75% control
                  "Leo Farrington",     # non-eponymous, large but not a wealth industry
                  "Hugo Brantfield",    # micro-entity, generic industry
-                 "Zara Quillon"):      # dormant
+                 "Zara Quillon",       # dormant
+                 "Mira Castellane",    # TOTAL EXEMPTION FULL = small, not "FULL" (substring trap)
+                 "Omar Vanterpool"):   # UNAUDITED ABRIDGED = small, not "AUDITED" (substring trap)
         assert name not in built
     assert len(built) == 4             # nothing else slipped through
 

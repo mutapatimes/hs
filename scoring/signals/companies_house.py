@@ -10,7 +10,7 @@ not an origin proxy.
 The match is graded by how telling the company is (built into the table at BUILD time):
   - ``match`` : a plain eponymous, smaller, generic-industry company            (base weight)
   - ``high``  : eponymous AND (large OR a wealth industry), OR a non-eponymous company that is
-                large AND a wealth industry (large = Medium/Full/Group/audited accounts or a PLC;
+                large AND a wealth industry (large = Full/Medium/Group accounts or a PLC;
                 wealth = real estate, investment/holding, architecture, design, art SIC)
   - ``prime`` : eponymous AND large AND a wealth industry
 The tier drives the weight in the combiner (COMPANIES_HOUSE_TIER_WEIGHTS); the industry is also
