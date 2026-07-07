@@ -4,7 +4,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from scoring.combine import COMPANIES_HOUSE_TIER_WEIGHTS, score_customers
+from scoring.combine import COMPANIES_HOUSE_TIER_WEIGHTS, SIGNAL_WEIGHTS, score_customers
 from scoring.signals import companies_house as ch
 
 
@@ -97,3 +97,16 @@ def test_tier_lifts_the_score(seeded_table):
     prime_row = score_customers(pd.DataFrame([{**base, "Name": "Tom Blomfield"}]))
     assert COMPANIES_HOUSE_TIER_WEIGHTS["prime"] > COMPANIES_HOUSE_TIER_WEIGHTS["match"]
     assert prime_row.loc[0, "signal_score"] > match_row.loc[0, "signal_score"]
+
+
+def test_calibrated_base_scales_tier_weights(seeded_table):
+    # Per-merchant calibration moves the base weight; tiered rows must scale with it
+    # proportionally (tuned base / shipped default), not silently ignore it.
+    base = {"Email": "a@gmail.com", "Spent": 10, "LATEST_BILLING_ZIP": "SW10 9SJ"}
+    df = pd.DataFrame([{**base, "Name": "Tom Blomfield"}])   # 'prime' tier (weight 6)
+    default = score_customers(df).loc[0, "signal_score"]
+    doubled_weights = dict(SIGNAL_WEIGHTS)
+    doubled_weights["companies_house"] = SIGNAL_WEIGHTS["companies_house"] * 2
+    doubled = score_customers(df, weights=doubled_weights).loc[0, "signal_score"]
+    # Doubling the base doubles the prime tier's contribution (6 -> 12): +6 on the score.
+    assert doubled - default == COMPANIES_HOUSE_TIER_WEIGHTS["prime"]

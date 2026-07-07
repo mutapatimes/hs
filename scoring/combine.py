@@ -519,10 +519,16 @@ def score_customers(
                 type_spec = (companies_house.TYPE_COL, COMPANIES_HOUSE_TIER_WEIGHTS)
             if type_spec and type_spec[0] in out.columns:
                 type_col, type_weights = type_spec
+                # Tier weights are absolute, so a calibrated base would otherwise be ignored:
+                # scale them by tuned-base / shipped-default (the property_value approach), so
+                # per-merchant calibration still moves tiered signals proportionally. Unknown
+                # tiers fall back to the default and thus scale to exactly the tuned base.
+                default = int(SIGNAL_WEIGHTS.get(key, 0))
+                scale = base / default if default else 1.0
                 wv = out[type_col].map(
-                    lambda t: type_weights.get(t, base)
+                    lambda t: type_weights.get(t, default)
                 ).to_numpy(dtype=float)
-                cols.append(fired * wv)
+                cols.append(fired * wv * scale)
             else:
                 cols.append(fired * float(base))
         # Per row, sort the group's fired weights high->low and decay each rank.
