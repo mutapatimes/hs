@@ -54,19 +54,57 @@ def load_bins(path: Path | str = PREMIUM_BINS_FILE) -> list[tuple[str, str, str]
     return sorted(bins, key=lambda b: -len(b[0]))
 
 
+# Internal tier codes -> human, client-facing labels (no underscores).
+_TIER_LABEL = {
+    "private_bank": "private-bank",
+    "ultra_premium": "ultra-premium",
+    "premium": "premium",
+}
+
+
+def _clean_issuer(issuer: object) -> str:
+    """Strip operator annotations from a BIN issuer so they never reach a client view.
+
+    'Example - Amex Centurion (VERIFY)' -> 'Amex Centurion'. A licensed BIN list has
+    clean issuer names, so this is a no-op there; it only sanitises the seed's
+    placeholder markers (which stay in the CSV as a 'replace me' reminder).
+    """
+    s = str(issuer or "").strip()
+    s = re.sub(r"^(?:example|sample|placeholder)\s*[-:]\s*", "", s, flags=re.I)
+    s = re.sub(r"\s*[(\[](?:verify|example|placeholder|todo)[)\]]\s*", " ", s, flags=re.I)
+    return re.sub(r"\s{2,}", " ", s).strip()
+
+
+def _tier_label(tier: object) -> str:
+    t = str(tier or "").strip()
+    return _TIER_LABEL.get(t, t.replace("_", " "))
+
+
 def match_bin(
     bin_value: object, bins: list[tuple[str, str, str]], company: object = None
 ) -> tuple[bool, str | None]:
-    """Return (is_premium, reason). Reason is 'Issuer (tier)', + brand if known."""
+    """Return (is_premium, reason) as human copy, e.g. 'Amex Centurion, ultra-premium card'.
+
+    Internal tier codes and operator annotations are cleaned out so nothing
+    developer-y (underscores, [brackets], (VERIFY)) reaches the client dashboard.
+    ``company`` (the raw card network) is accepted for signature stability but no
+    longer appended: the issuer plus tier is the story, and the raw field is noisy.
+    """
     digits = _digits(bin_value)
     if not digits:
         return False, None
     for prefix, issuer, tier in bins:
         if digits.startswith(prefix):
-            label = f"{issuer} ({tier})" if tier else issuer
-            brand = str(company).strip() if company not in (None, "") else ""
-            if brand and not (isinstance(company, float) and pd.isna(company)):
-                label = f"{label} [{brand}]"
+            name = _clean_issuer(issuer)
+            tl = _tier_label(tier)
+            if name and tl:
+                label = f"{name}, {tl} card"
+            elif name:
+                label = name
+            elif tl:
+                label = f"{tl} card"
+            else:
+                label = "premium card"
             return True, label
     return False, None
 

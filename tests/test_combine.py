@@ -81,7 +81,7 @@ def test_single_signal_scores_its_weight():
     out = score_customers(_frame([{"EMAIL_ADDR": "ceo@carlsoncapital.com"}]))
     assert out.loc[0, COUNT_COL] == 1
     assert out.loc[0, SCORE_COL] == SIGNAL_WEIGHTS["work_email"]
-    assert "Work email: Carlson Capital (hedge_fund)" in out.loc[0, REASONS_COL]
+    assert "Work email: Carlson Capital (hedge fund)" in out.loc[0, REASONS_COL]
     assert out.loc[0, HIDDEN_COL]
 
 

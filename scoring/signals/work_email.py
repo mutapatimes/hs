@@ -64,9 +64,16 @@ def load_domains(
 
 
 def _reason(org: str, category: str, domain: str) -> str:
-    """Build a human-readable reason like 'Goldman Sachs (banking)'."""
+    """Build a human-readable reason like 'Goldman Sachs (private equity)'.
+
+    The category is humanised so no internal snake_case code (wealth_management,
+    hedge_fund…) reaches the client-facing reason.
+    """
+    from scoring.signals.type_labels import humanize_type
+
     label = org or domain
-    return f"{label} ({category})" if category else label
+    human = humanize_type(category)
+    return f"{label} ({human})" if human else label
 
 
 def match_email(

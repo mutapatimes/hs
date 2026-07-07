@@ -42,8 +42,8 @@ def test_ten_real_domain_rows_against_shipped_list():
     flagged = result[result[FLAG_COL]]
     assert len(flagged) == 3
     reasons = dict(zip(flagged["EMAIL_ADDR"], flagged[REASON_COL]))
-    assert reasons["ceo@carlsoncapital.com"] == "Carlson Capital (hedge_fund)"
-    assert reasons["partner@calculuscapital.com"] == "Calculus Capital (private_equity)"
+    assert reasons["ceo@carlsoncapital.com"] == "Carlson Capital (hedge fund)"
+    assert reasons["partner@calculuscapital.com"] == "Calculus Capital (private equity)"
 
 
 def test_subdomain_matches_parent():

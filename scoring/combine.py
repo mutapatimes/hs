@@ -58,6 +58,7 @@ from scoring.signals import (
     wealth_structure,
     work_email,
 )
+from scoring.signals.type_labels import humanize_type
 
 # Editable. Higher = stronger signal. Low (1) = supporting "flag all, rank low".
 SIGNAL_WEIGHTS: dict[str, int] = {
@@ -273,7 +274,8 @@ ENGINE_VERSION = "1.3"   # company-field matching, non-customer suppressor, reas
 
 
 def _reason_delivery(row: pd.Series) -> str:
-    return f"{row[delivery_venue.VENUE_COL]} ({row[delivery_venue.TYPE_COL]})"
+    vtype = humanize_type(row[delivery_venue.TYPE_COL])
+    return f"{row[delivery_venue.VENUE_COL]} ({vtype})" if vtype else str(row[delivery_venue.VENUE_COL])
 
 
 # (key, label, apply_fn, flag_col, reason_fn)
@@ -299,7 +301,7 @@ SIGNALS = [
     ("intl_postcode", "Intl prime postcode", intl_postcode.flag_intl_postcode,
      intl_postcode.FLAG_COL, lambda r: r[intl_postcode.REASON_COL]),
     ("hnw_area", "HNW area", hnw_area.flag_hnw_area,
-     hnw_area.MATCH_COL, lambda r: f"{r[hnw_area.AREA_COL]} ({r[hnw_area.TYPE_COL]})"),
+     hnw_area.MATCH_COL, lambda r: f"{r[hnw_area.AREA_COL]} ({humanize_type(r[hnw_area.TYPE_COL])})"),
     ("named_house", "Named property", named_house.flag_named_house,
      named_house.FLAG_COL, lambda r: r[named_house.REASON_COL]),
     ("property_value", "Home value", property_value.flag_property_value,

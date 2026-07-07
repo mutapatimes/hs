@@ -19,12 +19,21 @@ BINS = [
 
 def test_match_longest_prefix_wins():
     matched, reason = match_bin("47515091234", BINS)
-    assert matched and reason == "Coutts (private_bank)"
+    assert matched and reason == "Coutts, private-bank card"
 
 
-def test_match_with_brand_appended():
+def test_reason_is_clean_human_copy():
+    # No internal tier code, no [network] bracket: the raw card-network field is ignored.
     matched, reason = match_bin("55235012", BINS, company="Mastercard")
-    assert matched and reason == "World Elite (ultra_premium) [Mastercard]"
+    assert matched and reason == "World Elite, ultra-premium card"
+    assert "_" not in reason and "[" not in reason and "(" not in reason
+
+
+def test_operator_annotations_stripped():
+    # Seed placeholders ('Example - X (VERIFY)') must never reach a client view.
+    bins = [("379920", "Example - Amex Centurion (VERIFY)", "ultra_premium")]
+    matched, reason = match_bin("37992012", bins)
+    assert matched and reason == "Amex Centurion, ultra-premium card"
 
 
 def test_no_match_and_blank():
@@ -50,7 +59,7 @@ def test_fires_when_bin_column_present():
     )
     out = flag_card_bin(df, BINS)
     assert out[FLAG_COL].tolist() == [True, False, False]
-    assert out.loc[0, REASON_COL] == "Coutts (private_bank) [Visa]"
+    assert out.loc[0, REASON_COL] == "Coutts, private-bank card"
 
 
 def test_shipped_template_loads():
