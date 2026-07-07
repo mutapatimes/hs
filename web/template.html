@@ -329,6 +329,18 @@
   .omi:last-child{border-bottom:0}.omi:hover{background:#f4f6f4}
   .oempty{padding:34px 16px;color:var(--soft);text-align:center;font-size:13px}
   .ofoot{color:var(--soft);font-size:12.5px;padding:12px 4px}
+
+  /* ---------- pagination ---------- */
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 2px 0;flex-wrap:wrap}
+  .pager:empty{display:none}
+  .pinfo{font-size:12.5px;color:var(--soft)}
+  .pinfo b{color:var(--ink);font-family:'Spline Sans Mono',monospace;font-weight:600}
+  .pnav{display:flex;align-items:center;gap:8px}
+  .ppage{font-size:12.5px;color:var(--faint);white-space:nowrap;min-width:96px;text-align:center}
+  .pbtn{border:1px solid var(--line-strong);background:var(--card);color:var(--ink);font:inherit;font-weight:600;
+    font-size:13px;padding:7px 13px;border-radius:9px;cursor:pointer;transition:all .14s;white-space:nowrap}
+  .pbtn:hover:not(:disabled){border-color:#B9B5A9;background:var(--rowhover)}
+  .pbtn:disabled{opacity:.4;cursor:default}
   .ocheck{display:flex;align-items:center;gap:8px;cursor:pointer}
   #viewOrders .controls #oq{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:13px system-ui}
   @media(max-width:820px){.othead .oid,.orow .oid,.odate{display:none}.othead,.orow{grid-template-columns:30px minmax(120px,1fr) 96px 78px 180px}}
@@ -574,6 +586,7 @@
         </div>
         <div id="rows"></div>
       </div>
+      <div class="pager" id="pager"></div>
       </div><!-- /viewClients -->
 
       <div id="viewOrders" style="display:none">
@@ -592,6 +605,7 @@
           </div>
           <div id="orows"></div>
         </div>
+        <div class="pager" id="opager"></div>
         <div class="ofoot" id="ofoot"></div>
       </div>
 
@@ -666,7 +680,33 @@ let gradeFilter = "all";
 let cityFilter = "all";
 let minSignals = 1;
 let areaFilter = "";            // postcode area (e.g. "SW"), set by clicking the map
+const PAGE_SIZE = 25, OPAGE_SIZE = 25;   // rows per page: Clients / Orders
+let page = 1, opage = 1;        // current page in each paginated view
 const selected = new Set();
+
+// Shared pager: renders "Showing A–B of N" + Prev/Next below a table.
+// onGo(p) is called with the requested 1-based page (already clamped in range).
+function renderPager(elId, total, start, shown, onGo){
+  const el = document.getElementById(elId); if(!el) return;
+  if(total <= 0){ el.innerHTML = ""; return; }
+  const size = elId==="opager" ? OPAGE_SIZE : PAGE_SIZE;
+  const pages = Math.max(1, Math.ceil(total/size));
+  const cur = Math.min(pages, Math.floor(start/size)+1);
+  if(pages <= 1){
+    el.innerHTML = `<div class="pinfo">Showing all <b>${total.toLocaleString("en-GB")}</b></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="pinfo">Showing <b>${(start+1).toLocaleString("en-GB")}–${(start+shown).toLocaleString("en-GB")}</b> of <b>${total.toLocaleString("en-GB")}</b></div>
+    <div class="pnav">
+      <button class="pbtn" data-go="${cur-1}" ${cur<=1?"disabled":""}>&lsaquo; Prev</button>
+      <span class="ppage">Page ${cur} of ${pages}</span>
+      <button class="pbtn" data-go="${cur+1}" ${cur>=pages?"disabled":""}>Next &rsaquo;</button>
+    </div>`;
+  el.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{
+    const p = +b.dataset.go;
+    if(p>=1 && p<=pages){ onGo(p); }
+  });
+}
 const rated = new Map();          // client id -> "fit" | "nofit", so a rated row shows a badge
 function ratedBadge(id){
   const v = rated.get(id);
@@ -686,7 +726,7 @@ function renderChips(){
     html += `<button class="chip ${activeSeg===k?'on':''}" data-seg="${k}">${SEGMENTS[k].label} <span class="ct">${segCounts[k]}</span></button>`;
   });
   chipsEl.innerHTML = html;
-  chipsEl.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{activeSeg=b.dataset.seg;renderChips();renderRows();});
+  chipsEl.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{activeSeg=b.dataset.seg;page=1;renderChips();renderRows();});
 }
 
 // populate the city filter from the data, and wire the filter/sort controls
@@ -695,10 +735,10 @@ function renderChips(){
   const sel = document.getElementById("fCity");
   cities.forEach(ct=>{ const o=document.createElement("option"); o.value=ct; o.textContent=ct; sel.appendChild(o); });
 })();
-document.getElementById("fGrade").onchange=e=>{gradeFilter=e.target.value;renderRows();};
-document.getElementById("fCity").onchange=e=>{cityFilter=e.target.value;renderRows();};
-document.getElementById("fMin").onchange=e=>{minSignals=+e.target.value;renderRows();};
-document.getElementById("fSort").onchange=e=>{sortKey=e.target.value;sortDir="desc";setSort();};
+document.getElementById("fGrade").onchange=e=>{gradeFilter=e.target.value;page=1;renderRows();};
+document.getElementById("fCity").onchange=e=>{cityFilter=e.target.value;page=1;renderRows();};
+document.getElementById("fMin").onchange=e=>{minSignals=+e.target.value;page=1;renderRows();};
+document.getElementById("fSort").onchange=e=>{sortKey=e.target.value;sortDir="desc";page=1;setSort();};
 
 function meterSvg(score,tier){
   const r=20,c=2*Math.PI*r,off=c*(1-score/100);
@@ -758,15 +798,24 @@ function updateStats(list){
 }
 
 function renderRows(){
-  const list = visible();
-  updateStats(list);
-  updateSelAll(list);
-  if(!list.length){ rowsEl.innerHTML = `<div style="padding:48px;text-align:center;color:var(--faint)">No clients match this filter. <b style="color:var(--soft)">Try another signal.</b></div>`; return; }
+  const full = visible();
+  updateStats(full);
+  updateSelAll(full);
+  const pages = Math.max(1, Math.ceil(full.length/PAGE_SIZE));
+  if(page > pages) page = pages;
+  if(page < 1) page = 1;
+  const start = (page-1)*PAGE_SIZE;
+  const list = full.slice(start, start+PAGE_SIZE);
+  if(!full.length){
+    rowsEl.innerHTML = `<div style="padding:48px;text-align:center;color:var(--faint)">No clients match this filter. <b style="color:var(--soft)">Try another signal.</b></div>`;
+    renderPager("pager", 0, 0, 0, ()=>{});
+    return;
+  }
   rowsEl.innerHTML = list.map((c,i)=>{
     const sigChips = catChips(c.signals);
     return `<div class="row ${selected.has(c.id)?'sel':''}" data-id="${c.id}">
       <div class="cbx ${selected.has(c.id)?'on':''}" data-cbx="${c.id}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></div>
-      <div class="rank">${String(i+1).padStart(2,"0")}</div>
+      <div class="rank">${String(start+i+1).padStart(2,"0")}</div>
       <div class="client">
         <div class="ava ${c.tier}">${c.init}</div>
         <div class="cinfo">
@@ -789,6 +838,11 @@ function renderRows(){
   });
   rowsEl.querySelectorAll("[data-cbx]").forEach(b=>{
     b.onclick=e=>{e.stopPropagation();toggleSel(b.dataset.cbx);};
+  });
+  renderPager("pager", full.length, start, list.length, p=>{
+    page = p; renderRows();
+    const panel = rowsEl.closest(".panel");
+    if(panel) panel.scrollIntoView({behavior:"smooth", block:"start"});
   });
 }
 
@@ -1130,14 +1184,24 @@ function renderOrders(){
     if(q && !(o.name||"").toLowerCase().includes(q)) return false;
     return true;
   });
-  document.getElementById("orows").innerHTML = list.length?list.map(oRow).join(""):'<div class="oempty">No orders to show. Try Show every grade, or a different status.</div>';
+  const opages = Math.max(1, Math.ceil(list.length/OPAGE_SIZE));
+  if(opage > opages) opage = opages;
+  if(opage < 1) opage = 1;
+  const ostart = (opage-1)*OPAGE_SIZE;
+  const oview = list.slice(ostart, ostart+OPAGE_SIZE);
+  document.getElementById("orows").innerHTML = oview.length?oview.map(oRow).join(""):'<div class="oempty">No orders to show. Try Show every grade, or a different status.</div>';
   document.getElementById("ofoot").textContent = list.length+" order"+(list.length===1?"":"s")+(onlyTop?" from clients graded above C":"")+" · newest first";
   document.querySelector(".stats").innerHTML = orderStatsHTML(list);
+  renderPager("opager", list.length, ostart, oview.length, p=>{
+    opage = p; renderOrders();
+    const panel = document.getElementById("orows").closest(".panel");
+    if(panel) panel.scrollIntoView({behavior:"smooth", block:"start"});
+  });
   document.querySelectorAll("[data-om]").forEach(b=>b.onclick=e=>{e.stopPropagation();const m=document.getElementById("om-"+b.dataset.om);const open=m.classList.contains("show");document.querySelectorAll(".omenu.show").forEach(x=>x.classList.remove("show"));if(!open)m.classList.add("show");});
-  document.querySelectorAll("#orows .orow").forEach((row,idx)=>{row.style.cursor="pointer";row.onclick=e=>{if(e.target.closest(".oact"))return;openOrderDrawer(list[idx]);};});
+  document.querySelectorAll("#orows .orow").forEach((row,idx)=>{row.style.cursor="pointer";row.onclick=e=>{if(e.target.closest(".oact"))return;openOrderDrawer(oview[idx]);};});
 }
 document.addEventListener("click",()=>document.querySelectorAll(".omenu.show").forEach(m=>m.classList.remove("show")));
-["oAllGrades","oStatus","oq"].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener(e.type==="text"?"input":"change",renderOrders);});
+["oAllGrades","oStatus","oq"].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener(e.type==="text"?"input":"change",()=>{opage=1;renderOrders();});});
 /* ======================= Overview + Map (birds-eye pages) ======================= */
 const GRADE_COL={"A*":"#A67C34","A":"#1F564A","B":"#5E6B74","C":"#B5B9BE"};
 const GRADE_ORDER=["A*","A","B","C"];
@@ -1267,7 +1331,7 @@ function renderRegions(el,areas){
 }
 // Click a bubble/region -> jump to Clients filtered to that postcode area.
 function filterToArea(area){
-  areaFilter=area;query="";document.getElementById("q").value="";
+  areaFilter=area;query="";document.getElementById("q").value="";page=1;
   showView("clients");updateAreaBanner();renderRows();
 }
 function updateAreaBanner(){
@@ -1278,7 +1342,7 @@ function updateAreaBanner(){
     const vc=document.getElementById("viewClients");vc.insertBefore(el,vc.firstChild);}
   el.innerHTML=`<b>Postcode area ${areaFilter}</b> <span style="color:var(--soft)">filtered from the map</span>
     <button id="areaClear" style="margin-left:auto;background:#fff;border:1px solid #c9ddd5;border-radius:8px;padding:4px 10px;font:600 12px system-ui;color:var(--brand-deep);cursor:pointer">Clear ×</button>`;
-  document.getElementById("areaClear").onclick=()=>{areaFilter="";updateAreaBanner();renderRows();};
+  document.getElementById("areaClear").onclick=()=>{areaFilter="";page=1;updateAreaBanner();renderRows();};
 }
 
 function renderOverview(){
@@ -1583,6 +1647,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeDrawer();close
 function setSortKey(k){
   if(k===sortKey) sortDir = sortDir==="asc" ? "desc" : "asc";   // re-click same column: flip direction
   else { sortKey = k; sortDir = "desc"; }
+  page = 1;
   setSort();
 }
 document.getElementById("sortCount").onclick=()=>setSortKey("count");
@@ -1601,14 +1666,14 @@ function setSort(){
 }
 
 // search
-document.getElementById("q").oninput=e=>{query=e.target.value;areaFilter="";updateAreaBanner();renderRows();};
+document.getElementById("q").oninput=e=>{query=e.target.value;areaFilter="";page=1;updateAreaBanner();renderRows();};
 
 // Overview search: a live client lookup that works from the birds-eye page.
 (function(){
   const ovq=document.getElementById("ovq"), ovRes=document.getElementById("ovResults");
   if(!ovq) return;
   function jumpToClients(q){
-    query=q; areaFilter=""; document.getElementById("q").value=q;
+    query=q; areaFilter=""; page=1; document.getElementById("q").value=q;
     updateAreaBanner(); showView("clients"); renderRows();
     ovRes.style.display="none"; ovq.value="";
   }
