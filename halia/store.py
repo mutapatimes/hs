@@ -169,6 +169,30 @@ _TABLES = [
         reason     TEXT,
         created_at TEXT
     )""",
+    # Blog posts (the native CMS). Company content, not customer data — same trust class as
+    # `content`. body_html is operator-authored (WYSIWYG), <script>/<iframe> stripped on save.
+    """CREATE TABLE IF NOT EXISTS blog_posts (
+        slug           TEXT PRIMARY KEY,
+        title          TEXT,
+        dek            TEXT,
+        body_html      TEXT,
+        author         TEXT,
+        cover_image_id TEXT,
+        tags           TEXT,
+        status         TEXT DEFAULT 'draft',
+        published_at   TEXT,
+        created_at     TEXT,
+        updated_at     TEXT
+    )""",
+    # Blog images, stored in the DB so they survive Render's ephemeral filesystem. Served at
+    # /blog/img/<id>. `data_b64` is base64 TEXT (identical DDL on SQLite and Postgres; no BLOB/BYTEA
+    # divergence) — blog images are few and small, so the ~33% overhead is immaterial.
+    """CREATE TABLE IF NOT EXISTS blog_images (
+        id         TEXT PRIMARY KEY,
+        mime       TEXT,
+        data_b64   TEXT,
+        created_at TEXT
+    )""",
 ]
 # Earlier versions cached customer PII in these tables. Drop them so any deploy purges it.
 _DROP_LEGACY = [
@@ -525,6 +549,80 @@ class ShopStore(_DB):
 
     def delete_content(self, key: str) -> None:
         self._run("DELETE FROM content WHERE key = :k", {"k": key})
+
+    # ── blog CMS (site-wide company content, not customer data) ──────────────────
+    _POST_COLS = ("slug", "title", "dek", "body_html", "author", "cover_image_id",
+                  "tags", "status", "published_at", "created_at", "updated_at")
+
+    def _post_where(self, published_only: bool, tag: str | None):
+        """Build the shared WHERE clause + params for list/count."""
+        clauses, params = [], {}
+        if published_only:
+            clauses.append("status = 'published'")
+        if tag:
+            clauses.append("(',' || COALESCE(tags,'') || ',') LIKE :taglike")
+            params["taglike"] = f"%,{tag},%"
+        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+        return where, params
+
+    def list_posts(self, published_only: bool = True, sort: str = "newest",
+                   tag: str | None = None, limit: int = 9, offset: int = 0) -> list[dict]:
+        where, params = self._post_where(published_only, tag)
+        # Newest-first by published date (fallback to updated_at for drafts), or oldest-first.
+        direction = "ASC" if sort == "oldest" else "DESC"
+        params.update({"lim": int(limit), "off": int(offset)})
+        rows = self._run(
+            f"SELECT * FROM blog_posts{where} "
+            f"ORDER BY COALESCE(published_at, updated_at) {direction} "
+            f"LIMIT :lim OFFSET :off", params, fetch="all") or []
+        return [dict(r) for r in rows]
+
+    def count_posts(self, published_only: bool = True, tag: str | None = None) -> int:
+        where, params = self._post_where(published_only, tag)
+        row = self._run(f"SELECT COUNT(*) AS n FROM blog_posts{where}", params, fetch="one")
+        return int((row or {"n": 0})["n"])
+
+    def get_post(self, slug: str) -> dict | None:
+        row = self._run("SELECT * FROM blog_posts WHERE slug = :s", {"s": slug}, fetch="one")
+        return dict(row) if row else None
+
+    def upsert_post(self, post: dict) -> None:
+        now = _now()
+        data = {c: post.get(c) for c in self._POST_COLS}
+        data["updated_at"] = now
+        if not data.get("created_at"):
+            data["created_at"] = now
+        self._run(
+            """INSERT INTO blog_posts
+                 (slug,title,dek,body_html,author,cover_image_id,tags,status,published_at,created_at,updated_at)
+               VALUES
+                 (:slug,:title,:dek,:body_html,:author,:cover_image_id,:tags,:status,:published_at,:created_at,:updated_at)
+               ON CONFLICT(slug) DO UPDATE SET
+                 title=excluded.title, dek=excluded.dek, body_html=excluded.body_html,
+                 author=excluded.author, cover_image_id=excluded.cover_image_id, tags=excluded.tags,
+                 status=excluded.status, published_at=excluded.published_at, updated_at=excluded.updated_at""",
+            data)
+
+    def delete_post(self, slug: str) -> None:
+        self._run("DELETE FROM blog_posts WHERE slug = :s", {"s": slug})
+
+    def save_image(self, data: bytes, mime: str, image_id: str) -> str:
+        import base64
+        self._run(
+            """INSERT INTO blog_images (id, mime, data_b64, created_at)
+               VALUES (:id, :mime, :d, :at)
+               ON CONFLICT(id) DO UPDATE SET mime=excluded.mime, data_b64=excluded.data_b64""",
+            {"id": image_id, "mime": mime,
+             "d": base64.b64encode(data).decode("ascii"), "at": _now()})
+        return image_id
+
+    def get_image(self, image_id: str) -> dict | None:
+        import base64
+        row = self._run("SELECT mime, data_b64 FROM blog_images WHERE id = :id",
+                        {"id": image_id}, fetch="one")
+        if not row:
+            return None
+        return {"mime": row["mime"], "data": base64.b64decode(row["data_b64"] or "")}
 
     # ── per-shop subscription state (Stripe) ────────────────────────────────────
     def get_billing(self, shop: str) -> dict | None:

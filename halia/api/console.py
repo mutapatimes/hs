@@ -484,13 +484,17 @@ _NAV = [
     ("outreach", "/console/outreach", "Outreach"),
     ("milestones", "/console/milestones", "Milestones"),
     ("content", "/admin", "Content"),
+    ("blog", "/admin/blog", "Blog"),
     ("settings", "/console/settings", "Settings"),
 ]
 
+# The CMS surfaces (Content + Blog) only appear when the editor is enabled.
+_ADMIN_NAV = {"content", "blog"}
+
 
 def _nav_items() -> list[tuple[str, str, str]]:
-    """Nav entries for the shell. Content (the CMS) only appears when the editor is enabled."""
-    return [(k, h, l) for k, h, l in _NAV if k != "content" or config.ADMIN_KEY]
+    """Nav entries for the shell. The CMS surfaces only appear when the editor is enabled."""
+    return [(k, h, l) for k, h, l in _NAV if k not in _ADMIN_NAV or config.ADMIN_KEY]
 
 
 def _status_pill() -> str:
