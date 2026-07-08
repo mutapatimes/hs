@@ -91,6 +91,23 @@ def test_public_pages_carry_social_meta(path):
     assert "https://haliascore.com" in html
 
 
+def test_delete_account_wipes_and_signs_out(client):
+    # Precondition: the tenant has cached results and can read them.
+    assert client.get("/v1/hidden-vics", params={"limit": 5}).status_code == 200
+    r = client.post("/v1/account/delete")
+    assert r.status_code == 200 and r.json() == {"ok": True}
+    # Session cookies are cleared on the way out.
+    assert "halia_s" in r.headers.get("set-cookie", "")
+    # Everything held for the shop is gone: the RAM cache is evicted, reads 404.
+    assert cache.get(SHOP) is None
+    assert client.get("/v1/hidden-vics").status_code == 404
+
+
+def test_delete_account_requires_auth():
+    from fastapi.testclient import TestClient as _TC
+    assert _TC(app).post("/v1/account/delete").status_code == 401
+
+
 def test_post_score_is_stateless_and_open(client):
     r = TestClient(app).post("/v1/score", json={
         "CUST_ID": "x", "Name": "Sir A B", "EMAIL_ADDR": "a@gs.com",

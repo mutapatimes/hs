@@ -2228,6 +2228,13 @@ function openSettings(){
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px"><div style="font:650 13px system-ui;color:#303030">${p.h}</div><button data-copy="${i}" style="${BS};padding:5px 12px">Copy</button></div>
             <div style="font:13px/1.55 system-ui;color:#444">${esc(p.body)}</div></div>`).join("")}
         </div>
+        <div style="${C};border-color:#e7c9c9">
+          <div style="${H};color:var(--danger)">Delete your Halia account</div>
+          <p style="${P}">This permanently erases everything Halia holds for you: your store connection and API keys, settings, email templates, connected integrations, and billing record. Any active subscription is cancelled. Your own store and its customer data are untouched. This cannot be undone.</p>
+          <label style="font:13px ${SF};color:var(--soft)">Type <b>DELETE</b> to confirm</label>
+          <input id="delConfirm" autocomplete="off" placeholder="DELETE" style="${I};max-width:220px;margin:6px 0 12px;display:block">
+          <button id="delAccount" disabled style="background:var(--danger);color:#fff;border:none;border-radius:10px;padding:11px 20px;font:600 13px ${SF};cursor:pointer;opacity:.5">Delete account</button>
+        </div>
 
         </div><!-- /privacy -->
 
@@ -2256,6 +2263,21 @@ function openSettings(){
     settingsEl.querySelectorAll("[data-integ]").forEach(b=>b.onclick=()=>{integ=b.dataset.integ;render();});
     settingsEl.querySelectorAll("[data-chip]").forEach(b=>b.onclick=()=>insertToken(b.dataset.chip));
     settingsEl.querySelectorAll("[data-copy]").forEach(b=>b.onclick=()=>copyText(PRIVACY_INSERTS[+b.dataset.copy].body));
+    const delIn=document.getElementById("delConfirm"),delBtn2=document.getElementById("delAccount");
+    if(delIn&&delBtn2){
+      delIn.addEventListener("input",()=>{const ok=delIn.value.trim().toUpperCase()==="DELETE";delBtn2.disabled=!ok;delBtn2.style.opacity=ok?"1":".5";});
+      delBtn2.onclick=()=>{
+        if(delIn.value.trim().toUpperCase()!=="DELETE")return;
+        if(!confirm("Permanently delete your Halia account and everything in it? This cannot be undone."))return;
+        delBtn2.disabled=true;delBtn2.textContent="Deleting…";
+        fetch("/v1/account/delete",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+          if(!ok)throw new Error((d&&d.detail)||"failed");
+          document.body.innerHTML='<div style="max-width:560px;margin:14vh auto;text-align:center;color:#303030;padding:24px">'
+            +'<div style="font:500 26px \'Fraunces\',serif;letter-spacing:-.01em;margin-bottom:12px">Your Halia account has been deleted.</div>'
+            +'<div style="font:15px/1.6 system-ui;color:#666">Everything we held for you has been erased. Thank you for trying Halia.</div></div>';
+        }).catch(e=>{toast("Could not delete: "+e.message);delBtn2.disabled=false;delBtn2.textContent="Delete account";});
+      };
+    }
     settingsEl.querySelectorAll("#tEditName,#tEditSubject,#tEditBody").forEach(el=>el.addEventListener("focus",()=>{lastField=el;}));
     lastField=settingsEl.querySelector("#tEditBody")||lastField;
     const kvc=document.getElementById("setKvConnect");

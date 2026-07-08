@@ -111,6 +111,22 @@ def set_cancel(shop: str, cancel: bool) -> dict:
             "current_period_end": sub.get("current_period_end")}
 
 
+def cancel_now(shop: str) -> None:
+    """Immediately cancel the tenant's Stripe subscription. Used when a tenant deletes
+    their account so they are not billed for a period they can no longer reach. Best-effort:
+    account deletion must still proceed even if Stripe is unset or unreachable."""
+    if not billing_enabled():
+        return
+    b = shop_store().get_billing(shop) or {}
+    sub_id = b.get("subscription_id")
+    if not sub_id:
+        return
+    try:
+        _stripe("DELETE", f"subscriptions/{sub_id}")
+    except Exception:  # noqa: BLE001 — never block erasure on a billing hiccup
+        pass
+
+
 RETENTION_PERCENT = 50
 
 

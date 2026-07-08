@@ -316,6 +316,23 @@ def register(app) -> None:
         shop_store().delete_klaviyo(shop)
         return {"ok": True}
 
+    @app.post("/v1/account/delete")
+    def delete_account(shop: str = Depends(require_shop)):
+        """Right-to-erasure: cancel any subscription, then wipe everything Halia holds for
+        this tenant (tokens, keys, settings, integrations, billing) and sign them out.
+        Irreversible; the customer's own store data is untouched."""
+        from fastapi.responses import JSONResponse
+        from halia.api import billing, tenant_auth
+        billing.cancel_now(shop)          # stop billing first (best-effort)
+        cache.evict(shop)                 # drop any RAM-cached scores immediately
+        shop_store().delete_shop(shop)    # erase every stored table for this shop
+        resp = JSONResponse({"ok": True})
+        # End the self-serve session so the browser is logged out. A Shopify-embedded
+        # tenant re-auths per request, and their tenant row is now gone, so access stops too.
+        resp.delete_cookie(tenant_auth.SESSION_COOKIE)
+        resp.delete_cookie(tenant_auth.COOKIE)
+        return resp
+
     @app.get("/v1/calibrate")
     def calibrate_preview(shop: str = Depends(require_shop)) -> dict:
         """Measure each signal's spend lift on this shop's data and suggest weights. No save."""
