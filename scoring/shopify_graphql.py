@@ -68,6 +68,51 @@ CUSTOMER_BY_QUERY = (
 )
 
 
+# Catalog products — a separate, product-centric pull (not customer data), used by the
+# catalog-PDF builder. Cursor-paged over the products connection.
+PRODUCTS_QUERY = (
+    "query Products($cursor: String) {\n"
+    "  products(first: 100, after: $cursor, sortKey: TITLE) {\n"
+    "    pageInfo { hasNextPage endCursor }\n"
+    "    nodes {\n"
+    "      id title handle vendor productType tags status\n"
+    "      featuredImage { url }\n"
+    "      images(first: 1) { nodes { url } }\n"
+    "      priceRangeV2 { minVariantPrice { amount currencyCode } }\n"
+    "      collections(first: 8) { nodes { title } }\n"
+    "    }\n"
+    "  }\n"
+    "}\n"
+)
+
+
+def product_node_to_dict(node: dict) -> dict:
+    """Shopify product node -> a flat dict for the catalog picker / renderer."""
+    node = node or {}
+    img = (node.get("featuredImage") or {}).get("url")
+    if not img:
+        imgs = ((node.get("images") or {}).get("nodes")) or []
+        img = imgs[0].get("url") if imgs else None
+    price_obj = ((node.get("priceRangeV2") or {}).get("minVariantPrice")) or {}
+    collections = [c.get("title") for c in (((node.get("collections") or {}).get("nodes")) or [])
+                   if c.get("title")]
+    tags = node.get("tags")
+    tags = list(tags) if isinstance(tags, (list, tuple)) else ([tags] if tags else [])
+    return {
+        "id": node.get("id"),
+        "title": node.get("title") or "Untitled",
+        "handle": node.get("handle"),
+        "vendor": node.get("vendor") or "",
+        "type": node.get("productType") or "",
+        "tags": tags,
+        "collections": collections,
+        "image_url": img,
+        "price": price_obj.get("amount"),
+        "currency": price_obj.get("currencyCode") or "",
+        "status": node.get("status"),
+    }
+
+
 def _address(node: dict | None) -> dict | None:
     """GraphQL MailingAddress -> REST address dict (snake_case keys)."""
     if not node:

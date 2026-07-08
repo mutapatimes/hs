@@ -271,6 +271,9 @@ def register(app) -> None:
         base = (config.HALIA_APP_URL or "").rstrip("/")
         s["webhook_url"] = f"{base}/webhooks/orders/{token}"
         s["vapid_public"] = notify.vapid_public()
+        # The active catalog's public URL, resolved by the {catalog_link} email token.
+        from halia.api.catalog import catalog_url_for
+        s["catalog_url"] = catalog_url_for(shop)
         return s
 
     @app.post("/v1/settings")

@@ -199,6 +199,20 @@ _TABLES = [
         data_b64   TEXT,
         created_at TEXT
     )""",
+    # Product catalogs (the catalog-PDF builder). Company/product content, not customer PII.
+    # `config_json` holds the selection (product ids or collection/tag/vendor filters) + template +
+    # brand colour; `pdf_b64` is the last generated PDF (base64 TEXT, survives Render's ephemeral FS).
+    """CREATE TABLE IF NOT EXISTS catalogs (
+        id          TEXT PRIMARY KEY,
+        shop        TEXT,
+        name        TEXT,
+        config_json TEXT,
+        active      INTEGER DEFAULT 0,
+        pdf_b64     TEXT,
+        pdf_at      TEXT,
+        created_at  TEXT,
+        updated_at  TEXT
+    )""",
 ]
 # Earlier versions cached customer PII in these tables. Drop them so any deploy purges it.
 _DROP_LEGACY = [
@@ -647,6 +661,60 @@ class ShopStore(_DB):
             return None
         return {"mime": row["mime"], "data": base64.b64decode(row["data_b64"] or "")}
 
+    # ── product catalogs (catalog-PDF builder) ──────────────────────────────────
+    def save_catalog(self, catalog_id: str, shop: str, name: str, config_json: str,
+                     active: bool = False) -> None:
+        now = _now()
+        if active:                                   # one active catalog per shop
+            self._run("UPDATE catalogs SET active = 0 WHERE shop = :shop", {"shop": shop})
+        self._run(
+            """INSERT INTO catalogs (id, shop, name, config_json, active, created_at, updated_at)
+               VALUES (:id, :shop, :name, :cfg, :active, :at, :at)
+               ON CONFLICT(id) DO UPDATE SET name=excluded.name, config_json=excluded.config_json,
+                active=excluded.active, updated_at=excluded.updated_at""",
+            {"id": catalog_id, "shop": shop, "name": name, "cfg": config_json,
+             "active": 1 if active else 0, "at": now})
+
+    def get_catalog(self, catalog_id: str) -> dict | None:
+        row = self._run(
+            "SELECT id, shop, name, config_json, active, pdf_at FROM catalogs WHERE id = :id",
+            {"id": catalog_id}, fetch="one")
+        return dict(row) if row else None
+
+    def list_catalogs(self, shop: str) -> list[dict]:
+        rows = self._run(
+            "SELECT id, shop, name, config_json, active, pdf_at, updated_at FROM catalogs "
+            "WHERE shop = :shop ORDER BY updated_at DESC", {"shop": shop}, fetch="all") or []
+        return [dict(r) for r in rows]
+
+    def delete_catalog(self, catalog_id: str, shop: str) -> None:
+        self._run("DELETE FROM catalogs WHERE id = :id AND shop = :shop",
+                  {"id": catalog_id, "shop": shop})
+
+    def set_active_catalog(self, catalog_id: str, shop: str) -> None:
+        self._run("UPDATE catalogs SET active = 0 WHERE shop = :shop", {"shop": shop})
+        self._run("UPDATE catalogs SET active = 1 WHERE id = :id AND shop = :shop",
+                  {"id": catalog_id, "shop": shop})
+
+    def active_catalog(self, shop: str) -> dict | None:
+        row = self._run(
+            "SELECT id, name FROM catalogs WHERE shop = :shop AND active = 1 "
+            "AND pdf_b64 IS NOT NULL ORDER BY updated_at DESC", {"shop": shop}, fetch="one")
+        return dict(row) if row else None
+
+    def set_catalog_pdf(self, catalog_id: str, pdf: bytes) -> None:
+        import base64
+        self._run("UPDATE catalogs SET pdf_b64 = :d, pdf_at = :at WHERE id = :id",
+                  {"d": base64.b64encode(pdf).decode("ascii"), "at": _now(), "id": catalog_id})
+
+    def get_catalog_pdf(self, catalog_id: str) -> bytes | None:
+        import base64
+        row = self._run("SELECT pdf_b64 FROM catalogs WHERE id = :id", {"id": catalog_id},
+                        fetch="one")
+        if not row or not row["pdf_b64"]:
+            return None
+        return base64.b64decode(row["pdf_b64"])
+
     # ── per-shop subscription state (Stripe) ────────────────────────────────────
     def get_billing(self, shop: str) -> dict | None:
         row = self._run(
@@ -803,5 +871,5 @@ class ShopStore(_DB):
         """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""
         for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "bigcommerce", "centra",
                       "scayle", "mailchimp", "hubspot", "slack", "webhooks", "push_subs", "billing",
-                      "feedback_stats", "metrics"):
+                      "feedback_stats", "metrics", "catalogs"):
             self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})

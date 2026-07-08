@@ -186,6 +186,29 @@ query($cursor: String) {
 """
 
 
+def fetch_products(
+    transport: Transport,
+    max_pages: int | None = None,
+    retries: int = 5,
+    _sleep=time.sleep,
+) -> list[dict]:
+    """Cursor-page the products connection and return flat product dicts (catalog data, not PII)."""
+    from scoring.shopify_graphql import PRODUCTS_QUERY, product_node_to_dict
+    out: list[dict] = []
+    cursor: str | None = None
+    pages = 0
+    while True:
+        data = _run(transport, PRODUCTS_QUERY, {"cursor": cursor}, retries, _sleep)
+        conn = data["products"]
+        out.extend(product_node_to_dict(n) for n in conn["nodes"])
+        pages += 1
+        info = conn["pageInfo"]
+        if not info["hasNextPage"] or (max_pages is not None and pages >= max_pages):
+            break
+        cursor = info["endCursor"]
+    return out
+
+
 def fetch_abandoned_checkouts(
     transport: Transport,
     max_pages: int | None = 10,

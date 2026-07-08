@@ -123,6 +123,10 @@ VIC_THRESHOLD = float(os.environ.get("HALIA_VIC_THRESHOLD", "5000"))
 # overrides it; this is the default. Luxury baskets run high, so £500 is a sensible floor.
 BASKET_ALERT_MIN = float(os.environ.get("HALIA_BASKET_ALERT_MIN", "500"))
 
+# Cap the catalog product pull (100 products/page). 20 pages = ~2,000 products; set
+# HALIA_SHOPIFY_PRODUCTS_MAX_PAGES=0 for the whole catalogue.
+SHOPIFY_PRODUCTS_MAX_PAGES = int(os.environ.get("HALIA_SHOPIFY_PRODUCTS_MAX_PAGES", "20")) or None
+
 # Shopify (reuse the existing env vars the fetch layer already reads).
 SHOPIFY_SHOP = os.environ.get("SHOPIFY_SHOP")
 SHOPIFY_ADMIN_TOKEN = os.environ.get("SHOPIFY_ADMIN_TOKEN")

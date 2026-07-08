@@ -1074,11 +1074,13 @@ let EMAIL_TEMPLATES=[
  {name:"Concierge check-in",subject:"Checking in",body:"Dear {first_name},\n\nJust a note to say we're here whenever you need us, for a gift, a particular piece, or simply a recommendation. It's always a pleasure to look after you.\n\nWarmly,\n{sender}"}
 ];
 let SENDER="";
+let CATALOG_URL="";  // active catalog's public PDF link, from /v1/settings (the {catalog_link} token)
 let CMS_DRAFT=null;  // featured 1:1 note, editable in the mini-CMS (/admin), from /v1/settings
 function firstName(name){return String(name||"").replace(/^(sir|lady|dame|lord|baroness|viscount|countess|duchess|marquess|hrh|hsh|the hon)\s+/i,"").split(" ")[0]||"there";}
 function fillTemplate(s,c){c=c||{};return String(s||"")
   .split("{first_name}").join(firstName(c.name))
   .split("{sender}").join(SENDER||"")
+  .split("{catalog_link}").join(CATALOG_URL||"")
   .split("{order_number}").join(c.orderId?("#"+c.orderId):"")
   .split("{order_total}").join(c.amount!=null?("£"+Number(c.amount).toLocaleString()):"");}
 function copyText(t){
@@ -1808,6 +1810,7 @@ function loadSettings(){
     if(s.order_templates) ORDER_TEMPLATES=s.order_templates;
     if(s.email_draft) CMS_DRAFT=s.email_draft;
     SENDER=s.sender_name||"";
+    CATALOG_URL=s.catalog_url||"";
     return SETTINGS;
   }).catch(()=>SETTINGS);
 }
@@ -1835,12 +1838,13 @@ function showConnectBanner(){
 const settingsEl=document.getElementById("settings");
 function closeSettings(){settingsEl.style.display="none";}
 function openSettings(){
+  if(typeof catState==="object") catState.loaded=false;   // re-init the catalogues tab each open
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
   let otmpl=JSON.parse(JSON.stringify(ORDER_TEMPLATES||{new:[],fulfilled:[],refunded:[],cancelled:[]}));
   let tab="client", ostatus="new", lastField=null, spage="integrations";
   let integ = SETTINGS.mailchimp_connected?"mailchimp":(SETTINGS.hubspot_connected?"hubspot":"klaviyo");
   let tsel = 0;   // selected template index in the two-pane template editor
-  const SPAGES=[["integrations","Integrations"],["scoring","Scoring"],["alerts","Alerts"],["templates","Templates"],["billing","Billing"],["privacy","Privacy"]];
+  const SPAGES=[["integrations","Integrations"],["scoring","Scoring"],["alerts","Alerts"],["templates","Templates"],["catalogs","Catalogues"],["billing","Billing"],["privacy","Privacy"]];
   const OSTAT=["new","fulfilled","refunded","cancelled"];
   const OSTLBL={new:"New",fulfilled:"Fulfilled",refunded:"Refunded",cancelled:"Cancelled"};
   function currentList(){return tab==="client"?tmpl:(otmpl[ostatus]=otmpl[ostatus]||[]);}
@@ -1858,7 +1862,7 @@ function openSettings(){
     if(!list.length) return `<div style="${P};margin:0">No templates yet. Add one on the left.</div>`;
     if(tsel>=list.length) tsel=list.length-1; if(tsel<0) tsel=0;
     const t=list[tsel];
-    const toks=(tab==='order'?["{first_name}","{sender}","{order_number}","{order_total}"]:["{first_name}","{sender}"]);
+    const toks=(tab==='order'?["{first_name}","{sender}","{order_number}","{order_total}"]:["{first_name}","{sender}","{catalog_link}"]);
     return `<input id="tEditName" value="${esc(t.name)}" placeholder="Template name" style="width:100%;${I};margin-bottom:10px">
       <input id="tEditSubject" value="${esc(t.subject)}" placeholder="Subject line" style="width:100%;${I};margin-bottom:10px">
       <textarea id="tEditBody" placeholder="Write your message…" style="width:100%;min-height:320px;${I};resize:vertical;line-height:1.6">${esc(t.body)}</textarea>
@@ -2053,6 +2057,14 @@ function openSettings(){
 
         </div><!-- /templates -->
 
+        <div class="spage" data-page="catalogs" style="display:${spage==='catalogs'?'':'none'}">
+        <div style="${C}">
+          <div style="${H}">Product catalogues</div>
+          <p style="${P}">Build a print-ready PDF catalogue from your products, then share its link with clients. Insert <b>{catalog_link}</b> in a client-email template (Templates tab) to drop your active catalogue into the message.</p>
+          <div id="catalogsRoot" style="min-height:80px"><div style="${P};margin:0">Loading…</div></div>
+        </div>
+        </div><!-- /catalogs -->
+
         <div class="spage" data-page="billing" style="display:${spage==='billing'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Billing</div>
@@ -2084,6 +2096,7 @@ function openSettings(){
       settingsEl.querySelectorAll("[data-goto]").forEach(t=>t.setAttribute("style",t.dataset.goto===spage?STAB_ON:STAB_OFF));
       const sb=document.getElementById("saveBar"); if(sb) sb.style.display=["scoring","alerts","templates"].includes(spage)?"":"none";
       const sc=document.getElementById("sScroll"); if(sc) sc.scrollTop=0;
+      if(spage==="catalogs") catInit();
     });
     const addBtn=document.getElementById("addTmpl");
     if(addBtn) addBtn.onclick=()=>{collect();currentList().push({name:"New template",subject:"",body:(tab==='order'?"Hi {first_name},\n\n\n\n{sender}":"Dear {first_name},\n\n\n\n{sender}")});tsel=currentList().length-1;render();};
@@ -2326,6 +2339,157 @@ function openSettings(){
   render();
 }
 document.getElementById("openSettings").onclick=openSettings;
+
+// ── Product-catalogue builder (Settings → Catalogues) ──────────────────────
+const CI="box-sizing:border-box;padding:9px 11px;border:1px solid #d8d8d8;border-radius:9px;font:14px system-ui;margin-top:5px";
+const catState={loaded:false,editing:null,name:"",template:"grid",brand:"#1f564a",active:false,
+  selected:new Set(),filteredIds:[],page:1,pages:1,total:0,allTotal:0,search:"",fCol:"",fTag:"",fVendor:"",
+  facets:{collections:[],tags:[],vendors:[]},items:[],cats:[]};
+function catRoot(){return document.getElementById("catalogsRoot");}
+function catInit(force){
+  if(catState.loaded && !force) return;
+  catState.loaded=true;
+  fetch("/v1/catalog/list").then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>catRenderList(d.catalogs||[]))
+    .catch(()=>{const el=catRoot();if(el)el.innerHTML='<div style="color:#8a8a8a;font:13.5px system-ui">Catalogues become available once your Shopify store is connected.</div>';});
+}
+function catRenderList(cats){
+  catState.cats=cats; const el=catRoot(); if(!el) return;
+  const rows=cats.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:12px 0;border-top:1px solid #eee;flex-wrap:wrap">
+    <div style="flex:1;min-width:160px"><div style="font:600 14px system-ui;color:#1a1712">${esc(c.name)} ${c.active?'<span style="color:#0f7b4f;font-size:12px">· active</span>':''}</div>
+      <div style="font:12.5px system-ui;color:#8a8a8a">${c.generated?('Generated · '+(c.count||0)+' products'):((c.count||0)+' products · not generated yet')}</div></div>
+    ${c.url?`<a href="${esc(c.url)}" target="_blank" class="btn ghost" style="padding:6px 12px">Open PDF</a>`:''}
+    ${c.url?`<button data-catcopy="${esc(c.url)}" class="btn ghost" style="padding:6px 12px">Copy link</button>`:''}
+    ${!c.active?`<button data-catactive="${c.id}" class="btn ghost" style="padding:6px 12px">Set active</button>`:''}
+    <button data-catedit="${c.id}" class="btn ghost" style="padding:6px 12px">Edit</button>
+    <button data-catdel="${c.id}" class="btn ghost" style="padding:6px 12px;color:#8e1f0b">Delete</button></div>`).join("");
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <div style="font:12px system-ui;color:#8a8a8a">${cats.length} catalogue${cats.length===1?'':'s'}</div>
+      <button id="catNew" class="btn" style="padding:8px 16px">+ New catalogue</button></div>
+    ${rows||'<div style="color:#8a8a8a;font:13.5px system-ui;padding:14px 0">No catalogues yet. Create one to get started.</div>'}`;
+  document.getElementById("catNew").onclick=()=>catOpenBuilder(null);
+  el.querySelectorAll("[data-catedit]").forEach(b=>b.onclick=()=>{const c=catState.cats.find(x=>x.id===b.dataset.catedit);if(c)catOpenBuilder(c);});
+  el.querySelectorAll("[data-catdel]").forEach(b=>b.onclick=()=>catDelete(b.dataset.catdel));
+  el.querySelectorAll("[data-catactive]").forEach(b=>b.onclick=()=>catActivate(b.dataset.catactive));
+  el.querySelectorAll("[data-catcopy]").forEach(b=>b.onclick=()=>{copyText(b.dataset.catcopy);toast("Catalogue link copied.");});
+}
+function catOpenBuilder(c){
+  catState.editing=c?c.id:null; catState.name=c?c.name:""; catState.template=(c&&c.template)||"grid";
+  catState.brand=(c&&c.brand_color)||"#1f564a"; catState.active=!!(c&&c.active);
+  catState.selected=new Set((c&&c.product_ids)||[]);
+  catState.page=1; catState.search=""; catState.fCol=""; catState.fTag=""; catState.fVendor="";
+  catRenderBuilder(); catLoadProducts();
+}
+function catRenderBuilder(){
+  const el=catRoot(); if(!el) return;
+  el.innerHTML=`
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px">
+      <label style="flex:2;min-width:200px;font:600 12px system-ui;color:#616161">Name
+        <input id="catName" value="${esc(catState.name)}" placeholder="Autumn selection" style="width:100%;${CI}"></label>
+      <label style="font:600 12px system-ui;color:#616161">Template
+        <select id="catTemplate" style="${CI}"><option value="grid"${catState.template==='grid'?' selected':''}>Grid</option><option value="lookbook"${catState.template==='lookbook'?' selected':''}>Lookbook</option></select></label>
+      <label style="font:600 12px system-ui;color:#616161">Brand colour
+        <input id="catBrand" type="color" value="${esc(catState.brand)}" style="width:52px;height:38px;padding:2px;border:1px solid #d8d8d8;border-radius:8px;margin-top:5px;display:block"></label>
+      <label style="font:600 13px system-ui;color:#303030;display:flex;align-items:center;gap:8px;padding-bottom:8px"><input type="checkbox" id="catActive" ${catState.active?'checked':''}> Active (used by {catalog_link})</label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <input id="catSearch" value="${esc(catState.search)}" placeholder="Search products…" style="flex:1;min-width:150px;${CI}">
+      <select id="catFCol" style="${CI};max-width:180px"><option value="">All collections</option></select>
+      <select id="catFTag" style="${CI};max-width:150px"><option value="">All tags</option></select>
+      <select id="catFVendor" style="${CI};max-width:150px"><option value="">All vendors</option></select>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font:12.5px system-ui;color:#616161">
+      <div><button id="catSelAll" class="btn ghost" style="padding:5px 11px">Select all</button> <button id="catDeselAll" class="btn ghost" style="padding:5px 11px">Deselect all</button></div>
+      <div><b id="catSelCount">${catState.selected.size}</b> selected</div>
+    </div>
+    <div id="catProducts" style="min-height:120px"><div style="color:#8a8a8a;font:13px system-ui">Loading products…</div></div>
+    <div id="catPager" style="display:flex;justify-content:center;gap:8px;margin-top:12px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;border-top:1px solid #eee;padding-top:14px">
+      <button id="catCancel" class="btn ghost">Back</button>
+      <button id="catSave" class="btn ghost">Save</button>
+      <button id="catGen" class="btn">Save &amp; generate PDF</button>
+    </div>
+    <div id="catResult" style="margin-top:12px"></div>`;
+  const on=(id,ev,fn)=>{const e=document.getElementById(id);if(e)e.addEventListener(ev,fn);};
+  on("catCancel","click",()=>catInit(true));
+  on("catSave","click",()=>catSave(false));
+  on("catGen","click",()=>catSave(true));
+  on("catSelAll","click",()=>{(catState.filteredIds||[]).forEach(id=>catState.selected.add(id));catRenderProducts();});
+  on("catDeselAll","click",()=>{(catState.filteredIds||[]).forEach(id=>catState.selected.delete(id));catRenderProducts();});
+  let t; on("catSearch","input",e=>{clearTimeout(t);t=setTimeout(()=>{catState.search=e.target.value;catState.page=1;catLoadProducts();},250);});
+  on("catFCol","change",e=>{catState.fCol=e.target.value;catState.page=1;catLoadProducts();});
+  on("catFTag","change",e=>{catState.fTag=e.target.value;catState.page=1;catLoadProducts();});
+  on("catFVendor","change",e=>{catState.fVendor=e.target.value;catState.page=1;catLoadProducts();});
+}
+function catLoadProducts(){
+  const q=new URLSearchParams({page:catState.page});
+  if(catState.search)q.set("search",catState.search);
+  if(catState.fCol)q.set("collection",catState.fCol);
+  if(catState.fTag)q.set("tag",catState.fTag);
+  if(catState.fVendor)q.set("vendor",catState.fVendor);
+  fetch("/v1/catalog/products?"+q.toString()).then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>{
+    catState.items=d.items||[]; catState.total=d.total||0; catState.allTotal=d.all_total||0;
+    catState.page=d.page||1; catState.pages=d.pages||1; catState.facets=d.facets||catState.facets; catState.filteredIds=d.ids||[];
+    catFillFacets(); catRenderProducts(); catRenderPager();
+  }).catch(err=>{const p=document.getElementById("catProducts");if(p)p.innerHTML='<div style="color:#8e1f0b;font:13px system-ui">'+(err===400?'Catalogues are Shopify-only for now.':'Could not load products.')+'</div>';});
+}
+function catFillFacets(){
+  const fill=(id,vals,cur)=>{const s=document.getElementById(id);if(!s)return;const first=s.options[0].outerHTML;
+    s.innerHTML=first+(vals||[]).map(v=>`<option value="${esc(v)}"${cur===v?' selected':''}>${esc(v)}</option>`).join("");};
+  fill("catFCol",catState.facets.collections,catState.fCol);
+  fill("catFTag",catState.facets.tags,catState.fTag);
+  fill("catFVendor",catState.facets.vendors,catState.fVendor);
+}
+function catRenderProducts(){
+  const el=document.getElementById("catProducts"); if(!el) return;
+  const cc=document.getElementById("catSelCount"); if(cc)cc.textContent=catState.selected.size;
+  if(!catState.items.length){el.innerHTML='<div style="color:#8a8a8a;font:13px system-ui;padding:14px 0">No products match.</div>';return;}
+  const money=p=>p.price?((p.currency==='GBP'?'£':p.currency==='EUR'?'€':p.currency==='USD'?'$':'')+Number(p.price).toFixed(2)):'';
+  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px">'+catState.items.map(p=>{
+    const sel=catState.selected.has(p.id);
+    return `<div data-catpid="${esc(p.id)}" style="border:1px solid ${sel?'#1f564a':'#e4e2da'};border-radius:12px;overflow:hidden;cursor:pointer;background:${sel?'#eef4f1':'#fff'}">
+      <div style="aspect-ratio:1;background:#f2f0ea${p.image_url?(" url('"+esc(p.image_url)+"') center/cover no-repeat"):""}"></div>
+      <div style="padding:8px 10px"><div style="font:600 12.5px system-ui;color:#1a1712;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.title)}</div>
+      <div style="font:12px system-ui;color:#7a7363">${esc(money(p))}</div></div></div>`;}).join("")+'</div>';
+  el.querySelectorAll("[data-catpid]").forEach(c=>c.onclick=()=>{const id=c.dataset.catpid;catState.selected.has(id)?catState.selected.delete(id):catState.selected.add(id);catRenderProducts();});
+}
+function catRenderPager(){
+  const el=document.getElementById("catPager"); if(!el) return;
+  if(catState.pages<=1){el.innerHTML="";return;}
+  el.innerHTML=`<button class="btn ghost" style="padding:5px 11px" ${catState.page<=1?'disabled':''} id="catPrev">‹</button>
+    <span style="font:13px system-ui;color:#616161;align-self:center">Page ${catState.page} of ${catState.pages} · ${catState.total} products</span>
+    <button class="btn ghost" style="padding:5px 11px" ${catState.page>=catState.pages?'disabled':''} id="catNext">›</button>`;
+  const pv=document.getElementById("catPrev"),nx=document.getElementById("catNext");
+  if(pv)pv.onclick=()=>{if(catState.page>1){catState.page--;catLoadProducts();}};
+  if(nx)nx.onclick=()=>{if(catState.page<catState.pages){catState.page++;catLoadProducts();}};
+}
+function catSave(thenGenerate){
+  const gv=id=>{const e=document.getElementById(id);return e?(e.type==='checkbox'?e.checked:e.value):"";};
+  const body={id:catState.editing||undefined,name:gv("catName"),template:gv("catTemplate")||"grid",
+    brand_color:gv("catBrand")||"#1f564a",active:!!gv("catActive"),product_ids:[...catState.selected]};
+  if(!body.product_ids.length){toast("Select at least one product.");return;}
+  const gen=document.getElementById("catGen"),sv=document.getElementById("catSave");
+  if(thenGenerate&&gen){gen.disabled=true;gen.textContent="Generating…";}else if(sv){sv.disabled=true;sv.textContent="Saving…";}
+  fetch("/v1/catalog/save",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
+    .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
+      catState.editing=d.id; if(d.id) body.id=d.id;
+      if(thenGenerate) return catGenerate(d.id);
+      toast("Catalogue saved."); catInit(true);
+    }).catch(e=>{toast("Save failed: "+e.message);}).finally(()=>{
+      if(gen){gen.disabled=false;gen.textContent="Save & generate PDF";}if(sv){sv.disabled=false;sv.textContent="Save";}});
+}
+function catGenerate(id){
+  return fetch("/v1/catalog/"+id+"/generate",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+    if(!ok)throw new Error(d.detail||"failed");
+    const res=document.getElementById("catResult");
+    if(res){res.innerHTML=`<div style="background:#eef4f1;border:1px solid #d3e5de;border-radius:10px;padding:12px 14px;font:13px system-ui">Generated <b>${d.count}</b> products. <a href="${esc(d.url)}" target="_blank" style="color:#1f564a;font-weight:600">Open PDF →</a> &nbsp;<button data-catcopy="${esc(d.url)}" class="btn ghost" style="padding:4px 10px">Copy link</button></div>`;
+      res.querySelectorAll("[data-catcopy]").forEach(b=>b.onclick=()=>{copyText(b.dataset.catcopy);toast("Link copied.");});}
+    toast("Catalogue PDF generated.");
+  }).catch(e=>{toast("Generate failed: "+e.message);});
+}
+function catDelete(id){if(!confirm("Delete this catalogue?"))return;
+  fetch("/v1/catalog/"+id,{method:"DELETE"}).then(()=>{toast("Catalogue deleted.");catInit(true);}).catch(()=>toast("Delete failed."));}
+function catActivate(id){fetch("/v1/catalog/"+id+"/active",{method:"POST"}).then(r=>r.json()).then(d=>{
+  if(d&&d.catalog_url!==undefined)CATALOG_URL=d.catalog_url||CATALOG_URL; toast("Active catalogue set.");catInit(true);}).catch(()=>toast("Could not set active."));}
 
 // First-run / mid-sync: a fresh tenant has no scored clients yet. Rather than empty
 // tables and zero stats, show a single clear call to action. (The MVP always ships
