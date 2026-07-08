@@ -88,6 +88,19 @@ async def _rate_limit_mw(request, call_next):
 from config import ROOT as _ROOT  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
+
+class _RevalidateStatic(StaticFiles):
+    """Serve CSS/JS with ``Cache-Control: no-cache`` so browsers must revalidate against
+    the ETag before reusing a cached copy. Files still get a 304 when unchanged (cheap), but
+    a deploy that rewrites brand.css/brand.js is picked up immediately instead of a stale copy
+    lingering — which otherwise breaks the shared footer/nav when class names change."""
+
+    async def get_response(self, path, scope):
+        resp = await super().get_response(path, scope)
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
+
 _IMG_DIR = _ROOT / "web" / "site" / "img"
 if _IMG_DIR.is_dir():
     app.mount("/img", StaticFiles(directory=str(_IMG_DIR)), name="img")
@@ -95,7 +108,7 @@ if _IMG_DIR.is_dir():
 # Shared brand layer (logo spin + asterisk design language) used by every page.
 _STATIC_DIR = _ROOT / "web" / "site" / "static"
 if _STATIC_DIR.is_dir():
-    app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+    app.mount("/static", _RevalidateStatic(directory=str(_STATIC_DIR)), name="static")
 
 # Static legal / overview pages (Privacy, Terms, Cookies, Security).
 from fastapi.responses import HTMLResponse as _HTML  # noqa: E402
