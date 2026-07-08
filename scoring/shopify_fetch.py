@@ -165,6 +165,51 @@ def fetch_orders(transport: Transport | None = None, **kwargs) -> list[dict]:
     return graphql_customers_to_orders(nodes)
 
 
+# Abandoned checkouts = the closest thing Shopify exposes to "what's in a customer's cart":
+# a cart that reached checkout (so it carries the customer + line items) but was never paid.
+# A live, still-browsing cart is storefront/session state and is NOT retrievable via the Admin
+# API, so this is the actionable signal. Needs the same read_orders scope as orders.
+ABANDONED_QUERY = """
+query($cursor: String) {
+  abandonedCheckouts(first: 100, after: $cursor, sortKey: CREATED_AT, reverse: true) {
+    nodes {
+      id
+      createdAt
+      abandonedCheckoutUrl
+      totalPriceSet { shopMoney { amount } }
+      customer { id email }
+      lineItems(first: 25) { nodes { title quantity } }
+    }
+    pageInfo { hasNextPage endCursor }
+  }
+}
+"""
+
+
+def fetch_abandoned_checkouts(
+    transport: Transport,
+    max_pages: int | None = 10,
+    retries: int = 5,
+    _sleep=time.sleep,
+) -> list[dict]:
+    """Return abandoned-checkout nodes, newest first. Capped by ``max_pages`` (a store can have
+    very many; we only join those to scored customers). Raises ShopifyAuthError if the scope is
+    missing, so callers can degrade gracefully."""
+    cursor: str | None = None
+    pages = 0
+    out: list[dict] = []
+    while True:
+        data = _run(transport, ABANDONED_QUERY, {"cursor": cursor}, retries, _sleep)
+        conn = data["abandonedCheckouts"]
+        out.extend(conn["nodes"])
+        pages += 1
+        info = conn["pageInfo"]
+        if not info["hasNextPage"] or (max_pages is not None and pages >= max_pages):
+            break
+        cursor = info["endCursor"]
+    return out
+
+
 def fetch_customer_orders(
     identifier: str,
     transport: Transport | None = None,

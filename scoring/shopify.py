@@ -33,6 +33,41 @@ def _to_float(value) -> float:
         return 0.0
 
 
+def abandoned_to_cart(node: dict) -> dict:
+    """Map one abandoned-checkout GraphQL node to a compact 'open basket' dict.
+
+    Shape: {cid, email, value (int £), count, items:[{title,qty}], started (YYYY-MM-DD), url}.
+    """
+    cust = node.get("customer") or {}
+    li_nodes = ((node.get("lineItems") or {}).get("nodes")) or []
+    items = [{"title": (n.get("title") or "Item"), "qty": int(n.get("quantity") or 0)}
+             for n in li_nodes]
+    total = _to_float((((node.get("totalPriceSet") or {}).get("shopMoney")) or {}).get("amount"))
+    cid = cust.get("id")
+    return {
+        "cid": None if cid is None else str(cid),
+        "email": cust.get("email"),
+        "value": int(round(total)),
+        "count": sum(i["qty"] for i in items),
+        "items": items,
+        "started": str(node.get("createdAt") or "")[:10],
+        "url": node.get("abandonedCheckoutUrl") or "",
+    }
+
+
+def carts_by_customer(nodes: list[dict]) -> dict:
+    """CUST_ID -> most recent non-empty open basket. Nodes arrive newest-first, so the first
+    seen for a customer is kept (their latest abandoned checkout)."""
+    by: dict[str, dict] = {}
+    for n in nodes:
+        cart = abandoned_to_cart(n)
+        cid = cart["cid"]
+        if not cid or cart["count"] <= 0:
+            continue
+        by.setdefault(cid, cart)
+    return by
+
+
 def _tags(*sources) -> set[str]:
     out: set[str] = set()
     for src in sources:

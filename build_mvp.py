@@ -301,7 +301,7 @@ def _shopify_url(shop: str | None, cid: object) -> str:
 
 def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float,
             orders_by_customer: dict | None = None, shop: str | None = None,
-            benchmarks: dict | None = None) -> dict:
+            benchmarks: dict | None = None, carts_by_customer: dict | None = None) -> dict:
     raw = _num(row[SCORE_COL])
     s100 = _score100(raw)
     t = _tier(s100)
@@ -336,6 +336,7 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
         "last": last_label,
         "lastSort": last_sort,
         "orders": (orders_by_customer or {}).get(str(cid), []),
+        "cart": (carts_by_customer or {}).get(str(cid)),   # open basket (abandoned checkout), if any
         "shopifyUrl": _shopify_url(shop, cid),
         "signals": sigs,
         "reco": RECO.get(top_label, DEFAULT_RECO),
@@ -419,7 +420,8 @@ def firstName_py(name: str) -> str:
 
 def dashboard_payload(scored, orders_by_customer: dict | None = None,
                       shop: str | None = None, benchmarks: dict | None = None,
-                      raw_orders: list | None = None) -> dict:
+                      raw_orders: list | None = None,
+                      carts_by_customer: dict | None = None) -> dict:
     """Compute the JSON-serialisable dashboard payload from a scored frame.
 
     Separated from rendering so the embedded app can compute it once during sync,
@@ -431,7 +433,8 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
     store_aov = _store_aov(scored)
     seg_labels: dict[str, str] = {}
     top = top_hidden_vics(scored, n=max(len(hidden), 1))
-    data = [_client(i, row, seg_labels, store_aov, orders_by_customer, shop, benchmarks)
+    data = [_client(i, row, seg_labels, store_aov, orders_by_customer, shop, benchmarks,
+                    carts_by_customer)
             for i, (_, row) in enumerate(top.iterrows())]
     segments = {seg: {"label": label} for seg, label in seg_labels.items()}
 
@@ -492,9 +495,49 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     return html
 
 
+# Demo-only open baskets: the live app pulls real abandoned checkouts from Shopify, but the
+# sample/xlsx path has none, so we synthesise a few so the drawer's "Open basket" panel and the
+# Overview alert are visible in output/mvp.html. Deterministic (keyed off row position), demo-only.
+_SAMPLE_BASKETS = [
+    ([("Cashmere overcoat", 1, 1450), ("Silk scarf", 1, 320)], 2),
+    ([("Leather weekender bag", 1, 2200)], 1),
+    ([("18ct gold hoop earrings", 1, 3800), ("Gift wrapping", 1, 15)], 4),
+    ([("Eau de parfum, 100ml", 2, 260)], 1),
+    ([("Tailored wool blazer", 1, 890), ("Oxford shirt", 2, 190)], 3),
+    ([("Grand cru case (6 bottles)", 1, 1680)], 5),
+    ([("Alligator watch strap", 1, 240)], 6),
+    ([("Silk evening gown", 1, 1950)], 2),
+]
+
+
+def _sample_carts(scored, n: int = 8) -> dict:
+    """Assign a plausible open basket to the top-N surfaced hidden VICs (demo only)."""
+    if HIDDEN_COL not in scored.columns:
+        return {}
+    top = top_hidden_vics(scored, n=n)
+    base = pd.Timestamp("2026-07-08")
+    carts: dict[str, dict] = {}
+    for i, (_, row) in enumerate(top.iterrows()):
+        cid = row.get("CUST_ID")
+        if cid is None or pd.isna(cid):
+            continue
+        items, days_ago = _SAMPLE_BASKETS[i % len(_SAMPLE_BASKETS)]
+        value = sum(q * u for _t, q, u in items)
+        carts[str(cid)] = {
+            "cid": str(cid),
+            "value": int(value),
+            "count": sum(q for _t, q, _u in items),
+            "items": [{"title": t, "qty": q} for t, q, _u in items],
+            "started": (base - pd.Timedelta(days=days_ago)).strftime("%Y-%m-%d"),
+            "url": "",
+        }
+    return carts
+
+
 def render_dashboard(scored, head_extra: str = "") -> str:
     """Render the dashboard directly from a scored frame (local build path)."""
-    return render_payload(dashboard_payload(scored), head_extra)
+    return render_payload(
+        dashboard_payload(scored, carts_by_customer=_sample_carts(scored)), head_extra)
 
 
 def main() -> None:

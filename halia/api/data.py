@@ -98,8 +98,22 @@ def record_activity(shop: str, metric: str, n: int = 1) -> None:
         pass
 
 
-def _finalize(shop: str, scored, orders: list[dict]) -> dict:
-    """Score frame + orders -> RAM cache entry (never persisted). Shared by all sources."""
+def _shopify_carts(shop: str, token: str) -> dict:
+    """CUST_ID -> open basket (abandoned checkout), best-effort. Never breaks a sync: a missing
+    read_orders scope or any transient error just means no cart panels this run."""
+    try:
+        from scoring.shopify import carts_by_customer
+        from scoring.shopify_fetch import fetch_abandoned_checkouts, http_transport
+        return carts_by_customer(fetch_abandoned_checkouts(http_transport(shop, token)))
+    except Exception:  # noqa: BLE001 — carts are an enrichment, not load-bearing
+        return {}
+
+
+def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None) -> dict:
+    """Score frame + orders -> RAM cache entry (never persisted). Shared by all sources.
+
+    ``carts`` (CUST_ID -> open basket) is Shopify-only for now; other sources pass None.
+    """
     from build_mvp import dashboard_payload
     from halia.api.settings import settings_for
     from halia.engine import engine
@@ -107,7 +121,8 @@ def _finalize(shop: str, scored, orders: list[dict]) -> dict:
     results = engine.results_from_scored(scored)
     s = settings_for(shop)
     benchmarks = {"aov": s["aov"], "max_orders": s["max_orders"], "highest_lt": s["highest_lt"]}
-    payload = dashboard_payload(scored, _history(orders), shop, benchmarks, raw_orders=orders)
+    payload = dashboard_payload(scored, _history(orders), shop, benchmarks, raw_orders=orders,
+                                carts_by_customer=carts)
     cache.set(shop, results, payload, _order_index(orders))
     entry = cache.get(shop)
 
@@ -122,7 +137,8 @@ def _finalize(shop: str, scored, orders: list[dict]) -> dict:
 
 def sync_shop(shop: str, token: str) -> dict:
     """Pull → score → cache in RAM (never persisted). Returns the cache entry."""
-    return _finalize(shop, *score_shop(shop, token))
+    scored, orders = score_shop(shop, token)
+    return _finalize(shop, scored, orders, carts=_shopify_carts(shop, token))
 
 
 def sync_shop_authed(shop: str, session_token: str) -> dict:

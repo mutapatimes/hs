@@ -531,6 +531,10 @@
           </div>
           <div id="ovResults" class="ovres" style="display:none"></div>
         </div>
+        <div id="ovBasketsCard" class="card" style="display:none;margin-bottom:16px;border-color:#d9c9a3">
+          <div class="ch"><h3>Open baskets</h3><span class="hint">clients with an unpaid checkout, act while it's warm</span></div>
+          <div class="cb"><div id="ovBaskets" class="toplist"></div></div>
+        </div>
         <div class="grid ov-two" style="margin-bottom:16px">
           <div class="card">
             <div class="ch"><h3>Grade mix</h3><span class="hint">of surfaced potential VICs</span></div>
@@ -689,6 +693,8 @@ const gbp = n => "£"+n.toLocaleString("en-GB");
 const gbpK = n => n>=1000 ? "£"+(n/1000).toFixed(n%1000===0?0:1)+"k" : "£"+n;
 const fmtBig = v => v>=1e6 ? "£"+(v/1e6).toFixed(1)+"m" : v>=1000 ? "£"+Math.round(v/1000)+"k" : "£"+Math.round(v).toLocaleString("en-GB");
 const tierLabel = t => t==="A1"?"A*":t;
+function cartAge(d){ if(!d) return ""; const days=Math.round((Date.now()-new Date(d).getTime())/86400000);
+  return days<=0?"today":days===1?"yesterday":days+" days ago"; }
 
 let activeSeg = "all";
 let sortKey = "score";
@@ -1387,6 +1393,23 @@ function renderOverview(){
   const mapped=areas.reduce((s,a)=>s+a.n,0);
   document.getElementById("ovMapHint").textContent=areas.length?`${mapped} located · ${areas.length} area${areas.length===1?"":"s"}`:"";
   renderTopList(document.getElementById("ovTop"));
+  renderOpenBaskets();
+}
+// Open baskets = clients with an unpaid checkout (abandoned checkout / cart). A timely,
+// discreet nudge on a high-value basket is one of the strongest clienteling moves.
+function renderOpenBaskets(){
+  const el=document.getElementById("ovBaskets"), card=document.getElementById("ovBasketsCard");
+  if(!el||!card) return;
+  const list=DATA.filter(c=>c.cart&&c.cart.value>0).sort((a,b)=>b.cart.value-a.cart.value).slice(0,8);
+  if(!list.length){ card.style.display="none"; return; }
+  card.style.display="";
+  el.innerHTML=list.map(c=>`<div class="tl" data-id="${c.id}">
+    <div class="ava ${c.tier}">${c.init}</div>
+    <div style="min-width:0"><div class="nm">${c.name}</div>
+      <div class="mt">${c.cart.count} item${c.cart.count===1?"":"s"} · started ${cartAge(c.cart.started)} · ${tierLabel(c.tier)}</div></div>
+    <div class="sc"><b>${gbpK(c.cart.value)}</b><div class="g" style="color:var(--gold)">in basket</div></div>
+  </div>`).join("");
+  el.querySelectorAll(".tl").forEach(r=>r.onclick=()=>openDrawer(r.dataset.id));
 }
 function renderMap(){
   const areas=buildMap(document.getElementById("mapWrap"),filterToArea);
@@ -1553,6 +1576,20 @@ function openDrawer(id){
         <div class="dcard"><div class="k">Latent value</div><div class="v">${gbpK(c.latent)}</div></div>
         <div class="dcard"><div class="k">Spend now</div><div class="v">${gbp(c.spend)}</div></div>
       </div>
+
+      ${c.cart?`
+      <div class="dlabel">Open basket</div>
+      <div style="background:#fff;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:22px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+          <div style="font-family:'Fraunces',serif;font-size:21px">${gbp(c.cart.value)}</div>
+          <div style="font-size:12px;color:var(--soft)">${c.cart.count} item${c.cart.count===1?'':'s'} · started ${cartAge(c.cart.started)}</div>
+        </div>
+        <div style="margin-top:11px;display:flex;flex-direction:column;gap:6px">
+          ${(c.cart.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span style="color:var(--ink)">${esc(it.title)}</span><span style="color:var(--soft);white-space:nowrap">× ${it.qty}</span></div>`).join('')}
+        </div>
+        ${c.cart.url?`<a href="${c.cart.url}" target="_blank" class="dbtn" style="margin-top:12px;display:inline-block;text-align:center">Open checkout in Shopify →</a>`:''}
+        <div style="margin-top:11px;font-size:11.5px;color:var(--faint)">Reached checkout and hasn't paid. A discreet, timely note often recovers it.</div>
+      </div>`:''}
 
       <div class="dlabel">Why this client surfaced</div>
       <div class="evidence">${evidenceHTML(c.signals)}</div>
