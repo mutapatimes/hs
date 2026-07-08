@@ -155,6 +155,49 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+# Public marketing origin (the haliascore.com front door — distinct from the app origin).
+# Overridable so a staging deploy can advertise its own canonical host.
+_SITE_ORIGIN = _os.environ.get("HALIA_SITE_URL", "https://haliascore.com").rstrip("/")
+
+# Every publicly indexable route. Excludes the sign-in-gated docs and the
+# noindex legal pages (which already carry X-Robots-Tag: noindex).
+_INDEXABLE_PATHS = [
+    "/", "/brand", "/clienteling", "/faq", "/pricing", "/responsible",
+    "/security", "/solutions", "/demo", "/status",
+] + [f"/solutions/{_i}" for _i in
+     ("fashion", "wine", "beauty", "jewellery", "home", "gifting",
+      "collectibles", "electronics")]
+
+
+@app.get("/robots.txt", include_in_schema=False)
+def robots_txt():
+    from fastapi.responses import PlainTextResponse
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /app\n"
+        "Disallow: /console\n"
+        "Disallow: /admin\n"
+        "Disallow: /docs\n"
+        f"\nSitemap: {_SITE_ORIGIN}/sitemap.xml\n"
+    )
+    return PlainTextResponse(body, media_type="text/plain")
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+def sitemap_xml():
+    from fastapi.responses import Response
+    urls = "".join(
+        f"<url><loc>{_SITE_ORIGIN}{p}</loc></url>" for p in _INDEXABLE_PATHS
+    )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        f"{urls}</urlset>"
+    )
+    return Response(xml, media_type="application/xml")
+
+
 # Process start — used by the public status page to report uptime.
 import datetime as _dt  # noqa: E402
 

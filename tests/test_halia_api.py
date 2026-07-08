@@ -57,6 +57,40 @@ def test_status_page_serves(client):
     assert TestClient(app).get("/status").status_code == 200
 
 
+def test_robots_txt_serves_and_points_to_sitemap():
+    r = TestClient(app).get("/robots.txt")
+    assert r.status_code == 200
+    assert "text/plain" in r.headers["content-type"]
+    assert "Sitemap: https://haliascore.com/sitemap.xml" in r.text
+    assert "Disallow: /admin" in r.text
+
+
+def test_sitemap_lists_public_pages_only():
+    r = TestClient(app).get("/sitemap.xml")
+    assert r.status_code == 200 and "xml" in r.headers["content-type"]
+    body = r.text
+    for path in ("/", "/pricing", "/security", "/solutions/fashion"):
+        assert f"<loc>https://haliascore.com{path}</loc>" in body
+    # gated / noindex routes must never be advertised for crawling
+    assert "/docs" not in body and "/admin" not in body and "/privacy" not in body
+
+
+@pytest.mark.parametrize("path", [
+    "/", "/brand", "/clienteling", "/faq", "/pricing", "/responsible",
+    "/security", "/solutions", "/demo", "/status",
+    "/solutions/fashion", "/solutions/wine", "/solutions/beauty",
+    "/solutions/jewellery", "/solutions/home", "/solutions/gifting",
+    "/solutions/collectibles", "/solutions/electronics",
+])
+def test_public_pages_carry_social_meta(path):
+    html = TestClient(app).get(path).text
+    assert 'rel="canonical"' in html
+    assert 'name="twitter:card" content="summary_large_image"' in html
+    assert 'property="og:title"' in html and 'property="og:image"' in html
+    # canonical must be absolute on the production origin
+    assert "https://haliascore.com" in html
+
+
 def test_post_score_is_stateless_and_open(client):
     r = TestClient(app).post("/v1/score", json={
         "CUST_ID": "x", "Name": "Sir A B", "EMAIL_ADDR": "a@gs.com",
