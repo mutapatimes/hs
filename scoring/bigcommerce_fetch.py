@@ -89,3 +89,25 @@ def fetch_orders(
         if max_pages and page > max_pages:
             break
     return orders
+
+
+def fetch_order_products(transport: Transport, order_id: object,
+                         per_page: int = DEFAULT_PER_PAGE) -> list[dict]:
+    """Line items of one order via /orders/{id}/products (v2 has no inline products array).
+
+    Used to put item names on the 'open basket' panel; BigCommerce incomplete orders
+    (status_id 0) are carts that reached checkout but weren't paid.
+    """
+    out: list[dict] = []
+    page = 1
+    while True:
+        batch = transport(f"orders/{order_id}/products", {"limit": per_page, "page": page})
+        if isinstance(batch, dict):
+            batch = batch.get("data") or []
+        if not isinstance(batch, list) or not batch:
+            break
+        out.extend(batch)
+        if len(batch) < per_page:
+            break
+        page += 1
+    return out

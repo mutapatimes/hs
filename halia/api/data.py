@@ -186,9 +186,40 @@ def score_bigc(shop: str):
                            include_origin=_include_origin(shop)), orders
 
 
+def _bigcommerce_carts(shop: str, enrich_top: int = 40) -> dict:
+    """CUST_ID -> open basket from BigCommerce incomplete orders (status_id 0), best-effort.
+
+    v2 orders carry only an item count, so the highest-value baskets are enriched with product
+    names via a bounded number of /orders/{id}/products calls (at most ``enrich_top``). Any
+    error just means fewer/no cart panels this run.
+    """
+    try:
+        from halia import config as hcfg
+        from scoring.bigcommerce import carts_by_customer, products_to_items
+        from scoring.bigcommerce_fetch import fetch_order_products, fetch_orders, http_transport
+        creds = shop_store().get_bigcommerce(shop)
+        if not creds:
+            return {}
+        transport = http_transport(creds["store_hash"], creds["access_token"])
+        orders = fetch_orders(transport, status_id=0, max_pages=hcfg.BIGCOMMERCE_MAX_PAGES)
+        carts = carts_by_customer(orders)
+        for cart in sorted(carts.values(), key=lambda c: c["value"], reverse=True)[:enrich_top]:
+            try:
+                items = products_to_items(fetch_order_products(transport, cart.get("order_id")))
+                if items:
+                    cart["items"] = items
+                    cart["count"] = sum(i["qty"] for i in items) or cart["count"]
+            except Exception:  # noqa: BLE001 — a per-cart enrichment miss is non-fatal
+                pass
+        return carts
+    except Exception:  # noqa: BLE001 — carts are an enrichment, never load-bearing
+        return {}
+
+
 def sync_bigc(shop: str) -> dict:
     """BigCommerce pull → score → cache in RAM. Returns the cache entry."""
-    return _finalize(shop, *score_bigc(shop))
+    scored, orders = score_bigc(shop)
+    return _finalize(shop, scored, orders, carts=_bigcommerce_carts(shop))
 
 
 def score_centra(shop: str):

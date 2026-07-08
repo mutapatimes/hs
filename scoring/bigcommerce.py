@@ -80,3 +80,52 @@ def bigcommerce_to_rest(o: dict) -> dict:
 def bigcommerce_orders_to_customers(orders: list[dict], today=None):
     """BigCommerce orders -> one scored-ready row per customer (reuses the engine)."""
     return orders_to_customers([bigcommerce_to_rest(o) for o in orders], today=today)
+
+
+# ── open baskets (incomplete orders = status_id 0) ─────────────────────────────────
+def _num(v, cast, default):
+    try:
+        return cast(v)
+    except (TypeError, ValueError):
+        return default
+
+
+def incomplete_to_cart(order: dict) -> dict:
+    """Map one BigCommerce incomplete order (an unpaid checkout) to an 'open basket' dict.
+
+    Keyed by ``customer_id or email`` to match the CUST_ID the scorer derives (see
+    ``bigcommerce_to_rest``). Line-item names are filled separately (``products_to_items``)
+    because v2 orders carry only ``items_total``, not the products inline.
+    """
+    email = order.get("email") or (order.get("billing_address") or {}).get("email")
+    cid_raw = order.get("customer_id") or email
+    value = _num(order.get("total_inc_tax") or order.get("total_ex_tax"), float, 0.0)
+    return {
+        "cid": None if not cid_raw else str(cid_raw),
+        "email": email,
+        "value": int(round(value)),
+        "count": _num(order.get("items_total"), int, 0),
+        "items": [],
+        "started": (_iso(order.get("date_created")) or "")[:10],
+        "url": "",
+        "order_id": order.get("id"),   # for optional product enrichment
+    }
+
+
+def products_to_items(products: list[dict]) -> list[dict]:
+    """/orders/{id}/products rows -> [{title, qty}] for the basket panel."""
+    return [{"title": p.get("name") or "Item", "qty": _num(p.get("quantity"), int, 0)}
+            for p in (products or [])]
+
+
+def carts_by_customer(orders: list[dict]) -> dict:
+    """CUST_ID -> most recent non-empty open basket. Orders arrive newest-first
+    (date_created:desc), so the first seen for a customer is their latest."""
+    by: dict[str, dict] = {}
+    for o in orders:
+        cart = incomplete_to_cart(o)
+        cid = cart["cid"]
+        if not cid or cart["count"] <= 0:
+            continue
+        by.setdefault(cid, cart)
+    return by
