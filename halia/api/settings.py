@@ -176,6 +176,8 @@ def settings_for(shop: str) -> dict:
         "notify_grades": d.get("notify_grades") or default_grades,
         "notify_emails": emails,
         "notify_email": emails[0] if emails else "",  # back-compat (first recipient)
+        # High-value open-basket alerts (Slack/email), on by default when a channel is connected.
+        "basket_alerts": bool(d.get("basket_alerts", True)),
         # Per-merchant calibrated signal weights (see scoring.calibrate). None = engine defaults.
         "signal_weights": d.get("signal_weights") or None,
     }
@@ -291,6 +293,7 @@ def register(app) -> None:
             "notify_enabled": bool(payload.get("notify_enabled", False)),
             "notify_grades": [g for g in (payload.get("notify_grades") or ["A*", "A"])
                               if g in ("A*", "A", "B")] or ["A*"],
+            "basket_alerts": bool(payload.get("basket_alerts", True)),
             "account_email": str(payload.get("account_email", ""))[:200],
             # Preserve calibrated weights the settings UI doesn't send; only change if provided.
             "signal_weights": (_clean_signal_weights(payload["signal_weights"])

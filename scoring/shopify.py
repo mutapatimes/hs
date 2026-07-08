@@ -45,6 +45,7 @@ def abandoned_to_cart(node: dict) -> dict:
     total = _to_float((((node.get("totalPriceSet") or {}).get("shopMoney")) or {}).get("amount"))
     cid = cust.get("id")
     return {
+        "id": None if node.get("id") is None else str(node.get("id")),   # stable dedup key
         "cid": None if cid is None else str(cid),
         "email": cust.get("email"),
         "value": int(round(total)),

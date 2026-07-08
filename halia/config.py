@@ -119,6 +119,10 @@ SCAYLE_MAX_PAGES = int(os.environ.get("HALIA_SCAYLE_MAX_PAGES", "60")) or None
 # Merchant's VIC spend cutoff (the hidden-vs-known gate). Falls back to the engine default.
 VIC_THRESHOLD = float(os.environ.get("HALIA_VIC_THRESHOLD", "5000"))
 
+# Minimum open-basket value (£) for a high-value-basket alert. Per-shop `basket_alert_min`
+# overrides it; this is the default. Luxury baskets run high, so £500 is a sensible floor.
+BASKET_ALERT_MIN = float(os.environ.get("HALIA_BASKET_ALERT_MIN", "500"))
+
 # Shopify (reuse the existing env vars the fetch layer already reads).
 SHOPIFY_SHOP = os.environ.get("SHOPIFY_SHOP")
 SHOPIFY_ADMIN_TOKEN = os.environ.get("SHOPIFY_ADMIN_TOKEN")

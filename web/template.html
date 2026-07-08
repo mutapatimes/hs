@@ -2008,6 +2008,9 @@ function openSettings(){
           <div style="margin-top:18px"><div style="${LBL}">Email alerts to (comma-separated)</div>
             <input id="setNotifyEmail" type="text" value="${esc((SETTINGS.notify_emails||[]).join(', '))}" placeholder="you@brand.com, manager@brand.com" style="width:100%;max-width:480px;${I}">
             <div style="font:12px system-ui;color:#8a8a8a;margin-top:5px">Everyone here gets an email when a high-grade client orders.</div></div>
+          <label style="display:flex;align-items:center;gap:10px;font:500 14px system-ui;color:#303030;cursor:pointer;margin-top:18px">
+            <input type="checkbox" id="setBasketAlerts" ${SETTINGS.basket_alerts!==false?"checked":""} style="width:16px;height:16px;accent-color:#1f564a"> Also alert on high-value open baskets</label>
+          <div style="font:12px system-ui;color:#8a8a8a;margin-top:5px">When a high-grade client has an unpaid checkout above your threshold, we send the same Slack / email alert so your team can recover it while it's warm.</div>
           <div style="margin-top:20px"><div style="${LBL}">Real-time webhook</div>
             <code style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:#303030;background:#f1f1f1;border-radius:8px;padding:11px 13px;word-break:break-all;margin-top:6px">${esc(SETTINGS.webhook_url||"")}</code>
             <p style="${P};margin-top:8px;font-size:12px">Add this as an “Order created” webhook in your store (WooCommerce → Settings → Advanced → Webhooks, or a Shopify orders/create webhook) for instant alerts even when Halia is closed. Nothing about your customers is stored to power them.</p></div>
@@ -2306,6 +2309,7 @@ function openSettings(){
         aov:num("setAov"),max_orders:num("setMaxOrders"),highest_lt:num("setHighestLt"),
         notify_enabled:document.getElementById("setNotify").checked,
         notify_grades:document.getElementById("setNotifyGrades").value.split(","),
+        basket_alerts:(function(b){return b?b.checked:true;})(document.getElementById("setBasketAlerts")),
         notify_emails:document.getElementById("setNotifyEmail").value,
         account_email:SETTINGS.account_email||"",
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),

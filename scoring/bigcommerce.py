@@ -101,6 +101,7 @@ def incomplete_to_cart(order: dict) -> dict:
     cid_raw = order.get("customer_id") or email
     value = _num(order.get("total_inc_tax") or order.get("total_ex_tax"), float, 0.0)
     return {
+        "id": None if order.get("id") is None else str(order.get("id")),   # stable dedup key
         "cid": None if not cid_raw else str(cid_raw),
         "email": email,
         "value": int(round(value)),

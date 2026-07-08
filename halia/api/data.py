@@ -132,6 +132,14 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None) 
     record_activity(shop, "scan")
     record_activity(shop, "customers_scanned", len(results))
     record_activity(shop, "hidden_vics", hidden_n)
+
+    # High-value open-basket alerts (Slack/email) for graded VICs with an unpaid checkout.
+    # Best-effort so an alert hiccup never fails a sync; no-op unless carts + a channel exist.
+    try:
+        from halia.api.basket_alerts import dispatch_basket_alerts
+        dispatch_basket_alerts(shop, payload.get("data"), s)
+    except Exception:  # noqa: BLE001 — alerts are non-critical
+        pass
     return entry
 
 
