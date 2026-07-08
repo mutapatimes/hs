@@ -587,7 +587,7 @@ def _footer() -> str:
         '<div class="hf-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a>'
         '<a href="/security">Security &amp; compliance</a></div></div>'
         '<div class="hf-bot"><span>&copy; 2026 Halia. All rights reserved.</span>'
-        '<span>Zero-retention by design &middot; Shopify &middot; BigCommerce &middot; WooCommerce &middot; Klaviyo &middot; Mailchimp &middot; HubSpot</span>'
+        '<span>Zero-retention by design &middot; Shopify &middot; BigCommerce &middot; WooCommerce &middot; Centra &middot; SCAYLE &middot; Klaviyo &middot; Mailchimp &middot; HubSpot</span>'
         '</div></div></footer>'
     )
 

@@ -112,6 +112,10 @@ BIGCOMMERCE_MAX_PAGES = int(os.environ.get("HALIA_BIGCOMMERCE_MAX_PAGES", "60"))
 # most-recent DTC orders; set HALIA_CENTRA_MAX_PAGES=0 for the full history.
 CENTRA_MAX_PAGES = int(os.environ.get("HALIA_CENTRA_MAX_PAGES", "60")) or None
 
+# Same cap for SCAYLE (Admin API orders, cursor-paged 100 per page): 60 pages is ~6,000
+# most-recent orders; set HALIA_SCAYLE_MAX_PAGES=0 for the full history.
+SCAYLE_MAX_PAGES = int(os.environ.get("HALIA_SCAYLE_MAX_PAGES", "60")) or None
+
 # Merchant's VIC spend cutoff (the hidden-vs-known gate). Falls back to the engine default.
 VIC_THRESHOLD = float(os.environ.get("HALIA_VIC_THRESHOLD", "5000"))
 

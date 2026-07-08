@@ -65,6 +65,18 @@ def test_onboard_centra_creates_tenant_and_saves_creds(client, monkeypatch):
     assert creds["base_url"] == "https://yourbrand.centra.com" and creds["api_token"] == "tok"
 
 
+def test_onboard_scayle_creates_tenant_and_saves_creds(client, monkeypatch):
+    c, store = client
+    monkeypatch.setattr(onboarding, "_validate_scayle", lambda *a, **k: (True, ""))
+    r = c.post("/v1/onboard", json={"source": "scayle", "scayle_url": "https://yourbrand.scayle.cloud",
+                                    "scayle_token": "tok", "platform": "", "accept_terms": True})
+    assert r.status_code == 200
+    t = store.get_tenant("yourbrand-scayle-cloud")
+    assert t and t["kind"] == "scayle"
+    creds = store.get_scayle("yourbrand-scayle-cloud")
+    assert creds["base_url"] == "https://yourbrand.scayle.cloud" and creds["access_token"] == "tok"
+
+
 def test_signup_code_enforced(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr("halia.config.SIGNUP_CODE", "letmein")

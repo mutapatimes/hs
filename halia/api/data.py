@@ -248,6 +248,32 @@ def sync_centra(shop: str) -> dict:
     return _finalize(shop, *score_centra(shop))
 
 
+def score_scayle(shop: str):
+    """Live: pull + score one SCAYLE tenant's customers (using its stored creds)."""
+    from halia import config as hcfg
+    from halia.api.settings import settings_for
+    from scoring.combine import score_customers
+    from scoring.scayle import scayle_order_to_rest
+    from scoring.scayle_fetch import fetch_orders, http_transport
+    from scoring.shopify import orders_to_customers
+
+    creds = shop_store().get_scayle(shop)
+    if not creds:
+        raise RuntimeError("No SCAYLE credentials connected for this tenant")
+    transport = http_transport(creds["base_url"], creds["access_token"])
+    orders = [scayle_order_to_rest(o) for o in fetch_orders(transport, max_pages=hcfg.SCAYLE_MAX_PAGES)]
+    customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
+    s = settings_for(shop)
+    return score_customers(customers, weights=s.get("signal_weights"),
+                           vic_threshold=s["vic_threshold"],
+                           include_origin=_include_origin(shop)), orders
+
+
+def sync_scayle(shop: str) -> dict:
+    """SCAYLE pull → score → cache in RAM. Returns the cache entry."""
+    return _finalize(shop, *score_scayle(shop))
+
+
 def scored_frame_for(shop: str):
     """Re-pull + score this shop's customers, returning the scored DataFrame (flag columns
     + Spent) for calibration. Source-aware like sync_tenant. None if no source is connected.
@@ -261,6 +287,8 @@ def scored_frame_for(shop: str):
         return score_bigc(shop)[0]
     if tenant and tenant["kind"] == "centra":
         return score_centra(shop)[0]
+    if tenant and tenant["kind"] == "scayle":
+        return score_scayle(shop)[0]
     token = shop_store().get_token(shop)
     return score_shop(shop, token)[0] if token else None
 
@@ -274,6 +302,8 @@ def sync_tenant(shop: str) -> dict | None:
         return sync_bigc(shop)
     if tenant and tenant["kind"] == "centra":
         return sync_centra(shop)
+    if tenant and tenant["kind"] == "scayle":
+        return sync_scayle(shop)
     token = shop_store().get_token(shop)
     return sync_shop(shop, token) if token else None
 
