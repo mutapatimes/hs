@@ -52,6 +52,36 @@ def verify_session_token(token: str, secret: str | None = None, api_key: str | N
     return shop
 
 
+def session_claims(token: str, secret: str | None = None, api_key: str | None = None) -> dict:
+    """Verified claims of an App Bridge session token, or {} if it can't be verified.
+
+    Non-raising sibling of verify_session_token, used to read the optional staff-user claim.
+    """
+    secret = secret or config.SHOPIFY_API_SECRET
+    api_key = api_key or config.SHOPIFY_API_KEY
+    if not (secret and api_key):
+        return {}
+    try:
+        return jwt.decode(token, secret, algorithms=["HS256"], audience=api_key, leeway=10,
+                          options={"require": ["exp", "dest", "aud"]})
+    except jwt.PyJWTError:
+        return {}
+
+
+def current_staff_id(request: Request) -> str | None:
+    """The logged-in Shopify staff user id (session-token ``sub``), best-effort.
+
+    Online session tokens carry the staff user id in ``sub``; offline tokens / non-Shopify
+    tenants don't, so this returns None there. Used to attribute pipeline actions.
+    """
+    try:
+        token = token_for_request(request)
+    except HTTPException:
+        return None
+    sub = session_claims(token).get("sub")
+    return str(sub) if sub else None
+
+
 def token_for_request(request: Request) -> str:
     """Pull the session token from the Authorization header or the ?id_token= param."""
     auth = request.headers.get("authorization", "")

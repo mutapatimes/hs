@@ -447,6 +447,33 @@
     background:var(--brand-tint);color:var(--brand-deep);font:600 12.5px 'Hanken Grotesk',sans-serif;cursor:pointer}
   .ovmore:hover{background:#dcebe5}
   .ovnone{padding:16px 14px;color:var(--faint);font-size:13px}
+
+  /* ---------- Pipeline kanban ---------- */
+  .kb{display:flex;gap:14px;overflow-x:auto;padding:6px 2px 20px;align-items:flex-start}
+  .kbcol{flex:0 0 268px;background:var(--shell);border:1px solid var(--line);border-radius:14px;padding:10px;min-height:120px}
+  .kbcol.over{border-color:var(--brand);background:var(--brand-tint)}
+  .kbhead{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 10px;font:700 12px 'Hanken Grotesk',sans-serif;letter-spacing:.03em;color:var(--shell-ink)}
+  .kbhead .n{background:#fff;border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px;color:var(--soft)}
+  .kbcard{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:9px;cursor:grab;box-shadow:var(--shadow)}
+  .kbcard:active{cursor:grabbing}
+  .kbcard.drag{opacity:.5}
+  .kbcard .top{display:flex;align-items:center;gap:9px}
+  .kbcard .ava{width:30px;height:30px;border-radius:8px;font-size:12px}
+  .kbcard .nm{font-weight:600;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .kbcard .g{margin-left:auto;font:700 10.5px 'Hanken Grotesk',sans-serif;padding:1px 7px;border-radius:6px;color:#fff}
+  .kbcard .meta{font-size:11.5px;color:var(--soft);margin-top:7px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .kbcard .asg{background:var(--brand-tint);color:var(--brand-deep);border-radius:999px;padding:1px 8px;font-weight:600}
+  .kbcard .last{color:var(--faint)}
+  .kbempty{color:var(--faint);font-size:12.5px;text-align:center;padding:18px 6px}
+  .kbnote{padding:40px;text-align:center;color:var(--faint);font-size:13.5px}
+  /* drawer pipeline section */
+  .dp .row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  .dp select,.dp input{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line-strong);border-radius:8px;background:#fff;color:var(--ink)}
+  .dp .tl{margin-top:6px;border-left:2px solid var(--line);padding-left:12px}
+  .dp .ev{padding:6px 0;font-size:12.5px}
+  .dp .ev b{color:var(--ink)}
+  .dp .ev .w{color:var(--faint)}
+  .dp .ev .note{color:var(--soft);margin-top:2px}
 </style>
 </head>
 <body>
@@ -520,6 +547,7 @@
         <button class="vtab" data-view="clients">Clients</button>
         <button class="vtab" data-view="orders">Orders</button>
         <button class="vtab" data-view="map">Map</button>
+        <button class="vtab" data-view="board">Pipeline</button>
       </div>
 
       <!-- OVERVIEW (birds-eye) -->
@@ -651,6 +679,11 @@
           </div>
         </div>
       </div><!-- /viewMap -->
+
+      <!-- PIPELINE: kanban board of VIC clients across outreach stages (Shopify-backed) -->
+      <div id="viewBoard" style="display:none">
+        <div id="boardRoot"><div style="padding:40px;text-align:center;color:var(--faint)">Loading…</div></div>
+      </div><!-- /viewBoard -->
 
       <div class="foot">
         Real output from the Halia scoring engine on <b>sample data</b> (fictional store).
@@ -1425,11 +1458,12 @@ const ORIG_STATS_DISPLAY=document.querySelector(".stats").style.display||"";
 const PAGE_META={
   overview:{t:"Overview",s:"A birds-eye view of the potential VICs Halia surfaced from your store: who they are, what they are worth, and where they are."},
   orders:{t:"Orders",s:"Every order, newest first, ranked by the client behind it. Act on each one while it is live, the message matches the order's status."},
-  map:{t:"Where your VICs are",s:"Geographic concentration of your potential VICs across the UK, by postcode area. Click a bubble to see the clients there."}
+  map:{t:"Where your VICs are",s:"Geographic concentration of your potential VICs across the UK, by postcode area. Click a bubble to see the clients there."},
+  board:{t:"Outreach pipeline",s:"Track outreach on your VIC clients across the team. Drag a client between stages; every move, assignment and note is logged with who did it and when."}
 };
 function showView(v){
   document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("on",x.dataset.view===v));
-  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"]].forEach(([k,id])=>{
+  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"]].forEach(([k,id])=>{
     const el=document.getElementById(id);if(el)el.style.display=k===v?"":"none";});
   const statsEl=document.querySelector(".stats");
   if(v==="clients"){
@@ -1442,6 +1476,10 @@ function showView(v){
     document.querySelector(".title").textContent=PAGE_META.overview.t;document.querySelector(".sub").textContent=PAGE_META.overview.s;
     statsEl.style.display=ORIG_STATS_DISPLAY;statsEl.innerHTML=ORIG_STATS;   // headline KPIs above the charts
     renderOverview();
+  } else if(v==="board"){
+    document.querySelector(".title").textContent=PAGE_META.board.t;document.querySelector(".sub").textContent=PAGE_META.board.s;
+    statsEl.style.display="none";
+    renderBoard();
   } else {
     document.querySelector(".title").textContent=PAGE_META.map.t;document.querySelector(".sub").textContent=PAGE_META.map.s;
     statsEl.style.display="none";
@@ -1449,6 +1487,113 @@ function showView(v){
   }
 }
 document.querySelectorAll(".vtab").forEach(t=>t.onclick=()=>showView(t.dataset.view));
+
+// ── Outreach pipeline (kanban). State lives in the merchant's Shopify store; Halia persists
+//    nothing. Cards hydrate name/grade from DATA; stage/assignee/activity come from /v1/board. ──
+const PIPE_STAGES=["To reach out","Contacted","In conversation","Actioned","Parked"];
+const STAGE_BG={"To reach out":"#8a7b53","Contacted":"#26695b","In conversation":"#1f564a","Actioned":"#143a32","Parked":"#8C9098"};
+const BOARD={loaded:false,available:false,stages:PIPE_STAGES,cards:{}};
+function actorName(){let n="";try{n=localStorage.getItem("halia_actor")||"";}catch(e){}
+  if(!n){n=(prompt("Your name (shown on pipeline actions):")||"").trim();if(n){try{localStorage.setItem("halia_actor",n);}catch(e){}}}
+  return n||"Someone";}
+function clientByCid(cid){return DATA.find(x=>x.cid===cid);}
+function gradeColor(t){return t==="A1"?"#143a32":t==="A"?"#1f564a":t==="B"?"#5E6B74":"#8C9098";}
+function boardLoad(force,cb){
+  if(BOARD.loaded&&!force){cb&&cb();return;}
+  fetch("/v1/board").then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>{
+    BOARD.loaded=true;BOARD.available=!!d.available;BOARD.stages=d.stages||PIPE_STAGES;
+    BOARD.cards={};(d.cards||[]).forEach(c=>BOARD.cards[c.cid]=c);cb&&cb();
+  }).catch(()=>{BOARD.loaded=true;BOARD.available=false;cb&&cb();});
+}
+function lastActivity(card){const a=(card&&card.activity)||[];if(!a.length)return"";const e=a[a.length-1];
+  return (e.actor_name||"Someone")+" · "+timeAgo(e.at);}
+function timeAgo(iso){if(!iso)return"";const d=Math.floor((Date.now()-new Date(iso).getTime())/1000);
+  if(d<60)return"just now";if(d<3600)return Math.floor(d/60)+"m ago";if(d<86400)return Math.floor(d/3600)+"h ago";
+  return Math.floor(d/86400)+"d ago";}
+function renderBoard(){const el=document.getElementById("boardRoot");if(el)el.innerHTML='<div class="kbnote">Loading…</div>';boardLoad(true,_renderBoardNow);}
+function _renderBoardNow(){
+  const el=document.getElementById("boardRoot");if(!el)return;
+  if(!BOARD.available){el.innerHTML='<div class="kbnote">The outreach pipeline is available for Shopify stores with write-back enabled.<br>Add clients to it from the <b>Pipeline</b> button on any client.</div>';return;}
+  const byStage={};BOARD.stages.forEach(s=>byStage[s]=[]);
+  Object.values(BOARD.cards).forEach(c=>{if(byStage[c.stage])byStage[c.stage].push(c);});
+  el.innerHTML='<div class="kb">'+BOARD.stages.map(s=>{
+    const cards=byStage[s]||[];
+    return `<div class="kbcol" data-stage="${esc(s)}"><div class="kbhead">${esc(s)}<span class="n">${cards.length}</span></div>`
+      +(cards.length?cards.map(kbCard).join(""):'<div class="kbempty">Drop a client here</div>')+'</div>';
+  }).join("")+'</div>';
+  // drag + drop
+  el.querySelectorAll(".kbcard").forEach(c=>{
+    c.ondragstart=e=>{e.dataTransfer.setData("text/cid",c.dataset.cid);c.classList.add("drag");};
+    c.ondragend=()=>c.classList.remove("drag");
+    c.onclick=()=>openDrawer((clientByCid(c.dataset.cid)||{}).id||c.dataset.cid);
+  });
+  el.querySelectorAll(".kbcol").forEach(col=>{
+    col.ondragover=e=>{e.preventDefault();col.classList.add("over");};
+    col.ondragleave=()=>col.classList.remove("over");
+    col.ondrop=e=>{e.preventDefault();col.classList.remove("over");
+      const cid=e.dataTransfer.getData("text/cid"),stage=col.dataset.stage;
+      const card=BOARD.cards[cid];if(card&&card.stage!==stage)bMove(cid,stage);};
+  });
+}
+function kbCard(c){
+  const cl=clientByCid(c.cid)||{};
+  const name=c.name||cl.name||"Client";
+  const init=(cl.init)||name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  const grade=cl.grade?`<span class="g" style="background:${gradeColor(cl.tier)}">${cl.grade}</span>`:"";
+  const asg=c.assignee&&c.assignee.name?`<span class="asg">${esc(c.assignee.name)}</span>`:"";
+  const last=lastActivity(c);
+  return `<div class="kbcard" draggable="true" data-cid="${esc(c.cid)}">
+    <div class="top"><div class="ava ${cl.tier||''}">${esc(init)}</div><div class="nm">${esc(name)}</div>${grade}</div>
+    <div class="meta">${asg}${last?`<span class="last">${esc(last)}</span>`:""}</div></div>`;
+}
+// board mutations: POST, then merge the returned pipeline back into BOARD + refresh open surfaces
+function bPost(path,body,cb){
+  return fetch("/v1/board/"+path,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify(Object.assign({actor:actorName()},body))})
+    .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+      if(!ok)throw new Error(d.detail||"failed");
+      const cid=body.cid;
+      if(d.pipeline){const cl=clientByCid(cid)||{};
+        BOARD.cards[cid]=Object.assign({cid:cid,name:(BOARD.cards[cid]||{}).name||cl.name||"",email:cl.email||""},
+          BOARD.cards[cid],{stage:d.pipeline.stage,assignee:d.pipeline.assignee,activity:d.pipeline.activity});
+        if(d.pipeline.stage===null||d.pipeline.stage===undefined)delete BOARD.cards[cid];}
+      cb&&cb(d);
+    }).catch(e=>{toast("Pipeline: "+e.message);throw e;});
+}
+function bMove(cid,stage){bPost("move",{cid:cid,stage:stage},()=>{ _renderBoardNow(); if(drawer.classList.contains("show"))renderDrawerPipe(clientByCid(cid)||{cid:cid}); toast("Moved to "+stage+".");});}
+function bAdd(c){bPost("add",{cid:c.cid},()=>{ if(!BOARD.cards[c.cid])BOARD.cards[c.cid]={cid:c.cid,name:c.name,email:c.email,stage:"To reach out",activity:[]}; renderDrawerPipe(c); toast("Added to pipeline.");});}
+function bRemove(c){if(!confirm("Remove "+(c.name||"this client")+" from the pipeline?"))return;bPost("remove",{cid:c.cid},()=>{delete BOARD.cards[c.cid];renderDrawerPipe(c);toast("Removed from pipeline.");});}
+function bNote(c,note){bPost("note",{cid:c.cid,note:note},()=>renderDrawerPipe(c));}
+function bAssign(c,name){bPost("assign",{cid:c.cid,assignee_name:name},()=>{renderDrawerPipe(c);if(document.getElementById("viewBoard").style.display!=="none")_renderBoardNow();});}
+// drawer pipeline section — lazy-loads the board once, then renders for this client
+function renderDrawerPipe(c){
+  const el=document.getElementById("drawerPipe");if(!el)return;
+  boardLoad(false,()=>{
+    const box=document.getElementById("drawerPipe");if(!box)return;
+    if(!BOARD.available){box.innerHTML='<div class="dlabel">Pipeline</div><div style="color:var(--faint);font-size:12.5px">Available for Shopify stores with write-back.</div>';return;}
+    const card=BOARD.cards[c.cid];
+    if(!card){box.innerHTML='<div class="dlabel">Pipeline</div><button class="dbtn" id="pipeAdd">Add to outreach pipeline</button>';
+      const b=document.getElementById("pipeAdd");if(b)b.onclick=()=>bAdd(c);return;}
+    const opts=BOARD.stages.map(s=>`<option ${s===card.stage?'selected':''}>${esc(s)}</option>`).join("");
+    const acts=(card.activity||[]).slice().reverse().slice(0,12).map(e=>`<div class="ev"><b>${esc(e.actor_name||'Someone')}</b> <span class="w">${esc(actLabel(e))} · ${esc(timeAgo(e.at))}</span>${e.note?`<div class="note">"${esc(e.note)}"</div>`:""}</div>`).join("")||'<div class="ev w">No activity yet.</div>';
+    box.innerHTML=`<div class="dlabel">Pipeline</div><div class="dp">
+      <div class="row"><label style="font-size:12px;color:var(--faint)">Stage</label>
+        <select id="pipeStage">${opts}</select>
+        <label style="font-size:12px;color:var(--faint);margin-left:6px">Owner</label>
+        <input id="pipeAsg" placeholder="Assign to…" value="${esc((card.assignee&&card.assignee.name)||'')}" style="width:120px">
+        <button class="dbtn" id="pipeRemove" style="margin-left:auto;color:#9A3838;padding:6px 10px">Remove</button></div>
+      <div class="row"><input id="pipeNote" placeholder="Add a note…" style="flex:1"><button class="dbtn" id="pipeNoteBtn" style="padding:6px 12px">Log</button></div>
+      <div class="tl">${acts}</div></div>`;
+    document.getElementById("pipeStage").onchange=e=>bMove(c.cid,e.target.value);
+    document.getElementById("pipeRemove").onclick=()=>bRemove(c);
+    const asg=document.getElementById("pipeAsg");asg.onchange=()=>bAssign(c,asg.value.trim());
+    const nb=document.getElementById("pipeNoteBtn"),ni=document.getElementById("pipeNote");
+    nb.onclick=()=>{const v=ni.value.trim();if(v){bNote(c,v);ni.value="";}};
+    ni.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();nb.onclick();}};
+  });
+}
+function actLabel(e){const a=e.action||"";if(a==="added")return"added to pipeline";if(a==="removed")return"removed";if(a==="note")return"noted";
+  if(a.indexOf("moved:")===0)return"moved to "+a.slice(6);if(a.indexOf("assigned:")===0)return"assigned "+a.slice(9);return a;}
 
 /* ---- Evidence, grouped by what each signal actually tells you ----
    Several tells often describe the SAME fact (SW10 as an HNWI postcode, its homes'
@@ -1608,6 +1753,8 @@ function openDrawer(id){
         <div style="font-size:11.5px;color:var(--soft);margin-top:9px;line-height:1.5">Grown from their current spend toward your client ceiling, scaled by a Halia score of <b>${c.score}</b>. An estimate of the annual value if nurtured into a top client, not a forecast.</div>
       </div>
 
+      <div id="drawerPipe" style="margin-bottom:22px"></div>
+
       <div class="dlabel">Was this a good call?</div>
       <div id="dfb" style="display:flex;gap:8px">
         <button class="dbtn" id="dfbYes">&#128077; Good call</button>
@@ -1643,6 +1790,7 @@ function openDrawer(id){
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   wireDrawerCtl();
+  renderDrawerPipe(c);   // outreach-pipeline section (stage / owner / activity)
   // Associate feedback loop: one tap records an anonymous per-signal tally (Halia) + tags the
   // client in the merchant's own store. This is the label that later fixes calibration direction.
   (function(){
@@ -2499,7 +2647,7 @@ function showFirstRun(){
   const views=document.querySelector(".views"), stats=document.querySelector(".stats");
   if(views) views.style.display="none";
   if(stats) stats.style.display="none";
-  ["viewOverview","viewClients","viewOrders","viewMap"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
+  ["viewOverview","viewClients","viewOrders","viewMap","viewBoard"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
   const box=document.createElement("div");
   box.innerHTML=`<div style="max-width:520px;margin:52px auto;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:44px 36px;box-shadow:var(--shadow)">
     <div style="width:56px;height:56px;border-radius:15px;margin:0 auto 18px;background:var(--brand-tint);display:grid;place-items:center;color:var(--brand-deep);font:600 26px 'Fraunces',serif">&#8258;</div>

@@ -36,6 +36,20 @@ mutation HaliaAddTags($id: ID!, $tags: [String!]!) {
 }
 """
 
+_REMOVE_TAGS = """
+mutation HaliaRemoveTags($id: ID!, $tags: [String!]!) {
+  tagsRemove(id: $id, tags: $tags) {
+    userErrors { field message }
+  }
+}
+"""
+
+_GET_METAFIELD = """
+query HaliaGetMetafield($id: ID!, $ns: String!, $key: String!) {
+  customer(id: $id) { metafield(namespace: $ns, key: $key) { value } }
+}
+"""
+
 
 def _gid(customer_id: str) -> str:
     """Accept a raw numeric id or an already-formed GID; return a customer GID."""
@@ -96,6 +110,26 @@ class ShopifySink(ScoreSink):
         merchant's own verdict lives in THEIR Shopify (keeps Halia zero-retention)."""
         data = self._run(_ADD_TAGS, {"id": _gid(str(customer_id)), "tags": tags})
         _raise_user_errors(data, "tagsAdd")
+
+    def untag_customer(self, customer_id: str, tags: list[str]) -> None:
+        """Remove tag(s) from one customer (used to swap a client's pipeline-stage tag)."""
+        data = self._run(_REMOVE_TAGS, {"id": _gid(str(customer_id)), "tags": tags})
+        _raise_user_errors(data, "tagsRemove")
+
+    def set_metafield(self, customer_id: str, key: str, value: str,
+                      mtype: str = "json", namespace: str = NAMESPACE) -> None:
+        """Set one customer metafield (used to store the ``halia.pipeline`` board state in the
+        merchant's own store — Halia persists nothing itself)."""
+        data = self._run(_SET_METAFIELDS, {"metafields": [
+            {"ownerId": _gid(str(customer_id)), "namespace": namespace, "key": key,
+             "type": mtype, "value": value}]})
+        _raise_user_errors(data, "metafieldsSet")
+
+    def get_metafield(self, customer_id: str, key: str, namespace: str = NAMESPACE):
+        """Read one customer metafield value (the current ``halia.pipeline`` json), or None."""
+        data = self._run(_GET_METAFIELD,
+                         {"id": _gid(str(customer_id)), "ns": namespace, "key": key})
+        return ((data.get("customer") or {}).get("metafield") or {}).get("value")
 
 
 def _raise_user_errors(data: dict, field: str) -> None:
