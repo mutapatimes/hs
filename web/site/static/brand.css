@@ -31,7 +31,7 @@ header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;t
    Self-contained (own width, inputs and button) so it renders correctly even
    on pages with a minimal stylesheet (the legal pages). Colours read theme
    vars with light-theme fallbacks. */
-.hfoot{border-top:1px solid var(--line,rgba(20,18,12,.14));padding:72px 0 46px;margin-top:56px;font-family:var(--sans,'Inter',system-ui,sans-serif)}
+.hfoot{border-top:1px solid var(--line,rgba(20,18,12,.14));padding:72px 0 0;margin-top:56px;overflow:hidden;font-family:var(--sans,'Inter',system-ui,sans-serif)}
 .hfoot .hf-inner{max-width:1180px;margin:0 auto;padding:0 40px}
 .hfoot .hf-news{display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap;padding-bottom:50px;margin-bottom:50px;border-bottom:1px solid var(--line,rgba(20,18,12,.14))}
 .hfoot .hf-news h3{font-family:var(--serif,'Cormorant Garamond',Georgia,serif);font-weight:300;font-size:clamp(24px,3vw,34px);max-width:28ch;line-height:1.1;margin:0}
@@ -41,14 +41,18 @@ header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;t
 .hfoot .hf-news button{display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--ink,#1a1712);background:var(--ink,#1a1712);color:var(--bg,#f5f2ea);border-radius:999px;padding:13px 24px;font:500 14px var(--sans,'Inter',system-ui,sans-serif);transition:.2s}
 .hfoot .hf-news button:hover{background:transparent;color:var(--ink,#1a1712)}
 .hfoot .hf-news .ok{color:var(--mute,#615b50);font-size:15px}
-.hfoot .hf-grid{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr;gap:40px}
-.hfoot .hf-grid .brand{margin-bottom:16px}
-.hfoot .hf-bio{color:var(--mute,#615b50);max-width:42ch;font-size:14px;line-height:1.6}
+.hfoot .hf-brand{margin-bottom:48px}
+.hfoot .hf-brand .brand{margin-bottom:16px}
+.hfoot .hf-bio{color:var(--mute,#615b50);max-width:60ch;font-size:14px;line-height:1.6}
+.hfoot .hf-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:40px}
 .hfoot .hf-col h4{font:500 11px var(--sans,'Inter',system-ui,sans-serif);letter-spacing:.18em;text-transform:uppercase;color:var(--faint,#9a9385);margin:0 0 14px}
 .hfoot .hf-col a{display:block;color:var(--mute,#615b50);font-size:14px;padding:5px 0;text-decoration:none}
 .hfoot .hf-col a:hover{color:var(--ink,#1a1712)}
 .hfoot .hf-bot{margin-top:56px;padding-top:24px;border-top:1px solid var(--line,rgba(20,18,12,.14));display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--faint,#9a9385);font-size:13px}
-@media(max-width:900px){.hfoot .hf-grid{grid-template-columns:1fr;gap:32px}.hfoot .hf-news{flex-direction:column;align-items:flex-start}}
+/* oversized full-bleed wordmark, sliced by the bottom edge; colour follows each page's theme */
+.hfoot .brandmark{overflow:hidden;text-align:center;margin-top:60px}
+.hfoot .brandmark span{display:inline-block;font-family:var(--serif,'Cormorant Garamond',Georgia,serif);font-weight:300;font-size:clamp(96px,44vw,760px);line-height:1;letter-spacing:-.03em;white-space:nowrap;margin-bottom:-.46em;user-select:none;pointer-events:none;color:transparent;background:linear-gradient(180deg,color-mix(in srgb,var(--ink,#1a1712) 16%,transparent),color-mix(in srgb,var(--ink,#1a1712) 5%,transparent));-webkit-background-clip:text;background-clip:text}
+@media(max-width:900px){.hfoot .hf-cols{grid-template-columns:1fr 1fr;gap:28px}.hfoot .hf-news{flex-direction:column;align-items:flex-start}.hfoot .brandmark span{margin-bottom:-.36em}}
 
 /* ── Nav dropdown — the Solutions tab reveals the industry pages on hover. Uses each page's own
    --vars, so it adapts to the light subpages and the dark homepage nav alike. */
