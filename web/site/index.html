@@ -360,25 +360,37 @@
   .final .lede{margin:0 auto 38px;max-width:34ch}
 
   /* footer */
-  footer{border-top:1px solid var(--line);padding:72px 0 46px}
+  footer{border-top:1px solid var(--line);padding:72px 0 0;overflow:hidden}
   .news{display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap;padding-bottom:50px;margin-bottom:50px;border-bottom:1px solid var(--line)}
   .news h3{font-family:var(--serif);font-weight:300;font-size:clamp(24px,3vw,34px);max-width:28ch;line-height:1.1}
   .news form{display:flex;gap:10px;flex-wrap:wrap}
   .news input{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:13px 20px;color:var(--ink);font:500 14px var(--sans);min-width:250px;outline:none}
   .news input:focus{border-color:rgba(255,255,255,.4)}.news input::placeholder{color:var(--faint)}
   .news .ok{color:var(--mute);font-size:15px}
-  .foot{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr;gap:40px}
+  .foot{display:block}
+  .foot-brand{margin-bottom:48px}
+  .foot-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:40px}
   .foot .brand{margin-bottom:16px}
-  .foot .bio{color:var(--mute);max-width:42ch;font-size:14px;line-height:1.6}
+  .foot .bio{color:var(--mute);max-width:60ch;font-size:14px;line-height:1.6}
   .foot .col h4{font:500 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin:0 0 14px}
   .foot .col a{display:block;color:var(--mute);font-size:14px;padding:5px 0}
   .foot .col a:hover{color:var(--ink)}
   .foot-bot{margin-top:56px;padding-top:24px;border-top:1px solid var(--line);
     display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--faint);font-size:13px}
 
+  /* oversized full-bleed wordmark, sliced by the bottom edge of the page */
+  .brandmark{overflow:hidden;text-align:center;margin-top:60px}
+  .brandmark span{display:inline-block;font-family:var(--serif);font-weight:300;
+    font-size:clamp(96px,44vw,760px);line-height:1;letter-spacing:-.03em;white-space:nowrap;
+    margin-bottom:-.32em;color:transparent;
+    background:linear-gradient(180deg,rgba(244,241,234,.15),rgba(244,241,234,.03));
+    -webkit-background-clip:text;background-clip:text;user-select:none;pointer-events:none}
+
   @media(max-width:900px){
     .wrap{padding:0 24px}
-    .split,.sol-grid,.dept-grid,.sec-points,.foot{grid-template-columns:1fr}
+    .split,.sol-grid,.dept-grid,.sec-points{grid-template-columns:1fr}
+    .foot-cols{grid-template-columns:1fr 1fr}
+    .brandmark span{margin-bottom:-.26em}
     .split.rev .media{order:0}.sgrid,.sol-grid{grid-template-columns:1fr}
     .dept-grid,.sol-grid{grid-template-columns:1fr 1fr}
     .hero .block{margin:0}
@@ -461,7 +473,7 @@
  <div class="wrap"><div class="block">
  <div class="eyebrow reveal in"><!--cms:home.hero.eyebrow-->Private client intelligence<!--/cms--></div>
  <h1 class="display reveal in d1"><!--cms:home.hero.title-->Your most valuable clients are already in your <em>database.</em><!--/cms--></h1>
- <p class="lede reveal in d2"><!--cms:home.hero.sub-->A sea of records, and a handful worth the world. Halia reads forty wealth signals in your own order data, grades every customer from A&#42; to C, and shows your team exactly who deserves the private treatment.<!--/cms--></p>
+ <p class="lede reveal in d2"><!--cms:home.hero.sub-->A sea of records, and a handful worth the world. Halia reads the wealth signals in your own order data and grades every customer, A&#42; to C.<!--/cms--></p>
  <div class="cta reveal in d3">
  <a class="btn" href="/connect">Find them <span class="arrow">→</span></a>
  <a class="btn ghost" href="#how">How it works</a>
@@ -476,7 +488,7 @@
  <p style="font-family:var(--serif);font-weight:300;font-size:clamp(30px,4.8vw,64px);line-height:1.1;max-width:19ch;margin:0 auto;color:#13110c">
  A client who has spent <em style="color:#13110c">£200</em> with you may be spending
  <em style="color:#13110c">£10,000</em> with your competitors. Halia tells you which ones.</p>
- <p style="color:#6b6557;font-size:17px;max-width:48ch;margin:26px auto 0">The evidence is already in your <b>own</b> data: the family-office delivery address, the eponymous foundation, the management-agency email, the named manor in the street line. Halia reads it and hands your team the list. The relationship goes to whichever brand notices first.</p>
+ <p style="color:#6b6557;font-size:14.5px;line-height:1.65;max-width:44ch;margin:22px auto 0">The evidence is already in your <b>own</b> data: the family-office delivery address, the eponymous foundation, the management-agency email, the named manor in the street line. Halia reads it and hands your team the list. The relationship goes to whichever brand notices first.</p>
  </div>
 </section>
 
@@ -782,22 +794,27 @@
  </form>
  </div>
  <div class="foot">
- <div>
+ <div class="foot-brand">
  <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span>Halia</a>
  <p class="bio">Halia is private client intelligence for luxury retail. The scoring engine, built
  from years inside luxury clienteling and a hand-curated reference library, grades every customer
  from A&#42; to C and surfaces the high-value clients hiding behind modest spend. Scoring runs in
  memory and finishes there. Zero retention, by architecture.</p>
  </div>
- <div class="col"><h4>Product</h4><a href="#engine">The engine</a><a href="#how">How it works</a><a href="#signals">Signals</a><a href="#teams">For teams</a><a href="/docs">Docs</a><a href="/connect">Connect a store</a></div>
- <div class="col"><h4>Company</h4><a href="/clienteling">Clienteling</a><span class="nav-drop"><a href="/solutions">Solutions</a><div class="nav-menu"><a href="/solutions/fashion">Fashion & apparel</a><a href="/solutions/wine">Wine & spirits</a><a href="/solutions/beauty">Beauty & fragrance</a><a href="/solutions/jewellery">Jewellery & watches</a><a href="/solutions/home">Home, furniture & interiors</a><a href="/solutions/gifting">Flowers, food & gifting</a><a href="/solutions/collectibles">Rare books & collectibles</a><a href="/solutions/electronics">Electronics & big-box</a><a class="all" href="/solutions">All solutions &rarr;</a></div></span><a href="/pricing">Pricing</a><a href="/blog">Blog</a><a href="/security">Security</a><a href="/faq">FAQ</a><a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/brand">Brand</a><a href="mailto:hello@haliascore.com">Contact</a></div>
- <div class="col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><a href="/security">Security &amp; compliance</a></div>
+ <div class="foot-cols">
+ <div class="col"><h4>Product</h4><a href="#engine">The engine</a><a href="#how">How it works</a><a href="#signals">Signals</a><a href="#teams">For teams</a><a href="/connect">Connect a store</a><a href="/docs">Docs</a></div>
+ <div class="col"><h4>Solutions</h4><a href="/solutions/fashion">Fashion &amp; apparel</a><a href="/solutions/wine">Wine &amp; spirits</a><a href="/solutions/beauty">Beauty &amp; fragrance</a><a href="/solutions/jewellery">Jewellery &amp; watches</a><a href="/solutions/home">Home &amp; interiors</a><a href="/solutions">All solutions &rarr;</a></div>
+ <div class="col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/pricing">Pricing</a><a href="/blog">Blog</a><a href="/brand">Brand</a><a href="mailto:hello@haliascore.com">Contact</a></div>
+ <div class="col"><h4>Trust &amp; legal</h4><a href="/security">Security</a><a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/faq">FAQ</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
+ </div>
  </div>
  <div class="foot-bot">
  <span>© 2026 Halia. All rights reserved.</span>
  <span>Zero-retention by design · Shopify · BigCommerce · WooCommerce · Centra · SCAYLE · Klaviyo · Mailchimp · HubSpot</span>
  </div>
-</div></footer>
+</div>
+<div class="brandmark" aria-hidden="true"><span>Halia</span></div>
+</footer>
 
 <script>
   var hdr=document.getElementById('hdr');
