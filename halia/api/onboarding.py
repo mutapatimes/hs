@@ -1142,7 +1142,7 @@ function pollWoo(){
 function renderShopMethod(){
   var w=document.getElementById('shopmethod');if(!w)return;
   if(state.shop_method==='token'){
-    w.innerHTML='<ol class="slist"><li>In Shopify admin, open <b>Settings &rarr; Apps and sales channels &rarr; Develop apps</b>.</li><li>Click <b>Create an app</b>, name it "Halia", then <b>Configure Admin API scopes</b>.</li><li>Tick <b>read_orders</b>, <b>read_customers</b> and <b>write_customers</b> (so Halia can tag your VICs back into Shopify), save, then <b>Install app</b>.</li><li>Copy the <b>Admin API access token</b> (starts with shpat_).</li></ol><label>Your Shopify store domain</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address, even with a custom domain.</div><label>Admin API access token</label><input id="admin_token" type="password" placeholder="shpat_..." autocomplete="off">';
+    w.innerHTML='<ol class="slist"><li>In Shopify admin, open <b>Settings &rarr; Apps and sales channels &rarr; Develop apps</b>.</li><li>Click <b>Create an app</b>, name it "Halia", then <b>Configure Admin API scopes</b>.</li><li>Tick <b>read_orders</b>, <b>read_customers</b>, <b>write_customers</b> (so Halia can tag your VICs back into Shopify) and <b>read_products</b> (for the catalogue builder), save, then <b>Install app</b>.</li><li>Copy the <b>Admin API access token</b> (starts with shpat_).</li></ol><label>Your Shopify store domain</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address, even with a custom domain.</div><label>Admin API access token</label><input id="admin_token" type="password" placeholder="shpat_..." autocomplete="off">';
   } else if(state.shop_method==='install'){
     w.innerHTML='<label>Your Shopify store domain</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address. We open Shopify so you can add Halia, nothing to copy.</div><button type="button" class="btn" id="shopauth" style="margin-top:14px">Install Halia in Shopify &rarr;</button><div id="shopstatus" style="margin-top:14px"></div>';
     document.getElementById('shopauth').onclick=startShopInstall;
@@ -1557,7 +1557,7 @@ def register(app) -> None:
         from urllib.parse import urlencode
 
         tok = _shop_pending_new(domain)
-        params = {"client_id": config.SHOPIFY_API_KEY, "scope": "read_orders,read_all_orders,read_customers,write_customers",
+        params = {"client_id": config.SHOPIFY_API_KEY, "scope": "read_orders,read_all_orders,read_customers,write_customers,read_products",
                   "redirect_uri": f"{base}/connect/shopify/callback", "state": tok}
         return {"token": tok, "url": f"https://{domain}/admin/oauth/authorize?{urlencode(params)}"}
 

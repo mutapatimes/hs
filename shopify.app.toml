@@ -17,7 +17,8 @@ embedded = true
 # Kept in sync with the backend OAuth scopes (halia/api/onboarding.py).
 # read_all_orders: read_orders alone caps order history at the last 60 days, which understates
 # lifetime spend / AOV; read_all_orders lifts that so scoring sees the full history.
-scopes = "read_orders,read_all_orders,read_customers,write_customers"
+# read_products: powers the catalogue builder (products, images, variants, descriptions).
+scopes = "read_orders,read_all_orders,read_customers,write_customers,read_products"
 
 [auth]
 redirect_urls = [

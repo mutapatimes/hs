@@ -190,8 +190,15 @@ def register(app) -> None:
 
     @app.get("/v1/catalog/products")
     def catalog_products(request: Request, shop: str = Depends(require_shop)) -> dict:
+        from scoring.shopify_fetch import ShopifyAuthError
         qp = request.query_params
-        prods = _products(shop, force=qp.get("refresh") == "1")
+        try:
+            prods = _products(shop, force=qp.get("refresh") == "1")
+        except ShopifyAuthError as exc:
+            # Almost always the read_products scope is missing (the original install predates the
+            # catalogue feature). Tell the merchant to reconnect so the new scope is granted.
+            raise HTTPException(403, "Halia needs product-read access. Reconnect your Shopify "
+                                     "store (Settings → Integrations) to grant it.") from exc
         search = (qp.get("search") or "").lower().strip()
         col, tag, vendor = qp.get("collection"), qp.get("tag"), qp.get("vendor")
         filt = [p for p in prods

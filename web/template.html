@@ -2680,11 +2680,13 @@ function catLoadProducts(){
   if(catState.fCol)q.set("collection",catState.fCol);
   if(catState.fTag)q.set("tag",catState.fTag);
   if(catState.fVendor)q.set("vendor",catState.fVendor);
-  fetch("/v1/catalog/products?"+q.toString()).then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>{
+  fetch("/v1/catalog/products?"+q.toString())
+    .then(r=>r.text().then(t=>{let d={};try{d=t?JSON.parse(t):{};}catch(_){}if(!r.ok)return Promise.reject(d.detail||("Could not load products (error "+r.status+")."));return d;}))
+    .then(d=>{
     catState.items=d.items||[]; catState.total=d.total||0; catState.allTotal=d.all_total||0;
     catState.page=d.page||1; catState.pages=d.pages||1; catState.facets=d.facets||catState.facets; catState.filteredIds=d.ids||[];
     catFillFacets(); catRenderProducts(); catRenderPager();
-  }).catch(err=>{const p=document.getElementById("catProducts");if(p)p.innerHTML='<div style="color:#8e1f0b;font:13px system-ui">'+(err===400?'Catalogues are Shopify-only for now.':'Could not load products.')+'</div>';});
+  }).catch(err=>{const p=document.getElementById("catProducts");if(p)p.innerHTML='<div style="color:#8e1f0b;font:13px system-ui;padding:12px 0">'+esc(typeof err==="string"?err:"Could not load products.")+'</div>';});
 }
 function catFillFacets(){
   const fill=(id,vals,cur)=>{const s=document.getElementById(id);if(!s)return;const first=s.options[0].outerHTML;
