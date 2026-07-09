@@ -2208,7 +2208,7 @@ function openSettings(){
         <div class="spage" data-page="catalogs" style="display:${spage==='catalogs'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Product catalogues</div>
-          <p style="${P}">Build a print-ready PDF catalogue from your products, then share its link with clients. Insert <b>{catalog_link}</b> in a client-email template (Templates tab) to drop your active catalogue into the message.</p>
+          <p style="${P}">Build a print-ready PDF catalogue from your products, then share it two ways: a <b>PDF</b> (with an Enquire link on every product) and an interactive <b>enquiry form</b> where clients tick what they want and their request is emailed to you. Insert <b>{catalog_link}</b> in a client-email template (Templates tab) to drop your active catalogue into the message.</p>
           <div id="catalogsRoot" style="min-height:80px"><div style="${P};margin:0">Loading…</div></div>
         </div>
         </div><!-- /catalogs -->
@@ -2514,7 +2514,7 @@ document.getElementById("openSettings").onclick=openSettings;
 const CI="box-sizing:border-box;padding:9px 11px;border:1px solid #d8d8d8;border-radius:9px;font:14px system-ui;margin-top:5px";
 const CAT_FIELD_DEFAULTS={image:true,title:true,vendor:true,price:true,description:false,sku:false,variants:false};
 const catState={loaded:false,editing:null,name:"",template:"grid",brand:"#1f564a",text:"#1a1712",active:false,
-  columns:3,pageSize:"A4",cover:true,footer:"",fields:Object.assign({},CAT_FIELD_DEFAULTS),
+  columns:3,pageSize:"A4",cover:true,footer:"",enquiryEmail:"",enquire:true,fields:Object.assign({},CAT_FIELD_DEFAULTS),
   selected:new Set(),filteredIds:[],page:1,pages:1,total:0,allTotal:0,search:"",fCol:"",fTag:"",fVendor:"",
   facets:{collections:[],tags:[],vendors:[]},items:[],cats:[]};
 function catRoot(){return document.getElementById("catalogsRoot");}
@@ -2530,7 +2530,9 @@ function catRenderList(cats){
     <div style="flex:1;min-width:160px"><div style="font:600 14px system-ui;color:#1a1712">${esc(c.name)} ${c.active?'<span style="color:#0f7b4f;font-size:12px">· active</span>':''}</div>
       <div style="font:12.5px system-ui;color:#8a8a8a">${c.generated?('Generated · '+(c.count||0)+' products'):((c.count||0)+' products · not generated yet')}</div></div>
     ${c.url?`<a href="${esc(c.url)}" target="_blank" class="btn ghost" style="padding:6px 12px">Open PDF</a>`:''}
-    ${c.url?`<button data-catcopy="${esc(c.url)}" class="btn ghost" style="padding:6px 12px">Copy link</button>`:''}
+    ${c.url?`<button data-catcopy="${esc(c.url)}" class="btn ghost" style="padding:6px 12px">Copy PDF link</button>`:''}
+    ${c.form_url?`<a href="${esc(c.form_url)}" target="_blank" class="btn ghost" style="padding:6px 12px">Open form</a>`:''}
+    ${c.form_url?`<button data-catcopy="${esc(c.form_url)}" class="btn ghost" style="padding:6px 12px">Copy form link</button>`:''}
     ${!c.active?`<button data-catactive="${c.id}" class="btn ghost" style="padding:6px 12px">Set active</button>`:''}
     <button data-catedit="${c.id}" class="btn ghost" style="padding:6px 12px">Edit</button>
     <button data-catdel="${c.id}" class="btn ghost" style="padding:6px 12px;color:#8e1f0b">Delete</button></div>`).join("");
@@ -2552,6 +2554,7 @@ function catOpenBuilder(c){
   catState.columns=(c&&c.columns)||(tpl==="lookbook"?2:3);
   catState.pageSize=(c&&c.page_size)||"A4"; catState.cover=c?c.cover!==false:true;
   catState.footer=(c&&c.footer_text)||""; catState.active=!!(c&&c.active);
+  catState.enquiryEmail=(c&&c.enquiry_email)||""; catState.enquire=c?c.enquire!==false:true;
   catState.fields=Object.assign({},CAT_FIELD_DEFAULTS,(c&&c.fields)||{});
   catState.selected=new Set((c&&c.product_ids)||[]);
   catState.page=1; catState.search=""; catState.fCol=""; catState.fTag=""; catState.fVendor="";
@@ -2610,6 +2613,8 @@ function catCollectCustomize(){
   if(g("catFooter"))catState.footer=g("catFooter").value;
   if(g("catPageSize"))catState.pageSize=g("catPageSize").value;
   if(g("catCover"))catState.cover=g("catCover").checked;
+  if(g("catEnqEmail"))catState.enquiryEmail=g("catEnqEmail").value.trim();
+  if(g("catEnquire"))catState.enquire=g("catEnquire").checked;
 }
 function catRenderCustomize(){
   const el=document.getElementById("catCustomize"); if(!el) return;
@@ -2652,6 +2657,15 @@ function catRenderCustomize(){
       <div style="${CAT_LB}">Product fields</div>
       <div style="font:12.5px system-ui;color:#8a8a8a;margin-bottom:11px">Choose which fields appear on each product card.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${['image','title','vendor','price','description','sku','variants'].map(fieldChip).join('')}</div>
+    </div>
+    <div style="${CAT_SEC}">
+      <div style="${CAT_LB}">Enquiries</div>
+      <div style="font:12.5px system-ui;color:#8a8a8a;margin-bottom:12px">Clients tick products on the shareable link and their enquiry is emailed to you. Each PDF product also gets an <b>Enquire</b> link.</div>
+      <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end">
+        <label style="flex:1;min-width:240px;font:600 12px system-ui;color:#616161">Enquiries go to
+          <input id="catEnqEmail" type="email" value="${esc(catState.enquiryEmail)}" placeholder="sales@yourbrand.com" style="width:100%;${CI}"></label>
+        <label style="font:600 13px system-ui;color:#303030;display:flex;align-items:center;gap:8px;padding-bottom:9px"><input type="checkbox" id="catEnquire" ${catState.enquire?'checked':''}> Enquire button on PDF</label>
+      </div>
     </div>`;
   el.querySelectorAll("[data-cattpl]").forEach(b=>b.onclick=()=>{catCollectCustomize();catState.template=b.dataset.cattpl;if(catState.template==='list')catState.columns=1;else if(catState.columns<1)catState.columns=3;catRenderCustomize();});
   el.querySelectorAll("[data-catcol]").forEach(b=>b.onclick=()=>{catCollectCustomize();catState.columns=+b.dataset.catcol;catRenderCustomize();});
@@ -2710,6 +2724,7 @@ function catSave(thenGenerate){
   const body={id:catState.editing||undefined,name:gv("catName"),template:catState.template,
     columns:catState.columns,page_size:catState.pageSize,brand_color:catState.brand,text_color:catState.text,
     footer_text:catState.footer,cover:catState.cover,fields:catState.fields,
+    enquiry_email:catState.enquiryEmail,enquire:catState.enquire,
     active:!!gv("catActive"),product_ids:[...catState.selected]};
   if(!body.product_ids.length){toast("Select at least one product.");return;}
   const gen=document.getElementById("catGen"),sv=document.getElementById("catSave");
@@ -2726,7 +2741,16 @@ function catGenerate(id){
   return fetch("/v1/catalog/"+id+"/generate",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
     if(!ok)throw new Error(d.detail||"failed");
     const res=document.getElementById("catResult");
-    if(res){res.innerHTML=`<div style="background:#eef4f1;border:1px solid #d3e5de;border-radius:10px;padding:12px 14px;font:13px system-ui">Generated <b>${d.count}</b> products. <a href="${esc(d.url)}" target="_blank" style="color:#1f564a;font-weight:600">Open PDF →</a> &nbsp;<button data-catcopy="${esc(d.url)}" class="btn ghost" style="padding:4px 10px">Copy link</button></div>`;
+    const formUrl=(d.url||"").replace(/\.pdf$/,"");
+    if(res){res.innerHTML=`<div style="background:#eef4f1;border:1px solid #d3e5de;border-radius:10px;padding:13px 15px;font:13px system-ui">
+      <div style="margin-bottom:8px">Generated <b>${d.count}</b> products.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <a href="${esc(d.url)}" target="_blank" style="color:#1f564a;font-weight:600">Open PDF →</a>
+        <button data-catcopy="${esc(d.url)}" class="btn ghost" style="padding:4px 10px">Copy PDF link</button>
+        <span style="color:#c3d6ce">|</span>
+        <a href="${esc(formUrl)}" target="_blank" style="color:#1f564a;font-weight:600">Open enquiry form →</a>
+        <button data-catcopy="${esc(formUrl)}" class="btn ghost" style="padding:4px 10px">Copy form link</button>
+      </div></div>`;
       res.querySelectorAll("[data-catcopy]").forEach(b=>b.onclick=()=>{copyText(b.dataset.catcopy);toast("Link copied.");});}
     toast("Catalogue PDF generated.");
   }).catch(e=>{toast("Generate failed: "+e.message);});

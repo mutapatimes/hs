@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import html as _html
 import re as _re
+from urllib.parse import quote as _q
 
 _CUR_SYMBOL = {"GBP": "£", "EUR": "€", "USD": "$", "JPY": "¥", "AUD": "$", "CAD": "$"}
 
@@ -58,7 +59,17 @@ def _desc(p: dict, limit: int = 200) -> str:
     return raw
 
 
-def _card(p: dict, fields: dict) -> str:
+def _mailto(email: str, p: dict, cat_name: str) -> str:
+    title = str(p.get("title") or "")
+    subject = f"Enquiry: {title}" if title else "Product enquiry"
+    body = f"Hello,\n\nI would like to enquire about {title}"
+    if p.get("sku"):
+        body += f" (SKU {p['sku']})"
+    body += f".\n\n(From {cat_name})\n"
+    return f"mailto:{_q(email)}?subject={_q(subject)}&body={_q(body)}"
+
+
+def _card(p: dict, fields: dict, enquiry_email: str = "", cat_name: str = "") -> str:
     parts = []
     if fields.get("image"):
         img = p.get("image_url")
@@ -81,6 +92,8 @@ def _card(p: dict, fields: dict) -> str:
         meta.append(f'<div class="priceline">{"".join(row)}</div>')
     if fields.get("description") and _desc(p):
         meta.append(f'<div class="desc">{_esc(_desc(p))}</div>')
+    if enquiry_email:
+        meta.append(f'<a class="enquire" href="{_esc(_mailto(enquiry_email, p, cat_name))}">Enquire</a>')
     parts.append(f'<div class="meta">{"".join(meta)}</div>')
     return f'<div class="card">{"".join(parts)}</div>'
 
@@ -114,6 +127,8 @@ def _norm(catalog: dict) -> dict:
         "footer": (str(catalog.get("footer_text") or "").strip()
                    or (catalog.get("name") or "Product Catalogue")),
         "fields": fields,
+        "enquiry_email": str(catalog.get("enquiry_email") or "").strip(),
+        "enquire": bool(catalog.get("enquire", True)),
     }
 
 
@@ -122,7 +137,8 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
     s = _norm(catalog)
     brand, text, page = s["brand"], s["text"], s["page"]
     cols = 1 if s["template"] == "list" else s["columns"]
-    cards = "".join(_card(p, s["fields"]) for p in products) \
+    enq = s["enquiry_email"] if s["enquire"] else ""
+    cards = "".join(_card(p, s["fields"], enq, s["name"]) for p in products) \
         or '<div class="empty">No products selected.</div>'
     n = len(products)
     subtitle = _esc(shop_name) if shop_name else ""
@@ -164,6 +180,8 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
   .price {{ font: 600 10pt 'Helvetica'; color: {brand}; }}
   .variants {{ font: 500 8pt 'Helvetica'; color: #9a9385; }}
   .desc {{ font: 400 8.5pt 'Helvetica'; line-height: 1.45; color: #615b50; margin-top: 2mm; }}
+  .enquire {{ display: inline-block; margin-top: 2.5mm; font: 600 8pt 'Helvetica'; color: {brand};
+    text-decoration: none; border: 0.3mm solid {brand}; border-radius: 2mm; padding: 1mm 3.5mm; }}
   /* list — a detailed row per product */
   .items.list {{ display: block; }}
   .items.list .card {{ display: flex; gap: 6mm; align-items: flex-start;

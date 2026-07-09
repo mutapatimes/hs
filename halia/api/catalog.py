@@ -44,6 +44,91 @@ def _clean_fields(raw) -> dict:
     return out
 
 
+import re as _re
+
+_EMAIL_RE = _re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _clean_email(v) -> str:
+    s = str(v or "").strip()
+    return s if _EMAIL_RE.match(s) else ""
+
+
+def _default_enquiry_email(shop: str) -> str:
+    """Fall back to the tenant's alert recipient when a catalogue has no explicit enquiry email."""
+    try:
+        from halia.api.settings import settings_for
+        return (settings_for(shop) or {}).get("notify_email") or ""
+    except Exception:  # noqa: BLE001 — never let a settings hiccup break enquiry delivery
+        return ""
+
+
+# Lightweight anti-mailbomb throttle: at most N enquiries per catalogue per minute (RAM only).
+_ENQ_HITS: dict = {}
+
+
+def _enquiry_allowed(catalog_id: str, now: float, cap: int = 12) -> bool:
+    bucket = int(now // 60)
+    key = (catalog_id, bucket)
+    _ENQ_HITS.clear() if len(_ENQ_HITS) > 2000 else None
+    n = _ENQ_HITS.get(key, 0)
+    if n >= cap:
+        return False
+    _ENQ_HITS[key] = n + 1
+    return True
+
+
+def _price_str(pr: dict) -> str:
+    sym = {"GBP": "£", "EUR": "€", "USD": "$", "JPY": "¥"}.get(pr.get("currency") or "")
+    amt = pr.get("price")
+    if amt in (None, ""):
+        return ""
+    try:
+        return f"{sym}{float(amt):,.2f}" if sym else f"{float(amt):,.2f} {pr.get('currency') or ''}".strip()
+    except (TypeError, ValueError):
+        return ""
+
+
+def _enquiry_html(cat_name, name, email, phone, message, picked) -> str:
+    import html as _h
+    rows = "".join(
+        f'<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">{_h.escape(pr.get("title") or "")}'
+        + (f' <span style="color:#9a9385">· {_h.escape(pr["sku"])}</span>' if pr.get("sku") else "")
+        + f'</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;color:#1f564a">'
+        f'{_h.escape(_price_str(pr))}</td></tr>'
+        for pr in picked) or '<tr><td style="padding:6px 10px;color:#9a9385">(No specific products ticked)</td></tr>'
+    msg = (f'<p style="margin:14px 0 0"><b>Message</b><br>{_h.escape(message)}</p>' if message else "")
+    ph = (f' · {_h.escape(phone)}' if phone else "")
+    return (f'<div style="font-family:Helvetica,Arial,sans-serif;color:#1a1712;max-width:560px">'
+            f'<p style="font-size:15px">New enquiry from <b>{_h.escape(name)}</b> via your '
+            f'<b>{_h.escape(cat_name)}</b> catalogue.</p>'
+            f'<p style="margin:4px 0 16px;color:#555">{_h.escape(email)}{ph}</p>'
+            f'<table style="border-collapse:collapse;width:100%;font-size:14px">'
+            f'<thead><tr><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #1a1712">Product</th>'
+            f'<th style="text-align:right;padding:6px 10px;border-bottom:2px solid #1a1712">Price</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table>{msg}'
+            f'<p style="margin-top:20px;color:#9a9385;font-size:12px">Sent to you by Halia. '
+            f'Reply directly to {_h.escape(email)} to respond.</p></div>')
+
+
+def _enquiry_text(cat_name, name, email, phone, message, picked) -> str:
+    lines = [f"New enquiry from {name} via your {cat_name} catalogue.",
+             f"{email}" + (f" · {phone}" if phone else ""), ""]
+    for pr in picked:
+        bit = f"- {pr.get('title') or ''}"
+        if pr.get("sku"):
+            bit += f" ({pr['sku']})"
+        if _price_str(pr):
+            bit += f" — {_price_str(pr)}"
+        lines.append(bit)
+    if not picked:
+        lines.append("(No specific products ticked)")
+    if message:
+        lines += ["", f"Message: {message}"]
+    lines += ["", f"Reply directly to {email} to respond."]
+    return "\n".join(lines)
+
+
 def _products(shop: str, force: bool = False) -> list[dict]:
     ent = _PRODUCT_CACHE.get(shop)
     if not force and ent and (time.monotonic() - ent["at"] < _TTL):
@@ -148,6 +233,9 @@ def register(app) -> None:
                         "text_color": cfg.get("text_color", "#1a1712"),
                         "footer_text": cfg.get("footer_text", ""),
                         "cover": cfg.get("cover", True),
+                        "enquiry_email": cfg.get("enquiry_email", ""),
+                        "enquire": cfg.get("enquire", True),
+                        "form_url": (f"{base}/catalog/{c['id']}" if base else f"/catalog/{c['id']}"),
                         "fields": _clean_fields(cfg.get("fields")),
                         "product_ids": sel.get("product_ids") or []})
         return {"catalogs": out}
@@ -169,6 +257,8 @@ def register(app) -> None:
             "text_color": (str(p.get("text_color") or "#1a1712"))[:9],
             "footer_text": (str(p.get("footer_text") or "").strip())[:160],
             "cover": bool(p.get("cover", True)),
+            "enquiry_email": _clean_email(p.get("enquiry_email")),
+            "enquire": bool(p.get("enquire", True)),
             "fields": _clean_fields(p.get("fields")),
             "selection": {
                 "product_ids": [str(x) for x in (p.get("product_ids") or [])][:400],
@@ -223,3 +313,56 @@ def register(app) -> None:
         return Response(content=pdf, media_type="application/pdf",
                         headers={"Content-Disposition": 'inline; filename="catalogue.pdf"',
                                  "Cache-Control": "public, max-age=3600"})
+
+    @app.get("/catalog/{catalog_id}")
+    def catalog_form_page(catalog_id: str, request: Request):
+        """Public, interactive version of the catalogue: tick products, submit an enquiry.
+        ?name=&email=&phone= prefill the form so a personalised link is one tap to send."""
+        from fastapi.responses import HTMLResponse
+        from halia.catalog_form import catalog_form_html
+        cat = shop_store().get_catalog(catalog_id)
+        if not cat:
+            raise HTTPException(404, "Catalogue not found.")
+        cfg = json.loads(cat.get("config_json") or "{}")
+        shop = cat["shop"]
+        products = _resolve(shop, cfg.get("selection") or {})
+        prefill = {k: (request.query_params.get(k) or "")[:160] for k in ("name", "email", "phone")}
+        html = catalog_form_html(
+            {"name": cat["name"], "brand_color": cfg.get("brand_color"), "fields": cfg.get("fields")},
+            products, shop_name=_shop_display(shop), catalog_id=catalog_id,
+            enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill)
+        return HTMLResponse(html, headers={"Cache-Control": "no-store"})
+
+    @app.post("/catalog/{catalog_id}/enquire")
+    def catalog_enquire(catalog_id: str, payload: Any = Body(...)) -> dict:
+        """A recipient's enquiry: email the ticked products + their details to the merchant.
+        Zero-retention — nothing about the enquirer is stored."""
+        cat = shop_store().get_catalog(catalog_id)
+        if not cat:
+            raise HTTPException(404, "Catalogue not found.")
+        p = payload or {}
+        if str(p.get("company") or "").strip():        # honeypot — silently accept & drop bots
+            return {"ok": True}
+        name = str(p.get("name") or "").strip()[:120]
+        email = _clean_email(p.get("email"))
+        if not name or not email:
+            raise HTTPException(400, "Please add your name and a valid email.")
+        if not _enquiry_allowed(catalog_id, time.monotonic()):
+            raise HTTPException(429, "Too many enquiries just now. Please try again in a minute.")
+        phone = str(p.get("phone") or "").strip()[:60]
+        message = str(p.get("message") or "").strip()[:2000]
+        ids = {str(x) for x in (p.get("product_ids") or [])[:400]}
+        cfg = json.loads(cat.get("config_json") or "{}")
+        shop = cat["shop"]
+        picked = [pr for pr in _resolve(shop, cfg.get("selection") or {}) if pr["id"] in ids]
+        to = cfg.get("enquiry_email") or _default_enquiry_email(shop)
+        if not to:
+            raise HTTPException(400, "This catalogue has no enquiry address set.")
+        from halia.notify import send_email
+        subject = f"New catalogue enquiry from {name}"
+        ok = send_email(to, subject,
+                        _enquiry_html(cat["name"], name, email, phone, message, picked),
+                        _enquiry_text(cat["name"], name, email, phone, message, picked), shop=shop)
+        if not ok:
+            raise HTTPException(502, "Could not send the enquiry just now. Please try again.")
+        return {"ok": True}

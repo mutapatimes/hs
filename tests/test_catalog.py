@@ -145,6 +145,52 @@ def test_save_clamps_columns_and_rejects_bad_enums(client):
     assert got["columns"] == 4 and got["page_size"] == "A4" and got["template"] == "grid"
 
 
+def test_enquire_form_page_renders_and_prefills(client):
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={"name": "AW", "product_ids": ["gid://P/1"],
+                                            "enquiry_email": "sales@aubin.com"}).json()["id"]
+    r = c.get(f"/catalog/{cid}?name=Jane%20Doe&email=jane@x.com")
+    assert r.status_code == 200 and "text/html" in r.headers["content-type"]
+    assert "Cashmere coat" in r.text and "Add to enquiry" in r.text
+    assert 'value="Jane Doe"' in r.text and 'value="jane@x.com"' in r.text
+
+
+def test_enquire_emails_the_merchant(client, monkeypatch):
+    import halia.notify as notify
+    sent = {}
+    monkeypatch.setattr(notify, "send_email",
+                        lambda to, subject, html, text=None, shop=None: sent.update(
+                            to=to, subject=subject, html=html) or True)
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={"name": "AW", "product_ids": ["gid://P/1", "gid://P/2"],
+                                           "enquiry_email": "sales@aubin.com"}).json()["id"]
+    r = c.post(f"/catalog/{cid}/enquire", json={"name": "Jane", "email": "jane@x.com",
+                                                "product_ids": ["gid://P/1"], "message": "Please call"})
+    assert r.status_code == 200 and r.json() == {"ok": True}
+    assert sent["to"] == "sales@aubin.com" and "Jane" in sent["subject"]
+    assert "Cashmere coat" in sent["html"] and "Please call" in sent["html"]
+
+
+def test_enquire_validation_honeypot_and_missing_email(client, monkeypatch):
+    import halia.notify as notify
+    calls = []
+    monkeypatch.setattr(notify, "send_email", lambda *a, **k: calls.append(1) or True)
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={"name": "AW", "product_ids": ["gid://P/1"],
+                                           "enquiry_email": "sales@aubin.com"}).json()["id"]
+    # missing email -> 400, nothing sent
+    assert c.post(f"/catalog/{cid}/enquire", json={"name": "Jane"}).status_code == 400
+    # honeypot filled -> silently accepted, nothing sent
+    assert c.post(f"/catalog/{cid}/enquire",
+                  json={"name": "Bot", "email": "b@x.com", "company": "spam"}).status_code == 200
+    assert calls == []
+
+
+def test_enquire_unknown_catalog_404(client):
+    c, _ = client
+    assert c.post("/catalog/nope/enquire", json={"name": "J", "email": "j@x.com"}).status_code == 404
+
+
 def test_generate_requires_a_product(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr(cr, "html_to_pdf", lambda html: b"%PDF")
