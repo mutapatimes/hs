@@ -481,8 +481,35 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
         "stat_scored": f"{len(scored):,}", "stat_latent": _fmt_money(latent_total),
         "stat_count": str(hidden_count), "stat_avgspend": _fmt_money(avg_spend),
         "stat_toptier": str(top_tier),
+        "full_history": True,   # capped to a recent window for un-upgraded tenants (see cap_payload_recent)
         "engine": config_fingerprint(),   # version + config hash — audit trail for every payload
     }
+
+
+def cap_payload_recent(payload: dict, days: int = 30) -> dict:
+    """Server-side entitlement gate: restrict a payload to the last ``days`` of activity for
+    un-upgraded tenants (the full history is a paid feature). Clients are kept when they last
+    shopped inside the window; orders by their date. Headline stats are recomputed from the
+    capped set so the view is self-consistent, and full_history=False tells the UI to lock the
+    longer date-range presets. Scoring still runs on full history server-side; only the viewable
+    lists are trimmed here."""
+    import datetime as _dt
+    cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=days)
+    cut_epoch, cut_date = cutoff.timestamp(), cutoff.strftime("%Y-%m-%d")
+    data = [c for c in (payload.get("data") or []) if (c.get("lastSort") or 0) >= cut_epoch]
+    orders = [o for o in (payload.get("orders") or []) if str(o.get("date") or "") >= cut_date]
+    latent = sum(c.get("latent") or 0 for c in data)
+    spend = sum(c.get("spend") or 0 for c in data)
+    toptier = sum(1 for c in data if c.get("grade") in ("A*", "A"))
+    out = dict(payload)
+    out.update({
+        "data": data, "orders": orders,
+        "stat_count": str(len(data)), "stat_latent": _fmt_money(latent),
+        "stat_avgspend": _fmt_money(spend / len(data) if data else 0),
+        "stat_toptier": str(toptier),
+        "full_history": False, "history_days": days,
+    })
+    return out
 
 
 def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") -> str:
@@ -503,6 +530,7 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     html = html.replace("__STAT_COUNT__", payload["stat_count"])
     html = html.replace("__STAT_AVGSPEND__", payload["stat_avgspend"])
     html = html.replace("__STAT_TOPTIER__", payload["stat_toptier"])
+    html = html.replace("__FULL_HISTORY__", "true" if payload.get("full_history", True) else "false")
     return html
 
 

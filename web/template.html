@@ -132,6 +132,8 @@
   .drseg button:last-child{border-right:0}
   .drseg button:hover{color:var(--ink)}
   .drseg button.on{background:var(--brand-deep);color:#fff}
+  .drseg button.locked{opacity:.5;cursor:not-allowed}
+  .drseg button.locked::after{content:"\1F512";font-size:9px;margin-left:3px}
   .drcustom{display:inline-flex;align-items:center;gap:5px;color:var(--faint)}
   .drcustom input[type=date]{font:12px system-ui;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:8px;padding:5px 8px;cursor:pointer}
   .drcustom input[type=date].set{border-color:var(--brand-deep)}
@@ -754,6 +756,8 @@ const SEGMENTS = __SEGMENTS__;
 
 const DATA = __DATA__;
 const ORDERS = __ORDERS__;
+const FULL_HISTORY = __FULL_HISTORY__;   // false -> un-upgraded tenant, lock date ranges beyond 30 days
+const DR_LOCKED = new Set(["ytd","1y","all"]);   // presets that require the paid full-history unlock
 
 const gbp = n => "£"+n.toLocaleString("en-GB");
 const gbpK = n => n>=1000 ? "£"+(n/1000).toFixed(n%1000===0?0:1)+"k" : "£"+n;
@@ -866,9 +870,18 @@ function drMatch(state, ms){
   const fl=drFloor(state.mode);
   return fl ? ms>=fl.getTime() : true;
 }
+function upgradePrompt(){
+  toast("Full client history is on the paid plan.");
+  fetch("/v1/checkout",{method:"POST"}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.url)location.href=d.url;}).catch(()=>{});
+}
 function paintDate(prefix,state){
   const el=document.getElementById(prefix+"Date"); if(!el) return;
-  el.querySelectorAll("[data-dr]").forEach(b=>b.classList.toggle("on", state.mode===b.dataset.dr));
+  el.querySelectorAll("[data-dr]").forEach(b=>{
+    b.classList.toggle("on", state.mode===b.dataset.dr);
+    const locked=!FULL_HISTORY && DR_LOCKED.has(b.dataset.dr);
+    b.classList.toggle("locked", locked);
+    if(locked)b.title="Upgrade to see history beyond 30 days";
+  });
   const f=document.getElementById(prefix+"From"), t=document.getElementById(prefix+"To");
   if(f)f.classList.toggle("set", state.mode==="custom" && !!f.value);
   if(t)t.classList.toggle("set", state.mode==="custom" && !!t.value);
@@ -876,12 +889,19 @@ function paintDate(prefix,state){
 function wireDate(prefix,state,onChange){
   const el=document.getElementById(prefix+"Date"); if(!el) return;
   const f=document.getElementById(prefix+"From"), t=document.getElementById(prefix+"To");
+  // an un-upgraded tenant can't start on a locked range (e.g. a remembered "all")
+  if(!FULL_HISTORY && (DR_LOCKED.has(state.mode) || state.mode==="custom")){state.mode="30d";state.from="";state.to="";}
   el.querySelectorAll("[data-dr]").forEach(b=>b.onclick=()=>{
+    if(!FULL_HISTORY && DR_LOCKED.has(b.dataset.dr)){ upgradePrompt(); return; }
     state.mode=b.dataset.dr; state.from=""; state.to="";
     if(f)f.value=""; if(t)t.value="";
     drSave(prefix,state); paintDate(prefix,state); onChange();
   });
-  const custom=()=>{state.mode="custom"; state.from=f?f.value:""; state.to=t?t.value:""; drSave(prefix,state); paintDate(prefix,state); onChange();};
+  const custom=()=>{
+    const fromMs=f&&f.value?new Date(f.value+"T00:00:00").getTime():null;
+    if(!FULL_HISTORY && fromMs!==null && fromMs < drFloor("30d").getTime()){ upgradePrompt(); if(f)f.value=state.from||""; return; }
+    state.mode="custom"; state.from=f?f.value:""; state.to=t?t.value:""; drSave(prefix,state); paintDate(prefix,state); onChange();
+  };
   if(f)f.addEventListener("change",custom);
   if(t)t.addEventListener("change",custom);
   // hydrate the control from the remembered/default state

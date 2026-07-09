@@ -123,6 +123,11 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None) 
     benchmarks = {"aov": s["aov"], "max_orders": s["max_orders"], "highest_lt": s["highest_lt"]}
     payload = dashboard_payload(scored, _history(orders), shop, benchmarks, raw_orders=orders,
                                 carts_by_customer=carts)
+    # Full client/order history is a paid feature: un-upgraded tenants only see the last 30 days.
+    from halia.api import billing
+    if not billing.is_paid(shop):
+        from build_mvp import cap_payload_recent
+        payload = cap_payload_recent(payload, 30)
     cache.set(shop, results, payload, _order_index(orders))
     entry = cache.get(shop)
 
