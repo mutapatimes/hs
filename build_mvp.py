@@ -385,6 +385,17 @@ def _order_status(o: dict) -> tuple[str, str]:
     return (label or "Unfulfilled", "new")
 
 
+def _display_order_id(o: dict) -> str:
+    """A clean order number for the UI (which prefixes it with '#'). Prefer Shopify's friendly
+    order name ('#1001' -> '1001'); otherwise strip a gid to its trailing id
+    ('gid://shopify/Order/7073010549026' -> '7073010549026'); never show the raw gid."""
+    nm = str(o.get("order_name") or "").strip().lstrip("#")
+    if nm:
+        return nm
+    raw = str(o.get("id") or o.get("name") or "").strip()
+    return raw.rsplit("/", 1)[-1] if raw else ""
+
+
 def _orders_list(raw_orders, score_map: dict, limit: int = 600) -> list[dict]:
     """Flat, newest-first list of orders, each joined to its client's grade/score."""
     out = []
@@ -398,7 +409,7 @@ def _orders_list(raw_orders, score_map: dict, limit: int = 600) -> list[dict]:
         if name == "·":
             name = "Guest order"
         out.append({
-            "orderId": str(o.get("id") or o.get("name") or ""),
+            "orderId": _display_order_id(o),
             "date": str(o.get("created_at") or "")[:10],
             "amount": int(round(_num(o.get("total_price") if o.get("total_price") is not None else o.get("total")))),
             "status": label, "statusCat": cat,

@@ -33,6 +33,7 @@ _CUSTOMER_NODE = """
       orders(first: 60) {
         nodes {
           id
+          name
           createdAt
           displayFinancialStatus
           displayFulfillmentStatus
@@ -157,6 +158,7 @@ def order_node_to_rest(order: dict, customer: dict) -> dict:
 
     return {
         "id": order.get("id"),
+        "order_name": order.get("name"),   # the friendly number, e.g. "#1001" (not the gid)
         "email": customer.get("email"),
         "phone": customer.get("phone"),
         "created_at": order.get("createdAt"),
