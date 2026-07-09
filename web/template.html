@@ -548,6 +548,7 @@
         <button class="vtab" data-view="orders">Orders</button>
         <button class="vtab" data-view="map">Map</button>
         <button class="vtab" data-view="board">Pipeline</button>
+        <button class="vtab" data-view="catalogs">Catalogues</button>
       </div>
 
       <!-- OVERVIEW (birds-eye) -->
@@ -684,6 +685,12 @@
       <div id="viewBoard" style="display:none">
         <div id="boardRoot"><div style="padding:40px;text-align:center;color:var(--faint)">Loading…</div></div>
       </div><!-- /viewBoard -->
+
+      <!-- CATALOGUES: build print-ready PDF + shareable enquiry-form catalogues from products -->
+      <div id="viewCatalogs" style="display:none">
+        <p style="color:var(--soft);font-size:13.5px;line-height:1.6;max-width:70ch;margin:0 0 16px">Build a print-ready PDF catalogue from your products, then share it two ways: a <b>PDF</b> (with an Enquire link on every product) and an interactive <b>enquiry form</b> where clients tick what they want and their request is emailed to you. Insert <b>{catalog_link}</b> in a client-email template to drop your active catalogue into the message.</p>
+        <div id="catalogsRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
+      </div><!-- /viewCatalogs -->
 
       <div class="foot">
         Real output from the Halia scoring engine on <b>sample data</b> (fictional store).
@@ -1459,11 +1466,12 @@ const PAGE_META={
   overview:{t:"Overview",s:"A birds-eye view of the potential VICs Halia surfaced from your store: who they are, what they are worth, and where they are."},
   orders:{t:"Orders",s:"Every order, newest first, ranked by the client behind it. Act on each one while it is live, the message matches the order's status."},
   map:{t:"Where your VICs are",s:"Geographic concentration of your potential VICs across the UK, by postcode area. Click a bubble to see the clients there."},
-  board:{t:"Outreach pipeline",s:"Track outreach on your VIC clients across the team. Drag a client between stages; every move, assignment and note is logged with who did it and when."}
+  board:{t:"Outreach pipeline",s:"Track outreach on your VIC clients across the team. Drag a client between stages; every move, assignment and note is logged with who did it and when."},
+  catalogs:{t:"Catalogues",s:"Turn your products into a print-ready PDF and a shareable enquiry form, then send it to clients."}
 };
 function showView(v){
   document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("on",x.dataset.view===v));
-  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"]].forEach(([k,id])=>{
+  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"],["catalogs","viewCatalogs"]].forEach(([k,id])=>{
     const el=document.getElementById(id);if(el)el.style.display=k===v?"":"none";});
   const statsEl=document.querySelector(".stats");
   if(v==="clients"){
@@ -1480,6 +1488,10 @@ function showView(v){
     document.querySelector(".title").textContent=PAGE_META.board.t;document.querySelector(".sub").textContent=PAGE_META.board.s;
     statsEl.style.display="none";
     renderBoard();
+  } else if(v==="catalogs"){
+    document.querySelector(".title").textContent=PAGE_META.catalogs.t;document.querySelector(".sub").textContent=PAGE_META.catalogs.s;
+    statsEl.style.display="none";
+    catInit();
   } else {
     document.querySelector(".title").textContent=PAGE_META.map.t;document.querySelector(".sub").textContent=PAGE_META.map.s;
     statsEl.style.display="none";
@@ -1987,13 +1999,12 @@ function showConnectBanner(){
 const settingsEl=document.getElementById("settings");
 function closeSettings(){settingsEl.style.display="none";}
 function openSettings(){
-  if(typeof catState==="object") catState.loaded=false;   // re-init the catalogues tab each open
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
   let otmpl=JSON.parse(JSON.stringify(ORDER_TEMPLATES||{new:[],fulfilled:[],refunded:[],cancelled:[]}));
   let tab="client", ostatus="new", lastField=null, spage="integrations";
   let integ = SETTINGS.mailchimp_connected?"mailchimp":(SETTINGS.hubspot_connected?"hubspot":"klaviyo");
   let tsel = 0;   // selected template index in the two-pane template editor
-  const SPAGES=[["integrations","Integrations"],["scoring","Scoring"],["alerts","Alerts"],["templates","Templates"],["catalogs","Catalogues"],["billing","Billing"],["privacy","Privacy"]];
+  const SPAGES=[["integrations","Integrations"],["scoring","Scoring"],["alerts","Alerts"],["templates","Templates"],["billing","Billing"],["privacy","Privacy"]];
   const OSTAT=["new","fulfilled","refunded","cancelled"];
   const OSTLBL={new:"New",fulfilled:"Fulfilled",refunded:"Refunded",cancelled:"Cancelled"};
   function currentList(){return tab==="client"?tmpl:(otmpl[ostatus]=otmpl[ostatus]||[]);}
@@ -2206,14 +2217,6 @@ function openSettings(){
 
         </div><!-- /templates -->
 
-        <div class="spage" data-page="catalogs" style="display:${spage==='catalogs'?'':'none'}">
-        <div style="${C}">
-          <div style="${H}">Product catalogues</div>
-          <p style="${P}">Build a print-ready PDF catalogue from your products, then share it two ways: a <b>PDF</b> (with an Enquire link on every product) and an interactive <b>enquiry form</b> where clients tick what they want and their request is emailed to you. Insert <b>{catalog_link}</b> in a client-email template (Templates tab) to drop your active catalogue into the message.</p>
-          <div id="catalogsRoot" style="min-height:80px"><div style="${P};margin:0">Loading…</div></div>
-        </div>
-        </div><!-- /catalogs -->
-
         <div class="spage" data-page="billing" style="display:${spage==='billing'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Billing</div>
@@ -2252,7 +2255,6 @@ function openSettings(){
       settingsEl.querySelectorAll("[data-goto]").forEach(t=>t.setAttribute("style",t.dataset.goto===spage?STAB_ON:STAB_OFF));
       const sb=document.getElementById("saveBar"); if(sb) sb.style.display=["scoring","alerts","templates"].includes(spage)?"":"none";
       const sc=document.getElementById("sScroll"); if(sc) sc.scrollTop=0;
-      if(spage==="catalogs") catInit();
     });
     const addBtn=document.getElementById("addTmpl");
     if(addBtn) addBtn.onclick=()=>{collect();currentList().push({name:"New template",subject:"",body:(tab==='order'?"Hi {first_name},\n\n\n\n{sender}":"Dear {first_name},\n\n\n\n{sender}")});tsel=currentList().length-1;render();};
@@ -2769,7 +2771,7 @@ function showFirstRun(){
   const views=document.querySelector(".views"), stats=document.querySelector(".stats");
   if(views) views.style.display="none";
   if(stats) stats.style.display="none";
-  ["viewOverview","viewClients","viewOrders","viewMap","viewBoard"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
+  ["viewOverview","viewClients","viewOrders","viewMap","viewBoard","viewCatalogs"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
   const box=document.createElement("div");
   box.innerHTML=`<div style="max-width:520px;margin:52px auto;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:44px 36px;box-shadow:var(--shadow)">
     <div style="width:56px;height:56px;border-radius:15px;margin:0 auto 18px;background:var(--brand-tint);display:grid;place-items:center;color:var(--brand-deep);font:600 26px 'Fraunces',serif">&#8258;</div>
