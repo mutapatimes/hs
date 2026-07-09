@@ -24,6 +24,18 @@ def test_image_falls_back_to_images_node():
     assert p["title"] == "Scarf" and p["tags"] == []
 
 
+def test_product_node_maps_catalog_extras():
+    # description / first-variant SKU / variant count are surfaced for the catalog builder
+    p = product_node_to_dict({
+        "title": "Coat", "description": "  A warm coat.  ",
+        "variantsCount": {"count": 12}, "variants": {"nodes": [{"sku": "AUB-01"}]},
+    })
+    assert p["description"] == "A warm coat." and p["sku"] == "AUB-01" and p["variants"] == 12
+    # absent gracefully -> empty/zero, never KeyError
+    q = product_node_to_dict({"title": "Bare"})
+    assert q["description"] == "" and q["sku"] == "" and q["variants"] == 0
+
+
 def _page(nodes, has_next, cursor):
     return {"data": {"products": {
         "pageInfo": {"hasNextPage": has_next, "endCursor": cursor}, "nodes": nodes}}}

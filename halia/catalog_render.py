@@ -5,12 +5,30 @@ dependency. WeasyPrint is imported LAZILY inside ``html_to_pdf`` because it need
 (cairo/pango) that are present in the Docker image but not in local dev / CI; when it can't be
 imported the caller gets ``PdfEngineUnavailable`` and the app keeps running (the endpoint 503s).
 WeasyPrint fetches the product images from their URLs itself at render time.
+
+The catalog dict understands these keys (all optional, with sensible defaults so older saved
+catalogs keep rendering unchanged):
+  name, brand_color, text_color, footer_text,
+  template   -> "grid" | "list" | "minimal" (legacy "lookbook" == 2-column grid),
+  columns    -> 1..4 (grid / minimal only),
+  page_size  -> "A4" | "Letter",
+  cover      -> bool (default True),
+  fields     -> {image,title,vendor,price,description,sku,variants: bool}
 """
 from __future__ import annotations
 
 import html as _html
+import re as _re
 
 _CUR_SYMBOL = {"GBP": "£", "EUR": "€", "USD": "$", "JPY": "¥", "AUD": "$", "CAD": "$"}
+
+_DEFAULT_FIELDS = {"image": True, "title": True, "vendor": True, "price": True,
+                   "description": False, "sku": False, "variants": False}
+
+_PAGE = {
+    "A4":     {"size": "A4",     "cover_h": "297mm", "margin": "16mm 14mm 18mm"},
+    "Letter": {"size": "Letter", "cover_h": "11in",  "margin": "0.7in 0.6in 0.7in"},
+}
 
 
 class PdfEngineUnavailable(RuntimeError):
@@ -33,61 +51,134 @@ def _price(p: dict) -> str:
     return f"{sym}{v:,.2f}" if sym else (f"{v:,.2f} {cur}".strip())
 
 
-def _card(p: dict) -> str:
-    img = p.get("image_url")
-    media = (f'<div class="ph"><img src="{_esc(img)}" alt=""></div>' if img
-             else '<div class="ph noimg"></div>')
-    vendor = f'<div class="vendor">{_esc(p["vendor"])}</div>' if p.get("vendor") else ""
-    price = f'<div class="price">{_esc(_price(p))}</div>' if _price(p) else ""
-    return (f'<div class="card">{media}'
-            f'<div class="meta">{vendor}<div class="title">{_esc(p.get("title"))}</div>'
-            f'{price}</div></div>')
+def _desc(p: dict, limit: int = 200) -> str:
+    raw = _re.sub(r"\s+", " ", str(p.get("description") or "")).strip()
+    if len(raw) > limit:
+        raw = raw[:limit].rsplit(" ", 1)[0].rstrip(",.;: ") + "…"
+    return raw
+
+
+def _card(p: dict, fields: dict) -> str:
+    parts = []
+    if fields.get("image"):
+        img = p.get("image_url")
+        parts.append(f'<div class="ph"><img src="{_esc(img)}" alt=""></div>' if img
+                     else '<div class="ph noimg"></div>')
+    meta = []
+    if fields.get("vendor") and p.get("vendor"):
+        meta.append(f'<div class="vendor">{_esc(p["vendor"])}</div>')
+    if fields.get("title"):
+        meta.append(f'<div class="title">{_esc(p.get("title"))}</div>')
+    if fields.get("sku") and p.get("sku"):
+        meta.append(f'<div class="sku">{_esc(p["sku"])}</div>')
+    row = []
+    if fields.get("price") and _price(p):
+        row.append(f'<span class="price">{_esc(_price(p))}</span>')
+    if fields.get("variants") and p.get("variants"):
+        n = p["variants"]
+        row.append(f'<span class="variants">{n} variant{"s" if n != 1 else ""}</span>')
+    if row:
+        meta.append(f'<div class="priceline">{"".join(row)}</div>')
+    if fields.get("description") and _desc(p):
+        meta.append(f'<div class="desc">{_esc(_desc(p))}</div>')
+    parts.append(f'<div class="meta">{"".join(meta)}</div>')
+    return f'<div class="card">{"".join(parts)}</div>'
+
+
+def _norm(catalog: dict) -> dict:
+    """Resolve a catalog dict to a fully-defaulted, validated render spec."""
+    template = catalog.get("template") or "grid"
+    if template == "lookbook":                       # legacy alias
+        template, cols_default = "grid", 2
+    else:
+        cols_default = 3
+    if template not in ("grid", "list", "minimal"):
+        template = "grid"
+    try:
+        columns = int(catalog.get("columns") or cols_default)
+    except (TypeError, ValueError):
+        columns = cols_default
+    columns = min(4, max(1, columns))
+    fields = dict(_DEFAULT_FIELDS)
+    for k, v in (catalog.get("fields") or {}).items():
+        if k in fields:
+            fields[k] = bool(v)
+    return {
+        "name": catalog.get("name") or "Product Catalogue",
+        "brand": catalog.get("brand_color") or "#1f564a",
+        "text": catalog.get("text_color") or "#1a1712",
+        "template": template,
+        "columns": columns,
+        "page": _PAGE.get(catalog.get("page_size"), _PAGE["A4"]),
+        "cover": bool(catalog.get("cover", True)),
+        "footer": (str(catalog.get("footer_text") or "").strip()
+                   or (catalog.get("name") or "Product Catalogue")),
+        "fields": fields,
+    }
 
 
 def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> str:
-    """A full, print-ready HTML document for the catalog (cover page + product grid)."""
-    name = catalog.get("name") or "Product Catalogue"
-    brand = catalog.get("brand_color") or "#1f564a"
-    template = catalog.get("template") or "grid"
-    cols = 2 if template == "lookbook" else 3
-    cards = "".join(_card(p) for p in products) or '<div class="empty">No products selected.</div>'
+    """A full, print-ready HTML document for the catalog (optional cover + product layout)."""
+    s = _norm(catalog)
+    brand, text, page = s["brand"], s["text"], s["page"]
+    cols = 1 if s["template"] == "list" else s["columns"]
+    cards = "".join(_card(p, s["fields"]) for p in products) \
+        or '<div class="empty">No products selected.</div>'
     n = len(products)
     subtitle = _esc(shop_name) if shop_name else ""
+    cover = ""
+    if s["cover"]:
+        cover = f"""<section class="cover">
+    <div class="eyebrow">{subtitle or "Catalogue"}</div>
+    <h1>{_esc(s["name"])}</h1>
+    {f'<div class="sub">{subtitle}</div>' if subtitle else ''}
+    <div class="count">{n} product{'s' if n != 1 else ''}</div>
+  </section>"""
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <style>
-  @page {{ size: A4; margin: 16mm 14mm 18mm;
-    @bottom-center {{ content: "{_esc(name)}"; font: 8pt 'Helvetica'; color: #9a9385; }}
+  @page {{ size: {page['size']}; margin: {page['margin']};
+    @bottom-center {{ content: "{_esc(s['footer'])}"; font: 8pt 'Helvetica'; color: #9a9385; }}
     @bottom-right {{ content: counter(page); font: 8pt 'Helvetica'; color: #9a9385; }} }}
-  @page :first {{ margin: 0; @bottom-center {{ content: none; }} @bottom-right {{ content: none; }} }}
+  {'@page :first { margin: 0; @bottom-center { content: none; } @bottom-right { content: none; } }' if s['cover'] else ''}
   * {{ box-sizing: border-box; }}
-  body {{ margin: 0; font-family: 'Helvetica', Arial, sans-serif; color: #1a1712; }}
-  .cover {{ page-break-after: always; height: 297mm; padding: 40mm 28mm; position: relative;
+  body {{ margin: 0; font-family: 'Helvetica', Arial, sans-serif; color: {text}; }}
+  .cover {{ page-break-after: always; height: {page['cover_h']}; padding: 40mm 28mm; position: relative;
     display: flex; flex-direction: column; justify-content: flex-end; }}
   .cover::before {{ content: ""; position: absolute; inset: 0 0 auto; height: 46mm; background: {brand}; }}
   .cover .eyebrow {{ font: 600 10pt 'Helvetica'; letter-spacing: .28em; text-transform: uppercase;
     color: {brand}; margin-bottom: 10mm; }}
-  .cover h1 {{ font: 300 40pt Georgia, serif; margin: 0 0 6mm; line-height: 1.02; max-width: 20ch; }}
+  .cover h1 {{ font: 300 40pt Georgia, serif; margin: 0 0 6mm; line-height: 1.02; max-width: 20ch; color: {text}; }}
   .cover .sub {{ font: 400 13pt 'Helvetica'; color: #615b50; }}
   .cover .count {{ margin-top: 14mm; font: 600 9pt 'Helvetica'; letter-spacing: .1em;
     text-transform: uppercase; color: #9a9385; }}
-  .grid {{ display: grid; grid-template-columns: repeat({cols}, 1fr); gap: 10mm 8mm; padding-top: 2mm; }}
+  .items {{ display: grid; grid-template-columns: repeat({cols}, 1fr); gap: 10mm 8mm; padding-top: 2mm; }}
   .card {{ page-break-inside: avoid; }}
   .ph {{ width: 100%; aspect-ratio: 4/5; background: #f2f0ea; border-radius: 3mm; overflow: hidden; }}
   .ph img {{ width: 100%; height: 100%; object-fit: cover; }}
   .ph.noimg {{ background: #efeadd; }}
   .meta {{ padding-top: 3mm; }}
   .vendor {{ font: 600 7.5pt 'Helvetica'; letter-spacing: .1em; text-transform: uppercase; color: #9a9385; }}
-  .title {{ font: 400 12pt Georgia, serif; margin: 1.5mm 0; line-height: 1.2; }}
+  .title {{ font: 400 12pt Georgia, serif; margin: 1.5mm 0; line-height: 1.2; color: {text}; }}
+  .sku {{ font: 500 7.5pt 'Helvetica'; letter-spacing: .04em; color: #9a9385; margin-bottom: 1mm; }}
+  .priceline {{ display: flex; align-items: baseline; gap: 3mm; }}
   .price {{ font: 600 10pt 'Helvetica'; color: {brand}; }}
+  .variants {{ font: 500 8pt 'Helvetica'; color: #9a9385; }}
+  .desc {{ font: 400 8.5pt 'Helvetica'; line-height: 1.45; color: #615b50; margin-top: 2mm; }}
+  /* list — a detailed row per product */
+  .items.list {{ display: block; }}
+  .items.list .card {{ display: flex; gap: 6mm; align-items: flex-start;
+    padding: 5mm 0; border-bottom: 0.3mm solid #e7e3da; }}
+  .items.list .ph {{ width: 34mm; flex: none; aspect-ratio: 1/1; }}
+  .items.list .meta {{ padding-top: 0; flex: 1; }}
+  .items.list .desc {{ max-width: 120mm; }}
+  /* minimal — image-forward, centred, quiet text */
+  .items.minimal .ph {{ aspect-ratio: 1/1; }}
+  .items.minimal .meta {{ text-align: center; }}
+  .items.minimal .priceline {{ justify-content: center; }}
   .empty {{ color: #9a9385; padding: 20mm; text-align: center; }}
 </style></head><body>
-  <section class="cover">
-    <div class="eyebrow">{subtitle or "Catalogue"}</div>
-    <h1>{_esc(name)}</h1>
-    {f'<div class="sub">{subtitle}</div>' if subtitle else ''}
-    <div class="count">{n} product{'s' if n != 1 else ''}</div>
-  </section>
-  <div class="grid">{cards}</div>
+  {cover}
+  <div class="items {s['template']}">{cards}</div>
 </body></html>"""
 
 

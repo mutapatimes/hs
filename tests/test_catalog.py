@@ -39,6 +39,26 @@ def test_catalog_html_lists_products():
     assert "£1,200.00" in html and "#123456" in html and "Aubin London" in html
 
 
+def test_catalog_html_honours_layout_and_field_options():
+    prods = [{"id": "1", "title": "Cashmere coat", "vendor": "Aubin", "image_url": "http://c/1.jpg",
+              "price": "1200.00", "currency": "GBP", "description": "Warm and elegant.",
+              "sku": "AUB-01", "variants": 12}]
+    # list layout, no cover, Letter, description + sku + variants shown, price hidden
+    h = catalog_html({"name": "X", "template": "list", "page_size": "Letter", "cover": False,
+                      "fields": {"price": False, "description": True, "sku": True, "variants": True}},
+                     prods, "Aubin")
+    assert "items list" in h and "size: Letter" in h
+    assert 'class="cover"' not in h                      # cover suppressed
+    assert "Warm and elegant." in h and "AUB-01" in h and "12 variants" in h
+    assert "£1,200.00" not in h                           # price field off
+    # minimal + custom columns/colours
+    h2 = catalog_html({"template": "minimal", "columns": 4, "text_color": "#222222"}, prods)
+    assert "items minimal" in h2 and "repeat(4, 1fr)" in h2 and "#222222" in h2
+    # legacy lookbook still renders as a 2-column grid
+    h3 = catalog_html({"template": "lookbook"}, prods)
+    assert "items grid" in h3 and "repeat(2, 1fr)" in h3
+
+
 def test_html_to_pdf_unavailable_locally():
     # WeasyPrint isn't installed in local/CI, so this degrades to a typed error, not a crash.
     with pytest.raises(PdfEngineUnavailable):
@@ -100,6 +120,29 @@ def test_list_and_delete(client):
     assert len(lst) == 1 and lst[0]["name"] == "Winter" and lst[0]["count"] == 2
     assert c.request("DELETE", f"/v1/catalog/{cid}").status_code == 200
     assert c.get("/v1/catalog/list").json()["catalogs"] == []
+
+
+def test_save_persists_and_returns_full_config(client):
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={
+        "name": "AW", "product_ids": ["gid://P/1"], "template": "minimal", "columns": 4,
+        "page_size": "Letter", "brand_color": "#abcdef", "text_color": "#111111",
+        "footer_text": "© Aubin", "cover": False,
+        "fields": {"description": True, "price": False},
+    }).json()["id"]
+    got = next(x for x in c.get("/v1/catalog/list").json()["catalogs"] if x["id"] == cid)
+    assert got["template"] == "minimal" and got["columns"] == 4 and got["page_size"] == "Letter"
+    assert got["brand_color"] == "#abcdef" and got["text_color"] == "#111111"
+    assert got["footer_text"] == "© Aubin" and got["cover"] is False
+    assert got["fields"]["description"] is True and got["fields"]["price"] is False
+
+
+def test_save_clamps_columns_and_rejects_bad_enums(client):
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={"name": "Z", "product_ids": ["gid://P/1"],
+                                           "columns": 99, "page_size": "A3", "template": "bogus"}).json()["id"]
+    got = next(x for x in c.get("/v1/catalog/list").json()["catalogs"] if x["id"] == cid)
+    assert got["columns"] == 4 and got["page_size"] == "A4" and got["template"] == "grid"
 
 
 def test_generate_requires_a_product(client, monkeypatch):

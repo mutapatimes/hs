@@ -76,8 +76,11 @@ PRODUCTS_QUERY = (
     "    pageInfo { hasNextPage endCursor }\n"
     "    nodes {\n"
     "      id title handle vendor productType tags status\n"
+    "      description(truncateAt: 400)\n"
+    "      variantsCount { count }\n"
     "      featuredImage { url }\n"
     "      images(first: 1) { nodes { url } }\n"
+    "      variants(first: 1) { nodes { sku } }\n"
     "      priceRangeV2 { minVariantPrice { amount currencyCode } }\n"
     "      collections(first: 8) { nodes { title } }\n"
     "    }\n"
@@ -98,6 +101,8 @@ def product_node_to_dict(node: dict) -> dict:
                    if c.get("title")]
     tags = node.get("tags")
     tags = list(tags) if isinstance(tags, (list, tuple)) else ([tags] if tags else [])
+    variants_nodes = ((node.get("variants") or {}).get("nodes")) or []
+    sku = variants_nodes[0].get("sku") if variants_nodes else None
     return {
         "id": node.get("id"),
         "title": node.get("title") or "Untitled",
@@ -110,6 +115,9 @@ def product_node_to_dict(node: dict) -> dict:
         "price": price_obj.get("amount"),
         "currency": price_obj.get("currencyCode") or "",
         "status": node.get("status"),
+        "description": (node.get("description") or "").strip(),
+        "sku": sku or "",
+        "variants": ((node.get("variantsCount") or {}).get("count")) or 0,
     }
 
 

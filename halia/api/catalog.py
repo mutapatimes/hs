@@ -23,6 +23,26 @@ _PRODUCT_CACHE: dict = {}     # shop -> {"at": monotonic, "products": [...]}
 _TTL = 600.0                  # 10 min — products change rarely; keep the picker snappy
 PAGE_SIZE = 24
 
+_FIELD_KEYS = ("image", "title", "vendor", "price", "description", "sku", "variants")
+_DEFAULT_FIELDS = {"image": True, "title": True, "vendor": True, "price": True,
+                   "description": False, "sku": False, "variants": False}
+
+
+def _clamp_int(v, default: int, lo: int, hi: int) -> int:
+    try:
+        return min(hi, max(lo, int(v)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _clean_fields(raw) -> dict:
+    out = dict(_DEFAULT_FIELDS)
+    if isinstance(raw, dict):
+        for k in _FIELD_KEYS:
+            if k in raw:
+                out[k] = bool(raw[k])
+    return out
+
 
 def _products(shop: str, force: bool = False) -> list[dict]:
     ent = _PRODUCT_CACHE.get(shop)
@@ -122,7 +142,13 @@ def register(app) -> None:
                         "url": (f"{base}/catalog/{c['id']}.pdf" if c.get("pdf_at") else ""),
                         "count": len(sel.get("product_ids") or []),
                         "template": cfg.get("template", "grid"),
+                        "columns": cfg.get("columns", 3),
+                        "page_size": cfg.get("page_size", "A4"),
                         "brand_color": cfg.get("brand_color", "#1f564a"),
+                        "text_color": cfg.get("text_color", "#1a1712"),
+                        "footer_text": cfg.get("footer_text", ""),
+                        "cover": cfg.get("cover", True),
+                        "fields": _clean_fields(cfg.get("fields")),
                         "product_ids": sel.get("product_ids") or []})
         return {"catalogs": out}
 
@@ -136,8 +162,14 @@ def register(app) -> None:
             if existing and existing["shop"] != shop:
                 raise HTTPException(403, "Not your catalogue.")
         cfg = {
-            "template": p.get("template") if p.get("template") in ("grid", "lookbook") else "grid",
+            "template": p.get("template") if p.get("template") in ("grid", "list", "minimal", "lookbook") else "grid",
+            "columns": _clamp_int(p.get("columns"), 3, 1, 4),
+            "page_size": p.get("page_size") if p.get("page_size") in ("A4", "Letter") else "A4",
             "brand_color": (str(p.get("brand_color") or "#1f564a"))[:9],
+            "text_color": (str(p.get("text_color") or "#1a1712"))[:9],
+            "footer_text": (str(p.get("footer_text") or "").strip())[:160],
+            "cover": bool(p.get("cover", True)),
+            "fields": _clean_fields(p.get("fields")),
             "selection": {
                 "product_ids": [str(x) for x in (p.get("product_ids") or [])][:400],
                 "collections": [str(x) for x in (p.get("collections") or [])][:50],
@@ -171,8 +203,9 @@ def register(app) -> None:
         products = _resolve(shop, cfg.get("selection") or {})
         if not products:
             raise HTTPException(400, "Select at least one product before generating.")
-        html = catalog_html({"name": cat["name"], "brand_color": cfg.get("brand_color"),
-                             "template": cfg.get("template")}, products, _shop_display(shop))
+        spec = dict(cfg)                       # template, columns, page_size, colours, cover, fields
+        spec["name"] = cat["name"]
+        html = catalog_html(spec, products, _shop_display(shop))
         try:
             pdf = html_to_pdf(html)
         except PdfEngineUnavailable as exc:

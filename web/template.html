@@ -2512,7 +2512,9 @@ document.getElementById("openSettings").onclick=openSettings;
 
 // ── Product-catalogue builder (Settings → Catalogues) ──────────────────────
 const CI="box-sizing:border-box;padding:9px 11px;border:1px solid #d8d8d8;border-radius:9px;font:14px system-ui;margin-top:5px";
-const catState={loaded:false,editing:null,name:"",template:"grid",brand:"#1f564a",active:false,
+const CAT_FIELD_DEFAULTS={image:true,title:true,vendor:true,price:true,description:false,sku:false,variants:false};
+const catState={loaded:false,editing:null,name:"",template:"grid",brand:"#1f564a",text:"#1a1712",active:false,
+  columns:3,pageSize:"A4",cover:true,footer:"",fields:Object.assign({},CAT_FIELD_DEFAULTS),
   selected:new Set(),filteredIds:[],page:1,pages:1,total:0,allTotal:0,search:"",fCol:"",fTag:"",fVendor:"",
   facets:{collections:[],tags:[],vendors:[]},items:[],cats:[]};
 function catRoot(){return document.getElementById("catalogsRoot");}
@@ -2543,42 +2545,53 @@ function catRenderList(cats){
   el.querySelectorAll("[data-catcopy]").forEach(b=>b.onclick=()=>{copyText(b.dataset.catcopy);toast("Catalogue link copied.");});
 }
 function catOpenBuilder(c){
-  catState.editing=c?c.id:null; catState.name=c?c.name:""; catState.template=(c&&c.template)||"grid";
-  catState.brand=(c&&c.brand_color)||"#1f564a"; catState.active=!!(c&&c.active);
+  const tpl=(c&&c.template)||"grid";
+  catState.editing=c?c.id:null; catState.name=c?c.name:"";
+  catState.template=(tpl==="lookbook")?"grid":tpl;
+  catState.brand=(c&&c.brand_color)||"#1f564a"; catState.text=(c&&c.text_color)||"#1a1712";
+  catState.columns=(c&&c.columns)||(tpl==="lookbook"?2:3);
+  catState.pageSize=(c&&c.page_size)||"A4"; catState.cover=c?c.cover!==false:true;
+  catState.footer=(c&&c.footer_text)||""; catState.active=!!(c&&c.active);
+  catState.fields=Object.assign({},CAT_FIELD_DEFAULTS,(c&&c.fields)||{});
   catState.selected=new Set((c&&c.product_ids)||[]);
   catState.page=1; catState.search=""; catState.fCol=""; catState.fTag=""; catState.fVendor="";
   catRenderBuilder(); catLoadProducts();
 }
+const CAT_SEC="border:1px solid #ececec;border-radius:14px;padding:16px 18px;margin-bottom:14px;background:#fff";
+const CAT_LB="font:600 11px system-ui;letter-spacing:.05em;text-transform:uppercase;color:#8a8a8a;display:block;margin-bottom:12px";
+const CAT_FIELD_LABELS={image:"Image",title:"Title",vendor:"Vendor",price:"Price",description:"Description",sku:"SKU",variants:"Variants"};
 function catRenderBuilder(){
   const el=catRoot(); if(!el) return;
   el.innerHTML=`
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px">
-      <label style="flex:2;min-width:200px;font:600 12px system-ui;color:#616161">Name
+    <div style="${CAT_SEC};display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+      <label style="flex:1;min-width:220px;font:600 12px system-ui;color:#616161">Catalogue name
         <input id="catName" value="${esc(catState.name)}" placeholder="Autumn selection" style="width:100%;${CI}"></label>
-      <label style="font:600 12px system-ui;color:#616161">Template
-        <select id="catTemplate" style="${CI}"><option value="grid"${catState.template==='grid'?' selected':''}>Grid</option><option value="lookbook"${catState.template==='lookbook'?' selected':''}>Lookbook</option></select></label>
-      <label style="font:600 12px system-ui;color:#616161">Brand colour
-        <input id="catBrand" type="color" value="${esc(catState.brand)}" style="width:52px;height:38px;padding:2px;border:1px solid #d8d8d8;border-radius:8px;margin-top:5px;display:block"></label>
-      <label style="font:600 13px system-ui;color:#303030;display:flex;align-items:center;gap:8px;padding-bottom:8px"><input type="checkbox" id="catActive" ${catState.active?'checked':''}> Active (used by {catalog_link})</label>
+      <label style="font:600 13px system-ui;color:#303030;display:flex;align-items:center;gap:8px;padding-bottom:9px"><input type="checkbox" id="catActive" ${catState.active?'checked':''}> Active <span style="color:#8a8a8a;font-weight:400">(used by {catalog_link})</span></label>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-      <input id="catSearch" value="${esc(catState.search)}" placeholder="Search products…" style="flex:1;min-width:150px;${CI}">
-      <select id="catFCol" style="${CI};max-width:180px"><option value="">All collections</option></select>
-      <select id="catFTag" style="${CI};max-width:150px"><option value="">All tags</option></select>
-      <select id="catFVendor" style="${CI};max-width:150px"><option value="">All vendors</option></select>
+    <div id="catCustomize"></div>
+    <div style="${CAT_SEC}">
+      <div style="${CAT_LB}">Products</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+        <input id="catSearch" value="${esc(catState.search)}" placeholder="Search products…" style="flex:1;min-width:150px;${CI};margin-top:0">
+        <select id="catFCol" style="${CI};margin-top:0;max-width:180px"><option value="">All collections</option></select>
+        <select id="catFTag" style="${CI};margin-top:0;max-width:150px"><option value="">All tags</option></select>
+        <select id="catFVendor" style="${CI};margin-top:0;max-width:150px"><option value="">All vendors</option></select>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font:12.5px system-ui;color:#616161">
+        <div><button id="catSelAll" class="btn ghost" style="padding:5px 11px">Select all</button> <button id="catDeselAll" class="btn ghost" style="padding:5px 11px">Deselect all</button></div>
+        <div><b id="catSelCount">${catState.selected.size}</b> selected</div>
+      </div>
+      <div id="catProducts" style="min-height:120px"><div style="color:#8a8a8a;font:13px system-ui">Loading products…</div></div>
+      <div id="catPager" style="display:flex;justify-content:center;gap:8px;margin-top:12px"></div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font:12.5px system-ui;color:#616161">
-      <div><button id="catSelAll" class="btn ghost" style="padding:5px 11px">Select all</button> <button id="catDeselAll" class="btn ghost" style="padding:5px 11px">Deselect all</button></div>
-      <div><b id="catSelCount">${catState.selected.size}</b> selected</div>
-    </div>
-    <div id="catProducts" style="min-height:120px"><div style="color:#8a8a8a;font:13px system-ui">Loading products…</div></div>
-    <div id="catPager" style="display:flex;justify-content:center;gap:8px;margin-top:12px"></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;border-top:1px solid #eee;padding-top:14px">
+    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:4px">
+      <span style="flex:1;font:12.5px system-ui;color:#8a8a8a"><b id="catSelCount2">${catState.selected.size}</b> products in this catalogue</span>
       <button id="catCancel" class="btn ghost">Back</button>
       <button id="catSave" class="btn ghost">Save</button>
       <button id="catGen" class="btn">Save &amp; generate PDF</button>
     </div>
     <div id="catResult" style="margin-top:12px"></div>`;
+  catRenderCustomize();
   const on=(id,ev,fn)=>{const e=document.getElementById(id);if(e)e.addEventListener(ev,fn);};
   on("catCancel","click",()=>catInit(true));
   on("catSave","click",()=>catSave(false));
@@ -2589,6 +2602,60 @@ function catRenderBuilder(){
   on("catFCol","change",e=>{catState.fCol=e.target.value;catState.page=1;catLoadProducts();});
   on("catFTag","change",e=>{catState.fTag=e.target.value;catState.page=1;catLoadProducts();});
   on("catFVendor","change",e=>{catState.fVendor=e.target.value;catState.page=1;catLoadProducts();});
+}
+function catCollectCustomize(){
+  const g=id=>document.getElementById(id);
+  if(g("catBrand"))catState.brand=g("catBrand").value;
+  if(g("catText"))catState.text=g("catText").value;
+  if(g("catFooter"))catState.footer=g("catFooter").value;
+  if(g("catPageSize"))catState.pageSize=g("catPageSize").value;
+  if(g("catCover"))catState.cover=g("catCover").checked;
+}
+function catRenderCustomize(){
+  const el=document.getElementById("catCustomize"); if(!el) return;
+  const isList=catState.template==='list';
+  const prev={
+    grid:'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'+Array(4).fill('<div style="height:20px;background:#e2ded4;border-radius:3px"></div>').join('')+'</div>',
+    list:'<div style="display:flex;flex-direction:column;gap:6px">'+Array(3).fill('<div style="display:flex;gap:5px;align-items:center"><div style="width:16px;height:16px;background:#e2ded4;border-radius:3px"></div><div style="flex:1;height:6px;background:#ece9e1;border-radius:3px"></div></div>').join('')+'</div>',
+    minimal:'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+Array(2).fill('<div style="height:32px;background:#e2ded4;border-radius:3px"></div>').join('')+'</div>'
+  };
+  const tplCard=(k,label,desc)=>`<button data-cattpl="${k}" style="text-align:left;cursor:pointer;flex:1;min-width:130px;border:1.5px solid ${catState.template===k?'#1f564a':'#e4e2da'};background:${catState.template===k?'#f2f7f5':'#fff'};border-radius:12px;padding:12px">
+      <div style="background:#faf9f6;border-radius:8px;padding:11px;margin-bottom:9px;height:70px;display:flex;flex-direction:column;justify-content:center">${prev[k]}</div>
+      <div style="font:600 13px system-ui;color:#1a1712">${label}</div>
+      <div style="font:11.5px system-ui;color:#8a8a8a;margin-top:2px">${desc}</div></button>`;
+  const colPill=n=>`<button data-catcol="${n}" style="cursor:pointer;width:40px;padding:7px 0;border-radius:8px;font:600 13px system-ui;border:1px solid ${catState.columns===n?'#1f564a':'#d8d8d8'};background:${catState.columns===n?'#1f564a':'#fff'};color:${catState.columns===n?'#fff':'#333'}">${n}</button>`;
+  const fieldChip=k=>`<button data-catfield="${k}" style="cursor:pointer;padding:7px 14px;border-radius:999px;font:600 12.5px system-ui;border:1px solid ${catState.fields[k]?'#1f564a':'#d8d8d8'};background:${catState.fields[k]?'#1f564a':'#fff'};color:${catState.fields[k]?'#fff':'#555'}">${catState.fields[k]?'✓ ':''}${CAT_FIELD_LABELS[k]}</button>`;
+  el.innerHTML=`
+    <div style="${CAT_SEC}">
+      <div style="${CAT_LB}">Template</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">${tplCard('grid','Grid','Columns of product cards')}${tplCard('list','List','Detailed row per product')}${tplCard('minimal','Minimal','Clean, image-forward')}</div>
+    </div>
+    <div style="${CAT_SEC}">
+      <div style="${CAT_LB}">Layout &amp; page</div>
+      <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start">
+        <div><div style="font:600 12px system-ui;color:#616161;margin-bottom:8px">Columns per row</div>
+          ${isList?'<div style="font:12.5px system-ui;color:#8a8a8a;max-width:160px">List layout shows one product per row.</div>':'<div style="display:flex;gap:7px">'+[1,2,3,4].map(colPill).join('')+'</div>'}</div>
+        <div><div style="font:600 12px system-ui;color:#616161;margin-bottom:8px">Page size</div>
+          <select id="catPageSize" style="${CI};margin-top:0">${['A4','Letter'].map(x=>`<option value="${x}"${catState.pageSize===x?' selected':''}>${x==='A4'?'A4 (210 × 297 mm)':'Letter (8.5 × 11 in)'}</option>`).join('')}</select></div>
+        <label style="font:600 13px system-ui;color:#303030;display:flex;align-items:center;gap:8px;margin-top:26px"><input type="checkbox" id="catCover" ${catState.cover?'checked':''}> Cover page</label>
+      </div>
+    </div>
+    <div style="${CAT_SEC}">
+      <div style="${CAT_LB}">Brand &amp; text</div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end">
+        <label style="font:600 12px system-ui;color:#616161">Brand colour<input id="catBrand" type="color" value="${esc(catState.brand)}" style="width:52px;height:38px;padding:2px;border:1px solid #d8d8d8;border-radius:8px;margin-top:6px;display:block"></label>
+        <label style="font:600 12px system-ui;color:#616161">Text colour<input id="catText" type="color" value="${esc(catState.text)}" style="width:52px;height:38px;padding:2px;border:1px solid #d8d8d8;border-radius:8px;margin-top:6px;display:block"></label>
+        <label style="flex:1;min-width:220px;font:600 12px system-ui;color:#616161">Footer text<input id="catFooter" value="${esc(catState.footer)}" placeholder="e.g. © 2026 Your Brand · hello@brand.com" style="width:100%;${CI}"></label>
+      </div>
+    </div>
+    <div style="${CAT_SEC}">
+      <div style="${CAT_LB}">Product fields</div>
+      <div style="font:12.5px system-ui;color:#8a8a8a;margin-bottom:11px">Choose which fields appear on each product card.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${['image','title','vendor','price','description','sku','variants'].map(fieldChip).join('')}</div>
+    </div>`;
+  el.querySelectorAll("[data-cattpl]").forEach(b=>b.onclick=()=>{catCollectCustomize();catState.template=b.dataset.cattpl;if(catState.template==='list')catState.columns=1;else if(catState.columns<1)catState.columns=3;catRenderCustomize();});
+  el.querySelectorAll("[data-catcol]").forEach(b=>b.onclick=()=>{catCollectCustomize();catState.columns=+b.dataset.catcol;catRenderCustomize();});
+  el.querySelectorAll("[data-catfield]").forEach(b=>b.onclick=()=>{catCollectCustomize();const k=b.dataset.catfield;catState.fields[k]=!catState.fields[k];catRenderCustomize();});
 }
 function catLoadProducts(){
   const q=new URLSearchParams({page:catState.page});
@@ -2612,14 +2679,19 @@ function catFillFacets(){
 function catRenderProducts(){
   const el=document.getElementById("catProducts"); if(!el) return;
   const cc=document.getElementById("catSelCount"); if(cc)cc.textContent=catState.selected.size;
+  const cc2=document.getElementById("catSelCount2"); if(cc2)cc2.textContent=catState.selected.size;
   if(!catState.items.length){el.innerHTML='<div style="color:#8a8a8a;font:13px system-ui;padding:14px 0">No products match.</div>';return;}
   const money=p=>p.price?((p.currency==='GBP'?'£':p.currency==='EUR'?'€':p.currency==='USD'?'$':'')+Number(p.price).toFixed(2)):'';
-  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px">'+catState.items.map(p=>{
+  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">'+catState.items.map(p=>{
     const sel=catState.selected.has(p.id);
-    return `<div data-catpid="${esc(p.id)}" style="border:1px solid ${sel?'#1f564a':'#e4e2da'};border-radius:12px;overflow:hidden;cursor:pointer;background:${sel?'#eef4f1':'#fff'}">
+    const nv=p.variants?(' · '+p.variants+' variant'+(p.variants===1?'':'s')):'';
+    return `<div data-catpid="${esc(p.id)}" style="position:relative;border:1.5px solid ${sel?'#1f564a':'#e4e2da'};border-radius:12px;overflow:hidden;cursor:pointer;background:${sel?'#eef4f1':'#fff'}">
+      <div style="position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:${sel?'#1f564a':'rgba(255,255,255,.85)'};border:1px solid ${sel?'#1f564a':'#d8d8d8'};color:#fff;font:700 12px system-ui;display:flex;align-items:center;justify-content:center;z-index:2">${sel?'✓':''}</div>
       <div style="aspect-ratio:1;background:#f2f0ea${p.image_url?(" url('"+esc(p.image_url)+"') center/cover no-repeat"):""}"></div>
-      <div style="padding:8px 10px"><div style="font:600 12.5px system-ui;color:#1a1712;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.title)}</div>
-      <div style="font:12px system-ui;color:#7a7363">${esc(money(p))}</div></div></div>`;}).join("")+'</div>';
+      <div style="padding:8px 10px">
+        ${p.vendor?`<div style="font:600 9px system-ui;letter-spacing:.06em;text-transform:uppercase;color:#9a9385;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.vendor)}</div>`:''}
+        <div style="font:600 12.5px system-ui;color:#1a1712;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.title)}</div>
+        <div style="font:12px system-ui;color:#7a7363">${esc(money(p))}<span style="color:#a8a29a">${nv}</span></div></div></div>`;}).join("")+'</div>';
   el.querySelectorAll("[data-catpid]").forEach(c=>c.onclick=()=>{const id=c.dataset.catpid;catState.selected.has(id)?catState.selected.delete(id):catState.selected.add(id);catRenderProducts();});
 }
 function catRenderPager(){
@@ -2633,9 +2705,12 @@ function catRenderPager(){
   if(nx)nx.onclick=()=>{if(catState.page<catState.pages){catState.page++;catLoadProducts();}};
 }
 function catSave(thenGenerate){
+  catCollectCustomize();
   const gv=id=>{const e=document.getElementById(id);return e?(e.type==='checkbox'?e.checked:e.value):"";};
-  const body={id:catState.editing||undefined,name:gv("catName"),template:gv("catTemplate")||"grid",
-    brand_color:gv("catBrand")||"#1f564a",active:!!gv("catActive"),product_ids:[...catState.selected]};
+  const body={id:catState.editing||undefined,name:gv("catName"),template:catState.template,
+    columns:catState.columns,page_size:catState.pageSize,brand_color:catState.brand,text_color:catState.text,
+    footer_text:catState.footer,cover:catState.cover,fields:catState.fields,
+    active:!!gv("catActive"),product_ids:[...catState.selected]};
   if(!body.product_ids.length){toast("Select at least one product.");return;}
   const gen=document.getElementById("catGen"),sv=document.getElementById("catSave");
   if(thenGenerate&&gen){gen.disabled=true;gen.textContent="Generating…";}else if(sv){sv.disabled=true;sv.textContent="Saving…";}
