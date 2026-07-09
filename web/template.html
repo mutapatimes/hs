@@ -125,6 +125,16 @@
   .controls label.push{margin-left:auto}
   .controls select{font:inherit;font-size:13px;font-weight:500;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:9px;padding:6px 10px;cursor:pointer;text-transform:none;letter-spacing:0}
   .controls select:hover{border-color:#B9B5A9}
+  /* date-range filter */
+  .daterange{display:inline-flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0}
+  .drseg{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden}
+  .drseg button{border:0;border-right:1px solid var(--line-strong);background:var(--card);color:var(--soft);font:600 12px system-ui;padding:6px 11px;cursor:pointer}
+  .drseg button:last-child{border-right:0}
+  .drseg button:hover{color:var(--ink)}
+  .drseg button.on{background:var(--brand-deep);color:#fff}
+  .drcustom{display:inline-flex;align-items:center;gap:5px;color:var(--faint)}
+  .drcustom input[type=date]{font:12px system-ui;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:8px;padding:5px 8px;cursor:pointer}
+  .drcustom input[type=date].set{border-color:var(--brand-deep)}
 
   /* table */
   .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
@@ -618,6 +628,14 @@
         <label>Min signals
           <select id="fMin"><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option></select>
         </label>
+        <label>Last shopped
+          <span class="daterange" id="cDate">
+            <span class="drseg">
+              <button data-dr="7d">7D</button><button data-dr="30d">30D</button><button data-dr="ytd">YTD</button><button data-dr="1y">1Y</button><button data-dr="all" class="on">All</button>
+            </span>
+            <span class="drcustom"><input type="date" id="cFrom" title="From"><span>&rarr;</span><input type="date" id="cTo" title="To"></span>
+          </span>
+        </label>
         <label class="push">Sort
           <select id="fSort"><option value="score">Score</option><option value="count">Signals</option><option value="latent">Latent value</option><option value="last">Last shopped</option></select>
         </label>
@@ -645,6 +663,14 @@
           <label class="ocheck"><input type="checkbox" id="oAllGrades"> Show every grade</label>
           <label>Status
             <select id="oStatus"><option value="all">All</option><option value="new">Unfulfilled</option><option value="fulfilled">Fulfilled</option><option value="refunded">Refunded</option><option value="cancelled">Cancelled</option></select>
+          </label>
+          <label>Date
+            <span class="daterange" id="oDate">
+              <span class="drseg">
+                <button data-dr="7d">7D</button><button data-dr="30d">30D</button><button data-dr="ytd">YTD</button><button data-dr="1y">1Y</button><button data-dr="all" class="on">All</button>
+              </span>
+              <span class="drcustom"><input type="date" id="oFrom" title="From"><span>&rarr;</span><input type="date" id="oTo" title="To"></span>
+            </span>
           </label>
           <label class="push">Search
             <input id="oq" placeholder="Client name…" autocomplete="off">
@@ -803,6 +829,7 @@ document.getElementById("fGrade").onchange=e=>{gradeFilter=e.target.value;page=1
 document.getElementById("fCity").onchange=e=>{cityFilter=e.target.value;page=1;renderRows();};
 document.getElementById("fMin").onchange=e=>{minSignals=+e.target.value;page=1;renderRows();};
 document.getElementById("fSort").onchange=e=>{sortKey=e.target.value;sortDir="desc";page=1;setSort();};
+wireDate("c", CDATE, ()=>{page=1;renderRows();});
 
 function meterSvg(score,tier){
   const r=20,c=2*Math.PI*r,off=c*(1-score/100);
@@ -812,6 +839,48 @@ function meterSvg(score,tier){
     <circle cx="23" cy="23" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round"
       stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
   </svg><div class="num">${score}</div></div>`;
+}
+
+// ---- Date-range filter (Clients: last-shopped; Orders: order date) ----
+const CDATE={mode:"all",from:"",to:""};   // Clients view
+const ODATE={mode:"all",from:"",to:""};   // Orders view
+function drFloor(mode){
+  const now=new Date(); const d=864e5;
+  if(mode==="7d")  return new Date(now.getTime()-7*d);
+  if(mode==="30d") return new Date(now.getTime()-30*d);
+  if(mode==="ytd") return new Date(now.getFullYear(),0,1);
+  if(mode==="1y")  return new Date(now.getFullYear()-1, now.getMonth(), now.getDate());
+  return null;   // "all"
+}
+function drMatch(state, ms){
+  if(state.mode==="all") return true;
+  if(ms==null || isNaN(ms)) return false;        // no known date -> excluded once a range is set
+  if(state.mode==="custom"){
+    const f=state.from?new Date(state.from+"T00:00:00").getTime():-Infinity;
+    const t=state.to?new Date(state.to+"T23:59:59").getTime():Infinity;
+    return ms>=f && ms<=t;
+  }
+  const fl=drFloor(state.mode);
+  return fl ? ms>=fl.getTime() : true;
+}
+function paintDate(prefix,state){
+  const el=document.getElementById(prefix+"Date"); if(!el) return;
+  el.querySelectorAll("[data-dr]").forEach(b=>b.classList.toggle("on", state.mode===b.dataset.dr));
+  const f=document.getElementById(prefix+"From"), t=document.getElementById(prefix+"To");
+  if(f)f.classList.toggle("set", state.mode==="custom" && !!f.value);
+  if(t)t.classList.toggle("set", state.mode==="custom" && !!t.value);
+}
+function wireDate(prefix,state,onChange){
+  const el=document.getElementById(prefix+"Date"); if(!el) return;
+  const f=document.getElementById(prefix+"From"), t=document.getElementById(prefix+"To");
+  el.querySelectorAll("[data-dr]").forEach(b=>b.onclick=()=>{
+    state.mode=b.dataset.dr; state.from=""; state.to="";
+    if(f)f.value=""; if(t)t.value="";
+    paintDate(prefix,state); onChange();
+  });
+  const custom=()=>{state.mode="custom"; state.from=f?f.value:""; state.to=t?t.value:""; paintDate(prefix,state); onChange();};
+  if(f)f.addEventListener("change",custom);
+  if(t)t.addEventListener("change",custom);
 }
 
 // Shared client search predicate (used by the Clients table and the Overview search).
@@ -833,7 +902,8 @@ function visible(){
     const cityOk = cityFilter==="all" || c.city===cityFilter;
     const areaOk = !areaFilter || c.area===areaFilter;
     const minOk = c.count >= minSignals;
-    return segOk && qOk && gradeOk && cityOk && areaOk && minOk;
+    const dateOk = drMatch(CDATE, c.lastSort ? c.lastSort*1000 : null);
+    return segOk && qOk && gradeOk && cityOk && areaOk && minOk && dateOk;
   });
   list.sort((a,b)=>{
     let d;
@@ -1263,6 +1333,7 @@ function renderOrders(){
     if(onlyTop && !["A1","A","B"].includes(o.tier)) return false;
     if(st!=="all" && o.statusCat!==st) return false;
     if(q && !(o.name||"").toLowerCase().includes(q)) return false;
+    if(!drMatch(ODATE, o.date ? new Date(o.date+"T12:00:00").getTime() : null)) return false;
     return true;
   });
   const opages = Math.max(1, Math.ceil(list.length/OPAGE_SIZE));
@@ -1283,6 +1354,7 @@ function renderOrders(){
 }
 document.addEventListener("click",()=>document.querySelectorAll(".omenu.show").forEach(m=>m.classList.remove("show")));
 ["oAllGrades","oStatus","oq"].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener(e.type==="text"?"input":"change",()=>{opage=1;renderOrders();});});
+wireDate("o", ODATE, ()=>{opage=1;renderOrders();});
 /* ======================= Overview + Map (birds-eye pages) ======================= */
 const GRADE_COL={"A*":"#A67C34","A":"#1F564A","B":"#5E6B74","C":"#B5B9BE"};
 const GRADE_ORDER=["A*","A","B","C"];
