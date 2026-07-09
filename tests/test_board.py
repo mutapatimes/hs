@@ -116,6 +116,36 @@ def test_move_swaps_stage_tag(client):
     assert _pipe(sink)["activity"][-1]["action"] == "moved:Contacted"
 
 
+def test_move_survives_metafield_write_failure(client):
+    # The stage lives in the customer tag; a metafield hiccup must NOT 500 the move
+    # (that was the "Unexpected token 'I'…" bug — a raw 500 the browser couldn't parse).
+    c, sink = client
+    c.post("/v1/board/add", json={"cid": "gid://C/1"})
+
+    def boom(*a, **k):
+        from scoring.shopify_fetch import ShopifyError
+        raise ShopifyError("metafieldsSet: [{'message': 'nope'}]")
+    sink.set_metafield = boom
+
+    r = c.post("/v1/board/move", json={"cid": "gid://C/1", "stage": "Actioned"})
+    assert r.status_code == 200                       # not a 500
+    assert r.json()["pipeline"]["stage"] == "Actioned" and r.json()["warning"]
+    assert stage_tag("Actioned") in sink.tags              # the real stage change still landed
+
+
+def test_note_reports_clean_error_on_metafield_failure(client):
+    # A note ONLY persists to the metafield, so if that fails the client gets a clean JSON 502.
+    c, sink = client
+    c.post("/v1/board/add", json={"cid": "gid://C/1"})
+
+    def boom(*a, **k):
+        raise RuntimeError("shopify down")
+    sink.set_metafield = boom
+
+    r = c.post("/v1/board/note", json={"cid": "gid://C/1", "note": "called them"})
+    assert r.status_code == 502 and "detail" in r.json()   # parseable JSON, not raw "Internal Server Error"
+
+
 def test_move_rejects_unknown_stage(client):
     c, _ = client
     assert c.post("/v1/board/move", json={"cid": "gid://C/1", "stage": "Nope"}).status_code == 422

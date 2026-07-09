@@ -83,6 +83,20 @@ def _write(sink, cid: str, pipe: dict) -> None:
     sink.set_metafield(cid, "pipeline", json.dumps(pipe))
 
 
+def _write_soft(sink, cid: str, pipe: dict) -> str | None:
+    """Persist the activity/assignee metafield, best-effort. The card's STAGE lives in the customer
+    tag (written separately and the board's source of truth), so a metafield hiccup must not fail
+    the whole move — otherwise the tag change sticks but the request 500s and the UI shows an error
+    even though the move happened. Returns an error string on failure (logged), else None."""
+    try:
+        _write(sink, cid, pipe)
+        return None
+    except Exception as exc:  # noqa: BLE001 — metafield is supplementary; never break the move
+        import logging
+        logging.getLogger("halia.board").warning("pipeline metafield write failed for %s: %s", cid, exc)
+        return str(exc)
+
+
 def register(app) -> None:
 
     @app.post("/v1/board/add")
@@ -97,8 +111,8 @@ def register(app) -> None:
         append_activity(pipe, "added", actor_id, actor_name)
         sink.untag_customer(cid, [stage_tag(s) for s in STAGES if s != stage])
         sink.tag_customer(cid, [stage_tag(stage)])
-        _write(sink, cid, pipe)
-        return {"ok": True, "pipeline": pipe}
+        warn = _write_soft(sink, cid, pipe)
+        return {"ok": True, "pipeline": pipe, "warning": warn}
 
     @app.post("/v1/board/move")
     def board_move(request: Request, shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
@@ -114,8 +128,8 @@ def register(app) -> None:
         append_activity(pipe, f"moved:{stage}", actor_id, actor_name)
         sink.untag_customer(cid, [stage_tag(s) for s in STAGES if s != stage])
         sink.tag_customer(cid, [stage_tag(stage)])
-        _write(sink, cid, pipe)
-        return {"ok": True, "pipeline": pipe}
+        warn = _write_soft(sink, cid, pipe)
+        return {"ok": True, "pipeline": pipe, "warning": warn}
 
     @app.post("/v1/board/assign")
     def board_assign(request: Request, shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
@@ -129,7 +143,8 @@ def register(app) -> None:
         pipe["assignee"] = None if not (assignee["id"] or assignee["name"]) else assignee
         label = (assignee["name"] or "unassigned") if pipe["assignee"] else "unassigned"
         append_activity(pipe, f"assigned:{label}", actor_id, actor_name)
-        _write(sink, cid, pipe)
+        if _write_soft(sink, cid, pipe):
+            raise HTTPException(502, "Could not save to Shopify just now. Please try again.")
         return {"ok": True, "pipeline": pipe}
 
     @app.post("/v1/board/note")
@@ -143,7 +158,8 @@ def register(app) -> None:
         actor_id, actor_name = _actor(request, p)
         pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
         append_activity(pipe, "note", actor_id, actor_name, note=note)
-        _write(sink, cid, pipe)
+        if _write_soft(sink, cid, pipe):
+            raise HTTPException(502, "Could not save to Shopify just now. Please try again.")
         return {"ok": True, "pipeline": pipe}
 
     @app.post("/v1/board/remove")
@@ -156,7 +172,7 @@ def register(app) -> None:
         pipe["stage"] = None
         append_activity(pipe, "removed", actor_id, actor_name)
         sink.untag_customer(cid, [stage_tag(s) for s in STAGES])
-        _write(sink, cid, pipe)
+        _write_soft(sink, cid, pipe)
         return {"ok": True}
 
     @app.get("/v1/board")

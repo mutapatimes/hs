@@ -1550,7 +1550,8 @@ function kbCard(c){
 function bPost(path,body,cb){
   return fetch("/v1/board/"+path,{method:"POST",headers:{"content-type":"application/json"},
       body:JSON.stringify(Object.assign({actor:actorName()},body))})
-    .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+    .then(r=>r.text().then(t=>{let d={};try{d=t?JSON.parse(t):{};}catch(_){d={detail:(t||"").replace(/<[^>]*>/g,"").trim().slice(0,140)||("Error "+r.status)};}return {ok:r.ok,d};}))
+    .then(({ok,d})=>{
       if(!ok)throw new Error(d.detail||"failed");
       const cid=body.cid;
       if(d.pipeline){const cl=clientByCid(cid)||{};
