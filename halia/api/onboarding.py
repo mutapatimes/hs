@@ -546,6 +546,7 @@ def _hosted_head(store: str = "") -> str:
         "#halia-top button{padding:7px 14px;border-radius:8px;font:600 13px 'Inter',system-ui;cursor:pointer}"
         "#halia-refresh{border:1px solid #2c463d;background:#1f564a;color:#fff}#halia-refresh[disabled]{opacity:.6}"
         "#halia-signout{border:1px solid #3a3630;background:transparent;color:#e9e4d8}"
+        "body:has(.drawer.show) #halia-top{display:none}"   # don't cover the open client drawer's controls
         "@media(max-width:600px){#halia-top .hstore{display:none}}"
         "</style>"
         "<script>addEventListener('DOMContentLoaded',function(){"

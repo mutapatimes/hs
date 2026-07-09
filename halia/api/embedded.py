@@ -25,9 +25,10 @@ _HEAD = (
     '<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>'
     "<style>.topbar,.sidenav,.crumb{{display:none!important}}"
     ".admin{{display:block!important}}.canvas{{min-height:100vh;padding-top:18px}}"
-    "#halia-refresh{{position:fixed;top:14px;right:18px;z-index:200;padding:8px 14px;"
+    "#halia-refresh{{position:fixed;top:14px;right:18px;z-index:55;padding:8px 14px;"
     "border-radius:8px;border:1px solid #d8c79a;background:#1f564a;color:#fff;"
-    "font:600 13px system-ui;cursor:pointer}}#halia-refresh[disabled]{{opacity:.6}}</style>"
+    "font:600 13px system-ui;cursor:pointer}}#halia-refresh[disabled]{{opacity:.6}}"
+    "body:has(.drawer.show) #halia-refresh{{display:none}}</style>"
     "<script>addEventListener('DOMContentLoaded',function(){{"
     "var b=document.createElement('button');b.id='halia-refresh';"
     "b.textContent='\\u21bb Refresh scores';b.onclick=function(){{"
