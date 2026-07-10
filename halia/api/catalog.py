@@ -175,19 +175,29 @@ def _facets(prods: list[dict]) -> dict:
 
 
 def _resolve(shop: str, selection: dict) -> list[dict]:
-    """Products for a catalog from its saved selection (explicit ids OR collection/tag/vendor)."""
+    """Products for a catalog from its saved selection. Explicit ids come first, IN THE SAVED ORDER
+    (so the merchant's manual ordering is honoured), then any collection/tag/vendor matches."""
     prods = _products(shop)
-    ids = set(selection.get("product_ids") or [])
+    by_id = {p["id"]: p for p in prods}
+    id_list = [str(x) for x in (selection.get("product_ids") or [])]
     cols = set(selection.get("collections") or [])
     tags = set(selection.get("tags") or [])
     vendors = set(selection.get("vendors") or [])
-    out = []
-    for p in prods:
-        if (p["id"] in ids
-                or (cols and set(p.get("collections") or []) & cols)
-                or (tags and set(p.get("tags") or []) & tags)
-                or (vendors and p.get("vendor") in vendors)):
+    out, seen = [], set()
+    for pid in id_list:                              # explicit picks, in the merchant's order
+        p = by_id.get(pid)
+        if p and pid not in seen:
             out.append(p)
+            seen.add(pid)
+    if cols or tags or vendors:                      # then facet matches (product order)
+        for p in prods:
+            if p["id"] in seen:
+                continue
+            if ((cols and set(p.get("collections") or []) & cols)
+                    or (tags and set(p.get("tags") or []) & tags)
+                    or (vendors and p.get("vendor") in vendors)):
+                out.append(p)
+                seen.add(p["id"])
     return out
 
 
@@ -243,11 +253,12 @@ def catalog_share_base(shop: str) -> str:
 
 
 def catalog_url_for(shop: str) -> str:
-    """The active catalog's public URL for {catalog_link}, or '' if none is set/generated."""
+    """The active catalogue's shareable (interactive form) URL for {catalog_link}, or '' if none set.
+    The form renders live, so this works before a PDF is generated."""
     cat = shop_store().active_catalog(shop)
     if not cat:
         return ""
-    return f"{catalog_share_base(shop)}/{cat['id']}.pdf"
+    return f"{catalog_share_base(shop)}/{cat['id']}"
 
 
 # ── personalisation: the catalogue title + subtitle can carry {name}/{first_name}/{store} tokens,
@@ -467,8 +478,13 @@ def register(app) -> None:
                 "vendors": [str(x) for x in (p.get("vendors") or [])][:50],
             },
         }
-        shop_store().save_catalog(cid, shop, name, json.dumps(cfg), active=bool(p.get("active")))
-        return {"id": cid}
+        active = bool(p.get("active"))
+        # Auto-activate the first catalogue so the per-client "Send catalogue" / "Copy catalogue
+        # link" appear right away (they key off the active one).
+        if not active and not shop_store().active_catalog(shop):
+            active = True
+        shop_store().save_catalog(cid, shop, name, json.dumps(cfg), active=active)
+        return {"id": cid, "catalog_url": catalog_url_for(shop)}
 
     @app.post("/v1/catalog/{catalog_id}/active")
     def catalog_activate(catalog_id: str, shop: str = Depends(require_shop)) -> dict:

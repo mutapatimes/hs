@@ -1,4 +1,6 @@
 """Catalog builder: HTML render, store round-trip, endpoints, active-catalog URL, PDF serving."""
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -92,10 +94,11 @@ def test_save_generate_serve_and_active_url(client, monkeypatch):
                                              "product_ids": ["gid://P/1"], "template": "grid"})
     cid = save.json()["id"]
     assert store.get_catalog(cid)["active"] == 1
-    # not generated yet -> no active URL
+    # active -> {catalog_link} resolves to the interactive form link at once (no PDF needed)
     from halia.api.catalog import catalog_url_for
-    assert catalog_url_for(SHOP) == ""
-    # generate -> pdf stored, url returned
+    assert catalog_url_for(SHOP).endswith(f"/catalog/{cid}")
+    assert not catalog_url_for(SHOP).endswith(".pdf")
+    # generate -> pdf stored, pdf url returned
     gen = c.post(f"/v1/catalog/{cid}/generate")
     assert gen.status_code == 200 and gen.json()["count"] == 1
     assert gen.json()["url"].endswith(f"/catalog/{cid}.pdf")
@@ -103,8 +106,6 @@ def test_save_generate_serve_and_active_url(client, monkeypatch):
     pdf = c.get(f"/catalog/{cid}.pdf")
     assert pdf.status_code == 200 and pdf.headers["content-type"] == "application/pdf"
     assert pdf.content == b"%PDF-1.4 fake"
-    # active + generated -> {catalog_link} now resolves
-    assert catalog_url_for(SHOP).endswith(f"/catalog/{cid}.pdf")
 
 
 def test_preview_renders_unsaved_config(client, monkeypatch):
@@ -334,6 +335,22 @@ def test_share_link_uses_custom_catalogue_domain(monkeypatch):
     monkeypatch.setattr(catmod, "_primary_domain", lambda shop: "")        # not Shopify
     monkeypatch.setattr(catmod, "_tenant_catalog_domain", lambda shop: "catalogue.brand.com")
     assert catmod.catalog_share_base("woo.example.com") == "https://catalogue.brand.com/catalog"
+
+
+def test_first_catalogue_auto_activates(client):
+    from halia.api.catalog import catalog_url_for
+    c, _ = client
+    assert catalog_url_for(SHOP) == ""                       # nothing active
+    r = c.post("/v1/catalog/save", json={"name": "First", "product_ids": ["gid://P/1"]})  # no active flag
+    assert catalog_url_for(SHOP) != "" and r.json()["catalog_url"]   # auto-activated -> link available
+
+
+def test_resolve_preserves_saved_product_order(client):
+    c, store = client
+    from halia.api.catalog import _resolve
+    save = c.post("/v1/catalog/save", json={"name": "AW", "product_ids": ["gid://P/2", "gid://P/1"]})
+    cfg = json.loads(store.get_catalog(save.json()["id"])["config_json"])
+    assert [p["id"] for p in _resolve(SHOP, cfg["selection"])] == ["gid://P/2", "gid://P/1"]   # reordered
 
 
 def test_generate_requires_a_product(client, monkeypatch):

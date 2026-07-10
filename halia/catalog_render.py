@@ -165,30 +165,31 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
   body {{ margin: 0; font-family: 'Helvetica', Arial, sans-serif; color: {text}; }}
   .cover {{ page-break-after: always; height: {page['cover_h']}; padding: 40mm 28mm; position: relative;
     display: flex; flex-direction: column; justify-content: flex-end; }}
-  .cover::before {{ content: ""; position: absolute; inset: 0 0 auto; height: 46mm; background: {brand}; }}
-  .cover .logo {{ position: absolute; top: 15mm; left: 28mm; max-height: 16mm; max-width: 62mm;
+  .cover::before {{ content: ""; position: absolute; inset: 0 0 auto; height: 2.5mm; background: {brand}; }}
+  .cover .logo {{ position: absolute; top: 16mm; left: 28mm; max-height: 16mm; max-width: 62mm;
     object-fit: contain; z-index: 2; }}
-  .cover .eyebrow {{ font: 600 10pt 'Helvetica'; letter-spacing: .28em; text-transform: uppercase;
-    color: {brand}; margin-bottom: 10mm; }}
-  .cover h1 {{ font: 300 40pt Georgia, serif; margin: 0 0 6mm; line-height: 1.02; max-width: 20ch; color: {text}; }}
-  .cover .sub {{ font: 400 13pt 'Helvetica'; color: #615b50; }}
-  .cover .count {{ margin-top: 14mm; font: 600 9pt 'Helvetica'; letter-spacing: .1em;
+  .cover .eyebrow {{ font: 600 9pt 'Helvetica'; letter-spacing: .22em; text-transform: uppercase;
+    color: #8a857a; margin-bottom: 9mm; }}
+  .cover h1 {{ font: 400 32pt 'Helvetica', Arial, sans-serif; margin: 0 0 6mm; line-height: 1.05;
+    letter-spacing: -.2pt; max-width: 22ch; color: {text}; }}
+  .cover .sub {{ font: 400 12pt 'Helvetica'; color: #615b50; }}
+  .cover .count {{ margin-top: 13mm; font: 600 8.5pt 'Helvetica'; letter-spacing: .1em;
     text-transform: uppercase; color: #9a9385; }}
   .items {{ display: grid; grid-template-columns: repeat({cols}, 1fr); gap: 10mm 8mm; padding-top: 2mm; }}
   .card {{ page-break-inside: avoid; }}
-  .ph {{ width: 100%; aspect-ratio: 4/5; background: #f2f0ea; border-radius: 3mm; overflow: hidden; }}
+  .ph {{ width: 100%; aspect-ratio: 4/5; background: #f4f4f2; overflow: hidden; }}
   .ph img {{ width: 100%; height: 100%; object-fit: cover; }}
-  .ph.noimg {{ background: #efeadd; }}
+  .ph.noimg {{ background: #f0f0ee; }}
   .meta {{ padding-top: 3mm; }}
-  .vendor {{ font: 600 7.5pt 'Helvetica'; letter-spacing: .1em; text-transform: uppercase; color: #9a9385; }}
-  .title {{ font: 400 12pt Georgia, serif; margin: 1.5mm 0; line-height: 1.2; color: {text}; }}
+  .vendor {{ font: 600 7pt 'Helvetica'; letter-spacing: .1em; text-transform: uppercase; color: #9a9385; }}
+  .title {{ font: 500 11pt 'Helvetica', Arial, sans-serif; margin: 1.5mm 0; line-height: 1.25; color: {text}; }}
   .sku {{ font: 500 7.5pt 'Helvetica'; letter-spacing: .04em; color: #9a9385; margin-bottom: 1mm; }}
   .priceline {{ display: flex; align-items: baseline; gap: 3mm; }}
-  .price {{ font: 600 10pt 'Helvetica'; color: {brand}; }}
+  .price {{ font: 600 10pt 'Helvetica'; color: {text}; }}
   .variants {{ font: 500 8pt 'Helvetica'; color: #9a9385; }}
   .desc {{ font: 400 8.5pt 'Helvetica'; line-height: 1.45; color: #615b50; margin-top: 2mm; }}
-  .enquire {{ display: inline-block; margin-top: 2.5mm; font: 600 8pt 'Helvetica'; color: {brand};
-    text-decoration: none; border: 0.3mm solid {brand}; border-radius: 2mm; padding: 1mm 3.5mm; }}
+  .enquire {{ display: inline-block; margin-top: 2.5mm; font: 600 8pt 'Helvetica'; color: {text};
+    text-decoration: none; border: 0.3mm solid #c7c3b9; border-radius: 1mm; padding: 1mm 3.5mm; }}
   /* list — a detailed row per product */
   .items.list {{ display: block; }}
   .items.list .card {{ display: flex; gap: 6mm; align-items: flex-start;

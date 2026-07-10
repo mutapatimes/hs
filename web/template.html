@@ -2704,7 +2704,7 @@ const CI="box-sizing:border-box;padding:9px 11px;border:1px solid #d8d8d8;border
 const CAT_FIELD_DEFAULTS={image:true,title:true,vendor:true,price:true,description:false,sku:false,variants:false};
 const catState={loaded:false,editing:null,name:"",subtitle:"",logo:"",template:"grid",brand:"#1f564a",text:"#1a1712",active:false,
   columns:3,pageSize:"A4",cover:true,footer:"",enquiryEmail:"",enquire:true,fields:Object.assign({},CAT_FIELD_DEFAULTS),
-  selected:new Set(),filteredIds:[],page:1,pages:1,total:0,allTotal:0,search:"",fCol:"",fTag:"",fVendor:"",
+  selected:new Set(),order:[],prodInfo:{},filteredIds:[],page:1,pages:1,total:0,allTotal:0,search:"",fCol:"",fTag:"",fVendor:"",
   facets:{collections:[],tags:[],vendors:[]},items:[],cats:[]};
 function catRoot(){return document.getElementById("catalogsRoot");}
 function catInit(force){
@@ -2746,7 +2746,8 @@ function catOpenBuilder(c){
   catState.footer=(c&&c.footer_text)||""; catState.active=!!(c&&c.active);
   catState.enquiryEmail=(c&&c.enquiry_email)||""; catState.enquire=c?c.enquire!==false:true;
   catState.fields=Object.assign({},CAT_FIELD_DEFAULTS,(c&&c.fields)||{});
-  catState.selected=new Set((c&&c.product_ids)||[]);
+  catState.order=((c&&c.product_ids)||[]).map(String);   // saved order (drives catalogue sequence)
+  catState.selected=new Set(catState.order); catState.prodInfo={};
   catState.page=1; catState.search=""; catState.fCol=""; catState.fTag=""; catState.fVendor="";
   catRenderBuilder(); catLoadProducts();
 }
@@ -2779,6 +2780,7 @@ function catRenderBuilder(){
         <div><button id="catSelAll" class="btn ghost" style="padding:5px 11px">Select all</button> <button id="catDeselAll" class="btn ghost" style="padding:5px 11px">Deselect all</button></div>
         <div><b id="catSelCount">${catState.selected.size}</b> selected</div>
       </div>
+      <div id="catOrder" style="max-height:280px;overflow-y:auto;margin-bottom:12px"></div>
       <div id="catProducts" style="min-height:120px"><div style="color:#8a8a8a;font:13px system-ui">Loading products…</div></div>
       <div id="catPager" style="display:flex;justify-content:center;gap:8px;margin-top:12px"></div>
     </div>
@@ -2790,14 +2792,14 @@ function catRenderBuilder(){
       <button id="catGen" class="btn">Save &amp; generate PDF</button>
     </div>
     <div id="catResult" style="margin-top:12px"></div>`;
-  catRenderCustomize();
+  catRenderCustomize(); catRenderOrder();
   const on=(id,ev,fn)=>{const e=document.getElementById(id);if(e)e.addEventListener(ev,fn);};
   on("catCancel","click",()=>catInit(true));
   on("catPreview","click",catPreview);
   on("catSave","click",()=>catSave(false));
   on("catGen","click",()=>catSave(true));
-  on("catSelAll","click",()=>{(catState.filteredIds||[]).forEach(id=>catState.selected.add(id));catRenderProducts();});
-  on("catDeselAll","click",()=>{(catState.filteredIds||[]).forEach(id=>catState.selected.delete(id));catRenderProducts();});
+  on("catSelAll","click",()=>{(catState.filteredIds||[]).forEach(id=>{if(!catState.selected.has(id)){catState.selected.add(id);catState.order.push(id);}});catRenderProducts();catRenderOrder();});
+  on("catDeselAll","click",()=>{(catState.filteredIds||[]).forEach(id=>catState.selected.delete(id));catState.order=catState.order.filter(id=>catState.selected.has(id));catRenderProducts();catRenderOrder();});
   let t; on("catSearch","input",e=>{clearTimeout(t);t=setTimeout(()=>{catState.search=e.target.value;catState.page=1;catLoadProducts();},250);});
   on("catFCol","change",e=>{catState.fCol=e.target.value;catState.page=1;catLoadProducts();});
   on("catFTag","change",e=>{catState.fTag=e.target.value;catState.page=1;catLoadProducts();});
@@ -2897,7 +2899,8 @@ function catLoadProducts(){
     .then(d=>{
     catState.items=d.items||[]; catState.total=d.total||0; catState.allTotal=d.all_total||0;
     catState.page=d.page||1; catState.pages=d.pages||1; catState.facets=d.facets||catState.facets; catState.filteredIds=d.ids||[];
-    catFillFacets(); catRenderProducts(); catRenderPager();
+    catState.items.forEach(p=>{catState.prodInfo[p.id]={title:p.title,image:p.image_url,price:p.price,currency:p.currency};});
+    catFillFacets(); catRenderProducts(); catRenderPager(); catRenderOrder();
   }).catch(err=>{const p=document.getElementById("catProducts");if(p)p.innerHTML='<div style="color:#8e1f0b;font:13px system-ui;padding:12px 0">'+esc(typeof err==="string"?err:"Could not load products.")+'</div>';});
 }
 function catFillFacets(){
@@ -2923,7 +2926,29 @@ function catRenderProducts(){
         ${p.vendor?`<div style="font:600 9px system-ui;letter-spacing:.06em;text-transform:uppercase;color:#9a9385;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.vendor)}</div>`:''}
         <div style="font:600 12.5px system-ui;color:#1a1712;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.title)}</div>
         <div style="font:12px system-ui;color:#7a7363">${esc(money(p))}<span style="color:#a8a29a">${nv}</span></div></div></div>`;}).join("")+'</div>';
-  el.querySelectorAll("[data-catpid]").forEach(c=>c.onclick=()=>{const id=c.dataset.catpid;catState.selected.has(id)?catState.selected.delete(id):catState.selected.add(id);catRenderProducts();});
+  el.querySelectorAll("[data-catpid]").forEach(cd=>cd.onclick=()=>{const id=cd.dataset.catpid;
+    if(catState.selected.has(id)){catState.selected.delete(id);catState.order=catState.order.filter(x=>x!==id);}
+    else{catState.selected.add(id);catState.order.push(id);}
+    catRenderProducts();catRenderOrder();});
+}
+function catMoney(p){return p&&p.price?((p.currency==='GBP'?'£':p.currency==='EUR'?'€':p.currency==='USD'?'$':'')+Number(p.price).toFixed(2)):'';}
+function catMoveOrder(id,dir){const a=catState.order,i=a.indexOf(id);if(i<0)return;const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;catRenderOrder();}
+function catRenderOrder(){
+  const el=document.getElementById("catOrder"); if(!el) return;
+  if(!catState.order.length){el.innerHTML="";return;}
+  const rows=catState.order.map((id,i)=>{const p=catState.prodInfo[id]||{};const m=catMoney(p);
+    return `<div style="display:flex;align-items:center;gap:9px;padding:6px 9px;border:1px solid #ece9e1;border-radius:9px;margin-bottom:6px;background:#fff">
+      <span style="font:600 12px system-ui;color:#a8a29a;width:20px;text-align:center;flex:none">${i+1}</span>
+      <div style="width:32px;height:32px;border-radius:6px;flex:none;background:#f2f0ea${p.image?(" url('"+esc(p.image)+"') center/cover no-repeat"):""}"></div>
+      <div style="flex:1;min-width:0"><div style="font:600 12.5px system-ui;color:#1a1712;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.title||id)}</div>
+        <div style="font:11.5px system-ui;color:#8a857a">${esc(m)}</div></div>
+      <button data-catup="${esc(id)}" class="btn ghost" style="padding:3px 9px"${i===0?' disabled':''}>&uarr;</button>
+      <button data-catdn="${esc(id)}" class="btn ghost" style="padding:3px 9px"${i===catState.order.length-1?' disabled':''}>&darr;</button>
+      <button data-catrm="${esc(id)}" class="btn ghost" style="padding:3px 8px;color:#8e1f0b">&times;</button></div>`;}).join("");
+  el.innerHTML=`<div style="font:600 11px system-ui;letter-spacing:.05em;text-transform:uppercase;color:#8a8a8a;margin:4px 0 8px">In this catalogue &middot; ${catState.order.length} &middot; use &uarr;&darr; to order</div>${rows}`;
+  el.querySelectorAll("[data-catup]").forEach(b=>b.onclick=()=>catMoveOrder(b.dataset.catup,-1));
+  el.querySelectorAll("[data-catdn]").forEach(b=>b.onclick=()=>catMoveOrder(b.dataset.catdn,1));
+  el.querySelectorAll("[data-catrm]").forEach(b=>b.onclick=()=>{const id=b.dataset.catrm;catState.selected.delete(id);catState.order=catState.order.filter(x=>x!==id);catRenderProducts();catRenderOrder();});
 }
 function catRenderPager(){
   const el=document.getElementById("catPager"); if(!el) return;
@@ -2940,7 +2965,7 @@ function catPreview(){
   const nm=document.getElementById("catName"),sb=document.getElementById("catSubtitle");
   const body={name:nm?nm.value:"",subtitle:sb?sb.value:"",logo:catState.logo,template:catState.template,columns:catState.columns,page_size:catState.pageSize,
     brand_color:catState.brand,text_color:catState.text,footer_text:catState.footer,cover:catState.cover,
-    fields:catState.fields,enquiry_email:catState.enquiryEmail,enquire:catState.enquire,product_ids:[...catState.selected]};
+    fields:catState.fields,enquiry_email:catState.enquiryEmail,enquire:catState.enquire,product_ids:catState.order.filter(id=>catState.selected.has(id))};
   if(!body.product_ids.length){toast("Select at least one product to preview.");return;}
   const btn=document.getElementById("catPreview"); if(btn){btn.disabled=true;btn.textContent="Rendering…";}
   fetch("/v1/catalog/preview",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
@@ -2956,13 +2981,14 @@ function catSave(thenGenerate){
     columns:catState.columns,page_size:catState.pageSize,brand_color:catState.brand,text_color:catState.text,
     footer_text:catState.footer,cover:catState.cover,fields:catState.fields,
     enquiry_email:catState.enquiryEmail,enquire:catState.enquire,
-    active:!!gv("catActive"),product_ids:[...catState.selected]};
+    active:!!gv("catActive"),product_ids:catState.order.filter(id=>catState.selected.has(id))};
   if(!body.product_ids.length){toast("Select at least one product.");return;}
   const gen=document.getElementById("catGen"),sv=document.getElementById("catSave");
   if(thenGenerate&&gen){gen.disabled=true;gen.textContent="Generating…";}else if(sv){sv.disabled=true;sv.textContent="Saving…";}
   fetch("/v1/catalog/save",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
     .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
       catState.editing=d.id; if(d.id) body.id=d.id;
+      if(d.catalog_url)CATALOG_URL=d.catalog_url;   // so "Send catalogue" / drawer link appear at once
       if(thenGenerate) return catGenerate(d.id);
       toast("Catalogue saved."); catInit(true);
     }).catch(e=>{toast("Save failed: "+e.message);}).finally(()=>{

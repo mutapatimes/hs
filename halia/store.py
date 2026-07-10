@@ -697,9 +697,11 @@ class ShopStore(_DB):
                   {"id": catalog_id, "shop": shop})
 
     def active_catalog(self, shop: str) -> dict | None:
+        # The active catalogue for sharing. No PDF requirement — the interactive form link renders
+        # live, so a merchant can share it the moment they save (before generating a PDF).
         row = self._run(
             "SELECT id, name FROM catalogs WHERE shop = :shop AND active = 1 "
-            "AND pdf_b64 IS NOT NULL ORDER BY updated_at DESC", {"shop": shop}, fetch="one")
+            "ORDER BY updated_at DESC", {"shop": shop}, fetch="one")
         return dict(row) if row else None
 
     def set_catalog_pdf(self, catalog_id: str, pdf: bytes) -> None:

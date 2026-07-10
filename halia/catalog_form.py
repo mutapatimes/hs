@@ -79,32 +79,32 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
 <style>
   :root {{ --brand: {brand}; }}
   * {{ box-sizing: border-box; }}
-  body {{ margin: 0; background: #faf9f6; color: #1a1712;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }}
-  a {{ color: var(--brand); }}
+  body {{ margin: 0; background: #fafafa; color: #1a1712;
+    font-family: 'Helvetica', Arial, sans-serif; }}
+  a {{ color: #1a1712; }}
   .wrap {{ max-width: 1120px; margin: 0 auto; padding: 0 22px; }}
   header {{ padding: 54px 0 30px; border-bottom: 1px solid #ece8df; margin-bottom: 30px; }}
   .logo {{ max-height: 48px; max-width: 220px; object-fit: contain; margin-bottom: 18px; display: block; }}
-  .eyebrow {{ font: 600 11px 'Inter'; letter-spacing: .26em; text-transform: uppercase; color: var(--brand); }}
-  h1 {{ font: 300 40px Georgia, serif; margin: 12px 0 8px; line-height: 1.05; }}
-  .personal {{ font-family: Georgia, serif; font-style: italic; font-size: 19px; color: var(--brand); margin: 4px 0 10px; }}
+  .eyebrow {{ font: 600 11px 'Helvetica', Arial, sans-serif; letter-spacing: .22em; text-transform: uppercase; color: #8a857a; }}
+  h1 {{ font: 400 34px 'Helvetica', Arial, sans-serif; letter-spacing: -.3px; margin: 12px 0 8px; line-height: 1.1; }}
+  .personal {{ font-style: italic; font-size: 18px; color: #6b6557; margin: 4px 0 10px; }}
   .lead {{ color: #6b6557; font-size: 15px; max-width: 60ch; line-height: 1.55; }}
   .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 26px 20px;
     padding-bottom: 140px; }}
-  .card {{ display: flex; flex-direction: column; border: 1px solid #e9e5db; border-radius: 14px;
+  .card {{ display: flex; flex-direction: column; border: 1px solid #e6e6e3; border-radius: 8px;
     overflow: hidden; background: #fff; transition: box-shadow .2s, border-color .2s; }}
-  .card.on {{ border-color: var(--brand); box-shadow: 0 12px 30px -18px rgba(0,0,0,.35); }}
-  .ph {{ aspect-ratio: 4/5; background: #f2f0ea center/cover no-repeat; }}
-  .ph.noimg {{ background: #efeadd; }}
+  .card.on {{ border-color: #1a1712; box-shadow: 0 12px 30px -18px rgba(0,0,0,.35); }}
+  .ph {{ aspect-ratio: 4/5; background: #f4f4f2 center/cover no-repeat; }}
+  .ph.noimg {{ background: #f0f0ee; }}
   .meta {{ padding: 13px 15px 6px; flex: 1; }}
-  .vendor {{ font: 600 10px 'Inter'; letter-spacing: .1em; text-transform: uppercase; color: #9a9385; }}
-  .title {{ font: 400 17px Georgia, serif; margin: 3px 0 5px; line-height: 1.25; }}
-  .price {{ font: 600 14px 'Inter'; color: var(--brand); }}
+  .vendor {{ font: 600 10px 'Helvetica', Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #9a9385; }}
+  .title {{ font: 400 17px 'Helvetica', Arial, sans-serif; margin: 3px 0 5px; line-height: 1.25; }}
+  .price {{ font: 600 14px 'Helvetica', Arial, sans-serif; color: #1a1712; }}
   .cdesc {{ font-size: 12.5px; line-height: 1.5; color: #6b6557; margin-top: 7px; }}
   .pick {{ margin: 10px 13px 14px; padding: 9px 12px; border-radius: 10px; cursor: pointer;
-    border: 1px solid var(--brand); background: #fff; color: var(--brand);
-    font: 600 13px 'Inter'; display: flex; align-items: center; justify-content: center; gap: 7px; }}
-  .card.on .pick {{ background: var(--brand); color: #fff; }}
+    border: 1px solid #1a1712; background: #fff; color: #1a1712;
+    font: 600 13px 'Helvetica', Arial, sans-serif; display: flex; align-items: center; justify-content: center; gap: 7px; }}
+  .card.on .pick {{ background: #1a1712; color: #fff; }}
   .card.on .pick .pi {{ transform: rotate(45deg); }}
   .pick .pi {{ font-size: 16px; line-height: 1; transition: transform .2s; }}
   .empty {{ color: #9a9385; padding: 40px; text-align: center; grid-column: 1/-1; }}
@@ -114,10 +114,10 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     transform: translateY(120%); transition: transform .3s cubic-bezier(.2,.7,.2,1); z-index: 40; }}
   .bar.show {{ transform: none; }}
   .bar .wrap {{ display: flex; align-items: center; gap: 16px; }}
-  .bar .n {{ font: 500 14px 'Inter'; color: #1a1712; }}
-  .btn {{ border: none; border-radius: 999px; padding: 12px 26px; cursor: pointer;
-    font: 600 14px 'Inter'; background: var(--brand); color: #fff; }}
-  .btn.ghost {{ background: transparent; color: var(--brand); border: 1px solid var(--brand); }}
+  .bar .n {{ font: 500 14px 'Helvetica', Arial, sans-serif; color: #1a1712; }}
+  .btn {{ border: none; border-radius: 8px; padding: 12px 26px; cursor: pointer;
+    font: 600 14px 'Helvetica', Arial, sans-serif; background: #1a1712; color: #fff; }}
+  .btn.ghost {{ background: transparent; color: #1a1712; border: 1px solid #1a1712; }}
   .btn:disabled {{ opacity: .55; cursor: default; }}
   /* enquiry panel */
   .panel {{ position: fixed; inset: 0; background: rgba(20,18,12,.42); display: none;
@@ -126,19 +126,19 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
   .sheet {{ background: #fff; width: 100%; max-width: 560px; border-radius: 18px 18px 0 0;
     padding: 26px 26px 30px; max-height: 92vh; overflow-y: auto; }}
   @media(min-width: 640px) {{ .panel {{ align-items: center; }} .sheet {{ border-radius: 18px; }} }}
-  .sheet h2 {{ font: 300 26px Georgia, serif; margin: 0 0 4px; }}
+  .sheet h2 {{ font: 500 23px 'Helvetica', Arial, sans-serif; margin: 0 0 4px; }}
   .sheet p.sub {{ color: #6b6557; font-size: 13.5px; margin: 0 0 18px; }}
   .field {{ margin-bottom: 13px; }}
-  .field label {{ display: block; font: 600 12px 'Inter'; color: #6b6557; margin-bottom: 5px; }}
+  .field label {{ display: block; font: 600 12px 'Helvetica', Arial, sans-serif; color: #6b6557; margin-bottom: 5px; }}
   .field input, .field textarea {{ width: 100%; padding: 11px 13px; border: 1px solid #d8d4c8;
-    border-radius: 10px; font: 14px 'Inter'; color: #1a1712; background: #fff; outline: none; }}
-  .field input:focus, .field textarea:focus {{ border-color: var(--brand); }}
+    border-radius: 10px; font: 14px 'Helvetica', Arial, sans-serif; color: #1a1712; background: #fff; outline: none; }}
+  .field input:focus, .field textarea:focus {{ border-color: #1a1712; }}
   .picked {{ background: #f6f4ee; border: 1px solid #ece8df; border-radius: 12px; padding: 12px 14px;
     margin-bottom: 16px; font-size: 13px; color: #4a463e; max-height: 160px; overflow-y: auto; }}
   .picked b {{ color: #1a1712; }}
   .hp {{ position: absolute; left: -9999px; }}
   .ok {{ text-align: center; padding: 22px 6px; }}
-  .ok .tick {{ width: 54px; height: 54px; border-radius: 50%; background: var(--brand); color: #fff;
+  .ok .tick {{ width: 54px; height: 54px; border-radius: 50%; background: #1a1712; color: #fff;
     font-size: 26px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }}
   .foot {{ text-align: center; color: #b6b1a5; font-size: 12px; padding: 20px 0 34px; }}
 </style></head><body>
