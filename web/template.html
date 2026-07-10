@@ -1916,6 +1916,7 @@ function openDrawer(id){
         <button class="dbtn" id="dwa">WhatsApp ▾</button>
         <div id="dwamenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${whatsappItems(c)}</div>
       </div>`:""}
+      ${CATALOG_URL?`<button class="dbtn" id="dcatlink" title="Copy a catalogue link addressed to this client">Copy catalogue link</button>`:""}
       ${SETTINGS.mailchimp_connected?`<button class="dbtn${SETTINGS.klaviyo_connected?'':' primary'}" id="dpushmc">Push to Mailchimp</button>`:""}
       ${SETTINGS.hubspot_connected?`<button class="dbtn" id="dpushhs">Push to HubSpot</button>`:""}
       ${SETTINGS.klaviyo_connected?`<button class="dbtn" id="dflow">Trigger Klaviyo flow</button>`:""}
@@ -1954,6 +1955,15 @@ function openDrawer(id){
   const dwa=document.getElementById("dwa"), dwamenu=document.getElementById("dwamenu");
   if(dwa) dwa.onclick=e=>{e.stopPropagation();dwamenu.style.display=dwamenu.style.display==="block"?"none":"block";};
   if(dwamenu) dwamenu.onclick=()=>{dwamenu.style.display="none";};
+  // Copy a catalogue link addressed to THIS client: the active catalogue's form URL (merchant's own
+  // domain via the App Proxy) with ?name= pre-filled, so the title/message personalise to them.
+  const dcat=document.getElementById("dcatlink");
+  if(dcat) dcat.onclick=()=>{
+    const base=(CATALOG_URL||"").replace(/\.pdf(\?.*)?$/,"");   // active catalogue -> its form URL
+    if(!base){toast("Set an active catalogue first (Catalogues tab).");return;}
+    copyText(base+"?name="+encodeURIComponent(c.name||""));
+    toast("Catalogue link for "+(c.first||c.name||"this client")+" copied.");
+  };
   // Open in Klaviyo: jump straight to this client's Klaviyo profile to action them.
   const dpush=document.getElementById("dpush");
   if(dpush) dpush.onclick=()=>{
