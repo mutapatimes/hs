@@ -260,6 +260,36 @@ def test_share_link_uses_merchant_domain(client, monkeypatch):
     assert lst["form_url"] == f"https://theirbrand.com/a/catalogue/{cid}"
 
 
+def test_personalised_title_and_message_fill_from_the_link(client, monkeypatch):
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={
+        "name": "Selection for {first_name}", "subtitle": "Prepared exclusively for {name} by {store}",
+        "product_ids": ["gid://P/1"], "enquiry_email": "s@a.com"}).json()["id"]
+    # personalised link -> tokens filled from ?name
+    r = c.get(f"/catalog/{cid}?name=Jane%20Doe")
+    assert "Selection for Jane" in r.text and "Prepared exclusively for Jane Doe by brand" in r.text
+    assert 'class="personal"' in r.text
+    # no name -> graceful fallback, never a literal {token}
+    plain = c.get(f"/catalog/{cid}").text
+    assert "{first_name}" not in plain and "{name}" not in plain and "Selection for you" in plain
+    # the saved subtitle round-trips in the list
+    lst = next(x for x in c.get("/v1/catalog/list").json()["catalogs"] if x["id"] == cid)
+    assert lst["subtitle"] == "Prepared exclusively for {name} by {store}"
+
+
+def test_personalised_pdf_renders_live_with_the_name(client, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(cr, "html_to_pdf", lambda html: seen.update(html=html) or b"%PDF-1.4")
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={"name": "For {first_name}", "product_ids": ["gid://P/1"],
+                                           "active": True}).json()["id"]
+    c.post(f"/v1/catalog/{cid}/generate")             # generic cached PDF (token -> "you")
+    assert "For you" in seen["html"]
+    seen.clear()
+    r = c.get(f"/catalog/{cid}.pdf?name=Omar")         # personalised link -> fresh render
+    assert r.status_code == 200 and "For Omar" in seen["html"]
+
+
 def test_generate_requires_a_product(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr(cr, "html_to_pdf", lambda html: b"%PDF")

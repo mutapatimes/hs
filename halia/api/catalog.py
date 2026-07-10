@@ -218,15 +218,55 @@ def catalog_url_for(shop: str) -> str:
     return f"{catalog_share_base(shop)}/{cat['id']}.pdf"
 
 
+# ── personalisation: the catalogue title + subtitle can carry {name}/{first_name}/{store} tokens,
+#    filled from the recipient on a personalised share link (…?name=Jane) ───────────────────────
+def _person_ctx(name: str, store: str) -> dict:
+    name = (name or "").strip()
+    first = (name.split() or [""])[0]
+    return {"name": name or "you", "first_name": first or "you", "store": store or ""}
+
+
+def _personalize(text: str, ctx: dict) -> str:
+    text = str(text or "")
+    for k, v in ctx.items():
+        text = text.replace("{" + k + "}", v)
+    return text
+
+
+def _render_pdf(cat: dict, cfg: dict, shop: str, ctx: dict):
+    """Render (name/subtitle personalised via ``ctx``) -> pdf bytes + product count."""
+    from halia.catalog_render import catalog_html, html_to_pdf
+    products = _resolve(shop, cfg.get("selection") or {})
+    if not products:
+        raise HTTPException(400, "Select at least one product before generating.")
+    spec = dict(cfg)
+    spec["name"] = _personalize(cat["name"], ctx)
+    spec["subtitle"] = _personalize(cfg.get("subtitle", ""), ctx)
+    return html_to_pdf(catalog_html(spec, products, _shop_display(shop))), len(products)
+
+
 # ── shared serving (used by both the direct /catalog/… routes and the /proxy/catalogue/… routes
 #    that Shopify's App Proxy hits so the page shows on the merchant's own domain) ────────────────
-def _pdf_response(catalog_id: str):
-    pdf = shop_store().get_catalog_pdf(catalog_id)     # public: recipients open the link
+def _pdf_response(catalog_id: str, request: Request):
+    from halia.catalog_render import PdfEngineUnavailable
+    cat = shop_store().get_catalog(catalog_id)
+    if not cat:
+        raise HTTPException(404, "Not found")
+    qname = (request.query_params.get("name") or "").strip()
+    pdf = None
+    if qname:   # a personalised link -> render a fresh cover for this recipient
+        try:
+            cfg = json.loads(cat.get("config_json") or "{}")
+            pdf, _ = _render_pdf(cat, cfg, cat["shop"], _person_ctx(qname, _shop_display(cat["shop"])))
+        except (PdfEngineUnavailable, HTTPException, ValueError):
+            pdf = None   # fall back to the stored generic PDF
+    if pdf is None:
+        pdf = shop_store().get_catalog_pdf(catalog_id)   # public: recipients open the link
     if not pdf:
         raise HTTPException(404, "Not found")
     return Response(content=pdf, media_type="application/pdf",
                     headers={"Content-Disposition": 'inline; filename="catalogue.pdf"',
-                             "Cache-Control": "public, max-age=3600"})
+                             "Cache-Control": "no-store" if qname else "public, max-age=3600"})
 
 
 def _form_response(catalog_id: str, request: Request):
@@ -239,8 +279,10 @@ def _form_response(catalog_id: str, request: Request):
     shop = cat["shop"]
     products = _resolve(shop, cfg.get("selection") or {})
     prefill = {k: (request.query_params.get(k) or "")[:160] for k in ("name", "email", "phone")}
+    ctx = _person_ctx(prefill.get("name", ""), _shop_display(shop))
     html = catalog_form_html(
-        {"name": cat["name"], "brand_color": cfg.get("brand_color"), "fields": cfg.get("fields")},
+        {"name": _personalize(cat["name"], ctx), "subtitle": _personalize(cfg.get("subtitle", ""), ctx),
+         "brand_color": cfg.get("brand_color"), "fields": cfg.get("fields")},
         products, shop_name=_shop_display(shop), catalog_id=catalog_id,
         enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill)
     return HTMLResponse(html, headers={"Cache-Control": "no-store"})
@@ -327,6 +369,7 @@ def register(app) -> None:
                         "generated": bool(c.get("pdf_at")),
                         "url": (f"{base}/{c['id']}.pdf" if c.get("pdf_at") else ""),
                         "count": len(sel.get("product_ids") or []),
+                        "subtitle": cfg.get("subtitle", ""),
                         "template": cfg.get("template", "grid"),
                         "columns": cfg.get("columns", 3),
                         "page_size": cfg.get("page_size", "A4"),
@@ -351,6 +394,7 @@ def register(app) -> None:
             if existing and existing["shop"] != shop:
                 raise HTTPException(403, "Not your catalogue.")
         cfg = {
+            "subtitle": (str(p.get("subtitle") or "").strip())[:200],   # personal line (tokens allowed)
             "template": p.get("template") if p.get("template") in ("grid", "list", "minimal", "lookbook") else "grid",
             "columns": _clamp_int(p.get("columns"), 3, 1, 4),
             "page_size": p.get("page_size") if p.get("page_size") in ("A4", "Letter") else "A4",
@@ -399,8 +443,10 @@ def register(app) -> None:
         products = _resolve(shop, selection)
         if not products:
             raise HTTPException(400, "Select at least one product to preview.")
+        ctx = _person_ctx(str(p.get("preview_name") or "").strip(), _shop_display(shop))
         spec = {
-            "name": (str(p.get("name") or "").strip() or "Untitled catalogue")[:120],
+            "name": _personalize((str(p.get("name") or "").strip() or "Untitled catalogue")[:120], ctx),
+            "subtitle": _personalize((str(p.get("subtitle") or "").strip())[:200], ctx),
             "template": p.get("template") if p.get("template") in ("grid", "list", "minimal", "lookbook") else "grid",
             "columns": _clamp_int(p.get("columns"), 3, 1, 4),
             "page_size": p.get("page_size") if p.get("page_size") in ("A4", "Letter") else "A4",
@@ -422,28 +468,22 @@ def register(app) -> None:
 
     @app.post("/v1/catalog/{catalog_id}/generate")
     def catalog_generate(catalog_id: str, shop: str = Depends(require_shop)) -> dict:
-        from halia.catalog_render import PdfEngineUnavailable, catalog_html, html_to_pdf
+        from halia.catalog_render import PdfEngineUnavailable
         cat = shop_store().get_catalog(catalog_id)
         if not cat or cat["shop"] != shop:
             raise HTTPException(404, "Catalogue not found.")
         cfg = json.loads(cat.get("config_json") or "{}")
-        products = _resolve(shop, cfg.get("selection") or {})
-        if not products:
-            raise HTTPException(400, "Select at least one product before generating.")
-        spec = dict(cfg)                       # template, columns, page_size, colours, cover, fields
-        spec["name"] = cat["name"]
-        html = catalog_html(spec, products, _shop_display(shop))
-        try:
-            pdf = html_to_pdf(html)
+        try:   # generic version (tokens resolve to a neutral fallback); personalised copies render live
+            pdf, count = _render_pdf(cat, cfg, shop, _person_ctx("", _shop_display(shop)))
         except PdfEngineUnavailable as exc:
             raise HTTPException(503, "The PDF engine is not available in this environment yet.") from exc
         shop_store().set_catalog_pdf(catalog_id, pdf)
-        return {"url": f"{catalog_share_base(shop)}/{catalog_id}.pdf", "count": len(products)}
+        return {"url": f"{catalog_share_base(shop)}/{catalog_id}.pdf", "count": count}
 
     # ── Direct links (Halia domain) ──────────────────────────────────────────────────────────
     @app.get("/catalog/{catalog_id}.pdf")
-    def catalog_pdf(catalog_id: str):
-        return _pdf_response(catalog_id)
+    def catalog_pdf(catalog_id: str, request: Request):
+        return _pdf_response(catalog_id, request)
 
     @app.get("/catalog/{catalog_id}")
     def catalog_form_page(catalog_id: str, request: Request):
@@ -462,7 +502,7 @@ def register(app) -> None:
     def proxy_pdf(catalog_id: str, request: Request):
         if not verify_app_proxy(request):
             raise HTTPException(403, "Invalid app-proxy signature.")
-        return _pdf_response(catalog_id)
+        return _pdf_response(catalog_id, request)
 
     @app.get("/proxy/catalogue/{catalog_id}")
     def proxy_form(catalog_id: str, request: Request):

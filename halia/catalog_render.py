@@ -118,6 +118,7 @@ def _norm(catalog: dict) -> dict:
             fields[k] = bool(v)
     return {
         "name": catalog.get("name") or "Product Catalogue",
+        "subtitle": str(catalog.get("subtitle") or "").strip(),   # personal line, e.g. "Prepared for Jane"
         "brand": catalog.get("brand_color") or "#1f564a",
         "text": catalog.get("text_color") or "#1a1712",
         "template": template,
@@ -141,13 +142,14 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
     cards = "".join(_card(p, s["fields"], enq, s["name"]) for p in products) \
         or '<div class="empty">No products selected.</div>'
     n = len(products)
-    subtitle = _esc(shop_name) if shop_name else ""
+    eyebrow = _esc(shop_name) if shop_name else "Catalogue"
+    personal = _esc(s["subtitle"]) if s["subtitle"] else ""
     cover = ""
     if s["cover"]:
         cover = f"""<section class="cover">
-    <div class="eyebrow">{subtitle or "Catalogue"}</div>
+    <div class="eyebrow">{eyebrow}</div>
     <h1>{_esc(s["name"])}</h1>
-    {f'<div class="sub">{subtitle}</div>' if subtitle else ''}
+    {f'<div class="sub">{personal}</div>' if personal else ''}
     <div class="count">{n} product{'s' if n != 1 else ''}</div>
   </section>"""
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">

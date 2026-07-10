@@ -65,6 +65,7 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     """Full interactive enquiry page. ``prefill`` may carry name/email/phone from the share link."""
     prefill = prefill or {}
     name = catalog.get("name") or "Product Catalogue"
+    personal = str(catalog.get("subtitle") or "").strip()   # personalised line, already token-filled
     brand = catalog.get("brand_color") or "#1f564a"
     fields = catalog.get("fields") or {}
     cards = "".join(_card(p, brand, fields) for p in products) \
@@ -84,6 +85,7 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
   header {{ padding: 54px 0 30px; border-bottom: 1px solid #ece8df; margin-bottom: 30px; }}
   .eyebrow {{ font: 600 11px 'Inter'; letter-spacing: .26em; text-transform: uppercase; color: var(--brand); }}
   h1 {{ font: 300 40px Georgia, serif; margin: 12px 0 8px; line-height: 1.05; }}
+  .personal {{ font-family: Georgia, serif; font-style: italic; font-size: 19px; color: var(--brand); margin: 4px 0 10px; }}
   .lead {{ color: #6b6557; font-size: 15px; max-width: 60ch; line-height: 1.55; }}
   .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 26px 20px;
     padding-bottom: 140px; }}
@@ -142,6 +144,7 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
   <header>
     <div class="eyebrow">{subtitle}</div>
     <h1>{_esc(name)}</h1>
+    {f'<p class="personal">{_esc(personal)}</p>' if personal else ''}
     <p class="lead">Tick the pieces you would like to enquire about, then send. Your selection reaches
       the team directly and they will be in touch.</p>
   </header>

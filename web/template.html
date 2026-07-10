@@ -2636,7 +2636,7 @@ document.getElementById("openSettings").onclick=openSettings;
 // ── Product-catalogue builder (Settings → Catalogues) ──────────────────────
 const CI="box-sizing:border-box;padding:9px 11px;border:1px solid #d8d8d8;border-radius:9px;font:14px system-ui;margin-top:5px";
 const CAT_FIELD_DEFAULTS={image:true,title:true,vendor:true,price:true,description:false,sku:false,variants:false};
-const catState={loaded:false,editing:null,name:"",template:"grid",brand:"#1f564a",text:"#1a1712",active:false,
+const catState={loaded:false,editing:null,name:"",subtitle:"",template:"grid",brand:"#1f564a",text:"#1a1712",active:false,
   columns:3,pageSize:"A4",cover:true,footer:"",enquiryEmail:"",enquire:true,fields:Object.assign({},CAT_FIELD_DEFAULTS),
   selected:new Set(),filteredIds:[],page:1,pages:1,total:0,allTotal:0,search:"",fCol:"",fTag:"",fVendor:"",
   facets:{collections:[],tags:[],vendors:[]},items:[],cats:[]};
@@ -2671,7 +2671,7 @@ function catRenderList(cats){
 }
 function catOpenBuilder(c){
   const tpl=(c&&c.template)||"grid";
-  catState.editing=c?c.id:null; catState.name=c?c.name:"";
+  catState.editing=c?c.id:null; catState.name=c?c.name:""; catState.subtitle=(c&&c.subtitle)||"";
   catState.template=(tpl==="lookbook")?"grid":tpl;
   catState.brand=(c&&c.brand_color)||"#1f564a"; catState.text=(c&&c.text_color)||"#1a1712";
   catState.columns=(c&&c.columns)||(tpl==="lookbook"?2:3);
@@ -2689,10 +2689,15 @@ const CAT_FIELD_LABELS={image:"Image",title:"Title",vendor:"Vendor",price:"Price
 function catRenderBuilder(){
   const el=catRoot(); if(!el) return;
   el.innerHTML=`
-    <div style="${CAT_SEC};display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
-      <label style="flex:1;min-width:220px;font:600 12px system-ui;color:#616161">Catalogue name
-        <input id="catName" value="${esc(catState.name)}" placeholder="Autumn selection" style="width:100%;${CI}"></label>
-      <label style="font:600 13px system-ui;color:#303030;display:flex;align-items:center;gap:8px;padding-bottom:9px"><input type="checkbox" id="catActive" ${catState.active?'checked':''}> Active <span style="color:#8a8a8a;font-weight:400">(used by {catalog_link})</span></label>
+    <div style="${CAT_SEC}">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+        <label style="flex:1;min-width:220px;font:600 12px system-ui;color:#616161">Catalogue name (title)
+          <input id="catName" value="${esc(catState.name)}" placeholder="Autumn selection for {first_name}" style="width:100%;${CI}"></label>
+        <label style="font:600 13px system-ui;color:#303030;display:flex;align-items:center;gap:8px;padding-bottom:9px"><input type="checkbox" id="catActive" ${catState.active?'checked':''}> Active <span style="color:#8a8a8a;font-weight:400">(used by {catalog_link})</span></label>
+      </div>
+      <label style="display:block;margin-top:12px;font:600 12px system-ui;color:#616161">Personal message <span style="color:#8a8a8a;font-weight:400">(shown under the title)</span>
+        <input id="catSubtitle" value="${esc(catState.subtitle)}" placeholder="Prepared exclusively for {name}" style="width:100%;${CI}"></label>
+      <div style="font:12px system-ui;color:#8a8a8a;margin-top:9px">Personalise the title and message with <b>{first_name}</b>, <b>{name}</b> or <b>{store}</b>. They fill in from the client when you share a link like <code style="background:#f2f0ea;padding:1px 5px;border-radius:5px">…/catalogue/id?name=Jane%20Doe</code>.</div>
     </div>
     <div id="catCustomize"></div>
     <div style="${CAT_SEC}">
@@ -2847,8 +2852,8 @@ function catRenderPager(){
 }
 function catPreview(){
   catCollectCustomize();
-  const nm=document.getElementById("catName");
-  const body={name:nm?nm.value:"",template:catState.template,columns:catState.columns,page_size:catState.pageSize,
+  const nm=document.getElementById("catName"),sb=document.getElementById("catSubtitle");
+  const body={name:nm?nm.value:"",subtitle:sb?sb.value:"",template:catState.template,columns:catState.columns,page_size:catState.pageSize,
     brand_color:catState.brand,text_color:catState.text,footer_text:catState.footer,cover:catState.cover,
     fields:catState.fields,enquiry_email:catState.enquiryEmail,enquire:catState.enquire,product_ids:[...catState.selected]};
   if(!body.product_ids.length){toast("Select at least one product to preview.");return;}
@@ -2862,7 +2867,7 @@ function catPreview(){
 function catSave(thenGenerate){
   catCollectCustomize();
   const gv=id=>{const e=document.getElementById(id);return e?(e.type==='checkbox'?e.checked:e.value):"";};
-  const body={id:catState.editing||undefined,name:gv("catName"),template:catState.template,
+  const body={id:catState.editing||undefined,name:gv("catName"),subtitle:gv("catSubtitle"),template:catState.template,
     columns:catState.columns,page_size:catState.pageSize,brand_color:catState.brand,text_color:catState.text,
     footer_text:catState.footer,cover:catState.cover,fields:catState.fields,
     enquiry_email:catState.enquiryEmail,enquire:catState.enquire,
