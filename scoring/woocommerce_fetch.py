@@ -66,6 +66,69 @@ def http_transport(
     return _call
 
 
+# ── Products (for the catalogue builder — the Woo equivalent of scoring.shopify_fetch.fetch_products)
+import html as _html  # noqa: E402
+import re as _re  # noqa: E402
+
+PRODUCT_FIELDS = ("id,name,slug,type,status,sku,price,regular_price,description,"
+                  "short_description,images,categories,tags,variations")
+
+
+def _strip_html(s: str) -> str:
+    return _re.sub(r"\s+", " ", _html.unescape(_re.sub(r"<[^>]+>", " ", str(s or "")))).strip()
+
+
+def _product_to_dict(p: dict, currency: str = "") -> dict:
+    """A WooCommerce product -> the same flat dict the catalogue uses (shared with Shopify)."""
+    imgs = p.get("images") or []
+    return {
+        "id": str(p.get("id")),
+        "title": p.get("name") or "Untitled",
+        "handle": p.get("slug"),
+        "vendor": "",                                   # WooCommerce has no native vendor
+        "type": p.get("type") or "",
+        "tags": [t.get("name") for t in (p.get("tags") or []) if t.get("name")],
+        "collections": [c.get("name") for c in (p.get("categories") or []) if c.get("name")],
+        "image_url": imgs[0].get("src") if imgs else None,
+        "price": p.get("price") or p.get("regular_price") or "",
+        "currency": currency,
+        "status": "ACTIVE" if p.get("status") == "publish" else str(p.get("status") or "").upper(),
+        "description": _strip_html(p.get("description") or p.get("short_description") or "")[:400],
+        "sku": p.get("sku") or "",
+        "variants": len(p.get("variations") or []),
+    }
+
+
+def _store_currency(transport: Transport) -> str:
+    try:
+        data = transport("data/currencies/current", {})
+        return (data.get("code") or "") if isinstance(data, dict) else ""
+    except Exception:  # noqa: BLE001 — currency is a nicety; a missing one just drops the symbol
+        return ""
+
+
+def fetch_products(transport: Transport, per_page: int = DEFAULT_PER_PAGE,
+                   max_pages: int | None = None) -> list[dict]:
+    """Page through /products (published only) and return catalogue-shaped product dicts."""
+    currency = _store_currency(transport)
+    out: list[dict] = []
+    page = 1
+    while True:
+        batch = transport("products", {"per_page": per_page, "page": page,
+                                       "status": "publish", "_fields": PRODUCT_FIELDS})
+        if not isinstance(batch, list):
+            raise WooError(f"Unexpected WooCommerce response: {batch!r}")
+        if not batch:
+            break
+        out.extend(_product_to_dict(p, currency) for p in batch)
+        if len(batch) < per_page:
+            break
+        page += 1
+        if max_pages and page > max_pages:
+            break
+    return out
+
+
 def fetch_orders(
     transport: Transport,
     per_page: int = DEFAULT_PER_PAGE,

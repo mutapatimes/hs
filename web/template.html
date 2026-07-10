@@ -2370,6 +2370,12 @@ function openSettings(){
         </div>
 
         <div style="${C}">
+          <div style="${H}">Catalogue link domain <span style="color:#8a8a8a;font-weight:400;font-size:13px">(optional)</span></div>
+          <p style="${P}">Catalogue links show your own brand, not Halia. <b>Shopify</b> stores use the built-in App Proxy automatically. On <b>WooCommerce</b> (or any other store), point a subdomain at Halia (a CNAME to <code>halia.onrender.com</code>) and enter it here, e.g. <code>catalogue.yourbrand.com</code>.</p>
+          <input id="setCatDomain" value="${esc(SETTINGS.catalog_domain||'')}" placeholder="catalogue.yourbrand.com" style="width:100%;max-width:440px;${I}">
+        </div>
+
+        <div style="${C}">
           <div style="${H}">Message templates</div>
           <p style="${P}"><b>Client emails</b> power the per-client “Email ▾” / “WhatsApp ▾” menus. <b>Order actions</b> power the status buttons in the Orders view. Pick a template on the left; edit it on the right.</p>
           <div style="display:flex;gap:8px;margin-bottom:14px">
@@ -2677,6 +2683,7 @@ function openSettings(){
         account_email:SETTINGS.account_email||"",
         catalog_message:(document.getElementById("setCatMsg")||{}).value||"",
         catalog_logo:SET_LOGO,
+        catalog_domain:(document.getElementById("setCatDomain")||{}).value||"",
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),
         order_templates:Object.fromEntries(OSTAT.map(st=>[st,(otmpl[st]||[]).filter(t=>(t.name||"").trim()&&(t.body||"").trim())]))};
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";

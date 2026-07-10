@@ -314,6 +314,28 @@ def test_logo_persists_and_renders_top_left(client):
     assert next(x for x in c.get("/v1/catalog/list").json()["catalogs"] if x["id"] == cid2)["logo"] == ""
 
 
+def test_products_route_to_woocommerce_for_a_woo_tenant(monkeypatch):
+    import halia.api.catalog as catmod
+    import scoring.woocommerce_fetch as wf
+
+    class _Store:
+        def get_tenant(self, s): return {"kind": "woocommerce"}
+        def get_woocommerce(self, s): return {"store_url": "https://x", "consumer_key": "ck", "consumer_secret": "cs"}
+        def get_token(self, s): return None
+    monkeypatch.setattr(catmod, "shop_store", lambda: _Store())
+    monkeypatch.setattr(wf, "http_transport", lambda *a, **k: (lambda p, q: []))
+    monkeypatch.setattr(wf, "fetch_products",
+                        lambda transport, max_pages=None: [{"id": "1", "title": "Woo coat", "status": "ACTIVE"}])
+    assert catmod._fetch_products_for("woo.example.com")[0]["title"] == "Woo coat"
+
+
+def test_share_link_uses_custom_catalogue_domain(monkeypatch):
+    import halia.api.catalog as catmod
+    monkeypatch.setattr(catmod, "_primary_domain", lambda shop: "")        # not Shopify
+    monkeypatch.setattr(catmod, "_tenant_catalog_domain", lambda shop: "catalogue.brand.com")
+    assert catmod.catalog_share_base("woo.example.com") == "https://catalogue.brand.com/catalog"
+
+
 def test_generate_requires_a_product(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr(cr, "html_to_pdf", lambda html: b"%PDF")

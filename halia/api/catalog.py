@@ -137,17 +137,28 @@ def _enquiry_text(cat_name, name, email, phone, message, picked) -> str:
     return "\n".join(lines)
 
 
+def _fetch_products_for(shop: str) -> list[dict]:
+    """Pull catalogue products from whichever platform this tenant is on (Shopify or WooCommerce)."""
+    kind = (shop_store().get_tenant(shop) or {}).get("kind")
+    if kind == "woocommerce":
+        creds = shop_store().get_woocommerce(shop)
+        if not creds:
+            raise HTTPException(400, "Connect your WooCommerce store first.")
+        from scoring.woocommerce_fetch import fetch_products, http_transport
+        return fetch_products(http_transport(creds["store_url"], creds["consumer_key"],
+                                             creds["consumer_secret"]), max_pages=config.WOO_MAX_PAGES)
+    token = shop_store().get_token(shop)
+    if token:                                     # Shopify
+        from scoring.shopify_fetch import fetch_products, http_transport
+        return fetch_products(http_transport(shop, token), max_pages=config.SHOPIFY_PRODUCTS_MAX_PAGES)
+    raise HTTPException(400, "Catalogues aren't available for this store type yet.")
+
+
 def _products(shop: str, force: bool = False) -> list[dict]:
     ent = _PRODUCT_CACHE.get(shop)
     if not force and ent and (time.monotonic() - ent["at"] < _TTL):
         return ent["products"]
-    token = shop_store().get_token(shop)
-    if not token:                                 # Shopify-only for now
-        raise HTTPException(400, "Catalogs are available for Shopify stores for now.")
-    from scoring.shopify_fetch import fetch_products, http_transport
-    prods = fetch_products(http_transport(shop, token),
-                           max_pages=config.SHOPIFY_PRODUCTS_MAX_PAGES)
-    prods = [p for p in prods if p.get("status") in (None, "ACTIVE")]   # skip drafts/archived
+    prods = [p for p in _fetch_products_for(shop) if p.get("status") in (None, "ACTIVE")]  # skip drafts
     _PRODUCT_CACHE[shop] = {"at": time.monotonic(), "products": prods}
     return prods
 
@@ -207,13 +218,26 @@ def _primary_domain(shop: str) -> str:
     return host
 
 
+def _tenant_catalog_domain(shop: str) -> str:
+    """A merchant's own catalogue host (CNAME'd to Halia), set in Settings — used to white-label
+    links for WooCommerce (and any non-Shopify) stores where the App Proxy isn't available."""
+    try:
+        from halia.api.settings import settings_for
+        return (settings_for(shop) or {}).get("catalog_domain") or ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def catalog_share_base(shop: str) -> str:
-    """Base URL for a shareable catalogue link. Prefers the merchant's own storefront domain via
-    the App Proxy (theirbrand.com/a/catalogue), so a client never sees a Halia URL; falls back to
-    the Halia app URL when the store domain isn't known (or it's a non-Shopify tenant)."""
-    host = _primary_domain(shop)
+    """Base URL for a shareable catalogue link, white-label first so a client never sees a Halia URL:
+    the Shopify App Proxy on the store's own domain, else the merchant's own CNAME'd catalogue
+    domain, else (last resort) the Halia app URL."""
+    host = _primary_domain(shop)                       # Shopify: their storefront via the App Proxy
     if host:
         return f"https://{host}/{config.PROXY_PREFIX}/{config.PROXY_SUBPATH}"
+    dom = _tenant_catalog_domain(shop)                 # any platform: their own CNAME'd host
+    if dom:
+        return f"https://{dom}/catalog"
     base = (config.HALIA_APP_URL or "").rstrip("/")
     return f"{base}/catalog" if base else "/catalog"
 

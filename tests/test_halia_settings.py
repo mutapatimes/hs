@@ -74,6 +74,16 @@ def test_catalog_logo_default_and_validation(client):
     assert c.get("/v1/settings", headers=_auth()).json()["catalog_logo"] == ""
 
 
+def test_catalog_domain_default_and_validation(client):
+    c, _ = client
+    assert c.get("/v1/settings", headers=_auth()).json()["catalog_domain"] == ""
+    c.post("/v1/settings", headers=_auth(), json={"vic_threshold": 5000,
+           "catalog_domain": "https://Catalogue.Brand.com/"})   # scheme/case/slash normalised
+    assert c.get("/v1/settings", headers=_auth()).json()["catalog_domain"] == "catalogue.brand.com"
+    c.post("/v1/settings", headers=_auth(), json={"vic_threshold": 5000, "catalog_domain": "not a domain"})
+    assert c.get("/v1/settings", headers=_auth()).json()["catalog_domain"] == ""
+
+
 def test_order_templates_defaults(client):
     c, _ = client
     ot = c.get("/v1/settings", headers=_auth()).json()["order_templates"]

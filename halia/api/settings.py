@@ -159,6 +159,14 @@ def _clean_logo(v) -> str:
     return ""
 
 
+def _clean_domain(v) -> str:
+    """A bare hostname for white-label catalogue links (e.g. catalogue.brand.com). '' if invalid."""
+    s = str(v or "").strip().lower().replace("https://", "").replace("http://", "").strip("/").split("/")[0]
+    ok = ("." in s and 3 < len(s) < 120 and not s.startswith(".") and not s.endswith(".")
+          and all(ch.isalnum() or ch in ".-" for ch in s))
+    return s if ok else ""
+
+
 def settings_for(shop: str) -> dict:
     """The shop's settings, with defaults filled in."""
     raw = shop_store().get_settings_raw(shop)
@@ -179,6 +187,7 @@ def settings_for(shop: str) -> dict:
         "order_templates": d.get("order_templates") or DEFAULT_ORDER_TEMPLATES,
         "catalog_message": d.get("catalog_message") or DEFAULT_CATALOG_MESSAGE,   # "Send catalogue" body
         "catalog_logo": d.get("catalog_logo", ""),   # store-wide default logo new catalogues inherit
+        "catalog_domain": d.get("catalog_domain", ""),   # white-label host for catalogue links (CNAME)
         # Latent-value benchmarks (merchant's own numbers; 0 = not set → fallback heuristic).
         "aov": d.get("aov", 0),
         "max_orders": d.get("max_orders", 0),
@@ -307,6 +316,7 @@ def register(app) -> None:
             "catalog_message": (str(payload.get("catalog_message") or "").strip()[:2000]
                                 or DEFAULT_CATALOG_MESSAGE),
             "catalog_logo": _clean_logo(payload.get("catalog_logo")),
+            "catalog_domain": _clean_domain(payload.get("catalog_domain")),
             "aov": _num(payload.get("aov")),
             "max_orders": int(_num(payload.get("max_orders"))),
             "highest_lt": _num(payload.get("highest_lt")),
