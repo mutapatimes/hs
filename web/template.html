@@ -1235,10 +1235,18 @@ let SENDER="";
 let CATALOG_URL="";  // active catalog's public PDF link, from /v1/settings (the {catalog_link} token)
 let CMS_DRAFT=null;  // featured 1:1 note, editable in the mini-CMS (/admin), from /v1/settings
 function firstName(name){return String(name||"").replace(/^(sir|lady|dame|lord|baroness|viscount|countess|duchess|marquess|hrh|hsh|the hon)\s+/i,"").split(" ")[0]||"there";}
+// The active catalogue's interactive form link (merchant's own domain via the App Proxy),
+// personalised to this client with ?name= so its title/message address them by name.
+function catLinkFor(c){
+  const base=(CATALOG_URL||"").replace(/\.pdf(\?.*)?$/,"");   // active catalogue PDF url -> its form url
+  if(!base) return "";
+  return base+((c&&c.name)?("?name="+encodeURIComponent(c.name)):"");
+}
+function catMsg(c){c=c||{};return "Hi "+firstName(c.name)+",\n\nI've put together a selection with you in mind. You can view it here:\n"+catLinkFor(c)+"\n\n"+(SENDER||"");}
 function fillTemplate(s,c){c=c||{};return String(s||"")
   .split("{first_name}").join(firstName(c.name))
   .split("{sender}").join(SENDER||"")
-  .split("{catalog_link}").join(CATALOG_URL||"")
+  .split("{catalog_link}").join(catLinkFor(c)||CATALOG_URL||"")
   .split("{order_number}").join(c.orderId?("#"+c.orderId):"")
   .split("{order_total}").join(c.amount!=null?("£"+Number(c.amount).toLocaleString()):"");}
 function copyText(t){
@@ -1257,6 +1265,8 @@ function mailtoItems(c){
   const em=c.email||"";
   const item=(label,href)=>`<a href="${href}" target="_top" style="display:block;padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px">${label}</a>`;
   let out="";
+  if(CATALOG_URL)
+    out+=item("Send catalogue &#9656;",`mailto:${em}?subject=${encodeURIComponent("A selection for you")}&body=${encodeURIComponent(catMsg(c))}`);
   if(CMS_DRAFT&&(CMS_DRAFT.subject||CMS_DRAFT.body))
     out+=item("Personal note",`mailto:${em}?subject=${encodeURIComponent(fillTemplate(CMS_DRAFT.subject||"",c))}&body=${encodeURIComponent(fillTemplate(CMS_DRAFT.body||"",c))}`);
   return out+(EMAIL_TEMPLATES||[]).map(t=>item(t.name,`mailto:${em}?subject=${encodeURIComponent(t.subject||"")}&body=${encodeURIComponent(fillTemplate(t.body,c))}`)).join("")
@@ -1275,6 +1285,8 @@ function whatsappItems(c){
   const num=phoneDigits(c.phone);
   const item=(label,href)=>`<a href="${href}" target="_blank" rel="noopener" style="display:block;padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px">${label}</a>`;
   let out="";
+  if(CATALOG_URL)
+    out+=item("Send catalogue &#9656;",`https://wa.me/${num}?text=${encodeURIComponent(catMsg(c))}`);
   if(CMS_DRAFT&&CMS_DRAFT.body)
     out+=item("Personal note",`https://wa.me/${num}?text=${encodeURIComponent(fillTemplate(CMS_DRAFT.body,c))}`);
   return out+(EMAIL_TEMPLATES||[]).map(t=>item(t.name,`https://wa.me/${num}?text=${encodeURIComponent(fillTemplate(t.body,c))}`)).join("")
