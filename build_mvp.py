@@ -496,7 +496,9 @@ def cap_payload_recent(payload: dict, days: int = 30) -> dict:
     import datetime as _dt
     cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=days)
     cut_epoch, cut_date = cutoff.timestamp(), cutoff.strftime("%Y-%m-%d")
-    data = [c for c in (payload.get("data") or []) if (c.get("lastSort") or 0) >= cut_epoch]
+    full_data = payload.get("data") or []
+    full_latent = sum(c.get("latent") or 0 for c in full_data)
+    data = [c for c in full_data if (c.get("lastSort") or 0) >= cut_epoch]
     orders = [o for o in (payload.get("orders") or []) if str(o.get("date") or "") >= cut_date]
     latent = sum(c.get("latent") or 0 for c in data)
     spend = sum(c.get("spend") or 0 for c in data)
@@ -508,6 +510,8 @@ def cap_payload_recent(payload: dict, days: int = 30) -> dict:
         "stat_avgspend": _fmt_money(spend / len(data) if data else 0),
         "stat_toptier": str(toptier),
         "full_history": False, "history_days": days,
+        "locked_count": len(full_data) - len(data),          # clients held back by the paywall
+        "locked_latent": _fmt_money(full_latent - latent),   # their latent value, as a teaser
     })
     return out
 
@@ -531,6 +535,8 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     html = html.replace("__STAT_AVGSPEND__", payload["stat_avgspend"])
     html = html.replace("__STAT_TOPTIER__", payload["stat_toptier"])
     html = html.replace("__FULL_HISTORY__", "true" if payload.get("full_history", True) else "false")
+    html = html.replace("__LOCKED_COUNT__", str(payload.get("locked_count", 0)))
+    html = html.replace("__LOCKED_LATENT__", _safe(json.dumps(payload.get("locked_latent", ""))))
     return html
 
 

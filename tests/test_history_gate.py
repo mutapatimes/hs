@@ -27,6 +27,7 @@ def test_cap_keeps_only_recent_and_recomputes_stats():
     assert len(capped["orders"]) == 1                                        # 90-day-old order dropped
     assert capped["full_history"] is False and capped["history_days"] == 30
     assert capped["stat_count"] == "1" and capped["stat_toptier"] == "1"     # recomputed from the capped set
+    assert capped["locked_count"] == 1 and capped["locked_latent"]           # the held-back client + its value, for the teaser
 
 
 def test_render_injects_full_history_flag():

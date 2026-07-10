@@ -51,12 +51,14 @@ def email_configured() -> bool:
     return bool(_env("HALIA_BREVO_API_KEY") or _env("HALIA_SMTP_HOST"))
 
 
-def _send_brevo(to: str, subject: str, html: str) -> bool:
+def _send_brevo(to: str, subject: str, html: str, reply_to: str | None = None) -> bool:
     import requests
 
     sender = _env("HALIA_EMAIL_FROM", "HALIA_SMTP_FROM") or "alerts@haliascore.com"
     body = {"sender": {"email": sender, "name": _env("HALIA_EMAIL_FROM_NAME") or "Halia"},
             "to": [{"email": to}], "subject": subject, "htmlContent": html}
+    if reply_to:
+        body["replyTo"] = {"email": reply_to}
     try:
         resp = requests.post("https://api.brevo.com/v3/smtp/email", json=body,
                              headers={"api-key": _env("HALIA_BREVO_API_KEY"),
@@ -69,20 +71,22 @@ def _send_brevo(to: str, subject: str, html: str) -> bool:
 
 
 def send_email(to: str, subject: str, html: str, text: str | None = None,
-               shop: str | None = None) -> bool:
+               shop: str | None = None, reply_to: str | None = None) -> bool:
     """Send one email (Brevo API, else SMTP). On success, count it for the console dashboard,
-    bucketed under ``shop`` (or '_system' for console/lifecycle mail with no shop context)."""
+    bucketed under ``shop`` (or '_system' for console/lifecycle mail with no shop context).
+    ``reply_to`` sets the Reply-To header (used so a catalogue enquiry replies to the shopper)."""
     if not to:
         return False
-    ok = _send_email_raw(to, subject, html, text)
+    ok = _send_email_raw(to, subject, html, text, reply_to)
     if ok:
         _record(shop, "email")
     return ok
 
 
-def _send_email_raw(to: str, subject: str, html: str, text: str | None) -> bool:
+def _send_email_raw(to: str, subject: str, html: str, text: str | None,
+                    reply_to: str | None = None) -> bool:
     if _env("HALIA_BREVO_API_KEY"):
-        return _send_brevo(to, subject, html)
+        return _send_brevo(to, subject, html, reply_to)
     host = _env("HALIA_SMTP_HOST")
     if not host:
         return False
@@ -91,6 +95,8 @@ def _send_email_raw(to: str, subject: str, html: str, text: str | None) -> bool:
     sender = _env("HALIA_SMTP_FROM") or user or "alerts@haliascore.com"
     msg = EmailMessage()
     msg["Subject"], msg["From"], msg["To"] = subject, sender, to
+    if reply_to:
+        msg["Reply-To"] = reply_to
     msg.set_content(text or "Open Halia to see the details.")
     msg.add_alternative(html, subtype="html")
     try:

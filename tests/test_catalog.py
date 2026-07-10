@@ -107,6 +107,22 @@ def test_save_generate_serve_and_active_url(client, monkeypatch):
     assert catalog_url_for(SHOP).endswith(f"/catalog/{cid}.pdf")
 
 
+def test_preview_renders_unsaved_config(client, monkeypatch):
+    c, _ = client
+    seen = {}
+    monkeypatch.setattr(cr, "html_to_pdf", lambda html: seen.update(html=html) or b"%PDF-1.4 preview")
+    r = c.post("/v1/catalog/preview", json={"name": "Draft", "product_ids": ["gid://P/1"],
+                                            "template": "list", "fields": {"description": True}})
+    assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
+    assert r.content == b"%PDF-1.4 preview" and "items list" in seen["html"]   # nothing stored, just rendered
+
+
+def test_preview_needs_a_product(client, monkeypatch):
+    c, _ = client
+    monkeypatch.setattr(cr, "html_to_pdf", lambda html: b"%PDF")
+    assert c.post("/v1/catalog/preview", json={"product_ids": ["gid://MISSING"]}).status_code == 400
+
+
 def test_generate_503_without_pdf_engine(client):
     c, _ = client                       # no html_to_pdf monkeypatch -> WeasyPrint missing
     cid = c.post("/v1/catalog/save", json={"name": "X", "product_ids": ["gid://P/1"]}).json()["id"]
@@ -159,8 +175,8 @@ def test_enquire_emails_the_merchant(client, monkeypatch):
     import halia.notify as notify
     sent = {}
     monkeypatch.setattr(notify, "send_email",
-                        lambda to, subject, html, text=None, shop=None: sent.update(
-                            to=to, subject=subject, html=html) or True)
+                        lambda to, subject, html, text=None, shop=None, reply_to=None: sent.update(
+                            to=to, subject=subject, html=html, reply_to=reply_to) or True)
     c, _ = client
     cid = c.post("/v1/catalog/save", json={"name": "AW", "product_ids": ["gid://P/1", "gid://P/2"],
                                            "enquiry_email": "sales@aubin.com"}).json()["id"]
@@ -169,12 +185,13 @@ def test_enquire_emails_the_merchant(client, monkeypatch):
     assert r.status_code == 200 and r.json() == {"ok": True}
     assert sent["to"] == "sales@aubin.com" and "Jane" in sent["subject"]
     assert "Cashmere coat" in sent["html"] and "Please call" in sent["html"]
+    assert sent["reply_to"] == "jane@x.com"       # hit Reply -> straight to the shopper
 
 
 def test_enquire_validation_honeypot_and_missing_email(client, monkeypatch):
     import halia.notify as notify
     calls = []
-    monkeypatch.setattr(notify, "send_email", lambda *a, **k: calls.append(1) or True)
+    monkeypatch.setattr(notify, "send_email", lambda *a, **k: calls.append(1) or True)  # noqa: ARG005
     c, _ = client
     cid = c.post("/v1/catalog/save", json={"name": "AW", "product_ids": ["gid://P/1"],
                                            "enquiry_email": "sales@aubin.com"}).json()["id"]

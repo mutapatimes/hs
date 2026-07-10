@@ -137,6 +137,14 @@
   .drcustom{display:inline-flex;align-items:center;gap:5px;color:var(--faint)}
   .drcustom input[type=date]{font:12px system-ui;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:8px;padding:5px 8px;cursor:pointer}
   .drcustom input[type=date].set{border-color:var(--brand-deep)}
+  /* full-history upgrade teaser */
+  .histbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px;padding:12px 16px;
+    border:1px solid #e6dcc2;border-radius:12px;background:linear-gradient(180deg,#fbf7ec,#f7f1e2);
+    font-size:13.5px;color:var(--ink)}
+  .histbar b{color:var(--brand-deep);font-weight:700}
+  .histbar .histup{margin-left:auto;border:0;background:var(--brand-deep);color:#fff;font:600 13px system-ui;
+    padding:8px 15px;border-radius:9px;cursor:pointer;white-space:nowrap}
+  .histbar .histup:hover{background:var(--brand)}
 
   /* table */
   .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
@@ -609,6 +617,7 @@
       </div><!-- /viewOverview -->
 
       <div id="viewClients" style="display:none">
+      <div class="histbar" id="cHist" style="display:none"></div>
       <div class="clientsum" id="clientSum"></div>
       <!-- toolbar -->
       <div class="toolbar">
@@ -661,6 +670,7 @@
       </div><!-- /viewClients -->
 
       <div id="viewOrders" style="display:none">
+        <div class="histbar" id="oHist" style="display:none"></div>
         <div class="controls">
           <label class="ocheck"><input type="checkbox" id="oAllGrades"> Show every grade</label>
           <label>Status
@@ -758,6 +768,8 @@ const DATA = __DATA__;
 const ORDERS = __ORDERS__;
 const FULL_HISTORY = __FULL_HISTORY__;   // false -> un-upgraded tenant, lock date ranges beyond 30 days
 const DR_LOCKED = new Set(["ytd","1y","all"]);   // presets that require the paid full-history unlock
+const LOCKED_COUNT = __LOCKED_COUNT__;   // clients held back by the 30-day paywall
+const LOCKED_LATENT = __LOCKED_LATENT__; // their latent value (formatted), for the upgrade teaser
 
 const gbp = n => "£"+n.toLocaleString("en-GB");
 const gbpK = n => n>=1000 ? "£"+(n/1000).toFixed(n%1000===0?0:1)+"k" : "£"+n;
@@ -874,6 +886,14 @@ function upgradePrompt(){
   toast("Full client history is on the paid plan.");
   fetch("/v1/checkout",{method:"POST"}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.url)location.href=d.url;}).catch(()=>{});
 }
+function renderHistBanner(){
+  if(FULL_HISTORY || !LOCKED_COUNT) return;
+  const html='Showing the last 30 days. <b>'+LOCKED_COUNT.toLocaleString("en-GB")+' more client'+(LOCKED_COUNT===1?'':'s')+'</b>'
+    +(LOCKED_LATENT?(' worth <b>'+LOCKED_LATENT+'</b> in latent value'):'')
+    +' are behind the full-history plan. <button class="histup">Unlock full history &rarr;</button>';
+  ["cHist","oHist"].forEach(id=>{const el=document.getElementById(id);if(el){el.innerHTML=html;el.style.display="";const b=el.querySelector(".histup");if(b)b.onclick=upgradePrompt;}});
+}
+renderHistBanner();
 function paintDate(prefix,state){
   const el=document.getElementById(prefix+"Date"); if(!el) return;
   el.querySelectorAll("[data-dr]").forEach(b=>{
@@ -2691,6 +2711,7 @@ function catRenderBuilder(){
     <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:4px">
       <span style="flex:1;font:12.5px system-ui;color:#8a8a8a"><b id="catSelCount2">${catState.selected.size}</b> products in this catalogue</span>
       <button id="catCancel" class="btn ghost">Back</button>
+      <button id="catPreview" class="btn ghost">Preview</button>
       <button id="catSave" class="btn ghost">Save</button>
       <button id="catGen" class="btn">Save &amp; generate PDF</button>
     </div>
@@ -2698,6 +2719,7 @@ function catRenderBuilder(){
   catRenderCustomize();
   const on=(id,ev,fn)=>{const e=document.getElementById(id);if(e)e.addEventListener(ev,fn);};
   on("catCancel","click",()=>catInit(true));
+  on("catPreview","click",catPreview);
   on("catSave","click",()=>catSave(false));
   on("catGen","click",()=>catSave(true));
   on("catSelAll","click",()=>{(catState.filteredIds||[]).forEach(id=>catState.selected.add(id));catRenderProducts();});
@@ -2820,6 +2842,20 @@ function catRenderPager(){
   const pv=document.getElementById("catPrev"),nx=document.getElementById("catNext");
   if(pv)pv.onclick=()=>{if(catState.page>1){catState.page--;catLoadProducts();}};
   if(nx)nx.onclick=()=>{if(catState.page<catState.pages){catState.page++;catLoadProducts();}};
+}
+function catPreview(){
+  catCollectCustomize();
+  const nm=document.getElementById("catName");
+  const body={name:nm?nm.value:"",template:catState.template,columns:catState.columns,page_size:catState.pageSize,
+    brand_color:catState.brand,text_color:catState.text,footer_text:catState.footer,cover:catState.cover,
+    fields:catState.fields,enquiry_email:catState.enquiryEmail,enquire:catState.enquire,product_ids:[...catState.selected]};
+  if(!body.product_ids.length){toast("Select at least one product to preview.");return;}
+  const btn=document.getElementById("catPreview"); if(btn){btn.disabled=true;btn.textContent="Rendering…";}
+  fetch("/v1/catalog/preview",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
+    .then(r=>r.ok?r.blob():r.text().then(t=>{let d={};try{d=JSON.parse(t);}catch(_){}throw new Error(d.detail||"Preview failed");}))
+    .then(blob=>{const url=URL.createObjectURL(blob);window.open(url,"_blank");setTimeout(()=>URL.revokeObjectURL(url),60000);})
+    .catch(e=>toast("Preview: "+e.message))
+    .finally(()=>{if(btn){btn.disabled=false;btn.textContent="Preview";}});
 }
 function catSave(thenGenerate){
   catCollectCustomize();
