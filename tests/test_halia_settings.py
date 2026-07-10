@@ -63,6 +63,17 @@ def test_catalog_message_default_and_save(client):
     assert "{catalog_link}" in c.get("/v1/settings", headers=_auth()).json()["catalog_message"]
 
 
+def test_catalog_logo_default_and_validation(client):
+    c, _ = client
+    assert c.get("/v1/settings", headers=_auth()).json()["catalog_logo"] == ""   # none by default
+    logo = "data:image/png;base64,iVBORw0KGgo="
+    c.post("/v1/settings", headers=_auth(), json={"vic_threshold": 5000, "catalog_logo": logo})
+    assert c.get("/v1/settings", headers=_auth()).json()["catalog_logo"] == logo
+    # a non-image value is rejected
+    c.post("/v1/settings", headers=_auth(), json={"vic_threshold": 5000, "catalog_logo": "javascript:1"})
+    assert c.get("/v1/settings", headers=_auth()).json()["catalog_logo"] == ""
+
+
 def test_order_templates_defaults(client):
     c, _ = client
     ot = c.get("/v1/settings", headers=_auth()).json()["order_templates"]

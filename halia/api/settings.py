@@ -151,6 +151,14 @@ DEFAULT_CATALOG_MESSAGE = ("Hi {first_name},\n\nI've put together a selection wi
                            "You can view it here:\n{catalog_link}\n\n{sender}")
 
 
+def _clean_logo(v) -> str:
+    """A logo as a data: URI (uploaded) or an http(s) URL; size-capped. Anything else -> ''."""
+    s = str(v or "").strip()
+    if s.startswith("data:image/") or s.startswith("http://") or s.startswith("https://"):
+        return s[:400_000]
+    return ""
+
+
 def settings_for(shop: str) -> dict:
     """The shop's settings, with defaults filled in."""
     raw = shop_store().get_settings_raw(shop)
@@ -170,6 +178,7 @@ def settings_for(shop: str) -> dict:
         "email_templates": d.get("email_templates") or DEFAULT_TEMPLATES,
         "order_templates": d.get("order_templates") or DEFAULT_ORDER_TEMPLATES,
         "catalog_message": d.get("catalog_message") or DEFAULT_CATALOG_MESSAGE,   # "Send catalogue" body
+        "catalog_logo": d.get("catalog_logo", ""),   # store-wide default logo new catalogues inherit
         # Latent-value benchmarks (merchant's own numbers; 0 = not set → fallback heuristic).
         "aov": d.get("aov", 0),
         "max_orders": d.get("max_orders", 0),
@@ -297,6 +306,7 @@ def register(app) -> None:
             "order_templates": _clean_order_templates(payload.get("order_templates")),
             "catalog_message": (str(payload.get("catalog_message") or "").strip()[:2000]
                                 or DEFAULT_CATALOG_MESSAGE),
+            "catalog_logo": _clean_logo(payload.get("catalog_logo")),
             "aov": _num(payload.get("aov")),
             "max_orders": int(_num(payload.get("max_orders"))),
             "highest_lt": _num(payload.get("highest_lt")),

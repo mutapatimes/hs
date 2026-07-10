@@ -2106,6 +2106,7 @@ function toast(msg){
 
 // ---- Settings (Klaviyo, VIC threshold, sign-off, email templates) ----
 let SETTINGS={vic_threshold:5000,sender_name:"",email_templates:EMAIL_TEMPLATES,klaviyo_connected:false};
+let SET_LOGO="";   // store-wide default catalogue logo, edited in Settings → Templates
 function loadSettings(){
   return Promise.all([
     fetch("/v1/settings").then(r=>r.json()),
@@ -2146,6 +2147,7 @@ function showConnectBanner(){
 const settingsEl=document.getElementById("settings");
 function closeSettings(){settingsEl.style.display="none";}
 function openSettings(){
+  SET_LOGO=SETTINGS.catalog_logo||"";   // hydrate once; persists across in-modal tab switches
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
   let otmpl=JSON.parse(JSON.stringify(ORDER_TEMPLATES||{new:[],fulfilled:[],refunded:[],cancelled:[]}));
   let tab="client", ostatus="new", lastField=null, spage="integrations";
@@ -2355,6 +2357,19 @@ function openSettings(){
         </div>
 
         <div style="${C}">
+          <div style="${H}">Default catalogue logo</div>
+          <p style="${P}">Shown top-left on every new catalogue. Each catalogue can still override it in the builder.</p>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <img id="setLogoImg" src="${esc(SET_LOGO||'')}" alt="" style="max-height:44px;max-width:180px;object-fit:contain;background:#faf9f6;border:1px solid #ece9e1;border-radius:8px;padding:6px 10px;${SET_LOGO?'':'display:none'}">
+            <span id="setLogoNone" style="font:12.5px system-ui;color:#a8a29a;background:#faf9f6;border:1px dashed #d8d4c8;border-radius:8px;padding:12px 16px;${SET_LOGO?'display:none':''}">No logo yet</span>
+            <button type="button" id="setLogoBtn" style="${BS}">${SET_LOGO?'Replace':'Upload logo'}</button>
+            <button type="button" id="setLogoRm" style="${BS};color:#8e1f0b;${SET_LOGO?'':'display:none'}">Remove</button>
+            <input type="file" id="setLogoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none">
+          </div>
+          <div style="font:12px system-ui;color:#8a8a8a;margin-top:7px">PNG, JPG, SVG or WebP · up to 250&nbsp;KB.</div>
+        </div>
+
+        <div style="${C}">
           <div style="${H}">Message templates</div>
           <p style="${P}"><b>Client emails</b> power the per-client “Email ▾” / “WhatsApp ▾” menus. <b>Order actions</b> power the status buttons in the Orders view. Pick a template on the left; edit it on the right.</p>
           <div style="display:flex;gap:8px;margin-bottom:14px">
@@ -2444,6 +2459,15 @@ function openSettings(){
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");SETTINGS.klaviyo_connected=true;toast("Klaviyo connected. Segments created.");render();refreshIntegrationUI();})
         .catch(e=>{toast("Connect failed: "+e.message);b.disabled=false;b.textContent="Connect";});
     };
+    const slBtn=document.getElementById("setLogoBtn"),slFile=document.getElementById("setLogoFile"),slRm=document.getElementById("setLogoRm");
+    const paintSetLogo=()=>{const im=document.getElementById("setLogoImg"),no=document.getElementById("setLogoNone");
+      if(im){im.src=SET_LOGO;im.style.display=SET_LOGO?"":"none";} if(no)no.style.display=SET_LOGO?"none":"";
+      if(slRm)slRm.style.display=SET_LOGO?"":"none"; if(slBtn)slBtn.textContent=SET_LOGO?"Replace":"Upload logo";};
+    if(slBtn&&slFile)slBtn.onclick=()=>slFile.click();
+    if(slFile)slFile.onchange=()=>{const f=slFile.files&&slFile.files[0];if(!f)return;
+      if(f.size>250*1024){toast("Logo is too large (max 250KB).");slFile.value="";return;}
+      const rd=new FileReader();rd.onload=()=>{SET_LOGO=String(rd.result||"");paintSetLogo();};rd.onerror=()=>toast("Couldn't read that image.");rd.readAsDataURL(f);};
+    if(slRm)slRm.onclick=()=>{SET_LOGO="";paintSetLogo();};
     const disc=document.getElementById("setKvDisc"); if(disc) disc.onclick=()=>{
       fetch("/v1/klaviyo/disconnect",{method:"POST"}).then(()=>{SETTINGS.klaviyo_connected=false;toast("Klaviyo disconnected.");render();refreshIntegrationUI();});
     };
@@ -2652,6 +2676,7 @@ function openSettings(){
         notify_emails:document.getElementById("setNotifyEmail").value,
         account_email:SETTINGS.account_email||"",
         catalog_message:(document.getElementById("setCatMsg")||{}).value||"",
+        catalog_logo:SET_LOGO,
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),
         order_templates:Object.fromEntries(OSTAT.map(st=>[st,(otmpl[st]||[]).filter(t=>(t.name||"").trim()&&(t.body||"").trim())]))};
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";
@@ -2705,7 +2730,8 @@ function catRenderList(cats){
 }
 function catOpenBuilder(c){
   const tpl=(c&&c.template)||"grid";
-  catState.editing=c?c.id:null; catState.name=c?c.name:""; catState.subtitle=(c&&c.subtitle)||""; catState.logo=(c&&c.logo)||"";
+  catState.editing=c?c.id:null; catState.name=c?c.name:""; catState.subtitle=(c&&c.subtitle)||"";
+  catState.logo=c?(c.logo||""):((SETTINGS&&SETTINGS.catalog_logo)||"");   // new catalogues inherit the store default
   catState.template=(tpl==="lookbook")?"grid":tpl;
   catState.brand=(c&&c.brand_color)||"#1f564a"; catState.text=(c&&c.text_color)||"#1a1712";
   catState.columns=(c&&c.columns)||(tpl==="lookbook"?2:3);
