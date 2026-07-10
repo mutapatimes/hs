@@ -73,7 +73,7 @@ def _card(p: dict, fields: dict, enquiry_email: str = "", cat_name: str = "") ->
     parts = []
     if fields.get("image"):
         img = p.get("image_url")
-        parts.append(f'<div class="ph"><img src="{_esc(img)}" alt=""></div>' if img
+        parts.append(f"<div class=\"ph\" style=\"background-image:url('{_esc(img)}')\"></div>" if img
                      else '<div class="ph noimg"></div>')
     meta = []
     if fields.get("vendor") and p.get("vendor"):
@@ -177,8 +177,8 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
     text-transform: uppercase; color: #9a9385; }}
   .items {{ display: grid; grid-template-columns: repeat({cols}, 1fr); gap: 10mm 8mm; padding-top: 2mm; }}
   .card {{ page-break-inside: avoid; }}
-  .ph {{ width: 100%; aspect-ratio: 4/5; background: #f4f4f2; overflow: hidden; }}
-  .ph img {{ width: 100%; height: 100%; object-fit: cover; }}
+  /* padding-ratio box (not aspect-ratio: WeasyPrint ignores that and the image would collapse) */
+  .ph {{ width: 100%; height: 0; padding-bottom: 125%; background: #f4f4f2 center center / cover no-repeat; }}
   .ph.noimg {{ background: #f0f0ee; }}
   .meta {{ padding-top: 3mm; }}
   .vendor {{ font: 600 7pt 'Helvetica'; letter-spacing: .1em; text-transform: uppercase; color: #9a9385; }}
@@ -194,11 +194,11 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
   .items.list {{ display: block; }}
   .items.list .card {{ display: flex; gap: 6mm; align-items: flex-start;
     padding: 5mm 0; border-bottom: 0.3mm solid #e7e3da; }}
-  .items.list .ph {{ width: 34mm; flex: none; aspect-ratio: 1/1; }}
+  .items.list .ph {{ width: 34mm; height: 34mm; padding-bottom: 0; flex: none; }}
   .items.list .meta {{ padding-top: 0; flex: 1; }}
   .items.list .desc {{ max-width: 120mm; }}
   /* minimal — image-forward, centred, quiet text */
-  .items.minimal .ph {{ aspect-ratio: 1/1; }}
+  .items.minimal .ph {{ padding-bottom: 100%; }}
   .items.minimal .meta {{ text-align: center; }}
   .items.minimal .priceline {{ justify-content: center; }}
   .empty {{ color: #9a9385; padding: 20mm; text-align: center; }}

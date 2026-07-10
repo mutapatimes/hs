@@ -16,10 +16,10 @@ SHOP = "brand.myshopify.com"
 PRODUCTS = [
     {"id": "gid://P/1", "title": "Cashmere coat", "vendor": "Aubin", "type": "", "tags": ["new"],
      "collections": ["Outerwear"], "image_url": "http://cdn/1.jpg", "price": "1200.00",
-     "currency": "GBP", "status": "ACTIVE"},
+     "currency": "GBP", "status": "ACTIVE", "sizes": ["S", "M", "L"]},
     {"id": "gid://P/2", "title": "Silk scarf", "vendor": "Aubin", "type": "", "tags": ["sale"],
      "collections": ["Accessories"], "image_url": None, "price": "120.00", "currency": "GBP",
-     "status": "ACTIVE"},
+     "status": "ACTIVE", "sizes": []},
 ]
 
 
@@ -84,6 +84,16 @@ def test_products_search_filter(client):
     assert [p["title"] for p in r.json()["items"]] == ["Silk scarf"]
     r2 = c.get("/v1/catalog/products?collection=Outerwear")
     assert [p["title"] for p in r2.json()["items"]] == ["Cashmere coat"]
+
+
+def test_products_size_facet_and_filter(client):
+    c, _ = client
+    r = c.get("/v1/catalog/products")
+    assert r.json()["facets"]["sizes"] == ["S", "M", "L"]   # wearing order, only the coat has sizes
+    only_m = c.get("/v1/catalog/products?size=m")            # case-insensitive
+    assert [p["title"] for p in only_m.json()["items"]] == ["Cashmere coat"]
+    none = c.get("/v1/catalog/products?size=XXL")
+    assert none.json()["items"] == []
 
 
 def test_save_generate_serve_and_active_url(client, monkeypatch):

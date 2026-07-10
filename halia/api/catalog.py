@@ -164,14 +164,32 @@ def _products(shop: str, force: bool = False) -> list[dict]:
 
 
 def _facets(prods: list[dict]) -> dict:
-    cols, tags, vendors = set(), set(), set()
+    cols, tags, vendors, sizes = set(), set(), set(), set()
     for p in prods:
         cols.update(p.get("collections") or [])
         tags.update(p.get("tags") or [])
+        sizes.update(p.get("sizes") or [])
         if p.get("vendor"):
             vendors.add(p["vendor"])
     return {"collections": sorted(cols)[:200], "tags": sorted(tags)[:200],
-            "vendors": sorted(vendors)[:200]}
+            "vendors": sorted(vendors)[:200], "sizes": _sort_sizes(sizes)[:200]}
+
+
+# Common apparel/shoe sizes in wearing order, so the filter reads S, M, L (not L, M, S).
+_SIZE_ORDER = ["xxxs", "xxs", "xs", "s", "small", "m", "medium", "l", "large",
+               "xl", "xxl", "2xl", "xxxl", "3xl", "4xl", "5xl", "one size", "os"]
+
+
+def _sort_sizes(sizes) -> list[str]:
+    def key(s: str):
+        low = s.strip().lower()
+        if low in _SIZE_ORDER:
+            return (0, _SIZE_ORDER.index(low), "")
+        try:                                        # numeric sizes (shoe / waist) sort numerically
+            return (1, float(low.replace(",", ".")), "")
+        except ValueError:
+            return (2, 0, low)
+    return sorted(sizes, key=key)
 
 
 def _resolve(shop: str, selection: dict) -> list[dict]:
@@ -401,11 +419,13 @@ def register(app) -> None:
                                      "store (Settings → Integrations) to grant it.") from exc
         search = (qp.get("search") or "").lower().strip()
         col, tag, vendor = qp.get("collection"), qp.get("tag"), qp.get("vendor")
+        size = (qp.get("size") or "").strip().lower()   # share only what fits the client
         filt = [p for p in prods
                 if (not search or search in p["title"].lower() or search in (p.get("vendor") or "").lower())
                 and (not col or col in (p.get("collections") or []))
                 and (not tag or tag in (p.get("tags") or []))
-                and (not vendor or p.get("vendor") == vendor)]
+                and (not vendor or p.get("vendor") == vendor)
+                and (not size or size in [str(s).strip().lower() for s in (p.get("sizes") or [])])]
         try:
             page = max(1, int(qp.get("page", "1") or 1))
         except ValueError:

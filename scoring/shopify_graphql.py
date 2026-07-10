@@ -82,6 +82,7 @@ PRODUCTS_QUERY = (
     "      featuredImage { url }\n"
     "      images(first: 1) { nodes { url } }\n"
     "      variants(first: 1) { nodes { sku } }\n"
+    "      options { name values }\n"
     "      priceRangeV2 { minVariantPrice { amount currencyCode } }\n"
     "      collections(first: 8) { nodes { title } }\n"
     "    }\n"
@@ -104,6 +105,11 @@ def product_node_to_dict(node: dict) -> dict:
     tags = list(tags) if isinstance(tags, (list, tuple)) else ([tags] if tags else [])
     variants_nodes = ((node.get("variants") or {}).get("nodes")) or []
     sku = variants_nodes[0].get("sku") if variants_nodes else None
+    sizes: list[str] = []
+    for opt in (node.get("options") or []):
+        if "size" in (opt.get("name") or "").lower():
+            sizes = [str(v).strip() for v in (opt.get("values") or []) if str(v).strip()]
+            break
     return {
         "id": node.get("id"),
         "title": node.get("title") or "Untitled",
@@ -119,6 +125,7 @@ def product_node_to_dict(node: dict) -> dict:
         "description": (node.get("description") or "").strip(),
         "sku": sku or "",
         "variants": ((node.get("variantsCount") or {}).get("count")) or 0,
+        "sizes": sizes,                             # size-option values, for the size filter
     }
 
 

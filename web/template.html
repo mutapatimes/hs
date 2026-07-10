@@ -2704,7 +2704,7 @@ const CI="box-sizing:border-box;padding:9px 11px;border:1px solid #d8d8d8;border
 const CAT_FIELD_DEFAULTS={image:true,title:true,vendor:true,price:true,description:false,sku:false,variants:false};
 const catState={loaded:false,editing:null,name:"",subtitle:"",logo:"",template:"grid",brand:"#1f564a",text:"#1a1712",active:false,
   columns:3,pageSize:"A4",cover:true,footer:"",enquiryEmail:"",enquire:true,fields:Object.assign({},CAT_FIELD_DEFAULTS),
-  selected:new Set(),order:[],prodInfo:{},filteredIds:[],page:1,pages:1,total:0,allTotal:0,search:"",fCol:"",fTag:"",fVendor:"",
+  selected:new Set(),order:[],prodInfo:{},filteredIds:[],page:1,pages:1,total:0,allTotal:0,search:"",fCol:"",fTag:"",fVendor:"",fSize:"",
   facets:{collections:[],tags:[],vendors:[]},items:[],cats:[]};
 function catRoot(){return document.getElementById("catalogsRoot");}
 function catInit(force){
@@ -2748,7 +2748,7 @@ function catOpenBuilder(c){
   catState.fields=Object.assign({},CAT_FIELD_DEFAULTS,(c&&c.fields)||{});
   catState.order=((c&&c.product_ids)||[]).map(String);   // saved order (drives catalogue sequence)
   catState.selected=new Set(catState.order); catState.prodInfo={};
-  catState.page=1; catState.search=""; catState.fCol=""; catState.fTag=""; catState.fVendor="";
+  catState.page=1; catState.search=""; catState.fCol=""; catState.fTag=""; catState.fVendor=""; catState.fSize="";
   catRenderBuilder(); catLoadProducts();
 }
 const CAT_SEC="border:1px solid #ececec;border-radius:14px;padding:16px 18px;margin-bottom:14px;background:#fff";
@@ -2775,6 +2775,7 @@ function catRenderBuilder(){
         <select id="catFCol" style="${CI};margin-top:0;max-width:180px"><option value="">All collections</option></select>
         <select id="catFTag" style="${CI};margin-top:0;max-width:150px"><option value="">All tags</option></select>
         <select id="catFVendor" style="${CI};margin-top:0;max-width:150px"><option value="">All vendors</option></select>
+        <select id="catFSize" title="Show only products available in this size" style="${CI};margin-top:0;max-width:130px"><option value="">Any size</option></select>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font:12.5px system-ui;color:#616161">
         <div><button id="catSelAll" class="btn ghost" style="padding:5px 11px">Select all</button> <button id="catDeselAll" class="btn ghost" style="padding:5px 11px">Deselect all</button></div>
@@ -2804,6 +2805,7 @@ function catRenderBuilder(){
   on("catFCol","change",e=>{catState.fCol=e.target.value;catState.page=1;catLoadProducts();});
   on("catFTag","change",e=>{catState.fTag=e.target.value;catState.page=1;catLoadProducts();});
   on("catFVendor","change",e=>{catState.fVendor=e.target.value;catState.page=1;catLoadProducts();});
+  on("catFSize","change",e=>{catState.fSize=e.target.value;catState.page=1;catLoadProducts();});
 }
 function catCollectCustomize(){
   const g=id=>document.getElementById(id);
@@ -2894,6 +2896,7 @@ function catLoadProducts(){
   if(catState.fCol)q.set("collection",catState.fCol);
   if(catState.fTag)q.set("tag",catState.fTag);
   if(catState.fVendor)q.set("vendor",catState.fVendor);
+  if(catState.fSize)q.set("size",catState.fSize);
   fetch("/v1/catalog/products?"+q.toString())
     .then(r=>r.text().then(t=>{let d={};try{d=t?JSON.parse(t):{};}catch(_){}if(!r.ok)return Promise.reject(d.detail||("Could not load products (error "+r.status+")."));return d;}))
     .then(d=>{
@@ -2909,6 +2912,9 @@ function catFillFacets(){
   fill("catFCol",catState.facets.collections,catState.fCol);
   fill("catFTag",catState.facets.tags,catState.fTag);
   fill("catFVendor",catState.facets.vendors,catState.fVendor);
+  fill("catFSize",catState.facets.sizes,catState.fSize);
+  const ss=document.getElementById("catFSize");   // hide the size filter when the catalogue has no sizes
+  if(ss)ss.style.display=(catState.facets.sizes&&catState.facets.sizes.length)?"":"none";
 }
 function catRenderProducts(){
   const el=document.getElementById("catProducts"); if(!el) return;
@@ -2933,22 +2939,37 @@ function catRenderProducts(){
 }
 function catMoney(p){return p&&p.price?((p.currency==='GBP'?'£':p.currency==='EUR'?'€':p.currency==='USD'?'$':'')+Number(p.price).toFixed(2)):'';}
 function catMoveOrder(id,dir){const a=catState.order,i=a.indexOf(id);if(i<0)return;const j=i+dir;if(j<0||j>=a.length)return;const t=a[i];a[i]=a[j];a[j]=t;catRenderOrder();}
+let _catDrag=null;
+function catDropOrder(fromId,toId,after){
+  const a=catState.order,fi=a.indexOf(fromId);if(fi<0||fromId===toId)return;
+  a.splice(fi,1);let ti=a.indexOf(toId);
+  if(ti<0){a.push(fromId);}else{a.splice(after?ti+1:ti,0,fromId);}
+  catRenderOrder();
+}
 function catRenderOrder(){
   const el=document.getElementById("catOrder"); if(!el) return;
   if(!catState.order.length){el.innerHTML="";return;}
   const rows=catState.order.map((id,i)=>{const p=catState.prodInfo[id]||{};const m=catMoney(p);
-    return `<div style="display:flex;align-items:center;gap:9px;padding:6px 9px;border:1px solid #ece9e1;border-radius:9px;margin-bottom:6px;background:#fff">
-      <span style="font:600 12px system-ui;color:#a8a29a;width:20px;text-align:center;flex:none">${i+1}</span>
+    return `<div data-catrow="${esc(id)}" draggable="true" style="display:flex;align-items:center;gap:9px;padding:6px 9px;border:1px solid #ece9e1;border-radius:9px;margin-bottom:6px;background:#fff">
+      <span data-cathandle title="Drag to reorder" style="font:15px system-ui;color:#c8c4bb;cursor:grab;flex:none;user-select:none">&#x2261;</span>
+      <span style="font:600 12px system-ui;color:#a8a29a;width:18px;text-align:center;flex:none">${i+1}</span>
       <div style="width:32px;height:32px;border-radius:6px;flex:none;background:#f2f0ea${p.image?(" url('"+esc(p.image)+"') center/cover no-repeat"):""}"></div>
       <div style="flex:1;min-width:0"><div style="font:600 12.5px system-ui;color:#1a1712;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.title||id)}</div>
         <div style="font:11.5px system-ui;color:#8a857a">${esc(m)}</div></div>
       <button data-catup="${esc(id)}" class="btn ghost" style="padding:3px 9px"${i===0?' disabled':''}>&uarr;</button>
       <button data-catdn="${esc(id)}" class="btn ghost" style="padding:3px 9px"${i===catState.order.length-1?' disabled':''}>&darr;</button>
       <button data-catrm="${esc(id)}" class="btn ghost" style="padding:3px 8px;color:#8e1f0b">&times;</button></div>`;}).join("");
-  el.innerHTML=`<div style="font:600 11px system-ui;letter-spacing:.05em;text-transform:uppercase;color:#8a8a8a;margin:4px 0 8px">In this catalogue &middot; ${catState.order.length} &middot; use &uarr;&darr; to order</div>${rows}`;
+  el.innerHTML=`<div style="font:600 11px system-ui;letter-spacing:.05em;text-transform:uppercase;color:#8a8a8a;margin:4px 0 8px">In this catalogue &middot; ${catState.order.length} &middot; drag or use &uarr;&darr;</div>${rows}`;
   el.querySelectorAll("[data-catup]").forEach(b=>b.onclick=()=>catMoveOrder(b.dataset.catup,-1));
   el.querySelectorAll("[data-catdn]").forEach(b=>b.onclick=()=>catMoveOrder(b.dataset.catdn,1));
   el.querySelectorAll("[data-catrm]").forEach(b=>b.onclick=()=>{const id=b.dataset.catrm;catState.selected.delete(id);catState.order=catState.order.filter(x=>x!==id);catRenderProducts();catRenderOrder();});
+  el.querySelectorAll("[data-catrow]").forEach(r=>{
+    r.ondragstart=e=>{_catDrag=r.dataset.catrow;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",_catDrag);}catch(_){}r.style.opacity=".4";};
+    r.ondragend=()=>{_catDrag=null;r.style.opacity="";};
+    r.ondragover=e=>{e.preventDefault();e.dataTransfer.dropEffect="move";r.style.borderColor="#1a1712";};
+    r.ondragleave=()=>{r.style.borderColor="#ece9e1";};
+    r.ondrop=e=>{e.preventDefault();r.style.borderColor="#ece9e1";const to=r.dataset.catrow,from=_catDrag||(e.dataTransfer&&e.dataTransfer.getData("text/plain"));if(!from)return;const rc=r.getBoundingClientRect();catDropOrder(from,to,e.clientY>rc.top+rc.height/2);};
+  });
 }
 function catRenderPager(){
   const el=document.getElementById("catPager"); if(!el) return;

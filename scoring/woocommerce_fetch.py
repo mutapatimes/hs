@@ -81,6 +81,12 @@ def _strip_html(s: str) -> str:
 def _product_to_dict(p: dict, currency: str = "") -> dict:
     """A WooCommerce product -> the same flat dict the catalogue uses (shared with Shopify)."""
     imgs = p.get("images") or []
+    sizes: list[str] = []
+    for a in (p.get("attributes") or []):           # WooCommerce attribute, e.g. "Size" / pa_size
+        name, slug = (a.get("name") or "").lower(), (a.get("slug") or "").lower()
+        if "size" in name or slug in ("pa_size", "size"):
+            sizes = [str(v).strip() for v in (a.get("options") or []) if str(v).strip()]
+            break
     return {
         "id": str(p.get("id")),
         "title": p.get("name") or "Untitled",
@@ -96,6 +102,7 @@ def _product_to_dict(p: dict, currency: str = "") -> dict:
         "description": _strip_html(p.get("description") or p.get("short_description") or "")[:400],
         "sku": p.get("sku") or "",
         "variants": len(p.get("variations") or []),
+        "sizes": sizes,                             # size-attribute values, for the size filter
     }
 
 
