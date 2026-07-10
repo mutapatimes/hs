@@ -770,6 +770,10 @@ const FULL_HISTORY = __FULL_HISTORY__;   // false -> un-upgraded tenant, lock da
 const DR_LOCKED = new Set(["ytd","1y","all"]);   // presets that require the paid full-history unlock
 const LOCKED_COUNT = __LOCKED_COUNT__;   // clients held back by the 30-day paywall
 const LOCKED_LATENT = __LOCKED_LATENT__; // their latent value (formatted), for the upgrade teaser
+// Date-range filter state, declared up here (before the wireDate("c", CDATE, …) wiring below) so
+// it isn't in the temporal dead zone when that call runs. drLoad is a hoisted fn defined lower down.
+const CDATE=Object.assign({mode:"30d",from:"",to:""}, drLoad("c")||{});   // Clients view
+const ODATE=Object.assign({mode:"30d",from:"",to:""}, drLoad("o")||{});   // Orders view
 
 const gbp = n => "£"+n.toLocaleString("en-GB");
 const gbpK = n => n>=1000 ? "£"+(n/1000).toFixed(n%1000===0?0:1)+"k" : "£"+n;
@@ -861,8 +865,6 @@ function meterSvg(score,tier){
 // Default window is 30 days; a merchant's last choice is remembered as their default.
 function drLoad(prefix){try{return JSON.parse(localStorage.getItem("halia_dr_"+prefix)||"null");}catch(_){return null;}}
 function drSave(prefix,state){try{localStorage.setItem("halia_dr_"+prefix,JSON.stringify({mode:state.mode,from:state.from,to:state.to}));}catch(_){}}
-const CDATE=Object.assign({mode:"30d",from:"",to:""}, drLoad("c")||{});   // Clients view
-const ODATE=Object.assign({mode:"30d",from:"",to:""}, drLoad("o")||{});   // Orders view
 function drFloor(mode){
   const now=new Date(); const d=864e5;
   if(mode==="7d")  return new Date(now.getTime()-7*d);
