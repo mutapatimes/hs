@@ -1,0 +1,6 @@
+{
+  "name": "halia-dashboard-smoke",
+  "private": true,
+  "description": "Headless (jsdom) smoke test for the dashboard template — catches runtime errors that a syntax check can't (e.g. a temporal-dead-zone ReferenceError that blanks the page).",
+  "dependencies": { "jsdom": "^24" }
+}
