@@ -2670,7 +2670,7 @@ document.getElementById("openSettings").onclick=openSettings;
 // ── Product-catalogue builder (Settings → Catalogues) ──────────────────────
 const CI="box-sizing:border-box;padding:9px 11px;border:1px solid #d8d8d8;border-radius:9px;font:14px system-ui;margin-top:5px";
 const CAT_FIELD_DEFAULTS={image:true,title:true,vendor:true,price:true,description:false,sku:false,variants:false};
-const catState={loaded:false,editing:null,name:"",subtitle:"",template:"grid",brand:"#1f564a",text:"#1a1712",active:false,
+const catState={loaded:false,editing:null,name:"",subtitle:"",logo:"",template:"grid",brand:"#1f564a",text:"#1a1712",active:false,
   columns:3,pageSize:"A4",cover:true,footer:"",enquiryEmail:"",enquire:true,fields:Object.assign({},CAT_FIELD_DEFAULTS),
   selected:new Set(),filteredIds:[],page:1,pages:1,total:0,allTotal:0,search:"",fCol:"",fTag:"",fVendor:"",
   facets:{collections:[],tags:[],vendors:[]},items:[],cats:[]};
@@ -2705,7 +2705,7 @@ function catRenderList(cats){
 }
 function catOpenBuilder(c){
   const tpl=(c&&c.template)||"grid";
-  catState.editing=c?c.id:null; catState.name=c?c.name:""; catState.subtitle=(c&&c.subtitle)||"";
+  catState.editing=c?c.id:null; catState.name=c?c.name:""; catState.subtitle=(c&&c.subtitle)||""; catState.logo=(c&&c.logo)||"";
   catState.template=(tpl==="lookbook")?"grid":tpl;
   catState.brand=(c&&c.brand_color)||"#1f564a"; catState.text=(c&&c.text_color)||"#1a1712";
   catState.columns=(c&&c.columns)||(tpl==="lookbook"?2:3);
@@ -2816,6 +2816,16 @@ function catRenderCustomize(){
         <label style="font:600 12px system-ui;color:#616161">Text colour<input id="catText" type="color" value="${esc(catState.text)}" style="width:52px;height:38px;padding:2px;border:1px solid #d8d8d8;border-radius:8px;margin-top:6px;display:block"></label>
         <label style="flex:1;min-width:220px;font:600 12px system-ui;color:#616161">Footer text<input id="catFooter" value="${esc(catState.footer)}" placeholder="e.g. © 2026 Your Brand · hello@brand.com" style="width:100%;${CI}"></label>
       </div>
+      <div style="margin-top:16px">
+        <div style="font:600 12px system-ui;color:#616161;margin-bottom:8px">Logo <span style="color:#8a8a8a;font-weight:400">(shown top-left on the catalogue)</span></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          ${catState.logo?`<img src="${esc(catState.logo)}" alt="" style="max-height:44px;max-width:180px;object-fit:contain;background:#faf9f6;border:1px solid #ece9e1;border-radius:8px;padding:6px 10px">`:`<div style="font:12.5px system-ui;color:#a8a29a;background:#faf9f6;border:1px dashed #d8d4c8;border-radius:8px;padding:12px 16px">No logo yet</div>`}
+          <button type="button" id="catLogoBtn" class="btn ghost" style="padding:7px 14px">${catState.logo?'Replace':'Upload logo'}</button>
+          ${catState.logo?`<button type="button" id="catLogoRm" class="btn ghost" style="padding:7px 12px;color:#8e1f0b">Remove</button>`:''}
+          <input type="file" id="catLogoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none">
+        </div>
+        <div style="font:12px system-ui;color:#8a8a8a;margin-top:7px">PNG, JPG, SVG or WebP · up to 250&nbsp;KB. A transparent PNG works best.</div>
+      </div>
     </div>
     <div style="${CAT_SEC}">
       <div style="${CAT_LB}">Product fields</div>
@@ -2834,6 +2844,14 @@ function catRenderCustomize(){
   el.querySelectorAll("[data-cattpl]").forEach(b=>b.onclick=()=>{catCollectCustomize();catState.template=b.dataset.cattpl;if(catState.template==='list')catState.columns=1;else if(catState.columns<1)catState.columns=3;catRenderCustomize();});
   el.querySelectorAll("[data-catcol]").forEach(b=>b.onclick=()=>{catCollectCustomize();catState.columns=+b.dataset.catcol;catRenderCustomize();});
   el.querySelectorAll("[data-catfield]").forEach(b=>b.onclick=()=>{catCollectCustomize();const k=b.dataset.catfield;catState.fields[k]=!catState.fields[k];catRenderCustomize();});
+  const lb=document.getElementById("catLogoBtn"),lf=document.getElementById("catLogoFile"),lr=document.getElementById("catLogoRm");
+  if(lb&&lf) lb.onclick=()=>lf.click();
+  if(lf) lf.onchange=()=>{const f=lf.files&&lf.files[0]; if(!f)return;
+    if(f.size>250*1024){toast("Logo is too large (max 250KB). Try a smaller image.");lf.value="";return;}
+    catCollectCustomize(); const rd=new FileReader();
+    rd.onload=()=>{catState.logo=String(rd.result||""); catRenderCustomize();};
+    rd.onerror=()=>toast("Couldn't read that image."); rd.readAsDataURL(f);};
+  if(lr) lr.onclick=()=>{catCollectCustomize(); catState.logo=""; catRenderCustomize();};
 }
 function catLoadProducts(){
   const q=new URLSearchParams({page:catState.page});
@@ -2887,7 +2905,7 @@ function catRenderPager(){
 function catPreview(){
   catCollectCustomize();
   const nm=document.getElementById("catName"),sb=document.getElementById("catSubtitle");
-  const body={name:nm?nm.value:"",subtitle:sb?sb.value:"",template:catState.template,columns:catState.columns,page_size:catState.pageSize,
+  const body={name:nm?nm.value:"",subtitle:sb?sb.value:"",logo:catState.logo,template:catState.template,columns:catState.columns,page_size:catState.pageSize,
     brand_color:catState.brand,text_color:catState.text,footer_text:catState.footer,cover:catState.cover,
     fields:catState.fields,enquiry_email:catState.enquiryEmail,enquire:catState.enquire,product_ids:[...catState.selected]};
   if(!body.product_ids.length){toast("Select at least one product to preview.");return;}
@@ -2901,7 +2919,7 @@ function catPreview(){
 function catSave(thenGenerate){
   catCollectCustomize();
   const gv=id=>{const e=document.getElementById(id);return e?(e.type==='checkbox'?e.checked:e.value):"";};
-  const body={id:catState.editing||undefined,name:gv("catName"),subtitle:gv("catSubtitle"),template:catState.template,
+  const body={id:catState.editing||undefined,name:gv("catName"),subtitle:gv("catSubtitle"),logo:catState.logo,template:catState.template,
     columns:catState.columns,page_size:catState.pageSize,brand_color:catState.brand,text_color:catState.text,
     footer_text:catState.footer,cover:catState.cover,fields:catState.fields,
     enquiry_email:catState.enquiryEmail,enquire:catState.enquire,

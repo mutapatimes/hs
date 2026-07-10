@@ -300,6 +300,20 @@ def test_personalised_pdf_renders_live_with_the_name(client, monkeypatch):
     assert r.status_code == 200 and "For Omar" in seen["html"]
 
 
+def test_logo_persists_and_renders_top_left(client):
+    logo = "data:image/png;base64,iVBORw0KGgoAAAANS="
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={"name": "AW", "product_ids": ["gid://P/1"],
+                                           "logo": logo, "enquiry_email": "s@a.com"}).json()["id"]
+    lst = next(x for x in c.get("/v1/catalog/list").json()["catalogs"] if x["id"] == cid)
+    assert lst["logo"] == logo                                   # round-trips
+    assert 'class="logo"' in c.get(f"/catalog/{cid}").text       # shown on the web catalogue
+    # a non-image value is rejected (never rendered)
+    cid2 = c.post("/v1/catalog/save", json={"name": "B", "product_ids": ["gid://P/1"],
+                                            "logo": "javascript:alert(1)"}).json()["id"]
+    assert next(x for x in c.get("/v1/catalog/list").json()["catalogs"] if x["id"] == cid2)["logo"] == ""
+
+
 def test_generate_requires_a_product(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr(cr, "html_to_pdf", lambda html: b"%PDF")

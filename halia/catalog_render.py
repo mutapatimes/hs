@@ -119,6 +119,7 @@ def _norm(catalog: dict) -> dict:
     return {
         "name": catalog.get("name") or "Product Catalogue",
         "subtitle": str(catalog.get("subtitle") or "").strip(),   # personal line, e.g. "Prepared for Jane"
+        "logo": str(catalog.get("logo") or "").strip(),           # retailer logo (data: URI or URL)
         "brand": catalog.get("brand_color") or "#1f564a",
         "text": catalog.get("text_color") or "#1a1712",
         "template": template,
@@ -146,7 +147,9 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
     personal = _esc(s["subtitle"]) if s["subtitle"] else ""
     cover = ""
     if s["cover"]:
+        logo = f'<img class="logo" src="{_esc(s["logo"])}" alt="">' if s["logo"] else ""
         cover = f"""<section class="cover">
+    {logo}
     <div class="eyebrow">{eyebrow}</div>
     <h1>{_esc(s["name"])}</h1>
     {f'<div class="sub">{personal}</div>' if personal else ''}
@@ -163,6 +166,8 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
   .cover {{ page-break-after: always; height: {page['cover_h']}; padding: 40mm 28mm; position: relative;
     display: flex; flex-direction: column; justify-content: flex-end; }}
   .cover::before {{ content: ""; position: absolute; inset: 0 0 auto; height: 46mm; background: {brand}; }}
+  .cover .logo {{ position: absolute; top: 15mm; left: 28mm; max-height: 16mm; max-width: 62mm;
+    object-fit: contain; z-index: 2; }}
   .cover .eyebrow {{ font: 600 10pt 'Helvetica'; letter-spacing: .28em; text-transform: uppercase;
     color: {brand}; margin-bottom: 10mm; }}
   .cover h1 {{ font: 300 40pt Georgia, serif; margin: 0 0 6mm; line-height: 1.02; max-width: 20ch; color: {text}; }}

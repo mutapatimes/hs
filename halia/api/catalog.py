@@ -54,6 +54,14 @@ def _clean_email(v) -> str:
     return s if _EMAIL_RE.match(s) else ""
 
 
+def _clean_logo(v) -> str:
+    """Accept a retailer logo as a data: URI (uploaded) or an http(s) URL; cap the size."""
+    s = str(v or "").strip()
+    if s.startswith("data:image/") or s.startswith("http://") or s.startswith("https://"):
+        return s[:400_000]
+    return ""
+
+
 def _default_enquiry_email(shop: str) -> str:
     """Fall back to the tenant's alert recipient when a catalogue has no explicit enquiry email."""
     try:
@@ -303,7 +311,7 @@ def _form_response(catalog_id: str, request: Request):
     ctx = _person_ctx(prefill.get("name", ""), _shop_display(shop))
     html = catalog_form_html(
         {"name": _personalize(cat["name"], ctx), "subtitle": _personalize(cfg.get("subtitle", ""), ctx),
-         "brand_color": cfg.get("brand_color"), "fields": cfg.get("fields")},
+         "logo": cfg.get("logo", ""), "brand_color": cfg.get("brand_color"), "fields": cfg.get("fields")},
         products, shop_name=_shop_display(shop), catalog_id=catalog_id,
         enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill)
     return HTMLResponse(html, headers={"Cache-Control": "no-store"})
@@ -391,6 +399,7 @@ def register(app) -> None:
                         "url": (f"{base}/{c['id']}.pdf" if c.get("pdf_at") else ""),
                         "count": len(sel.get("product_ids") or []),
                         "subtitle": cfg.get("subtitle", ""),
+                        "logo": cfg.get("logo", ""),
                         "template": cfg.get("template", "grid"),
                         "columns": cfg.get("columns", 3),
                         "page_size": cfg.get("page_size", "A4"),
@@ -416,6 +425,7 @@ def register(app) -> None:
                 raise HTTPException(403, "Not your catalogue.")
         cfg = {
             "subtitle": (str(p.get("subtitle") or "").strip())[:200],   # personal line (tokens allowed)
+            "logo": _clean_logo(p.get("logo")),
             "template": p.get("template") if p.get("template") in ("grid", "list", "minimal", "lookbook") else "grid",
             "columns": _clamp_int(p.get("columns"), 3, 1, 4),
             "page_size": p.get("page_size") if p.get("page_size") in ("A4", "Letter") else "A4",
@@ -468,6 +478,7 @@ def register(app) -> None:
         spec = {
             "name": _personalize((str(p.get("name") or "").strip() or "Untitled catalogue")[:120], ctx),
             "subtitle": _personalize((str(p.get("subtitle") or "").strip())[:200], ctx),
+            "logo": _clean_logo(p.get("logo")),
             "template": p.get("template") if p.get("template") in ("grid", "list", "minimal", "lookbook") else "grid",
             "columns": _clamp_int(p.get("columns"), 3, 1, 4),
             "page_size": p.get("page_size") if p.get("page_size") in ("A4", "Letter") else "A4",
