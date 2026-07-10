@@ -50,6 +50,19 @@ def test_save_and_reload(client):
     assert len(s["email_templates"]) == 1 and s["email_templates"][0]["name"] == "Hi"
 
 
+def test_catalog_message_default_and_save(client):
+    c, _ = client
+    s = c.get("/v1/settings", headers=_auth()).json()
+    assert "{catalog_link}" in s["catalog_message"] and "{first_name}" in s["catalog_message"]
+    c.post("/v1/settings", headers=_auth(), json={"vic_threshold": 5000,
+           "catalog_message": "Hi {first_name}, a selection: {catalog_link}"})
+    assert c.get("/v1/settings", headers=_auth()).json()["catalog_message"] \
+        == "Hi {first_name}, a selection: {catalog_link}"
+    # clearing it falls back to the default, never blank
+    c.post("/v1/settings", headers=_auth(), json={"vic_threshold": 5000, "catalog_message": "   "})
+    assert "{catalog_link}" in c.get("/v1/settings", headers=_auth()).json()["catalog_message"]
+
+
 def test_order_templates_defaults(client):
     c, _ = client
     ot = c.get("/v1/settings", headers=_auth()).json()["order_templates"]

@@ -1235,14 +1235,19 @@ let SENDER="";
 let CATALOG_URL="";  // active catalog's public PDF link, from /v1/settings (the {catalog_link} token)
 let CMS_DRAFT=null;  // featured 1:1 note, editable in the mini-CMS (/admin), from /v1/settings
 function firstName(name){return String(name||"").replace(/^(sir|lady|dame|lord|baroness|viscount|countess|duchess|marquess|hrh|hsh|the hon)\s+/i,"").split(" ")[0]||"there";}
+// Opaque personalisation token: base64url of the name, so a client doesn't see their own name in
+// the link (…?c=SmFuZSBEb2U rather than …?name=Jane%20Doe). Not secret — just not in plain sight.
+function encName(n){try{return btoa(unescape(encodeURIComponent(String(n||"")))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}catch(_){return "";}}
 // The active catalogue's interactive form link (merchant's own domain via the App Proxy),
-// personalised to this client with ?name= so its title/message address them by name.
+// personalised to this client so its title/message address them by name.
 function catLinkFor(c){
   const base=(CATALOG_URL||"").replace(/\.pdf(\?.*)?$/,"");   // active catalogue PDF url -> its form url
   if(!base) return "";
-  return base+((c&&c.name)?("?name="+encodeURIComponent(c.name)):"");
+  const t=(c&&c.name)?encName(c.name):"";
+  return base+(t?("?c="+t):"");
 }
-function catMsg(c){c=c||{};return "Hi "+firstName(c.name)+",\n\nI've put together a selection with you in mind. You can view it here:\n"+catLinkFor(c)+"\n\n"+(SENDER||"");}
+const CAT_MSG_DEFAULT="Hi {first_name},\n\nI've put together a selection with you in mind. You can view it here:\n{catalog_link}\n\n{sender}";
+function catMsg(c){return fillTemplate((SETTINGS&&SETTINGS.catalog_message)||CAT_MSG_DEFAULT, c);}
 function fillTemplate(s,c){c=c||{};return String(s||"")
   .split("{first_name}").join(firstName(c.name))
   .split("{sender}").join(SENDER||"")
@@ -1971,9 +1976,9 @@ function openDrawer(id){
   // domain via the App Proxy) with ?name= pre-filled, so the title/message personalise to them.
   const dcat=document.getElementById("dcatlink");
   if(dcat) dcat.onclick=()=>{
-    const base=(CATALOG_URL||"").replace(/\.pdf(\?.*)?$/,"");   // active catalogue -> its form URL
-    if(!base){toast("Set an active catalogue first (Catalogues tab).");return;}
-    copyText(base+"?name="+encodeURIComponent(c.name||""));
+    const link=catLinkFor(c);   // merchant-domain form URL, name in an opaque token
+    if(!link){toast("Set an active catalogue first (Catalogues tab).");return;}
+    copyText(link);
     toast("Catalogue link for "+(c.first||c.name||"this client")+" copied.");
   };
   // Open in Klaviyo: jump straight to this client's Klaviyo profile to action them.
@@ -2344,6 +2349,12 @@ function openSettings(){
         </div>
 
         <div style="${C}">
+          <div style="${H}">Catalogue message</div>
+          <p style="${P}">The message behind <b>Send catalogue</b> in the Email ▾ / WhatsApp ▾ menus. Tokens: <b>{first_name}</b>, <b>{catalog_link}</b> (the client's own personalised link) and <b>{sender}</b>.</p>
+          <textarea id="setCatMsg" placeholder="Hi {first_name}, …" style="width:100%;min-height:150px;${I};resize:vertical;line-height:1.6">${esc(SETTINGS.catalog_message||"")}</textarea>
+        </div>
+
+        <div style="${C}">
           <div style="${H}">Message templates</div>
           <p style="${P}"><b>Client emails</b> power the per-client “Email ▾” / “WhatsApp ▾” menus. <b>Order actions</b> power the status buttons in the Orders view. Pick a template on the left; edit it on the right.</p>
           <div style="display:flex;gap:8px;margin-bottom:14px">
@@ -2640,6 +2651,7 @@ function openSettings(){
         basket_alerts:(function(b){return b?b.checked:true;})(document.getElementById("setBasketAlerts")),
         notify_emails:document.getElementById("setNotifyEmail").value,
         account_email:SETTINGS.account_email||"",
+        catalog_message:(document.getElementById("setCatMsg")||{}).value||"",
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),
         order_templates:Object.fromEntries(OSTAT.map(st=>[st,(otmpl[st]||[]).filter(t=>(t.name||"").trim()&&(t.body||"").trim())]))};
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";

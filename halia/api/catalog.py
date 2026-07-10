@@ -220,6 +220,25 @@ def catalog_url_for(shop: str) -> str:
 
 # ── personalisation: the catalogue title + subtitle can carry {name}/{first_name}/{store} tokens,
 #    filled from the recipient on a personalised share link (…?name=Jane) ───────────────────────
+def _decode_name(token: str) -> str:
+    """Decode an opaque personalisation token (base64url of the name) back to the name. The link
+    carries ?c=<token> instead of ?name=Jane so a client doesn't see their own name in the URL —
+    still zero-retention (the name lives only in the link, never stored)."""
+    if not token:
+        return ""
+    import base64
+    try:
+        return base64.urlsafe_b64decode(token + "=" * (-len(token) % 4)).decode("utf-8")[:160]
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _link_name(request: Request) -> str:
+    """The recipient name from a share link: the opaque ?c token (preferred), else legacy ?name."""
+    return (_decode_name(request.query_params.get("c") or "")
+            or (request.query_params.get("name") or ""))[:160]
+
+
 def _person_ctx(name: str, store: str) -> dict:
     name = (name or "").strip()
     first = (name.split() or [""])[0]
@@ -252,7 +271,7 @@ def _pdf_response(catalog_id: str, request: Request):
     cat = shop_store().get_catalog(catalog_id)
     if not cat:
         raise HTTPException(404, "Not found")
-    qname = (request.query_params.get("name") or "").strip()
+    qname = _link_name(request).strip()
     pdf = None
     if qname:   # a personalised link -> render a fresh cover for this recipient
         try:
@@ -278,7 +297,9 @@ def _form_response(catalog_id: str, request: Request):
     cfg = json.loads(cat.get("config_json") or "{}")
     shop = cat["shop"]
     products = _resolve(shop, cfg.get("selection") or {})
-    prefill = {k: (request.query_params.get(k) or "")[:160] for k in ("name", "email", "phone")}
+    prefill = {"name": _link_name(request),
+               "email": (request.query_params.get("email") or "")[:160],
+               "phone": (request.query_params.get("phone") or "")[:160]}
     ctx = _person_ctx(prefill.get("name", ""), _shop_display(shop))
     html = catalog_form_html(
         {"name": _personalize(cat["name"], ctx), "subtitle": _personalize(cfg.get("subtitle", ""), ctx),

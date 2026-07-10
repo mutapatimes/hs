@@ -277,6 +277,16 @@ def test_personalised_title_and_message_fill_from_the_link(client, monkeypatch):
     assert lst["subtitle"] == "Prepared exclusively for {name} by {store}"
 
 
+def test_opaque_name_token_personalises_without_showing_the_name(client):
+    import base64
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={"name": "For {first_name}", "subtitle": "For {name}",
+                                           "product_ids": ["gid://P/1"], "enquiry_email": "s@a.com"}).json()["id"]
+    tok = base64.urlsafe_b64encode("Jane Doe".encode()).decode().rstrip("=")   # ?c=<opaque>, not ?name=Jane
+    r = c.get(f"/catalog/{cid}?c={tok}")
+    assert "For Jane" in r.text and "For Jane Doe" in r.text and tok != "Jane Doe"
+
+
 def test_personalised_pdf_renders_live_with_the_name(client, monkeypatch):
     seen = {}
     monkeypatch.setattr(cr, "html_to_pdf", lambda html: seen.update(html=html) or b"%PDF-1.4")
