@@ -216,7 +216,10 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
       message:f.message.value.trim(), company:f.company.value }};
     if(!payload.name || !payload.email){{ err.textContent='Please add your name and email.'; err.style.display='block'; return; }}
     btn.disabled=true; btn.textContent='Sending…';
-    fetch('/catalog/'+CAT_ID+'/enquire', {{ method:'POST', headers:{{'content-type':'application/json'}}, body:JSON.stringify(payload) }})
+    // POST relative to how this page was served, so it works both directly and under the App Proxy
+    // (theirbrand.com/a/catalogue/{{id}} -> …/{{id}}/enquire), never hard-coding a Halia URL.
+    var enquireUrl = window.location.pathname.replace(/\\/+$/, '') + '/enquire';
+    fetch(enquireUrl, {{ method:'POST', headers:{{'content-type':'application/json'}}, body:JSON.stringify(payload) }})
       .then(function(r){{ return r.json().then(function(d){{ return {{ok:r.ok, d:d}}; }}); }})
       .then(function(res){{
         if(!res.ok) throw new Error((res.d&&res.d.detail)||'Could not send');

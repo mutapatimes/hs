@@ -13,11 +13,36 @@ no network and no real app.
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
+
 import jwt
 from fastapi import HTTPException, Request
 
 from halia import config
 from halia.store import ShopStore
+
+
+def verify_app_proxy(request: Request, secret: str | None = None) -> bool:
+    """Verify a Shopify **App Proxy** request. Shopify signs proxied requests with an HMAC-SHA256
+    of the sorted query params (minus ``signature``), keyed by the app's shared secret. This lets us
+    serve the catalogue under the merchant's OWN storefront domain (theirbrand.com/a/catalogue/…)
+    so a client never sees Halia. Returns True only for genuine, correctly-signed proxy requests."""
+    secret = secret or config.SHOPIFY_API_SECRET
+    if not secret:
+        return False
+    params: dict[str, list[str]] = {}
+    sig = None
+    for k, v in request.query_params.multi_items():
+        if k == "signature":
+            sig = v
+        else:
+            params.setdefault(k, []).append(v)
+    if not sig:
+        return False
+    msg = "".join(f"{k}={','.join(params[k])}" for k in sorted(params))
+    digest = hmac.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(digest, sig)
 
 # Shopify token-exchange constants (researched from shopify.dev token-exchange docs).
 _GRANT_TYPE = "urn:ietf:params:oauth:grant-type:token-exchange"

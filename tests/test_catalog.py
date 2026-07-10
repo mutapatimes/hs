@@ -208,6 +208,58 @@ def test_enquire_unknown_catalog_404(client):
     assert c.post("/catalog/nope/enquire", json={"name": "J", "email": "j@x.com"}).status_code == 404
 
 
+def _proxy_sig(params: dict, secret: str) -> str:
+    import hashlib
+    import hmac
+    msg = "".join(f"{k}={v}" for k, v in sorted(params.items()))
+    return hmac.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()
+
+
+def test_app_proxy_serves_on_merchant_domain_with_valid_signature(client, monkeypatch):
+    import halia.config as hcfg
+    monkeypatch.setattr(hcfg, "SHOPIFY_API_SECRET", "sekret")
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={"name": "AW", "product_ids": ["gid://P/1"],
+                                           "enquiry_email": "s@a.com"}).json()["id"]
+    params = {"shop": "brand.myshopify.com", "path_prefix": "/a/catalogue", "timestamp": "1"}
+    q = "&".join(f"{k}={v}" for k, v in params.items()) + "&signature=" + _proxy_sig(params, "sekret")
+    # valid signature -> the same interactive form, served for the App Proxy
+    r = c.get(f"/proxy/catalogue/{cid}?{q}")
+    assert r.status_code == 200 and "Cashmere coat" in r.text and "Add to enquiry" in r.text
+    # missing / tampered signature -> rejected
+    assert c.get(f"/proxy/catalogue/{cid}").status_code == 403
+    assert c.get(f"/proxy/catalogue/{cid}?{q}TAMPER").status_code == 403
+
+
+def test_app_proxy_enquire_requires_signature(client, monkeypatch):
+    import halia.config as hcfg
+    import halia.notify as notify
+    monkeypatch.setattr(hcfg, "SHOPIFY_API_SECRET", "sekret")
+    monkeypatch.setattr(notify, "send_email", lambda *a, **k: True)  # noqa: ARG005
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={"name": "AW", "product_ids": ["gid://P/1"],
+                                           "enquiry_email": "s@a.com"}).json()["id"]
+    body = {"name": "Jane", "email": "jane@x.com", "product_ids": ["gid://P/1"]}
+    assert c.post(f"/proxy/catalogue/{cid}/enquire", json=body).status_code == 403   # no signature
+    params = {"shop": "brand.myshopify.com", "path_prefix": "/a/catalogue", "timestamp": "1"}
+    q = "&".join(f"{k}={v}" for k, v in params.items()) + "&signature=" + _proxy_sig(params, "sekret")
+    assert c.post(f"/proxy/catalogue/{cid}/enquire?{q}", json=body).json() == {"ok": True}
+
+
+def test_share_link_uses_merchant_domain(client, monkeypatch):
+    import halia.api.catalog as catmod
+    monkeypatch.setattr(catmod, "_primary_domain", lambda shop: "theirbrand.com")
+    assert catmod.catalog_share_base(SHOP) == "https://theirbrand.com/a/catalogue"
+    c, _ = client
+    monkeypatch.setattr(cr, "html_to_pdf", lambda html: b"%PDF")  # noqa: ARG005
+    cid = c.post("/v1/catalog/save", json={"name": "AW", "product_ids": ["gid://P/1"],
+                                           "active": True}).json()["id"]
+    gen = c.post(f"/v1/catalog/{cid}/generate").json()
+    assert gen["url"] == f"https://theirbrand.com/a/catalogue/{cid}.pdf"    # not a Halia URL
+    lst = next(x for x in c.get("/v1/catalog/list").json()["catalogs"] if x["id"] == cid)
+    assert lst["form_url"] == f"https://theirbrand.com/a/catalogue/{cid}"
+
+
 def test_generate_requires_a_product(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr(cr, "html_to_pdf", lambda html: b"%PDF")

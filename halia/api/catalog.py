@@ -17,7 +17,7 @@ from fastapi import Body, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
 from halia import config
-from halia.api.shopify_auth import require_shop, shop_store
+from halia.api.shopify_auth import require_shop, shop_store, verify_app_proxy
 
 _PRODUCT_CACHE: dict = {}     # shop -> {"at": monotonic, "products": [...]}
 _TTL = 600.0                  # 10 min — products change rarely; keep the picker snappy
@@ -177,13 +177,107 @@ def _shop_display(shop: str) -> str:
     return (t or {}).get("label") or str(shop).replace(".myshopify.com", "")
 
 
+_DOMAIN_CACHE: dict = {}     # shop -> {"at": monotonic, "host": "theirbrand.com"}
+
+
+def _primary_domain(shop: str) -> str:
+    """The store's primary STOREFRONT domain (e.g. theirbrand.com), for white-label catalogue
+    links via the Shopify App Proxy. Cached; best-effort (empty string if unavailable)."""
+    ent = _DOMAIN_CACHE.get(shop)
+    if ent and (time.monotonic() - ent["at"] < 3600):
+        return ent["host"]
+    host = ""
+    token = shop_store().get_token(shop)
+    if token:
+        try:
+            from scoring.shopify_fetch import _run, http_transport
+            data = _run(http_transport(shop, token), "{ shop { primaryDomain { host } } }", {}, 2)
+            host = ((data.get("shop") or {}).get("primaryDomain") or {}).get("host") or ""
+        except Exception:  # noqa: BLE001 — never let a link lookup break the request
+            host = ""
+    _DOMAIN_CACHE[shop] = {"at": time.monotonic(), "host": host}
+    return host
+
+
+def catalog_share_base(shop: str) -> str:
+    """Base URL for a shareable catalogue link. Prefers the merchant's own storefront domain via
+    the App Proxy (theirbrand.com/a/catalogue), so a client never sees a Halia URL; falls back to
+    the Halia app URL when the store domain isn't known (or it's a non-Shopify tenant)."""
+    host = _primary_domain(shop)
+    if host:
+        return f"https://{host}/{config.PROXY_PREFIX}/{config.PROXY_SUBPATH}"
+    base = (config.HALIA_APP_URL or "").rstrip("/")
+    return f"{base}/catalog" if base else "/catalog"
+
+
 def catalog_url_for(shop: str) -> str:
     """The active catalog's public URL for {catalog_link}, or '' if none is set/generated."""
     cat = shop_store().active_catalog(shop)
     if not cat:
         return ""
-    base = (config.HALIA_APP_URL or "").rstrip("/")
-    return f"{base}/catalog/{cat['id']}.pdf" if base else f"/catalog/{cat['id']}.pdf"
+    return f"{catalog_share_base(shop)}/{cat['id']}.pdf"
+
+
+# ── shared serving (used by both the direct /catalog/… routes and the /proxy/catalogue/… routes
+#    that Shopify's App Proxy hits so the page shows on the merchant's own domain) ────────────────
+def _pdf_response(catalog_id: str):
+    pdf = shop_store().get_catalog_pdf(catalog_id)     # public: recipients open the link
+    if not pdf:
+        raise HTTPException(404, "Not found")
+    return Response(content=pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": 'inline; filename="catalogue.pdf"',
+                             "Cache-Control": "public, max-age=3600"})
+
+
+def _form_response(catalog_id: str, request: Request):
+    from fastapi.responses import HTMLResponse
+    from halia.catalog_form import catalog_form_html
+    cat = shop_store().get_catalog(catalog_id)
+    if not cat:
+        raise HTTPException(404, "Catalogue not found.")
+    cfg = json.loads(cat.get("config_json") or "{}")
+    shop = cat["shop"]
+    products = _resolve(shop, cfg.get("selection") or {})
+    prefill = {k: (request.query_params.get(k) or "")[:160] for k in ("name", "email", "phone")}
+    html = catalog_form_html(
+        {"name": cat["name"], "brand_color": cfg.get("brand_color"), "fields": cfg.get("fields")},
+        products, shop_name=_shop_display(shop), catalog_id=catalog_id,
+        enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill)
+    return HTMLResponse(html, headers={"Cache-Control": "no-store"})
+
+
+def _do_enquire(catalog_id: str, payload) -> dict:
+    """A recipient's enquiry: email the ticked products + their details to the merchant.
+    Zero-retention — nothing about the enquirer is stored."""
+    cat = shop_store().get_catalog(catalog_id)
+    if not cat:
+        raise HTTPException(404, "Catalogue not found.")
+    p = payload or {}
+    if str(p.get("company") or "").strip():        # honeypot — silently accept & drop bots
+        return {"ok": True}
+    name = str(p.get("name") or "").strip()[:120]
+    email = _clean_email(p.get("email"))
+    if not name or not email:
+        raise HTTPException(400, "Please add your name and a valid email.")
+    if not _enquiry_allowed(catalog_id, time.monotonic()):
+        raise HTTPException(429, "Too many enquiries just now. Please try again in a minute.")
+    phone = str(p.get("phone") or "").strip()[:60]
+    message = str(p.get("message") or "").strip()[:2000]
+    ids = {str(x) for x in (p.get("product_ids") or [])[:400]}
+    cfg = json.loads(cat.get("config_json") or "{}")
+    shop = cat["shop"]
+    picked = [pr for pr in _resolve(shop, cfg.get("selection") or {}) if pr["id"] in ids]
+    to = cfg.get("enquiry_email") or _default_enquiry_email(shop)
+    if not to:
+        raise HTTPException(400, "This catalogue has no enquiry address set.")
+    from halia.notify import send_email
+    ok = send_email(to, f"New catalogue enquiry from {name}",
+                    _enquiry_html(cat["name"], name, email, phone, message, picked),
+                    _enquiry_text(cat["name"], name, email, phone, message, picked),
+                    shop=shop, reply_to=email)   # hit Reply -> straight to the shopper
+    if not ok:
+        raise HTTPException(502, "Could not send the enquiry just now. Please try again.")
+    return {"ok": True}
 
 
 def register(app) -> None:
@@ -220,7 +314,7 @@ def register(app) -> None:
 
     @app.get("/v1/catalog/list")
     def catalog_list(shop: str = Depends(require_shop)) -> dict:
-        base = (config.HALIA_APP_URL or "").rstrip("/")
+        base = catalog_share_base(shop)   # merchant's own domain (App Proxy) when available
         out = []
         for c in shop_store().list_catalogs(shop):
             cfg = {}
@@ -231,7 +325,7 @@ def register(app) -> None:
             sel = cfg.get("selection", {}) or {}
             out.append({"id": c["id"], "name": c["name"], "active": bool(c["active"]),
                         "generated": bool(c.get("pdf_at")),
-                        "url": (f"{base}/catalog/{c['id']}.pdf" if c.get("pdf_at") else ""),
+                        "url": (f"{base}/{c['id']}.pdf" if c.get("pdf_at") else ""),
                         "count": len(sel.get("product_ids") or []),
                         "template": cfg.get("template", "grid"),
                         "columns": cfg.get("columns", 3),
@@ -242,7 +336,7 @@ def register(app) -> None:
                         "cover": cfg.get("cover", True),
                         "enquiry_email": cfg.get("enquiry_email", ""),
                         "enquire": cfg.get("enquire", True),
-                        "form_url": (f"{base}/catalog/{c['id']}" if base else f"/catalog/{c['id']}"),
+                        "form_url": f"{base}/{c['id']}",
                         "fields": _clean_fields(cfg.get("fields")),
                         "product_ids": sel.get("product_ids") or []})
         return {"catalogs": out}
@@ -344,69 +438,40 @@ def register(app) -> None:
         except PdfEngineUnavailable as exc:
             raise HTTPException(503, "The PDF engine is not available in this environment yet.") from exc
         shop_store().set_catalog_pdf(catalog_id, pdf)
-        base = (config.HALIA_APP_URL or "").rstrip("/")
-        return {"url": (f"{base}/catalog/{catalog_id}.pdf" if base else f"/catalog/{catalog_id}.pdf"),
-                "count": len(products)}
+        return {"url": f"{catalog_share_base(shop)}/{catalog_id}.pdf", "count": len(products)}
 
+    # ── Direct links (Halia domain) ──────────────────────────────────────────────────────────
     @app.get("/catalog/{catalog_id}.pdf")
     def catalog_pdf(catalog_id: str):
-        pdf = shop_store().get_catalog_pdf(catalog_id)     # public: recipients open the link
-        if not pdf:
-            raise HTTPException(404, "Not found")
-        return Response(content=pdf, media_type="application/pdf",
-                        headers={"Content-Disposition": 'inline; filename="catalogue.pdf"',
-                                 "Cache-Control": "public, max-age=3600"})
+        return _pdf_response(catalog_id)
 
     @app.get("/catalog/{catalog_id}")
     def catalog_form_page(catalog_id: str, request: Request):
         """Public, interactive version of the catalogue: tick products, submit an enquiry.
         ?name=&email=&phone= prefill the form so a personalised link is one tap to send."""
-        from fastapi.responses import HTMLResponse
-        from halia.catalog_form import catalog_form_html
-        cat = shop_store().get_catalog(catalog_id)
-        if not cat:
-            raise HTTPException(404, "Catalogue not found.")
-        cfg = json.loads(cat.get("config_json") or "{}")
-        shop = cat["shop"]
-        products = _resolve(shop, cfg.get("selection") or {})
-        prefill = {k: (request.query_params.get(k) or "")[:160] for k in ("name", "email", "phone")}
-        html = catalog_form_html(
-            {"name": cat["name"], "brand_color": cfg.get("brand_color"), "fields": cfg.get("fields")},
-            products, shop_name=_shop_display(shop), catalog_id=catalog_id,
-            enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill)
-        return HTMLResponse(html, headers={"Cache-Control": "no-store"})
+        return _form_response(catalog_id, request)
 
     @app.post("/catalog/{catalog_id}/enquire")
     def catalog_enquire(catalog_id: str, payload: Any = Body(...)) -> dict:
-        """A recipient's enquiry: email the ticked products + their details to the merchant.
-        Zero-retention — nothing about the enquirer is stored."""
-        cat = shop_store().get_catalog(catalog_id)
-        if not cat:
-            raise HTTPException(404, "Catalogue not found.")
-        p = payload or {}
-        if str(p.get("company") or "").strip():        # honeypot — silently accept & drop bots
-            return {"ok": True}
-        name = str(p.get("name") or "").strip()[:120]
-        email = _clean_email(p.get("email"))
-        if not name or not email:
-            raise HTTPException(400, "Please add your name and a valid email.")
-        if not _enquiry_allowed(catalog_id, time.monotonic()):
-            raise HTTPException(429, "Too many enquiries just now. Please try again in a minute.")
-        phone = str(p.get("phone") or "").strip()[:60]
-        message = str(p.get("message") or "").strip()[:2000]
-        ids = {str(x) for x in (p.get("product_ids") or [])[:400]}
-        cfg = json.loads(cat.get("config_json") or "{}")
-        shop = cat["shop"]
-        picked = [pr for pr in _resolve(shop, cfg.get("selection") or {}) if pr["id"] in ids]
-        to = cfg.get("enquiry_email") or _default_enquiry_email(shop)
-        if not to:
-            raise HTTPException(400, "This catalogue has no enquiry address set.")
-        from halia.notify import send_email
-        subject = f"New catalogue enquiry from {name}"
-        ok = send_email(to, subject,
-                        _enquiry_html(cat["name"], name, email, phone, message, picked),
-                        _enquiry_text(cat["name"], name, email, phone, message, picked),
-                        shop=shop, reply_to=email)   # hit Reply -> straight to the shopper
-        if not ok:
-            raise HTTPException(502, "Could not send the enquiry just now. Please try again.")
-        return {"ok": True}
+        return _do_enquire(catalog_id, payload)
+
+    # ── App-Proxy links (merchant's OWN storefront domain: theirbrand.com/a/catalogue/…). Shopify
+    #    forwards these here with a signed query string; we verify it before serving. Same content,
+    #    but the client only ever sees the merchant's brand, never a Halia URL. ────────────────────
+    @app.get("/proxy/catalogue/{catalog_id}.pdf")
+    def proxy_pdf(catalog_id: str, request: Request):
+        if not verify_app_proxy(request):
+            raise HTTPException(403, "Invalid app-proxy signature.")
+        return _pdf_response(catalog_id)
+
+    @app.get("/proxy/catalogue/{catalog_id}")
+    def proxy_form(catalog_id: str, request: Request):
+        if not verify_app_proxy(request):
+            raise HTTPException(403, "Invalid app-proxy signature.")
+        return _form_response(catalog_id, request)
+
+    @app.post("/proxy/catalogue/{catalog_id}/enquire")
+    def proxy_enquire(catalog_id: str, request: Request, payload: Any = Body(...)) -> dict:
+        if not verify_app_proxy(request):
+            raise HTTPException(403, "Invalid app-proxy signature.")
+        return _do_enquire(catalog_id, payload)

@@ -48,6 +48,13 @@ SHOPIFY_API_KEY = os.environ.get("SHOPIFY_API_KEY")
 SHOPIFY_API_SECRET = os.environ.get("SHOPIFY_API_SECRET")
 HALIA_APP_URL = os.environ.get("HALIA_APP_URL", "").rstrip("/")
 
+# Shopify App Proxy — serves the shareable catalogue under the merchant's OWN storefront domain
+# (theirbrand.com/<prefix>/<subpath>/…) so a client never sees a Halia URL. Must match the App
+# Proxy configured in the Shopify Dev Dashboard (Subpath prefix + Subpath; Proxy URL points at
+# {HALIA_APP_URL}/proxy/catalogue).
+PROXY_PREFIX = os.environ.get("HALIA_PROXY_PREFIX", "a").strip("/")
+PROXY_SUBPATH = os.environ.get("HALIA_PROXY_SUBPATH", "catalogue").strip("/")
+
 # Halia's own Brevo contact lists (NOT the merchant's audience — those are the CRM sinks).
 # Demo leads and new clients are auto-added to these so Brevo automations (demo nurture,
 # client welcome series) fire. IDs from Brevo → Contacts → Lists. Defaults match the
