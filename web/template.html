@@ -297,6 +297,15 @@
   .bbtn:hover{background:rgba(255,255,255,.2)}
   .bbtn.primary{background:var(--brand);}
   .bbtn.primary:hover{background:#27695b}
+  /* Shared button component (light surfaces): primary + ghost. Used by catalogues, CSV export. */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--brand-deep);
+    background:var(--brand-deep);color:#fff;font:inherit;font-weight:600;font-size:13px;padding:8px 14px;
+    border-radius:9px;cursor:pointer;white-space:nowrap;
+    transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease),color var(--dur) var(--ease)}
+  .btn:hover{background:var(--brand)}
+  .btn.ghost{background:var(--card);border-color:var(--line-strong);color:var(--ink)}
+  .btn.ghost:hover{border-color:#B9B5A9;background:var(--rowhover)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
   .bclear{background:none;border:0;color:#B9BBC0;cursor:pointer;font:inherit;font-size:18px;padding:4px 8px;border-radius:8px}
   .bclear:hover{color:#fff}
 
@@ -709,7 +718,7 @@
         <label class="push">Sort
           <select id="fSort"><option value="score">Score</option><option value="count">Signals</option><option value="latent">Latent value</option><option value="last">Last shopped</option></select>
         </label>
-        <button class="bbtn" id="csvbtn" title="Download the surfaced potential VICs as CSV">Download CSV</button>
+        <button class="btn ghost" id="csvbtn" title="Download the surfaced potential VICs as CSV"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>Download CSV</button>
       </div>
 
       <!-- table -->
