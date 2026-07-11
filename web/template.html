@@ -28,7 +28,13 @@
     --tierB:#5E6B74;
     --danger:#9A3838;
     --shadow:0 1px 2px rgba(26,28,34,.05),0 8px 24px rgba(26,28,34,.06);
+    --shadow-sm:0 1px 2px rgba(26,28,34,.06);
+    --shadow-hover:0 2px 4px rgba(26,28,34,.06),0 12px 30px rgba(26,28,34,.10);
     --shadow-lg:0 24px 64px rgba(20,28,26,.22);
+    /* one motion language across the whole app (P2 foundation) */
+    --ease:cubic-bezier(.2,.7,.2,1);
+    --dur:160ms;
+    --dur-slow:280ms;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -41,6 +47,34 @@
     line-height:1.45;
   }
   .mono{font-family:'Spline Sans Mono',monospace;font-feature-settings:"tnum" 1}
+
+  /* ---------- Catalogue cards ---------- */
+  .catcard{display:flex;align-items:center;gap:16px;padding:15px 17px;background:var(--card);
+    border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow-sm);margin-bottom:10px;
+    transition:box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease),transform var(--dur) var(--ease)}
+  .catcard:hover{box-shadow:var(--shadow-hover);border-color:var(--line-strong);transform:translateY(-1px)}
+  .catcard.active{border-color:var(--brand);box-shadow:inset 3px 0 0 var(--brand),var(--shadow-sm)}
+  .catcard-main{flex:1;min-width:0}
+  .catcard-name{display:flex;align-items:center;gap:9px;font-weight:600;font-size:14.5px;color:var(--ink);
+    letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .catcard-pill{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--brand);background:var(--brand-tint);border-radius:20px;padding:2px 9px}
+  .catcard-meta{display:flex;align-items:center;gap:7px;margin-top:4px;font-size:12.5px;color:var(--faint)}
+  .catcard-meta .rdy{display:inline-flex;align-items:center;gap:5px;color:var(--soft)}
+  .catcard-meta .rdy::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--brand)}
+  .catcard-meta .rdy.off::before{background:var(--line-strong)}
+  .catcard-meta .rdy.off{color:var(--faint)}
+  .catcard-actions{display:flex;align-items:center;gap:8px;flex:none;position:relative}
+  .catmenu-btn{padding:7px 11px;font-size:16px;line-height:1}
+  .catmenu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:184px;background:var(--card);
+    border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);overflow:hidden;z-index:40;padding:5px}
+  .catmenu.open{display:block}
+  .catmenu button,.catmenu a{display:flex;width:100%;align-items:center;gap:9px;padding:9px 11px;border:0;
+    background:none;font:inherit;font-size:13px;color:var(--ink);text-align:left;cursor:pointer;border-radius:7px;
+    text-decoration:none;transition:background var(--dur) var(--ease)}
+  .catmenu button:hover,.catmenu a:hover{background:var(--rowhover)}
+  .catmenu .sep{height:1px;background:var(--line);margin:5px 7px}
+  .catmenu .danger{color:var(--danger)}
 
   /* ---------- Shopify admin chrome ---------- */
   .admin{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
@@ -2715,26 +2749,41 @@ function catInit(force){
 }
 function catRenderList(cats){
   catState.cats=cats; const el=catRoot(); if(!el) return;
-  const rows=cats.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:12px 0;border-top:1px solid #eee;flex-wrap:wrap">
-    <div style="flex:1;min-width:160px"><div style="font:600 14px system-ui;color:#1a1712">${esc(c.name)} ${c.active?'<span style="color:#0f7b4f;font-size:12px">· active</span>':''}</div>
-      <div style="font:12.5px system-ui;color:#8a8a8a">${c.generated?('Generated · '+(c.count||0)+' products'):((c.count||0)+' products · not generated yet')}</div></div>
-    ${c.url?`<a href="${esc(c.url)}" target="_blank" class="btn ghost" style="padding:6px 12px">Open PDF</a>`:''}
-    ${c.url?`<button data-catcopy="${esc(c.url)}" class="btn ghost" style="padding:6px 12px">Copy PDF link</button>`:''}
-    ${c.form_url?`<a href="${esc(c.form_url)}" target="_blank" class="btn ghost" style="padding:6px 12px">Open form</a>`:''}
-    ${c.form_url?`<button data-catcopy="${esc(c.form_url)}" class="btn ghost" style="padding:6px 12px">Copy form link</button>`:''}
-    ${!c.active?`<button data-catactive="${c.id}" class="btn ghost" style="padding:6px 12px">Set active</button>`:''}
-    <button data-catedit="${c.id}" class="btn ghost" style="padding:6px 12px">Edit</button>
-    <button data-catdel="${c.id}" class="btn ghost" style="padding:6px 12px;color:#8e1f0b">Delete</button></div>`).join("");
-  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <div style="font:12px system-ui;color:#8a8a8a">${cats.length} catalogue${cats.length===1?'':'s'}</div>
+  const share=c=>c.form_url||c.url||"";                 // the link a merchant sends a client
+  const rows=cats.map(c=>{
+    const menu=[];
+    if(c.form_url)menu.push(`<a href="${esc(c.form_url)}" target="_blank">Open form</a>`);
+    if(c.url)menu.push(`<a href="${esc(c.url)}" target="_blank">Open PDF</a>`);
+    if(c.url)menu.push(`<button data-catcopy="${esc(c.url)}">Copy PDF link</button>`);
+    if(!c.active)menu.push(`<button data-catactive="${c.id}">Set as active</button>`);
+    menu.push('<div class="sep"></div>');
+    menu.push(`<button class="danger" data-catdel="${c.id}">Delete catalogue</button>`);
+    return `<div class="catcard${c.active?' active':''}">
+      <div class="catcard-main">
+        <div class="catcard-name">${esc(c.name)}${c.active?'<span class="catcard-pill">Active</span>':''}</div>
+        <div class="catcard-meta"><span>${(c.count||0)} product${c.count===1?'':'s'}</span>
+          ${c.form_url?'<span>·</span><span class="rdy">Link ready</span>':''}
+          <span>·</span><span class="rdy ${c.generated?'':'off'}">${c.generated?'PDF ready':'No PDF'}</span></div>
+      </div>
+      <div class="catcard-actions">
+        ${share(c)?`<button class="btn" data-catcopy="${esc(share(c))}" style="padding:7px 14px">Copy link</button>`:''}
+        <button class="btn ghost" data-catedit="${c.id}" style="padding:7px 13px">Edit</button>
+        <button class="btn ghost catmenu-btn" data-catmenu="${c.id}" aria-label="More actions">&#8943;</button>
+        <div class="catmenu" id="catmenu-${c.id}">${menu.join("")}</div>
+      </div></div>`;}).join("");
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:12.5px;color:var(--faint);font-weight:600;letter-spacing:.03em">${cats.length} catalogue${cats.length===1?'':'s'}</div>
       <button id="catNew" class="btn" style="padding:8px 16px">+ New catalogue</button></div>
-    ${rows||'<div style="color:#8a8a8a;font:13.5px system-ui;padding:14px 0">No catalogues yet. Create one to get started.</div>'}`;
+    ${rows||'<div style="color:var(--faint);font-size:13.5px;padding:24px 0;text-align:center">No catalogues yet. Create one to share a curated selection with a client.</div>'}`;
   document.getElementById("catNew").onclick=()=>catOpenBuilder(null);
   el.querySelectorAll("[data-catedit]").forEach(b=>b.onclick=()=>{const c=catState.cats.find(x=>x.id===b.dataset.catedit);if(c)catOpenBuilder(c);});
   el.querySelectorAll("[data-catdel]").forEach(b=>b.onclick=()=>catDelete(b.dataset.catdel));
   el.querySelectorAll("[data-catactive]").forEach(b=>b.onclick=()=>catActivate(b.dataset.catactive));
-  el.querySelectorAll("[data-catcopy]").forEach(b=>b.onclick=()=>{copyText(b.dataset.catcopy);toast("Catalogue link copied.");});
+  el.querySelectorAll("[data-catcopy]").forEach(b=>b.onclick=()=>{copyText(b.dataset.catcopy);toast(b.classList.contains("btn")&&!b.classList.contains("ghost")?"Catalogue link copied. Paste it to your client.":"Link copied.");catCloseMenus();});
+  el.querySelectorAll("[data-catmenu]").forEach(b=>b.onclick=e=>{e.stopPropagation();const m=document.getElementById("catmenu-"+b.dataset.catmenu);const open=m.classList.contains("open");catCloseMenus();if(!open)m.classList.add("open");});
 }
+function catCloseMenus(){document.querySelectorAll(".catmenu.open").forEach(m=>m.classList.remove("open"));}
+if(!window._catMenuWired){window._catMenuWired=true;document.addEventListener("click",catCloseMenus);}
 function catOpenBuilder(c){
   const tpl=(c&&c.template)||"grid";
   catState.editing=c?c.id:null; catState.name=c?c.name:""; catState.subtitle=(c&&c.subtitle)||"";
