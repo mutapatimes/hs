@@ -90,6 +90,13 @@
     background-size:220% 100%;animation:shim 1.05s linear infinite}
   @keyframes shim{to{background-position:-220% 0}}
 
+  /* ---------- Skeleton loaders (calm shimmer, never a spinner) ---------- */
+  @keyframes skelsheen{to{background-position:-160% 0}}
+  .skel{background:linear-gradient(90deg,var(--line) 8%,#EFEEE9 24%,var(--line) 40%);
+    background-size:220% 100%;animation:skelsheen 1.25s linear infinite;border-radius:8px}
+  .skcard{height:72px;margin-bottom:10px;border-radius:13px}
+  .sktile{height:0;padding-bottom:120%;border-radius:12px}
+
   /* ---------- Shopify admin chrome ---------- */
   .admin{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
   .topbar{
@@ -137,10 +144,10 @@
 
   /* stat strip */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 8px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s}
-  .stat:hover{transform:translateY(-1px);box-shadow:0 2px 4px rgba(26,28,34,.06),0 14px 32px rgba(26,28,34,.09)}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow);transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
+  .stat:hover{transform:translateY(-1px);box-shadow:var(--shadow-hover)}
   .stat .k{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);font-weight:600}
-  .stat .v{font-family:'Fraunces',serif;font-weight:500;font-size:25px;margin-top:7px;letter-spacing:-.01em}
+  .stat .v{font-family:'Fraunces',serif;font-weight:500;font-size:25px;margin-top:7px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
   .stat .n{font-size:12px;color:var(--soft);margin-top:3px}
   .stat .n.up{color:var(--brand)}
   .stat.hero{background:linear-gradient(160deg,#163b33,#1f564a);border-color:transparent;color:#EAF1EE}
@@ -154,7 +161,7 @@
   .chip{
     border:1px solid var(--line-strong);background:var(--card);color:var(--soft);
     padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;cursor:pointer;
-    transition:all .15s;white-space:nowrap
+    transition:all var(--dur) var(--ease);white-space:nowrap
   }
   .chip:hover{border-color:#B9B5A9;color:var(--ink)}
   .chip.on{background:var(--brand-deep);border-color:var(--brand-deep);color:#fff}
@@ -205,12 +212,12 @@
   }
   .thead .sortable{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
   .thead .sortable.act{color:var(--brand)}
-  .thead .sortable svg{transition:transform .18s}
+  .thead .sortable svg{transition:transform var(--dur) var(--ease)}
   .thead .sortable.act.asc svg{transform:rotate(180deg)}   /* caret points up when ascending */
   .row{
     display:grid;grid-template-columns:34px 56px 1fr 132px 120px 92px 96px;
     gap:14px;padding:15px 18px;border-bottom:1px solid var(--line);align-items:center;cursor:pointer;
-    transition:background .12s
+    transition:background var(--dur) var(--ease)
   }
   .last-cell{font-size:12.5px;color:var(--soft);font-weight:500}
   .selall{cursor:pointer}
@@ -230,7 +237,7 @@
   .row:last-child{border-bottom:0}
   .row:hover{background:var(--rowhover)}
   .row.sel{background:var(--brand-tint)}
-  .cbx{width:18px;height:18px;border:1.5px solid var(--line-strong);border-radius:5px;display:grid;place-items:center;background:#fff;transition:all .12s}
+  .cbx{width:18px;height:18px;border:1.5px solid var(--line-strong);border-radius:5px;display:grid;place-items:center;background:#fff;transition:all var(--dur) var(--ease)}
   .cbx.on{background:var(--brand);border-color:var(--brand)}
   .cbx svg{opacity:0}
   .cbx.on svg{opacity:1}
@@ -285,7 +292,7 @@
   .bulk .acts{display:flex;gap:8px}
   .bbtn{
     border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;font-weight:600;font-size:13px;
-    padding:8px 13px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:background .14s
+    padding:8px 13px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:background var(--dur) var(--ease)
   }
   .bbtn:hover{background:rgba(255,255,255,.2)}
   .bbtn.primary{background:var(--brand);}
@@ -380,7 +387,7 @@
   :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
   /* view tabs + Orders view */
   .views{display:inline-flex;gap:4px;background:var(--shell);border:1px solid var(--line);border-radius:12px;padding:4px;margin:0 0 18px}
-  .vtab{border:none;background:transparent;font:600 13px 'Hanken Grotesk',sans-serif;color:var(--soft);padding:8px 18px;border-radius:9px;cursor:pointer;transition:color .15s,background .15s}
+  .vtab{border:none;background:transparent;font:600 13px 'Hanken Grotesk',sans-serif;color:var(--soft);padding:8px 18px;border-radius:9px;cursor:pointer;transition:color var(--dur) var(--ease),background var(--dur) var(--ease)}
   .vtab:hover{color:var(--ink)}
   .vtab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .othead{grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px}
@@ -423,7 +430,7 @@
   .pnav{display:flex;align-items:center;gap:8px}
   .ppage{font-size:12.5px;color:var(--faint);white-space:nowrap;min-width:96px;text-align:center}
   .pbtn{border:1px solid var(--line-strong);background:var(--card);color:var(--ink);font:inherit;font-weight:600;
-    font-size:13px;padding:7px 13px;border-radius:9px;cursor:pointer;transition:all .14s;white-space:nowrap}
+    font-size:13px;padding:7px 13px;border-radius:9px;cursor:pointer;transition:all var(--dur) var(--ease);white-space:nowrap}
   .pbtn:hover:not(:disabled){border-color:#B9B5A9;background:var(--rowhover)}
   .pbtn:disabled{opacity:.4;cursor:default}
   .ocheck{display:flex;align-items:center;gap:8px;cursor:pointer}
@@ -489,11 +496,11 @@
   .mapwrap{position:relative;width:100%;background:linear-gradient(180deg,#f7f6f2,#eef0ec);border-radius:12px;overflow:hidden}
   .mapwrap svg{display:block;width:100%;height:auto}
   .land{fill:#e3e6df;stroke:#cfd3ca;stroke-width:1;stroke-linejoin:round}
-  .bub{fill:rgba(31,86,74,.55);stroke:#fff;stroke-width:1.2;cursor:pointer;transition:fill .15s}
+  .bub{fill:rgba(31,86,74,.55);stroke:#fff;stroke-width:1.2;cursor:pointer;transition:fill var(--dur) var(--ease)}
   .bub:hover{fill:rgba(20,58,50,.85)}
   .bub.g{fill:rgba(166,124,52,.62)}
   .bub.g:hover{fill:rgba(166,124,52,.9)}
-  .maptip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;padding:7px 10px;border-radius:9px;opacity:0;transform:translate(-50%,-124%);transition:opacity .12s;white-space:nowrap;z-index:5;box-shadow:0 8px 22px -8px rgba(0,0,0,.4)}
+  .maptip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;padding:7px 10px;border-radius:9px;opacity:0;transform:translate(-50%,-124%);transition:opacity var(--dur) var(--ease);white-space:nowrap;z-index:5;box-shadow:0 8px 22px -8px rgba(0,0,0,.4)}
   .maptip b{font-family:'Spline Sans Mono',monospace}
   .maplgd{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 2px 0;font-size:12px;color:var(--soft)}
   .maplgd .bd{display:inline-flex;align-items:center;gap:7px}
@@ -1773,7 +1780,7 @@ function lastActivity(card){const a=(card&&card.activity)||[];if(!a.length)retur
 function timeAgo(iso){if(!iso)return"";const d=Math.floor((Date.now()-new Date(iso).getTime())/1000);
   if(d<60)return"just now";if(d<3600)return Math.floor(d/60)+"m ago";if(d<86400)return Math.floor(d/3600)+"h ago";
   return Math.floor(d/86400)+"d ago";}
-function renderBoard(){const el=document.getElementById("boardRoot");if(el)el.innerHTML='<div class="kbnote">Loading…</div>';boardLoad(true,_renderBoardNow);}
+function renderBoard(){const el=document.getElementById("boardRoot");if(el)el.innerHTML='<div style="display:flex;gap:14px;padding:2px">'+Array.from({length:4},()=>'<div class="skel" style="flex:1;height:340px;border-radius:14px"></div>').join('')+'</div>';boardLoad(true,_renderBoardNow);}
 function _renderBoardNow(){
   const el=document.getElementById("boardRoot");if(!el)return;
   if(!BOARD.available){el.innerHTML='<div class="kbnote">The outreach pipeline is available for Shopify stores with write-back enabled.<br>Add clients to it from the <b>Pipeline</b> button on any client.</div>';return;}
@@ -2821,11 +2828,13 @@ const catState={loaded:false,editing:null,name:"",subtitle:"",logo:"",template:"
   selected:new Set(),order:[],prodInfo:{},filteredIds:[],page:1,pages:1,total:0,allTotal:0,search:"",fCol:"",fTag:"",fVendor:"",fSize:"",
   facets:{collections:[],tags:[],vendors:[]},items:[],cats:[]};
 function catRoot(){return document.getElementById("catalogsRoot");}
+function skelHTML(n,cls){return Array.from({length:n},()=>`<div class="skel ${cls}"></div>`).join("");}
 function catInit(force){
   if(catState.loaded && !force) return;
   catState.loaded=true;
+  const el0=catRoot(); if(el0 && !(catState.cats && catState.cats.length)) el0.innerHTML=`<div style="height:34px"></div>${skelHTML(3,"skcard")}`;
   fetch("/v1/catalog/list").then(r=>r.ok?r.json():Promise.reject(r.status)).then(d=>catRenderList(d.catalogs||[]))
-    .catch(()=>{const el=catRoot();if(el)el.innerHTML='<div style="color:#8a8a8a;font:13.5px system-ui">Catalogues become available once your Shopify store is connected.</div>';});
+    .catch(()=>{const el=catRoot();if(el)el.innerHTML='<div style="color:var(--soft);font-size:13.5px">Catalogues become available once your Shopify store is connected.</div>';});
 }
 function catRenderList(cats){
   catState.cats=cats; const el=catRoot(); if(!el) return;
@@ -2911,7 +2920,7 @@ function catRenderBuilder(){
         <div><b id="catSelCount">${catState.selected.size}</b> selected</div>
       </div>
       <div id="catOrder" style="max-height:280px;overflow-y:auto;margin-bottom:12px"></div>
-      <div id="catProducts" style="min-height:120px"><div style="color:#8a8a8a;font:13px system-ui">Loading products…</div></div>
+      <div id="catProducts" style="min-height:120px"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px">${skelHTML(8,"sktile")}</div></div>
       <div id="catPager" style="display:flex;justify-content:center;gap:8px;margin-top:12px"></div>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:4px">
