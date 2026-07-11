@@ -351,6 +351,10 @@
   .evi .evb{min-width:0}
   .evi .evdt{font-size:13px;color:var(--ink);line-height:1.35;word-break:break-word}
   .evi .evwy{font-size:11.5px;color:var(--soft);line-height:1.4;margin-top:2px}
+  .evgrp .evstr{height:3px;border-radius:3px;background:var(--line);margin:9px 0 1px;overflow:hidden}
+  .evgrp .evstr-fill{display:block;height:100%;width:var(--w,50%);border-radius:3px;opacity:.85}
+  @keyframes barfill{from{width:0}}
+  @keyframes evrow{from{opacity:0;transform:translateX(7px)}}
 
   .reco{background:#fff;border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:12px;padding:14px 16px;margin-bottom:22px}
   .reco .k{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:6px}
@@ -1959,15 +1963,22 @@ function evidenceHTML(signals){
   if(!signals||!signals.length) return "";
   const groups={};
   signals.forEach(s=>{const c=SIG_CAT[s.seg]||"other";(groups[c]||(groups[c]=[])).push(s);});
+  // The evidence resolves top-to-bottom on open: each group settles in, its
+  // corroboration bar fills (more tells = fuller), then its tells arrive in turn.
+  // Pure CSS animation (auto-disabled under prefers-reduced-motion), so no timers.
+  let d=0; const STEP=58;
   return CAT_ORDER.filter(c=>groups[c]).map(c=>{
-    const meta=CATS[c],items=groups[c];
-    const tag=items.length>1?`${items.length} tells &middot; corroborating`:"1 tell";
-    const rows=items.map(s=>{const why=SIG_WHY[s.seg]||"";
-      return `<div class="evi"><span class="evtag">${esc(_sigName(s))}</span>
+    const meta=CATS[c],items=groups[c],tells=items.length;
+    const tag=tells>1?`${tells} tells &middot; corroborating`:"1 tell";
+    const strength=Math.min(1,0.42+0.29*(tells-1));   // corroboration → bar fill (real tell count)
+    const gd=d; d+=STEP;
+    const rows=items.map(s=>{const why=SIG_WHY[s.seg]||"";const rd=d;d+=STEP;
+      return `<div class="evi" style="animation:evrow var(--dur) var(--ease) ${rd}ms both"><span class="evtag">${esc(_sigName(s))}</span>
         <div class="evb"><div class="evdt">${esc(_sigDetail(s))||"&mdash;"}</div>${why?`<div class="evwy">${why}</div>`:""}</div></div>`;
     }).join("");
-    return `<div class="evgrp">
+    return `<div class="evgrp" style="animation:settle var(--dur) var(--ease) ${gd}ms both">
       <div class="gh"><span class="gic" style="background:${meta.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">${_ICON[c]}</svg></span>${meta.t}<span class="ct">${tag}</span></div>
+      <div class="evstr"><span class="evstr-fill" style="--w:${(strength*100).toFixed(0)}%;background:${meta.c};animation:barfill var(--dur-slow) var(--ease) ${gd+50}ms both"></span></div>
       ${meta.d?`<div class="gd">${meta.d}</div>`:""}${rows}</div>`;
   }).join("");
 }
