@@ -76,6 +76,20 @@
   .catmenu .sep{height:1px;background:var(--line);margin:5px 7px}
   .catmenu .danger{color:var(--danger)}
 
+  /* ---------- "Alive engine" reveal ---------- */
+  @keyframes rowin{from{opacity:0;transform:translateY(7px)}}
+  @keyframes ringdraw{from{stroke-dashoffset:125.66px}}
+  @keyframes settle{from{opacity:0;transform:translateY(6px) scale(.985)}}
+  .rescore{border:0;background:none;color:var(--brand);font:inherit;font-weight:600;cursor:pointer;padding:0;
+    text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px;
+    transition:color var(--dur) var(--ease)}
+  .rescore:hover{color:var(--brand-deep)}
+  .live.analysing .pulse{animation-duration:.9s}
+  .live .shim{-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:600;
+    background-image:linear-gradient(90deg,var(--faint) 20%,var(--ink) 50%,var(--faint) 80%);
+    background-size:220% 100%;animation:shim 1.05s linear infinite}
+  @keyframes shim{to{background-position:-220% 0}}
+
   /* ---------- Shopify admin chrome ---------- */
   .admin{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
   .topbar{
@@ -562,7 +576,7 @@
           <p class="sub">High-potential clients your spend thresholds miss, surfaced from how they already buy and where they ship.</p>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
-          <div class="live"><span class="pulse"></span> Scored from your data · <span class="mono">__STAT_SCORED__</span> customers</div>
+          <div class="live"><span class="pulse"></span> Scored from your data · <span class="mono">__STAT_SCORED__</span> customers · <button class="rescore" id="rescore">Re-score</button></div>
           <div style="display:flex;gap:8px;position:relative">
             <button class="dbtn" id="alertsBell" style="border:1px solid var(--line);background:#fff;position:relative;display:none">🔔 Alerts<span id="alertsCount" style="display:none;position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#1f564a;color:#fff;font:700 11px/18px system-ui;text-align:center"></span></button>
             <button class="dbtn" id="openSettings" style="border:1px solid var(--line);background:#fff">⚙ Settings</button>
@@ -885,14 +899,68 @@ document.getElementById("fMin").onchange=e=>{minSignals=+e.target.value;page=1;r
 document.getElementById("fSort").onchange=e=>{sortKey=e.target.value;sortDir="desc";page=1;setSort();};
 wireDate("c", CDATE, ()=>{page=1;renderRows();});
 
-function meterSvg(score,tier){
+// ---- "Alive engine" reveal: score rings sweep, numbers tabulate, rows arrive in sequence.
+// Fires ONCE when a scored view (overview / clients) first paints, and again on Re-score.
+// Everything is gated on MOTION_OK so reduced-motion users (and headless tests) get final
+// values instantly, never a half-drawn frame.
+const MOTION_OK = !!(typeof window!=="undefined" && window.requestAnimationFrame)
+  && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches);
+let PENDING_REVEAL = true;   // haven't shown the first scoring reveal yet
+let REVEAL_ACTIVE = false;   // is the render happening right now a reveal render
+let CURRENT_VIEW = "overview";
+function beginReveal(){ if(PENDING_REVEAL && MOTION_OK){ PENDING_REVEAL=false; REVEAL_ACTIVE=true; return true; } PENDING_REVEAL=false; return false; }
+const _nowMs = ()=> (window.performance && performance.now) ? performance.now() : Date.now();
+// Count an element from 0 up to `target`, formatting each frame; lands EXACTLY on its prior text.
+function countUp(el, target, fmt, dur){
+  if(!el) return; const finalText = el.textContent;
+  if(!MOTION_OK){ el.textContent = finalText; return; }
+  const t0=_nowMs(); dur=dur||700;
+  el.textContent = fmt(0);
+  (function step(){ const p=Math.min(1,(_nowMs()-t0)/dur); const e=1-Math.pow(1-p,3);
+    el.textContent = p<1 ? fmt(target*e) : finalText;
+    if(p<1) requestAnimationFrame(step); })();
+}
+function revealStats(){                     // the four headline KPIs, tabulating from data
+  if(!REVEAL_ACTIVE) return;
+  const int=v=>Math.round(v).toLocaleString("en-GB");
+  const latent=DATA.reduce((s,c)=>s+c.latent,0);
+  const spend=DATA.reduce((s,c)=>s+c.spend,0);
+  const top=DATA.filter(c=>c.grade==="A*"||c.grade==="A").length;
+  countUp(document.getElementById("statLatent"), latent, fmtBig, 780);
+  countUp(document.getElementById("statAvg"), DATA.length?spend/DATA.length:0, fmtBig, 780);
+  countUp(document.getElementById("statTopTier"), top, int, 640);
+  countUp(document.getElementById("statCount"), DATA.length, int, 640);
+}
+// Stagger already-rendered children of a container into view.
+function staggerIn(el, step){
+  if(!REVEAL_ACTIVE || !MOTION_OK || !el) return;
+  [...el.children].forEach((ch,i)=>{ ch.style.animation=`settle var(--dur) var(--ease) ${i*(step||40)}ms both`; });
+}
+const SIG_VOCAB = (typeof SEGMENTS==="object" && SEGMENTS) ? Object.keys(SEGMENTS).length : 9;
+function rescore(){
+  const live=document.querySelector(".live"); if(!live) return;
+  const orig=live.getAttribute("data-orig")||live.innerHTML;
+  live.setAttribute("data-orig",orig);
+  const n=DATA.length.toLocaleString("en-GB");
+  const finish=()=>{ live.classList.remove("analysing"); live.innerHTML=orig; wireRescore();
+    PENDING_REVEAL=true; showView(CURRENT_VIEW); };
+  if(!MOTION_OK){ finish(); return; }
+  live.classList.add("analysing");
+  live.innerHTML=`<span class="pulse"></span> <span class="shim">Analysing ${n} clients across ${SIG_VOCAB} signals…</span>`;
+  setTimeout(finish, 1150);
+}
+function wireRescore(){ const b=document.getElementById("rescore"); if(b) b.onclick=e=>{e.preventDefault();rescore();}; }
+
+function meterSvg(score,tier,reveal,delay){
   const r=20,c=2*Math.PI*r,off=c*(1-score/100);
   const col = tier==="A1"?"var(--gold)":tier==="A"?"var(--brand)":tier==="B"?"var(--tierB)":"var(--faint)";
+  const sweep = reveal ? ` style="animation:ringdraw var(--dur-slow) var(--ease) ${delay||0}ms both"` : "";
+  const numAnim = reveal ? ` style="animation:settle var(--dur) var(--ease) ${(delay||0)+70}ms both"` : "";
   return `<div class="meter"><svg width="46" height="46" viewBox="0 0 46 46">
     <circle cx="23" cy="23" r="${r}" fill="none" stroke="var(--line)" stroke-width="4"/>
     <circle cx="23" cy="23" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round"
-      stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
-  </svg><div class="num">${score}</div></div>`;
+      stroke-dasharray="${c}" stroke-dashoffset="${off}"${sweep}/>
+  </svg><div class="num"${numAnim}>${score}</div></div>`;
 }
 
 // ---- Date-range filter (Clients: last-shopped; Orders: order date) ----
@@ -1028,8 +1096,10 @@ function renderClientSum(full){
   el.innerHTML = `<span class="csm lead">Grade mix</span>${grades}${area}`;
 }
 function renderRows(){
+  const rv = REVEAL_ACTIVE;              // capture: this render is (or isn't) a scoring reveal
   const full = visible();
   updateStats(full);
+  if(rv) revealStats();
   renderClientSum(full);
   updateSelAll(full);
   const pages = Math.max(1, Math.ceil(full.length/PAGE_SIZE));
@@ -1044,7 +1114,7 @@ function renderRows(){
   }
   rowsEl.innerHTML = list.map((c,i)=>{
     const sigChips = catChips(c.signals);
-    return `<div class="row ${selected.has(c.id)?'sel':''}" data-id="${c.id}">
+    return `<div class="row ${selected.has(c.id)?'sel':''}" data-id="${c.id}"${rv?` style="animation:rowin var(--dur) var(--ease) ${i*22}ms both"`:""}>
       <div class="cbx ${selected.has(c.id)?'on':''}" data-cbx="${c.id}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></div>
       <div class="rank">${String(start+i+1).padStart(2,"0")}</div>
       <div class="client">
@@ -1055,7 +1125,7 @@ function renderRows(){
           <div class="csignals">${sigChips}</div>
         </div>
       </div>
-      <div class="score">${meterSvg(c.score,c.tier)}<span class="tier ${c.tier}">${tierLabel(c.tier)}</span></div>
+      <div class="score">${meterSvg(c.score,c.tier,rv,i*22)}<span class="tier ${c.tier}">${tierLabel(c.tier)}</span></div>
       <div class="money latent spend-cell">
         <div class="big">${gbpK(c.latent)}</div><div class="lbl">latent · ${gbp(c.spend)} now</div>
       </div>
@@ -1598,14 +1668,20 @@ function updateAreaBanner(){
 }
 
 function renderOverview(){
-  renderDonut(document.getElementById("ovDonut"),DATA);
+  const rv=REVEAL_ACTIVE;
+  if(rv) revealStats();                       // headline KPIs tabulate up from the data
+  const donut=document.getElementById("ovDonut");
+  renderDonut(donut,DATA);
+  if(rv && MOTION_OK && donut) donut.style.animation="settle var(--dur-slow) var(--ease) both";
   renderLatentBars(document.getElementById("ovLatent"),DATA);
   renderSignalBars(document.getElementById("ovSignals"));
   renderSpark(document.getElementById("ovSpark"),DATA);
   const areas=buildMap(document.getElementById("ovMapWrap"),filterToArea);
   const mapped=areas.reduce((s,a)=>s+a.n,0);
   document.getElementById("ovMapHint").textContent=areas.length?`${mapped} located · ${areas.length} area${areas.length===1?"":"s"}`:"";
-  renderTopList(document.getElementById("ovTop"));
+  const top=document.getElementById("ovTop");
+  renderTopList(top);
+  if(rv) staggerIn(top,55);                    // the top clients arrive one after another
   renderOpenBaskets();
 }
 // Open baskets = clients with an unpaid checkout (abandoned checkout / cart). A timely,
@@ -1641,6 +1717,9 @@ const PAGE_META={
   catalogs:{t:"Catalogues",s:"Turn your products into a print-ready PDF and a shareable enquiry form, then send it to clients."}
 };
 function showView(v){
+  CURRENT_VIEW=v;
+  REVEAL_ACTIVE=false;
+  if(v==="overview"||v==="clients") beginReveal();   // reveal the first time a scored view paints
   document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("on",x.dataset.view===v));
   [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"],["catalogs","viewCatalogs"]].forEach(([k,id])=>{
     const el=document.getElementById(id);if(el)el.style.display=k===v?"":"none";});
@@ -1668,6 +1747,7 @@ function showView(v){
     statsEl.style.display="none";
     renderMap();
   }
+  REVEAL_ACTIVE=false;   // reveal styles are baked into this render; later re-renders are static
 }
 document.querySelectorAll(".vtab").forEach(t=>t.onclick=()=>showView(t.dataset.view));
 
@@ -3112,7 +3192,7 @@ function showFirstRun(){
 }
 
 if(!DATA.length){ showFirstRun(); }
-else { renderChips();renderRows();showView("overview"); }
+else { renderChips();renderRows();showView("overview");wireRescore(); }
 loadSettings().then(s=>{ if(!s.klaviyo_connected&&!s.mailchimp_connected) showConnectBanner(); initAlerts(s); refreshIntegrationUI(); });
 
 // Live high-grade order alerts (in-dashboard feed + desktop notifications).
