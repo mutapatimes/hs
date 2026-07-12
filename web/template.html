@@ -836,6 +836,17 @@ const DATA = __DATA__;
 const ORDERS = __ORDERS__;
 const PLATFORM = "__PLATFORM__";         // shopify | woocommerce | bigcommerce | centra | scayle
 const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce:"BigCommerce",centra:"Centra",scayle:"SCAYLE"})[PLATFORM] || "your store";
+// Embedded (Shopify admin) only: keep the admin sidebar nav (ui-nav-menu) and the app in sync
+// via ?view=. Deep-links open on the right section; App Bridge highlights the active item.
+const EMBEDDED = !!document.querySelector('meta[name="shopify-api-key"]');
+const NAV_VIEWS = ["overview","clients","orders","map","board","catalogs"];
+function viewFromUrl(){const v=new URLSearchParams(location.search).get("view");return NAV_VIEWS.includes(v)?v:"overview";}
+function syncUrl(v){                      // reflect the current view in the URL (keeps host/embedded params)
+  if(!EMBEDDED) return;
+  try{const u=new URL(location.href);
+    if(v==="overview")u.searchParams.delete("view");else u.searchParams.set("view",v);
+    history.replaceState({},"",u.pathname+u.search+u.hash);}catch(_){}
+}
 const FULL_HISTORY = __FULL_HISTORY__;   // false -> un-upgraded tenant, lock date ranges beyond 30 days
 const DR_LOCKED = new Set(["ytd","1y","all"]);   // presets that require the paid full-history unlock
 const LOCKED_COUNT = __LOCKED_COUNT__;   // clients held back by the 30-day paywall
@@ -1740,6 +1751,7 @@ const PAGE_META={
 };
 function showView(v){
   CURRENT_VIEW=v;
+  syncUrl(v);                                        // keep the admin sidebar nav + URL in step
   REVEAL_ACTIVE=false;
   if(v==="overview"||v==="clients") beginReveal();   // reveal the first time a scored view paints
   document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("on",x.dataset.view===v));
@@ -3223,7 +3235,9 @@ function showFirstRun(){
 }
 
 if(!DATA.length){ showFirstRun(); }
-else { renderChips();renderRows();showView("overview");wireRescore(); }
+else { renderChips();renderRows();showView(viewFromUrl());wireRescore();
+  // App Bridge nav (or back/forward) changes ?view without a reload -> follow it.
+  addEventListener("popstate",()=>{const v=viewFromUrl();if(v!==CURRENT_VIEW)showView(v);}); }
 loadSettings().then(s=>{ if(!s.klaviyo_connected&&!s.mailchimp_connected) showConnectBanner(); initAlerts(s); refreshIntegrationUI(); });
 
 // Live high-grade order alerts (in-dashboard feed + desktop notifications).

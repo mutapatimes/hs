@@ -39,6 +39,21 @@ _HEAD = (
     "document.body.appendChild(b)}});</script>"
 )
 
+# App Bridge admin sidebar nav. The app name (rendered by Shopify) links home -> "/" (Overview),
+# so the home link is present only to satisfy App Bridge and is hidden from the menu. Each item
+# deep-links to a view via ?view=; the dashboard reads it on load (and App Bridge highlights the
+# active item). Order = by importance. Labels are short nouns, matching the in-app tab titles.
+_NAV_MENU = (
+    "<ui-nav-menu>"
+    '<a href="/" rel="home">Halia</a>'
+    '<a href="/?view=clients">Clients</a>'
+    '<a href="/?view=catalogs">Catalogues</a>'
+    '<a href="/?view=board">Pipeline</a>'
+    '<a href="/?view=orders">Orders</a>'
+    '<a href="/?view=map">Map</a>'
+    "</ui-nav-menu>"
+)
+
 _OPEN_FROM_ADMIN = (
     "<!doctype html><meta charset=utf-8><title>Halia</title>"
     "<body style='font:16px system-ui;padding:48px;color:#1c1b18'>"
@@ -96,7 +111,7 @@ def register(app) -> None:
         head = _head()
         try:
             entry = cache.get(shop) or data.sync_shop_authed(shop, session_token)
-            body = render_payload(entry["payload"], head_extra=head)
+            body = render_payload(entry["payload"], head_extra=head, body_extra=_NAV_MENU)
         except Exception as exc:
             # Log the exception TYPE only (safe — never customer data) so the operator can tell
             # which stage failed: ShopifyAuthError=token/scopes, ShopifyError=fetch, HTTPException
