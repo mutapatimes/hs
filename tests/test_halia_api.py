@@ -91,6 +91,17 @@ def test_public_pages_carry_social_meta(path):
     assert "https://haliascore.com" in html
 
 
+def test_embedded_section_routes_are_wired():
+    """The admin sidebar deep-links (/view/<section>) must resolve to the dashboard handler, not
+    404. Unauthenticated they fall back to the same marketing surface as "/" — that's enough to
+    prove the route exists and delegates (a missing route would 404)."""
+    c = TestClient(app)
+    assert c.get("/").status_code == 200
+    for path in ("/view/clients", "/view/catalogues", "/view/pipeline",
+                 "/view/orders", "/view/map", "/view/settings"):
+        assert c.get(path).status_code == 200, path
+
+
 def test_delete_account_wipes_and_signs_out(client):
     # Precondition: the tenant has cached results and can read them.
     assert client.get("/v1/hidden-vics", params={"limit": 5}).status_code == 200

@@ -41,16 +41,19 @@ _HEAD = (
 
 # App Bridge admin sidebar nav. The app name (rendered by Shopify) links home -> "/" (Overview),
 # so the home link is present only to satisfy App Bridge and is hidden from the menu. Each item
-# deep-links to a view via ?view=; the dashboard reads it on load (and App Bridge highlights the
-# active item). Order = by importance. Labels are short nouns, matching the in-app tab titles.
+# uses a DISTINCT path (/app/<section>) — App Bridge highlights the active item by pathname, so
+# query-string-only links (all "/") can't be told apart and the highlight sticks. The dashboard
+# maps the path to a view on load and keeps it in step. Order = by importance; labels are short
+# nouns matching the in-app tab titles.
 _NAV_MENU = (
     "<ui-nav-menu>"
     '<a href="/" rel="home">Halia</a>'
-    '<a href="/?view=clients">Clients</a>'
-    '<a href="/?view=catalogs">Catalogues</a>'
-    '<a href="/?view=board">Pipeline</a>'
-    '<a href="/?view=orders">Orders</a>'
-    '<a href="/?view=map">Map</a>'
+    '<a href="/view/clients">Clients</a>'
+    '<a href="/view/catalogues">Catalogues</a>'
+    '<a href="/view/pipeline">Pipeline</a>'
+    '<a href="/view/orders">Orders</a>'
+    '<a href="/view/map">Map</a>'
+    '<a href="/view/settings">Settings</a>'
     "</ui-nav-menu>"
 )
 
@@ -98,8 +101,10 @@ def _error_page(head: str) -> str:
 def register(app) -> None:
     """Mount the embedded entry + per-shop API routes onto the FastAPI app."""
 
-    @app.get("/", response_class=HTMLResponse)
-    def home(request: Request):
+    def _serve_dashboard(request: Request):
+        """Authenticate the embedded request and render the dashboard. Shared by "/" and the
+        /app/<section> deep-link routes (the admin sidebar nav) — all serve the same SPA; the
+        client reads the path to open the right section."""
         from build_mvp import render_payload
 
         try:
@@ -125,6 +130,18 @@ def register(app) -> None:
         resp.headers["Content-Security-Policy"] = _csp(shop)
         resp.headers["Cache-Control"] = "no-store"  # always serve the latest dashboard
         return resp
+
+    @app.get("/", response_class=HTMLResponse)
+    def home(request: Request):
+        return _serve_dashboard(request)
+
+    # Admin sidebar deep-links (clients/catalogues/pipeline/orders/map/settings). Same dashboard;
+    # the SPA reads the path and opens that section. Distinct paths are what let App Bridge
+    # highlight the active nav item. (Under /view/ so it never collides with the self-serve /app/*
+    # routes.)
+    @app.get("/view/{section}", response_class=HTMLResponse)
+    def app_section(section: str, request: Request):
+        return _serve_dashboard(request)
 
     @app.post("/v1/sync")
     def sync_now(request: Request, shop: str = Depends(require_shop)):

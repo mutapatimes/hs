@@ -837,15 +837,28 @@ const ORDERS = __ORDERS__;
 const PLATFORM = "__PLATFORM__";         // shopify | woocommerce | bigcommerce | centra | scayle
 const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce:"BigCommerce",centra:"Centra",scayle:"SCAYLE"})[PLATFORM] || "your store";
 // Embedded (Shopify admin) only: keep the admin sidebar nav (ui-nav-menu) and the app in sync
-// via ?view=. Deep-links open on the right section; App Bridge highlights the active item.
+// via DISTINCT paths (/app/<section>) — App Bridge highlights the active item by pathname.
+// "settings" is an overlay, not a view, so it routes specially. Query params (host/embedded)
+// are always preserved.
 const EMBEDDED = !!document.querySelector('meta[name="shopify-api-key"]');
-const NAV_VIEWS = ["overview","clients","orders","map","board","catalogs"];
-function viewFromUrl(){const v=new URLSearchParams(location.search).get("view");return NAV_VIEWS.includes(v)?v:"overview";}
-function syncUrl(v){                      // reflect the current view in the URL (keeps host/embedded params)
+const SEG2VIEW = {clients:"clients",catalogues:"catalogs",pipeline:"board",orders:"orders",map:"map"};
+const VIEW2SEG = {clients:"clients",catalogs:"catalogues",board:"pipeline",orders:"orders",map:"map"};
+function routeFromUrl(){
+  const m = location.pathname.match(/\/view\/([a-z]+)/);
+  if(!m) return {view:"overview"};
+  if(m[1]==="settings") return {settings:true};
+  return {view: SEG2VIEW[m[1]] || "overview"};
+}
+function pathForView(v){ const seg=VIEW2SEG[v]; return seg ? ("/view/"+seg) : "/"; }
+function setUrlPath(path){                // replaceState the pathname, keeping host/embedded query
   if(!EMBEDDED) return;
-  try{const u=new URL(location.href);
-    if(v==="overview")u.searchParams.delete("view");else u.searchParams.set("view",v);
-    history.replaceState({},"",u.pathname+u.search+u.hash);}catch(_){}
+  try{const u=new URL(location.href); if(u.pathname!==path) history.replaceState({},"",path+u.search+u.hash);}catch(_){}
+}
+function settingsOpen(){ return settingsEl && settingsEl.style.display==="block"; }
+function applyRoute(r){                    // react to App Bridge / back-forward navigation
+  if(r.settings){ if(!settingsOpen()) openSettings(); return; }
+  if(settingsOpen()) closeSettings();
+  const v=r.view||"overview"; if(v!==CURRENT_VIEW) showView(v);
 }
 const FULL_HISTORY = __FULL_HISTORY__;   // false -> un-upgraded tenant, lock date ranges beyond 30 days
 const DR_LOCKED = new Set(["ytd","1y","all"]);   // presets that require the paid full-history unlock
@@ -1751,7 +1764,7 @@ const PAGE_META={
 };
 function showView(v){
   CURRENT_VIEW=v;
-  syncUrl(v);                                        // keep the admin sidebar nav + URL in step
+  setUrlPath(pathForView(v));                         // keep the admin sidebar nav + URL in step
   REVEAL_ACTIVE=false;
   if(v==="overview"||v==="clients") beginReveal();   // reveal the first time a scored view paints
   document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("on",x.dataset.view===v));
@@ -2300,7 +2313,8 @@ function showConnectBanner(){
 }
 
 const settingsEl=document.getElementById("settings");
-function closeSettings(){settingsEl.style.display="none";}
+function closeSettings(){const was=settingsEl.style.display==="block";settingsEl.style.display="none";
+  if(was) setUrlPath(pathForView(CURRENT_VIEW));}   // restore the underlying section's path
 function openSettings(){
   SET_LOGO=SETTINGS.catalog_logo||"";   // hydrate once; persists across in-modal tab switches
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
@@ -2849,6 +2863,7 @@ function openSettings(){
         .catch(e=>{toast("Save failed: "+e.message);b.disabled=false;b.textContent="Save settings";});
     };
     settingsEl.style.display="block";
+    setUrlPath("/view/settings");                    // reflect in the URL so App Bridge highlights Settings
   }
   render();
 }
@@ -3235,9 +3250,12 @@ function showFirstRun(){
 }
 
 if(!DATA.length){ showFirstRun(); }
-else { renderChips();renderRows();showView(viewFromUrl());wireRescore();
-  // App Bridge nav (or back/forward) changes ?view without a reload -> follow it.
-  addEventListener("popstate",()=>{const v=viewFromUrl();if(v!==CURRENT_VIEW)showView(v);}); }
+else { renderChips();renderRows();wireRescore();
+  const r0=routeFromUrl();
+  showView(r0.view||"overview");
+  if(r0.settings) openSettings();                    // deep-linked to /app/settings
+  // App Bridge nav (or back/forward) changes the path without a reload -> follow it.
+  addEventListener("popstate",()=>applyRoute(routeFromUrl())); }
 loadSettings().then(s=>{ if(!s.klaviyo_connected&&!s.mailchimp_connected) showConnectBanner(); initAlerts(s); refreshIntegrationUI(); });
 
 // Live high-grade order alerts (in-dashboard feed + desktop notifications).
