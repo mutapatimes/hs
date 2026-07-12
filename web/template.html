@@ -559,10 +559,15 @@
   /* drawer pipeline section */
   .dp .row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
   .dp select,.dp input{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line-strong);border-radius:8px;background:#fff;color:var(--ink)}
-  .dp .tl{margin-top:6px;border-left:2px solid var(--line);padding-left:12px}
-  .dp .ev{padding:6px 0;font-size:12.5px}
+  /* pipeline timeline — fully reset the shared .tl/.ev styles it would otherwise inherit
+     (card border, cursor:pointer, top border, hover bg) so it reads as a plain activity log */
+  .dp .tl{display:block;border:0;border-left:2px solid var(--line);border-radius:0;padding:0 0 0 13px;margin-top:8px;cursor:default;gap:0}
+  .dp .tl:hover{background:none}
+  .dp .tl.empty{border-left:0;padding-left:0;margin-top:4px}          /* no rail when there's nothing yet */
+  .dp .ev{display:block;background:none;border:0;border-radius:0;padding:5px 0;font-size:12.5px}
+  .dp .ev:first-child{padding-top:0}
   .dp .ev b{color:var(--ink)}
-  .dp .ev .w{color:var(--faint)}
+  .dp .ev.w,.dp .ev .w{color:var(--faint)}
   .dp .ev .note{color:var(--soft);margin-top:2px}
 </style>
 </head>
@@ -1888,7 +1893,8 @@ function renderDrawerPipe(c){
     if(!card){box.innerHTML='<div class="dlabel">Pipeline</div><button class="dbtn" id="pipeAdd">Add to outreach pipeline</button>';
       const b=document.getElementById("pipeAdd");if(b)b.onclick=()=>bAdd(c);return;}
     const opts=BOARD.stages.map(s=>`<option ${s===card.stage?'selected':''}>${esc(s)}</option>`).join("");
-    const acts=(card.activity||[]).slice().reverse().slice(0,12).map(e=>`<div class="ev"><b>${esc(e.actor_name||'Someone')}</b> <span class="w">${esc(actLabel(e))} · ${esc(timeAgo(e.at))}</span>${e.note?`<div class="note">"${esc(e.note)}"</div>`:""}</div>`).join("")||'<div class="ev w">No activity yet.</div>';
+    const evs=(card.activity||[]).slice().reverse().slice(0,12);
+    const acts=evs.map(e=>`<div class="ev"><b>${esc(e.actor_name||'Someone')}</b> <span class="w">${esc(actLabel(e))} · ${esc(timeAgo(e.at))}</span>${e.note?`<div class="note">"${esc(e.note)}"</div>`:""}</div>`).join("");
     box.innerHTML=`<div class="dlabel">Pipeline</div><div class="dp">
       <div class="row"><label style="font-size:12px;color:var(--faint)">Stage</label>
         <select id="pipeStage">${opts}</select>
@@ -1896,7 +1902,7 @@ function renderDrawerPipe(c){
         <input id="pipeAsg" placeholder="Assign to…" value="${esc((card.assignee&&card.assignee.name)||'')}" style="width:120px">
         <button class="dbtn" id="pipeRemove" style="margin-left:auto;color:#9A3838;padding:6px 10px">Remove</button></div>
       <div class="row"><input id="pipeNote" placeholder="Add a note…" style="flex:1"><button class="dbtn" id="pipeNoteBtn" style="padding:6px 12px">Log</button></div>
-      <div class="tl">${acts}</div></div>`;
+      <div class="tl${evs.length?'':' empty'}">${acts||'<div class="ev w">No activity yet.</div>'}</div></div>`;
     document.getElementById("pipeStage").onchange=e=>bMove(c.cid,e.target.value);
     document.getElementById("pipeRemove").onclick=()=>bRemove(c);
     const asg=document.getElementById("pipeAsg");asg.onchange=()=>bAssign(c,asg.value.trim());
