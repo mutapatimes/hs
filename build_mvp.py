@@ -291,17 +291,28 @@ def _numeric_id(cid: object) -> str:
     return digits[-1] if digits else ""
 
 
-def _shopify_url(shop: str | None, cid: object) -> str:
+def _admin_url(shop: str | None, cid: object, platform: str = "shopify",
+               store_url: str = "") -> str:
+    """Deep link to this customer in the merchant's own admin, per platform.
+    WooCommerce/BigCommerce/etc. tenants must never get a Shopify link."""
     num = _numeric_id(cid)
-    if not shop or not num:
-        return ""
-    handle = str(shop).replace(".myshopify.com", "")
-    return f"https://admin.shopify.com/store/{handle}/customers/{num}"
+    if platform == "woocommerce":
+        base = str(store_url or "").rstrip("/")
+        if not base or not num or num == "0":       # guests have no WP user to open
+            return ""
+        return f"{base}/wp-admin/user-edit.php?user_id={num}"
+    if platform in ("", "shopify") or str(shop or "").endswith(".myshopify.com"):
+        if not shop or not num:
+            return ""
+        handle = str(shop).replace(".myshopify.com", "")
+        return f"https://admin.shopify.com/store/{handle}/customers/{num}"
+    return ""                                        # bigcommerce/centra/scayle: no deep link yet
 
 
 def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float,
             orders_by_customer: dict | None = None, shop: str | None = None,
-            benchmarks: dict | None = None, carts_by_customer: dict | None = None) -> dict:
+            benchmarks: dict | None = None, carts_by_customer: dict | None = None,
+            platform: str = "shopify", store_url: str = "") -> dict:
     raw = _num(row[SCORE_COL])
     s100 = _score100(raw)
     t = _tier(s100)
@@ -337,7 +348,7 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
         "lastSort": last_sort,
         "orders": (orders_by_customer or {}).get(str(cid), []),
         "cart": (carts_by_customer or {}).get(str(cid)),   # open basket (abandoned checkout), if any
-        "shopifyUrl": _shopify_url(shop, cid),
+        "adminUrl": _admin_url(shop, cid, platform, store_url),   # deep link into the merchant's own admin
         "signals": sigs,
         "reco": RECO.get(top_label, DEFAULT_RECO),
     }
@@ -432,7 +443,8 @@ def firstName_py(name: str) -> str:
 def dashboard_payload(scored, orders_by_customer: dict | None = None,
                       shop: str | None = None, benchmarks: dict | None = None,
                       raw_orders: list | None = None,
-                      carts_by_customer: dict | None = None) -> dict:
+                      carts_by_customer: dict | None = None,
+                      platform: str = "shopify", store_url: str = "") -> dict:
     """Compute the JSON-serialisable dashboard payload from a scored frame.
 
     Separated from rendering so the embedded app can compute it once during sync,
@@ -445,7 +457,7 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
     seg_labels: dict[str, str] = {}
     top = top_hidden_vics(scored, n=max(len(hidden), 1))
     data = [_client(i, row, seg_labels, store_aov, orders_by_customer, shop, benchmarks,
-                    carts_by_customer)
+                    carts_by_customer, platform, store_url)
             for i, (_, row) in enumerate(top.iterrows())]
     segments = {seg: {"label": label} for seg, label in seg_labels.items()}
 
@@ -476,7 +488,7 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
     from scoring.combine import config_fingerprint
 
     return {
-        "segments": segments, "data": data,
+        "segments": segments, "data": data, "platform": platform,
         "orders": _orders_list(raw_orders, score_map),
         "stat_scored": f"{len(scored):,}", "stat_latent": _fmt_money(latent_total),
         "stat_count": str(hidden_count), "stat_avgspend": _fmt_money(avg_spend),
@@ -534,6 +546,7 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     html = html.replace("__STAT_COUNT__", payload["stat_count"])
     html = html.replace("__STAT_AVGSPEND__", payload["stat_avgspend"])
     html = html.replace("__STAT_TOPTIER__", payload["stat_toptier"])
+    html = html.replace("__PLATFORM__", str(payload.get("platform", "shopify")))
     html = html.replace("__FULL_HISTORY__", "true" if payload.get("full_history", True) else "false")
     html = html.replace("__LOCKED_COUNT__", str(payload.get("locked_count", 0)))
     html = html.replace("__LOCKED_LATENT__", _safe(json.dumps(payload.get("locked_latent", ""))))

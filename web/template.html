@@ -834,6 +834,8 @@ const SEGMENTS = __SEGMENTS__;
 
 const DATA = __DATA__;
 const ORDERS = __ORDERS__;
+const PLATFORM = "__PLATFORM__";         // shopify | woocommerce | bigcommerce | centra | scayle
+const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce:"BigCommerce",centra:"Centra",scayle:"SCAYLE"})[PLATFORM] || "your store";
 const FULL_HISTORY = __FULL_HISTORY__;   // false -> un-upgraded tenant, lock date ranges beyond 30 days
 const DR_LOCKED = new Set(["ytd","1y","all"]);   // presets that require the paid full-history unlock
 const LOCKED_COUNT = __LOCKED_COUNT__;   // clients held back by the 30-day paywall
@@ -2065,7 +2067,7 @@ function openDrawer(id){
       </div>
     </div>
     <div class="dactions">
-      ${c.shopifyUrl?`<a class="dbtn" href="${c.shopifyUrl}" target="_top">Open in Shopify</a>`:""}
+      ${(c.adminUrl||c.shopifyUrl)?`<a class="dbtn" href="${c.adminUrl||c.shopifyUrl}" target="_top">Open in ${PLATFORM_LABEL}</a>`:""}
       <div style="position:relative">
         <button class="dbtn" id="dmail">Email ▾</button>
         <div id="dmailmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${mailtoItems(c)}</div>

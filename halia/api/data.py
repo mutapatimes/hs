@@ -121,8 +121,16 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None) 
     results = engine.results_from_scored(scored)
     s = settings_for(shop)
     benchmarks = {"aov": s["aov"], "max_orders": s["max_orders"], "highest_lt": s["highest_lt"]}
+    # Platform drives the "Open in <admin>" deep link — a WooCommerce tenant must not get a
+    # Shopify URL. store_url is needed to build the WooCommerce wp-admin customer link.
+    tenant = shop_store().get_tenant(shop)
+    platform = (tenant or {}).get("kind") or ("shopify" if shop.endswith(".myshopify.com") else "shopify")
+    store_url = ""
+    if platform == "woocommerce":
+        creds = shop_store().get_woocommerce(shop)
+        store_url = (creds or {}).get("store_url") or ""
     payload = dashboard_payload(scored, _history(orders), shop, benchmarks, raw_orders=orders,
-                                carts_by_customer=carts)
+                                carts_by_customer=carts, platform=platform, store_url=store_url)
     # Full client/order history is a paid feature: un-upgraded tenants only see the last 30 days.
     from halia.api import billing
     if not billing.is_paid(shop):

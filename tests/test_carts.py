@@ -99,3 +99,25 @@ def test_dashboard_payload_attaches_cart_to_the_right_client():
     # a client without an open basket carries no cart
     others = [c for c in payload["data"] if c["cid"] != cid]
     assert all(c["cart"] is None for c in others)
+
+
+def test_admin_link_is_platform_specific():
+    """A WooCommerce tenant must never get a Shopify deep link (regression)."""
+    from build_mvp import _admin_url
+    assert _admin_url("brand.myshopify.com", "gid://shopify/Customer/123", "shopify") \
+        == "https://admin.shopify.com/store/brand/customers/123"
+    woo = _admin_url("shop.example", "44", "woocommerce", "https://shop.example/")
+    assert woo == "https://shop.example/wp-admin/user-edit.php?user_id=44"
+    assert "shopify" not in woo
+    assert _admin_url("shop.example", "0", "woocommerce", "https://shop.example") == ""   # guest
+    assert _admin_url("shop.example", "44", "bigcommerce") == ""                          # no deep link yet
+
+
+def test_dashboard_payload_carries_platform_into_client_links():
+    df = pd.DataFrame([{"Name": "Jane Doe", "EMAIL_ADDR": "ceo@carlsoncapital.com", "Spent": 100,
+                        "CUST_ID": "77", "Count of CUST_ID": 1}])
+    scored = score_customers(df)
+    p = dashboard_payload(scored, shop="shop.example", platform="woocommerce",
+                          store_url="https://shop.example")
+    assert p["platform"] == "woocommerce"
+    assert all("admin.shopify.com" not in (c.get("adminUrl") or "") for c in p["data"])
