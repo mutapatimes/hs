@@ -671,7 +671,11 @@ a{color:inherit;text-decoration:none}
 .notify button:hover{background:#2a2620}.notify button[disabled]{opacity:.55;cursor:default}
 .nprompt{font-size:12.5px;color:var(--mute);margin:16px 0 0}
 .nok{margin-top:10px;font:500 13.5px var(--sans);color:var(--ok)}.nok b{font-weight:600}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.hd,.wrap{position:relative;z-index:1}
+@media(prefers-reduced-motion:reduce){.track:after,.dot{animation:none}}
 </style></head><body>
+<canvas id="fx" aria-hidden="true"></canvas>
 <header class="hd">
   <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Halia</a>
   <div class="who"><div class="w1">Welcome, __STORE__</div><div class="w2">Setting up your Halia account</div></div>
@@ -755,6 +759,48 @@ function done(d){
 }
 function poll(){fetch('/app/status',{headers:{accept:'application/json'}}).then(function(r){return r.json();}).then(function(d){if(d&&d.state==='done'){done(d);}else if(d&&d.state==='error'){document.getElementById('phase').textContent='That stalled';msg.innerHTML='We hit a snag reading your store. <a href="/app" style="color:var(--gold)">Retry</a>.';setTimeout(poll,5000);}else{setTimeout(poll,2000);}}).catch(function(){setTimeout(poll,3000);});}
 setTimeout(poll,1500);
+</script>
+<script>
+/* Background signal-network: nodes = signals, edges = correlations, pulses travel and "land"
+   on a node which fires and emits a computed score. Ambient proof the engine is at work. */
+(function(){
+  var cv=document.getElementById('fx'); if(!cv||!cv.getContext) return;
+  var ctx; try{ ctx=cv.getContext('2d'); }catch(e){} if(!ctx) return;   // no 2d context -> skip
+  var W=0,H=0, DPR=Math.min(2,window.devicePixelRatio||1);
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var GOLD='122,115,99', GREEN='46,158,107', D=142, nodes=[], pulses=[], scores=[], raf=0, last=0, acc=0;
+  function rnd(a,b){return a+Math.random()*(b-a);}
+  function build(){ var n=Math.max(26,Math.min(78,Math.round(W*H/16500))); nodes=[];
+    for(var i=0;i<n;i++) nodes.push({x:rnd(0,W),y:rnd(0,H),vx:rnd(-.12,.12),vy:rnd(-.12,.12),r:rnd(1,2.4),ch:0}); }
+  function resize(){ W=cv.clientWidth; H=cv.clientHeight; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); build(); }
+  function neighbours(i){ var out=[],a=nodes[i]; for(var j=0;j<nodes.length;j++){ if(j===i)continue; var b=nodes[j],dx=a.x-b.x,dy=a.y-b.y; if(dx*dx+dy*dy<D*D)out.push(j);} return out; }
+  function spawnPulse(){ if(nodes.length<2)return; var i=(Math.random()*nodes.length)|0, nb=neighbours(i); if(!nb.length)return;
+    pulses.push({a:i,b:nb[(Math.random()*nb.length)|0],t:0,sp:rnd(.011,.026)}); }
+  function addScore(x,y){ scores.push({x:x,y:y-6,txt:(Math.random()<.32?'+':'')+Math.random().toFixed(2),life:1}); }
+  function edges(alpha){ for(var i=0;i<nodes.length;i++){ var a=nodes[i]; for(var j=i+1;j<nodes.length;j++){ var b=nodes[j],dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy;
+    if(d2<D*D){ var al=(1-Math.sqrt(d2)/D)*alpha; ctx.strokeStyle='rgba('+GOLD+','+al.toFixed(3)+')'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); } } } }
+  function frame(ts){ if(!last)last=ts; var dt=Math.min(50,ts-last); last=ts; acc+=dt; ctx.clearRect(0,0,W,H);
+    for(var i=0;i<nodes.length;i++){ var p=nodes[i]; p.x+=p.vx; p.y+=p.vy; if(p.x<0||p.x>W)p.vx*=-1; if(p.y<0||p.y>H)p.vy*=-1; if(p.ch>0)p.ch-=dt/700; }
+    edges(0.11);
+    for(var i=0;i<nodes.length;i++){ var p=nodes[i], g=p.ch>0?p.ch:0;
+      if(g>0){ ctx.fillStyle='rgba('+GREEN+','+(0.16*g).toFixed(3)+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r+7*g,0,6.283); ctx.fill(); }
+      ctx.fillStyle=g>0?'rgba('+GREEN+','+(0.5+0.5*g).toFixed(3)+')':'rgba('+GOLD+',0.42)'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.283); ctx.fill(); }
+    for(var k=pulses.length-1;k>=0;k--){ var pu=pulses[k],a=nodes[pu.a],b=nodes[pu.b]; if(!a||!b){pulses.splice(k,1);continue;} pu.t+=pu.sp*(dt/16.7);
+      var x=a.x+(b.x-a.x)*pu.t, y=a.y+(b.y-a.y)*pu.t; ctx.fillStyle='rgba('+GREEN+',0.85)'; ctx.beginPath(); ctx.arc(x,y,1.8,0,6.283); ctx.fill();
+      if(pu.t>=1){ b.ch=1; if(Math.random()<.6)addScore(b.x,b.y); pulses.splice(k,1); } }
+    ctx.font='11px "Inter",system-ui,sans-serif'; ctx.textAlign='center';
+    for(var s=scores.length-1;s>=0;s--){ var sc=scores[s]; sc.life-=dt/1400; sc.y-=dt*0.012; if(sc.life<=0){scores.splice(s,1);continue;}
+      ctx.fillStyle='rgba('+GREEN+','+(0.6*sc.life).toFixed(3)+')'; ctx.fillText(sc.txt,sc.x,sc.y); }
+    while(acc>240){ acc-=240; if(pulses.length<24)spawnPulse(); }
+    raf=requestAnimationFrame(frame); }
+  function staticDraw(){ ctx.clearRect(0,0,W,H); edges(0.10);
+    for(var i=0;i<nodes.length;i++){ var p=nodes[i]; ctx.fillStyle='rgba('+GOLD+',0.38)'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.283); ctx.fill(); } }
+  resize();
+  window.addEventListener('resize',function(){ resize(); if(reduce)staticDraw(); });
+  if(reduce){ staticDraw(); return; }
+  document.addEventListener('visibilitychange',function(){ if(document.hidden){ cancelAnimationFrame(raf); raf=0; last=0; } else if(!raf){ raf=requestAnimationFrame(frame); } });
+  raf=requestAnimationFrame(frame);
+})();
 </script>
 </body></html>'''
 
