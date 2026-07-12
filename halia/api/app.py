@@ -473,9 +473,9 @@ def pos_score(shop: str = Depends(require_shop),
 # Mount the embedded entry, self-service onboarding, Klaviyo + Shopify write-back, fulfilment
 # view, and compliance webhooks.
 from halia.api import (  # noqa: E402
-    billing, blog, board, catalog, content, embedded, feedback, fulfilment, hubspot_integration,
-    integrations, lifecycle, mailchimp_integration, onboarding, console, realtime, settings,
-    shopify_push, shopify_segments, slack_integration, webhooks,
+    billing, blog, board, catalog, content, embedded, endear_integration, feedback, fulfilment,
+    hubspot_integration, integrations, lifecycle, mailchimp_integration, onboarding, console,
+    realtime, settings, shopify_push, shopify_segments, slack_integration, webhooks,
 )
 
 embedded.register(app)
@@ -488,6 +488,7 @@ onboarding.register(app)
 integrations.register(app)
 mailchimp_integration.register(app)
 hubspot_integration.register(app)
+endear_integration.register(app)
 slack_integration.register(app)
 shopify_segments.register(app)
 realtime.register(app)

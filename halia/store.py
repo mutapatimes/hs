@@ -108,6 +108,12 @@ _TABLES = [
         portal_id    TEXT,
         connected_at TEXT
     )""",
+    # Per-shop Endear (retail clienteling CRM) connection: encrypted per-brand API key.
+    """CREATE TABLE IF NOT EXISTS endear (
+        shop         TEXT PRIMARY KEY,
+        api_key      TEXT,
+        connected_at TEXT
+    )""",
     # Per-shop Slack alerts: an encrypted Incoming Webhook URL (contains a secret token).
     """CREATE TABLE IF NOT EXISTS slack (
         shop         TEXT PRIMARY KEY,
@@ -554,6 +560,20 @@ class ShopStore(_DB):
     def delete_hubspot(self, shop: str) -> None:
         self._run("DELETE FROM hubspot WHERE shop = :shop", {"shop": shop})
 
+    def save_endear(self, shop: str, api_key: str) -> None:
+        self._run(
+            """INSERT INTO endear (shop, api_key, connected_at) VALUES (:shop, :key, :at)
+               ON CONFLICT(shop) DO UPDATE SET api_key=excluded.api_key,
+                connected_at=excluded.connected_at""",
+            {"shop": shop, "key": crypto.encrypt(api_key), "at": _now()})
+
+    def get_endear(self, shop: str) -> dict | None:
+        row = self._run("SELECT api_key FROM endear WHERE shop = :shop", {"shop": shop}, fetch="one")
+        return {"api_key": crypto.decrypt(row["api_key"])} if row else None
+
+    def delete_endear(self, shop: str) -> None:
+        self._run("DELETE FROM endear WHERE shop = :shop", {"shop": shop})
+
     # ── per-shop Slack connection (Incoming Webhook URL, encrypted) ─────────────
     def save_slack(self, shop: str, webhook_url: str, channel: str = "") -> None:
         self._run(
@@ -823,7 +843,7 @@ class ShopStore(_DB):
         """{integration: {total, this_week}} from each connection table's connected_at."""
         this_week = _iso_week()
         out: dict[str, dict[str, int]] = {}
-        for table in ("klaviyo", "mailchimp", "hubspot", "slack", "woocommerce", "bigcommerce", "centra", "scayle"):
+        for table in ("klaviyo", "mailchimp", "hubspot", "endear", "slack", "woocommerce", "bigcommerce", "centra", "scayle"):
             rows = self._run(f"SELECT connected_at FROM {table}", fetch="all") or []
             total = len(rows)
             recent = sum(1 for r in rows
@@ -862,7 +882,7 @@ class ShopStore(_DB):
     def integrations_by_shop(self) -> dict[str, list[str]]:
         """{shop: [integration names connected]} across every per-shop connection table."""
         out: dict[str, list[str]] = {}
-        for table in ("klaviyo", "mailchimp", "hubspot", "slack", "woocommerce", "bigcommerce", "centra", "scayle"):
+        for table in ("klaviyo", "mailchimp", "hubspot", "endear", "slack", "woocommerce", "bigcommerce", "centra", "scayle"):
             rows = self._run(f"SELECT shop FROM {table}", fetch="all") or []
             for r in rows:
                 out.setdefault(r["shop"], []).append(table)
@@ -872,6 +892,6 @@ class ShopStore(_DB):
     def delete_shop(self, shop: str) -> None:
         """Erase everything we hold for a shop — tokens, keys, settings, tenant, Woo, Mailchimp."""
         for table in ("shops", "klaviyo", "settings", "tenants", "woocommerce", "bigcommerce", "centra",
-                      "scayle", "mailchimp", "hubspot", "slack", "webhooks", "push_subs", "billing",
+                      "scayle", "mailchimp", "hubspot", "endear", "slack", "webhooks", "push_subs", "billing",
                       "feedback_stats", "metrics", "catalogs"):
             self._run(f"DELETE FROM {table} WHERE shop = :shop", {"shop": shop})
