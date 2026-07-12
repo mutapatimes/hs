@@ -369,11 +369,13 @@
   .reco .k{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:6px}
   .reco p{font-size:13.5px;color:var(--ink);line-height:1.5}
 
-  .dactions{padding:16px 24px;border-top:1px solid var(--line);background:var(--card);display:flex;gap:10px}
-  .dbtn{flex:1;border:1px solid var(--line-strong);background:#fff;font:inherit;font-weight:600;font-size:13.5px;padding:11px;border-radius:10px;cursor:pointer;color:var(--ink)}
+  .dactions{padding:16px 24px;border-top:1px solid var(--line);background:var(--card);display:flex;gap:10px;flex-wrap:wrap}
+  .dbtn{flex:1 1 auto;white-space:nowrap;text-align:center;line-height:1.2;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line-strong);background:#fff;font:inherit;font-weight:600;font-size:13.5px;padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--ink)}
   .dbtn:hover{background:var(--rowhover)}
   .dbtn.primary{background:var(--brand-deep);border-color:var(--brand-deep);color:#fff}
   .dbtn.primary:hover{background:var(--brand)}
+  .dactm{flex:1 1 auto;position:relative;display:flex}   /* menu-wrapped actions grow like the rest */
+  .dactm>.dbtn{width:100%}
 
   /* toast */
   .toast{
@@ -2093,11 +2095,11 @@ function openDrawer(id){
     </div>
     <div class="dactions">
       ${(c.adminUrl||c.shopifyUrl)?`<a class="dbtn" href="${c.adminUrl||c.shopifyUrl}" target="_top">Open in ${PLATFORM_LABEL}</a>`:""}
-      <div style="position:relative">
+      <div class="dactm">
         <button class="dbtn" id="dmail">Email ▾</button>
         <div id="dmailmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${mailtoItems(c)}</div>
       </div>
-      ${phoneDigits(c.phone)?`<div style="position:relative">
+      ${phoneDigits(c.phone)?`<div class="dactm">
         <button class="dbtn" id="dwa">WhatsApp ▾</button>
         <div id="dwamenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${whatsappItems(c)}</div>
       </div>`:""}
