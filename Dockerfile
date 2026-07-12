@@ -4,9 +4,11 @@
 FROM python:3.11-slim
 
 # WeasyPrint runtime libraries + a couple of font families so generated catalogs render text.
+# ca-certificates: the slim base ships none, so any TLS fetch (incl. WeasyPrint's own image
+# fetcher) fails cert verification without it — catalogue product images come out blank.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf-2.0-0 \
-      libffi8 shared-mime-info fonts-dejavu fonts-liberation \
+      libffi8 shared-mime-info fonts-dejavu fonts-liberation ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1

@@ -208,10 +208,28 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
 </body></html>"""
 
 
+def _pdf_url_fetcher(url: str, timeout: int = 20, ssl_context=None):
+    """Fetch remote images for the PDF through ``requests`` (which uses the bundled certifi CA
+    store) rather than WeasyPrint's default urllib fetcher (which relies on OS CA certs the slim
+    render container doesn't ship). A browser User-Agent avoids CDNs that reject non-browser
+    agents. data:/file: URLs fall through to WeasyPrint's default. A per-image failure is caught
+    by WeasyPrint and simply leaves that image blank — it never fails the whole PDF."""
+    if url.startswith(("http://", "https://")):
+        import io
+        import requests
+        resp = requests.get(url, timeout=timeout, headers={
+            "User-Agent": "Mozilla/5.0 (compatible; HaliaCatalogue/1.0; +https://haliascore.com)"})
+        resp.raise_for_status()
+        ctype = (resp.headers.get("content-type") or "").split(";")[0].strip() or None
+        return {"file_obj": io.BytesIO(resp.content), "mime_type": ctype, "redirected_url": resp.url}
+    from weasyprint import default_url_fetcher  # data:/file: — only needed off the remote path
+    return default_url_fetcher(url, timeout=timeout, ssl_context=ssl_context)
+
+
 def html_to_pdf(html: str) -> bytes:
     """Rasterise HTML to PDF bytes via WeasyPrint. Raises PdfEngineUnavailable if unimportable."""
     try:
         from weasyprint import HTML  # lazy: needs cairo/pango (present in the Docker image)
     except Exception as exc:  # noqa: BLE001 — ImportError or an OSError from missing native libs
         raise PdfEngineUnavailable(str(exc)) from exc
-    return HTML(string=html).write_pdf()
+    return HTML(string=html, url_fetcher=_pdf_url_fetcher).write_pdf()

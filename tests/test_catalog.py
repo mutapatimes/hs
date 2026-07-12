@@ -347,6 +347,32 @@ def test_share_link_uses_custom_catalogue_domain(monkeypatch):
     assert catmod.catalog_share_base("woo.example.com") == "https://catalogue.brand.com/catalog"
 
 
+def test_pdf_url_fetcher_uses_requests_for_remote_images(monkeypatch):
+    """Regression: PDF images were blank because WeasyPrint's urllib fetcher failed TLS in the
+    slim container. The fetcher must pull http(s) via requests (certifi CA) with a browser UA."""
+    from halia import catalog_render as cr
+
+    class FakeResp:
+        content = b"IMGBYTES"
+        url = "https://cdn.example/p.jpg?v=9"
+        headers = {"content-type": "image/webp; charset=binary"}
+
+        def raise_for_status(self):
+            pass
+
+    seen = {}
+
+    def fake_get(url, timeout=None, headers=None):
+        seen["url"], seen["ua"] = url, (headers or {}).get("User-Agent", "")
+        return FakeResp()
+
+    monkeypatch.setattr("requests.get", fake_get)
+    out = cr._pdf_url_fetcher("https://cdn.example/p.jpg?v=9")
+    assert out["mime_type"] == "image/webp"
+    assert out["file_obj"].read() == b"IMGBYTES"
+    assert seen["url"] == "https://cdn.example/p.jpg?v=9" and "Mozilla" in seen["ua"]
+
+
 def test_first_catalogue_auto_activates(client):
     from halia.api.catalog import catalog_url_for
     c, _ = client
