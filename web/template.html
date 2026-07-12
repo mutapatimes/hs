@@ -3182,6 +3182,21 @@ function catPreview(){
     .catch(e=>toast("Preview: "+e.message))
     .finally(()=>{if(btn){btn.disabled=false;btn.textContent="Preview";}});
 }
+// Read a response body safely — an empty or non-JSON body (a 502 during a deploy, a proxy
+// timeout, an HTML error page) must not surface as "Unexpected end of JSON input".
+function catSafeJson(r){
+  return r.text().then(t=>{
+    let d={};
+    if(t){ try{ d=JSON.parse(t); }catch(_){ d={detail:t.slice(0,140)}; } }
+    if((d.detail==null) && !r.ok){
+      d.detail = (r.status===502||r.status===503||r.status===504)
+        ? "Halia is briefly unavailable (it may be updating). Please try again in a moment."
+        : (r.status===0 ? "Network error — check your connection and try again."
+                        : ("Something went wrong (error "+r.status+"). Please try again."));
+    }
+    return {ok:r.ok, d:d||{}, status:r.status};
+  });
+}
 function catSave(thenGenerate){
   catCollectCustomize();
   const gv=id=>{const e=document.getElementById(id);return e?(e.type==='checkbox'?e.checked:e.value):"";};
@@ -3194,7 +3209,7 @@ function catSave(thenGenerate){
   const gen=document.getElementById("catGen"),sv=document.getElementById("catSave");
   if(thenGenerate&&gen){gen.disabled=true;gen.textContent="Generating…";}else if(sv){sv.disabled=true;sv.textContent="Saving…";}
   fetch("/v1/catalog/save",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
-    .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
+    .then(catSafeJson).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"Save failed");
       catState.editing=d.id; if(d.id) body.id=d.id;
       if(d.catalog_url)CATALOG_URL=d.catalog_url;   // so "Send catalogue" / drawer link appear at once
       if(thenGenerate) return catGenerate(d.id);
@@ -3203,8 +3218,8 @@ function catSave(thenGenerate){
       if(gen){gen.disabled=false;gen.textContent="Save & generate PDF";}if(sv){sv.disabled=false;sv.textContent="Save";}});
 }
 function catGenerate(id){
-  return fetch("/v1/catalog/"+id+"/generate",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
-    if(!ok)throw new Error(d.detail||"failed");
+  return fetch("/v1/catalog/"+id+"/generate",{method:"POST"}).then(catSafeJson).then(({ok,d})=>{
+    if(!ok)throw new Error(d.detail||"Generation failed");
     const res=document.getElementById("catResult");
     const formUrl=(d.url||"").replace(/\.pdf$/,"");
     if(res){res.innerHTML=`<div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:10px;padding:13px 15px;font:13px Hanken Grotesk,sans-serif">
