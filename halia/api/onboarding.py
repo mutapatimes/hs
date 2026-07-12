@@ -548,6 +548,25 @@ def _hosted_head(store: str = "") -> str:
         "#halia-signout{border:1px solid #3a3630;background:transparent;color:#e9e4d8}"
         "body:has(.drawer.show) #halia-top{display:none}"   # don't cover the open client drawer's controls
         "@media(max-width:600px){#halia-top .hstore{display:none}}"
+        # Halia vertical nav (left rail) — the self-serve equivalent of the Shopify admin sidebar.
+        "#hnav{position:fixed;left:0;top:52px;bottom:0;width:214px;z-index:150;background:#faf9f6;"
+        "border-right:1px solid rgba(20,18,12,.10);padding:16px 12px;display:flex;flex-direction:column;"
+        "gap:3px;overflow-y:auto;font-family:'Inter',-apple-system,system-ui,sans-serif}"
+        "#hnav .hlbl{font:700 10.5px 'Inter',system-ui;letter-spacing:.16em;text-transform:uppercase;"
+        "color:#a8a29a;padding:2px 13px 11px}"
+        "#hnav .hn{display:flex;align-items:center;gap:11px;padding:9px 13px;border-radius:9px;cursor:pointer;"
+        "font:600 13.5px 'Inter',system-ui;color:#5f594e;border:0;background:none;width:100%;text-align:left;"
+        "position:relative;transition:background .16s,color .16s}"
+        "#hnav .hn .ic{width:17px;height:17px;flex:none;opacity:.68}"
+        "#hnav .hn:hover{background:rgba(20,18,12,.05);color:#1a1712}"
+        "#hnav .hn.on{background:#fff;color:#1a1712;box-shadow:inset 0 0 0 1px rgba(20,18,12,.10)}"
+        "#hnav .hn.on .ic{opacity:1;color:#1f564a}"
+        "#hnav .hn.on::before{content:'';position:absolute;left:-12px;top:9px;bottom:9px;width:3px;"
+        "border-radius:0 2px 2px 0;background:#1f564a}"
+        "#hnav .hsp{flex:1;min-height:12px}"
+        ".admin{padding-left:214px}"
+        ".views{display:none!important}"                    # the vertical rail replaces the top tabs
+        "@media(max-width:760px){#hnav{display:none}.admin{padding-left:0}.views{display:flex!important}}"
         "</style>"
         "<script>addEventListener('DOMContentLoaded',function(){"
         "var s=" + store_js + ";"
@@ -562,7 +581,32 @@ def _hosted_head(store: str = "") -> str:
         "r.onclick=function(){r.disabled=true;r.textContent='Refreshing\\u2026';"
         "fetch('/app/refresh',{method:'POST'}).then(function(x){return x.json()}).then(function(){location.reload()})"
         ".catch(function(){r.textContent='Refresh failed';r.disabled=false})};"
-        "document.getElementById('halia-signout').onclick=function(){location.href='/app/logout'};});</script>"
+        "document.getElementById('halia-signout').onclick=function(){location.href='/app/logout'};"
+        # ---- Halia vertical nav rail ----
+        "var NAV=["
+        "['overview','Overview',`<path d='M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z'/>`],"
+        "['clients','Clients',`<circle cx='12' cy='8' r='4'/><path d='M4 21c0-4 4-6 8-6s8 2 8 6'/>`],"
+        "['catalogs','Catalogues',`<rect x='4' y='4' width='7' height='7' rx='1'/><rect x='13' y='4' width='7' height='7' rx='1'/><rect x='4' y='13' width='7' height='7' rx='1'/><rect x='13' y='13' width='7' height='7' rx='1'/>`],"
+        "['board','Pipeline',`<path d='M4 4h4v16H4zM10 4h4v11h-4zM16 4h4v7h-4z'/>`],"
+        "['orders','Orders',`<path d='M6 2l1.5 3h9L18 2M5 5h14l-1.4 13a2 2 0 01-2 1.8H8.4a2 2 0 01-2-1.8z'/>`],"
+        "['map','Map',`<path d='M9 3L3 6v15l6-3 6 3 6-3V3l-6 3z'/><path d='M9 3v15M15 6v15'/>`]"
+        "];"
+        "var nav=document.createElement('nav');nav.id='hnav';"
+        "var h=`<div class='hlbl'>Halia</div>`;"
+        "NAV.forEach(function(it){h+=`<button class='hn' data-v='${it[0]}'><svg class='ic' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>${it[2]}</svg>${it[1]}</button>`;});"
+        "h+=`<div class='hsp'></div>`;"
+        "h+=`<button class='hn' data-v='__settings'><svg class='ic' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'/><path d='M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1'/></svg>Settings</button>`;"
+        "nav.innerHTML=h;document.body.appendChild(nav);"
+        "function setA(v){nav.querySelectorAll('.hn').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-v')===v);});}"
+        "nav.querySelectorAll('.hn').forEach(function(b){b.onclick=function(){var v=b.getAttribute('data-v');if(v==='__settings'){window.openSettings&&window.openSettings();}else{window.showView&&window.showView(v);}};});"
+        # wrap the app's navigation so the rail highlight follows every view change (function
+        # declarations are global, so reassigning window.showView reroutes bareword calls too)
+        "if(window.showView){var _sv=window.showView;window.showView=function(v){_sv.apply(this,arguments);setA(v);};}"
+        "if(window.openSettings){var _os=window.openSettings;window.openSettings=function(){_os.apply(this,arguments);setA('__settings');};}"
+        "if(window.closeSettings){var _cs=window.closeSettings;window.closeSettings=function(){var r=_cs.apply(this,arguments);var t=document.querySelector('.vtab.on');setA(t?t.getAttribute('data-view'):'overview');return r;};}"
+        # first-run has no sections to navigate — hide the rail and restore full width
+        "if(document.getElementById('firstRunSync')){nav.style.display='none';document.querySelector('.admin').style.paddingLeft='0';}else{setA('overview');}"
+        "});</script>"
     )
 
 
