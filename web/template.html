@@ -2545,14 +2545,16 @@ function showConnectBanner(){
 const settingsEl=document.getElementById("settings");
 function closeSettings(){const was=settingsEl.style.display==="block";settingsEl.style.display="none";
   if(was) setUrlPath(pathForView(CURRENT_VIEW));}   // restore the underlying section's path
-function openSettings(){
+function openSettings(page){
   SET_LOGO=SETTINGS.catalog_logo||"";   // hydrate once; persists across in-modal tab switches
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
   let otmpl=JSON.parse(JSON.stringify(ORDER_TEMPLATES||{new:[],fulfilled:[],refunded:[],cancelled:[]}));
-  let tab="client", ostatus="new", lastField=null, spage="integrations";
+  // page: optional settings page to open on ("support" from the Support nav button). Guarded by
+  // type because onclick handlers pass the click event as the first argument.
+  let tab="client", ostatus="new", lastField=null, spage=(typeof page==="string"&&page)||"integrations";
   let integ = SETTINGS.mailchimp_connected?"mailchimp":(SETTINGS.hubspot_connected?"hubspot":"klaviyo");
   let tsel = 0;   // selected template index in the two-pane template editor
-  const SPAGES=[["integrations","Integrations"],["scoring","Scoring"],["alerts","Alerts"],["templates","Templates"],["billing","Billing"],["privacy","Privacy"]];
+  const SPAGES=[["integrations","Integrations"],["scoring","Scoring"],["alerts","Alerts"],["templates","Templates"],["billing","Billing"],["privacy","Privacy"],["support","Support"]];
   const OSTAT=["new","fulfilled","refunded","cancelled"];
   const OSTLBL={new:"New",fulfilled:"Fulfilled",refunded:"Refunded",cancelled:"Cancelled"};
   function currentList(){return tab==="client"?tmpl:(otmpl[ostatus]=otmpl[ostatus]||[]);}
@@ -2814,6 +2816,36 @@ function openSettings(){
         </div>
 
         </div><!-- /privacy -->
+
+        <div class="spage" data-page="support" style="display:${spage==='support'?'':'none'}">
+        <div style="${C}">
+          <div style="${H}">Help &amp; documentation</div>
+          <p style="${P}">Guides to connecting your store, reading the signals, and getting the most from your book.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a href="/docs" target="_blank" rel="noopener" style="${BS};text-decoration:none;display:inline-block">Documentation</a>
+            <a href="https://haliascore.com/faq" target="_blank" rel="noopener" style="${BS};text-decoration:none;display:inline-block">FAQ</a>
+            <a href="https://haliascore.com/security" target="_blank" rel="noopener" style="${BS};text-decoration:none;display:inline-block">Security &amp; privacy</a>
+          </div>
+        </div>
+        <div style="${C}">
+          <div style="${H}">Talk to us</div>
+          <p style="${P}">A person answers, usually within one business day.</p>
+          <div style="display:grid;gap:12px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font:600 13px ${SF};color:var(--ink);min-width:86px">Email</span>
+              <a href="mailto:hello@haliascore.com" style="color:#1f564a;font:600 13.5px ${SF}">hello@haliascore.com</a>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font:600 13px ${SF};color:var(--ink);min-width:86px">Live chat</span>
+              <span style="font:13.5px ${SF};color:var(--soft)">The chat bubble on <a href="https://haliascore.com" target="_blank" rel="noopener" style="color:#1f564a;font-weight:600">haliascore.com</a>, bottom right.</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font:600 13px ${SF};color:var(--ink);min-width:86px">Compliance</span>
+              <span style="font:13.5px ${SF};color:var(--soft)"><a href="mailto:hello@haliascore.com?subject=Halia%20compliance%20pack" style="color:#1f564a;font-weight:600">Request the DPA &amp; compliance pack</a> for your records.</span>
+            </div>
+          </div>
+        </div>
+        </div><!-- /support -->
 
         <div id="saveBar" style="display:${['scoring','alerts','templates'].includes(spage)?'':'none'};margin-top:4px">
           <button id="saveSettings" style="${BP}">Save settings</button>

@@ -545,7 +545,8 @@ def _hosted_head(store: str = "") -> str:
         "#halia-top .hsp{flex:1}"
         "#halia-top button{padding:7px 14px;border-radius:8px;font:600 13px 'Inter',system-ui;cursor:pointer}"
         "#halia-refresh{border:1px solid #2c463d;background:#1f564a;color:#fff}#halia-refresh[disabled]{opacity:.6}"
-        "#halia-signout{border:1px solid #3a3630;background:transparent;color:#e9e4d8}"
+        "#halia-settings,#halia-signout{border:1px solid #3a3630;background:transparent;color:#e9e4d8}"
+        "#halia-settings:hover,#halia-signout:hover{border-color:#57524a}"
         "body:has(.drawer.show) #halia-top{display:none}"   # don't cover the open client drawer's controls
         "@media(max-width:600px){#halia-top .hstore{display:none}}"
         # Halia vertical nav (left rail) — the self-serve equivalent of the Shopify admin sidebar.
@@ -573,6 +574,7 @@ def _hosted_head(store: str = "") -> str:
         "var bar=document.createElement('div');bar.id='halia-top';"
         "bar.innerHTML='<span class=\"hb\"><span class=\"ast\">\\u2042</span> Halia</span>'"
         "+(s?'<span class=\"hstore\"></span>':'')+'<span class=\"hsp\"></span>'"
+        "+'<button id=\"halia-settings\">\\u2699 Settings</button>'"
         "+'<button id=\"halia-refresh\">\\u21bb Refresh scores</button>'"
         "+'<button id=\"halia-signout\">Sign out</button>';"
         "document.body.insertBefore(bar,document.body.firstChild);"
@@ -582,6 +584,7 @@ def _hosted_head(store: str = "") -> str:
         "fetch('/app/refresh',{method:'POST'}).then(function(x){return x.json()}).then(function(){location.reload()})"
         ".catch(function(){r.textContent='Refresh failed';r.disabled=false})};"
         "document.getElementById('halia-signout').onclick=function(){location.href='/app/logout'};"
+        "document.getElementById('halia-settings').onclick=function(){window.openSettings&&window.openSettings()};"
         # ---- Halia vertical nav rail ----
         "var NAV=["
         "['overview','Overview',`<path d='M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z'/>`],"
@@ -595,10 +598,10 @@ def _hosted_head(store: str = "") -> str:
         "var h=`<div class='hlbl'>Halia</div>`;"
         "NAV.forEach(function(it){h+=`<button class='hn' data-v='${it[0]}'><svg class='ic' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>${it[2]}</svg>${it[1]}</button>`;});"
         "h+=`<div class='hsp'></div>`;"
-        "h+=`<button class='hn' data-v='__settings'><svg class='ic' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'/><path d='M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1'/></svg>Settings</button>`;"
+        "h+=`<button class='hn' data-v='__support'><svg class='ic' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><circle cx='12' cy='12' r='3.5'/><path d='M5.7 5.7l4 4M14.3 14.3l4 4M18.3 5.7l-4 4M9.7 14.3l-4 4'/></svg>Support</button>`;"
         "nav.innerHTML=h;document.body.appendChild(nav);"
         "function setA(v){nav.querySelectorAll('.hn').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-v')===v);});}"
-        "nav.querySelectorAll('.hn').forEach(function(b){b.onclick=function(){var v=b.getAttribute('data-v');if(v==='__settings'){window.openSettings&&window.openSettings();}else{window.showView&&window.showView(v);}};});"
+        "nav.querySelectorAll('.hn').forEach(function(b){b.onclick=function(){var v=b.getAttribute('data-v');if(v==='__support'){window.openSettings&&window.openSettings('support');setA('__support');}else{window.showView&&window.showView(v);}};});"
         # wrap the app's navigation so the rail highlight follows every view change (function
         # declarations are global, so reassigning window.showView reroutes bareword calls too)
         "if(window.showView){var _sv=window.showView;window.showView=function(v){_sv.apply(this,arguments);setA(v);};}"
