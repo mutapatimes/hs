@@ -1713,10 +1713,20 @@ function geoAgg(){
     topCity:Object.keys(o.city).sort((x,y)=>o.city[y]-o.city[x])[0]||""})).sort((a,b)=>b.n-a.n);
 }
 
-function buildMap(wrap,onClick){
+function buildMap(wrap,onClick,fitMode){
   const areas=geoAgg(),maxN=Math.max(1,...areas.map(a=>a.n));
+  // Every bubble is always drawn; fitMode only decides the OPENING view. "primary" pins it to
+  // the merchant's biggest market (most VICs: UK vs US) — the Overview card uses this so it
+  // reads at a glance; panning/zooming still reaches the rest of the world.
+  let fitAreas=areas;
+  if(fitMode==="primary"&&areas.length){
+    const us=areas.filter(a=>isUSArea(a.area)),uk=areas.filter(a=>!isUSArea(a.area));
+    const nUS=us.reduce((s,a)=>s+a.n,0),nUK=uk.reduce((s,a)=>s+a.n,0);
+    fitAreas=(nUS>nUK?us:uk);
+    if(!fitAreas.length)fitAreas=areas;
+  }
   // Fit the opening view to the bubbles (padded), at a fixed aspect so the card never jumps.
-  const ASPECT=0.62,pts=areas.map(a=>proj(a.ll[0],a.ll[1]));
+  const ASPECT=0.62,pts=fitAreas.map(a=>proj(a.ll[0],a.ll[1]));
   let fx=0,fy=0,fw=MAP_W,fh=MAP_H;
   if(pts.length){
     let x0=Math.min(...pts.map(p=>p[0])),x1=Math.max(...pts.map(p=>p[0]));
@@ -1821,7 +1831,7 @@ function renderOverview(){
   renderLatentBars(document.getElementById("ovLatent"),DATA);
   renderSignalBars(document.getElementById("ovSignals"));
   renderSpark(document.getElementById("ovSpark"),DATA);
-  const areas=buildMap(document.getElementById("ovMapWrap"),filterToArea);
+  const areas=buildMap(document.getElementById("ovMapWrap"),filterToArea,"primary");
   const mapped=areas.reduce((s,a)=>s+a.n,0);
   document.getElementById("ovMapHint").textContent=areas.length?`${mapped} located · ${areas.length} area${areas.length===1?"":"s"}`:"";
   const top=document.getElementById("ovTop");
