@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <rect width="1200" height="1200" fill="#13110c"/>
+  <g stroke="#f4f1ea" stroke-width="62" stroke-linecap="round" fill="none">
+    <!-- top asterisk (centre 600,430  r=150) -->
+    <line x1="600" y1="280" x2="600" y2="580"/>
+    <line x1="729.9" y1="355" x2="470.1" y2="505"/>
+    <line x1="470.1" y1="355" x2="729.9" y2="505"/>
+    <!-- bottom-left asterisk (centre 402,760  r=150) -->
+    <line x1="402" y1="610" x2="402" y2="910"/>
+    <line x1="531.9" y1="685" x2="272.1" y2="835"/>
+    <line x1="272.1" y1="685" x2="531.9" y2="835"/>
+    <!-- bottom-right asterisk (centre 798,760  r=150) -->
+    <line x1="798" y1="610" x2="798" y2="910"/>
+    <line x1="927.9" y1="685" x2="668.1" y2="835"/>
+    <line x1="668.1" y1="685" x2="927.9" y2="835"/>
+  </g>
+</svg>

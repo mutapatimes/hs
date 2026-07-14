@@ -1,0 +1,17 @@
+# US corporate insiders — SEC Forms 3/4/5 "reporting owner" reference (INERT SEED).
+#
+# Read by scoring/signals/us_insider.py. A customer whose first + last name matches an entry here
+# is flagged as a director / officer (tier "insider") or 10%+ owner (tier "owner") of a US public
+# company: a work / wealth fact from the SEC's public ownership filings. It is a NAME match against
+# a large public register, so it is corroboration-only (SUPPORTING_SIGNALS) — it never surfaces a
+# customer on its own, only adds weight when a stronger signal has also fired.
+#
+# This seed ships INERT: fictional examples only. Naming private individuals in the repo is exactly
+# the sensitivity Halia avoids, so real people only ever enter the table on the operator's own
+# machine: run scripts/build_us_insiders.py against the free SEC Insider Transactions Data Sets and
+# it writes the real, git-ignored us_insiders.local.csv, which the signal prefers when present.
+#
+# Columns: name,tier,company   (tier: insider | owner)
+name,tier,company
+Ada Placeholder,insider,Placeholder Industries Inc
+Bea Placeholder,owner,Placeholder Capital Corp

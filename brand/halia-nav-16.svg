@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <g stroke="currentColor" stroke-width="0.95" stroke-linecap="round">
+    <!-- top asterisk -->
+    <line x1="8" y1="2.3" x2="8" y2="7.3"/>
+    <line x1="10.165" y1="3.55" x2="5.835" y2="6.05"/>
+    <line x1="5.835" y1="3.55" x2="10.165" y2="6.05"/>
+    <!-- bottom-left asterisk -->
+    <line x1="4.7" y1="8.9" x2="4.7" y2="13.9"/>
+    <line x1="6.865" y1="10.15" x2="2.535" y2="12.65"/>
+    <line x1="2.535" y1="10.15" x2="6.865" y2="12.65"/>
+    <!-- bottom-right asterisk -->
+    <line x1="11.3" y1="8.9" x2="11.3" y2="13.9"/>
+    <line x1="13.465" y1="10.15" x2="9.135" y2="12.65"/>
+    <line x1="9.135" y1="10.15" x2="13.465" y2="12.65"/>
+  </g>
+</svg>

@@ -52,6 +52,7 @@ from scoring.signals import (
     prime_residence,
     rich_list,
     shared_phone,
+    us_insider,
     us_property,
     us_zip,
     wealth_jurisdiction,
@@ -105,6 +106,9 @@ SIGNAL_WEIGHTS: dict[str, int] = {
                            # companies. Still corroboration-only, name bright line (see SUPPORTING_SIGNALS)
     "charity_trustee": 3,  # eponymous-foundation trustee (surname IN the charity name) — a near-pure
                            # UHNW tell, so weighted heavily; still corroboration-only (name bright line)
+    "us_insider": 2,       # US SEC director/officer/10%-owner (name match) — US analog to
+                           # companies_house; US_INSIDER_TIER_WEIGHTS lifts a 10% owner. Still
+                           # corroboration-only, name bright line (see SUPPORTING_SIGNALS)
     "fashion_stylist": 2,  # celebrity stylist / personal shopper — high-value, name-match (verify)
     "stylist_directory": 1,  # broad stylist directory — corroboration-only (see SUPPORTING_SIGNALS)
     "ip_location": 1,
@@ -141,6 +145,12 @@ COMPANIES_HOUSE_TIER_WEIGHTS = {
     "prime": 6,
     "high": 4,
     "match": 2,
+}
+
+# us_insider role tiers: a 10%+ owner (a large equity stake) outweighs a plain director/officer.
+US_INSIDER_TIER_WEIGHTS = {
+    "owner": 3,
+    "insider": 2,
 }
 
 # property_value is graded CONTINUOUSLY by the actual median price, not just a tier:
@@ -204,6 +214,11 @@ SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
                       # register, so it too is name-alone corroboration only, never a sole basis.
                       "charity_trustee",
 
+                      # A US SEC insider match is the US analog to companies_house: a name matched
+                      # against a large public register (Forms 3/4/5 reporting owners), order-
+                      # independent first+last, so it too corroborates only, never a sole basis.
+                      "us_insider",
+
                       # geo_confirmation is agreement-as-confidence: a phone/email jurisdiction
                       # AGREEING with a high-value address. It requires a wealth-geo signal to
                       # have fired, so it can never originate a score — pure corroboration.
@@ -248,6 +263,7 @@ SIGNAL_GROUP: dict[str, str] = {
     "rich_list": "name",
     "companies_house": "name",  # a name-based control tell — correlated with other name tells
     "charity_trustee": "name",  # a name-based governance tell — correlated with other name tells
+    "us_insider": "name",       # a name-based US control tell — correlated with other name tells
     "fashion_stylist": "name",
     "stylist_directory": "name",
     "heritage_surname": "name",
@@ -351,6 +367,8 @@ SIGNALS = [
      companies_house.FLAG_COL, lambda r: r[companies_house.REASON_COL]),
     ("charity_trustee", "Charity trustee", charity_trustee.flag_charity_trustee,
      charity_trustee.FLAG_COL, lambda r: r[charity_trustee.REASON_COL]),
+    ("us_insider", "US insider", us_insider.flag_us_insider,
+     us_insider.FLAG_COL, lambda r: r[us_insider.REASON_COL]),
     ("fashion_stylist", "Fashion stylist", fashion_stylist.flag_fashion_stylist,
      fashion_stylist.FLAG_COL, lambda r: r[fashion_stylist.REASON_COL]),
     ("stylist_directory", "Possible stylist", stylist_directory.flag_stylist_directory,
@@ -540,6 +558,8 @@ def score_customers(
                 type_spec = (us_property.TIER_COL, US_PROPERTY_AREA_WEIGHTS)
             elif key == "companies_house":
                 type_spec = (companies_house.TYPE_COL, COMPANIES_HOUSE_TIER_WEIGHTS)
+            elif key == "us_insider":
+                type_spec = (us_insider.TYPE_COL, US_INSIDER_TIER_WEIGHTS)
             if type_spec and type_spec[0] in out.columns:
                 type_col, type_weights = type_spec
                 # Tier weights are absolute, so a calibrated base would otherwise be ignored:
