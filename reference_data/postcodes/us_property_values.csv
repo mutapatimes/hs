@@ -1,0 +1,996 @@
+zip,area,value,tier
+# US high-value home-area ZIPs (Zillow ZHVI). Regenerate with scripts/build_us_property.py.
+# Lines starting with # are ignored. Tier: ultra (>= $2M) / prime (>= $1M) latest ZHVI.
+01730,Bedford MA,1048672,prime
+01741,Carlisle MA,1343216,prime
+01742,Concord MA,1459538,prime
+01770,Sherborn MA,1246894,prime
+01773,Lincoln MA,1536536,prime
+01776,Sudbury MA,1174894,prime
+01778,Wayland MA,1176899,prime
+01810,Andover MA,1016994,prime
+01890,Winchester MA,1592115,prime
+01921,Boxford MA,1081118,prime
+01940,Lynnfield MA,1104280,prime
+01944,Manchester MA,1391936,prime
+01945,Marblehead MA,1061093,prime
+01951,Newbury MA,1006240,prime
+01984,Wenham MA,1085639,prime
+02025,Cohasset MA,1468662,prime
+02030,Dover MA,1796625,prime
+02043,Hingham MA,1365628,prime
+02052,Medfield MA,1098393,prime
+02061,Norwell MA,1079958,prime
+02066,Scituate MA,1039609,prime
+02090,Westwood MA,1272424,prime
+02108,Boston MA,1659606,prime
+02110,Boston MA,1420779,prime
+02116,Boston MA,1333018,prime
+02129,Boston MA,1025354,prime
+02138,Cambridge MA,1163293,prime
+02139,Cambridge MA,1016772,prime
+02140,Cambridge MA,1104395,prime
+02142,Cambridge MA,1330295,prime
+02144,Somerville MA,1064857,prime
+02186,Milton MA,1106122,prime
+02199,Boston MA,3479236,ultra
+02210,Boston MA,1496069,prime
+02332,Duxbury MA,1132300,prime
+02420,Lexington MA,1574426,prime
+02421,Lexington MA,1673655,prime
+02445,Brookline MA,1162856,prime
+02446,Brookline MA,1079688,prime
+02458,Newton MA,1289456,prime
+02459,Newton MA,1891744,prime
+02460,Newton MA,1387891,prime
+02461,Newton MA,1549399,prime
+02462,Newton MA,1367025,prime
+02465,Newton MA,1439875,prime
+02466,Newton MA,1438908,prime
+02467,Brookline MA,1225509,prime
+02468,Newton MA,2211726,ultra
+02474,Arlington MA,1090041,prime
+02476,Arlington MA,1123121,prime
+02478,Belmont MA,1492657,prime
+02481,Wellesley MA,2247683,ultra
+02482,Wellesley MA,1868792,prime
+02492,Needham MA,1694164,prime
+02493,Weston MA,2297821,ultra
+02494,Needham MA,1391885,prime
+02535,Chilmark MA,2175173,ultra
+02539,Edgartown MA,1873582,prime
+02540,Falmouth MA,1081206,prime
+02543,Falmouth MA,1547971,prime
+02554,Nantucket MA,3084462,ultra
+02556,Falmouth MA,1058518,prime
+02557,MA,1259525,prime
+02568,Tisbury MA,1360398,prime
+02575,West Tisbury MA,1697683,prime
+02633,Chatham MA,1337198,prime
+02646,Harwich Port MA,1120034,prime
+02650,Chatham MA,2024350,ultra
+02653,Orleans MA,1076888,prime
+02655,Barnstable MA,1223758,prime
+02657,Provincetown MA,1062797,prime
+02659,Chatham MA,1009659,prime
+02666,Truro MA,1100575,prime
+02713,Gosnold MA,1330446,prime
+02807,New Shoreham RI,1794683,prime
+02835,Jamestown RI,1192133,prime
+03750,Hanover NH,1072010,prime
+03854,New Castle NH,2408393,ultra
+03870,Rye NH,1300505,prime
+03871,Rye Beach NH,2875618,ultra
+05672,Stowe VT,1053176,prime
+06793,Washington CT,1189222,prime
+06807,Greenwich CT,1846811,prime
+06820,Darien CT,2407761,ultra
+06824,Fairfield CT,1143402,prime
+06830,Greenwich CT,2484056,ultra
+06831,Greenwich CT,2148751,ultra
+06840,New Canaan CT,2182337,ultra
+06853,Norwalk CT,2231970,ultra
+06870,Greenwich CT,2647916,ultra
+06877,Ridgefield CT,1010517,prime
+06878,Greenwich CT,2667343,ultra
+06880,Westport CT,2041064,ultra
+06883,Weston CT,1396058,prime
+06890,Fairfield CT,1495845,prime
+06897,Wilton CT,1271336,prime
+06903,Stamford CT,1141432,prime
+07021,Essex Fells NJ,1468722,prime
+07028,Glen Ridge NJ,1176131,prime
+07039,Livingston NJ,1101449,prime
+07041,Millburn NJ,1312747,prime
+07043,Montclair NJ,1418366,prime
+07046,Mountain Lakes NJ,1229091,prime
+07059,Warren Township NJ,1141160,prime
+07069,Watchung NJ,1104163,prime
+07078,Short Hills NJ,2383863,ultra
+07079,South Orange NJ,1095775,prime
+07090,Westfield NJ,1317140,prime
+07092,Mountainside NJ,1067664,prime
+07401,Allendale NJ,1114573,prime
+07417,Franklin Lakes NJ,1611942,prime
+07423,Ho Ho Kus NJ,1329317,prime
+07450,Ridgewood NJ,1248308,prime
+07452,Glen Rock NJ,1102317,prime
+07458,Upper Saddle River NJ,1632507,prime
+07481,Wyckoff NJ,1156518,prime
+07620,Alpine NJ,3156188,ultra
+07624,Closter NJ,1190753,prime
+07626,Cresskill NJ,1036560,prime
+07627,Demarest NJ,1540902,prime
+07632,Englewood Cliffs NJ,1789411,prime
+07641,Haworth NJ,1231427,prime
+07649,Oradell NJ,1015439,prime
+07650,Palisades Park NJ,1002044,prime
+07652,Paramus NJ,1078605,prime
+07670,Tenafly NJ,1318118,prime
+07677,Woodcliff Lake NJ,1271141,prime
+07704,Fair Haven NJ,1557811,prime
+07711,Allenhurst NJ,2493651,ultra
+07717,Avon by the Sea NJ,1794971,prime
+07720,Bradley Beach NJ,1122065,prime
+07722,Colts Neck Township NJ,1332660,prime
+07723,Deal NJ,4410767,ultra
+07733,Holmdel Township NJ,1105293,prime
+07738,Lincroft NJ,1039937,prime
+07739,Little Silver NJ,1165009,prime
+07750,Monmouth Beach NJ,1143051,prime
+07755,Oakhurst NJ,1061898,prime
+07760,Rumson NJ,1835122,prime
+07762,Spring Lake NJ,1475468,prime
+07901,Summit NJ,1387786,prime
+07924,Bernardsville NJ,1025628,prime
+07928,Chatham NJ,1379233,prime
+07931,Far Hills NJ,1428921,prime
+07932,Florham Park NJ,1065065,prime
+07934,Far Hills NJ,1028470,prime
+07935,Green Village NJ,1112344,prime
+07940,Madison NJ,1073220,prime
+07945,Mendham NJ,1128799,prime
+07974,New Providence NJ,1011802,prime
+07976,New Vernon NJ,2064284,ultra
+08006,Barnegat Light NJ,1700901,prime
+08008,Long Beach Township NJ,1928858,prime
+08202,Avalon NJ,2713897,ultra
+08212,Cape May Point NJ,1569706,prime
+08226,Ocean City NJ,1117237,prime
+08243,Sea Isle City NJ,1513316,prime
+08247,Stone Harbor NJ,2524245,ultra
+08248,Strathmere NJ,1603747,prime
+08402,Margate City NJ,1128369,prime
+08403,Longport NJ,1504753,prime
+08502,Belle Mead NJ,1009409,prime
+08550,Princeton Junction NJ,1020373,prime
+08558,Skillman NJ,1059940,prime
+08720,Allenwood NJ,1028234,prime
+08730,Brielle NJ,1306362,prime
+08735,Lavallette NJ,1200744,prime
+08736,Manasquan NJ,1214602,prime
+08738,Mantoloking NJ,2191190,ultra
+08739,Lavallette NJ,1750910,prime
+08750,Sea Girt NJ,2500930,ultra
+10001,New York NY,1726291,prime
+10003,New York NY,1358755,prime
+10004,New York NY,1221237,prime
+10005,New York NY,1112885,prime
+10006,New York NY,1045673,prime
+10007,New York NY,3146950,ultra
+10010,New York NY,1263174,prime
+10011,New York NY,1597125,prime
+10012,New York NY,2778304,ultra
+10013,New York NY,3657015,ultra
+10014,New York NY,1766161,prime
+10018,New York NY,1340285,prime
+10019,New York NY,1221421,prime
+10021,New York NY,1403772,prime
+10022,New York NY,1114162,prime
+10023,New York NY,1408851,prime
+10024,New York NY,1564253,prime
+10025,New York NY,1090952,prime
+10028,New York NY,1430531,prime
+10065,New York NY,1644205,prime
+10069,New York NY,1923395,prime
+10075,New York NY,1173974,prime
+10128,New York NY,1173356,prime
+10282,New York NY,2154259,ultra
+10502,Ardsley NY,1038372,prime
+10504,Armonk NY,1703011,prime
+10505,Baldwin Place NY,1044855,prime
+10506,Bedford NY,1609969,prime
+10510,Briarcliff Manor NY,1144839,prime
+10514,Chappaqua NY,1514576,prime
+10522,Dobbs Ferry NY,1003142,prime
+10528,Harrison NY,1457654,prime
+10533,Irvington NY,1266308,prime
+10536,Katonah NY,1106744,prime
+10538,Larchmont NY,1731034,prime
+10543,Mamaroneck NY,1063055,prime
+10570,Pleasantville NY,1034539,prime
+10576,Pound Ridge NY,1448598,prime
+10577,Purchase NY,2228365,ultra
+10580,Rye NY,2284781,ultra
+10583,Scarsdale NY,1550904,prime
+10597,Waccabuc NY,1619920,prime
+10706,Hastings on Hudson NY,1132500,prime
+10709,Eastchester NY,1018609,prime
+10803,Pelham NY,1404507,prime
+10804,New Rochelle NY,1241616,prime
+10952,Monsey NY,1145077,prime
+10987,Tuxedo Park NY,1306977,prime
+11020,Great Neck NY,1626006,prime
+11021,Great Neck NY,1095585,prime
+11023,Great Neck NY,1517335,prime
+11024,Great Neck NY,2369851,ultra
+11030,Manhasset NY,2274074,ultra
+11050,Port Washington NY,1327149,prime
+11101,New York NY,1144795,prime
+11103,New York NY,1038305,prime
+11105,New York NY,1135943,prime
+11201,New York NY,1354347,prime
+11204,New York NY,1236762,prime
+11205,New York NY,1053000,prime
+11206,New York NY,1113262,prime
+11211,New York NY,1377791,prime
+11213,New York NY,1118840,prime
+11215,New York NY,1475197,prime
+11216,New York NY,1243727,prime
+11217,New York NY,1565121,prime
+11219,New York NY,1228560,prime
+11221,New York NY,1099243,prime
+11222,New York NY,1507639,prime
+11223,New York NY,1072605,prime
+11225,New York NY,1144484,prime
+11228,New York NY,1198706,prime
+11231,New York NY,1762363,prime
+11233,New York NY,1018430,prime
+11237,New York NY,1093183,prime
+11238,New York NY,1240541,prime
+11249,New York NY,1492156,prime
+11358,New York NY,1069011,prime
+11363,New York NY,1110140,prime
+11365,New York NY,1007858,prime
+11366,New York NY,1138471,prime
+11507,Albertson NY,1090315,prime
+11509,Atlantic Beach NY,1509471,prime
+11516,Cedarhurst NY,1232442,prime
+11530,Garden City NY,1323631,prime
+11545,Glen Head NY,1585114,prime
+11548,Greenvale NY,1126343,prime
+11557,Hewlett NY,1008203,prime
+11559,Lawrence NY,2208254,ultra
+11560,Locust Valley NY,1255320,prime
+11568,Old Westbury NY,3015567,ultra
+11569,Point Lookout NY,1410609,prime
+11576,Roslyn NY,1737698,prime
+11577,East Hills NY,1396912,prime
+11579,Sea Cliff NY,1129157,prime
+11596,Williston Park NY,1026993,prime
+11598,Woodmere NY,1373939,prime
+11724,Cold Spring Harbor NY,1764720,prime
+11732,East Norwich NY,1015748,prime
+11739,Great River NY,1123997,prime
+11753,Jericho NY,1303730,prime
+11765,Mill Neck NY,2613947,ultra
+11770,NY,1446619,prime
+11771,Oyster Bay NY,1326520,prime
+11791,Syosset NY,1197638,prime
+11797,Woodbury NY,1526451,prime
+11804,Old Bethpage NY,1020745,prime
+11930,Amagansett NY,3285422,ultra
+11932,Bridgehampton NY,4676499,ultra
+11935,Cutchogue NY,1201741,prime
+11937,East Hampton NY,2009992,ultra
+11939,NY,1184568,prime
+11942,East Quogue NY,1170985,prime
+11948,Laurel NY,1011913,prime
+11954,Montauk NY,1983623,prime
+11957,NY,1521693,prime
+11958,Peconic NY,1224910,prime
+11959,Quogue NY,2877003,ultra
+11960,Remsenburg NY,1811395,prime
+11962,Sagaponack NY,6520357,ultra
+11963,Sag Harbor NY,2355854,ultra
+11964,Shelter Island NY,1774434,prime
+11965,Shelter Island NY,2060979,ultra
+11968,Southampton NY,2211251,ultra
+11971,Southold NY,1116612,prime
+11975,Wainscott NY,3226512,ultra
+11976,Water Mill NY,4989089,ultra
+11977,Westhampton NY,1398171,prime
+11978,Westhampton Beach NY,1643802,prime
+12820,Queensbury NY,1786111,prime
+12844,Katskill Bay NY,1692750,prime
+12874,Silver Bay NY,1010127,prime
+18913,Carversville PA,1187632,prime
+18933,Lumberville PA,1010562,prime
+19035,Gladwyne PA,1598976,prime
+19041,Haverford PA,1156350,prime
+19066,Merion Station PA,1127675,prime
+19085,Villanova PA,1599006,prime
+19437,Gwynedd Valley PA,1131410,prime
+19807,Wilmington DE,1102763,prime
+19944,DE,1201148,prime
+20007,Washington DC,1281618,prime
+20015,Washington DC,1391470,prime
+20016,Washington DC,1118787,prime
+20105,Aldie VA,1107626,prime
+20117,Middleburg VA,1199048,prime
+20124,Clifton VA,1028295,prime
+20129,Waterford VA,1288909,prime
+20143,Catharpin VA,1109255,prime
+20184,Upperville VA,1222575,prime
+20197,Waterford VA,1315810,prime
+20759,Fulton MD,1007196,prime
+20777,Highland MD,1004247,prime
+20812,Glen Echo MD,1336970,prime
+20815,Chevy Chase MD,1192611,prime
+20816,Bethesda MD,1321069,prime
+20817,Bethesda MD,1325214,prime
+20818,Cabin John MD,1273323,prime
+20854,Potomac MD,1308353,prime
+20896,Garrett Park MD,1089204,prime
+21029,Clarksville MD,1067097,prime
+21036,Dayton MD,1028560,prime
+21056,Pasadena MD,3021437,ultra
+21153,Pikesville MD,1101701,prime
+21405,Annapolis MD,1551905,prime
+21662,Royal Oak MD,1106750,prime
+21737,Glenwood MD,1211739,prime
+21738,Glenwood MD,1001817,prime
+21794,West Friendship MD,1045462,prime
+22027,Dunn Loring VA,1319866,prime
+22039,VA,1197963,prime
+22046,Falls Church VA,1068018,prime
+22066,Great Falls VA,1707621,prime
+22101,McLean VA,1701130,prime
+22124,Oakton VA,1101492,prime
+22180,Vienna VA,1083011,prime
+22181,Vienna VA,1134825,prime
+22182,Vienna VA,1288904,prime
+22205,Arlington VA,1224209,prime
+22207,Arlington VA,1403090,prime
+22213,Arlington VA,1106549,prime
+22301,Alexandria VA,1082412,prime
+27608,Raleigh NC,1047377,prime
+28207,Charlotte NC,1650584,prime
+28480,Wrightsville Beach NC,1691907,prime
+28646,Linville NC,1362847,prime
+28717,Cashiers NC,1564467,prime
+28741,Highlands NC,1064322,prime
+29401,Charleston SC,1511945,prime
+29439,Folly Beach SC,1102568,prime
+29451,Isle of Palms SC,1657689,prime
+29482,Sullivans Island SC,4278319,ultra
+29685,Sunset SC,1376795,prime
+29941,Sheldon SC,2388653,ultra
+30327,Atlanta GA,1537587,prime
+31561,GA,4417477,ultra
+32461,Inlet Beach FL,1381831,prime
+32963,Indian River Shores FL,1042587,prime
+33036,FL,1242209,prime
+33037,Key Largo FL,1096981,prime
+33042,FL,1029586,prime
+33109,Miami Beach FL,6477483,ultra
+33122,Miami FL,1506106,prime
+33133,Miami FL,1316537,prime
+33146,Coral Gables FL,1898580,prime
+33149,Key Biscayne FL,1672309,prime
+33154,Bal Harbour FL,1216350,prime
+33156,Pinecrest FL,1528232,prime
+33158,Village of Palmetto Bay FL,1384307,prime
+33330,Southwest Ranches FL,1109846,prime
+33332,Weston FL,1028034,prime
+33432,Boca Raton FL,1064095,prime
+33480,Palm Beach FL,1498027,prime
+33483,Delray Beach FL,1014402,prime
+33496,Boca Raton FL,1020346,prime
+33629,Tampa FL,1026072,prime
+33921,FL,2280451,ultra
+33924,FL,1059120,prime
+34102,Naples FL,1309977,prime
+34103,Naples FL,1120321,prime
+34108,Naples FL,1004393,prime
+34216,FL,1850294,prime
+34236,Sarasota FL,1020779,prime
+37014,Arrington TN,1267598,prime
+37027,Brentwood TN,1232627,prime
+37046,College Grove TN,1288498,prime
+37069,Franklin TN,1018125,prime
+37204,Nashville TN,1001659,prime
+37205,Nashville TN,1087169,prime
+37215,Nashville TN,1206417,prime
+37350,Lookout Mountain TN,1068063,prime
+49434,Macatawa MI,1213192,prime
+49654,Maple City MI,1288684,prime
+49674,MI,1034220,prime
+55391,Woodland MN,1019524,prime
+55424,Edina MN,1036008,prime
+59065,MT,1066600,prime
+59716,Big Sky MT,1881150,prime
+59730,Gallatin Gateway MT,1383873,prime
+59931,Proctor MT,1148190,prime
+60022,Glencoe IL,1629616,prime
+60029,Golf IL,1323438,prime
+60043,Kenilworth IL,2101262,ultra
+60045,Lake Forest IL,1187129,prime
+60093,Winnetka IL,1546118,prime
+60521,Hinsdale IL,1234611,prime
+63124,Ladue MO,1293749,prime
+63131,Des Peres MO,1001133,prime
+75205,Highland Park TX,2120467,ultra
+75209,Dallas TX,1067951,prime
+75225,University Park TX,2111549,ultra
+75230,Dallas TX,1082126,prime
+76092,Southlake TX,1319018,prime
+77005,Houston TX,1706721,prime
+77024,Houston TX,1437173,prime
+77401,Bellaire TX,1181660,prime
+78703,Austin TX,1307808,prime
+78730,Austin TX,1151561,prime
+78731,Austin TX,1039538,prime
+78733,Austin TX,1175222,prime
+78746,West Lake Hills TX,1721903,prime
+78954,Round Top TX,1173033,prime
+80116,Franktown CO,1059888,prime
+80302,Boulder CO,1125652,prime
+80304,Boulder CO,1244062,prime
+80305,Boulder CO,1000679,prime
+80424,Breckenridge CO,1199596,prime
+80478,Granby CO,1056292,prime
+80487,Steamboat Springs CO,1314412,prime
+81224,Crested Butte CO,1450089,prime
+81426,Ophir CO,1013732,prime
+81430,Placerville CO,1245634,prime
+81435,CO,2146088,ultra
+81611,Aspen CO,3454526,ultra
+81615,Snowmass Village CO,2392367,ultra
+81620,Avon CO,1238027,prime
+81621,Basalt CO,1447390,prime
+81623,Carbondale CO,1368467,prime
+81631,Eagle CO,1012387,prime
+81632,Edwards CO,1859707,prime
+81654,CO,2829482,ultra
+81656,Woody Creek CO,5501896,ultra
+81657,Vail CO,1908949,prime
+83001,Jackson WY,1971685,prime
+83013,Moran WY,1618284,prime
+83014,Wilson WY,3278656,ultra
+83025,Wilson WY,3592469,ultra
+83340,Ketchum ID,1536199,prime
+83353,Sun Valley ID,1244494,prime
+83414,Alta WY,1983592,prime
+83821,Coolin ID,1146696,prime
+84004,Alpine UT,1194219,prime
+84036,Kamas UT,1008199,prime
+84060,Park City UT,2175143,ultra
+84061,Peoa UT,1065475,prime
+84098,Park City UT,1362088,prime
+85018,Phoenix AZ,1002630,prime
+85253,Paradise Valley AZ,3292044,ultra
+85255,Scottsdale AZ,1318720,prime
+85259,Scottsdale AZ,1150025,prime
+85262,Scottsdale AZ,1541127,prime
+85264,Fort McDowell AZ,1203762,prime
+85266,Scottsdale AZ,1294163,prime
+85377,Carefree AZ,1232056,prime
+87506,Santa Fe NM,1102674,prime
+89161,Las Vegas NV,1015348,prime
+89402,Incline Village NV,2855322,ultra
+89411,Genoa NV,1146344,prime
+89413,Glenbrook NV,3307729,ultra
+89448,Zephyr Cove NV,1441294,prime
+89451,Incline Village NV,1451590,prime
+89511,Reno NV,1121725,prime
+90004,Los Angeles CA,1433618,prime
+90008,Los Angeles CA,1076795,prime
+90019,Los Angeles CA,1222306,prime
+90024,Los Angeles CA,1356467,prime
+90025,Los Angeles CA,1077564,prime
+90026,Los Angeles CA,1176700,prime
+90027,Los Angeles CA,1810180,prime
+90034,Los Angeles CA,1436005,prime
+90035,Los Angeles CA,1631206,prime
+90036,Los Angeles CA,1845336,prime
+90038,Los Angeles CA,1046641,prime
+90039,Los Angeles CA,1364692,prime
+90041,Los Angeles CA,1288026,prime
+90042,Los Angeles CA,1005267,prime
+90045,Los Angeles CA,1499830,prime
+90046,Los Angeles CA,1475017,prime
+90048,Los Angeles CA,1766384,prime
+90049,Los Angeles CA,2988305,ultra
+90056,Ladera Heights CA,1669941,prime
+90064,Los Angeles CA,1856684,prime
+90065,Los Angeles CA,1109984,prime
+90066,Los Angeles CA,1717641,prime
+90067,Los Angeles CA,1593932,prime
+90068,Los Angeles CA,1652986,prime
+90069,West Hollywood CA,1270019,prime
+90077,Los Angeles CA,3079109,ultra
+90094,Los Angeles CA,1355555,prime
+90210,Beverly Hills CA,5242275,ultra
+90211,Beverly Hills CA,2238235,ultra
+90212,Beverly Hills CA,2420229,ultra
+90230,Culver City CA,1090242,prime
+90232,Culver City CA,1746630,prime
+90245,El Segundo CA,1767228,prime
+90254,Hermosa Beach CA,2268652,ultra
+90265,Malibu CA,3191181,ultra
+90266,Manhattan Beach CA,3289309,ultra
+90272,Los Angeles CA,2929779,ultra
+90274,Rolling Hills Estates CA,2530146,ultra
+90275,Rancho Palos Verdes CA,1820447,prime
+90277,Redondo Beach CA,1650640,prime
+90278,Redondo Beach CA,1417518,prime
+90290,Topanga CA,1445805,prime
+90291,Los Angeles CA,1927363,prime
+90292,Marina del Rey CA,1238797,prime
+90401,Santa Monica CA,1336765,prime
+90402,Santa Monica CA,4905611,ultra
+90403,Santa Monica CA,1482790,prime
+90404,Santa Monica CA,1070175,prime
+90405,Santa Monica CA,1945249,prime
+90503,Torrance CA,1303612,prime
+90504,Torrance CA,1001945,prime
+90505,Torrance CA,1425193,prime
+90623,La Palma CA,1213185,prime
+90630,Cypress CA,1087576,prime
+90703,Cerritos CA,1101376,prime
+90720,Los Alamitos CA,1580418,prime
+90742,Huntington Beach CA,2189271,ultra
+90803,Long Beach CA,1338800,prime
+90808,Long Beach CA,1041404,prime
+90814,Long Beach CA,1003011,prime
+90815,Long Beach CA,1051199,prime
+91001,Altadena CA,1115960,prime
+91006,Arcadia CA,1399017,prime
+91007,Arcadia CA,1423084,prime
+91008,Bradbury CA,1916991,prime
+91011,La Canada Flintridge CA,2497996,ultra
+91020,La Crescenta-Montrose CA,1026770,prime
+91024,Sierra Madre CA,1440426,prime
+91030,South Pasadena CA,1715248,prime
+91103,Pasadena CA,1092327,prime
+91104,Pasadena CA,1230508,prime
+91105,Pasadena CA,1823415,prime
+91107,Pasadena CA,1336884,prime
+91108,San Marino CA,2820708,ultra
+91201,Glendale CA,1297455,prime
+91202,Glendale CA,1241374,prime
+91206,Glendale CA,1139265,prime
+91207,Glendale CA,1745092,prime
+91208,Glendale CA,1550915,prime
+91210,Glendale CA,1162192,prime
+91214,La Crescenta-Montrose CA,1257697,prime
+91301,Agoura Hills CA,1246386,prime
+91302,Calabasas CA,1964055,prime
+91307,Los Angeles CA,1004839,prime
+91320,Thousand Oaks CA,1025390,prime
+91325,Los Angeles CA,1040091,prime
+91326,Los Angeles CA,1235787,prime
+91356,Los Angeles CA,1350979,prime
+91360,Thousand Oaks CA,1021453,prime
+91361,Westlake Village CA,1563708,prime
+91362,Thousand Oaks CA,1205401,prime
+91364,Los Angeles CA,1303215,prime
+91367,Los Angeles CA,1115600,prime
+91377,Oak Park CA,1144782,prime
+91401,Los Angeles CA,1119294,prime
+91403,Los Angeles CA,1481629,prime
+91423,Los Angeles CA,1447947,prime
+91436,Los Angeles CA,2236563,ultra
+91501,Burbank CA,1251052,prime
+91504,Burbank CA,1233178,prime
+91505,Burbank CA,1132306,prime
+91506,Burbank CA,1227234,prime
+91602,Los Angeles CA,1069346,prime
+91604,Los Angeles CA,1706061,prime
+91607,Los Angeles CA,1253120,prime
+91711,Claremont CA,1029286,prime
+91741,Glendora CA,1023423,prime
+91765,Diamond Bar CA,1032954,prime
+91775,San Gabriel CA,1279162,prime
+91780,Temple City CA,1099060,prime
+91789,Walnut CA,1154874,prime
+91902,Bonita CA,1158122,prime
+91914,Chula Vista CA,1179723,prime
+91935,Jamul CA,1031735,prime
+91941,La Mesa CA,1037085,prime
+92003,Bonsall CA,1019113,prime
+92007,Encinitas CA,2150602,ultra
+92008,Carlsbad CA,1464188,prime
+92009,Carlsbad CA,1586842,prime
+92010,Carlsbad CA,1296939,prime
+92011,Carlsbad CA,1385310,prime
+92014,San Diego CA,2886990,ultra
+92024,Encinitas CA,1891492,prime
+92029,Escondido CA,1183851,prime
+92037,San Diego CA,2400473,ultra
+92054,Oceanside CA,1134351,prime
+92059,Pala CA,1072876,prime
+92064,Poway CA,1237994,prime
+92067,Rancho Santa Fe CA,4741951,ultra
+92075,Solana Beach CA,2264088,ultra
+92078,San Marcos CA,1024908,prime
+92091,Rancho Santa Fe CA,3303526,ultra
+92103,San Diego CA,1092438,prime
+92106,San Diego CA,1811667,prime
+92107,San Diego CA,1517960,prime
+92109,San Diego CA,1525073,prime
+92110,San Diego CA,1027168,prime
+92116,San Diego CA,1020071,prime
+92117,San Diego CA,1100340,prime
+92118,Coronado CA,2561268,ultra
+92120,San Diego CA,1055258,prime
+92121,San Diego CA,1112075,prime
+92122,San Diego CA,1102876,prime
+92124,San Diego CA,1075060,prime
+92126,San Diego CA,1011530,prime
+92127,San Diego CA,1643582,prime
+92128,San Diego CA,1012534,prime
+92129,San Diego CA,1379705,prime
+92130,San Diego CA,2093083,ultra
+92131,San Diego CA,1507870,prime
+92210,Indian Wells CA,1445335,prime
+92590,Temecula CA,1477930,prime
+92602,Irvine CA,2034975,ultra
+92603,Irvine CA,2399594,ultra
+92604,Irvine CA,1396164,prime
+92606,Irvine CA,1481871,prime
+92610,Lake Forest CA,1256959,prime
+92612,Irvine CA,1201000,prime
+92614,Irvine CA,1234869,prime
+92618,Irvine CA,1593414,prime
+92620,Irvine CA,1697009,prime
+92624,Dana Point CA,1677123,prime
+92625,Newport Beach CA,4268374,ultra
+92626,Costa Mesa CA,1459332,prime
+92627,Costa Mesa CA,1392449,prime
+92629,Dana Point CA,1765748,prime
+92630,Lake Forest CA,1201284,prime
+92646,Huntington Beach CA,1406749,prime
+92647,Huntington Beach CA,1259621,prime
+92648,Huntington Beach CA,1554801,prime
+92649,Huntington Beach CA,1386393,prime
+92651,Laguna Beach CA,3110161,ultra
+92653,Laguna Hills CA,1295706,prime
+92655,CA,1061121,prime
+92657,Newport Beach CA,5606102,ultra
+92660,Newport Beach CA,3273269,ultra
+92661,Newport Beach CA,4618792,ultra
+92662,Newport Beach CA,4627201,ultra
+92663,Newport Beach CA,2732545,ultra
+92672,San Clemente CA,1737677,prime
+92673,San Clemente CA,1744214,prime
+92675,San Juan Capistrano CA,1348035,prime
+92676,Silverado CA,1071583,prime
+92677,Laguna Niguel CA,1493046,prime
+92679,Coto de Caza CA,1598532,prime
+92683,Westminster CA,1103915,prime
+92688,Rancho Santa Margarita CA,1026277,prime
+92691,Mission Viejo CA,1231636,prime
+92692,Mission Viejo CA,1228721,prime
+92694,Ladera Ranch CA,1275322,prime
+92705,North Tustin CA,1604284,prime
+92706,Santa Ana CA,1043888,prime
+92708,Fountain Valley CA,1400906,prime
+92780,Tustin CA,1133027,prime
+92782,Tustin CA,1338554,prime
+92806,Anaheim CA,1005931,prime
+92807,Anaheim CA,1160738,prime
+92808,Anaheim CA,1218713,prime
+92821,Brea CA,1119324,prime
+92823,Brea CA,1296005,prime
+92831,Fullerton CA,1070173,prime
+92835,Fullerton CA,1323177,prime
+92841,Garden Grove CA,1032279,prime
+92845,Garden Grove CA,1128961,prime
+92861,Villa Park CA,2326705,ultra
+92865,Orange CA,1072950,prime
+92866,Orange CA,1135017,prime
+92867,Orange CA,1251855,prime
+92869,Orange CA,1215801,prime
+92870,Placentia CA,1119784,prime
+92886,Yorba Linda CA,1378393,prime
+92887,Yorba Linda CA,1517639,prime
+93013,Carpinteria CA,1521465,prime
+93023,Ojai CA,1152254,prime
+93066,Somis CA,1548514,prime
+93067,Summerland CA,2661232,ultra
+93101,Santa Barbara CA,1508061,prime
+93103,Santa Barbara CA,1766478,prime
+93105,Santa Barbara CA,1935336,prime
+93108,Montecito CA,5120277,ultra
+93109,Santa Barbara CA,2450406,ultra
+93110,Santa Barbara CA,1937520,prime
+93111,Santa Barbara CA,1690718,prime
+93117,Goleta CA,1395566,prime
+93401,San Luis Obispo CA,1105789,prime
+93405,San Luis Obispo CA,1100290,prime
+93420,Arroyo Grande CA,1051431,prime
+93424,CA,1550256,prime
+93428,Cambria CA,1015768,prime
+93430,Cayucos CA,1359444,prime
+93432,Creston CA,1000659,prime
+93441,Los Olivos CA,1775486,prime
+93449,Pismo Beach CA,1121072,prime
+93460,Santa Ynez CA,1903487,prime
+93463,Solvang CA,1436479,prime
+93908,Salinas CA,1174212,prime
+93920,Big Sur CA,1777013,prime
+93923,Carmel-by-the-Sea CA,2343414,ultra
+93924,Carmel Valley CA,1455679,prime
+93940,Monterey CA,1135276,prime
+93950,Pacific Grove CA,1407012,prime
+93953,Del Monte Forest CA,2777373,ultra
+94002,Belmont CA,2323648,ultra
+94005,Brisbane CA,1168896,prime
+94010,Hillsborough CA,3456394,ultra
+94014,Daly City CA,1014081,prime
+94015,Daly City CA,1190603,prime
+94018,Half Moon Bay CA,1511582,prime
+94019,Half Moon Bay CA,1600350,prime
+94022,Los Altos CA,5101025,ultra
+94024,Los Altos CA,4660337,ultra
+94025,Menlo Park CA,2902160,ultra
+94027,Atherton CA,8305049,ultra
+94028,Portola Valley CA,4260596,ultra
+94030,Millbrae CA,2083763,ultra
+94037,Moss Beach CA,1518975,prime
+94038,Moss Beach CA,1469158,prime
+94040,Mountain View CA,2898611,ultra
+94041,Mountain View CA,2275407,ultra
+94043,Mountain View CA,1590039,prime
+94044,Pacifica CA,1281483,prime
+94060,Pescadero CA,1174872,prime
+94061,Redwood City CA,2001821,ultra
+94062,Emerald Lake Hills CA,2719029,ultra
+94063,Redwood City CA,1308869,prime
+94065,Redwood City CA,1834779,prime
+94066,San Bruno CA,1319316,prime
+94070,San Carlos CA,2468870,ultra
+94080,South San Francisco CA,1235601,prime
+94085,Sunnyvale CA,1566316,prime
+94086,Sunnyvale CA,1933932,prime
+94087,Sunnyvale CA,2852226,ultra
+94089,Sunnyvale CA,1484460,prime
+94104,San Francisco CA,1135364,prime
+94105,San Francisco CA,1103827,prime
+94107,San Francisco CA,1033061,prime
+94108,San Francisco CA,1035457,prime
+94109,San Francisco CA,1040528,prime
+94110,San Francisco CA,1386906,prime
+94111,San Francisco CA,1094147,prime
+94112,San Francisco CA,1156683,prime
+94114,San Francisco CA,1948470,prime
+94115,San Francisco CA,1482150,prime
+94116,San Francisco CA,1598620,prime
+94117,San Francisco CA,1616826,prime
+94118,San Francisco CA,2155271,ultra
+94121,San Francisco CA,1770873,prime
+94122,San Francisco CA,1664037,prime
+94123,San Francisco CA,2408450,ultra
+94127,San Francisco CA,1984558,prime
+94129,San Francisco CA,1582588,prime
+94131,San Francisco CA,1713078,prime
+94132,San Francisco CA,1379412,prime
+94133,San Francisco CA,1369208,prime
+94134,San Francisco CA,1084801,prime
+94158,San Francisco CA,1320534,prime
+94301,Palo Alto CA,4362340,ultra
+94303,East Palo Alto CA,2135239,ultra
+94304,CA,3265783,ultra
+94305,Stanford CA,3262846,ultra
+94306,Palo Alto CA,3453747,ultra
+94401,San Mateo CA,1231798,prime
+94402,San Mateo CA,2491720,ultra
+94403,San Mateo CA,1836108,prime
+94404,Foster City CA,1757106,prime
+94501,Alameda CA,1165174,prime
+94502,Alameda CA,1180612,prime
+94506,Danville CA,2057005,ultra
+94507,Alamo CA,2564029,ultra
+94515,Calistoga CA,1087366,prime
+94517,Clayton CA,1059927,prime
+94523,Pleasant Hill CA,1001093,prime
+94526,Danville CA,1788428,prime
+94528,Diablo CA,3134683,ultra
+94530,El Cerrito CA,1157282,prime
+94536,Fremont CA,1443812,prime
+94538,Fremont CA,1334898,prime
+94539,Fremont CA,2253305,ultra
+94542,Hayward CA,1258457,prime
+94546,Castro Valley CA,1038513,prime
+94549,Lafayette CA,1960178,prime
+94550,Livermore CA,1238611,prime
+94551,Livermore CA,1001887,prime
+94552,Castro Valley CA,1401196,prime
+94555,Fremont CA,1510575,prime
+94556,Moraga CA,1662530,prime
+94560,Newark CA,1244669,prime
+94563,Orinda CA,1993717,prime
+94566,Pleasanton CA,1736724,prime
+94568,Dublin CA,1293346,prime
+94574,Saint Helena CA,1671792,prime
+94582,San Ramon CA,1738367,prime
+94583,San Ramon CA,1406006,prime
+94586,Sunol CA,1476778,prime
+94587,Union City CA,1260280,prime
+94588,Pleasanton CA,1433128,prime
+94596,Walnut Creek CA,1106779,prime
+94597,Walnut Creek CA,1008547,prime
+94598,Walnut Creek CA,1416853,prime
+94599,Yountville CA,1345444,prime
+94602,Oakland CA,1014916,prime
+94610,Oakland CA,1219056,prime
+94611,Piedmont CA,1421081,prime
+94618,Oakland CA,1671060,prime
+94702,Berkeley CA,1217091,prime
+94703,Berkeley CA,1311702,prime
+94704,Berkeley CA,1180427,prime
+94705,Berkeley CA,2030973,ultra
+94706,Albany CA,1276325,prime
+94707,Berkeley CA,1830381,prime
+94708,Berkeley CA,1661038,prime
+94709,Berkeley CA,1355164,prime
+94710,Berkeley CA,1023310,prime
+94901,San Rafael CA,1431894,prime
+94903,San Rafael CA,1277649,prime
+94904,Kentfield CA,2314478,ultra
+94920,Tiburon CA,3366052,ultra
+94923,Occidental CA,1420657,prime
+94924,Bolinas CA,1930587,prime
+94925,Corte Madera CA,1901016,prime
+94929,CA,1430963,prime
+94930,Fairfax CA,1252590,prime
+94937,Point Reyes Station CA,1492101,prime
+94938,Bolinas CA,1060133,prime
+94939,Larkspur CA,2249052,ultra
+94940,Marshall CA,1536140,prime
+94941,Mill Valley CA,2177011,ultra
+94945,Novato CA,1101043,prime
+94946,Nicasio CA,2129213,ultra
+94947,Novato CA,1036255,prime
+94949,Novato CA,1240951,prime
+94951,Penngrove CA,1275377,prime
+94952,Petaluma CA,1076659,prime
+94956,Point Reyes Station CA,1554684,prime
+94957,Ross CA,4165232,ultra
+94960,San Anselmo CA,1713061,prime
+94963,Lagunitas CA,1324220,prime
+94965,Sausalito CA,1576864,prime
+94970,Stinson Beach CA,3416525,ultra
+94971,Tomales CA,1134557,prime
+94973,Woodacre CA,1139070,prime
+95002,San Jose CA,1243076,prime
+95003,Aptos CA,1345243,prime
+95008,Campbell CA,1914786,prime
+95010,Capitola CA,1250289,prime
+95014,Cupertino CA,3128880,ultra
+95020,Gilroy CA,1070235,prime
+95030,Los Gatos CA,3598235,ultra
+95032,Los Gatos CA,2639597,ultra
+95033,Lexington Hills CA,1448164,prime
+95035,Milpitas CA,1470776,prime
+95037,Morgan Hill CA,1352643,prime
+95039,Moss Landing CA,1086090,prime
+95046,San Martin CA,1640528,prime
+95050,Santa Clara CA,1638884,prime
+95051,Santa Clara CA,1910512,prime
+95054,Santa Clara CA,1519242,prime
+95060,Santa Cruz CA,1385443,prime
+95062,Santa Cruz CA,1337388,prime
+95065,Santa Cruz CA,1366991,prime
+95066,Scotts Valley CA,1271501,prime
+95070,Saratoga CA,4092595,ultra
+95073,Soquel CA,1352756,prime
+95111,San Jose CA,1068712,prime
+95112,San Jose CA,1008080,prime
+95117,San Jose CA,1794601,prime
+95118,San Jose CA,1678762,prime
+95119,San Jose CA,1431844,prime
+95120,San Jose CA,2276467,ultra
+95121,San Jose CA,1265619,prime
+95123,San Jose CA,1382871,prime
+95124,San Jose CA,1968190,prime
+95125,San Jose CA,1896202,prime
+95126,San Jose CA,1208564,prime
+95127,San Jose CA,1110259,prime
+95128,San Jose CA,1486072,prime
+95129,San Jose CA,2673119,ultra
+95130,San Jose CA,2156146,ultra
+95131,San Jose CA,1363908,prime
+95132,San Jose CA,1674355,prime
+95133,San Jose CA,1155781,prime
+95134,San Jose CA,1071805,prime
+95135,San Jose CA,1765440,prime
+95136,San Jose CA,1389130,prime
+95138,CA,1809633,prime
+95139,San Jose CA,1360509,prime
+95140,CA,1841104,prime
+95148,San Jose CA,1551313,prime
+95439,Fulton CA,1012751,prime
+95441,Geyserville CA,1117292,prime
+95442,Glen Ellen CA,1210846,prime
+95448,Healdsburg CA,1111649,prime
+95452,Kenwood CA,1266165,prime
+95465,Occidental CA,1147819,prime
+95472,Sebastopol CA,1110016,prime
+95497,The Sea Ranch CA,1405146,prime
+95746,Granite Bay CA,1174346,prime
+95830,CA,1028758,prime
+95837,Sacramento CA,1012840,prime
+96140,Carnelian Bay CA,1122903,prime
+96141,Homewood CA,1323295,prime
+96145,Tahoe City CA,1258451,prime
+96146,Olympic Valley CA,1021001,prime
+96161,Truckee CA,1028652,prime
+96708,Haiku HI,1326748,prime
+96712,Haleiwa HI,1652511,prime
+96714,Hanalei HI,2314049,ultra
+96722,Princeville HI,1518812,prime
+96725,Holualoa HI,1009232,prime
+96730,Kaaawa HI,1057748,prime
+96731,Kahuku HI,1069072,prime
+96732,Kahului HI,1033183,prime
+96734,Kailua HI,1533038,prime
+96741,Kalaheo HI,1091878,prime
+96743,Waimea HI,1245587,prime
+96744,Kaneohe HI,1087770,prime
+96754,Kilauea HI,2143682,ultra
+96756,Koloa HI,1190222,prime
+96762,Laie HI,1260704,prime
+96768,Makawao HI,1120972,prime
+96779,Paia HI,1319091,prime
+96790,Kula HI,1350217,prime
+96791,Waialua HI,1038278,prime
+96795,Waimanalo HI,1093304,prime
+96816,Honolulu HI,1283687,prime
+96819,Honolulu HI,1078414,prime
+96821,Honolulu HI,1812869,prime
+96825,Honolulu HI,1244750,prime
+97034,Lake Oswego OR,1143698,prime
+97703,Bend OR,1021211,prime
+97753,Powell Butte OR,1023238,prime
+98004,Bellevue WA,1971845,prime
+98005,Bellevue WA,1609173,prime
+98006,Bellevue WA,1672075,prime
+98007,Bellevue WA,1034704,prime
+98008,Bellevue WA,1411271,prime
+98011,Bothell WA,1047355,prime
+98014,Carnation WA,1030148,prime
+98020,Edmonds WA,1162699,prime
+98021,Bothell WA,1133405,prime
+98024,Fall City WA,1266148,prime
+98027,Issaquah WA,1197418,prime
+98028,Kenmore WA,1036437,prime
+98029,Issaquah WA,1172248,prime
+98033,Kirkland WA,1640949,prime
+98034,Kirkland WA,1068918,prime
+98039,Medina WA,4564965,ultra
+98040,Mercer Island WA,2322941,ultra
+98045,North Bend WA,1004541,prime
+98050,Issaquah WA,1445023,prime
+98052,Redmond WA,1348109,prime
+98053,Redmond WA,1447571,prime
+98065,Snoqualmie WA,1105040,prime
+98072,Woodinville WA,1309850,prime
+98074,Sammamish WA,1587486,prime
+98075,Sammamish WA,1813706,prime
+98077,Woodinville WA,1519282,prime
+98105,Seattle WA,1190786,prime
+98110,Bainbridge Island WA,1186607,prime
+98112,Seattle WA,1381174,prime
+98115,Seattle WA,1068969,prime
+98116,Seattle WA,1013537,prime
+98117,Seattle WA,1008114,prime
+98119,Seattle WA,1039141,prime
+98177,Shoreline WA,1150717,prime
+98199,Seattle WA,1269527,prime
+98280,Orcas WA,1418901,prime
+98286,Shaw Island WA,1124249,prime
+98296,Snohomish WA,1057162,prime
+98333,Fox Island WA,1074850,prime

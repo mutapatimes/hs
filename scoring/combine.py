@@ -52,6 +52,7 @@ from scoring.signals import (
     prime_residence,
     rich_list,
     shared_phone,
+    us_property,
     us_zip,
     wealth_jurisdiction,
     wealth_office,
@@ -65,6 +66,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "work_email": 3,
     "hnwi_postcode": 3,
     "us_hnwi_zip": 3,
+    "us_property": 2,     # US high-value home ZIP: base; the tier overrides (US_PROPERTY_AREA_WEIGHTS)
     "intl_postcode": 3,
     "hnw_area": 3,
     "named_house": 2,  # street line is a NAMED property ("The Old Rectory") — quiet-wealth address fact
@@ -174,6 +176,12 @@ PROPERTY_AREA_WEIGHTS = {
     "high": 1,
 }
 
+# US home-value ZIP tiers (Zillow ZHVI). Same shape as the UK area signal: ultra >= $2M, prime >= $1M.
+US_PROPERTY_AREA_WEIGHTS = {
+    "ultra": 3,
+    "prime": 2,
+}
+
 # "Supporting" signals are too weak/sensitive to ever flag a customer on their
 # own: they contribute to the score and count ONLY when at least one stronger
 # (non-supporting) signal has also fired. This enforces "never a sole basis".
@@ -225,6 +233,7 @@ SIGNAL_GROUP: dict[str, str] = {
     "named_house": "geo",     # a named property echoes the same location species
     "property_value": "geo",  # exact-house value echoes the same location
     "property_area": "geo",   # district value echoes the same location too
+    "us_property": "geo",     # US home-value ZIP echoes the same location too
     "prime_residence": "geo",
     "gcc_billing": "geo",
     "wealth_jurisdiction": "geo",  # high-value residential jurisdiction (was tax_haven)
@@ -308,6 +317,8 @@ SIGNALS = [
      property_value.FLAG_COL, lambda r: r[property_value.REASON_COL]),
     ("property_area", "Prime area", property_value.flag_property_area,
      property_value.AREA_FLAG_COL, lambda r: r[property_value.AREA_REASON_COL]),
+    ("us_property", "High-value home area", us_property.flag_us_property,
+     us_property.FLAG_COL, lambda r: r[us_property.REASON_COL]),
     ("wealth_office", "Wealth office", wealth_office.flag_wealth_office,
      wealth_office.MATCH_COL, lambda r: r[wealth_office.OFFICE_COL]),
     ("wealth_structure", "Wealth structure", wealth_structure.flag_wealth_structure,
@@ -525,6 +536,8 @@ def score_customers(
                 type_spec = (property_value.TIER_COL, PROPERTY_TIER_WEIGHTS)
             elif key == "property_area":
                 type_spec = (property_value.AREA_TIER_COL, PROPERTY_AREA_WEIGHTS)
+            elif key == "us_property":
+                type_spec = (us_property.TIER_COL, US_PROPERTY_AREA_WEIGHTS)
             elif key == "companies_house":
                 type_spec = (companies_house.TYPE_COL, COMPANIES_HOUSE_TIER_WEIGHTS)
             if type_spec and type_spec[0] in out.columns:
