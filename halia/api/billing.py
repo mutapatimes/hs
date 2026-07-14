@@ -28,7 +28,53 @@ _ACTIVE = {"active", "trialing", "comped", "complete"}
 
 
 def billing_enabled() -> bool:
-    return bool(config.STRIPE_SECRET_KEY and config.STRIPE_PRICE_ID)
+    return bool(config.STRIPE_SECRET_KEY and (config.STRIPE_PRICE_ID or config.STRIPE_TIERS))
+
+
+def _tier_cap(s: str):
+    """A tier's customer cap: '' or '*' -> unlimited; '15k'/'15000'/'15,000' -> int; else None."""
+    s = s.strip().lower()
+    if s in ("", "*"):
+        return float("inf")
+    s = s.replace(",", "").replace("k", "000")
+    return int(s) if s.isdigit() else None
+
+
+def _parse_tiers() -> list[tuple[float, str]]:
+    """[(max_customers, price_id)] ascending from config.STRIPE_TIERS; [] when unset/empty."""
+    tiers: list[tuple[float, str]] = []
+    for part in (config.STRIPE_TIERS or "").split(","):
+        if ":" not in part:
+            continue
+        cap_s, pid = part.split(":", 1)
+        cap, pid = _tier_cap(cap_s), pid.strip()
+        if cap is not None and pid:
+            tiers.append((cap, pid))
+    tiers.sort(key=lambda t: t[0])
+    return tiers
+
+
+def _scanned_count(shop: str) -> int:
+    """Total customers scanned for this shop (its 'DB size'); 0 if not scored/available yet."""
+    try:
+        from halia.api import data
+        entry = data.results_for(shop)
+        return len(entry["results"]) if entry and entry.get("results") else 0
+    except Exception:  # noqa: BLE001 — best-effort; never block checkout on the count
+        return 0
+
+
+def price_for_shop(shop: str) -> str | None:
+    """The Stripe price for this tenant: the size tier its customer count falls in, else the single
+    STRIPE_PRICE_ID. A store scanned at 0 (cache cold) defaults to the smallest tier."""
+    tiers = _parse_tiers()
+    if not tiers:
+        return config.STRIPE_PRICE_ID
+    count = _scanned_count(shop)
+    for cap, pid in tiers:                      # ascending — the first tier the store fits under
+        if count <= cap:
+            return pid
+    return tiers[-1][1]                          # above every finite cap -> the top tier
 
 
 def _free_shops():
@@ -62,7 +108,7 @@ def create_checkout(shop: str) -> str:
     base = config.HALIA_APP_URL or ""
     data = {
         "mode": "subscription",
-        "line_items[0][price]": config.STRIPE_PRICE_ID,
+        "line_items[0][price]": price_for_shop(shop),   # size-based tier, else the single price
         "line_items[0][quantity]": "1",
         "client_reference_id": shop,
         "metadata[shop]": shop,

@@ -86,6 +86,11 @@ CONSOLE_KEY = os.environ.get("HALIA_CONSOLE_KEY") or None
 # is fully open (preserves current behaviour and never locks out an existing client).
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY") or None
 STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID") or None
+# Optional size-based pricing: pick the Checkout price by the store's scanned customer count.
+# Format: comma-separated "maxCustomers:price_id" ascending, with an empty or "*" cap for the top/
+# unlimited tier — e.g. "15000:price_discovery,50000:price_growth,*:price_enterprise" ("15k"
+# shorthand allowed). When set, this overrides STRIPE_PRICE_ID; unset falls back to the single price.
+STRIPE_TIERS = os.environ.get("STRIPE_TIERS") or None
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET") or None
 # Optional preconfigured Stripe coupon id for the 50%-off retention offer (else created ad-hoc).
 STRIPE_RETENTION_COUPON = os.environ.get("STRIPE_RETENTION_COUPON") or None

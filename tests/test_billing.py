@@ -237,3 +237,35 @@ def test_webhook_signature():
     good = hmac.new(secret.encode(), b"123." + body, hashlib.sha256).hexdigest()
     assert billing._verify_sig(body, f"t=123,v1={good}", secret) is True
     assert billing._verify_sig(body, "t=123,v1=deadbeef", secret) is False
+
+
+# ── size-based pricing tiers ─────────────────────────────────────────────────────
+def test_tier_parsing_and_selection(monkeypatch):
+    monkeypatch.setattr("halia.config.STRIPE_TIERS",
+                        "15k:price_discovery, 50000:price_growth, *:price_enterprise")
+    assert billing._parse_tiers() == [(15000.0, "price_discovery"),
+                                       (50000.0, "price_growth"),
+                                       (float("inf"), "price_enterprise")]
+
+    def price_at(n):
+        monkeypatch.setattr(billing, "_scanned_count", lambda shop: n)
+        return billing.price_for_shop("shopx")
+
+    assert price_at(0) == "price_discovery"          # cold/empty cache -> smallest tier
+    assert price_at(15000) == "price_discovery"      # cap is inclusive
+    assert price_at(15001) == "price_growth"
+    assert price_at(50000) == "price_growth"
+    assert price_at(200000) == "price_enterprise"    # above every finite cap -> top tier
+
+
+def test_billing_enabled_with_tiers_but_no_single_price(monkeypatch):
+    monkeypatch.setattr("halia.config.STRIPE_SECRET_KEY", "sk_test")
+    monkeypatch.setattr("halia.config.STRIPE_PRICE_ID", None)
+    monkeypatch.setattr("halia.config.STRIPE_TIERS", "*:price_x")
+    assert billing.billing_enabled() is True
+
+
+def test_price_falls_back_to_single_when_no_tiers(monkeypatch):
+    monkeypatch.setattr("halia.config.STRIPE_TIERS", None)
+    monkeypatch.setattr("halia.config.STRIPE_PRICE_ID", "price_single")
+    assert billing.price_for_shop("shopx") == "price_single"
