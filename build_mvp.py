@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import time
 
 import pandas as pd
 
@@ -313,10 +314,31 @@ def _admin_url(shop: str | None, cid: object, platform: str = "shopify",
     return ""                                        # bigcommerce/centra/scayle: no deep link yet
 
 
+# Behaviour bands (the RFM axis, kept OUT of the Halia score: the score measures capacity,
+# the band measures current behaviour, and the gap between the two is the product).
+# Luxury cadence: a client is "active" within 6 months, "cooling" to a year, "lapsed" beyond.
+ACTIVE_DAYS = 180
+LAPSED_DAYS = 365
+SLEEPING_CAP = 200   # known VICs gone quiet appended to the payload, ranked by spend
+
+
+def _band(last_sort: int, now_ts: float) -> str:
+    """Behaviour band from the last dated order: active / cooling / lapsed / new (no dated order)."""
+    if not last_sort:
+        return "new"
+    days = (now_ts - last_sort) / 86400.0
+    if days <= ACTIVE_DAYS:
+        return "active"
+    if days <= LAPSED_DAYS:
+        return "cooling"
+    return "lapsed"
+
+
 def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float,
             orders_by_customer: dict | None = None, shop: str | None = None,
             benchmarks: dict | None = None, carts_by_customer: dict | None = None,
-            platform: str = "shopify", store_url: str = "") -> dict:
+            platform: str = "shopify", store_url: str = "",
+            now_ts: float | None = None, known: bool = False) -> dict:
     raw = _num(row[SCORE_COL])
     s100 = _score100(raw)
     t = _tier(s100)
@@ -350,6 +372,9 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
         "aov": int(round(spend / n_orders)) if n_orders else int(round(spend)),
         "last": last_label,
         "lastSort": last_sort,
+        "band": _band(last_sort, now_ts if now_ts is not None else time.time()),
+        "known": known,   # True = a proven £5k+ client appended for the Gone quiet play
+                          # (kept out of the default hidden-VIC lists and counts)
         "orders": (orders_by_customer or {}).get(str(cid), []),
         "cart": (carts_by_customer or {}).get(str(cid)),   # open basket (abandoned checkout), if any
         "adminUrl": _admin_url(shop, cid, platform, store_url),   # deep link into the merchant's own admin
@@ -459,14 +484,47 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
     ``orders_by_customer`` (CUST_ID -> [order summaries]) powers the in-app order
     history; ``shop`` builds per-client "open in Shopify" links.
     """
+    now_ts = time.time()
     hidden = scored[scored[HIDDEN_COL]].copy()
     store_aov = _store_aov(scored)
     seg_labels: dict[str, str] = {}
     top = top_hidden_vics(scored, n=max(len(hidden), 1))
     data = [_client(i, row, seg_labels, store_aov, orders_by_customer, shop, benchmarks,
-                    carts_by_customer, platform, store_url)
+                    carts_by_customer, platform, store_url, now_ts=now_ts)
             for i, (_, row) in enumerate(top.iterrows())]
+
+    # --- Wealth x behaviour plays -----------------------------------------------------------
+    # The behaviour axis (RFM) stays OUT of the Halia score; it is crossed with the score here,
+    # at presentation time. Vectorised over the whole book (cheap: one datetime parse per column).
+    spend_s = (pd.to_numeric(scored["Spent"], errors="coerce").fillna(0.0)
+               if "Spent" in scored.columns else pd.Series(0.0, index=scored.index))
+    last_dt = (pd.to_datetime(scored["Last Shopped"], errors="coerce")
+               if "Last Shopped" in scored.columns else pd.Series(pd.NaT, index=scored.index))
+    epoch_s = last_dt.map(lambda t: 0 if pd.isna(t) else int(t.value // 10**9))
+    band_s = epoch_s.map(lambda e: _band(e, now_ts))
+    tier_a = scored[SCORE_COL].map(lambda v: _tier(_score100(_num(v)))).isin({"A1", "A"})
+    ordn_s = (pd.to_numeric(scored["Count of CUST_ID"], errors="coerce").fillna(1)
+              if "Count of CUST_ID" in scored.columns else pd.Series(1, index=scored.index))
+    ordn_s = ordn_s.where((ordn_s >= 1) & (ordn_s < 200), 1)
+
+    # Gone quiet: proven £5k+ clients with strong wealth signals whose orders stopped. They sit
+    # outside the hidden-VIC gate (their spend is known), so they are appended here flagged
+    # known=True; the UI keeps them out of the default lists and shows them under the play.
+    sleeping_mask = ((spend_s >= VIC_SPEND_THRESHOLD) & tier_a
+                     & band_s.isin(["cooling", "lapsed"]))
+    sleeping = scored[sleeping_mask].sort_values("Spent", ascending=False).head(SLEEPING_CAP)
+    data += [_client(len(data) + j, row, seg_labels, store_aov, orders_by_customer, shop,
+                     benchmarks, carts_by_customer, platform, store_url,
+                     now_ts=now_ts, known=True)
+             for j, (_, row) in enumerate(sleeping.iterrows())]
     segments = {seg: {"label": label} for seg, label in seg_labels.items()}
+
+    landscape = {
+        "sleeping": {"n": int(sleeping_mask.sum()),
+                     "value": int(spend_s[sleeping_mask].sum())},
+        "active": {"n": int((tier_a & (band_s == "active")).sum())},
+        "regulars": {"n": int((~tier_a & (band_s == "active") & (ordn_s >= 4)).sum())},
+    }
 
     hidden_count = int(len(hidden))
     latent_total = sum(
@@ -494,9 +552,12 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
 
     from scoring.combine import config_fingerprint
 
+    landscape["hidden"] = {"n": hidden_count, "value": int(latent_total)}
+
     return {
         "segments": segments, "data": data, "platform": platform,
         "orders": _orders_list(raw_orders, score_map),
+        "landscape": landscape,   # wealth x behaviour play counts over the whole book
         "stat_scored": f"{len(scored):,}", "stat_latent": _fmt_money(latent_total),
         "stat_count": str(hidden_count), "stat_avgspend": _fmt_money(avg_spend),
         "stat_toptier": str(top_tier),
@@ -551,6 +612,7 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     # built by scripts/build_world_map.py. No PII; the same blob for every tenant.
     html = html.replace("__WORLD__", _safe((ROOT / "web" / "world_map.json").read_text(encoding="utf-8").strip()))
     html = html.replace("__ORDERS__", _safe(json.dumps(payload.get("orders", []))))
+    html = html.replace("__LANDSCAPE__", _safe(json.dumps(payload.get("landscape", {}))))
     html = html.replace("__STAT_SCORED__", payload["stat_scored"])
     html = html.replace("__STAT_LATENT__", payload["stat_latent"])
     html = html.replace("__STAT_COUNT__", payload["stat_count"])

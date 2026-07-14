@@ -524,6 +524,22 @@
   .maplgd{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 2px 0;font-size:12px;color:var(--soft)}
   .maplgd .bd{display:inline-flex;align-items:center;gap:7px}
   .maplgd .dt{border-radius:50%;background:rgba(31,86,74,.5);border:1.2px solid #fff}
+  /* Client landscape: wealth x activity tiles */
+  .lsgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:900px){.lsgrid{grid-template-columns:repeat(2,1fr)}}
+  .lstile{padding:14px 15px;border:1px solid var(--line);border-radius:11px;background:#fff}
+  .lstile.click{cursor:pointer;transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
+  .lstile.click:hover{border-color:var(--brand);box-shadow:0 6px 18px -10px rgba(31,86,74,.35)}
+  .lstile .n{font-family:'Spline Sans Mono',monospace;font-size:22px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+  .lstile .n small{font-size:12px;color:var(--brand);font-weight:600;margin-left:7px}
+  .lstile .t{font-size:12.5px;font-weight:600;color:var(--ink);margin-top:2px}
+  .lstile .c{font-size:11.5px;color:var(--soft);margin-top:2px;line-height:1.35}
+  /* Behaviour band pill (drawer) */
+  .bandpill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font:600 11px system-ui;letter-spacing:.2px}
+  .bandpill.active{background:var(--brand-tint);color:var(--brand-deep)}
+  .bandpill.cooling{background:#f3ecd9;color:#7a5f22}
+  .bandpill.lapsed{background:#eee9f2;color:#5d4a73}
+  .bandpill.new{background:#eef0ec;color:var(--soft)}
   .ovsub{color:var(--soft);font-size:12.5px;margin:-2px 0 2px}
   .emptybox{padding:40px 16px;text-align:center;color:var(--faint);font-size:13px}
 
@@ -662,6 +678,14 @@
         <div id="ovBasketsCard" class="card" style="display:none;margin-bottom:16px;border-color:#d9c9a3">
           <div class="ch"><h3>Open baskets</h3><span class="hint">clients with an unpaid checkout, act while it's warm</span></div>
           <div class="cb"><div id="ovBaskets" class="toplist"></div></div>
+        </div>
+        <div id="ovQuietCard" class="card" style="display:none;margin-bottom:16px;border-color:#b9cfc6">
+          <div class="ch"><h3>Gone quiet</h3><span class="hint">proven clients with strong wealth signals whose orders stopped. A quiet note brings them back</span></div>
+          <div class="cb"><div id="ovQuiet" class="toplist"></div></div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch"><h3>Client landscape</h3><span class="hint">wealth and activity across your whole book</span></div>
+          <div class="cb"><div class="lsgrid" id="ovLandscape"></div></div>
         </div>
         <div class="grid ov-two" style="margin-bottom:16px">
           <div class="card">
@@ -848,6 +872,19 @@ const ORDERS = __ORDERS__;
 // World-map geometry: simplified land outlines + US ZIP3 centroids (open data, no PII;
 // built offline by scripts/build_world_map.py, injected at render time).
 const WORLD = __WORLD__;
+// Wealth x behaviour play counts over the whole book (hidden / sleeping / active / regulars).
+const LANDSCAPE = __LANDSCAPE__;
+// CORE = the surfaced hidden VICs (the default surface everywhere). Rows flagged known=true are
+// proven £5k+ clients appended only for the Gone quiet play; they join lists via that play.
+const CORE = DATA.filter(c=>!c.known);
+const BAND_LABEL = {active:"Active",cooling:"Cooling",lapsed:"Gone quiet",new:"New"};
+// The plays: Gone quiet = a proven client (known) or a 2+ order hidden VIC, orders stopped.
+// Fresh = a hidden VIC whose activity is recent (or brand new) — strike while warm.
+function playOf(c){
+  if(c.known || ((c.tier==="A1"||c.tier==="A") && c.ordersCount>=2 && c.band==="lapsed")) return "sleeping";
+  if(!c.known && (c.band==="active"||c.band==="new")) return "fresh";
+  return "";
+}
 const PLATFORM = "__PLATFORM__";         // shopify | woocommerce | bigcommerce | centra | scayle
 const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce:"BigCommerce",centra:"Centra",scayle:"SCAYLE"})[PLATFORM] || "your store";
 // Embedded (Shopify admin) only: keep the admin sidebar nav (ui-nav-menu) and the app in sync
@@ -898,6 +935,7 @@ let gradeFilter = "all";
 let cityFilter = "all";
 let minSignals = 1;
 let areaFilter = "";            // postcode area (e.g. "SW"), set by clicking the map
+let playFilter = "";            // "" | "sleeping" | "fresh" — the wealth x behaviour play chips
 const PAGE_SIZE = 25, OPAGE_SIZE = 25;   // rows per page: Clients / Orders
 let page = 1, opage = 1;        // current page in each paginated view
 const selected = new Set();
@@ -935,21 +973,32 @@ function ratedBadge(id){
 
 // chips
 const segCounts = {};
-DATA.forEach(c=>c.signals.forEach(s=>segCounts[s.seg]=(segCounts[s.seg]||0)+1));
+CORE.forEach(c=>c.signals.forEach(s=>segCounts[s.seg]=(segCounts[s.seg]||0)+1));
 const chipsEl = document.getElementById("chips");
+const PLAY_CHIPS = [
+  {key:"sleeping", label:"Gone quiet", n:DATA.filter(c=>playOf(c)==="sleeping").length},
+  {key:"fresh",    label:"Fresh",      n:CORE.filter(c=>playOf(c)==="fresh").length},
+];
 function renderChips(){
-  let html = `<button class="chip ${activeSeg==='all'?'on':''}" data-seg="all">All signals <span class="ct">${DATA.length}</span></button>`;
+  let html = `<button class="chip ${activeSeg==='all'&&!playFilter?'on':''}" data-seg="all">All signals <span class="ct">${CORE.length}</span></button>`;
+  PLAY_CHIPS.forEach(p=>{
+    if(!p.n) return;
+    html += `<button class="chip ${playFilter===p.key?'on':''}" data-play="${p.key}">${p.label} <span class="ct">${p.n}</span></button>`;
+  });
   Object.keys(SEGMENTS).forEach(k=>{
     if(!segCounts[k]) return;
     html += `<button class="chip ${activeSeg===k?'on':''}" data-seg="${k}">${SEGMENTS[k].label} <span class="ct">${segCounts[k]}</span></button>`;
   });
   chipsEl.innerHTML = html;
-  chipsEl.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{activeSeg=b.dataset.seg;page=1;renderChips();renderRows();});
+  chipsEl.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
+    if(b.dataset.play){ playFilter = playFilter===b.dataset.play ? "" : b.dataset.play; }
+    else { activeSeg=b.dataset.seg; if(b.dataset.seg==="all") playFilter=""; }
+    page=1;renderChips();renderRows();});
 }
 
 // populate the city filter from the data, and wire the filter/sort controls
 (function(){
-  const cities = [...new Set(DATA.map(c=>c.city).filter(x=>x && x!=="·"))].sort();
+  const cities = [...new Set(DATA.map(c=>c.city).filter(x=>x && x!=="·"))].sort();   // incl. Gone quiet rows
   const sel = document.getElementById("fCity");
   cities.forEach(ct=>{ const o=document.createElement("option"); o.value=ct; o.textContent=ct; sel.appendChild(o); });
 })();
@@ -983,13 +1032,13 @@ function countUp(el, target, fmt, dur){
 function revealStats(){                     // the four headline KPIs, tabulating from data
   if(!REVEAL_ACTIVE) return;
   const int=v=>Math.round(v).toLocaleString("en-GB");
-  const latent=DATA.reduce((s,c)=>s+c.latent,0);
-  const spend=DATA.reduce((s,c)=>s+c.spend,0);
-  const top=DATA.filter(c=>c.grade==="A*"||c.grade==="A").length;
+  const latent=CORE.reduce((s,c)=>s+c.latent,0);
+  const spend=CORE.reduce((s,c)=>s+c.spend,0);
+  const top=CORE.filter(c=>c.grade==="A*"||c.grade==="A").length;
   countUp(document.getElementById("statLatent"), latent, fmtBig, 780);
-  countUp(document.getElementById("statAvg"), DATA.length?spend/DATA.length:0, fmtBig, 780);
+  countUp(document.getElementById("statAvg"), CORE.length?spend/CORE.length:0, fmtBig, 780);
   countUp(document.getElementById("statTopTier"), top, int, 640);
-  countUp(document.getElementById("statCount"), DATA.length, int, 640);
+  countUp(document.getElementById("statCount"), CORE.length, int, 640);
 }
 // Stagger already-rendered children of a container into view.
 function staggerIn(el, step){
@@ -1001,7 +1050,7 @@ function rescore(){
   const live=document.querySelector(".live"); if(!live) return;
   const orig=live.getAttribute("data-orig")||live.innerHTML;
   live.setAttribute("data-orig",orig);
-  const n=DATA.length.toLocaleString("en-GB");
+  const n=CORE.length.toLocaleString("en-GB");
   const finish=()=>{ live.classList.remove("analysing"); live.innerHTML=orig; wireRescore();
     PENDING_REVEAL=true; showView(CURRENT_VIEW); };
   if(!MOTION_OK){ finish(); return; }
@@ -1105,15 +1154,20 @@ function clientMatches(c, q){
 
 const rowsEl = document.getElementById("rows");
 function visible(){
-  let list = DATA.filter(c=>{
+  // The Gone quiet play opts the appended known clients in; every other view stays on CORE.
+  const base = playFilter==="sleeping" ? DATA : CORE;
+  let list = base.filter(c=>{
+    const playOk = !playFilter || playOf(c)===playFilter;
     const segOk = activeSeg==="all" || c.signals.some(s=>s.seg===activeSeg);
     const qOk = clientMatches(c, query);
     const gradeOk = gradeFilter==="all" || c.grade===gradeFilter;
     const cityOk = cityFilter==="all" || c.city===cityFilter;
     const areaOk = !areaFilter || c.area===areaFilter;
     const minOk = c.count >= minSignals;
-    const dateOk = drMatch(CDATE, c.lastSort ? c.lastSort*1000 : null);
-    return segOk && qOk && gradeOk && cityOk && areaOk && minOk && dateOk;
+    // The Gone quiet play is ABOUT clients outside any recent window, so it sets its own
+    // time semantics; the date range applies to every other view of the list.
+    const dateOk = playFilter==="sleeping" || drMatch(CDATE, c.lastSort ? c.lastSort*1000 : null);
+    return playOk && segOk && qOk && gradeOk && cityOk && areaOk && minOk && dateOk;
   });
   list.sort((a,b)=>{
     let d;
@@ -1126,7 +1180,7 @@ function visible(){
   return list;
 }
 
-const TOTAL = DATA.length;
+const TOTAL = CORE.length;
 function updateStats(list){
   const latent = list.reduce((s,c)=>s+c.latent,0);
   const spendSum = list.reduce((s,c)=>s+c.spend,0);
@@ -1662,7 +1716,7 @@ function renderSpark(svg,list){
 
 // Highest-potential rail
 function renderTopList(el){
-  const top=[...DATA].sort((a,b)=>(b.score-a.score)||(b.latent-a.latent)).slice(0,6);
+  const top=[...CORE].sort((a,b)=>(b.score-a.score)||(b.latent-a.latent)).slice(0,6);
   el.innerHTML=top.map(c=>`<div class="tl" data-id="${c.id}">
     <div class="ava ${c.tier}">${c.init}</div>
     <div style="min-width:0"><div class="nm">${esc(c.name)}</div><div class="mt">${esc(c.loc)} &middot; ${gbpK(c.latent)} latent</div></div>
@@ -1705,7 +1759,7 @@ function areaName(a,topCity){return isUSArea(a)?(topCity||("ZIP "+a)):a;}
 
 function geoAgg(){
   const m={};
-  DATA.forEach(c=>{const a=(c.area||"").toUpperCase();if(!a||!areaCentroid(a))return;
+  CORE.forEach(c=>{const a=(c.area||"").toUpperCase();if(!a||!areaCentroid(a))return;
     const o=m[a]||(m[a]={area:a,n:0,latent:0,top:0,city:{}});
     o.n++;o.latent+=c.latent;if(c.grade==="A*"||c.grade==="A")o.top++;
     if(c.city&&c.city!=="·")o.city[c.city]=(o.city[c.city]||0)+1;});
@@ -1826,11 +1880,11 @@ function renderOverview(){
   const rv=REVEAL_ACTIVE;
   if(rv) revealStats();                       // headline KPIs tabulate up from the data
   const donut=document.getElementById("ovDonut");
-  renderDonut(donut,DATA);
+  renderDonut(donut,CORE);
   if(rv && MOTION_OK && donut) donut.style.animation="settle var(--dur-slow) var(--ease) both";
-  renderLatentBars(document.getElementById("ovLatent"),DATA);
+  renderLatentBars(document.getElementById("ovLatent"),CORE);
   renderSignalBars(document.getElementById("ovSignals"));
-  renderSpark(document.getElementById("ovSpark"),DATA);
+  renderSpark(document.getElementById("ovSpark"),CORE);
   const areas=buildMap(document.getElementById("ovMapWrap"),filterToArea,"primary");
   const mapped=areas.reduce((s,a)=>s+a.n,0);
   document.getElementById("ovMapHint").textContent=areas.length?`${mapped} located · ${areas.length} area${areas.length===1?"":"s"}`:"";
@@ -1838,6 +1892,49 @@ function renderOverview(){
   renderTopList(top);
   if(rv) staggerIn(top,55);                    // the top clients arrive one after another
   renderOpenBaskets();
+  renderGoneQuiet();
+  renderLandscape();
+}
+// Gone quiet = proven clients with strong wealth signals whose orders stopped (the winback play).
+// Ranked by lifetime spend: the biggest relationship at risk sits on top.
+function renderGoneQuiet(){
+  const el=document.getElementById("ovQuiet"), card=document.getElementById("ovQuietCard");
+  if(!el||!card) return;
+  const list=DATA.filter(c=>playOf(c)==="sleeping").sort((a,b)=>b.spend-a.spend).slice(0,8);
+  if(!list.length){ card.style.display="none"; return; }
+  card.style.display="";
+  el.innerHTML=list.map(c=>`<div class="tl" data-id="${c.id}">
+    <div class="ava ${c.tier}">${c.init}</div>
+    <div style="min-width:0"><div class="nm">${c.name}</div>
+      <div class="mt">last order ${c.last} · ${c.ordersCount} order${c.ordersCount===1?"":"s"} · ${tierLabel(c.tier)}</div></div>
+    <div class="sc"><b>${gbpK(c.spend)}</b><div class="g" style="color:#5d4a73">lifetime</div></div>
+  </div>`).join("");
+  el.querySelectorAll(".tl").forEach(r=>r.onclick=()=>openDrawer(r.dataset.id));
+}
+// The wealth x behaviour landscape over the whole book. The Halia score measures capacity and
+// the band measures behaviour; each tile is one crossing of the two.
+function renderLandscape(){
+  const el=document.getElementById("ovLandscape");
+  if(!el||!LANDSCAPE.hidden) return;
+  const tiles=[
+    {k:"hidden",   t:"Hidden VICs",      c:"Strong wealth signals on modest spend. Your introduction list.",
+     n:LANDSCAPE.hidden.n,   v:LANDSCAPE.hidden.value,  vlbl:"latent", click:()=>{playFilter="";activeSeg="all";page=1;showView("clients");renderChips();renderRows();}},
+    {k:"sleeping", t:"Gone quiet",       c:"Proven clients whose orders stopped. A quiet note brings them back.",
+     n:LANDSCAPE.sleeping.n, v:LANDSCAPE.sleeping.value, vlbl:"lifetime", click:()=>filterToPlay("sleeping")},
+    {k:"active",   t:"Active VICs",      c:"Strong wealth signals, shopping now. Keep the service impeccable."   , n:LANDSCAPE.active.n},
+    {k:"regulars", t:"Devoted regulars", c:"Frequent buyers at ordinary wealth. Recognise them in kind.", n:LANDSCAPE.regulars.n},
+  ];
+  el.innerHTML=tiles.map(t=>`<div class="lstile ${t.click?'click':''}" data-k="${t.k}">
+    <div class="n">${(t.n||0).toLocaleString("en-GB")}${t.v?`<small>${fmtBig(t.v)} ${t.vlbl}</small>`:""}</div>
+    <div class="t">${t.t}</div><div class="c">${t.c}</div></div>`).join("");
+  el.querySelectorAll(".lstile.click").forEach(d=>{
+    const t=tiles.find(x=>x.k===d.dataset.k); d.onclick=()=>t.click();
+  });
+}
+// Jump to the Clients view with a play chip switched on (from a landscape tile).
+function filterToPlay(play){
+  playFilter=play;activeSeg="all";query="";document.getElementById("q").value="";page=1;
+  showView("clients");renderChips();renderRows();
 }
 // Open baskets = clients with an unpaid checkout (abandoned checkout / cart). A timely,
 // discreet nudge on a high-value basket is one of the strongest clienteling moves.
@@ -1859,7 +1956,7 @@ function renderMap(){
   const areas=buildMap(document.getElementById("mapWrap"),filterToArea);
   renderRegions(document.getElementById("mapRegions"),areas);
   const mapped=areas.reduce((s,a)=>s+a.n,0);
-  document.getElementById("mapHint").textContent=`${mapped} of ${DATA.length} located · ${areas.length} area${areas.length===1?"":"s"}`;
+  document.getElementById("mapHint").textContent=`${mapped} of ${CORE.length} located · ${areas.length} area${areas.length===1?"":"s"}`;
 }
 
 /* ---- page router ---- */
@@ -2144,7 +2241,7 @@ function openDrawer(id){
                 <div id="dlookmenu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:220px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:50">${lookupItems(c)}</div>
               </div>`:''}
             </div>
-            <div class="dmeta">${c.loc} · ${c.ordersCount} order${c.ordersCount===1?"":"s"} · AOV ${gbp(c.aov)} · last ${c.last}</div>
+            <div class="dmeta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${c.band?`<span class="bandpill ${c.band}">${BAND_LABEL[c.band]||c.band}</span>`:""}<span>${c.loc} · ${c.ordersCount} order${c.ordersCount===1?"":"s"} · AOV ${gbp(c.aov)} · last ${c.last}</span></div>
             <div class="dmeta">${[c.email,c.phone].filter(Boolean).join(" · ")}</div>
           </div>
         </div>
