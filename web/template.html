@@ -2051,7 +2051,13 @@ function openDrawer(id){
         <div class="dident">
           <div class="dava ${c.tier}" style="background:${c.tier==='A1'?'linear-gradient(140deg,#1d4d42,#143a32)':c.tier==='A'?'linear-gradient(140deg,#26695b,#1f564a)':'var(--tierB)'}">${c.init}</div>
           <div>
-            <div class="dname">${c.name}</div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div class="dname">${c.name}</div>
+              ${c.name?`<div style="position:relative;flex:none">
+                <button class="dbtn" id="dlook" style="padding:5px 11px;font-size:12px" title="Search the web for this client — from your browser, never sent to Halia">Look up ▾</button>
+                <div id="dlookmenu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:220px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:50">${lookupItems(c)}</div>
+              </div>`:''}
+            </div>
             <div class="dmeta">${c.loc} · ${c.ordersCount} order${c.ordersCount===1?"":"s"} · AOV ${gbp(c.aov)} · last ${c.last}</div>
             <div class="dmeta">${[c.email,c.phone].filter(Boolean).join(" · ")}</div>
           </div>
@@ -2124,10 +2130,6 @@ function openDrawer(id){
       ${phoneDigits(c.phone)?`<div class="dactm">
         <button class="dbtn" id="dwa">WhatsApp ▾</button>
         <div id="dwamenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${whatsappItems(c)}</div>
-      </div>`:""}
-      ${c.name?`<div class="dactm">
-        <button class="dbtn" id="dlook" title="Search the web for this client — from your browser, never sent to Halia">Look up ▾</button>
-        <div id="dlookmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${lookupItems(c)}</div>
       </div>`:""}
       ${CATALOG_URL?`<button class="dbtn" id="dcatlink" title="Copy a catalogue link addressed to this client">Copy catalogue link</button>`:""}
       ${SETTINGS.mailchimp_connected?`<button class="dbtn${SETTINGS.klaviyo_connected?'':' primary'}" id="dpushmc">Push to Mailchimp</button>`:""}
