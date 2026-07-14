@@ -50,6 +50,26 @@ _COMMON_SURNAMES = {
 }
 _SUFFIXES = {"JR", "SR", "II", "III", "IV", "V", "MD", "PHD", "ESQ"}
 
+# SEC "reporting owners" include INSTITUTIONS (funds, LLCs, holding companies) as 10% owners, not
+# just people. A person-name signal must drop them: skip any owner name carrying a corporate token,
+# an ampersand, a slash, or a digit. (Whole-token match so a person surname is never caught.)
+_ENTITY_TOKENS = {
+    "LLC", "LLP", "LP", "INC", "CORP", "CO", "LTD", "PLC", "COMPANY", "FUND", "FUNDS", "TRUST",
+    "CAPITAL", "PARTNERS", "PARTNER", "MANAGEMENT", "MGMT", "GROUP", "HOLDINGS", "HOLDING", "GP",
+    "VENTURES", "VENTURE", "ASSOCIATES", "ASSOCIATION", "ASSOCIES", "ADVISORS", "ADVISERS", "AG",
+    "INVESTORS", "INVESTMENT", "INVESTMENTS", "EQUITY", "SECURITIES", "BANCORP", "BANK", "SA", "NV",
+    "FINANCIAL", "SYSTEMS", "TECHNOLOGIES", "PHARMA", "ENTERPRISES", "FOUNDATION", "ENDOWMENT",
+    "PLAN", "MASTER", "OFFSHORE", "SICAV", "AGENCY", "CORPORATION", "INTERNATIONAL", "GMBH",
+}
+
+
+def _is_person(name: str) -> bool:
+    up = name.upper()
+    if any(ch in up for ch in "&/0123456789()"):
+        return False
+    toks = {"".join(ch for ch in t if ch.isalpha()) for t in up.replace(",", " ").split()}
+    return not (toks & _ENTITY_TOKENS)
+
 
 def _tokens(value: str) -> list[str]:
     raw = "".join(ch if (ch.isalpha() or ch == " ") else " " for ch in str(value or "").upper())
@@ -129,6 +149,8 @@ def build_from_dir(folder: Path) -> dict[str, tuple[str, str, str]]:
         if not tier:
             continue
         name = _cell(r, "RPTOWNERNAME", "RPTOWNER_NAME")
+        if not _is_person(name):                          # drop institutional 10% owners (funds/LLCs)
+            continue
         key = _key(name)
         if not key:
             continue
@@ -136,7 +158,7 @@ def build_from_dir(folder: Path) -> dict[str, tuple[str, str, str]]:
         if toks and toks[0] in _COMMON_SURNAMES:          # SEC name is surname-first
             continue
         acc = _cell(r, "ACCESSION_NUMBER", "ACCESSIONNUMBER")
-        company = issuer.get(acc, "")
+        company = " ".join((issuer.get(acc, "") or "").split())
         prev = out.get(key)
         rank = {"owner": 1, "insider": 0}
         if prev is None or rank[tier] > rank[prev[1]]:

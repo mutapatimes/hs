@@ -30,6 +30,7 @@ def _make_quarter(tmp_path):
         w.writerow(["0001-24-001", "Musk Elon", "Director, Officer", "1", "1", "0"])
         w.writerow(["0001-24-002", "Vanderbilt Cornelius", "TenPercentOwner", "0", "0", "1"])
         w.writerow(["0001-24-003", "Smith John", "Director", "1", "0", "0"])   # common surname -> dropped
+        w.writerow(["0001-24-002", "Baron Capital Group LLC", "TenPercentOwner", "0", "0", "1"])  # entity -> dropped
     return folder
 
 
@@ -40,6 +41,8 @@ def test_build_tiers_and_drops_common_surnames(tmp_path):
     assert "Cornelius Vanderbilt" in keys and keys["Cornelius Vanderbilt"][1] == "owner"   # 10%
     assert keys["Cornelius Vanderbilt"][2] == "Acme Holdings Inc"         # issuer joined in
     assert not any("Smith" in n for n in keys)                           # common surname dropped
+    assert not any("Baron" in n for n in keys)                           # institutional owner dropped
+    assert bui._is_person("Musk Elon") and not bui._is_person("Baron Capital Group LLC")
 
 
 def test_key_is_order_independent():
