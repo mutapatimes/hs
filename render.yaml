@@ -45,7 +45,8 @@ services:
       - key: HALIA_BREVO_API_KEY        # xkeysib-… from Brevo → SMTP & API → API Keys
         sync: false
       - key: HALIA_CHAT_WIDGET_ID       # Brevo Conversations widget ID (Conversations → Settings →
-        sync: false                     # Chat widget). Unset = no chat bubble; pages ship clean.
+        value: "6a43cc31455a9d0f0f0ba759"   # Chat widget). Public-facing, not a secret — it ships
+                                            # in page source. Unset = no chat bubble.
       - key: HALIA_EMAIL_FROM           # must be a VERIFIED sender in Brevo (Senders)
         value: "haliasearch@gmail.com"
       - key: HALIA_EMAIL_FROM_NAME
