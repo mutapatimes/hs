@@ -162,8 +162,13 @@ def _doc(title: str, meta_desc: str, body: str, *, index: bool = True, extra_hea
         "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>"
         "<link href=\"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500&display=swap\" rel=\"stylesheet\">"
         f"<style>{_BLOG_CSS}</style>{extra_head}</head><body>"
-        f"{_nav()}{body}{_footer()}{_SCRIPT}</body></html>"
+        f"{_nav()}{body}{_footer()}{_SCRIPT}{_chat()}</body></html>"
     )
+
+
+def _chat() -> str:
+    from halia.api.content import chat_widget_snippet
+    return chat_widget_snippet()
 
 
 # ── public rendering ───────────────────────────────────────────────────────────────

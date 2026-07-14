@@ -613,6 +613,11 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     html = html.replace("__WORLD__", _safe((ROOT / "web" / "world_map.json").read_text(encoding="utf-8").strip()))
     html = html.replace("__ORDERS__", _safe(json.dumps(payload.get("orders", []))))
     html = html.replace("__LANDSCAPE__", _safe(json.dumps(payload.get("landscape", {}))))
+    # The demo line only ever appears on the local sample build; a live tenant's footer
+    # explains latent value and nothing else.
+    html = html.replace("__FOOT_DEMO__",
+                        "Real output from the Halia engine on <b>sample data</b>, a fictional "
+                        "store; scores are provisional. " if payload.get("demo") else "")
     html = html.replace("__STAT_SCORED__", payload["stat_scored"])
     html = html.replace("__STAT_LATENT__", payload["stat_latent"])
     html = html.replace("__STAT_COUNT__", payload["stat_count"])
@@ -666,8 +671,9 @@ def _sample_carts(scored, n: int = 8) -> dict:
 
 def render_dashboard(scored, head_extra: str = "") -> str:
     """Render the dashboard directly from a scored frame (local build path)."""
-    return render_payload(
-        dashboard_payload(scored, carts_by_customer=_sample_carts(scored)), head_extra)
+    payload = dashboard_payload(scored, carts_by_customer=_sample_carts(scored))
+    payload["demo"] = True   # local sample build: the footer carries the demo note
+    return render_payload(payload, head_extra)
 
 
 def main() -> None:

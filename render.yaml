@@ -44,6 +44,8 @@ services:
       # "your VICs are ready" email. Without the API key these degrade silently (no email).
       - key: HALIA_BREVO_API_KEY        # xkeysib-… from Brevo → SMTP & API → API Keys
         sync: false
+      - key: HALIA_CHAT_WIDGET_ID       # Brevo Conversations widget ID (Conversations → Settings →
+        sync: false                     # Chat widget). Unset = no chat bubble; pages ship clean.
       - key: HALIA_EMAIL_FROM           # must be a VERIFIED sender in Brevo (Senders)
         value: "haliasearch@gmail.com"
       - key: HALIA_EMAIL_FROM_NAME

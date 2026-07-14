@@ -74,6 +74,39 @@ def draft_template() -> dict:
     return {"subject": subj, "body": body}
 
 
+def chat_widget_snippet() -> str:
+    """The live-chat widget (Brevo Conversations), rendered bottom-right on marketing pages and
+    the hosted dashboard when HALIA_CHAT_WIDGET_ID is set. Brevo's free plan includes one agent
+    seat, and the account already sends Halia's email, so support lands in the same inbox.
+    Returns "" when unconfigured, so pages ship clean by default."""
+    import os
+    wid = (os.environ.get("HALIA_CHAT_WIDGET_ID") or "").strip()
+    if not wid:
+        return ""
+    return f"""<script>
+  (function(d, w, c) {{
+    w.BrevoConversationsID = {_json_str(wid)};
+    w[c] = w[c] || function() {{ (w[c].q = w[c].q || []).push(arguments); }};
+    var s = d.createElement('script'); s.async = true;
+    s.src = 'https://conversations-widget.brevo.com/brevo-conversations.js';
+    if (d.head) d.head.appendChild(s);
+  }})(document, window, 'BrevoConversations');
+</script>"""
+
+
+def _json_str(v: str) -> str:
+    import json as _json
+    return _json.dumps(v)
+
+
+def with_chat_widget(html_text: str) -> str:
+    """Append the chat widget before </body> (no-op when unconfigured or no body tag)."""
+    snippet = chat_widget_snippet()
+    if not snippet or "</body>" not in html_text:
+        return html_text
+    return html_text.replace("</body>", snippet + "\n</body>", 1)
+
+
 def apply_overrides(html_text: str) -> str:
     """Replace each <!--cms:key-->default<!--/cms--> with its stored override, if any."""
     if "<!--cms:" not in html_text:
