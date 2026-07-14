@@ -5,6 +5,10 @@ Flags customers whose US billing ZIP falls in an ultra-high-net-worth area
 separate signal from the UK postcode matcher. ZIP+4 (e.g. 90210-1234) is reduced
 to its 5-digit prefix before matching. UK postcodes (which always contain
 letters) never produce 5 digits, so they can't false-fire here.
+
+The seed list is curated; regenerate to comprehensive, data-driven national coverage from IRS
+Statistics of Income (SOI) ZIP-code data with scripts/build_us_zips.py (mean AGI per ZIP — a
+wealth fact, on by default).
 """
 from __future__ import annotations
 
