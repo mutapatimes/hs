@@ -1454,6 +1454,24 @@ function whatsappItems(c){
   return out+(EMAIL_TEMPLATES||[]).map(t=>item(t.name,`https://wa.me/${num}?text=${encodeURIComponent(fillTemplate(t.body,c))}`)).join("")
     + item("Blank message",`https://wa.me/${num}`);
 }
+// Web look-up: search this client's name on external sources to sanity-check the signals.
+// Built ENTIRELY in the browser (the name is already in DATA) and opened in a NEW TAB — nothing
+// is fetched or sent to Halia, so zero-retention holds: it is the associate's own browser
+// searching, exactly as if they typed the name into Google themselves. Static target=_blank
+// anchors (no window.open) so it also works inside the Shopify-embedded iframe.
+function lookupItems(c){
+  const nm=c.name||"";
+  const where=(c.city&&c.city!=="·")?c.city:(c.area||"");
+  const q=encodeURIComponent(('"'+nm+'" '+where).trim());          // name + location, quoted
+  const kw=encodeURIComponent((nm+' '+where).trim());              // name + location, unquoted
+  const qn=encodeURIComponent(nm);                                 // name only
+  const item=(label,href)=>`<a href="${href}" target="_blank" rel="noopener" style="display:block;padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px">${label}</a>`;
+  return item("Google",`https://www.google.com/search?q=${q}`)
+    + item("LinkedIn",`https://www.linkedin.com/search/results/people/?keywords=${kw}`)
+    + item("Companies House",`https://find-and-update.company-information.service.gov.uk/search/officers?q=${qn}`)
+    + item("Google News",`https://www.google.com/search?tbm=nws&q=${q}`)
+    + `<div style="padding:8px 14px;font-size:11px;color:var(--faint);line-height:1.4">Opens in a new tab, from your browser. Halia never sees this.</div>`;
+}
 
 /* ---- Orders view: each row is an order; the actions match the order's status ---- */
 let ORDER_TEMPLATES={
@@ -2109,6 +2127,10 @@ function openDrawer(id){
         <button class="dbtn" id="dwa">WhatsApp ▾</button>
         <div id="dwamenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${whatsappItems(c)}</div>
       </div>`:""}
+      ${c.name?`<div class="dactm">
+        <button class="dbtn" id="dlook" title="Search the web for this client — from your browser, never sent to Halia">Look up ▾</button>
+        <div id="dlookmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${lookupItems(c)}</div>
+      </div>`:""}
       ${CATALOG_URL?`<button class="dbtn" id="dcatlink" title="Copy a catalogue link addressed to this client">Copy catalogue link</button>`:""}
       ${SETTINGS.mailchimp_connected?`<button class="dbtn${SETTINGS.klaviyo_connected?'':' primary'}" id="dpushmc">Push to Mailchimp</button>`:""}
       ${SETTINGS.hubspot_connected?`<button class="dbtn" id="dpushhs">Push to HubSpot</button>`:""}
@@ -2148,6 +2170,10 @@ function openDrawer(id){
   const dwa=document.getElementById("dwa"), dwamenu=document.getElementById("dwamenu");
   if(dwa) dwa.onclick=e=>{e.stopPropagation();dwamenu.style.display=dwamenu.style.display==="block"?"none":"block";};
   if(dwamenu) dwamenu.onclick=()=>{dwamenu.style.display="none";};
+  // Look up ▾: web-search this client (Google / LinkedIn / Companies House / News), new tab, client-side only.
+  const dlook=document.getElementById("dlook"), dlookmenu=document.getElementById("dlookmenu");
+  if(dlook) dlook.onclick=e=>{e.stopPropagation();dlookmenu.style.display=dlookmenu.style.display==="block"?"none":"block";};
+  if(dlookmenu) dlookmenu.onclick=()=>{dlookmenu.style.display="none";};
   // Copy a catalogue link addressed to THIS client: the active catalogue's form URL (merchant's own
   // domain via the App Proxy) with ?name= pre-filled, so the title/message personalise to them.
   const dcat=document.getElementById("dcatlink");
