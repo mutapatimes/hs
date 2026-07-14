@@ -365,8 +365,9 @@ def _fmt_money(v: float) -> str:
 def _scored_frame(source: str):
     """Return a scored per-customer frame from the chosen source.
 
-    'shopify' pulls live from the store (Admin API), 'file' loads the local xlsx.
-    Both end in the same score_customers() shape the renderer expects.
+    'shopify' pulls live from the store (Admin API), 'file' loads the configured local
+    xlsx, and a path ending in .xlsx loads that file (e.g. sample_data/SAMPLE3.xlsx).
+    All end in the same score_customers() shape the renderer expects.
     """
     if source == "shopify":
         from halia import config as _hc  # noqa: F401: importing loads .env
@@ -377,6 +378,8 @@ def _scored_frame(source: str):
             columns={"orders_count": "Count of CUST_ID"}
         )
         return score_customers(customers)
+    if source.lower().endswith(".xlsx"):
+        return score_customers(load_data(source))
     return score_customers(load_data())
 
 
