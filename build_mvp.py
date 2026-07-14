@@ -175,13 +175,17 @@ def _city(row: pd.Series) -> str:
 def _postcode_bits(row: pd.Series) -> tuple[str, str]:
     """(outward, area) from the billing postcode, falling back to shipping.
 
-    'SW10 9SJ' -> ('SW10', 'SW'). The area (the leading letters) is the key the
-    dashboard map aggregates VIC concentration by. Returns ('', '') when unknown.
+    'SW10 9SJ' -> ('SW10', 'SW'). The area is the key the dashboard map aggregates VIC
+    concentration by: the leading letters for a UK postcode, the 3-digit prefix for a
+    US ZIP ('10005' -> '100', matching the map's ZIP3 centroids). ('', '') when unknown.
     """
     zipc = _text(row.get("LATEST_BILLING_ZIP")) or _text(row.get("LATEST_SHIPPING_ZIP"))
     if not zipc:
         return "", ""
-    outward = zipc.upper().split()[0] if " " in zipc else zipc.upper().strip()[:-3]
+    z = zipc.strip().upper()
+    if re.fullmatch(r"\d{5}(-\d{4})?", z):          # US ZIP / ZIP+4
+        return z[:5], z[:3]
+    outward = z.split()[0] if " " in z else z[:-3]
     outward = outward.strip()
     area = re.match(r"[A-Z]+", outward)
     return outward, (area.group(0) if area else "")
@@ -543,6 +547,9 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
         html = html.replace("</body>", body_extra + "\n</body>", 1)
     html = html.replace("__SEGMENTS__", _safe(json.dumps(payload["segments"])))
     html = html.replace("__DATA__", _safe(json.dumps(payload["data"])))
+    # World-map geometry (land outlines + US ZIP3 centroids) — committed open-data geometry,
+    # built by scripts/build_world_map.py. No PII; the same blob for every tenant.
+    html = html.replace("__WORLD__", _safe((ROOT / "web" / "world_map.json").read_text(encoding="utf-8").strip()))
     html = html.replace("__ORDERS__", _safe(json.dumps(payload.get("orders", []))))
     html = html.replace("__STAT_SCORED__", payload["stat_scored"])
     html = html.replace("__STAT_LATENT__", payload["stat_latent"])

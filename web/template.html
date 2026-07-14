@@ -507,11 +507,15 @@
   .rg .ct{text-align:right;font-family:'Spline Sans Mono',monospace;color:var(--soft);font-variant-numeric:tabular-nums}
   .rg .lv{text-align:right;font-family:'Spline Sans Mono',monospace;font-weight:600;color:var(--brand);font-variant-numeric:tabular-nums}
 
-  /* UK map */
+  /* World map (drag to pan, scroll / buttons to zoom) */
   .mapwrap{position:relative;width:100%;background:linear-gradient(180deg,#f7f6f2,#eef0ec);border-radius:12px;overflow:hidden}
-  .mapwrap svg{display:block;width:100%;height:auto}
-  .land{fill:#e3e6df;stroke:#cfd3ca;stroke-width:1;stroke-linejoin:round}
-  .bub{fill:rgba(31,86,74,.55);stroke:#fff;stroke-width:1.2;cursor:pointer;transition:fill var(--dur) var(--ease)}
+  .mapwrap svg{display:block;width:100%;height:auto;cursor:grab;touch-action:none}
+  .mapwrap svg.dragging{cursor:grabbing}
+  .land{fill:#e3e6df;stroke:#cfd3ca;stroke-width:1;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+  .mapzoom{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:6}
+  .mapzoom button{width:30px;height:30px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.92);color:var(--ink);font:600 15px system-ui;cursor:pointer;box-shadow:0 3px 10px -4px rgba(0,0,0,.25);transition:background var(--dur) var(--ease)}
+  .mapzoom button:hover{background:#fff}
+  .bub{fill:rgba(31,86,74,.55);stroke:#fff;stroke-width:1.2;cursor:pointer;transition:fill var(--dur) var(--ease);vector-effect:non-scaling-stroke}
   .bub:hover{fill:rgba(20,58,50,.85)}
   .bub.g{fill:rgba(166,124,52,.62)}
   .bub.g:hover{fill:rgba(166,124,52,.9)}
@@ -783,7 +787,7 @@
               <div class="maplgd">
                 <span class="bd"><span class="dt" style="width:9px;height:9px"></span><span class="dt" style="width:15px;height:15px"></span><span class="dt" style="width:22px;height:22px"></span> more clients</span>
                 <span class="bd"><span class="dt" style="width:13px;height:13px;background:rgba(166,124,52,.6)"></span> mostly A-grade</span>
-                <span style="color:var(--faint)">Bubble size = potential VICs in that postcode area · click to see them</span>
+                <span style="color:var(--faint)">Bubble size = potential VICs in that area · drag to move, scroll to zoom, click to see them</span>
               </div>
             </div>
           </div>
@@ -841,6 +845,9 @@ const SEGMENTS = __SEGMENTS__;
 
 const DATA = __DATA__;
 const ORDERS = __ORDERS__;
+// World-map geometry: simplified land outlines + US ZIP3 centroids (open data, no PII;
+// built offline by scripts/build_world_map.py, injected at render time).
+const WORLD = __WORLD__;
 const PLATFORM = "__PLATFORM__";         // shopify | woocommerce | bigcommerce | centra | scayle
 const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce:"BigCommerce",centra:"Centra",scayle:"SCAYLE"})[PLATFORM] || "your store";
 // Embedded (Shopify admin) only: keep the admin sidebar nav (ui-nav-menu) and the app in sync
@@ -1680,43 +1687,112 @@ const PC_CENTROIDS={
  AB:[57.14,-2.10],DD:[56.46,-2.97],DG:[55.07,-3.60],EH:[55.95,-3.19],FK:[56.00,-3.78],G:[55.86,-4.25],HS:[57.90,-6.80],IV:[57.48,-4.22],KA:[55.61,-4.50],KW:[58.45,-3.30],KY:[56.14,-3.16],ML:[55.79,-3.90],PA:[55.85,-4.43],PH:[56.40,-3.43],TD:[55.55,-2.79],ZE:[60.15,-1.15],
  BT:[54.60,-5.93],IM:[54.24,-4.55],GY:[49.46,-2.58],JE:[49.21,-2.13]
 };
-// Simplified GB coastline as [lat,lng] anchors (clockwise from Land's End), projected identically to the bubbles.
-const GB_OUTLINE=[[50.07,-5.71],[49.96,-5.20],[50.20,-4.78],[50.36,-4.14],[50.61,-3.41],[50.57,-2.45],[50.72,-1.88],[50.79,-1.09],[50.77,-0.28],[50.83,0.28],[51.00,0.78],[51.13,1.33],[51.38,1.42],[51.44,0.75],[51.53,0.72],[51.72,0.94],[51.95,1.28],[52.06,1.62],[52.48,1.75],[52.62,1.73],[52.93,1.30],[52.90,0.44],[52.80,0.18],[52.93,0.15],[53.06,0.28],[53.14,0.34],[53.58,-0.08],[53.68,-0.20],[53.73,-0.06],[54.08,-0.19],[54.28,-0.40],[54.49,-0.61],[54.64,-1.19],[54.90,-1.34],[55.02,-1.42],[55.28,-1.55],[55.77,-2.00],[56.06,-2.60],[56.28,-2.58],[56.36,-2.80],[56.46,-2.97],[57.14,-2.09],[57.50,-1.78],[57.69,-2.00],[57.68,-3.55],[57.60,-4.05],[57.66,-4.02],[58.30,-3.05],[58.64,-3.07],[58.51,-4.75],[58.62,-4.99],[58.20,-5.30],[57.90,-5.16],[57.55,-5.80],[57.28,-5.71],[57.00,-5.85],[56.80,-5.83],[56.40,-5.90],[55.90,-5.35],[55.31,-5.80],[55.35,-5.00],[55.00,-4.90],[54.86,-5.02],[54.63,-4.86],[54.85,-4.30],[54.98,-3.60],[54.90,-3.60],[54.55,-3.59],[54.20,-3.30],[54.11,-3.22],[54.10,-2.90],[53.95,-3.02],[53.82,-3.05],[53.72,-2.98],[53.42,-3.02],[53.35,-3.10],[53.32,-3.82],[53.30,-4.34],[53.31,-4.63],[52.92,-4.50],[52.79,-4.15],[52.53,-4.06],[52.41,-4.08],[52.11,-4.35],[51.88,-5.27],[51.67,-5.05],[51.62,-4.30],[51.53,-3.98],[51.62,-3.94],[51.46,-3.55],[51.46,-3.17],[51.38,-2.99],[51.21,-4.12],[51.00,-4.20],[50.83,-4.55],[50.55,-4.86],[50.42,-5.08],[50.20,-5.48]];
-const NI_OUTLINE=[[55.24,-6.49],[55.18,-6.05],[54.98,-5.72],[54.66,-5.67],[54.49,-5.44],[54.25,-5.55],[54.10,-6.27],[54.20,-6.65],[54.34,-7.63],[54.65,-8.15],[55.05,-7.20],[55.20,-7.15]];
-const MAP_W=420,MAP_H=660,MB={latMax:59.4,latMin:49.7,lngMin:-8.3,lngMax:2.0};
-function proj(lat,lng){return [(lng-MB.lngMin)/(MB.lngMax-MB.lngMin)*MAP_W,(MB.latMax-lat)/(MB.latMax-MB.latMin)*MAP_H];}
+/* World map: Web-Mercator projection over the WORLD land outlines (drag to pan, scroll or
+   buttons to zoom). UK bubbles sit on postcode-area centroids (PC_CENTROIDS above); US bubbles
+   on 3-digit-ZIP centroids (WORLD.us3). The view auto-fits to wherever the clients actually are,
+   so a UK-only book opens on the UK and a UK+US book opens across the Atlantic. */
+const MAP_W=1440,MAP_LAT_TOP=84,MAP_LAT_BOT=-56;
+const _mercY=lat=>Math.log(Math.tan(Math.PI/4+Math.max(MAP_LAT_BOT,Math.min(MAP_LAT_TOP,lat))*Math.PI/360));
+const _MY_TOP=_mercY(MAP_LAT_TOP),_MY_SPAN=_MY_TOP-_mercY(MAP_LAT_BOT);
+const MAP_H=Math.round(MAP_W*_MY_SPAN/(2*Math.PI));
+function proj(lat,lng){return [(lng+180)/360*MAP_W,(_MY_TOP-_mercY(lat))/_MY_SPAN*MAP_H];}
 function pathFrom(pts){return pts.map((p,i)=>{const c=proj(p[0],p[1]);return (i?'L':'M')+c[0].toFixed(1)+' '+c[1].toFixed(1);}).join('')+'Z';}
+const LAND_PATH=WORLD.outlines.map(pathFrom).join('');   // project the land once
+const isUSArea=a=>/^\d/.test(a);
+// The clickable/bubble key is c.area: UK postcode letters ("SW") or the US ZIP3 ("100").
+function areaCentroid(a){return PC_CENTROIDS[a]||(WORLD.us3&&WORLD.us3[a])||null;}
+function areaName(a,topCity){return isUSArea(a)?(topCity||("ZIP "+a)):a;}
 
 function geoAgg(){
   const m={};
-  DATA.forEach(c=>{const a=(c.area||"").toUpperCase();if(!a||!PC_CENTROIDS[a])return;
+  DATA.forEach(c=>{const a=(c.area||"").toUpperCase();if(!a||!areaCentroid(a))return;
     const o=m[a]||(m[a]={area:a,n:0,latent:0,top:0,city:{}});
     o.n++;o.latent+=c.latent;if(c.grade==="A*"||c.grade==="A")o.top++;
     if(c.city&&c.city!=="·")o.city[c.city]=(o.city[c.city]||0)+1;});
-  return Object.values(m).map(o=>({area:o.area,n:o.n,latent:o.latent,top:o.top,ll:PC_CENTROIDS[o.area],
+  return Object.values(m).map(o=>({area:o.area,n:o.n,latent:o.latent,top:o.top,ll:areaCentroid(o.area),
     topCity:Object.keys(o.city).sort((x,y)=>o.city[y]-o.city[x])[0]||""})).sort((a,b)=>b.n-a.n);
 }
 
 function buildMap(wrap,onClick){
   const areas=geoAgg(),maxN=Math.max(1,...areas.map(a=>a.n));
-  const bubbles=areas.map(a=>{const c=proj(a.ll[0],a.ll[1]);const rad=6+18*Math.sqrt(a.n/maxN);const gold=a.top/a.n>=0.5;
-    return `<circle class="bub ${gold?'g':''}" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${rad.toFixed(1)}" data-area="${a.area}" data-n="${a.n}" data-latent="${a.latent}" data-city="${esc(a.topCity)}"/>`;
+  // Fit the opening view to the bubbles (padded), at a fixed aspect so the card never jumps.
+  const ASPECT=0.62,pts=areas.map(a=>proj(a.ll[0],a.ll[1]));
+  let fx=0,fy=0,fw=MAP_W,fh=MAP_H;
+  if(pts.length){
+    let x0=Math.min(...pts.map(p=>p[0])),x1=Math.max(...pts.map(p=>p[0]));
+    let y0=Math.min(...pts.map(p=>p[1])),y1=Math.max(...pts.map(p=>p[1]));
+    let w=Math.max((x1-x0)*1.45,60),h=Math.max((y1-y0)*1.45,60*ASPECT);
+    if(h/w<ASPECT)h=w*ASPECT;else w=h/ASPECT;
+    w=Math.min(w,MAP_W);h=Math.min(h,MAP_W*ASPECT);
+    fx=Math.max(0,Math.min(MAP_W-w,(x0+x1)/2-w/2));fy=Math.max(0,Math.min(MAP_H-h,(y0+y1)/2-h/2));
+    fw=w;fh=h;
+  }else{fh=MAP_W*ASPECT;fy=Math.max(0,proj(48,0)[1]-fh/2);}   // empty book: rest on the Atlantic
+  const view={x:fx,y:fy,w:fw,h:fh};
+  // Bubble radii are sized against the FIT view (1.2%–4.6% of its width) and rescaled on every
+  // zoom so they hold a constant on-screen size, like pins on any map you can zoom.
+  const bubbles=areas.map(a=>{const c=proj(a.ll[0],a.ll[1]);const r0=fw*(0.012+0.034*Math.sqrt(a.n/maxN));const gold=a.top/a.n>=0.5;
+    return `<circle class="bub ${gold?'g':''}" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${r0.toFixed(2)}" data-r0="${r0.toFixed(2)}" data-area="${a.area}" data-n="${a.n}" data-latent="${a.latent}" data-city="${esc(a.topCity)}"/>`;
   }).join("");
-  wrap.innerHTML=`<svg viewBox="0 0 ${MAP_W} ${MAP_H}"><path class="land" d="${pathFrom(GB_OUTLINE)}"/><path class="land" d="${pathFrom(NI_OUTLINE)}"/>${bubbles}</svg><div class="maptip" id="${wrap.id}-tip"></div>`;
-  const tip=document.getElementById(wrap.id+"-tip");
-  wrap.querySelectorAll(".bub").forEach(b=>{
+  wrap.innerHTML=`<svg viewBox="${fx.toFixed(1)} ${fy.toFixed(1)} ${fw.toFixed(1)} ${fh.toFixed(1)}" preserveAspectRatio="xMidYMid meet"><path class="land" d="${LAND_PATH}"/>${bubbles}</svg>
+    <div class="mapzoom"><button data-z="in" title="Zoom in" aria-label="Zoom in">+</button><button data-z="out" title="Zoom out" aria-label="Zoom out">&minus;</button><button data-z="fit" title="Reset view" aria-label="Reset view">&#8962;</button></div>
+    <div class="maptip" id="${wrap.id}-tip"></div>`;
+  const svg=wrap.querySelector("svg"),tip=document.getElementById(wrap.id+"-tip");
+  const circles=[...wrap.querySelectorAll(".bub")];
+  const MINW=8;                                              // deepest zoom ≈ a 2° window
+  function apply(){
+    view.w=Math.max(MINW,Math.min(view.w,MAP_W));view.h=view.w*ASPECT;
+    view.x=Math.max(-view.w*.25,Math.min(MAP_W-view.w*.75,view.x));
+    view.y=Math.max(-view.h*.25,Math.min(MAP_H-view.h*.75,view.y));
+    svg.setAttribute("viewBox",`${view.x.toFixed(2)} ${view.y.toFixed(2)} ${view.w.toFixed(2)} ${view.h.toFixed(2)}`);
+    const k=view.w/fw;circles.forEach(c=>c.setAttribute("r",(+c.dataset.r0*k).toFixed(2)));
+  }
+  function zoomAt(cx,cy,f){                                  // f<1 zooms in, around svg point (cx,cy)
+    const w=Math.max(MINW,Math.min(view.w*f,MAP_W));const real=w/view.w;
+    view.x=cx-(cx-view.x)*real;view.y=cy-(cy-view.y)*real;view.w=w;apply();
+  }
+  const toSvg=(clientX,clientY)=>{const r=svg.getBoundingClientRect();
+    return [view.x+(clientX-r.left)/r.width*view.w,view.y+(clientY-r.top)/r.height*view.h];};
+  // Drag to pan (pointer events cover mouse + touch); a real drag suppresses the bubble click.
+  const ptrs=new Map();let dragged=false,pinch0=0,pinchW=0;
+  svg.addEventListener("pointerdown",e=>{svg.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+    if(ptrs.size===2){const p=[...ptrs.values()];pinch0=Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]);pinchW=view.w;}
+    dragged=false;});
+  svg.addEventListener("pointermove",e=>{
+    if(!ptrs.has(e.pointerId))return;
+    const prev=ptrs.get(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+    if(ptrs.size===2){                                       // pinch zoom
+      const p=[...ptrs.values()];const d=Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]);
+      if(pinch0>0&&d>0){const mid=toSvg((p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2);
+        const w=Math.max(MINW,Math.min(pinchW*pinch0/d,MAP_W));const real=w/view.w;
+        view.x=mid[0]-(mid[0]-view.x)*real;view.y=mid[1]-(mid[1]-view.y)*real;view.w=w;apply();}
+      dragged=true;return;}
+    const r=svg.getBoundingClientRect();
+    const dx=(e.clientX-prev[0])/r.width*view.w,dy=(e.clientY-prev[1])/r.height*view.h;
+    if(Math.abs(e.clientX-prev[0])+Math.abs(e.clientY-prev[1])>2)dragged=true;
+    if(dragged){svg.classList.add("dragging");view.x-=dx;view.y-=dy;apply();}
+  });
+  const endPtr=e=>{ptrs.delete(e.pointerId);if(!ptrs.size)svg.classList.remove("dragging");};
+  svg.addEventListener("pointerup",endPtr);svg.addEventListener("pointercancel",endPtr);
+  svg.addEventListener("wheel",e=>{e.preventDefault();
+    const p=toSvg(e.clientX,e.clientY);zoomAt(p[0],p[1],Math.exp(e.deltaY*0.0016));},{passive:false});
+  svg.addEventListener("dblclick",e=>{const p=toSvg(e.clientX,e.clientY);zoomAt(p[0],p[1],0.5);});
+  wrap.querySelectorAll(".mapzoom button").forEach(b=>b.onclick=()=>{
+    if(b.dataset.z==="fit"){view.x=fx;view.y=fy;view.w=fw;apply();return;}
+    zoomAt(view.x+view.w/2,view.y+view.h/2,b.dataset.z==="in"?0.6:1/0.6);});
+  circles.forEach(b=>{
     b.addEventListener("mousemove",e=>{const r=wrap.getBoundingClientRect();
       tip.style.left=(e.clientX-r.left)+"px";tip.style.top=(e.clientY-r.top)+"px";
-      const n=+b.dataset.n;tip.innerHTML=`<b>${b.dataset.area}</b>${b.dataset.city?" &middot; "+esc(b.dataset.city):""}<br>${n} VIC${n===1?"":"s"} &middot; ${fmtBig(+b.dataset.latent)} latent`;
+      const n=+b.dataset.n,label=areaName(b.dataset.area,b.dataset.city);
+      tip.innerHTML=`<b>${esc(label)}</b>${!isUSArea(b.dataset.area)&&b.dataset.city?" &middot; "+esc(b.dataset.city):""}<br>${n} VIC${n===1?"":"s"} &middot; ${fmtBig(+b.dataset.latent)} latent`;
       tip.style.opacity=1;});
     b.addEventListener("mouseleave",()=>tip.style.opacity=0);
-    if(onClick) b.addEventListener("click",()=>onClick(b.dataset.area));
+    if(onClick) b.addEventListener("click",()=>{if(!dragged)onClick(b.dataset.area);});
   });
   return areas;
 }
 function renderRegions(el,areas){
   el.innerHTML=areas.length?areas.slice(0,12).map((a,i)=>`<div class="rg" data-area="${a.area}">
-    <span class="rk">${i+1}</span><span class="pl">${a.area}<small>${esc(a.topCity||"")}</small></span>
+    <span class="rk">${i+1}</span><span class="pl">${esc(areaName(a.area,a.topCity))}<small>${esc(isUSArea(a.area)?("ZIP "+a.area):(a.topCity||""))}</small></span>
     <span class="ct">${a.n}</span><span class="lv">${fmtBig(a.latent)}</span></div>`).join(""):`<div class="emptybox">No mapped postcodes yet.</div>`;
   el.querySelectorAll(".rg").forEach(r=>r.onclick=()=>filterToArea(r.dataset.area));
 }
@@ -1731,7 +1807,7 @@ function updateAreaBanner(){
   if(!el){el=document.createElement("div");el.id="areaBanner";
     el.style.cssText="display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:9px 13px;background:var(--brand-tint);border:1px solid #c9ddd5;border-radius:10px;font-size:13px;color:var(--brand-deep)";
     const vc=document.getElementById("viewClients");vc.insertBefore(el,vc.firstChild);}
-  el.innerHTML=`<b>Postcode area ${areaFilter}</b> <span style="color:var(--soft)">filtered from the map</span>
+  el.innerHTML=`<b>${isUSArea(areaFilter)?"ZIP area "+areaFilter:"Postcode area "+areaFilter}</b> <span style="color:var(--soft)">filtered from the map</span>
     <button id="areaClear" style="margin-left:auto;background:#fff;border:1px solid #c9ddd5;border-radius:8px;padding:4px 10px;font:600 12px system-ui;color:var(--brand-deep);cursor:pointer">Clear ×</button>`;
   document.getElementById("areaClear").onclick=()=>{areaFilter="";page=1;updateAreaBanner();renderRows();};
 }
@@ -1781,7 +1857,7 @@ const ORIG_STATS_DISPLAY=document.querySelector(".stats").style.display||"";
 const PAGE_META={
   overview:{t:"Overview",s:"A birds-eye view of the potential VICs Halia surfaced from your store: who they are, what they are worth, and where they are."},
   orders:{t:"Orders",s:"Every order, newest first, ranked by the client behind it. Act on each one while it is live, the message matches the order's status."},
-  map:{t:"Where your VICs are",s:"Geographic concentration of your potential VICs across the UK, by postcode area. Click a bubble to see the clients there."},
+  map:{t:"Where your VICs are",s:"Geographic concentration of your potential VICs, by UK postcode area and US ZIP. Drag to move, scroll to zoom, click a bubble to see the clients there."},
   board:{t:"Outreach pipeline",s:"Track outreach on your VIC clients across the team. Drag a client between stages; every move, assignment and note is logged with who did it and when."},
   catalogs:{t:"Catalogues",s:"Turn your products into a print-ready PDF and a shareable enquiry form, then send it to clients."}
 };
