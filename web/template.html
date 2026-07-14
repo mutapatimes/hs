@@ -156,7 +156,11 @@
   .stat.hero .n{color:#B9D4CC}
 
   /* toolbar */
-  .toolbar{display:flex;align-items:center;gap:10px;margin:22px 0 14px;flex-wrap:wrap}
+  /* Plays get their own bar: they cross wealth with behaviour, a different axis to the signal chips */
+  .playbar{display:flex;align-items:center;gap:12px;margin:22px 0 0;flex-wrap:wrap}
+  .pblbl{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint)}
+  .playbar .chip.on{background:#5d4a73;border-color:#5d4a73}
+  .toolbar{display:flex;align-items:center;gap:10px;margin:12px 0 14px;flex-wrap:wrap}
   .chips{display:flex;gap:7px;flex-wrap:wrap;flex:1}
   .chip{
     border:1px solid var(--line-strong);background:var(--card);color:var(--soft);
@@ -722,6 +726,11 @@
       <div id="viewClients" style="display:none">
       <div class="histbar" id="cHist" style="display:none"></div>
       <div class="clientsum" id="clientSum"></div>
+      <!-- plays: wealth x behaviour lists, a separate axis to the signal chips below -->
+      <div class="playbar" id="playBar" style="display:none">
+        <span class="pblbl">Plays</span>
+        <div class="chips" id="playChips" style="flex:1"></div>
+      </div>
       <!-- toolbar -->
       <div class="toolbar">
         <div class="chips" id="chips"></div>
@@ -980,19 +989,24 @@ const PLAY_CHIPS = [
   {key:"fresh",    label:"Fresh",      n:CORE.filter(c=>playOf(c)==="fresh").length},
 ];
 function renderChips(){
+  // Plays live in their own bar: they cross wealth with behaviour, a different axis to signals.
+  const playBar=document.getElementById("playBar"), playEl=document.getElementById("playChips");
+  const plays=PLAY_CHIPS.filter(p=>p.n);
+  if(playBar){
+    playBar.style.display=plays.length?"":"none";
+    playEl.innerHTML=plays.map(p=>`<button class="chip ${playFilter===p.key?'on':''}" data-play="${p.key}">${p.label} <span class="ct">${p.n}</span></button>`).join("");
+    playEl.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
+      playFilter = playFilter===b.dataset.play ? "" : b.dataset.play;
+      page=1;renderChips();renderRows();});
+  }
   let html = `<button class="chip ${activeSeg==='all'&&!playFilter?'on':''}" data-seg="all">All signals <span class="ct">${CORE.length}</span></button>`;
-  PLAY_CHIPS.forEach(p=>{
-    if(!p.n) return;
-    html += `<button class="chip ${playFilter===p.key?'on':''}" data-play="${p.key}">${p.label} <span class="ct">${p.n}</span></button>`;
-  });
   Object.keys(SEGMENTS).forEach(k=>{
     if(!segCounts[k]) return;
     html += `<button class="chip ${activeSeg===k?'on':''}" data-seg="${k}">${SEGMENTS[k].label} <span class="ct">${segCounts[k]}</span></button>`;
   });
   chipsEl.innerHTML = html;
   chipsEl.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
-    if(b.dataset.play){ playFilter = playFilter===b.dataset.play ? "" : b.dataset.play; }
-    else { activeSeg=b.dataset.seg; if(b.dataset.seg==="all") playFilter=""; }
+    activeSeg=b.dataset.seg; if(b.dataset.seg==="all") playFilter="";
     page=1;renderChips();renderRows();});
 }
 
