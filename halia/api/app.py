@@ -23,6 +23,14 @@ from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 from halia.api import data
 from halia.api.shopify_auth import require_shop, shop_store
 from halia.engine import engine
+from halia.reference_bundle import unpack as _unpack_reference_bundle
+
+# Restore the operator's git-ignored high-precision reference tables (company controllers, charity
+# trustees, US insiders) from the committed encrypted bundle, so those signals load in production.
+# No-op in dev where the real .local tables already exist, and when no key / no bundle is present.
+_restored = _unpack_reference_bundle()
+if _restored:
+    print(f"reference bundle: restored {len(_restored)} private table(s): {', '.join(_restored)}")
 
 # Swagger UI is relocated off /docs so the marketing documentation page can own that path.
 app = FastAPI(title="Halia", version="1.0", summary="Hidden-VIC scoring — embedded Shopify app",
