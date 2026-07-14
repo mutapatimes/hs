@@ -33,7 +33,7 @@ OUT = OUTPUT_DIR / "mvp.html"
 
 # Recommended-approach copy, keyed by the strongest signal that fired.
 RECO = {
-    "Work email": "High earning potential masked by modest spend. Lead with a personal, service-led approach: recognition over discounting.",
+    "Work email": "High earning potential masked by modest spend. Lead with a personal, service-led approach.",
     "Styling service (B2B)": "B2B trade account: this buyer styles many UHNW clients. Open a wholesale/trade relationship with a dedicated contact and recurring-order terms. Highest-value relationship to win.",
     "HNWI postcode": "Ultra-prime billing area. Strong candidate for a private appointment and early access to new drops.",
     "Prime residence": "Trophy-building address signals real wealth. Worth a personal associate assignment.",
@@ -92,7 +92,7 @@ def _initials(name: object) -> str:
 #   - personal clienteling lifts basket size ~1.3-2x        -> _LATENT_AOV_UPLIFT
 #   - stronger wealth signals (grade) => more real headroom -> both scale by grade
 # A real estimate would calibrate these against the merchant's own confirmed-VIC
-# outcomes; until then this is a research-anchored heuristic, not a forecast.
+# outcomes; until then this is a research-anchored heuristic.
 _LATENT_FREQ = {"A1": 6, "A": 5, "B": 4, "C": 3}            # target orders / year
 _LATENT_AOV_UPLIFT = {"A1": 2.0, "A": 1.8, "B": 1.5, "C": 1.3}
 _LATENT_CAP = 100_000                                       # absolute sanity ceiling

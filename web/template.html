@@ -1468,7 +1468,7 @@ function lookupItems(c){
     + item("LinkedIn",`https://www.linkedin.com/search/results/people/?keywords=${qn}`)
     + item("Companies House",`https://find-and-update.company-information.service.gov.uk/search/officers?q=${qn}`)
     + item("Google News",`https://www.google.com/search?tbm=nws&q=${q}`)
-    + `<div style="padding:8px 14px;font-size:11px;color:var(--faint);line-height:1.4">Opens in a new tab, from your browser. Halia never sees this.</div>`;
+    + `<div style="padding:8px 14px;font-size:11px;color:var(--faint);line-height:1.4">Opens in a new tab, from your browser.</div>`;
 }
 
 /* ---- Orders view: each row is an order; the actions match the order's status ---- */
@@ -1934,7 +1934,7 @@ function actLabel(e){const a=e.action||"";if(a==="added")return"added to pipelin
    Several tells often describe the SAME fact (SW10 as an HNWI postcode, its homes'
    value, and the prime area around it). Bucketing them makes clear they corroborate
    one thing rather than reading as many independent reasons, and matches how the
-   engine scores them (correlated tells in a group are counted together, not stacked). */
+   engine scores them (correlated tells in a group are counted together). */
 const _ICON={
   home:'<path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/>',
   work:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>',
@@ -1943,7 +1943,7 @@ const _ICON={
   contact:'<path d="M5 4h4l2 5-3 2a12 12 0 006 6l2-3 5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',
   other:'<circle cx="12" cy="12" r="3"/>'};
 const CATS={
-  home:{t:"Home & address",c:"var(--brand)",d:"Where they live and ship to. Several tells can describe the same place; Halia counts them together, not stacked."},
+  home:{t:"Home & address",c:"var(--brand)",d:"Where they live and ship to. Several tells about the same place are weighed as one."},
   work:{t:"Work & wealth",c:"var(--gold)",d:"Their employer, profession or company."},
   payment:{t:"Payment",c:"#5E6B74",d:"How they pay."},
   name:{t:"Name & title",c:"var(--brand-deep)",d:"Titles and recognisable names. Weaker alone; used to corroborate."},
@@ -1964,7 +1964,7 @@ const SIG_CAT={
   "heritage-surname":"name","rich-list":"name","name-mismatch":"name",
   "phone":"contact","phone-address":"contact","shared-phone":"contact","landline":"contact","assistant-order":"contact"};
 const SIG_WHY={
-  "prime-location":"Their postcode, district and local property values all point to a high-value area. Halia counts these together as one location tell, not several.",
+  "prime-location":"Their postcode, district and local property values all point to a high-value area, weighed together as one location tell.",
   "hnwi-postcode":"This postcode area is on our list of the UK's highest-value residential districts.",
   "home-value":"Homes in their exact postcode sell in the top price band.",
   "prime-area":"The wider district is a recognised high-net-worth area.",
@@ -2098,7 +2098,7 @@ function openDrawer(id){
           <span style="flex:1;height:6px;border-radius:4px;background:linear-gradient(90deg,var(--brand-tint),var(--brand));position:relative;min-width:60px"><span style="position:absolute;top:-3px;left:calc(${Math.max(2,Math.min(96,c.spend/Math.max(1,c.latent)*100)).toFixed(0)}% - 6px);width:12px;height:12px;border-radius:50%;background:var(--brand);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></span>
           <span class="mono" style="color:var(--brand);font-weight:600">${gbpK(c.latent)}</span>
         </div>
-        <div style="font-size:11.5px;color:var(--soft);margin-top:9px;line-height:1.5">Grown from their current spend toward your client ceiling, scaled by a Halia score of <b>${c.score}</b>. An estimate of the annual value if nurtured into a top client, not a forecast.</div>
+        <div style="font-size:11.5px;color:var(--soft);margin-top:9px;line-height:1.5">Grown from their current spend toward your client ceiling, scaled by a Halia score of <b>${c.score}</b>.</div>
       </div>
 
       <div id="drawerPipe" style="margin-bottom:22px"></div>
