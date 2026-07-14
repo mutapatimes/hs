@@ -47,6 +47,9 @@ services:
       - key: HALIA_CHAT_WIDGET_ID       # Brevo Conversations widget ID (Conversations → Settings →
         value: "6a43cc31455a9d0f0f0ba759"   # Chat widget). Public-facing, not a secret — it ships
                                             # in page source. Unset = no chat bubble.
+      - key: HALIA_ANALYTICS_CODE       # GoatCounter account code -> <code>.goatcounter.com.
+        value: "halia"                  # Cookieless, no personal data, no consent banner needed.
+                                        # Marketing pages only; dashboards never carry analytics.
       - key: HALIA_EMAIL_FROM           # must be a VERIFIED sender in Brevo (Senders)
         value: "haliasearch@gmail.com"
       - key: HALIA_EMAIL_FROM_NAME

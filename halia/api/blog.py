@@ -167,8 +167,8 @@ def _doc(title: str, meta_desc: str, body: str, *, index: bool = True, extra_hea
 
 
 def _chat() -> str:
-    from halia.api.content import chat_widget_snippet
-    return chat_widget_snippet()
+    from halia.api.content import analytics_snippet, chat_widget_snippet
+    return chat_widget_snippet() + analytics_snippet()
 
 
 # ── public rendering ───────────────────────────────────────────────────────────────

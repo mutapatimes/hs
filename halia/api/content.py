@@ -99,12 +99,34 @@ def _json_str(v: str) -> str:
     return _json.dumps(v)
 
 
-def with_chat_widget(html_text: str) -> str:
-    """Append the chat widget before </body> (no-op when unconfigured or no body tag)."""
-    snippet = chat_widget_snippet()
+def analytics_snippet() -> str:
+    """GoatCounter page analytics for the marketing site, rendered when HALIA_ANALYTICS_CODE is
+    set to the account code (e.g. "halia" for halia.goatcounter.com). GoatCounter is free, sets
+    no cookies and stores no personal data, so it needs no consent banner — the right fit for a
+    zero-retention brand. Marketing pages only; the dashboards never carry analytics.
+    Returns "" when unconfigured, so pages ship clean by default."""
+    import os
+    code = (os.environ.get("HALIA_ANALYTICS_CODE") or "").strip()
+    if not code or not re.fullmatch(r"[A-Za-z0-9-]+", code):   # a subdomain label, nothing else
+        return ""
+    return (f'<script data-goatcounter="https://{code}.goatcounter.com/count" '
+            'async src="https://gc.zgo.at/count.js"></script>')
+
+
+def _before_body(html_text: str, snippet: str) -> str:
     if not snippet or "</body>" not in html_text:
         return html_text
     return html_text.replace("</body>", snippet + "\n</body>", 1)
+
+
+def with_chat_widget(html_text: str) -> str:
+    """Append the chat widget before </body> (no-op when unconfigured or no body tag)."""
+    return _before_body(html_text, chat_widget_snippet())
+
+
+def with_site_scripts(html_text: str) -> str:
+    """Marketing-page extras: the support chat bubble + GoatCounter analytics."""
+    return _before_body(with_chat_widget(html_text), analytics_snippet())
 
 
 def apply_overrides(html_text: str) -> str:

@@ -126,10 +126,10 @@ _SITE_DIR = _ROOT / "web" / "site"
 
 def _serve_page(name: str) -> _HTML:
     # Marketing pages live in web/site/, plain legal pages in web/site/legal/.
-    from halia.api.content import apply_overrides, with_chat_widget
+    from halia.api.content import apply_overrides, with_site_scripts
     for f in (_SITE_DIR / f"{name}.html", _SITE_DIR / "legal" / f"{name}.html"):
         if f.is_file():
-            html = with_chat_widget(apply_overrides(f.read_text(encoding="utf-8")))
+            html = with_site_scripts(apply_overrides(f.read_text(encoding="utf-8")))
             # Any page carrying the corporate small print (Midnight Lantern) is kept out of
             # search — a noindex header on top of the page's meta tag, applied by content so it
             # covers any future page too.
