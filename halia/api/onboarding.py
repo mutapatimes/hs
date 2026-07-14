@@ -554,7 +554,11 @@ def _hosted_head(store: str = "") -> str:
         "padding:7px 0!important;font-size:14px;line-height:1}"
         "#halia-theme:hover{border-color:#57524a}"
         "body:has(.drawer.show) #halia-top{display:none}"   # don't cover the open client drawer's controls
-        "@media(max-width:600px){#halia-top .hstore{display:none}}"
+        # Phone: the bar compacts — store name goes, Settings / Refresh become icon-only.
+        "@media(max-width:600px){#halia-top .hstore{display:none}"
+        "#halia-top{gap:8px;padding:0 10px}#halia-top .hb{font-size:17px}"
+        "#halia-top button{padding:6px 10px;font-size:12px}"
+        "#halia-top .blbl{display:none}}"
         # Halia vertical nav (left rail) — the self-serve equivalent of the Shopify admin sidebar.
         "#hnav{position:fixed;left:0;top:52px;bottom:0;width:214px;z-index:150;background:#faf9f6;"
         "border-right:1px solid rgba(20,18,12,.10);padding:16px 12px;display:flex;flex-direction:column;"
@@ -588,8 +592,8 @@ def _hosted_head(store: str = "") -> str:
         "bar.innerHTML='<span class=\"hb\"><span class=\"ast\">\\u2042</span> Halia</span>'"
         "+(s?'<span class=\"hstore\"></span>':'')+'<span class=\"hsp\"></span>'"
         "+'<button id=\"halia-theme\" title=\"Switch appearance\"></button>'"
-        "+'<button id=\"halia-settings\">\\u2699 Settings</button>'"
-        "+'<button id=\"halia-refresh\">\\u21bb Refresh scores</button>'"
+        "+'<button id=\"halia-settings\">\\u2699<span class=\"blbl\"> Settings</span></button>'"
+        "+'<button id=\"halia-refresh\">\\u21bb<span class=\"blbl\"> Refresh scores</span></button>'"
         "+'<button id=\"halia-signout\">Sign out</button>';"
         "document.body.insertBefore(bar,document.body.firstChild);"
         "if(s){bar.querySelector('.hstore').textContent=s;}"

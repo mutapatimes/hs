@@ -438,6 +438,36 @@
     .canvas{padding:20px 16px 80px}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ---------- Phone layer (hosted /app on a mobile screen) ---------- */
+  @media(max-width:600px){
+    .canvas{padding:14px 12px 90px}
+    /* the view tabs replace the nav rail on mobile: one scrollable pill row */
+    .views{display:flex;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .views::-webkit-scrollbar{display:none}
+    .vtab{white-space:nowrap;flex:none}
+    .stats{grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0 6px}
+    .stat{padding:13px 13px}
+    .stat .v{font-size:21px}
+    .toolbar .search{min-width:0;flex:1 1 100%;order:2}
+    .controls{gap:10px}
+    .controls select{max-width:132px}
+    .playbar{margin-top:14px}
+    .row{padding:13px 12px;gap:10px}
+    .drawer{width:100vw;max-width:100vw}
+    .dhead{padding:16px 14px 13px}
+    .dbody{padding:14px 14px}
+    .dactions{padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+    .dscore{flex-wrap:wrap}
+    .dscore .dcard{flex:1 1 calc(50% - 6px)}
+    .lsgrid{gap:8px}
+    .lstile .n{font-size:18px}
+    /* form fields at 16px stop iOS from zooming the page on focus */
+    input,select,textarea{font-size:16px!important}
+    /* settings: single-column forms and a stacked template editor */
+    .sgrid3{grid-template-columns:1fr!important}
+    .tmplgrid{grid-template-columns:1fr!important}
+  }
   :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
   /* view tabs + Orders view */
   .views{display:inline-flex;gap:4px;background:var(--shell);border:1px solid var(--line);border-radius:12px;padding:4px;margin:0 0 18px}
@@ -2712,7 +2742,7 @@ function openSettings(page){
         <div style="${C}">
           <div style="${H}">Latent-value benchmarks</div>
           <p style="${P}">Your own numbers, so the latent estimate is real. We grow each client from their spend toward your ceiling, the higher of your top lifetime client or AOV × max orders, scaled by their Halia score.</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div class="sgrid3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
             <div><div style="${LBL}">Average order value (£)</div><input id="setAov" type="number" min="0" value="${esc(SETTINGS.aov)}" style="width:100%;${I}"></div>
             <div><div style="${LBL}">Most orders from one client</div><input id="setMaxOrders" type="number" min="0" value="${esc(SETTINGS.max_orders)}" style="width:100%;${I}"></div>
             <div><div style="${LBL}">Highest lifetime client (£)</div><input id="setHighestLt" type="number" min="0" value="${esc(SETTINGS.highest_lt)}" style="width:100%;${I}"></div>
@@ -2819,7 +2849,7 @@ function openSettings(page){
             <button data-tab="order" style="${tab==='order'?TAB_ON:TAB_OFF}">Order actions</button>
           </div>
           ${tab==='order'?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${OSTAT.map(st=>`<button data-ost="${st}" style="${st===ostatus?SUB_ON:SUB_OFF}">${OSTLBL[st]}</button>`).join("")}</div>`:""}
-          <div style="display:grid;grid-template-columns:230px 1fr;gap:16px;align-items:start">
+          <div class="tmplgrid" style="display:grid;grid-template-columns:230px 1fr;gap:16px;align-items:start">
             <div id="tmplList">${tListPane()}</div>
             <div id="tmplEditor">${tEditorPane()}</div>
           </div>
