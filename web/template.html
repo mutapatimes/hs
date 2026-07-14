@@ -1461,13 +1461,11 @@ function whatsappItems(c){
 // anchors (no window.open) so it also works inside the Shopify-embedded iframe.
 function lookupItems(c){
   const nm=c.name||"";
-  const where=(c.city&&c.city!=="·")?c.city:(c.area||"");
-  const q=encodeURIComponent(('"'+nm+'" '+where).trim());          // name + location, quoted
-  const kw=encodeURIComponent((nm+' '+where).trim());              // name + location, unquoted
-  const qn=encodeURIComponent(nm);                                 // name only
+  const q=encodeURIComponent('"'+nm+'"');                          // quoted name (Google / News)
+  const qn=encodeURIComponent(nm);                                 // plain name (LinkedIn / Companies House)
   const item=(label,href)=>`<a href="${href}" target="_blank" rel="noopener" style="display:block;padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px">${label}</a>`;
   return item("Google",`https://www.google.com/search?q=${q}`)
-    + item("LinkedIn",`https://www.linkedin.com/search/results/people/?keywords=${kw}`)
+    + item("LinkedIn",`https://www.linkedin.com/search/results/people/?keywords=${qn}`)
     + item("Companies House",`https://find-and-update.company-information.service.gov.uk/search/officers?q=${qn}`)
     + item("Google News",`https://www.google.com/search?tbm=nws&q=${q}`)
     + `<div style="padding:8px 14px;font-size:11px;color:var(--faint);line-height:1.4">Opens in a new tab, from your browser. Halia never sees this.</div>`;
