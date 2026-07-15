@@ -140,9 +140,72 @@ def _serve_page(name: str) -> _HTML:
 
 for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
               "responsible", "pricing", "privacy", "terms", "cookies", "subprocessors",
-              "status", "pitch", "present", "present-brands"):   # decks: investors / retailers / brands (all noindex)
+              "status"):
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
                       methods=["GET"], include_in_schema=False, response_class=_HTML)
+
+
+# ---- The decks (/pitch, /present, /present-brands): password-gated, never indexed. ----------
+# A shared password (rotatable via env) gates all three; entering it once sets a signed
+# cookie for 30 days. The cookie is a hash OF the password, so it proves knowledge of it
+# and a captured cookie never reveals it. Every response carries X-Robots-Tag: noindex.
+import hashlib as _hashlib  # noqa: E402
+from fastapi.responses import RedirectResponse as _Redirect  # noqa: E402
+
+_DECKS = ("pitch", "present", "present-brands")
+_DECK_COOKIE = "halia_deck"
+_NOINDEX = {"X-Robots-Tag": "noindex, nofollow"}
+
+
+def _deck_password() -> str:
+    return _os.environ.get("HALIA_DECK_PASSWORD", "letsmakelotsofmoneythisyear")
+
+
+def _deck_token() -> str:
+    return _hashlib.sha256(("halia-deck:" + _deck_password()).encode("utf-8")).hexdigest()[:40]
+
+
+def _deck_gate(path: str, wrong: bool = False) -> str:
+    note = ('<p style="color:#b96a5a;font:500 13px Inter,system-ui,sans-serif;margin:0 0 14px">'
+            "That password was declined. Try again.</p>") if wrong else ""
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">
+<title>Private briefing &middot; Halia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+</head><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0a0b;color:#f4f1ea;font-family:Inter,system-ui,sans-serif">
+<form method="post" action="{path}" style="text-align:center;padding:32px;max-width:420px">
+  <div style="font:500 12px Inter,system-ui,sans-serif;letter-spacing:.32em;text-transform:uppercase;color:#d8d2c6;margin-bottom:22px">&#8258; Halia</div>
+  <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:clamp(30px,6vw,44px);margin:0 0 26px;line-height:1.05">This briefing is private.</h1>
+  {note}
+  <input type="password" name="pw" placeholder="Password" autofocus autocomplete="current-password"
+    style="width:100%;box-sizing:border-box;background:#141416;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:14px 22px;color:#f4f1ea;font:500 15px Inter,system-ui,sans-serif;outline:none;text-align:center">
+  <button style="margin-top:14px;width:100%;background:#d8d2c6;color:#141410;border:0;border-radius:999px;padding:14px 22px;font:600 14px Inter,system-ui,sans-serif;letter-spacing:.04em;cursor:pointer">Enter</button>
+</form></body></html>"""
+
+
+async def _deck_handler(request: Request) -> _HTML:
+    path = request.url.path
+    name = path.strip("/")
+    if request.method == "POST":
+        form = await request.form()
+        if str(form.get("pw") or "") == _deck_password():
+            resp = _Redirect(path, status_code=303)
+            resp.set_cookie(_DECK_COOKIE, _deck_token(), max_age=86400 * 30, httponly=True,
+                            samesite="lax", secure=request.url.scheme == "https")
+            resp.headers.update(_NOINDEX)
+            return resp
+        return _HTML(_deck_gate(path, wrong=True), status_code=401, headers=_NOINDEX)
+    if request.cookies.get(_DECK_COOKIE) != _deck_token():
+        return _HTML(_deck_gate(path), headers=_NOINDEX)
+    resp = _serve_page(name)
+    resp.headers.update(_NOINDEX)
+    return resp
+
+
+for _name in _DECKS:
+    app.add_api_route(f"/{_name}", _deck_handler, methods=["GET", "POST"],
+                      include_in_schema=False, response_class=_HTML)
 
 
 def _docs_handler(request: Request) -> _HTML:
