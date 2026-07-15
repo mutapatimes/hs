@@ -140,7 +140,7 @@ def _serve_page(name: str) -> _HTML:
 
 for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
               "responsible", "pricing", "privacy", "terms", "cookies", "subprocessors",
-              "status", "pitch"):   # /pitch: the investor deck (noindex via its own meta tag)
+              "status", "pitch", "present"):   # /pitch: investor deck; /present: sales deck (both noindex)
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
                       methods=["GET"], include_in_schema=False, response_class=_HTML)
 

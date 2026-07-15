@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Halia · Investor deck</title>
+<title>Halia · For your maison</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%23d8d2c6'>&#8258;</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -170,46 +170,35 @@
 <section class="slide">
   <div class="bleed-bg"><video src="img/hero.mp4" autoplay muted loop playsinline poster="img/find_your_most_valuable_clients.jpg"></video><div class="veil"></div></div>
   <div class="in z">
-    <div class="eyebrow" data-r="1">Investor briefing · July 2026 · Confidential</div>
+    <div class="eyebrow" data-r="1">A private briefing for your maison</div>
     <h1 class="huge" data-r="2">&#8258; Halia</h1>
     <p class="sub" data-r="3" style="font-family:var(--serif);font-size:clamp(20px,2.6vw,30px);font-style:italic;color:var(--gold);max-width:none">Private client intelligence for luxury retail.</p>
-    <p class="sub" data-r="4">Halia tells a luxury retailer which of their existing customers are wealthy enough to become top clients, <b>before their spending shows it</b>.</p>
+    <p class="sub" data-r="4">Halia reads your own customer list and tells you which clients are wealthy enough to become top clients, <b>before their spending shows it</b>.</p>
   </div>
 </section>
 
-<!-- 2 · PROBLEM -->
+<!-- 2 · THE FEELING -->
 <section class="slide">
   <div class="in">
-    <div class="eyebrow" data-r="1">The problem</div>
-    <h2 class="big" data-r="2">Your best future clients<br>are already on your list.<br><em>You cannot see them.</em></h2>
+    <div class="eyebrow" data-r="1">The quiet truth</div>
+    <h2 class="big" data-r="2">Your next VIC is<br>already in your book.</h2>
     <div class="strip" data-r="3">
-      <div><div class="n">95%</div><div class="l">of a retailer's list has no clienteling attention</div></div>
-      <div><div class="n">RFM</div><div class="l">every tool they own segments on past behaviour only</div></div>
-      <div><div class="n">£0</div><div class="l">is what a wealthy client who bought one scarf looks like in the CRM</div></div>
+      <div><div class="n">95%</div><div class="l">of your list receives a newsletter and little else</div></div>
+      <div><div class="n">Past spend</div><div class="l">is the only thing your CRM can rank clients by</div></div>
+      <div><div class="n">Capacity</div><div class="l">is what Halia ranks them by: what they could spend with you</div></div>
     </div>
-    <p class="sub" data-r="4">The collector who bought one candle. The founder who ordered once and never came back. Every CRM report says they are worth nothing, and treats them accordingly.</p>
+    <p class="sub" data-r="4">The collector who bought one candle. The founder who ordered once. Today they look like small clients, and they are treated like small clients. Halia finds them for you.</p>
   </div>
 </section>
 
-<!-- 3 · INSIGHT -->
-<section class="slide">
-  <div class="in">
-    <div class="eyebrow" data-r="1">The insight</div>
-    <h2 class="big" data-r="2">Capacity is not behaviour.</h2>
-    <p class="sub" data-r="3">Behaviour is what a client has spent. <b>Capacity is what they could spend.</b> Every existing tool measures the first. Halia measures the second, from public wealth registers and open data, and the gap between the two numbers is a ranked list of your hidden VICs.</p>
-    <div class="goldline" data-r="4"></div>
-    <p class="sub" data-r="5" style="font-family:var(--serif);font-style:italic;font-size:clamp(19px,2.4vw,27px);color:var(--ink);max-width:none">"A client spending £900 a year who owns the company named after her is not a £900 client."</p>
-  </div>
-</section>
-
-<!-- 4 · ENGINE (live visualiser) -->
+<!-- 3 · ENGINE (live visualiser) -->
 <section class="slide" id="engineSlide">
   <div class="in">
     <div class="cols">
       <div>
         <div class="eyebrow" data-r="1">The engine · live</div>
         <h2 class="big" data-r="2">Forty-three signals.<br>One quiet score.</h2>
-        <p class="sub" data-r="3">Geography from HM Land Registry and IRS statistics. Ownership from Companies House and SEC filings. Work, identity, payment tells. Correlated evidence counts once; a name match alone can never surface a customer. Every score ships with its reasons in plain English.</p>
+        <p class="sub" data-r="3">Public wealth registers and open data: land prices, company ownership, board seats, the address on the order. Evidence corroborates before anyone is surfaced, and every score arrives with its reasons written in plain English.</p>
       </div>
       <div class="graph" id="graph" data-r="4">
         <canvas id="nodelines"></canvas>
@@ -219,30 +208,28 @@
   </div>
 </section>
 
-<!-- 5 · SOURCES -->
+<!-- 4 · HOW IT WORKS -->
 <section class="slide">
   <div class="in">
-    <div class="eyebrow" data-r="1">What it reads</div>
-    <h2 class="big" data-r="2">Open data, ingested offline.<br>Never a live lookup.</h2>
-    <div class="srcs" data-r="3">
-      <div><div class="tag">UK · Geography</div><h3>HM Land Registry</h3><p>Every street graded by real sold prices. Ultra-prime and prime areas, priced honestly.</p></div>
-      <div><div class="tag">UK · Ownership</div><h3>Companies House</h3><p>92,899 people who control the company named after them, graded by size and industry.</p></div>
-      <div><div class="tag">UK · Giving</div><h3>Charity Commission</h3><p>Trustees of eponymous family foundations, a near-pure old-wealth tell.</p></div>
-      <div><div class="tag">US · Income</div><h3>IRS statistics</h3><p>545 ZIP codes where mean declared income clears $250,000, Fisher Island to Atherton.</p></div>
-      <div><div class="tag">US · Property</div><h3>Zillow home values</h3><p>993 ZIP codes with median homes above $1m, graded ultra-prime and prime.</p></div>
-      <div><div class="tag">US · Ownership</div><h3>SEC EDGAR</h3><p>51,188 directors, officers and 10% owners of US public companies, from Forms 3, 4 and 5.</p></div>
+    <div class="eyebrow" data-r="1">How it works</div>
+    <h2 class="big" data-r="2">Live in an afternoon.</h2>
+    <div class="srcs" data-r="3" style="grid-template-columns:repeat(3,1fr)">
+      <div><div class="tag">Step one · 10 minutes</div><h3>Connect</h3><p>A read-only connection to Shopify, WooCommerce, BigCommerce or Centra. Your team installs it themselves; there is no IT project.</p></div>
+      <div><div class="tag">Step two · under a minute</div><h3>Score</h3><p>Your book is scored in memory against the registers and released. Halia keeps nothing.</p></div>
+      <div><div class="tag">Step three · same day</div><h3>Act</h3><p>A ranked list with plain reasons, ready for a personal note, a private appointment, a quiet call.</p></div>
     </div>
+    <p class="sub" data-r="4">Your associates keep working the way they already work. Halia simply tells them who deserves the extra step.</p>
   </div>
 </section>
 
-<!-- 6 · DEMO (terminal) -->
+<!-- 5 · DEMO (terminal) -->
 <section class="slide" id="demoSlide">
   <div class="in">
     <div class="cols">
       <div>
-        <div class="eyebrow" data-r="1">The demo · a real book</div>
-        <h2 class="big" data-r="2">One scan.<br>Money they did not<br>know they had.</h2>
-        <p class="sub" data-r="3">A UK luxury retailer's real export, 47,015 customers, scored in under a minute. Nothing stored, everything explained.</p>
+        <div class="eyebrow" data-r="1">A real scan</div>
+        <h2 class="big" data-r="2">One scan.<br>Money you did not<br>know you had.</h2>
+        <p class="sub" data-r="3">A UK luxury retailer's book, 47,015 customers, scored in under a minute. This is what your first scan looks like.</p>
       </div>
       <div class="term" data-r="4">
         <div class="tbar"><i></i><i></i><i></i><span>halia · engine v1.3</span></div>
@@ -252,83 +239,70 @@
   </div>
 </section>
 
-<!-- 7 · PRODUCT SHOT -->
+<!-- 6 · PRODUCT SHOT -->
 <section class="slide">
   <div class="in">
-    <div class="eyebrow" data-r="1">The product</div>
+    <div class="eyebrow" data-r="1">Your desk</div>
     <h2 class="big" data-r="2">A clienteling desk<br>your team opens daily.</h2>
     <div class="bwin" data-r="3" style="margin-top:40px">
       <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.haliascore.com &middot; Hidden VICs</div></div>
       <img src="img/dashboard.png" alt="The Halia dashboard: ranked hidden VICs with reasons and latent value">
     </div>
-    <p class="sub" data-r="4">Ranked clients with plain-English reasons. Win-back plays. A world map of the book. Catalogues, outreach pipeline, POS lookup, and one-tap sends into the tools the store already uses.</p>
+    <p class="sub" data-r="4">Ranked clients, win-back plays, a world map of your book, print-ready catalogues, an outreach pipeline for the team, and lookup at the till.</p>
   </div>
 </section>
 
-<!-- 8 · PLAYS -->
+<!-- 7 · PLAYS -->
 <section class="slide">
   <div class="in">
-    <div class="eyebrow" data-r="1">The plays · from the same real book</div>
-    <h2 class="big" data-r="2">Three lists a store director<br>acts on every Monday.</h2>
+    <div class="eyebrow" data-r="1">The plays</div>
+    <h2 class="big" data-r="2">Three lists for<br>Monday morning.</h2>
     <div class="plays">
-      <div class="play" data-r="3"><div class="pn">Hidden VICs</div><div class="pv">7,042 clients · £57.1m latent</div><p>Strong wealth signals on modest spend. The introduction list: a personal note, a private appointment.</p></div>
-      <div class="play" data-r="4"><div class="pn">Gone quiet</div><div class="pv">119 clients · £3.4m lifetime</div><p>Proven high spenders with wealth signals whose orders stopped. The single highest-return win-back list in retail. Top of this book: a £394,000 client, quiet for a year.</p></div>
-      <div class="play" data-r="5"><div class="pn">Active VICs</div><div class="pv">protect &amp; recognise</div><p>Wealth signals, shopping now. Keep the service impeccable and never let them slip to the first list.</p></div>
+      <div class="play" data-r="3"><div class="pn">Hidden VICs</div><div class="pv">the introduction</div><p>Strong wealth signals on modest spend. A personal note and a private appointment before your competitor finds them first.</p></div>
+      <div class="play" data-r="4"><div class="pn">Gone quiet</div><div class="pv">the win-back</div><p>Proven high spenders whose orders stopped. In one real book: a £394,000 lifetime client, quiet for a year, top of the list.</p></div>
+      <div class="play" data-r="5"><div class="pn">Active VICs</div><div class="pv">the protection</div><p>Wealth signals, shopping now. Keep the service impeccable and recognise them by name.</p></div>
     </div>
   </div>
 </section>
 
-<!-- 9 · WEDGE -->
+<!-- 8 · THE REASONS -->
+<section class="slide">
+  <div class="in">
+    <div class="eyebrow" data-r="1">What your team reads</div>
+    <h2 class="big" data-r="2">Reasons, in plain English.</h2>
+    <div class="term" data-r="3" style="margin-top:40px;max-width:760px">
+      <div class="tbar"><i></i><i></i><i></i><span>client C-0041 &middot; A&#42; &middot; score 99</span></div>
+      <div class="tbody" style="min-height:0">
+<div class="ln hot">Controls an investment holding company (Companies House)</div>
+<div class="ln hot">Ultra-prime area (Knightsbridge SW1X)</div>
+<div class="ln hot">Works at a family office</div>
+<div class="ln dim">Corroborated · 3 independent sources · engine v1.3</div>
+      </div>
+    </div>
+    <p class="sub" data-r="4">Bare facts from public sources, stated plainly. <b>Your associate reads the reason and decides what to do.</b> The judgement stays human; Halia supplies the sight.</p>
+  </div>
+</section>
+
+<!-- 9 · PRIVACY -->
 <section class="slide">
   <div class="bleed-bg"><img src="img/we_keep_nothing.jpg" alt=""><div class="veil"></div></div>
   <div class="in z">
-    <div class="eyebrow" data-r="1">The wedge</div>
-    <h2 class="huge" data-r="2">Nothing stored.</h2>
-    <p class="sub" data-r="3">Customer records are scored in memory and forgotten. The reference data is public registers, ingested offline. The merchant stays the data controller; Halia processes transiently under a DPA.</p>
-    <p class="sub" data-r="4"><b>US enrichment vendors buy and warehouse personal data, so they cannot serve the EU or UK,</b> which is where luxury retail lives. Halia is lawful there by architecture, and the architecture is the moat.</p>
+    <div class="eyebrow" data-r="1">Discretion, by architecture</div>
+    <h2 class="huge" data-r="2">We keep nothing.</h2>
+    <p class="sub" data-r="3">Your customer records are scored in memory and released; every record stays yours. The reference data is public registers. You remain the data controller, Halia processes transiently under a DPA, and you can delete your account yourself at any time.</p>
+    <p class="sub" data-r="4"><b>Your clients simply experience better service.</b> The wording for your own privacy policy ships in the product, ready to paste.</p>
   </div>
 </section>
 
-<!-- 10 · MARKET -->
+<!-- 10 · YOUR STACK -->
 <section class="slide">
   <div class="in">
-    <div class="eyebrow" data-r="1">The market</div>
-    <h2 class="big" data-r="2">Every door has a name.</h2>
-    <p class="sub" data-r="3">The buyers are independent multi-label luxury retailers: 10 Corso Como, Browns, Antonioli, and the one-city boutiques of Osaka, Dallas and Copenhagen. One public stockist directory lists them all.</p>
-    <div class="strip" data-r="4">
-      <div><div class="n">~1,500</div><div class="l">named doors in one directory · a reachable outbound list, not a TAM guess</div></div>
-      <div><div class="n">£9&ndash;21m</div><div class="l">annual pool at £6&ndash;14k per door, before department stores and mono-brand DTC</div></div>
-      <div><div class="n">UK &rarr; US &rarr; EU</div><div class="l">sequenced with the reference data: UK deepest, US shipped July 2026</div></div>
-    </div>
-  </div>
-</section>
-
-<!-- 11 · MODEL -->
-<section class="slide">
-  <div class="in">
-    <div class="eyebrow" data-r="1">The model</div>
-    <h2 class="big" data-r="2">Flat tiers. Ninety-five<br>percent margin.</h2>
-    <table class="tiers" data-r="3">
-      <tr><th>Tier</th><th>Monthly</th><th>Onboarding</th><th>For</th></tr>
-      <tr><td class="tn">Discovery</td><td class="tp">£250</td><td class="tp">£750</td><td>Smaller client books<small>The single-door boutique</small></td></tr>
-      <tr><td class="tn">Signal</td><td class="tp">£500</td><td class="tp">£1,250</td><td>Mid-size books<small>The established multi-label store</small></td></tr>
-      <tr><td class="tn">Atelier</td><td class="tp">£1,200</td><td class="tp">£2,000</td><td>Large books<small>Flagships and multi-door retailers</small></td></tr>
-      <tr><td class="tn">Maison</td><td class="tp">Custom</td><td class="tp">Custom</td><td>Groups &amp; department stores</td></tr>
-    </table>
-    <p class="sub" data-r="4">Checkout reads the connected book and routes to the right tier automatically. Run cost is one small cloud service: <b>the first client is break-even, every client after is margin.</b></p>
-  </div>
-</section>
-
-<!-- 12 · TRACTION -->
-<section class="slide">
-  <div class="in">
-    <div class="eyebrow" data-r="1">Where it stands</div>
-    <h2 class="big" data-r="2">Built, deployed,<br>first client scoring.</h2>
+    <div class="eyebrow" data-r="1">Your stack</div>
+    <h2 class="big" data-r="2">It joins your tools.<br>It replaces none of them.</h2>
     <ul class="ast-list" data-r="3">
-      <li><b>Product complete:</b> engine, dashboard, catalogues, pipeline, POS, billing: 695 automated tests, live at haliascore.com.</li>
-      <li><b>Design partner:</b> a UK luxury retailer, 47,000 customers scored, results on the slides you just saw.</li>
-      <li><b>Data moat compounding:</b> UK registers shipped; US income, property and SEC ownership shipped July 2026; EU next.</li>
-      <li><b>Founder-run at under £50 a month</b> of fixed cost. This company cannot die of burn.</li>
+      <li><b>Store platforms:</b> Shopify (embedded in your admin), WooCommerce, BigCommerce, Centra.</li>
+      <li><b>Your CRM and email:</b> scores and segments flow into Klaviyo, Mailchimp and HubSpot; alerts into Slack; lookup at the POS.</li>
+      <li><b>Your team:</b> the outreach pipeline tracks who is looking after whom, on your own store data.</li>
     </ul>
     <div class="logos" data-r="4">
       <img src="img/logos/shopify.png" alt="Shopify"><img src="img/logos/woocommerce.png" alt="WooCommerce">
@@ -338,35 +312,46 @@
   </div>
 </section>
 
-<!-- 13 · FOUNDER -->
+<!-- 11 · PRICING -->
 <section class="slide">
   <div class="in">
-    <div class="eyebrow" data-r="1">The founder</div>
-    <h2 class="big" data-r="2">Valentine Eluwasi</h2>
-    <p class="sub" data-r="3">Halia is built by the person luxury retailers hire to run their client books. <b>Eight years inside luxury CRM and clienteling</b>, now productised.</p>
-    <div class="cv" data-r="4">
-      <div class="yr">Now</div><div class="what"><b>Dover Street Market</b><span>CRM &amp; clienteling back end; client intelligence and analytics (Power BI) for one of the world's most influential multi-label retailers, Halia's exact buyer.</span></div>
-      <div class="yr">Prev</div><div class="what"><b>Phoebe Philo</b><span>Digital Media &amp; Communications Manager on the LVMH-backed launch; grew Instagram past 400,000 through counter-culture marketing.</span></div>
-      <div class="yr">&nbsp;</div><div class="what"><b>De Beers Group &middot; YOOX Net-a-Porter</b><span>Transformed CRM processes at De Beers; global CRM campaigns at YNAP.</span></div>
-      <div class="yr">&nbsp;</div><div class="what"><b>Goldsmiths, University of London</b><span>First-Class Honours, Computer Science &amp; Business: the builder and the operator in one person.</span></div>
+    <div class="eyebrow" data-r="1">The arrangement</div>
+    <h2 class="big" data-r="2">One flat fee.<br>Priced to your book.</h2>
+    <table class="tiers" data-r="3">
+      <tr><th>Tier</th><th>Monthly</th><th>Onboarding scan</th><th>For</th></tr>
+      <tr><td class="tn">Discovery</td><td class="tp">£250</td><td class="tp">£750</td><td>Smaller client books<small>The single-door boutique</small></td></tr>
+      <tr><td class="tn">Signal</td><td class="tp">£500</td><td class="tp">£1,250</td><td>Mid-size books<small>The established multi-label store</small></td></tr>
+      <tr><td class="tn">Atelier</td><td class="tp">£1,200</td><td class="tp">£2,000</td><td>Large books<small>Flagships and multi-door retailers</small></td></tr>
+      <tr><td class="tn">Maison</td><td class="tp">Custom</td><td class="tp">Custom</td><td>Groups &amp; department stores</td></tr>
+    </table>
+    <p class="sub" data-r="4">Every tier includes the full product, every play, every integration and a person who answers. <b>One recovered client typically covers the year.</b></p>
+  </div>
+</section>
+
+<!-- 12 · FIRST MONTH -->
+<section class="slide">
+  <div class="in">
+    <div class="eyebrow" data-r="1">Your first month</div>
+    <h2 class="big" data-r="2">What to expect.</h2>
+    <div class="cv" data-r="3" style="max-width:720px">
+      <div class="yr">Day 1</div><div class="what"><b>Connect and scan</b><span>Read-only connection, first scan, and your ranked list the same afternoon.</span></div>
+      <div class="yr">Week 1</div><div class="what"><b>First outreach</b><span>Your team works the Gone quiet list first: proven clients, warmest welcome back. We walk your associates through the reasons.</span></div>
+      <div class="yr">Week 2&ndash;4</div><div class="what"><b>Calibrate</b><span>Your benchmarks (top client, average order) tune the latent values to your numbers; scores refresh with every sync.</span></div>
+      <div class="yr">Day 30</div><div class="what"><b>Review</b><span>We sit down over the results: who was reached, who responded, what it earned. You decide from evidence.</span></div>
     </div>
   </div>
 </section>
 
-<!-- 14 · CLOSE -->
+<!-- 13 · CLOSE -->
 <section class="slide">
   <div class="bleed-bg"><img src="img/find_your_most_valuable_clients.jpg" alt=""><div class="veil"></div></div>
   <div class="in z">
-    <div class="eyebrow" data-r="1">The next twelve months</div>
-    <h2 class="big" data-r="2">Ten doors, one case study,<br>then the directory.</h2>
-    <ul class="ast-list" data-r="3">
-      <li><b>Launch:</b> legal sign-off and billing live, weeks away, gated on counsel.</li>
-      <li><b>Months 1&ndash;6:</b> design partner referenceable, ten paying doors, Shopify listing, first US door.</li>
-      <li><b>Months 6&ndash;12:</b> twenty-five doors, first Maison conversation, EU data expansion.</li>
-    </ul>
+    <div class="eyebrow" data-r="1">The next step</div>
+    <h2 class="huge" data-r="2">See your book scored.</h2>
+    <p class="sub" data-r="3">Connect your store and see your own numbers the same day: how many hidden VICs, how much latent value, who went quiet. <b>Your data stays yours throughout.</b></p>
     <div class="goldline" data-r="4"></div>
     <p class="sub" data-r="5" style="font-family:var(--serif);font-size:clamp(22px,3vw,34px);font-style:italic;color:var(--ink);max-width:none">&#8258; Halia</p>
-    <p class="sub" data-r="6" style="margin-top:10px">Valentine Eluwasi &middot; <b>hello@haliascore.com</b> &middot; haliascore.com</p>
+    <p class="sub" data-r="6" style="margin-top:10px"><b>hello@haliascore.com</b> &middot; haliascore.com/connect</p>
   </div>
 </section>
 
