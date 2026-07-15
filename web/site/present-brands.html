@@ -154,6 +154,12 @@
   .cv .what span{font:400 13px/1.6 var(--sans);color:var(--mute)}
 
   .kicker{font:500 12px var(--mono);letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
+  .imgcard{border-radius:18px;overflow:hidden;box-shadow:0 40px 100px -30px rgba(0,0,0,.85);border:1px solid var(--line)}
+  .imgcard img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:4/5}
+  .imgcard.land img{aspect-ratio:16/10}
+  /* constellation: the whole slide is sky; the copy floats over it */
+  .constel{position:absolute;inset:0;z-index:0}
+  .constel canvas{width:100%;height:100%;display:block}
   .goldline{width:64px;height:1px;background:var(--gold);margin:30px 0}
 </style>
 </head>
@@ -180,14 +186,44 @@
 <!-- 2 · THE FEELING -->
 <section class="slide">
   <div class="in">
-    <div class="eyebrow" data-r="1">The quiet truth</div>
-    <h2 class="big" data-r="2">Your best clients look like<br>everyone else at checkout.</h2>
-    <div class="strip" data-r="3">
-      <div><div class="n">Spend tiers</div><div class="l">decide your VIP programme today, so capacity waits years to be recognised</div></div>
-      <div><div class="n">Exposure</div><div class="l">is what follower-count gifting lists reach</div></div>
-      <div><div class="n">Revenue</div><div class="l">is what capacity-ranked lists reach: people who buy</div></div>
+    <div class="cols">
+      <div>
+        <div class="eyebrow" data-r="1">The quiet truth</div>
+        <h2 class="big" data-r="2">Your best clients look like<br>everyone else at checkout.</h2>
+        <p class="sub" data-r="3">The founder who ordered one piece at full price. The collector on her third quiet purchase. Your programme sees two small customers; Halia sees your next top-tier clients.</p>
+        <div class="strip" data-r="4" style="grid-template-columns:1fr;margin-top:34px">
+          <div><div class="n">Spend tiers</div><div class="l">decide your VIP programme today, so capacity waits years to be recognised</div></div>
+          <div><div class="n">Revenue</div><div class="l">is what capacity-ranked lists reach: people who buy, alongside the people who post</div></div>
+        </div>
+      </div>
+      <div class="imgcard" data-r="5"><img src="img/luxury_ceo_client.jpg" alt="A client"></div>
     </div>
-    <p class="sub" data-r="4">The founder who ordered one piece at full price. The collector on her third quiet purchase. Your programme sees two small customers; Halia sees your next top-tier clients.</p>
+  </div>
+</section>
+
+<!-- FEAR · your stockists already do this -->
+<section class="slide">
+  <div class="bleed-bg"><img src="img/boxes_wrapped_clienteling.jpg" alt=""><div class="veil"></div></div>
+  <div class="in z">
+    <div class="eyebrow" data-r="1">Meanwhile, at your stockists</div>
+    <h2 class="big" data-r="2">Tonight, a store that carries you<br>is wrapping a gift<br><em>for your best client.</em></h2>
+    <p class="sub" data-r="3">Every multi-label door you sell through runs client books, personal shoppers and handwritten notes. When your client buys your piece there, <b>the thank-you comes from the store, and so does next season's first call.</b></p>
+    <div class="strip" data-r="4" style="max-width:820px">
+      <div><div class="n">They keep</div><div class="l">the relationship</div></div>
+      <div><div class="n">They keep</div><div class="l">the data</div></div>
+      <div><div class="n">You keep</div><div class="l">the wholesale order</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CONSTELLATION · one person can run it -->
+<section class="slide" id="constelSlide">
+  <div class="constel"><canvas id="sky"></canvas></div>
+  <div class="in z">
+    <div class="eyebrow" data-r="1">The answer, at your scale</div>
+    <h2 class="big" data-r="2">Their advantage is headcount.<br><em>Yours is knowing who.</em></h2>
+    <p class="sub" data-r="3">Stockists dedicate whole teams to clienteling. Halia hands that craft to a house of any size: it tells you <b>who deserves the gesture, when, and why</b>, so a founder or your e-commerce lead delivers VIP treatment in minutes a week.</p>
+    <p class="sub" data-r="4"><b>The right people, at the right moment, with the reason written for you.</b> Ten thousand customers above; the handful that matter this week, lit.</p>
   </div>
 </section>
 
@@ -218,7 +254,7 @@
       <div><div class="tag">Step two · under a minute</div><h3>Score</h3><p>Your book is scored in memory against the registers and released. Halia keeps nothing.</p></div>
       <div><div class="tag">Step three · same day</div><h3>Act</h3><p>A ranked list with plain reasons, ready for a preview invitation, a personal note, a top-tier upgrade.</p></div>
     </div>
-    <p class="sub" data-r="4">Your CRM and client advisors keep working the way they already work. Halia simply tells them who deserves the extra step.</p>
+    <p class="sub" data-r="4">It runs beside the day job. A founder, an e-commerce lead or a single client advisor sends the notes; Halia supplies the who, the when and the why.</p>
   </div>
 </section>
 
@@ -268,8 +304,11 @@
 <!-- 8 · THE REASONS -->
 <section class="slide">
   <div class="in">
+    <div class="cols">
+      <div class="imgcard" data-r="4"><img src="img/man_holding_luxury_bag.jpg" alt="A client leaving with a purchase"></div>
+      <div>
     <div class="eyebrow" data-r="1">What your team reads</div>
-    <h2 class="big" data-r="2">Reasons, in plain English.</h2>
+    <h2 class="big" data-r="2">Reasons, in<br>plain English.</h2>
     <div class="term" data-r="3" style="margin-top:40px;max-width:760px">
       <div class="tbar"><i></i><i></i><i></i><span>client C-0041 &middot; A&#42; &middot; score 99</span></div>
       <div class="tbody" style="min-height:0">
@@ -279,7 +318,9 @@
 <div class="ln dim">Corroborated · 3 independent sources · engine v1.3</div>
       </div>
     </div>
-    <p class="sub" data-r="4">Bare facts from public sources, stated plainly. <b>Your associate reads the reason and decides what to do.</b> The judgement stays human; Halia supplies the sight.</p>
+    <p class="sub" data-r="5">Bare facts from public sources, stated plainly. <b>Whoever sends the note reads the reason and decides.</b> The judgement stays human; Halia supplies the sight.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -331,6 +372,8 @@
 <!-- 12 · FIRST MONTH -->
 <section class="slide">
   <div class="in">
+    <div class="cols">
+      <div>
     <div class="eyebrow" data-r="1">Your first month</div>
     <h2 class="big" data-r="2">What to expect.</h2>
     <div class="cv" data-r="3" style="max-width:720px">
@@ -338,6 +381,9 @@
       <div class="yr">Week 1</div><div class="what"><b>First access list</b><span>Your VIP team works the Gone quiet list first, then sends the next preview to the First access list. We walk the team through every reason.</span></div>
       <div class="yr">Week 2&ndash;4</div><div class="what"><b>Segments live</b><span>Capacity tiers flow into your Klaviyo and CRM flows; your benchmarks tune the latent values to your numbers.</span></div>
       <div class="yr">Day 30</div><div class="what"><b>Review</b><span>We sit down over the results: who was reached, who responded, what it earned. You decide from evidence.</span></div>
+    </div>
+      </div>
+      <div class="imgcard" data-r="4"><img src="img/gifts_wrapped.jpg" alt="Gifts wrapped for clients"></div>
     </div>
   </div>
 </section>
@@ -424,6 +470,55 @@
     }
     setTimeout(next,reduce?0:600);
   }
+
+  /* ---- constellation: thousands of customers drifting; the ones that matter, lit ---- */
+  (function(){
+    var host=document.getElementById('constelSlide'); if(!host)return;
+    var cv=document.getElementById('sky'), x=cv.getContext&&cv.getContext('2d');
+    if(!x)return;
+    var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+    var W,H,stars=[],N=140,m={x:.5,y:.5};
+    var reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches);
+    function layout(){var r=host.getBoundingClientRect();W=r.width;H=r.height;
+      cv.width=W*DPR;cv.height=H*DPR;x.setTransform(DPR,0,0,DPR,0,0);}
+    layout();addEventListener('resize',layout,{passive:true});
+    for(var i=0;i<N;i++)stars.push({x:Math.random(),y:Math.random(),z:.3+Math.random()*.7,
+      vx:(Math.random()-.5)*.00012,vy:(Math.random()-.5)*.00012,lit:0,want:0,tw:Math.random()*6.28});
+    host.addEventListener('mousemove',function(e){var r=host.getBoundingClientRect();
+      m.x=(e.clientX-r.left)/r.width;m.y=(e.clientY-r.top)/r.height;},{passive:true});
+    var seed=0;
+    function relight(){                     // a new constellation of VICs surfaces
+      seed=(seed+1)%1000;
+      var cxp=.25+((seed*137)%50)/100, cyp=.25+((seed*89)%50)/100;
+      stars.forEach(function(st){st.want=0;});
+      var picked=stars.map(function(st,i){return {i:i,d:Math.hypot(st.x-cxp,st.y-cyp)+st.z*.05};})
+        .sort(function(a,b){return a.d-b.d;}).slice(0,11);
+      picked.forEach(function(pk){stars[pk.i].want=1;});
+    }
+    relight();setInterval(relight,5200);
+    function frame(t){
+      x.clearRect(0,0,W,H);
+      var px=(m.x-.5)*18,py=(m.y-.5)*12,lit=[];
+      for(var i=0;i<stars.length;i++){var st=stars[i];
+        if(!reduce){st.x=(st.x+st.vx+1)%1;st.y=(st.y+st.vy+1)%1;}
+        st.lit+=((st.want)-st.lit)*0.035;
+        var sx=st.x*W+px*st.z, sy=st.y*H+py*st.z;
+        var tw=.5+.5*Math.sin(t/900+st.tw);
+        if(st.lit>0.5)lit.push([sx,sy,st.lit]);
+        x.globalAlpha=(.14+.30*tw)*st.z+(st.lit*.65);
+        x.fillStyle=st.lit>0.4?'#d8d2c6':'#8c887f';
+        x.beginPath();x.arc(sx,sy,(st.z*1.4)+(st.lit*1.7),0,6.2832);x.fill();
+      }
+      x.globalAlpha=.5;x.strokeStyle='rgba(216,210,198,.55)';x.lineWidth=1;
+      for(var a=0;a<lit.length;a++)for(var b=a+1;b<lit.length;b++){
+        var dx=lit[a][0]-lit[b][0],dy=lit[a][1]-lit[b][1],dd=Math.hypot(dx,dy);
+        if(dd<Math.min(W,H)*.24){x.globalAlpha=(1-dd/(Math.min(W,H)*.24))*.5*lit[a][2]*lit[b][2];
+          x.beginPath();x.moveTo(lit[a][0],lit[a][1]);x.lineTo(lit[b][0],lit[b][1]);x.stroke();}}
+      x.globalAlpha=1;
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  })();
 
   /* ---- engine visualiser (adapted from haliascore.com) ---- */
   (function(){
