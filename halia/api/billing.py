@@ -77,6 +77,25 @@ def price_for_shop(shop: str) -> str | None:
     return tiers[-1][1]                          # above every finite cap -> the top tier
 
 
+# Human plan names by ascending tier rank (the size tiers carry no name of their own).
+_TIER_NAMES = ["Discovery", "Signal", "Atelier", "Maison"]
+
+
+def plan_for_shop(shop: str) -> dict | None:
+    """The matched plan for the paywall: {name, count} from the shop's scanned book size.
+
+    Turns the gate from a generic "subscribe" into "your book: 47,015 customers -> Signal". None
+    when tiered pricing is not configured (single-price or billing off).
+    """
+    tiers = _parse_tiers()
+    if not tiers:
+        return None
+    count = _scanned_count(shop)
+    idx = next((i for i, (cap, _) in enumerate(tiers) if count <= cap), len(tiers) - 1)
+    name = _TIER_NAMES[idx] if idx < len(_TIER_NAMES) else f"Tier {idx + 1}"
+    return {"name": name, "count": int(count)}
+
+
 def _free_shops():
     """Comped tenant keys: the console's dashboard override, else env HALIA_FREE_SHOPS."""
     from halia.console_config import console_setting
@@ -225,6 +244,9 @@ def billing_state(shop: str) -> dict:
     if sub:
         state["cancel_at_period_end"] = bool(sub.get("cancel_at_period_end"))
         state["current_period_end"] = sub.get("current_period_end")
+    # Matched plan for the paywall (only useful before they subscribe, and only with tiered pricing).
+    if state["enabled"] and not state["paid"] and not comped:
+        state["plan"] = plan_for_shop(shop)
     return state
 
 

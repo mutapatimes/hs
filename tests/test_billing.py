@@ -270,3 +270,41 @@ def test_price_falls_back_to_single_when_no_tiers(monkeypatch):
     monkeypatch.setattr("halia.config.STRIPE_TIERS", None)
     monkeypatch.setattr("halia.config.STRIPE_PRICE_ID", "price_single")
     assert billing.price_for_shop("shopx") == "price_single"
+
+
+def test_plan_for_shop_matches_by_book_size(monkeypatch):
+    monkeypatch.setattr("halia.config.STRIPE_TIERS",
+                        "15000:price_a, 75000:price_b, *:price_c")
+    monkeypatch.setattr(billing, "_scanned_count", lambda shop: 47015)
+    plan = billing.plan_for_shop("shopx")
+    assert plan == {"name": "Signal", "count": 47015}
+    monkeypatch.setattr(billing, "_scanned_count", lambda shop: 8000)
+    assert billing.plan_for_shop("shopx")["name"] == "Discovery"
+    monkeypatch.setattr(billing, "_scanned_count", lambda shop: 200000)
+    assert billing.plan_for_shop("shopx")["name"] == "Atelier"
+
+
+def test_plan_none_without_tiers(monkeypatch):
+    monkeypatch.setattr("halia.config.STRIPE_TIERS", "")
+    assert billing.plan_for_shop("shopx") is None
+
+
+def test_webhook_marks_paid_with_valid_signature(monkeypatch):
+    import hashlib, hmac as _h, json as _j, time as _t
+    from fastapi.testclient import TestClient
+    from halia.api.app import app
+    from halia import config
+    monkeypatch.setattr(billing, "billing_enabled", lambda: True)
+    monkeypatch.setattr(config, "STRIPE_WEBHOOK_SECRET", "whsec_x")
+    recorded = {}
+    monkeypatch.setattr(billing.shop_store(), "set_billing",
+                        lambda shop, status, *a, **k: recorded.update(shop=shop, status=status))
+    body = _j.dumps({"type": "checkout.session.completed",
+                     "data": {"object": {"client_reference_id": "acme.myshopify.com",
+                                          "customer": "cus_1", "subscription": "sub_1"}}}).encode()
+    t = str(int(_t.time()))
+    sig = _h.new(b"whsec_x", t.encode() + b"." + body, hashlib.sha256).hexdigest()
+    r = TestClient(app).post("/webhooks/stripe", content=body,
+                             headers={"stripe-signature": f"t={t},v1={sig}",
+                                      "content-type": "application/json"})
+    assert r.status_code == 200 and recorded == {"shop": "acme.myshopify.com", "status": "active"}

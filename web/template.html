@@ -3051,7 +3051,13 @@ function openSettings(page){
             +`<button id="billCancel" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0 8px">Cancel subscription</button></div>`;
         }
       }
-      else{h+=`<p style="${P}">Subscribe to unlock the full dashboard.</p><button id="billSub" style="${BP}">Subscribe →</button>`;}
+      else{
+        const plan=b.plan;
+        if(plan&&plan.name){h+=`<div style="border:1px solid var(--brand);background:var(--brand-tint);border-radius:12px;padding:14px 16px;margin-bottom:14px">`
+          +`<div style="font:12px system-ui;color:var(--soft)">Your book: <b>${(plan.count||0).toLocaleString("en-GB")}</b> customers</div>`
+          +`<div style="font:500 20px 'Fraunces',serif;color:var(--brand-deep);margin-top:2px">Matched to the ${esc(plan.name)} plan</div></div>`;}
+        h+=`<p style="${P}">Subscribe to unlock the full dashboard.</p><button id="billSub" style="${BP}">Subscribe →</button>`;
+      }
       box.innerHTML=h;
       const openUrl=(url,btn,label)=>{btn.disabled=true;btn.textContent="One moment…";
         fetch(url,{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
