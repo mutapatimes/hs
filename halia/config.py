@@ -45,6 +45,10 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 # distinct from a single store's Admin token; used to verify session tokens and to
 # token-exchange per installed shop.
 SHOPIFY_API_KEY = os.environ.get("SHOPIFY_API_KEY")
+# The app's handle in the Shopify App Store (set once the listing exists). When set, emails to an
+# EMBEDDED Shopify tenant link to the app inside Shopify admin (admin.shopify.com/store/<store>/
+# apps/<handle>) instead of the hosted haliascore.com/app, which App Bridge can't sign them into.
+SHOPIFY_APP_HANDLE = os.environ.get("SHOPIFY_APP_HANDLE") or None
 SHOPIFY_API_SECRET = os.environ.get("SHOPIFY_API_SECRET")
 HALIA_APP_URL = os.environ.get("HALIA_APP_URL", "").rstrip("/")
 

@@ -213,6 +213,42 @@ def _magic_pop(k: str) -> str | None:
     return v["shop"] if v else None
 
 
+def _dashboard_url(shop: str, hosted_path: str = "/app", *, embedded: bool = False) -> str:
+    """The correct dashboard link for this tenant in an email.
+
+    Hosted tenants (WooCommerce / BigCommerce / Centra, and Shopify connected via the self-serve
+    token / OAuth-link wizard) use the cookie-authenticated hosted dashboard at
+    ``{HALIA_APP_URL}{hosted_path}``. An EMBEDDED Shopify App Store tenant lives inside Shopify
+    admin (App Bridge auth), so that link can't sign them in: when ``embedded`` is set and the app
+    handle is configured, link them to the app in their own Shopify admin instead.
+
+    Today every tenant that receives an email is a hosted one (the embedded flow sends none), so
+    callers default to hosted; wire ``embedded=True`` when the App Store app starts emailing.
+    """
+    base = (config.HALIA_APP_URL or "").rstrip("/")
+    handle = (getattr(config, "SHOPIFY_APP_HANDLE", None) or "").strip()
+    if embedded and handle and str(shop or "").endswith(".myshopify.com"):
+        store = shop[: -len(".myshopify.com")]
+        return f"https://admin.shopify.com/store/{store}/apps/{handle}"
+    return f"{base}{hosted_path}"
+
+
+def _is_embedded_shopify(shop: str) -> bool:
+    """A Shopify tenant with no self-serve hosted account is an embedded (App Store) install.
+
+    Self-serve onboarding always stores a hashed access link (get_tenant.token_hash); an embedded
+    OAuth install does not. So a myshopify tenant lacking that hash is embedded. Conservative: only
+    ever True for a myshopify domain, so non-Shopify tenants always resolve to the hosted link.
+    """
+    if not str(shop or "").endswith(".myshopify.com"):
+        return False
+    try:
+        tenant = shop_store().get_tenant(shop) or {}
+    except Exception:  # noqa: BLE001
+        return False
+    return not tenant.get("token_hash")
+
+
 def _send_welcome_signin_email(email: str, link_path: str, label: str = "") -> bool:
     """Email the tenant their durable sign-in link at onboarding (instead of showing it on
     screen). Returns True if actually sent. First use of the link hands out a session."""
@@ -454,16 +490,20 @@ def _send_ready_email(shop: str, entry: dict | None) -> None:
         if not recipients:
             return
         from halia import emails
-        base = (config.HALIA_APP_URL or "").rstrip("/")
         count = len(data.hidden_results(entry)) if entry else 0
+        embedded = _is_embedded_shopify(shop)
+        dash = _dashboard_url(shop, embedded=embedded)
+        # Hosted tenants open on the device they set up on (cookie); embedded Shopify tenants open
+        # the app inside their Shopify admin, so the hint differs.
+        hint = ("Open it from Apps in your Shopify admin." if embedded
+                else "Open it on the device you set Halia up on, so you go straight in.")
         body = (
             emails.paragraph("Your store has finished scoring.")
             + emails.paragraph(f"Halia found <b style='color:#1a1712'>{count}</b> hidden VICs in your "
                                "customers: clients who look like your very best, but were never tagged "
                                "as such. They are ranked and ready to act on.")
-            + emails.button("See your hidden VICs", f"{base}/app")
-            + emails.paragraph("<span style='font-size:13px;color:#8a8a8a'>Open it on the device you set "
-                               "Halia up on, so you go straight in.</span>"))
+            + emails.button("See your hidden VICs", dash)
+            + emails.paragraph(f"<span style='font-size:13px;color:#8a8a8a'>{hint}</span>"))
         body_html = emails.wrap("Your hidden VICs are ready", body,
                                 greeting="Good news,", eyebrow="Your scores are ready")
         for em in recipients:
