@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import os
 import secrets
 import time
 
@@ -38,9 +39,16 @@ def hash_token(token: str) -> str:
 
 
 def _secret() -> bytes:
-    """Server-side signing secret for sessions (never leaves the server)."""
+    """Server-side signing secret for sessions (never leaves the server).
+
+    SECURITY: chain to HALIA_ENCRYPTION_KEY before the dev literal. In production both
+    HALIA_ENCRYPTION_KEY and SHOPIFY_API_SECRET are set, so the public literal is never reached;
+    it exists only so local dev with nothing configured still runs. A WooCommerce-only deploy
+    (no Shopify secret) therefore still signs sessions with a real per-deploy secret.
+    """
     from halia import config
-    return (config.SHOPIFY_API_SECRET or "halia-dev-session-secret").encode("utf-8")
+    key = config.SHOPIFY_API_SECRET or os.environ.get("HALIA_ENCRYPTION_KEY")
+    return (key or "halia-dev-session-secret").encode("utf-8")
 
 
 def make_session(shop: str, ttl: int = SESSION_TTL) -> str:

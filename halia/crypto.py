@@ -37,11 +37,20 @@ def _warn_plaintext() -> None:
 
 
 def encrypt(value: str | None) -> str | None:
-    """Encrypt a secret for storage. No-op (with a warning) if no key is configured."""
+    """Encrypt a secret for storage. No-op (with a warning) in local dev with no key configured.
+
+    SECURITY: fail CLOSED in production. When a durable Postgres backend is configured
+    (``DATABASE_URL``) but ``HALIA_ENCRYPTION_KEY`` is missing, storing merchant tokens in the
+    clear would silently break the "even a DB dump never exposes a token" guarantee, so refuse.
+    """
     if value is None:
         return None
     f = _fernet()
     if f is None:
+        if os.environ.get("DATABASE_URL"):
+            raise RuntimeError(
+                "HALIA_ENCRYPTION_KEY is required in production (DATABASE_URL is set) — "
+                "refusing to store a secret in plaintext.")
         _warn_plaintext()
         return value
     return _PREFIX + f.encrypt(value.encode()).decode()

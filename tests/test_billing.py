@@ -235,8 +235,9 @@ def test_webhook_signature():
     secret = "whsec_test"
     body = b'{"hello":"world"}'
     good = hmac.new(secret.encode(), b"123." + body, hashlib.sha256).hexdigest()
-    assert billing._verify_sig(body, f"t=123,v1={good}", secret) is True
-    assert billing._verify_sig(body, "t=123,v1=deadbeef", secret) is False
+    # tolerance=0 disables the freshness window so this fixed-timestamp signature check is stable
+    assert billing._verify_sig(body, f"t=123,v1={good}", secret, tolerance=0) is True
+    assert billing._verify_sig(body, "t=123,v1=deadbeef", secret, tolerance=0) is False
 
 
 # ── size-based pricing tiers ─────────────────────────────────────────────────────

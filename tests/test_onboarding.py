@@ -371,13 +371,20 @@ def test_shopify_installed_endpoint(client):
     assert r["ready"] is True and r["shop_domain"] == "acme.myshopify.com"
 
 
-def test_onboard_shopify_uses_installed_token(client, monkeypatch):
+def test_onboard_shopify_requires_supplied_token(client, monkeypatch):
+    """SECURITY: onboarding must PROVE shop control with a supplied token, never fall back to a
+    server-stored token for a client-named domain (that was a cross-tenant takeover)."""
     c, store = client
     monkeypatch.setattr(onboarding, "_validate_shopify", lambda *a, **k: (True, ""))
-    store.save_shop("acme.myshopify.com", "shpat_installed")  # saved when they installed via the link
+    store.save_shop("acme.myshopify.com", "shpat_installed")  # a stored token must NOT authenticate
+    # no admin_token supplied -> rejected, even though a token is on file for this domain
     r = c.post("/v1/onboard", json={"source": "shopify", "shop_domain": "acme.myshopify.com",
-                                    "platform": "", "accept_terms": True})  # no admin_token: from the install
-    assert r.status_code == 200
+                                    "platform": "", "accept_terms": True})
+    assert r.status_code == 400
+    # supplying a token (proof of control) is the secure path and still works
+    r2 = c.post("/v1/onboard", json={"source": "shopify", "shop_domain": "acme.myshopify.com",
+                                     "admin_token": "shpat_supplied", "platform": "", "accept_terms": True})
+    assert r2.status_code == 200
     assert store.get_tenant("acme.myshopify.com")["kind"] == "shopify"
 
 

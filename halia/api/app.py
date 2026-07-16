@@ -150,6 +150,7 @@ for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
 # cookie for 30 days. The cookie is a hash OF the password, so it proves knowledge of it
 # and a captured cookie never reveals it. Every response carries X-Robots-Tag: noindex.
 import hashlib as _hashlib  # noqa: E402
+import hmac as _hmac  # noqa: E402
 from fastapi.responses import RedirectResponse as _Redirect  # noqa: E402
 
 _DECKS = ("pitch", "present", "present-brands")
@@ -189,7 +190,7 @@ async def _deck_handler(request: Request) -> _HTML:
     name = path.strip("/")
     if request.method == "POST":
         form = await request.form()
-        if str(form.get("pw") or "") == _deck_password():
+        if _hmac.compare_digest(str(form.get("pw") or ""), _deck_password()):
             resp = _Redirect(path, status_code=303)
             resp.set_cookie(_DECK_COOKIE, _deck_token(), max_age=86400 * 30, httponly=True,
                             samesite="lax", secure=request.url.scheme == "https")

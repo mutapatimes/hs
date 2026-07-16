@@ -1494,9 +1494,13 @@ def register(app) -> None:
             if pend and pend.get("token"):        # token came from the one-click OAuth install
                 domain = _norm_shop(pend.get("shop_domain") or g("shop_domain") or store_url)
                 admin_token = pend["token"]
-            else:                                  # manual token, or a token already saved at install
+            else:                                  # manual token entry (the OAuth path is handled above)
                 domain = _norm_shop(g("shop_domain") or store_url)
-                admin_token = g("admin_token") or (store.get_token(domain) if domain else "") or ""
+                # SECURITY: never fall back to a server-stored token for a client-supplied domain.
+                # Onboarding must PROVE control of the shop, and a valid Admin token supplied here
+                # (verified by _validate_shopify below) is that proof. Reading store.get_token(domain)
+                # would let anyone claim any shop by naming its domain and receive a session for it.
+                admin_token = g("admin_token")
             if not domain or not admin_token:
                 raise HTTPException(400, "Add your Shopify store domain and Admin API access token.")
             ok, why = _validate_shopify(domain, admin_token)

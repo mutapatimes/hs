@@ -244,11 +244,18 @@ def confirm_session(shop: str, session_id: str) -> bool:
     return is_paid(shop)
 
 
-def _verify_sig(body: bytes, sig_header: str, secret: str) -> bool:
-    """Verify a Stripe webhook signature (HMAC-SHA256 over `t.payload`)."""
+def _verify_sig(body: bytes, sig_header: str, secret: str, tolerance: int = 300) -> bool:
+    """Verify a Stripe webhook signature (HMAC-SHA256 over `t.payload`), rejecting stale events.
+
+    ``tolerance`` (seconds) bounds how old the signed timestamp may be, so a captured valid event
+    cannot be replayed indefinitely.
+    """
     try:
+        import time as _t
         pairs = [p.split("=", 1) for p in sig_header.split(",")]
         t = next(v for k, v in pairs if k == "t")
+        if tolerance and abs(_t.time() - int(t)) > tolerance:
+            return False
         sigs = [v for k, v in pairs if k == "v1"]
         expected = hmac.new(secret.encode(), t.encode() + b"." + body, hashlib.sha256).hexdigest()
         return any(hmac.compare_digest(expected, s) for s in sigs)
@@ -302,6 +309,11 @@ def register(app) -> None:
     @app.post("/webhooks/stripe")
     async def stripe_webhook(request: Request) -> dict:
         body = await request.body()
+        # SECURITY: fail CLOSED. When billing is live, an unverified event must never be trusted —
+        # otherwise a forged checkout.session.completed marks any tenant paid for free. If the
+        # webhook secret is not configured yet, reject every event rather than skipping the check.
+        if billing_enabled() and not config.STRIPE_WEBHOOK_SECRET:
+            raise HTTPException(503, "Billing webhook not configured")
         if config.STRIPE_WEBHOOK_SECRET:
             if not _verify_sig(body, request.headers.get("stripe-signature", ""),
                                config.STRIPE_WEBHOOK_SECRET):

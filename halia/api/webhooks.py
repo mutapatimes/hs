@@ -19,6 +19,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 
 from fastapi import HTTPException, Request
 
@@ -47,7 +48,17 @@ def register(app) -> None:
             raise HTTPException(401, "Invalid webhook HMAC")  # Shopify requirement
 
         topic = request.headers.get("X-Shopify-Topic", "")
-        shop = request.headers.get("X-Shopify-Shop-Domain", "")
+        header_shop = request.headers.get("X-Shopify-Shop-Domain", "")
+        # SECURITY: the HMAC signs the BODY, not the headers, so the destructive delete target is
+        # taken from the signed JSON body (Shopify includes shop_domain), and only trusted when it
+        # agrees with the unsigned header. Falls back to the header when the body omits it.
+        try:
+            body_shop = (json.loads(raw.decode() or "{}").get("shop_domain") or "").strip()
+        except Exception:  # noqa: BLE001
+            body_shop = ""
+        shop = body_shop or header_shop
+        if body_shop and header_shop and body_shop != header_shop:
+            raise HTTPException(400, "Shop mismatch")
 
         if topic in ("shop/redact", "app/uninstalled"):
             ShopStore().delete_shop(shop)   # erase the only thing we persist for this shop
