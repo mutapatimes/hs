@@ -176,10 +176,10 @@
 <section class="slide">
   <div class="bleed-bg"><video src="img/hero.mp4" autoplay muted loop playsinline poster="img/find_your_most_valuable_clients.jpg"></video><div class="veil"></div></div>
   <div class="in z">
-    <div class="eyebrow" data-r="1">A private briefing for your house</div>
+    <div class="eyebrow" data-r="1" id="t-eyebrow">A private briefing for your house</div>
     <h1 class="huge" data-r="2">&#8258; Halia</h1>
     <p class="sub" data-r="3" style="font-family:var(--serif);font-size:clamp(20px,2.6vw,30px);font-style:italic;color:var(--gold);max-width:none">Private client intelligence for luxury brands.</p>
-    <p class="sub" data-r="4">Halia reads your own customer base and tells you which clients belong in your top tier, <b>before their spending shows it</b>.</p>
+    <p class="sub" data-r="4" id="t-hero">Halia reads your own customer base and tells you which clients belong in your top tier, <b>before their spending shows it</b>.</p>
   </div>
 </section>
 
@@ -189,9 +189,9 @@
     <div class="cols">
       <div>
         <div class="eyebrow" data-r="1">The quiet truth</div>
-        <h2 class="big" data-r="2">Your best clients look like<br>everyone else at checkout.</h2>
-        <p class="sub" data-r="3">The founder who ordered one piece at full price. The collector on her third quiet purchase. Your programme sees two small customers; Halia sees your next top-tier clients.</p>
-        <div class="strip" data-r="4" style="grid-template-columns:1fr;margin-top:34px">
+        <h2 class="big" data-r="2" id="t-truth-head">Your best clients look like<br>everyone else at checkout.</h2>
+        <p class="sub" data-r="3" id="t-truth-body">The founder who ordered one piece at full price. The collector on her third quiet purchase. Your programme sees two small customers; Halia sees your next top-tier clients.</p>
+        <div class="strip" data-r="4" id="t-truth-strip" style="grid-template-columns:1fr;margin-top:34px">
           <div><div class="n">Spend tiers</div><div class="l">decide your VIP programme today, so capacity waits years to be recognised</div></div>
           <div><div class="n">Revenue</div><div class="l">is what capacity-ranked lists reach: people who buy, alongside the people who post</div></div>
         </div>
@@ -293,7 +293,7 @@
   <div class="in">
     <div class="eyebrow" data-r="1">The plays</div>
     <h2 class="big" data-r="2">Three lists your VIP<br>programme is missing.</h2>
-    <div class="plays">
+    <div class="plays" id="t-plays">
       <div class="play" data-r="3"><div class="pn">First access</div><div class="pv">launches &amp; previews</div><p>Hidden VICs receive the preview link, the early appointment, the launch invitation. Capacity earns access years before spend would.</p></div>
       <div class="play" data-r="4"><div class="pn">Gone quiet</div><div class="pv">the win-back</div><p>Proven high spenders whose orders stopped. In one real book: a £394,000 lifetime client, quiet for a year, top of the list.</p></div>
       <div class="play" data-r="5"><div class="pn">Events &amp; gifting</div><div class="pv">revenue, seated</div><p>Guest lists and seeding ranked by capacity. Fill the dinner with people who buy, seated beside the people who post.</p></div>
@@ -402,6 +402,60 @@
 </section>
 
 <script>
+/* Tailor the deck to a use case: /present-brands?for=beauty (or home, fashion, menswear,
+   accessible). Swaps the opening line, the hiding-problem slide, and the plays so the pitch
+   anchors in that segment's world, not a generic feature story. Default = the house version. */
+(function(){
+  var play=function(pn,pv,body){return '<div class="play"><div class="pn">'+pn+'</div>'
+      +'<div class="pv">'+pv+'</div><p>'+body+'</p></div>';};
+  var strip=function(a,b){return '<div><div class="n">'+a[0]+'</div><div class="l">'+a[1]+'</div></div>'
+      +'<div><div class="n">'+b[0]+'</div><div class="l">'+b[1]+'</div></div>';};
+  var GONE_QUIET=play('Gone quiet','the win-back',
+    'Proven high spenders whose orders stopped. In one real book: a &pound;394,000 lifetime client, quiet for a year, top of the list.');
+  var T={
+    beauty:{
+      eyebrow:'A private briefing for your beauty house',
+      hero:'Halia reads your customer base, often your largest, and finds the wealthy clients hiding among your sample-buyers, <b>before their spending shows it</b>.',
+      head:'Your wealthiest client and a student<br>bought the same serum.',
+      body:'At an accessible price, spend tells you nothing about wealth. The heiress trying your line and the student treating herself look identical at checkout.',
+      strip:strip(['Sample-buyers','a huge database where real capacity is invisible'],
+                  ['The ritual','the high-end lines and gifting the wealthy would say yes to']),
+      plays:play('First access','drops &amp; limited editions','Hidden VICs get the early access to a launch or a limited edition, the moment capacity says they will convert.')
+            +GONE_QUIET
+            +play('Concierge &amp; gifting','revenue, not just reach','Seed and gift by capacity, not follower count. The full ritual for the quiet clients who actually buy the range.')},
+    home:{
+      eyebrow:'A private briefing for your house',
+      hero:'Halia reads your customer base and finds the client furnishing a home behind a single small order, <b>before their spending shows it</b>.',
+      head:'A small first order can be<br>someone furnishing a mansion.',
+      body:'Home has the widest price range in retail. A candle and a full living room begin the same way: one modest first order, from someone whose house you would never guess.',
+      strip:strip(['Widest range','first spend hides the biggest projects, &pound;50 to &pound;15,000'],
+                  ['The address','the prime-property wealth Halia reads best is your buyer']),
+      plays:play('First access','collections &amp; design previews','Hidden VICs get the new-collection preview and the design appointment, before a big project starts elsewhere.')
+            +GONE_QUIET
+            +play('White-glove','the project, seated','Concierge for the client mid-renovation: the personal call, the trade terms, the room done with you.')},
+    accessible:{
+      eyebrow:'A private briefing for your house',
+      hero:'Halia finds the wealthy clients hiding among your accessible-price buyers, <b>before their spending shows it</b>.',
+      head:'Your wealthiest client and a student<br>bought the same dress.',
+      body:'At an accessible price, spend tells you nothing about wealth. The founder buying one piece and the student splurging look identical at checkout.',
+      strip:strip(['Accessible price','half your buyers could be top clients and you cannot tell'],
+                  ['Revenue','capacity-ranked lists reach people who buy, not just people who post']),
+      plays:play('First access','drops &amp; previews','Hidden VICs get the launch invitation and the early drop, capacity earning access years before spend would.')
+            +GONE_QUIET
+            +play('Lookalike &amp; gifting','revenue, seated','Seed and build Meta lookalikes on capacity, not follower count. Fill the room with people who buy.')}
+  };
+  T.fashion=T.accessible; T.dtc=T.accessible;   // aliases
+  try{
+    var seg=(new URLSearchParams(location.search).get('for')||'').toLowerCase();
+    var t=T[seg];
+    if(t){
+      var set=function(id,v){var el=document.getElementById(id); if(el&&v!=null) el.innerHTML=v;};
+      set('t-eyebrow',t.eyebrow); set('t-hero',t.hero);
+      set('t-truth-head',t.head); set('t-truth-body',t.body); set('t-truth-strip',t.strip);
+      set('t-plays',t.plays);
+    }
+  }catch(e){}
+})();
 (function(){
   var slides=[].slice.call(document.querySelectorAll('.slide')), cur=0, N=slides.length;
   var bar=document.getElementById('bar'), count=document.getElementById('count'),
