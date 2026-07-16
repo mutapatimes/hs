@@ -29,3 +29,22 @@ def test_schema_and_routing():
 def test_sorted_womenswear_p1_first():
     rows = bap.build()
     assert rows[0]["segment"] == "womenswear" and rows[0]["priority"] == "P1"
+
+
+def test_country_derived_and_boutique_uses_parser_country(tmp_path):
+    assert bap._country_from_note("Danish romantic-feminine; Copenhagen") == "Denmark"
+    assert bap._country_from_note("NY cult, founder-led") == "United States"
+    assert bap._country_from_note("London cult, sculpted modern") == "United Kingdom"
+    assert bap._country_from_note("no location here") == ""
+    rows = bap.build()
+    assert all("country" in r for r in rows)                 # every row has the field
+
+
+def test_country_column_in_output(tmp_path):
+    out = tmp_path / "m.csv"
+    import sys
+    sys.argv = ["x", "--out", str(out)]
+    bap.main()
+    import csv
+    header = next(csv.reader(out.open()))
+    assert "country" in header

@@ -187,10 +187,48 @@ def build(boutiques: Path | None = None) -> list[dict]:
             continue
         seen.add(k)
         deduped.append(r)
+    # country: boutiques already carry the parser's country in 'note'; brands derive from the note.
+    for r in deduped:
+        r["country"] = r["note"] if r["segment"] == "boutique" else _country_from_note(r["note"])
     seg_order = {"womenswear": 0, "menswear": 1, "accessible-dtc": 2, "boutique": 3}
     pri_order = {"P1": 0, "P2": 1, "P3": 2}
     deduped.sort(key=lambda r: (seg_order[r["segment"]], pri_order[r["priority"]], r["brand"].lower()))
     return deduped
+
+
+# Derive a brand's country from the location words in its note (best-effort; blank when unclear).
+# Order matters: check multi-word / specific tokens before short ones.
+_COUNTRY_HINTS = [
+    (("copenhagen", "danish", "denmark"), "Denmark"),
+    (("stockholm", "swedish", "sweden", "scandi"), "Sweden"),
+    (("oslo", "norwegian", "norway"), "Norway"),
+    (("new zealand", "nz,", " nz", "nz)"), "New Zealand"),
+    (("australian", "melbourne", "sydney", "australia"), "Australia"),
+    (("budapest", "hungary"), "Hungary"),
+    (("spanish", "spain", "barcelona", "madrid"), "Spain"),
+    (("belgian", "belgium", "antwerp"), "Belgium"),
+    (("irish", "ireland", "dublin"), "Ireland"),
+    (("greek", "greece", "athens"), "Greece"),
+    (("polish", "poland", "warsaw"), "Poland"),
+    (("brazilian", "brazil", "rio"), "Brazil"),
+    (("colombian", "colombia"), "Colombia"),
+    (("korean", "seoul", "korea"), "South Korea"),
+    (("japanese", "tokyo", "japan"), "Japan"),
+    (("berlin", "german", "germany"), "Germany"),
+    (("italian", "milan", "italy", "rome"), "Italy"),
+    (("french", "paris", "france"), "France"),
+    (("london", "british", " uk", "uk,", "england"), "United Kingdom"),
+    (("los angeles", "la,", " la ", "la)", "nyc", "new york", " ny", "ny,", "ny)",
+      "american", "us,", " us ", "us)", "brooklyn", "downtown"), "United States"),
+]
+
+
+def _country_from_note(note: str) -> str:
+    n = " " + (note or "").lower() + " "
+    for keys, country in _COUNTRY_HINTS:
+        if any(k in n for k in keys):
+            return country
+    return ""
 
 
 def _platform_map(path: Path) -> dict:
@@ -216,14 +254,14 @@ def main() -> None:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
-        w.writerow(["segment", "priority", "brand", "detail", "ownership", "platform",
+        w.writerow(["segment", "priority", "brand", "country", "detail", "ownership", "platform",
                     "halia_connect", "deck", "channel", "why_you", "status", "contact_name",
                     "email", "notes"])
         for r in rows:
             p, connect = plat.get(r["brand"].lower(), ("", ""))
-            w.writerow([r["segment"], r["priority"], r["brand"], r["detail"], r["ownership"],
-                        p, connect, r.get("deck", "/present-brands"), "Shopify / direct intro",
-                        r["why_you"], "", "", "", r["note"]])
+            w.writerow([r["segment"], r["priority"], r["brand"], r.get("country", ""), r["detail"],
+                        r["ownership"], p, connect, r.get("deck", "/present-brands"),
+                        "Shopify / direct intro", r["why_you"], "", "", "", r["note"]])
     from collections import Counter
     by_seg = Counter(r["segment"] for r in rows)
     p1 = sum(1 for r in rows if r["priority"] == "P1")
