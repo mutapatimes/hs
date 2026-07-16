@@ -158,8 +158,14 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None) 
 
 def sync_shop(shop: str, token: str) -> dict:
     """Pull → score → cache in RAM (never persisted). Returns the cache entry."""
+    prev = cache.get(shop)   # the pre-sync entry: the baseline the tag auto-push diffs against
     scored, orders = score_shop(shop, token)
-    return _finalize(shop, scored, orders, carts=_shopify_carts(shop, token))
+    entry = _finalize(shop, scored, orders, carts=_shopify_carts(shop, token))
+    # Shopify Flow integration: opt-in, best-effort write-back of grade/play tags, so the
+    # merchant's Flow automations fire the moment a play is detected. Never fails the sync.
+    from halia.api.shopify_push import maybe_auto_push
+    maybe_auto_push(shop, token, entry, prev)
+    return entry
 
 
 def sync_shop_authed(shop: str, session_token: str) -> dict:

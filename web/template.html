@@ -2730,6 +2730,25 @@ function openSettings(page){
           `}
         </div>
 
+        ${SETTINGS.shopify_connected?`
+        <div style="${C}">
+          <div style="${H}">Automate with Shopify Flow</div>
+          <p style="${P}">Halia writes its grades and plays onto your customers as tags (<code>Halia:A*</code>, <code>Halia:GoneQuiet</code>, <code>Halia:Fresh</code>). Shopify Flow's <b>Customer tag added</b> trigger fires the moment a play is detected, so any automation you can build in Flow runs on Halia intelligence.</p>
+          <label style="display:flex;align-items:center;gap:10px;font:500 14px system-ui;color:var(--ink);cursor:pointer">
+            <input type="checkbox" id="setAutoPush" ${SETTINGS.shopify_auto_push?"checked":""} style="width:16px;height:16px;accent-color:#1f564a"> Keep tags in sync automatically
+          </label>
+          <div style="font:12px system-ui;color:#8a8a8a;margin-top:5px;margin-bottom:16px">On every scan, new grades and plays are tagged and cleared plays are untagged, on your own customers in your own Shopify. Switch it off and tags only move when you press Push.</div>
+          <div style="${LBL}">Recipes to paste into Flow</div>
+          ${[["A new hidden VIC surfaces","Customer tag added &middot; tag = <code>Halia:A*</code>","Send an internal email to your clienteling lead with the customer link."],
+             ["A proven client goes quiet","Customer tag added &middot; tag = <code>Halia:GoneQuiet</code>","Create a task (or internal email) to reach out with a personal note."],
+             ["A VIC places an order","Order created &middot; customer tags include <code>Halia:A*</code>","Notify the associate on shift so the parcel leaves with a handwritten card."],
+             ["A VIP list for Shopify Email","Customer segment &middot; <code>customer_tags CONTAINS 'Halia:A*'</code>","Target the segment in Shopify Email; no Flow needed."]]
+            .map(r=>`<div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px">
+              <div style="font:600 13px ${SF};color:var(--ink)">${r[0]}</div>
+              <div style="font:12.5px/1.6 ${SF};color:var(--soft);margin-top:3px"><b>When:</b> ${r[1]}<br><b>Then:</b> ${r[2]}</div>
+            </div>`).join("")}
+        </div>`:""}
+
         </div><!-- /integrations -->
 
         <div class="spage" data-page="scoring" style="display:${spage==='scoring'?'':'none'}">
@@ -3175,6 +3194,7 @@ function openSettings(page){
         notify_enabled:document.getElementById("setNotify").checked,
         notify_grades:document.getElementById("setNotifyGrades").value.split(","),
         basket_alerts:(function(b){return b?b.checked:true;})(document.getElementById("setBasketAlerts")),
+        shopify_auto_push:(function(b){return b?b.checked:!!SETTINGS.shopify_auto_push;})(document.getElementById("setAutoPush")),
         notify_emails:document.getElementById("setNotifyEmail").value,
         account_email:SETTINGS.account_email||"",
         catalog_message:(document.getElementById("setCatMsg")||{}).value||"",

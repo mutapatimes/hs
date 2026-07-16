@@ -208,6 +208,23 @@
  <p>Get a message in Slack the instant a VIC places an order, so your team can send a thank-you while it still feels personal.</p>
  <ol class="steps"><li><strong>Add a Slack webhook</strong><p>In Slack, add the <strong>Incoming Webhooks</strong> app and choose a channel (for example <code>#vic-alerts</code>).</p></li><li><strong>Paste the link into Halia</strong><p>Copy the link Slack gives you into <strong>Integrations &rarr; Slack</strong>.</p></li><li><strong>You're connected</strong><p>Halia posts the customer, their grade, and why, the moment they order.</p></li></ol>
  </div>
+
+ <h2>Shopify Flow</h2>
+ <div class="platform">
+ <div class="ph"><span class="mk" style="background:#5E8E3E">F</span><span class="name">Shopify Flow</span><span class="role">Shopify stores &middot; free</span></div>
+ <p>Halia writes its intelligence onto your customers as tags, and Shopify Flow turns those tags
+ into any automation you like. Switch on <strong>Keep tags in sync automatically</strong> in
+ Integrations and the tags move with every scan.</p>
+ <p>The tag vocabulary: <code>Halia:A*</code> and <code>Halia:A</code> mark your strongest grades;
+ <code>Halia:GoneQuiet</code> appears when a proven client's orders stop and clears when they
+ return; <code>Halia:Fresh</code> marks a newly active hidden VIC.</p>
+ <ol class="steps">
+ <li><strong>A new hidden VIC surfaces</strong><p>Flow trigger <em>Customer tag added</em>, condition tag equals <code>Halia:A*</code>, action: internal email to your clienteling lead.</p></li>
+ <li><strong>A proven client goes quiet</strong><p>Trigger <em>Customer tag added</em>, tag equals <code>Halia:GoneQuiet</code>, action: create a task to reach out with a personal note.</p></li>
+ <li><strong>A VIC places an order</strong><p>Trigger <em>Order created</em>, condition customer tags include <code>Halia:A*</code>, action: notify the associate on shift so the parcel leaves with a handwritten card.</p></li>
+ <li><strong>A VIP list for Shopify Email</strong><p>Create a customer segment where <code>customer_tags CONTAINS 'Halia:A*'</code> and target it in Shopify Email. Flow is optional for this one.</p></li>
+ </ol>
+ </div>
  </section>
 
  <section id="reach" class="reveal">
