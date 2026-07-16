@@ -10,7 +10,7 @@ bap = importlib.util.module_from_spec(_SPEC); _SPEC.loader.exec_module(bap)
 def test_master_merges_three_segments():
     rows = bap.build()
     segs = {r["segment"] for r in rows}
-    assert segs == {"womenswear", "menswear", "accessible-dtc"}
+    assert {"womenswear", "menswear", "accessible-dtc", "beauty", "home"} <= segs
     assert len(rows) > 100
 
 

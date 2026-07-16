@@ -146,6 +146,86 @@ def _brand_priority(lane, own):
     return "P1" if lane in _CORE_LANES else "P2"
 
 
+# ---- BEAUTY: wide price range + huge databases; wealthy hide among mass sample-buyers ----
+BEAUTY = [
+    # niche-luxe fragrance (wide range, cult, DTC)
+    ("D.S. & Durga", "fragrance", "indie", "Brooklyn niche fragrance, cult, wide range"),
+    ("Phlur", "fragrance", "indie", "modern fragrance, huge IG (Missing Person)"),
+    ("Dedcool", "fragrance", "indie", "genderful fragrance, big IG, DTC"),
+    ("Ellis Brooklyn", "fragrance", "indie", "clean fragrance, wide range"),
+    ("Snif", "fragrance", "indie", "try-first DTC fragrance"),
+    ("Kayali", "fragrance", "indie", "Huda-family fragrance, huge IG"),
+    ("Nette", "fragrance", "indie", "clean fragrance, DTC"),
+    ("Vyrao", "fragrance", "indie", "energy fragrance, wide range"),
+    ("Byredo", "fragrance", "group", "niche-luxe fragrance, cult, Puig-owned"),
+    # premium skincare (wide range, cult, big DB)
+    ("Augustinus Bader", "skincare", "indie", "premium skincare $80-$300, cult, large DB"),
+    ("Dr. Barbara Sturm", "skincare", "indie", "premium skincare, wide range"),
+    ("U Beauty", "skincare", "indie", "premium DTC skincare"),
+    ("Tata Harper", "skincare", "indie", "natural-luxury skincare, DTC"),
+    ("Vintner's Daughter", "skincare", "indie", "ultra-premium, cult, single-hero"),
+    ("111Skin", "skincare", "indie", "clinical premium skincare"),
+    ("Noble Panacea", "skincare", "indie", "premium skincare (Nobel science)"),
+    ("Susanne Kaufmann", "skincare", "indie", "Austrian luxury skincare/spa"),
+    # clean-luxe makeup (large DB, big IG)
+    ("Westman Atelier", "makeup", "indie", "luxury clean makeup, big IG, wide range"),
+    ("RMS Beauty", "makeup", "indie", "clean makeup pioneer"),
+    ("Ilia", "makeup", "indie", "clean makeup, large DB"),
+    ("Kosas", "makeup", "indie", "clean makeup, big DB"),
+    ("Merit", "makeup", "indie", "minimal makeup, big IG, large DB"),
+    ("Saie", "makeup", "indie", "clean makeup, big IG"),
+    ("Rose Inc", "makeup", "indie", "Rosie HW clean beauty"),
+    ("Victoria Beckham Beauty", "makeup", "indie", "founder-led luxe beauty"),
+    # big-DB mass beauty (wealthy still hide; softer)
+    ("Glossier", "beauty", "large", "huge DB, cult, wide range"),
+    ("Rare Beauty", "makeup", "large", "Selena; enormous DB"),
+    ("Charlotte Tilbury", "makeup", "large", "huge, wide range, Puig-owned"),
+    ("Summer Fridays", "skincare", "indie", "big-IG skincare, large DB"),
+    ("Necessaire", "bodycare", "indie", "elevated bodycare, DTC"),
+    ("Aesop", "skincare", "group", "premium, wide range, LVMH-owned"),
+]
+
+# ---- HOME / FURNITURE: the widest price range of all; a small first order can be a mansion ----
+HOME = [
+    ("Soho Home", "home", "indie", "Soho House home line, aspirational, wide range"),
+    ("Jonathan Adler", "home", "indie", "wide-range design, DTC, big DB"),
+    ("Lulu and Georgia", "home", "indie", "DTC home, wide range, huge IG"),
+    ("McGee & Co", "home", "indie", "Studio McGee DTC, huge IG"),
+    ("The Citizenry", "home", "indie", "artisan home, wide range, DTC"),
+    ("Nordic Knots", "rugs", "indie", "Scandi rugs, wide range, DTC"),
+    ("Armadillo", "rugs", "indie", "premium rugs, sustainability"),
+    ("Cold Picnic", "home", "indie", "art-led home textiles"),
+    ("Maiden Home", "furniture", "indie", "made-to-order furniture, DTC"),
+    ("Burrow", "furniture", "indie", "modular furniture, DTC, large DB"),
+    ("Article", "furniture", "indie", "DTC modern furniture, large DB"),
+    ("Sabai", "furniture", "indie", "sustainable DTC furniture"),
+    ("Hem", "furniture", "indie", "European design, DTC"),
+    ("Ferm Living", "home", "indie", "Danish design, wide range, big DB"),
+    ("Gubi", "furniture", "indie", "Danish design house"),
+    ("Audo Copenhagen", "furniture", "indie", "Danish design (Menu), wide range"),
+    ("&Tradition", "furniture", "indie", "Danish design, wide range"),
+    ("Tom Dixon", "lighting", "indie", "design objects/lighting, wide range"),
+    ("L'Objet", "tabletop", "indie", "luxury tabletop/objects"),
+    ("Astier de Villatte", "tabletop", "indie", "artisan Paris ceramics"),
+    ("HAY", "furniture", "group", "accessible design, huge range + DB"),
+    ("Muuto", "furniture", "group", "Scandi design, large"),
+    ("RH", "furniture", "large", "Restoration Hardware; $50-$15k, enormous range + DB"),
+    # luxury home marketplaces / galleries (softer, retailer-like)
+    ("1stDibs", "marketplace", "marketplace", "luxury vintage/design marketplace, wealthy buyers"),
+    ("Chairish", "marketplace", "marketplace", "design resale marketplace"),
+    ("The Future Perfect", "gallery", "indie", "design gallery, collectible"),
+]
+
+
+def _cat_priority(own):
+    """Beauty/home priority: indie/DTC (wide range + big DB) is the sweet spot."""
+    if own == "marketplace":
+        return "P3"
+    if own in ("group", "large"):
+        return "P2"
+    return "P1"
+
+
 def _boutique_rows(path: Path) -> list[dict]:
     """Rows from a build_prospects.py output (multi-label stockists) -> boutique segment."""
     out = []
@@ -178,6 +258,14 @@ def build(boutiques: Path | None = None) -> list[dict]:
                      "brand": name.strip(), "detail": f"${low}-${high}", "ownership": "indie",
                      "deck": "/present-brands",
                      "why_you": "wealthy hide among accessible buyers; Meta-lookalike play", "note": note})
+    for name, sub, own, note in BEAUTY:
+        rows.append({"segment": "beauty", "priority": _cat_priority(own),
+                     "brand": name.strip(), "detail": sub, "ownership": own, "deck": "/present-brands",
+                     "why_you": "wide range + huge database; wealthy hide among mass buyers", "note": note})
+    for name, sub, own, note in HOME:
+        rows.append({"segment": "home", "priority": _cat_priority(own),
+                     "brand": name.strip(), "detail": sub, "ownership": own, "deck": "/present-brands",
+                     "why_you": "widest price range; a small first order can be a mansion", "note": note})
     rows += _boutique_rows(boutiques)
     # dedup by name (first/most-specific wins)
     seen, deduped = set(), []
@@ -190,7 +278,8 @@ def build(boutiques: Path | None = None) -> list[dict]:
     # country: boutiques already carry the parser's country in 'note'; brands derive from the note.
     for r in deduped:
         r["country"] = r["note"] if r["segment"] == "boutique" else _country_from_note(r["note"])
-    seg_order = {"womenswear": 0, "menswear": 1, "accessible-dtc": 2, "boutique": 3}
+    seg_order = {"womenswear": 0, "menswear": 1, "accessible-dtc": 2, "beauty": 3,
+                 "home": 4, "boutique": 5}
     pri_order = {"P1": 0, "P2": 1, "P3": 2}
     deduped.sort(key=lambda r: (seg_order[r["segment"]], pri_order[r["priority"]], r["brand"].lower()))
     return deduped
@@ -267,7 +356,8 @@ def main() -> None:
     p1 = sum(1 for r in rows if r["priority"] == "P1")
     print(f"Wrote {len(rows)} prospects to {args.out}  "
           f"(womenswear {by_seg['womenswear']}, menswear {by_seg['menswear']}, "
-          f"accessible-dtc {by_seg['accessible-dtc']}, boutique {by_seg['boutique']}; {p1} are P1).")
+          f"accessible-dtc {by_seg['accessible-dtc']}, beauty {by_seg['beauty']}, "
+          f"home {by_seg['home']}, boutique {by_seg['boutique']}; {p1} are P1).")
 
 
 if __name__ == "__main__":
