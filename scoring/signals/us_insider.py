@@ -12,6 +12,10 @@ when a stronger signal has also fired. Two role tiers, graded at BUILD time:
   - ``insider`` : a director or officer of a listed company            (base weight)
   - ``owner``   : a 10%+ beneficial owner (a large equity stake)        (lifted)
 
+US NEXUS. Because this is a name match against a US register, it only fires when the customer is
+independently pinned to the US (a US billing/shipping country, a +1 phone, or a US-format ZIP) via
+_us_nexus.gate — a shared name held by a non-US customer must not surface them.
+
 NAME MATCHING. SEC records reporting-owner names surname-first ("Musk Elon"), while a customer's
 name is given first-first ("Elon Musk"). To match across both orders (and to shrug off middle
 names / suffixes), the match key is the customer's FIRST and LAST name tokens, upper-cased and
@@ -32,6 +36,7 @@ from pathlib import Path
 import pandas as pd
 
 from config import US_INSIDERS_FILE, US_INSIDERS_LOCAL_FILE
+from scoring.signals._us_nexus import gate
 
 FLAG_COL = "us_insider"
 REASON_COL = "us_insider_reason"
@@ -115,7 +120,11 @@ def match_name(name: object, table: dict[str, tuple[str, str]]) -> tuple[bool, s
 
 
 def flag_us_insider(df: pd.DataFrame, table=None, name_col: str = "Name") -> pd.DataFrame:
-    """Add us_insider flag + reason + tier columns to a copy of ``df``."""
+    """Add us_insider flag + reason + tier columns to a copy of ``df``.
+
+    A name match only fires when the customer is independently pinned to the US (see _us_nexus):
+    a US register name shared by a non-US customer must not surface them.
+    """
     if table is None:
         table = load_insiders()
     out = df.copy()
@@ -125,7 +134,9 @@ def flag_us_insider(df: pd.DataFrame, table=None, name_col: str = "Name") -> pd.
         out[TYPE_COL] = None
         return out
     results = [match_name(v, table) for v in out[name_col]]
-    out[FLAG_COL] = [hit for hit, _, _ in results]
-    out[REASON_COL] = [reason for _, reason, _ in results]
-    out[TYPE_COL] = [tier for _, _, tier in results]
+    hits = [hit for hit, _, _ in results]
+    gated = gate(out, hits)                       # AND the name match with the US-nexus mask
+    out[FLAG_COL] = list(gated)
+    out[REASON_COL] = [r if g else None for (_, r, _), g in zip(results, gated)]
+    out[TYPE_COL] = [t if g else None for (_, _, t), g in zip(results, gated)]
     return out

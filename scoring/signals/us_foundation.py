@@ -13,6 +13,9 @@ group): it never surfaces a customer on its own, it only adds weight when a stro
 also fired. The two-factor "surname is in the foundation name" filter is applied at BUILD time,
 which keeps the table small and collisions low without changing the O(1) runtime match.
 
+US NEXUS. As a name match against a US register, it only fires when the customer is independently
+pinned to the US (a US billing/shipping country, a +1 phone, or a US-format ZIP) via _us_nexus.gate.
+
 The reference table (reference_data/charities/us_foundation_trustees.csv) ships INERT (fictional
 examples only). Regenerate it to real coverage from the free IRS 990-PF filings with
 scripts/build_us_foundation_trustees.py; the real table lands git-ignored at
@@ -29,6 +32,7 @@ from pathlib import Path
 import pandas as pd
 
 from config import US_FOUNDATION_TRUSTEES_FILE, US_FOUNDATION_TRUSTEES_LOCAL_FILE
+from scoring.signals._us_nexus import gate
 
 FLAG_COL = "us_foundation"
 REASON_COL = "us_foundation_reason"
@@ -93,7 +97,8 @@ def flag_us_foundation(df: pd.DataFrame, table=None, name_col: str = "Name") -> 
         out[FLAG_COL] = False
         out[REASON_COL] = None
         return out
-    results = out[name_col].apply(lambda n: match_name(n, table))
-    out[FLAG_COL] = [hit for hit, _ in results]
-    out[REASON_COL] = [reason for _, reason in results]
+    results = list(out[name_col].apply(lambda n: match_name(n, table)))
+    gated = gate(out, [hit for hit, _ in results])   # AND the name match with the US-nexus mask
+    out[FLAG_COL] = list(gated)
+    out[REASON_COL] = [r if g else None for (_, r), g in zip(results, gated)]
     return out
