@@ -56,6 +56,7 @@ dist/
 
 # Operator-generated charity trustees (real named individuals — never commit)
 reference_data/charities/uk_charity_trustees.local.csv
+reference_data/charities/us_foundation_trustees.local.csv
 
 # Operator-generated company controllers (real named individuals — never commit)
 reference_data/companies/uk_company_controllers.local.csv

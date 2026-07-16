@@ -52,6 +52,7 @@ from scoring.signals import (
     prime_residence,
     rich_list,
     shared_phone,
+    us_foundation,
     us_insider,
     us_property,
     us_zip,
@@ -109,6 +110,9 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "us_insider": 2,       # US SEC director/officer/10%-owner (name match) — US analog to
                            # companies_house; US_INSIDER_TIER_WEIGHTS lifts a 10% owner. Still
                            # corroboration-only, name bright line (see SUPPORTING_SIGNALS)
+    "us_foundation": 3,    # US eponymous-foundation trustee (surname IN the foundation name) —
+                           # US analog to charity_trustee, a near-pure UHNW tell; still
+                           # corroboration-only (name bright line)
     "fashion_stylist": 2,  # celebrity stylist / personal shopper — high-value, name-match (verify)
     "stylist_directory": 1,  # broad stylist directory — corroboration-only (see SUPPORTING_SIGNALS)
     "ip_location": 1,
@@ -219,6 +223,10 @@ SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
                       # independent first+last, so it too corroborates only, never a sole basis.
                       "us_insider",
 
+                      # A US foundation-trustee match is the US analog to charity_trustee: a name
+                      # matched against IRS 990-PF filings, so it too is name-alone corroboration.
+                      "us_foundation",
+
                       # geo_confirmation is agreement-as-confidence: a phone/email jurisdiction
                       # AGREEING with a high-value address. It requires a wealth-geo signal to
                       # have fired, so it can never originate a score — pure corroboration.
@@ -264,6 +272,7 @@ SIGNAL_GROUP: dict[str, str] = {
     "companies_house": "name",  # a name-based control tell — correlated with other name tells
     "charity_trustee": "name",  # a name-based governance tell — correlated with other name tells
     "us_insider": "name",       # a name-based US control tell — correlated with other name tells
+    "us_foundation": "name",     # a name-based US governance tell — correlated with other name tells
     "fashion_stylist": "name",
     "stylist_directory": "name",
     "heritage_surname": "name",
@@ -369,6 +378,8 @@ SIGNALS = [
      charity_trustee.FLAG_COL, lambda r: r[charity_trustee.REASON_COL]),
     ("us_insider", "US insider", us_insider.flag_us_insider,
      us_insider.FLAG_COL, lambda r: r[us_insider.REASON_COL]),
+    ("us_foundation", "US foundation trustee", us_foundation.flag_us_foundation,
+     us_foundation.FLAG_COL, lambda r: r[us_foundation.REASON_COL]),
     ("fashion_stylist", "Fashion stylist", fashion_stylist.flag_fashion_stylist,
      fashion_stylist.FLAG_COL, lambda r: r[fashion_stylist.REASON_COL]),
     ("stylist_directory", "Possible stylist", stylist_directory.flag_stylist_directory,

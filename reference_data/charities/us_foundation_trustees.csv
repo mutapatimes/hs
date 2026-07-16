@@ -1,0 +1,16 @@
+# US eponymous private-foundation trustees — IRS Form 990-PF reference (INERT SEED).
+#
+# Read by scoring/signals/us_foundation.py. A customer whose name matches an entry here is flagged
+# as a trustee/officer/director of an EPONYMOUS US private foundation (their surname is a word in
+# the foundation's name). It is a NAME match against a public register, so it is corroboration-only
+# (SUPPORTING_SIGNALS) — it never surfaces a customer alone, only adds weight when a stronger
+# signal has also fired.
+#
+# This seed ships INERT: fictional examples only. Real people only enter the table on the operator's
+# own machine: run scripts/build_us_foundation_trustees.py against free IRS 990-PF XML filings and
+# it writes the real, git-ignored us_foundation_trustees.local.csv, which the signal prefers.
+#
+# Columns: name,foundation
+name,foundation
+Ada Placeholder,The Placeholder Family Foundation
+Cornelia Placeholder,Placeholder Charitable Trust

@@ -79,6 +79,10 @@ UK_CHARITY_TRUSTEES_FILE = CHARITIES_DIR / "uk_charity_trustees.csv"
 # Operator-generated real table (from scripts/build_charity_trustees.py). GIT-IGNORED, because it
 # holds named private individuals. When present it is preferred over the committed inert seed.
 UK_CHARITY_TRUSTEES_LOCAL_FILE = CHARITIES_DIR / "uk_charity_trustees.local.csv"
+US_FOUNDATION_TRUSTEES_FILE = CHARITIES_DIR / "us_foundation_trustees.csv"
+# Operator-generated real table (from scripts/build_us_foundation_trustees.py). GIT-IGNORED,
+# because it names private individuals. Preferred over the committed inert seed when present.
+US_FOUNDATION_TRUSTEES_LOCAL_FILE = CHARITIES_DIR / "us_foundation_trustees.local.csv"
 CARDS_DIR = REFERENCE_DIR / "cards"
 PREMIUM_BINS_FILE = CARDS_DIR / "premium_bins.csv"
 LOCATIONS_DIR = REFERENCE_DIR / "locations"
