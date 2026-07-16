@@ -153,6 +153,20 @@
   .cv .what b{display:block;color:var(--ink);font-weight:600;font-size:clamp(14px,1.6vw,16.5px)}
   .cv .what span{font:400 13px/1.6 var(--sans);color:var(--mute)}
 
+  /* agenda list */
+  .agenda{list-style:none;margin-top:14px;max-width:720px}
+  .agenda li{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:baseline;padding:19px 0;border-top:1px solid var(--line-2)}
+  .agenda li:last-child{border-bottom:1px solid var(--line-2)}
+  .agenda .no{font-family:var(--serif);font-size:clamp(22px,2.8vw,36px);color:var(--gold);line-height:1;font-variant-numeric:tabular-nums}
+  .agenda .tx{font-size:clamp(15px,1.8vw,21px);color:var(--ink);line-height:1.4}
+  /* deck CTA button (links out to the live sample dashboard) */
+  .dbtn{display:inline-flex;align-items:center;gap:11px;margin-top:38px;padding:15px 30px;border-radius:999px;
+    border:1px solid var(--gold);background:var(--gold);color:#1a1408;text-decoration:none;
+    font:600 15px var(--sans);letter-spacing:.01em;transition:background .25s,color .25s,transform .25s}
+  .dbtn:hover{background:transparent;color:var(--gold);transform:translateX(4px)}
+  .dbtn .ar{font-size:17px;line-height:1}
+  a.bwin{text-decoration:none}
+
   .kicker{font:500 12px var(--mono);letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
   .imgcard{border-radius:18px;overflow:hidden;box-shadow:0 40px 100px -30px rgba(0,0,0,.85);border:1px solid var(--line)}
   .imgcard img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:4/5}
@@ -166,7 +180,7 @@
 <body>
 
 <div id="bar"></div>
-<div id="count">1 / 14</div>
+<div id="count">1 / 17</div>
 <div id="hint">Use &larr; &rarr; to navigate</div>
 <div id="dots"></div>
 <button class="navbtn" id="prev" aria-label="Previous">&larr;</button>
@@ -179,21 +193,40 @@
     <div class="eyebrow" data-r="1" id="t-eyebrow">A private briefing for your house</div>
     <h1 class="huge" data-r="2">&#8258; Halia</h1>
     <p class="sub" data-r="3" style="font-family:var(--serif);font-size:clamp(20px,2.6vw,30px);font-style:italic;color:var(--gold);max-width:none">Private client intelligence for luxury brands.</p>
-    <p class="sub" data-r="4" id="t-hero">Halia reads your own customer base and tells you which clients belong in your top tier, <b>before their spending shows it</b>.</p>
+    <p class="sub" data-r="4" id="t-hero">The clients who belong in your top tier, found <b>before their spending shows it</b>.</p>
   </div>
 </section>
 
-<!-- 2 · THE FEELING -->
+<!-- 2 · AGENDA -->
+<section class="slide">
+  <div class="in">
+    <div class="cols">
+      <div>
+        <div class="eyebrow" data-r="1">Agenda</div>
+        <h2 class="big" data-r="2">Fifteen minutes.</h2>
+        <ul class="agenda" data-r="3">
+          <li><span class="no">1</span><span class="tx">The clients you cannot see today</span></li>
+          <li><span class="no">2</span><span class="tx">One scan of a real book, live</span></li>
+          <li><span class="no">3</span><span class="tx">What your team does on Monday</span></li>
+          <li><span class="no">4</span><span class="tx">Where to start, and what it costs</span></li>
+        </ul>
+      </div>
+      <div class="imgcard" data-r="4"><img src="img/twoclients.jpg" alt="Two clients"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · THE QUIET TRUTH (pain) -->
 <section class="slide">
   <div class="in">
     <div class="cols">
       <div>
         <div class="eyebrow" data-r="1">The quiet truth</div>
         <h2 class="big" data-r="2" id="t-truth-head">Your best clients look like<br>everyone else at checkout.</h2>
-        <p class="sub" data-r="3" id="t-truth-body">The founder who ordered one piece at full price. The collector on her third quiet purchase. Your programme sees two small customers; Halia sees your next top-tier clients.</p>
+        <p class="sub" data-r="3" id="t-truth-body">The founder who bought one piece at full price. The collector on her third quiet order. Spend tiers see two small customers.</p>
         <div class="strip" data-r="4" id="t-truth-strip" style="grid-template-columns:1fr;margin-top:34px">
-          <div><div class="n">Spend tiers</div><div class="l">decide your VIP programme today, so capacity waits years to be recognised</div></div>
-          <div><div class="n">Revenue</div><div class="l">is what capacity-ranked lists reach: people who buy, alongside the people who post</div></div>
+          <div><div class="n">Spend tiers</div><div class="l">let capacity wait years to be recognised</div></div>
+          <div><div class="n">Revenue</div><div class="l">follows the people who buy, not only the people who post</div></div>
         </div>
       </div>
       <div class="imgcard" data-r="5"><img src="img/luxury_ceo_client.jpg" alt="A client"></div>
@@ -201,13 +234,13 @@
   </div>
 </section>
 
-<!-- FEAR · your stockists already do this -->
+<!-- 4 · FEAR · your stockists already do this (urgency) -->
 <section class="slide">
   <div class="bleed-bg"><img src="img/boxes_wrapped_clienteling.jpg" alt=""><div class="veil"></div></div>
   <div class="in z">
     <div class="eyebrow" data-r="1">Meanwhile, at your stockists</div>
     <h2 class="big" data-r="2">Tonight, a store that carries you<br>is wrapping a gift<br><em>for your best client.</em></h2>
-    <p class="sub" data-r="3">Every multi-label door you sell through runs client books, personal shoppers and handwritten notes. When your client buys your piece there, <b>the thank-you comes from the store, and so does next season's first call.</b></p>
+    <p class="sub" data-r="3">The thank-you comes from the store. So does next season's first call.</p>
     <div class="strip" data-r="4" style="max-width:820px">
       <div><div class="n">They keep</div><div class="l">the relationship</div></div>
       <div><div class="n">They keep</div><div class="l">the data</div></div>
@@ -216,56 +249,24 @@
   </div>
 </section>
 
-<!-- CONSTELLATION · one person can run it -->
+<!-- 5 · CONSTELLATION · the answer, at your scale -->
 <section class="slide" id="constelSlide">
   <div class="constel"><canvas id="sky"></canvas></div>
   <div class="in z">
     <div class="eyebrow" data-r="1">The answer, at your scale</div>
     <h2 class="big" data-r="2">Their advantage is headcount.<br><em>Yours is knowing who.</em></h2>
-    <p class="sub" data-r="3">Stockists dedicate whole teams to clienteling. Halia hands that craft to a house of any size: it tells you <b>who deserves the gesture, when, and why</b>, so a founder or your e-commerce lead delivers VIP treatment in minutes a week.</p>
-    <p class="sub" data-r="4"><b>The right people, at the right moment, with the reason written for you.</b> Ten thousand customers above; the handful that matter this week, lit.</p>
+    <p class="sub" data-r="3">Halia hands clienteling to a house of any size: <b>who deserves the gesture, when, and why.</b></p>
   </div>
 </section>
 
-<!-- 3 · ENGINE (live visualiser) -->
-<section class="slide" id="engineSlide">
-  <div class="in">
-    <div class="cols">
-      <div>
-        <div class="eyebrow" data-r="1">The engine · live</div>
-        <h2 class="big" data-r="2">Forty-three signals.<br>One quiet score.</h2>
-        <p class="sub" data-r="3">Public wealth registers and open data: land prices, company ownership, board seats, the address on the order. Evidence corroborates before anyone is surfaced, and every score arrives with its reasons written in plain English.</p>
-      </div>
-      <div class="graph" id="graph" data-r="4">
-        <canvas id="nodelines"></canvas>
-        <div class="score-node"><div class="sv" id="scoreVal">0</div><div class="sg"><b id="scoreGrade">C</b> &middot; Halia score</div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 4 · HOW IT WORKS -->
-<section class="slide">
-  <div class="in">
-    <div class="eyebrow" data-r="1">How it works</div>
-    <h2 class="big" data-r="2">Live in an afternoon.</h2>
-    <div class="srcs" data-r="3" style="grid-template-columns:repeat(3,1fr)">
-      <div><div class="tag">Step one · 10 minutes</div><h3>Connect</h3><p>Embedded in your Shopify admin, or a read-only connection to WooCommerce, BigCommerce or Centra. Your e-commerce team installs it themselves in minutes.</p></div>
-      <div><div class="tag">Step two · under a minute</div><h3>Score</h3><p>Your book is scored in memory against the registers and released. Halia keeps nothing.</p></div>
-      <div><div class="tag">Step three · same day</div><h3>Act</h3><p>A ranked list with plain reasons, ready for a preview invitation, a personal note, a top-tier upgrade.</p></div>
-    </div>
-    <p class="sub" data-r="4">It runs beside the day job. A founder, an e-commerce lead or a single client advisor sends the notes; Halia supplies the who, the when and the why.</p>
-  </div>
-</section>
-
-<!-- 5 · DEMO (terminal) -->
+<!-- 6 · THE SCAN (terminal, the number) -->
 <section class="slide" id="demoSlide">
   <div class="in">
     <div class="cols">
       <div>
         <div class="eyebrow" data-r="1">A real scan</div>
         <h2 class="big" data-r="2">One scan.<br>Money you did not<br>know you had.</h2>
-        <p class="sub" data-r="3">A luxury book of 47,015 customers, scored in under a minute. This is what your first scan looks like.</p>
+        <p class="sub" data-r="3">A luxury book of 47,015 customers, scored in under a minute.</p>
       </div>
       <div class="term" data-r="4">
         <div class="tbar"><i></i><i></i><i></i><span>halia · engine v1.3</span></div>
@@ -275,28 +276,20 @@
   </div>
 </section>
 
-<!-- 6 · PRODUCT SHOT -->
+<!-- 7 · SEE IT LIVE (links to the sample dashboard) -->
 <section class="slide">
   <div class="in">
-    <div class="eyebrow" data-r="1">Your desk</div>
-    <h2 class="big" data-r="2">A clienteling desk<br>your team opens daily.</h2>
-    <div class="bwin" data-r="3" style="margin-top:40px">
-      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.haliascore.com &middot; Hidden VICs</div></div>
-      <img src="img/dashboard.png" alt="The Halia dashboard: ranked hidden VICs with reasons and latent value">
-    </div>
-    <p class="sub" data-r="4">Ranked clients, win-back plays, a world map of your book, print-ready catalogues, an outreach pipeline for the team, and lookup at the till.</p>
-  </div>
-</section>
-
-<!-- 7 · PLAYS -->
-<section class="slide">
-  <div class="in">
-    <div class="eyebrow" data-r="1">The plays</div>
-    <h2 class="big" data-r="2">Three lists your VIP<br>programme is missing.</h2>
-    <div class="plays" id="t-plays">
-      <div class="play" data-r="3"><div class="pn">First access</div><div class="pv">launches &amp; previews</div><p>Hidden VICs receive the preview link, the early appointment, the launch invitation. Capacity earns access years before spend would.</p></div>
-      <div class="play" data-r="4"><div class="pn">Gone quiet</div><div class="pv">the win-back</div><p>Proven high spenders whose orders stopped. In one real book: a £394,000 lifetime client, quiet for a year, top of the list.</p></div>
-      <div class="play" data-r="5"><div class="pn">Events &amp; gifting</div><div class="pv">revenue, seated</div><p>Guest lists and seeding ranked by capacity. Fill the dinner with people who buy, seated beside the people who post.</p></div>
+    <div class="cols">
+      <div>
+        <div class="eyebrow" data-r="1">See it live</div>
+        <h2 class="big" data-r="2">Open a real book.</h2>
+        <p class="sub" data-r="3">A fully scored sample store. Explore the grades, the reasons and the plays for yourself.</p>
+        <a class="dbtn" data-r="4" href="/demo" target="_blank" rel="noopener">Explore the live demo <span class="ar">&rarr;</span></a>
+      </div>
+      <a class="bwin" data-r="5" href="/demo" target="_blank" rel="noopener" style="display:block;margin:0">
+        <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">haliascore.com/demo &middot; Hidden VICs</div></div>
+        <img src="img/dashboard.png" alt="Explore the live Halia demo dashboard">
+      </a>
     </div>
   </div>
 </section>
@@ -318,32 +311,47 @@
 <div class="ln dim">Corroborated · 3 independent sources · engine v1.3</div>
       </div>
     </div>
-    <p class="sub" data-r="5">Bare facts from public sources, stated plainly. <b>Whoever sends the note reads the reason and decides.</b> The judgement stays human; Halia supplies the sight.</p>
+    <p class="sub" data-r="5">Bare facts from public sources. <b>The judgement stays human.</b></p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 9 · PRIVACY -->
+<!-- 9 · YOUR DESK (product shot) -->
 <section class="slide">
-  <div class="bleed-bg"><img src="img/we_keep_nothing.jpg" alt=""><div class="veil"></div></div>
-  <div class="in z">
-    <div class="eyebrow" data-r="1">Discretion, by architecture</div>
-    <h2 class="huge" data-r="2">We keep nothing.</h2>
-    <p class="sub" data-r="3">Your customer records are scored in memory and released; every record stays yours. The reference data is public registers. You remain the data controller, Halia processes transiently under a DPA, and you can delete your account yourself at any time.</p>
-    <p class="sub" data-r="4"><b>Your clients simply experience better service.</b> The wording for your own privacy policy ships in the product, ready to paste.</p>
+  <div class="in">
+    <div class="eyebrow" data-r="1">Your desk</div>
+    <h2 class="big" data-r="2">A clienteling desk<br>your team opens daily.</h2>
+    <div class="bwin" data-r="3" style="margin-top:40px">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.haliascore.com &middot; Hidden VICs</div></div>
+      <img src="img/dashboard_detail.png" alt="The Halia dashboard: ranked hidden VICs with reasons and latent value">
+    </div>
+    <p class="sub" data-r="4">Ranked clients, win-back plays, a world map of your book, and lookup at the till.</p>
   </div>
 </section>
 
-<!-- 10 · YOUR STACK -->
+<!-- 10 · PLAYS -->
+<section class="slide">
+  <div class="in">
+    <div class="eyebrow" data-r="1">The plays</div>
+    <h2 class="big" data-r="2">Three lists your VIP<br>programme is missing.</h2>
+    <div class="plays" id="t-plays">
+      <div class="play" data-r="3"><div class="pn">First access</div><div class="pv">launches &amp; previews</div><p>Hidden VICs get the preview link and the launch invitation. Capacity earns access years before spend would.</p></div>
+      <div class="play" data-r="4"><div class="pn">Gone quiet</div><div class="pv">the win-back</div><p>Proven high spenders whose orders stopped. In one real book: a £394,000 lifetime client, quiet for a year, top of the list.</p></div>
+      <div class="play" data-r="5"><div class="pn">Events &amp; gifting</div><div class="pv">revenue, seated</div><p>Guest lists ranked by capacity. Fill the dinner with people who buy.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 · YOUR STACK (act) -->
 <section class="slide">
   <div class="in">
     <div class="eyebrow" data-r="1">Your stack</div>
     <h2 class="big" data-r="2">It joins your tools.<br>It replaces none of them.</h2>
     <ul class="ast-list" data-r="3">
-      <li><b>Your storefront:</b> Shopify embedded in the admin your team lives in; WooCommerce, BigCommerce and Centra connect read-only.</li>
-      <li><b>Your flows:</b> scores and tiers land in Klaviyo, Mailchimp and HubSpot as segments, so VIP journeys trigger on capacity as well as spend.</li>
-      <li><b>Your boutiques:</b> lookup at the till for flagship teams; Slack alerts the moment a scored client places an order.</li>
+      <li><b>Your storefront:</b> embedded in Shopify admin; WooCommerce, BigCommerce and Centra connect read-only.</li>
+      <li><b>Your flows:</b> scores and tiers land in Klaviyo, Mailchimp and HubSpot as segments.</li>
+      <li><b>Your boutiques:</b> lookup at the till, and a Slack alert the moment a scored client orders.</li>
     </ul>
     <div class="logos" data-r="4">
       <img src="img/logos/shopify.png" alt="Shopify"><img src="img/logos/woocommerce.png" alt="WooCommerce">
@@ -353,7 +361,49 @@
   </div>
 </section>
 
-<!-- 11 · PRICING -->
+<!-- 12 · ENGINE (proof: why the number is trustworthy) -->
+<section class="slide" id="engineSlide">
+  <div class="in">
+    <div class="cols">
+      <div>
+        <div class="eyebrow" data-r="1">Why you can trust it</div>
+        <h2 class="big" data-r="2">Forty-three signals.<br>One quiet score.</h2>
+        <p class="sub" data-r="3">Public wealth registers and open data: land prices, company ownership, board seats, the address on the order. Evidence corroborates before anyone is surfaced.</p>
+      </div>
+      <div class="graph" id="graph" data-r="4">
+        <canvas id="nodelines"></canvas>
+        <div class="score-node"><div class="sv" id="scoreVal">0</div><div class="sg"><b id="scoreGrade">C</b> &middot; Halia score</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 · HOW IT WORKS -->
+<section class="slide">
+  <div class="in">
+    <div class="eyebrow" data-r="1">How it works</div>
+    <h2 class="big" data-r="2">Live in an afternoon.</h2>
+    <div class="srcs" data-r="3" style="grid-template-columns:repeat(3,1fr)">
+      <div><div class="tag">Step one · 10 minutes</div><h3>Connect</h3><p>Embedded in Shopify admin, or read-only to WooCommerce, BigCommerce or Centra. Your team installs it themselves.</p></div>
+      <div><div class="tag">Step two · under a minute</div><h3>Score</h3><p>Your book is scored in memory, then released. Halia keeps nothing.</p></div>
+      <div><div class="tag">Step three · same day</div><h3>Act</h3><p>A ranked list with plain reasons, ready for the preview, the note, the upgrade.</p></div>
+    </div>
+    <p class="sub" data-r="4">It runs beside the day job. Halia supplies the who, the when and the why.</p>
+  </div>
+</section>
+
+<!-- 14 · PRIVACY -->
+<section class="slide">
+  <div class="bleed-bg"><img src="img/we_keep_nothing.jpg" alt=""><div class="veil"></div></div>
+  <div class="in z">
+    <div class="eyebrow" data-r="1">Discretion, by architecture</div>
+    <h2 class="huge" data-r="2">We keep nothing.</h2>
+    <p class="sub" data-r="3">Your records are scored in memory and released. You remain the data controller, and can delete your account yourself at any time.</p>
+    <p class="sub" data-r="4"><b>Your clients simply experience better service.</b></p>
+  </div>
+</section>
+
+<!-- 15 · PRICING -->
 <section class="slide">
   <div class="in">
     <div class="eyebrow" data-r="1">The arrangement</div>
@@ -365,11 +415,11 @@
       <tr><td class="tn">Atelier</td><td class="tp">£1,200</td><td class="tp">£2,000+</td><td>75k+ customers<small>Global DTC with flagships</small></td></tr>
       <tr><td class="tn">Maison</td><td class="tp">Custom</td><td class="tp">Bespoke</td><td>Houses &amp; groups</td></tr>
     </table>
-    <p class="sub" data-r="4">Every tier includes the full product, every play, every integration and a person who answers. <b>Your scan is free: see how many VICs are hiding before a card is ever asked for.</b> The onboarding scan is optional, and refundable if it surfaces fewer VICs than promised. One recovered client typically covers the year.</p>
+    <p class="sub" data-r="4"><b>Your scan is free: see how many VICs are hiding before a card is ever asked for.</b> One recovered client typically covers the year.</p>
   </div>
 </section>
 
-<!-- 12 · FIRST MONTH -->
+<!-- 16 · FIRST MONTH -->
 <section class="slide">
   <div class="in">
     <div class="cols">
@@ -377,10 +427,10 @@
     <div class="eyebrow" data-r="1">Your first month</div>
     <h2 class="big" data-r="2">What to expect.</h2>
     <div class="cv" data-r="3" style="max-width:720px">
-      <div class="yr">Day 1</div><div class="what"><b>Connect and scan</b><span>Read-only connection, first scan, and your ranked list the same afternoon.</span></div>
-      <div class="yr">Week 1</div><div class="what"><b>First access list</b><span>Your VIP team works the Gone quiet list first, then sends the next preview to the First access list. We walk the team through every reason.</span></div>
-      <div class="yr">Week 2&ndash;4</div><div class="what"><b>Segments live</b><span>Capacity tiers flow into your Klaviyo and CRM flows; your benchmarks tune the latent values to your numbers.</span></div>
-      <div class="yr">Day 30</div><div class="what"><b>Review</b><span>We sit down over the results: who was reached, who responded, what it earned. You decide from evidence.</span></div>
+      <div class="yr">Day 1</div><div class="what"><b>Connect and scan</b><span>Read-only connection, first scan, ranked list the same afternoon.</span></div>
+      <div class="yr">Week 1</div><div class="what"><b>Win-back first</b><span>Your team works the Gone quiet list, then sends the next preview to First access.</span></div>
+      <div class="yr">Week 2&ndash;4</div><div class="what"><b>Segments live</b><span>Capacity tiers flow into Klaviyo and your CRM. Latent values tune to your numbers.</span></div>
+      <div class="yr">Day 30</div><div class="what"><b>Review</b><span>Who was reached, who responded, what it earned. You decide from evidence.</span></div>
     </div>
       </div>
       <div class="imgcard" data-r="4"><img src="img/gifts_wrapped.jpg" alt="Gifts wrapped for clients"></div>
@@ -388,13 +438,13 @@
   </div>
 </section>
 
-<!-- 13 · CLOSE -->
+<!-- 17 · CLOSE -->
 <section class="slide">
   <div class="bleed-bg"><img src="img/find_your_most_valuable_clients.jpg" alt=""><div class="veil"></div></div>
   <div class="in z">
     <div class="eyebrow" data-r="1">The next step</div>
     <h2 class="huge" data-r="2">See your book scored.</h2>
-    <p class="sub" data-r="3">Connect your store and see your own numbers the same day: how many hidden VICs, how much latent value, who went quiet. <b>Your data stays yours throughout.</b></p>
+    <p class="sub" data-r="3">Connect your store and see your own numbers the same day. <b>Your data stays yours throughout.</b></p>
     <div class="goldline" data-r="4"></div>
     <p class="sub" data-r="5" style="font-family:var(--serif);font-size:clamp(22px,3vw,34px);font-style:italic;color:var(--ink);max-width:none">&#8258; Halia</p>
     <p class="sub" data-r="6" style="margin-top:10px"><b>hello@haliascore.com</b> &middot; haliascore.com/connect</p>
@@ -623,6 +673,7 @@
 
   slides[0].classList.add('on');
   bar.style.width=(1/N*100)+'%';dEls[0].classList.add('on');
+  count.textContent='1 / '+N;
 })();
 </script>
 </body>
