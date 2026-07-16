@@ -119,6 +119,23 @@ MENSWEAR = [
     ("NN07", "minimal", "indie", "Scandi contemporary"),
     ("Orlebar Brown", "resort", "group", "resort/swim, Chanel-owned"),
     ("Frescobol Carioca", "resort", "indie", "resort, founder-led"),
+    # --- added from SSENSE: contemporary + avant independent menswear (DSM / Comme lane) ---
+    ("Martine Rose", "avant", "indie", "London avant, cult, cross men/women"),
+    ("Bianca Saunders", "contemporary", "indie", "London, ANDAM-recognised, cult"),
+    ("Kiko Kostadinov", "avant", "indie", "avant technical, cult"),
+    ("Nicholas Daley", "contemporary", "indie", "London craft, culturally-rooted"),
+    ("Charles Jeffrey Loverboy", "avant", "indie", "London avant, cult"),
+    ("Post Archive Faction", "avant", "indie", "Korean techwear-avant (PAF)"),
+    ("Wooyoungmi", "contemporary", "indie", "Korean modern tailoring"),
+    ("Juun.J", "contemporary", "indie", "Korean modern, architectural"),
+    ("Han Kjobenhavn", "contemporary", "indie", "Danish contemporary"),
+    ("Soulland", "contemporary", "indie", "Danish contemporary, cult"),
+    ("Maison Kitsune", "contemporary", "indie", "French-Japanese contemporary, DTC"),
+    ("Axel Arigato", "contemporary", "large", "Swedish sneaker-led contemporary, DTC"),
+    ("mfpen", "minimal", "indie", "Danish considered menswear"),
+    ("Auralee", "minimal", "indie", "Japanese fabric-led minimal"),
+    ("Kaptain Sunshine", "contemporary", "indie", "Japanese contemporary"),
+    ("Y/Project", "avant", "indie", "Paris avant, cult"),
 ]
 _CORE_LANES = {"minimal", "romantic", "contemporary", "craft", "avant"}
 
@@ -159,19 +176,35 @@ def build() -> list[dict]:
     return deduped
 
 
+def _platform_map(path: Path) -> dict:
+    """{brand_lower: (platform, halia_connect)} from a check_shopify.py output CSV."""
+    out = {}
+    if not path or not path.exists():
+        return out
+    for r in csv.DictReader(path.open(encoding="utf-8")):
+        b = (r.get("brand") or "").strip().lower()
+        if b:
+            out[b] = (r.get("platform", ""), r.get("halia_connect", ""))
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Build the master prospect sheet.")
     ap.add_argument("--out", type=Path, default=Path("output/prospects_master.csv"))
+    ap.add_argument("--platforms", type=Path, help="A check_shopify.py output CSV to join in")
     args = ap.parse_args()
     rows = build()
+    plat = _platform_map(args.platforms) if args.platforms else {}
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
-        w.writerow(["segment", "priority", "brand", "detail", "ownership", "deck", "channel",
-                    "why_you", "status", "contact_name", "email", "notes"])
+        w.writerow(["segment", "priority", "brand", "detail", "ownership", "platform",
+                    "halia_connect", "deck", "channel", "why_you", "status", "contact_name",
+                    "email", "notes"])
         for r in rows:
+            p, connect = plat.get(r["brand"].lower(), ("", ""))
             w.writerow([r["segment"], r["priority"], r["brand"], r["detail"], r["ownership"],
-                        "/present-brands", "Shopify / direct intro", r["why_you"],
+                        p, connect, "/present-brands", "Shopify / direct intro", r["why_you"],
                         "", "", "", r["note"]])
     from collections import Counter
     by_seg = Counter(r["segment"] for r in rows)
