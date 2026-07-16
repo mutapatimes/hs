@@ -1348,9 +1348,9 @@ function renderRows(){
       <div class="cbx ${selected.has(c.id)?'on':''}" data-cbx="${c.id}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></div>
       <div class="rank">${String(start+i+1).padStart(2,"0")}</div>
       <div class="client">
-        <div class="ava ${c.tier}">${c.init}</div>
+        <div class="ava ${c.tier}">${esc(c.init)}</div>
         <div class="cinfo">
-          <div class="cname">${c.name}${ratedBadge(c.id)}</div>
+          <div class="cname">${esc(c.name)}${ratedBadge(c.id)}</div>
           <div class="cmeta">${[c.email,c.phone].filter(Boolean).join(" · ")}</div>
           <div class="csignals">${sigChips}</div>
         </div>
@@ -1914,7 +1914,7 @@ function renderSpark(svg,list){
 function renderTopList(el){
   const top=[...CORE].sort((a,b)=>(b.score-a.score)||(b.latent-a.latent)).slice(0,6);
   el.innerHTML=top.map(c=>`<div class="tl" data-id="${c.id}">
-    <div class="ava ${c.tier}">${c.init}</div>
+    <div class="ava ${c.tier}">${esc(c.init)}</div>
     <div style="min-width:0"><div class="nm">${esc(c.name)}</div><div class="mt">${esc(c.loc)} &middot; ${gbpK(c.latent)} latent</div></div>
     <div class="sc"><b>${c.score}</b><div class="g tier ${c.tier}">${tierLabel(c.tier)}</div></div>
   </div>`).join("");
@@ -2100,8 +2100,8 @@ function renderGoneQuiet(){
   if(!list.length){ card.style.display="none"; return; }
   card.style.display="";
   el.innerHTML=list.map(c=>`<div class="tl" data-id="${c.id}">
-    <div class="ava ${c.tier}">${c.init}</div>
-    <div style="min-width:0"><div class="nm">${c.name}</div>
+    <div class="ava ${c.tier}">${esc(c.init)}</div>
+    <div style="min-width:0"><div class="nm">${esc(c.name)}</div>
       <div class="mt">last order ${c.last} · ${c.ordersCount} order${c.ordersCount===1?"":"s"} · ${tierLabel(c.tier)}</div></div>
     <div class="sc"><b>${gbpK(c.spend)}</b><div class="g" style="color:#5d4a73">lifetime</div></div>
   </div>`).join("");
@@ -2141,8 +2141,8 @@ function renderOpenBaskets(){
   if(!list.length){ card.style.display="none"; return; }
   card.style.display="";
   el.innerHTML=list.map(c=>`<div class="tl" data-id="${c.id}">
-    <div class="ava ${c.tier}">${c.init}</div>
-    <div style="min-width:0"><div class="nm">${c.name}</div>
+    <div class="ava ${c.tier}">${esc(c.init)}</div>
+    <div style="min-width:0"><div class="nm">${esc(c.name)}</div>
       <div class="mt">${c.cart.count} item${c.cart.count===1?"":"s"} · started ${cartAge(c.cart.started)} · ${tierLabel(c.tier)}</div></div>
     <div class="sc"><b>${gbpK(c.cart.value)}</b><div class="g" style="color:var(--gold)">in basket</div></div>
   </div>`).join("");
@@ -2428,16 +2428,16 @@ function openDrawer(id){
     <div class="dhead">
       <div class="dtop">
         <div class="dident">
-          <div class="dava ${c.tier}" style="background:${c.tier==='A1'?'linear-gradient(140deg,#1d4d42,#143a32)':c.tier==='A'?'linear-gradient(140deg,#26695b,#1f564a)':'var(--tierB)'}">${c.init}</div>
+          <div class="dava ${c.tier}" style="background:${c.tier==='A1'?'linear-gradient(140deg,#1d4d42,#143a32)':c.tier==='A'?'linear-gradient(140deg,#26695b,#1f564a)':'var(--tierB)'}">${esc(c.init)}</div>
           <div>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <div class="dname">${c.name}</div>
+              <div class="dname">${esc(c.name)}</div>
               ${c.name?`<div style="position:relative;flex:none">
                 <button class="dbtn" id="dlook" style="padding:5px 11px;font-size:12px" title="Search the web for this client — from your browser, never sent to Halia">Look up ▾</button>
                 <div id="dlookmenu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:50">${lookupItems(c)}</div>
               </div>`:''}
             </div>
-            <div class="dmeta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${c.band?`<span class="bandpill ${c.band}">${BAND_LABEL[c.band]||c.band}</span>`:""}<span>${c.loc} · ${c.ordersCount} order${c.ordersCount===1?"":"s"} · AOV ${gbp(c.aov)} · last ${c.last}</span></div>
+            <div class="dmeta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${c.band?`<span class="bandpill ${c.band}">${BAND_LABEL[c.band]||c.band}</span>`:""}<span>${esc(c.loc)} · ${c.ordersCount} order${c.ordersCount===1?"":"s"} · AOV ${gbp(c.aov)} · last ${c.last}</span></div>
             <div class="dmeta">${[c.email,c.phone].filter(Boolean).join(" · ")}</div>
           </div>
         </div>
@@ -2662,7 +2662,7 @@ document.getElementById("q").oninput=e=>{query=e.target.value;areaFilter="";page
     const matches=DATA.filter(c=>clientMatches(c,q)).sort((a,b)=>(b.score-a.score)||(b.latent-a.latent));
     const top=matches.slice(0,7);
     ovRes.innerHTML = (top.length?top.map(c=>`<div class="ovrow" data-id="${c.id}">
-        <div class="ava ${c.tier}" style="width:30px;height:30px;font-size:12px;border-radius:8px">${c.init}</div>
+        <div class="ava ${c.tier}" style="width:30px;height:30px;font-size:12px;border-radius:8px">${esc(c.init)}</div>
         <div style="min-width:0"><div class="nm">${esc(c.name)}</div><div class="mt">${esc(c.loc)}${c.email?" &middot; "+esc(c.email):""}</div></div>
         <div class="sc">${c.score} <span class="tier ${c.tier}">${tierLabel(c.tier)}</span></div>
       </div>`).join(""):`<div class="ovnone">No clients match &ldquo;${esc(q)}&rdquo;.</div>`)
@@ -2704,7 +2704,7 @@ function loadSettings(){
     return SETTINGS;
   }).catch(()=>SETTINGS);
 }
-const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
 // First-run banner to connect Klaviyo (shown until connected).
 function showConnectBanner(){

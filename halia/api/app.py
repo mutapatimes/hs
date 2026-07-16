@@ -460,15 +460,24 @@ def export_csv(shop: str = Depends(require_shop)):
 
     entry = data.results_for(shop)
     rows = ((entry or {}).get("payload") or {}).get("data") or []
+
+    def _safe(v):
+        """Defuse CSV/formula injection: a customer-controlled cell starting with = + - @ (or a
+        control char) can execute when the merchant opens the file in Excel/Sheets. Prefix it with
+        an apostrophe so the spreadsheet treats it as text. Numbers pass through unchanged."""
+        s = "" if v is None else str(v)
+        return "'" + s if s[:1] in ("=", "+", "-", "@", "\t", "\r") else s
+
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["Name", "Email", "Phone", "Location", "Grade", "Score", "Current spend",
                 "Latent value", "Signal count", "Signals", "Recommended approach"])
     for c in rows:
         signals = "; ".join(s.get("d", "") for s in (c.get("signals") or []))
-        w.writerow([c.get("name", ""), c.get("email", ""), c.get("phone", ""), c.get("loc", ""),
-                    c.get("grade", ""), c.get("score", ""), c.get("spend", ""), c.get("latent", ""),
-                    c.get("count", len(c.get("signals") or [])), signals, c.get("reco", "")])
+        w.writerow([_safe(c.get("name", "")), _safe(c.get("email", "")), _safe(c.get("phone", "")),
+                    _safe(c.get("loc", "")), c.get("grade", ""), c.get("score", ""),
+                    c.get("spend", ""), c.get("latent", ""),
+                    c.get("count", len(c.get("signals") or [])), _safe(signals), _safe(c.get("reco", ""))])
     return Response(buf.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": "attachment; filename=halia-hidden-vics.csv"})
 

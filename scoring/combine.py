@@ -516,6 +516,14 @@ def score_customers(
     caller opts in for a tenant with a documented lawful basis.
     """
     weights = weights or SIGNAL_WEIGHTS
+    # An empty book (a brand-new store, or an export with a header and no rows) must score cleanly,
+    # not crash: pandas .apply on a 0-row frame can't infer a tuple-returning signal's shape. Return
+    # the frame with the output columns present-but-empty so every downstream reader still works.
+    if len(df) == 0:
+        out = df.copy()
+        for col in (SCORE_COL, COUNT_COL, CONFIDENCE_COL, REASONS_COL, HIDDEN_COL):
+            out[col] = pd.Series(dtype=("bool" if col == HIDDEN_COL else "object"))
+        return out
     out = run_all_signals(df, include_origin)
     active = active_signals(include_origin)
 

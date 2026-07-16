@@ -88,3 +88,24 @@ def test_shopify_redact_rejects_shop_mismatch(monkeypatch):
         "content-type": "application/json",
     })
     assert r.status_code == 400
+
+
+# ---- CSV export defuses formula injection ----
+def test_csv_export_neutralizes_formula_injection(monkeypatch):
+    from halia.api import data as _data
+    payload = {"data": [{"name": "=cmd()|'/c calc'!A1", "email": "+44@x.com", "phone": "0",
+                         "loc": "London", "grade": "A", "score": 90, "spend": 100, "latent": 5000,
+                         "signals": [{"d": "=HYPERLINK(evil)"}], "reco": "-2+2"}]}
+    monkeypatch.setattr(_data, "results_for", lambda shop: {"payload": payload})
+    from halia.api.shopify_auth import require_shop
+    from halia.api.app import app as _app
+    _app.dependency_overrides[require_shop] = lambda: "shopx"
+    try:
+        r = client.get("/v1/export")
+    finally:
+        _app.dependency_overrides.pop(require_shop, None)
+    assert r.status_code == 200
+    body = r.text
+    # every dangerous leading char is now quoted as text
+    assert "'=cmd()" in body and "'+44@x.com" in body and "'=HYPERLINK" in body and "'-2+2" in body
+    assert "\n=cmd" not in body   # no bare formula at a field start
