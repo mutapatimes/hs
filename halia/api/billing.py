@@ -32,9 +32,9 @@ def billing_enabled() -> bool:
 
 
 def _tier_cap(s: str):
-    """A tier's customer cap: '' or '*' -> unlimited; '15k'/'15000'/'15,000' -> int; else None."""
+    """A tier's customer cap: ''/'*'/'inf' -> unlimited; '15k'/'15000'/'15,000' -> int; else None."""
     s = s.strip().lower()
-    if s in ("", "*"):
+    if s in ("", "*", "inf"):
         return float("inf")
     s = s.replace(",", "").replace("k", "000")
     return int(s) if s.isdigit() else None
