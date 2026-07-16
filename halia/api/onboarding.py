@@ -219,17 +219,20 @@ def _send_welcome_signin_email(email: str, link_path: str, label: str = "") -> b
     from halia import notify as _notify
     if not email or not _notify.email_configured():
         return False
+    from halia import emails
     base = (config.HALIA_APP_URL or "").rstrip("/")
     url = link_path if link_path.startswith("http") else f"{base}{link_path}"
-    who = f", {html.escape(label)}" if label else ""
+    greeting = f"Welcome to Halia, {html.escape(label)}." if label else "Welcome to Halia."
     body = (
-        f"<p>Welcome to Halia{who}.</p>"
-        "<p>Your private dashboard is ready. Open it with the link below — it signs you in on "
-        "this device, so there is nothing to paste.</p>"
-        f"<p><a href='{url}'>Open my Halia dashboard</a></p>"
-        "<p style='color:#8a8a8a;font-size:13px'>Keep this link private. You can always get a "
-        "fresh one-time sign-in link by entering your email at the sign-in page.</p>")
-    return _notify.send_email(email, "Your Halia dashboard is ready", body)
+        emails.paragraph("Your private dashboard is ready. The button below signs you straight in on "
+                         "this device, so there is nothing to paste.")
+        + emails.button("Open my dashboard", url)
+        + emails.paragraph("<span style='font-size:13px;color:#8a8a8a'>Keep this link private. You can "
+                           "always get a fresh one-time sign-in link by entering your email at the "
+                           "sign-in page.</span>"))
+    body_html = emails.wrap("Your Halia dashboard is ready", body,
+                            greeting=greeting, eyebrow="Welcome to Halia")
+    return _notify.send_email(email, "Your Halia dashboard is ready", body_html)
 
 
 def _shop_for_email(email: str) -> str | None:
@@ -450,16 +453,21 @@ def _send_ready_email(shop: str, entry: dict | None) -> None:
         recipients = s.get("notify_emails") or ([s["account_email"]] if s.get("account_email") else [])
         if not recipients:
             return
+        from halia import emails
         base = (config.HALIA_APP_URL or "").rstrip("/")
         count = len(data.hidden_results(entry)) if entry else 0
-        html = (f"<p>Good news, your store has finished scoring.</p>"
-                f"<p>Halia found <b>{count}</b> hidden VICs in your customers. Open your dashboard "
-                f"to see them, ranked and ready to act on:</p>"
-                f"<p><a href='{base}/app'>{base}/app</a></p>"
-                f"<p style='color:#888;font-size:13px'>Open it on the device you set Halia up on, "
-                f"so you go straight in.</p>")
+        body = (
+            emails.paragraph("Your store has finished scoring.")
+            + emails.paragraph(f"Halia found <b style='color:#1a1712'>{count}</b> hidden VICs in your "
+                               "customers: clients who look like your very best, but were never tagged "
+                               "as such. They are ranked and ready to act on.")
+            + emails.button("See your hidden VICs", f"{base}/app")
+            + emails.paragraph("<span style='font-size:13px;color:#8a8a8a'>Open it on the device you set "
+                               "Halia up on, so you go straight in.</span>"))
+        body_html = emails.wrap("Your hidden VICs are ready", body,
+                                greeting="Good news,", eyebrow="Your scores are ready")
         for em in recipients:
-            _notify.send_email(em, "Your hidden VICs are ready · Halia", html, shop=shop)
+            _notify.send_email(em, "Your hidden VICs are ready · Halia", body_html, shop=shop)
     except Exception:  # noqa: BLE001
         traceback.print_exc()
 
@@ -502,8 +510,9 @@ def _connect_form(error: str = "", values: dict | None = None) -> str:
     err = f"<div class=err>{html.escape(error)}</div>" if error else ""
     return _page("Connect your store - Halia", f"""
       <h1>Connect your store</h1>
-      <p class=sub>Halia scores your customers for hidden VICs. Connect a read-only
-      WooCommerce key - we never write to your store, and never store your customers.</p>
+      <p class=sub>Halia scores your customers for hidden VICs. It reads your orders through a
+      view-only WooCommerce key: it never changes your products, prices or orders, and it keeps
+      none of your customer data.</p>
       <div class=card>{err}
       <form method=post action=/connect>
         <label>Store name</label>
@@ -740,7 +749,7 @@ a{color:inherit;text-decoration:none}
       <div class="slide">
         <h2>How it works</h2>
         <div class="steps">
-          <div class="step"><div class="n">1</div><div><div class="t">Your orders sync automatically</div><div class="d">Read-only &mdash; Halia never writes to your store.</div></div></div>
+          <div class="step"><div class="n">1</div><div><div class="t">Your orders sync automatically</div><div class="d">Halia looks, but never touches. It reads your orders to score customers, and never changes your products, prices or orders, or contacts your customers.</div></div></div>
           <div class="step"><div class="n">2</div><div><div class="t">Halia scores every customer in seconds</div><div class="d">Wealth and intent signals, weighed together &mdash; and nothing about your customers is kept.</div></div></div>
           <div class="step"><div class="n">3</div><div><div class="t">You&rsquo;re notified, and you act</div><div class="d">Notifications, one-tap outreach, and segments to your email tools.</div></div></div>
         </div>
@@ -1828,11 +1837,16 @@ def register(app) -> None:
             base = (config.HALIA_APP_URL or str(request.base_url)).rstrip("/")
             link = f"{base}/app/verify?k={_magic_new(shop)}"
             if _notify.email_configured():
-                html = (
-                    "<p>Here is your secure sign-in link for Halia. It expires in 15 minutes "
-                    f"and can be used once.</p><p><a href='{link}'>{link}</a></p>"
-                    "<p style='color:#8a8a8a;font-size:13px'>If you didn't request this, you can "
-                    "safely ignore this email — no one can sign in without it.</p>")
+                from halia import emails
+                body = (
+                    emails.paragraph("Here is your secure sign-in link. It signs you in on this "
+                                     "device, expires in 15 minutes, and can be used once.")
+                    + emails.button("Sign in to Halia", link)
+                    + emails.paragraph("<span style='font-size:13px;color:#8a8a8a'>If you didn't "
+                                       "request this, you can safely ignore this email. No one can "
+                                       "sign in without the link.</span>"))
+                html = emails.wrap("Your Halia sign-in link", body, greeting="Hello,",
+                                   eyebrow="Sign in")
                 _notify.send_email(email, "Your Halia sign-in link", html)
         return HTMLResponse(_signin_sent_page(email or "that address"))
 

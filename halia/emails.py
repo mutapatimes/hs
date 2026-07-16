@@ -13,11 +13,15 @@ import html as _html
 from halia import config
 
 # Brand tokens (kept inline-safe; no external CSS/fonts for deliverability).
-_CREAM = "#f5f2ea"
+_CREAM = "#f4f1ea"
+_PAPER = "#ffffff"
 _INK = "#1a1712"
 _MUT = "#6b675e"
-_ACCENT = "#1f564a"
-_LINE = "#e4dfd3"
+_FAINT = "#9a9488"
+_ACCENT = "#1f564a"     # brand green
+_ACCENT_DK = "#143a32"
+_GOLD = "#a67c34"       # secondary accent, used with restraint
+_LINE = "#e7e1d4"
 _SERIF = "Georgia, 'Times New Roman', serif"
 _SANS = "Helvetica, Arial, sans-serif"
 
@@ -28,10 +32,11 @@ def base_url() -> str:
 
 def _btn(label: str, href: str) -> str:
     return (
-        f"<table role=presentation cellpadding=0 cellspacing=0 style='margin:22px 0'><tr><td "
+        f"<table role=presentation cellpadding=0 cellspacing=0 style='margin:26px 0 10px'><tr><td "
         f"style='border-radius:999px;background:{_ACCENT}'>"
-        f"<a href='{href}' style='display:inline-block;padding:13px 26px;font:600 15px {_SANS};"
-        f"color:#ffffff;text-decoration:none;border-radius:999px'>{_html.escape(label)}</a>"
+        f"<a href='{href}' style='display:inline-block;padding:14px 30px;font:600 14px {_SANS};"
+        f"letter-spacing:.03em;color:#ffffff;text-decoration:none;border-radius:999px'>"
+        f"{_html.escape(label)} &#8594;</a>"
         f"</td></tr></table>")
 
 
@@ -54,11 +59,15 @@ def _hero(eyebrow: str) -> str:
     weight, and cannot break before the domain is serving. A hosted banner can layer on later.
     """
     return (
-        f"<tr><td align=center style='padding:10px 0 26px'>"
-        f"<div style='font:400 34px {_SERIF};color:{_ACCENT};line-height:1'>&#8258;</div>"
-        f"<div style='font:300 30px {_SERIF};color:{_INK};letter-spacing:.03em;margin-top:8px'>Halia</div>"
-        f"<div style='width:44px;height:1px;background:{_ACCENT};opacity:.5;margin:16px auto 12px'></div>"
-        f"<div style='font:600 11px {_SANS};letter-spacing:.22em;text-transform:uppercase;"
+        f"<tr><td align=center style='padding:8px 0 30px'>"
+        # the asterism mark, in gold — the quiet brand tell
+        f"<div style='font:400 30px {_SERIF};color:{_GOLD};line-height:1'>&#8258;</div>"
+        # wordmark
+        f"<div style='font:300 32px {_SERIF};color:{_INK};letter-spacing:.05em;margin-top:9px'>Halia</div>"
+        # gold hairline
+        f"<div style='width:34px;height:2px;background:{_GOLD};margin:18px auto 14px'></div>"
+        # eyebrow
+        f"<div style='font:600 11px {_SANS};letter-spacing:.26em;text-transform:uppercase;"
         f"color:{_MUT}'>{_html.escape(eyebrow)}</div>"
         f"</td></tr>")
 
@@ -70,29 +79,42 @@ def _layout(subject: str, greeting: str, body_html: str, unsub_url: str, eyebrow
         f"<!doctype html><html><head><meta charset=utf-8>"
         f"<meta name=viewport content='width=device-width,initial-scale=1'>"
         f"<meta name=color-scheme content='light'><title>{_html.escape(subject)}</title></head>"
-        f"<body style='margin:0;padding:0;background:{_CREAM}'>"
+        f"<body style='margin:0;padding:0;background:{_CREAM};"
+        f"-webkit-font-smoothing:antialiased'>"
+        # preheader (hidden): the eyebrow, so the inbox preview reads on-brand
+        f"<div style='display:none;max-height:0;overflow:hidden;opacity:0'>{_html.escape(eyebrow)} &#8226; Halia</div>"
         f"<table role=presentation width=100% cellpadding=0 cellspacing=0 style='background:{_CREAM}'>"
-        f"<tr><td align=center style='padding:34px 16px'>"
-        f"<table role=presentation width=560 cellpadding=0 cellspacing=0 "
-        f"style='max-width:560px;width:100%'>"
+        f"<tr><td align=center style='padding:38px 16px 30px'>"
+        f"<table role=presentation width=568 cellpadding=0 cellspacing=0 "
+        f"style='max-width:568px;width:100%'>"
         # masthead hero
         f"{_hero(eyebrow)}"
-        # card
-        f"<tr><td style='background:#ffffff;border:1px solid {_LINE};border-radius:16px;"
-        f"padding:34px 34px 28px'>"
-        f"<p style='margin:0 0 18px;font:16px/1.6 {_SANS};color:{_INK}'>{greeting}</p>"
+        # card — a fine gold top rule, then the white body
+        f"<tr><td style='height:3px;background:{_GOLD};border-radius:16px 16px 0 0;"
+        f"line-height:3px;font-size:0'>&nbsp;</td></tr>"
+        f"<tr><td style='background:{_PAPER};border:1px solid {_LINE};border-top:none;"
+        f"border-radius:0 0 16px 16px;padding:36px 38px 30px'>"
+        f"<p style='margin:0 0 20px;font:600 17px/1.5 {_SERIF};color:{_INK}'>{greeting}</p>"
         f"{body_html}"
+        # sign-off
+        f"<p style='margin:26px 0 0;font:italic 15px/1.6 {_SERIF};color:{_MUT}'>"
+        f"With care,<br>The Halia team</p>"
         f"</td></tr>"
         # footer
-        f"<tr><td style='padding:22px 8px 8px'>"
-        f"<p style='margin:0 0 6px;font:12px/1.6 {_SANS};color:{_MUT}'>"
-        f"Halia &middot; clienteling intelligence for luxury retail &middot; "
-        f"<a href='{base_url()}' style='color:{_MUT}'>haliascore.com</a></p>"
-        f"<p style='margin:0;font:12px/1.6 {_SANS};color:{_MUT}'>"
-        f"You are receiving this because you asked about Halia or use it. "
-        f"<a href='{unsub_url}' style='color:{_MUT};text-decoration:underline'>Unsubscribe</a>."
-        f" &copy; {year} Halia.</p>"
-        f"</td></tr></table></td></tr></table></body></html>")
+        f"<tr><td align=center style='padding:26px 8px 4px'>"
+        f"<div style='font:400 15px {_SERIF};color:{_GOLD}'>&#8258;</div>"
+        f"<p style='margin:8px 0 0;font:11px/1.7 {_SANS};letter-spacing:.02em;color:{_MUT}'>"
+        f"Private client intelligence for luxury retail<br>"
+        f"<a href='{base_url()}' style='color:{_ACCENT};text-decoration:none'>haliascore.com</a></p>"
+        + (  # unsub line only on marketing emails; transactional ones (unsub_url="") omit it
+            f"<p style='margin:12px 0 0;font:11px/1.7 {_SANS};color:{_FAINT}'>"
+            f"You are receiving this because you asked about Halia or use it. "
+            f"<a href='{unsub_url}' style='color:{_FAINT};text-decoration:underline'>Unsubscribe</a>"
+            f" &middot; &copy; {year} Midnight Lantern Technologies Ltd</p>"
+            if unsub_url else
+            f"<p style='margin:12px 0 0;font:11px/1.7 {_SANS};color:{_FAINT}'>"
+            f"&copy; {year} Midnight Lantern Technologies Ltd</p>")
+        + f"</td></tr></table></td></tr></table></body></html>")
 
 
 def _greeting(d: dict) -> str:
@@ -229,6 +251,24 @@ def weekly_refresh(d):
     return ("Refresh your outreach, keep what works", body,
             "Take a minute to revisit your outreach in Halia, retire lines that stopped landing, and "
             f"lean into what converted. {_app(d)}/app")
+
+
+# ── public helpers so transactional emails (sign-in, scores-ready) share the same look ──
+def paragraph(text: str) -> str:
+    """A branded body paragraph (caller escapes any user text)."""
+    return _p(text)
+
+
+def button(label: str, href: str) -> str:
+    """A branded call-to-action button."""
+    return _btn(label, href)
+
+
+def wrap(subject: str, body_html: str, *, greeting: str = "Hello,",
+         eyebrow: str = "Halia", unsub_url: str = "") -> str:
+    """Wrap pre-built body HTML in the shared branded shell. Pass unsub_url only for marketing
+    emails; leave it empty for transactional ones (sign-in link, scores ready) to omit unsubscribe."""
+    return _layout(subject, greeting, body_html, unsub_url, eyebrow)
 
 
 _TEMPLATES = {
