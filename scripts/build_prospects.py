@@ -123,9 +123,13 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Build a prioritised prospect CSV from a stockist directory.")
     ap.add_argument("--file", type=Path, required=True, help="Text file: one door per line.")
     ap.add_argument("--out", type=Path, default=Path("output/prospects.csv"))
+    ap.add_argument("--focus-west", action="store_true",
+                    help="Keep only UK/US/EU doors (drop P3 rest-of-world).")
     args = ap.parse_args()
 
     rows = build(args.file.read_text(encoding="utf-8").splitlines())
+    if args.focus_west:
+        rows = [r for r in rows if r["priority"] in (1, 2)]
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)

@@ -146,22 +146,39 @@ def _brand_priority(lane, own):
     return "P1" if lane in _CORE_LANES else "P2"
 
 
-def build() -> list[dict]:
+def _boutique_rows(path: Path) -> list[dict]:
+    """Rows from a build_prospects.py output (multi-label stockists) -> boutique segment."""
+    out = []
+    if not path or not path.exists():
+        return out
+    for r in csv.DictReader(path.open(encoding="utf-8")):
+        pri = (r.get("priority") or "P2").strip().upper()
+        out.append({"segment": "boutique", "priority": pri if pri in ("P1", "P2", "P3") else "P2",
+                    "brand": (r.get("name") or "").strip(), "detail": (r.get("city") or "").strip(),
+                    "ownership": "multi-label", "deck": "/present",
+                    "why_you": "DSM / NAP wholesale-side credibility; multi-label clienteling",
+                    "note": (r.get("country") or "").strip()})
+    return out
+
+
+def build(boutiques: Path | None = None) -> list[dict]:
     women = _load("build_designer_prospects").BRANDS   # (name, lane, ownership, note)
     rows: list[dict] = []
     # designer segments first (more specific); dedup keeps the first occurrence of a name
     for name, lane, own, note in women:
         rows.append({"segment": "womenswear", "priority": _brand_priority(lane, own),
-                     "brand": name.strip(), "detail": lane, "ownership": own,
+                     "brand": name.strip(), "detail": lane, "ownership": own, "deck": "/present-brands",
                      "why_you": "Philo / NAP / DSM credibility in this lane", "note": note})
     for name, lane, own, note in MENSWEAR:
         rows.append({"segment": "menswear", "priority": _brand_priority(lane, own),
-                     "brand": name.strip(), "detail": lane, "ownership": own,
+                     "brand": name.strip(), "detail": lane, "ownership": own, "deck": "/present-brands",
                      "why_you": "DSM / Comme / NAP credibility; contemporary menswear", "note": note})
     for name, low, high, note in ACCESSIBLE:
         rows.append({"segment": "accessible-dtc", "priority": _acc_priority(low, high, name),
                      "brand": name.strip(), "detail": f"${low}-${high}", "ownership": "indie",
+                     "deck": "/present-brands",
                      "why_you": "wealthy hide among accessible buyers; Meta-lookalike play", "note": note})
+    rows += _boutique_rows(boutiques)
     # dedup by name (first/most-specific wins)
     seen, deduped = set(), []
     for r in rows:
@@ -170,7 +187,7 @@ def build() -> list[dict]:
             continue
         seen.add(k)
         deduped.append(r)
-    seg_order = {"womenswear": 0, "menswear": 1, "accessible-dtc": 2}
+    seg_order = {"womenswear": 0, "menswear": 1, "accessible-dtc": 2, "boutique": 3}
     pri_order = {"P1": 0, "P2": 1, "P3": 2}
     deduped.sort(key=lambda r: (seg_order[r["segment"]], pri_order[r["priority"]], r["brand"].lower()))
     return deduped
@@ -192,8 +209,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Build the master prospect sheet.")
     ap.add_argument("--out", type=Path, default=Path("output/prospects_master.csv"))
     ap.add_argument("--platforms", type=Path, help="A check_shopify.py output CSV to join in")
+    ap.add_argument("--boutiques", type=Path, help="A build_prospects.py output CSV (multi-label stores)")
     args = ap.parse_args()
-    rows = build()
+    rows = build(args.boutiques)
     plat = _platform_map(args.platforms) if args.platforms else {}
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", newline="", encoding="utf-8") as fh:
@@ -204,14 +222,14 @@ def main() -> None:
         for r in rows:
             p, connect = plat.get(r["brand"].lower(), ("", ""))
             w.writerow([r["segment"], r["priority"], r["brand"], r["detail"], r["ownership"],
-                        p, connect, "/present-brands", "Shopify / direct intro", r["why_you"],
-                        "", "", "", r["note"]])
+                        p, connect, r.get("deck", "/present-brands"), "Shopify / direct intro",
+                        r["why_you"], "", "", "", r["note"]])
     from collections import Counter
     by_seg = Counter(r["segment"] for r in rows)
     p1 = sum(1 for r in rows if r["priority"] == "P1")
     print(f"Wrote {len(rows)} prospects to {args.out}  "
           f"(womenswear {by_seg['womenswear']}, menswear {by_seg['menswear']}, "
-          f"accessible-dtc {by_seg['accessible-dtc']}; {p1} are P1).")
+          f"accessible-dtc {by_seg['accessible-dtc']}, boutique {by_seg['boutique']}; {p1} are P1).")
 
 
 if __name__ == "__main__":
