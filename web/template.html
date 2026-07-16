@@ -828,6 +828,7 @@
           <select id="fSort"><option value="score">Score</option><option value="count">Signals</option><option value="latent">Latent value</option><option value="last">Last shopped</option></select>
         </label>
         <button class="btn ghost" id="csvbtn" title="Download the surfaced potential VICs as CSV"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>Download CSV</button>
+        <button class="btn ghost" id="metabtn" title="Build a Meta Ads audience from these clients (hashed in your browser)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 15c1.5-6 3-6 4.5-3S15 15 16 12"/></svg>Meta audience</button>
       </div>
 
       <!-- table -->
@@ -936,6 +937,43 @@
 
 <!-- toast -->
 <div class="toast" id="toast"><span class="tick"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></span><span id="toastMsg"></span></div>
+
+<!-- Meta Ads audience builder: hashes emails in the browser (nothing sent to Halia) -->
+<div id="metaModal" style="display:none;position:fixed;inset:0;z-index:120;background:rgba(10,10,11,.55);backdrop-filter:blur(3px)">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:90vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lg);padding:26px 26px 22px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px">
+      <div><div style="font:500 21px 'Fraunces',serif;color:var(--ink)">Build a Meta Ads audience</div>
+        <div style="font:13px/1.55 'Hanken Grotesk',sans-serif;color:var(--soft);margin-top:4px;max-width:44ch">Choose who to include. Emails are hashed in your browser and downloaded as a Meta-ready file. Nothing is sent to Halia.</div></div>
+      <button id="metaX" style="background:none;border:none;color:var(--soft);font-size:22px;line-height:1;cursor:pointer">&times;</button>
+    </div>
+
+    <div style="margin-top:20px">
+      <div style="font:600 11px 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:8px">Who to include</div>
+      <div id="metaScope" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+    <div id="metaSigWrap" style="margin-top:18px;display:none">
+      <div style="font:600 11px 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:8px">Narrow to a signal (optional)</div>
+      <select id="metaSig" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line-strong);border-radius:10px;font:14px 'Hanken Grotesk';color:var(--ink);background:var(--card)"></select>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:10px;margin-top:18px;font:500 13.5px 'Hanken Grotesk';color:var(--ink);cursor:pointer">
+      <input type="checkbox" id="metaPhone" style="width:16px;height:16px;accent-color:#1f564a"> Include phone numbers too (better match rate)
+    </label>
+
+    <div id="metaCount" style="margin-top:18px;padding:12px 14px;border:1px solid var(--brand);background:var(--brand-tint);border-radius:11px;font:13.5px 'Hanken Grotesk';color:var(--brand-deep)"></div>
+
+    <div style="margin-top:16px;font:12px/1.6 'Hanken Grotesk';color:var(--soft);background:var(--rowhover);border-radius:10px;padding:11px 13px">
+      <b style="color:var(--ink)">Use it as:</b> a lookalike seed (find more clients like these), a retargeting audience, or a suppression list (exclude these from discount ads). Upload the file in Meta Ads Manager &rarr; Audiences &rarr; Create a Custom Audience &rarr; Customer list.
+      <div style="margin-top:8px">You are the data controller: make sure you have a lawful basis to advertise to these clients before uploading.</div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button id="metaCancel" class="btn ghost">Cancel</button>
+      <button id="metaGo" class="btn" style="background:var(--brand-deep);color:#fff;border-color:var(--brand-deep)">Download audience</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const SEGMENTS = __SEGMENTS__;
@@ -1503,6 +1541,86 @@ document.getElementById("csvbtn").onclick=async()=>{
   }catch(e){ toast("Export failed: "+e.message); }
   finally{ btn.disabled=false; btn.textContent=t; }
 };
+
+/* ---- Meta Ads audience: hashed entirely in the browser, nothing sent to Halia ---- */
+(function(){
+  const modal=document.getElementById("metaModal"); if(!modal) return;
+  let scope="filtered";
+  const scopeDefs=[
+    ["filtered","Everyone in the current Clients view","respects your filters, search and play chips right now"],
+    ["core","All hidden VICs","every surfaced potential VIC in your book"],
+    ["sleeping","Gone quiet only","proven clients who stopped ordering"],
+  ];
+  function draw(){
+    document.getElementById("metaScope").innerHTML=scopeDefs.map(([k,t,d])=>
+      `<label style="display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border:1px solid ${scope===k?'var(--brand)':'var(--line-strong)'};border-radius:11px;cursor:pointer;background:${scope===k?'var(--brand-tint)':'var(--card)'}">
+        <input type="radio" name="mscope" value="${k}" ${scope===k?'checked':''} style="margin-top:2px;accent-color:#1f564a">
+        <span><span style="font:600 13.5px 'Hanken Grotesk';color:var(--ink)">${t}</span>
+        <span style="display:block;font:12px 'Hanken Grotesk';color:var(--soft);margin-top:1px">${d}</span></span></label>`).join("");
+    document.getElementById("metaScope").querySelectorAll("input").forEach(r=>r.onchange=()=>{scope=r.value;draw();});
+    // signal narrow only applies to list-based scopes
+    document.getElementById("metaSigWrap").style.display = scope==="sleeping" ? "none" : "";
+    updateCount();
+  }
+  function metaList(){
+    let list = scope==="core" ? CORE
+             : scope==="sleeping" ? DATA.filter(c=>playOf(c)==="sleeping")
+             : visible();                                   // "filtered" = the live Clients view
+    const sig=document.getElementById("metaSig").value;
+    if(sig && sig!=="all" && scope!=="sleeping") list=list.filter(c=>c.signals.some(s=>s.seg===sig));
+    return list.filter(c=>c.email && c.email.includes("@"));
+  }
+  function updateCount(){
+    const n=metaList().length;
+    document.getElementById("metaCount").textContent =
+      n ? `${n.toLocaleString("en-GB")} client${n===1?"":"s"} with an email will be included.`
+        : "No clients with an email match this selection.";
+    document.getElementById("metaGo").disabled = !n;
+  }
+  const sigSel=document.getElementById("metaSig");
+  sigSel.onchange=updateCount;
+
+  async function sha256(s){
+    const buf=await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  async function build(){
+    const withPhone=document.getElementById("metaPhone").checked;
+    const list=metaList();
+    const rows=[withPhone?"email,phone":"email"];
+    for(const c of list){
+      const email=await sha256(String(c.email).trim().toLowerCase());
+      if(withPhone){
+        const digits=String(c.phone||"").replace(/\D/g,"");
+        rows.push(email+","+(digits?await sha256(digits):""));
+      } else rows.push(email);
+    }
+    return rows.join("\n")+"\n";
+  }
+  function open(){
+    // populate the signal dropdown lazily (SEGMENTS/segCounts/esc exist by click time)
+    sigSel.innerHTML=`<option value="all">All signals</option>`+
+      Object.keys(SEGMENTS).filter(k=>segCounts[k]).map(k=>`<option value="${k}">${esc(SEGMENTS[k].label)}</option>`).join("");
+    scope="filtered"; sigSel.value="all"; document.getElementById("metaPhone").checked=false; draw(); modal.style.display="block";
+  }
+  function close(){ modal.style.display="none"; }
+  document.getElementById("metabtn").onclick=open;
+  document.getElementById("metaX").onclick=close;
+  document.getElementById("metaCancel").onclick=close;
+  modal.onclick=e=>{ if(e.target===modal) close(); };
+  document.getElementById("metaGo").onclick=async()=>{
+    const b=document.getElementById("metaGo"); b.disabled=true; const t=b.textContent; b.textContent="Hashing…";
+    try{
+      const csv=await build();
+      const blob=new Blob([csv],{type:"text/csv"}), url=URL.createObjectURL(blob);
+      const a=document.createElement("a"); a.href=url; a.download="halia-meta-audience.csv";
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      toast("Meta audience ready. Upload it in Meta Ads Manager.");
+      close();
+    }catch(e){ toast("Could not build the audience: "+e.message); }
+    finally{ b.disabled=false; b.textContent=t; }
+  };
+})();
 
 // show each integration's bulk buttons only when that integration is connected
 function refreshIntegrationUI(){
