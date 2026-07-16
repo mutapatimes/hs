@@ -44,6 +44,11 @@ header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;t
 .hfoot .hf-brand{margin-bottom:48px}
 .hfoot .hf-brand .brand{margin-bottom:16px}
 .hfoot .hf-bio{color:var(--mute,#615b50);max-width:60ch;font-size:14px;line-height:1.6}
+.hfoot .hf-social{display:inline-flex;align-items:center;gap:8px;margin-top:18px;
+  color:var(--mute,#615b50);font:600 13px var(--sans,'Inter',system-ui,sans-serif);
+  letter-spacing:.01em;text-decoration:none;transition:color .2s}
+.hfoot .hf-social svg{flex:none}
+.hfoot .hf-social:hover{color:var(--ink,#1a1712)}
 .hfoot .hf-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:40px}
 .hfoot .hf-col h4{font:500 11px var(--sans,'Inter',system-ui,sans-serif);letter-spacing:.18em;text-transform:uppercase;color:var(--faint,#9a9385);margin:0 0 14px}
 .hfoot .hf-col a{display:block;color:var(--mute,#615b50);font-size:14px;padding:5px 0;text-decoration:none}
