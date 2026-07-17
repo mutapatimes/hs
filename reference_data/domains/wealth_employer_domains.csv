@@ -99,12 +99,6 @@ qia.qa,Qatar Investment Authority,sovereign_wealth
 kia.gov.kw,Kuwait Investment Authority,sovereign_wealth
 gic.com.sg,GIC,sovereign_wealth
 temasek.com.sg,Temasek,sovereign_wealth
-# --- Magic-circle / elite law ---
-linklaters.com,Linklaters,law
-freshfields.com,Freshfields,law
-cliffordchance.com,Clifford Chance,law
-slaughterandmay.com,Slaughter and May,law
-aoshearman.com,A&O Shearman,law
 # --- Talent agencies ---
 caa.com,Creative Artists Agency,talent_agency
 wmeagency.com,WME,talent_agency
@@ -172,3 +166,38 @@ bakermckenzie.com,Baker McKenzie,law_firm
 nortonrosefulbright.com,Norton Rose Fulbright,law_firm
 hoganlovells.com,Hogan Lovells,law_firm
 mayerbrown.com,Mayer Brown,law_firm
+#
+# --- Elite finance & professional firms (uniformly high-earner; work_email can originate) ---
+# Hedge funds:
+mlp.com,Millennium Management,hedge_fund
+# Quant / proprietary trading:
+janestreet.com,Jane Street,quant_trading
+citadelsecurities.com,Citadel Securities,quant_trading
+jumptrading.com,Jump Trading,quant_trading
+optiver.com,Optiver,quant_trading
+# Investment banking / advisory:
+centerview.com,Centerview Partners,investment_bank
+# AI labs (small, elite comp):
+openai.com,OpenAI,ai_lab
+anthropic.com,Anthropic,ai_lab
+deepmind.com,Google DeepMind,ai_lab
+# Management consulting (MBB + elite):
+mckinsey.com,McKinsey & Company,management_consulting
+bcg.com,Boston Consulting Group,management_consulting
+bain.com,Bain & Company,management_consulting
+oliverwyman.com,Oliver Wyman,management_consulting
+kearney.com,Kearney,management_consulting
+# Commodities trading houses:
+vitol.com,Vitol,commodities_trading
+trafigura.com,Trafigura,commodities_trading
+glencore.com,Glencore,commodities_trading
+mercuria.com,Mercuria,commodities_trading
+gunvorgroup.com,Gunvor,commodities_trading
+#
+# --- HELD (broad-headcount employers): big tech, enterprise software, energy ---
+# work_email is NOT corroboration-gated, so a work email here would surface junior staff
+# as VICs on this signal alone. Uncomment to accept that trade-off, or ask for a separate
+# lower-weight, corroboration-only tier. Domains kept here as a ready list:
+# google.com meta.com apple.com microsoft.com oracle.com salesforce.com servicenow.com
+# datadoghq.com exxonmobil.com shell.com chevron.com bp.com slb.com  (+ openai/anthropic are
+# above as AI labs, which ARE selective)

@@ -17,6 +17,9 @@ _SPECIAL = {
     "elite_alumni": "elite university",
     "members_club": "members' club",
     "royal_household": "royal household",
+    "ai_lab": "AI lab",
+    "quant_trading": "quant trading firm",
+    "commodities_trading": "commodities trader",
 }
 
 

@@ -133,3 +133,39 @@ Simpson Thacher & Bartlett,law_firm,NEW YORK;NY,425 LEXINGTON AVENUE
 Paul Weiss,law_firm,NEW YORK;NY,1285 AVENUE OF THE AMERICAS
 Wachtell Lipton Rosen & Katz,law_firm,NEW YORK;NY,51 WEST 52ND STREET
 Kirkland & Ellis,law_firm,NEW YORK;NY,601 LEXINGTON AVENUE
+
+# --- Funds, quant, advisory, consulting, commodities, AI labs (verify; firms relocate) ---
+# Private equity:
+Carlyle,private_equity,WASHINGTON;WASHINGTON DC,1001 PENNSYLVANIA AVENUE
+Carlyle,private_equity,LONDON,1 ST JAMESS MARKET;1 ST JAMES'S MARKET
+TPG,private_equity,FORT WORTH,301 COMMERCE STREET
+TPG,private_equity,SAN FRANCISCO;SF,345 CALIFORNIA STREET
+# Hedge funds:
+Millennium Management,hedge_fund,LONDON,50 BERKELEY STREET
+Bridgewater,hedge_fund,WESTPORT,NYALA FARMS
+D.E. Shaw,hedge_fund,NEW YORK;NY,TWO MANHATTAN WEST
+# Quant / proprietary trading:
+Jane Street,quant_trading,NEW YORK;NY,250 VESEY STREET
+Jane Street,quant_trading,LONDON,DEVONSHIRE SQUARE
+Jump Trading,quant_trading,CHICAGO,600 WEST CHICAGO AVENUE
+Optiver,quant_trading,AMSTERDAM,STRAWINSKYLAAN
+# Investment banking / advisory:
+Evercore,investment_bank,LONDON,15 STANHOPE GATE
+Centerview Partners,investment_bank,NEW YORK;NY,31 WEST 52ND STREET
+Centerview Partners,investment_bank,LONDON,100 PALL MALL
+# Management consulting:
+McKinsey & Company,management_consulting,LONDON,100 MUSEUM STREET;THE POST BUILDING
+McKinsey & Company,management_consulting,NEW YORK;NY,3 WORLD TRADE CENTER;175 GREENWICH STREET
+Boston Consulting Group,management_consulting,LONDON,80 CHARLOTTE STREET
+Boston Consulting Group,management_consulting,BOSTON,200 PIER FOUR BOULEVARD
+Bain & Company,management_consulting,LONDON,40 STRAND
+Bain & Company,management_consulting,BOSTON,131 DARTMOUTH STREET
+Oliver Wyman,management_consulting,LONDON,55 BAKER STREET
+Oliver Wyman,management_consulting,NEW YORK;NY,1166 AVENUE OF THE AMERICAS
+Kearney,management_consulting,CHICAGO,227 WEST MONROE STREET
+# Commodities trading houses:
+Vitol,commodities_trading,LONDON,62 BUCKINGHAM GATE
+Trafigura,commodities_trading,GENEVA,1 RUE DE JARGONNANT;RUE DE JARGONNANT
+Glencore,commodities_trading,BAAR,BAARERMATTSTRASSE
+# AI labs (street-level only; SoMa / Mission Bay districts skipped as too generic):
+Google DeepMind,ai_lab,LONDON,6 PANCRAS SQUARE
