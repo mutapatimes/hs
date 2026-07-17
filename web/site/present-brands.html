@@ -443,7 +443,7 @@
   <div class="bleed-bg"><img src="img/find_your_most_valuable_clients.jpg" alt=""><div class="veil"></div></div>
   <div class="in z">
     <div class="eyebrow" data-r="1">The next step</div>
-    <h2 class="huge" data-r="2">See your book scored.</h2>
+    <h2 class="huge" data-r="2" id="t-close">See your book scored.</h2>
     <p class="sub" data-r="3">Connect your store and see your own numbers the same day. <b>Your data stays yours throughout.</b></p>
     <div class="goldline" data-r="4"></div>
     <p class="sub" data-r="5" style="font-family:var(--serif);font-size:clamp(22px,3vw,34px);font-style:italic;color:var(--ink);max-width:none">&#8258; Halia</p>
@@ -452,9 +452,12 @@
 </section>
 
 <script>
-/* Tailor the deck to a use case: /present-brands?for=beauty (or home, fashion, menswear,
-   accessible). Swaps the opening line, the hiding-problem slide, and the plays so the pitch
-   anchors in that segment's world, not a generic feature story. Default = the house version. */
+/* Tailor the deck two ways:
+   - ?for=beauty|home|accessible (fashion/dtc alias accessible) swaps the opening line, the
+     hiding-problem slide, and the plays so the pitch anchors in that segment's world.
+   - ?house=Reformation names the prospect on the cover, the close, and the browser tab, so the
+     deck opens as a briefing made for them. Optional &accent=RRGGBB tints the highlight colour.
+   Both combine, and both are safe to omit (default = the generic house version). */
 (function(){
   var play=function(pn,pv,body){return '<div class="play"><div class="pn">'+pn+'</div>'
       +'<div class="pv">'+pv+'</div><p>'+body+'</p></div>';};
@@ -496,14 +499,26 @@
   };
   T.fashion=T.accessible; T.dtc=T.accessible;   // aliases
   try{
-    var seg=(new URLSearchParams(location.search).get('for')||'').toLowerCase();
-    var t=T[seg];
+    var params=new URLSearchParams(location.search);
+    var set=function(id,v){var el=document.getElementById(id); if(el&&v!=null) el.innerHTML=v;};
+    // Segment tailoring
+    var t=T[(params.get('for')||'').toLowerCase()];
     if(t){
-      var set=function(id,v){var el=document.getElementById(id); if(el&&v!=null) el.innerHTML=v;};
       set('t-eyebrow',t.eyebrow); set('t-hero',t.hero);
       set('t-truth-head',t.head); set('t-truth-body',t.body); set('t-truth-strip',t.strip);
       set('t-plays',t.plays);
     }
+    // Per-prospect personalisation: their name on the cover, the close, and the tab. Runs after
+    // the segment swap so it wins. textContent (not innerHTML) so a name can never inject markup.
+    var house=(params.get('house')||'').trim().slice(0,48);
+    if(house){
+      var eb=document.getElementById('t-eyebrow'); if(eb) eb.textContent='A private briefing for '+house;
+      var cl=document.getElementById('t-close');   if(cl) cl.textContent=house+', see your book scored.';
+      try{ document.title=house+' · a private briefing from Halia'; }catch(_){}
+    }
+    // Optional brand-colour tint: ?accent=RRGGBB (with or without #).
+    var ac=(params.get('accent')||'').trim().replace(/^#/,'');
+    if(/^[0-9a-fA-F]{6}$/.test(ac)) document.documentElement.style.setProperty('--gold','#'+ac);
   }catch(e){}
 })();
 (function(){
