@@ -1649,16 +1649,16 @@ let SENDER="";
 let CATALOG_URL="";  // active catalog's public PDF link, from /v1/settings (the {catalog_link} token)
 let CMS_DRAFT=null;  // featured 1:1 note, editable in the mini-CMS (/admin), from /v1/settings
 function firstName(name){return String(name||"").replace(/^(sir|lady|dame|lord|baroness|viscount|countess|duchess|marquess|hrh|hsh|the hon)\s+/i,"").split(" ")[0]||"there";}
-// Opaque personalisation token: base64url of the name, so a client doesn't see their own name in
-// the link (…?c=SmFuZSBEb2U rather than …?name=Jane%20Doe). Not secret — just not in plain sight.
-function encName(n){try{return btoa(unescape(encodeURIComponent(String(n||"")))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}catch(_){return "";}}
 // The active catalogue's interactive form link (merchant's own domain via the App Proxy),
-// personalised to this client so its title/message address them by name.
+// personalised to this client so its title/message address them by name. We put the recipient's
+// first name in the clear (…?to=Grace) so the link reads like a warm note, not an opaque
+// tracking-style blob a client would hesitate to open. It's their own name; nothing is stored.
 function catLinkFor(c){
   const base=(CATALOG_URL||"").replace(/\.pdf(\?.*)?$/,"");   // active catalogue PDF url -> its form url
   if(!base) return "";
-  const t=(c&&c.name)?encName(c.name):"";
-  return base+(t?("?c="+t):"");
+  const n=(c&&c.name)?firstName(c.name):"";
+  const t=(n&&n!=="there")?encodeURIComponent(n):"";
+  return base+(t?("?to="+t):"");
 }
 const CAT_MSG_DEFAULT="Hi {first_name},\n\nI've put together a selection with you in mind. You can view it here:\n{catalog_link}\n\n{sender}";
 function catMsg(c){return fillTemplate((SETTINGS&&SETTINGS.catalog_message)||CAT_MSG_DEFAULT, c);}

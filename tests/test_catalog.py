@@ -298,6 +298,15 @@ def test_opaque_name_token_personalises_without_showing_the_name(client):
     assert "For Jane" in r.text and "For Jane Doe" in r.text and tok != "Jane Doe"
 
 
+def test_readable_to_param_personalises(client):
+    """The share link now carries a readable ?to=Grace (not a base64 blob), and still fills the tokens."""
+    c, _ = client
+    cid = c.post("/v1/catalog/save", json={"name": "For {first_name}", "subtitle": "For {name}",
+                                           "product_ids": ["gid://P/1"], "enquiry_email": "s@a.com"}).json()["id"]
+    r = c.get(f"/catalog/{cid}?to=Grace")
+    assert "For Grace" in r.text
+
+
 def test_personalised_pdf_renders_live_with_the_name(client, monkeypatch):
     seen = {}
     monkeypatch.setattr(cr, "html_to_pdf", lambda html: seen.update(html=html) or b"%PDF-1.4")

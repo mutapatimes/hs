@@ -295,8 +295,10 @@ def _decode_name(token: str) -> str:
 
 
 def _link_name(request: Request) -> str:
-    """The recipient name from a share link: the opaque ?c token (preferred), else legacy ?name."""
-    return (_decode_name(request.query_params.get("c") or "")
+    """The recipient name from a share link. Prefer the readable ?to=Grace (a personalised link
+    should look like a warm note, not a tracking blob), then the legacy base64 ?c token, then ?name."""
+    return ((request.query_params.get("to") or "").strip()
+            or _decode_name(request.query_params.get("c") or "")
             or (request.query_params.get("name") or ""))[:160]
 
 
