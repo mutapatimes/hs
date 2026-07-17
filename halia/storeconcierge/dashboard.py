@@ -107,7 +107,7 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Store Concierge · Your desk</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235C3B54'><circle cx='12' cy='7.4' r='1.5'/><path d='M4.5 17C4.5 7.8 19.5 7.8 19.5 17Z'/><rect x='2.8' y='16.3' width='18.4' height='2.5'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='%235C3B54'><path d='M4 13c-2 2.4-2 4.6-.2 7' fill='none' stroke='%235C3B54' stroke-width='1.5'/><path d='M28 13c2 2.4 2 4.6 .2 7' fill='none' stroke='%235C3B54' stroke-width='1.5'/><circle cx='16' cy='6' r='2'/><path d='M14.9 7.7h2.2v2.1h-2.2z'/><path d='M6 22c0-2.2.5-10 10-10s10 7.8 10 10z'/><rect x='4.3' y='22' width='23.4' height='2.6'/><rect x='9' y='24.6' width='14' height='1.5'/></svg>">
 <style>
   :root{{--white:#fff;--tint:#F4F4F4;--ink:#000;--soft:#3D3D3D;--faint:#8A8A8A;
     --plum:#5C3B54;--plum-deep:#3B2436;--line:rgba(0,0,0,.14);--line-2:rgba(0,0,0,.08);
@@ -180,7 +180,7 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
 </style></head><body>
 {banner}
 <header><div class="wrap bar">
-  <a class="logo" href="/storeconcierge"><svg class="bell" viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true"><circle cx="12" cy="7.4" r="1.5"/><path d="M4.5 17C4.5 7.8 19.5 7.8 19.5 17Z"/><rect x="2.8" y="16.3" width="18.4" height="2.5"/></svg> Store Concierge</a>
+  <a class="logo" href="/storeconcierge"><svg class="bell" viewBox="0 0 32 32" width="21" height="21" fill="currentColor" aria-hidden="true"><path d="M4 13c-2 2.4-2 4.6-.2 7" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M28 13c2 2.4 2 4.6 .2 7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="6" r="2"/><path d="M14.9 7.7h2.2v2.1h-2.2z"/><path d="M6 22c0-2.2.5-10 10-10s10 7.8 10 10z"/><rect x="4.3" y="22" width="23.4" height="2.6"/><rect x="9" y="24.6" width="14" height="1.5"/></svg> Store Concierge</a>
   <span class="who">Your desk</span>
 </div></header>
 
