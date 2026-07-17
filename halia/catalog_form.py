@@ -160,8 +160,7 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
   <div class="grid" id="grid">{cards}</div>
   <details class="foot">
     <summary>About this catalogue</summary>
-    <div class="more">This catalogue was prepared exclusively for you and shared through Store Concierge,
-      the app your boutique uses to look after its clients.</div>
+    <div class="more">This catalogue was prepared exclusively for you and delivered with Store Concierge.</div>
   </details>
 </div>
 
