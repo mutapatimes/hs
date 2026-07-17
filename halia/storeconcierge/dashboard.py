@@ -161,6 +161,19 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
   .sb.wa{{border-color:var(--green);color:var(--green)}}
   .sb.wa:hover{{background:var(--green);color:#fff}}
   td.empty{{text-align:center;color:var(--faint);padding:40px}}
+  .cat-head{{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;padding:34px 0}}
+  @media(max-width:760px){{.cat-head{{grid-template-columns:1fr;gap:28px}}}}
+  .cat-h2{{font-size:clamp(22px,3vw,30px);font-weight:600;letter-spacing:-.02em}}
+  .cat-p{{color:var(--soft);font-size:15.5px;margin:14px 0 24px;max-width:46ch}}
+  .cat-btn{{display:inline-block;border:1px solid var(--plum);background:var(--plum);color:#fff;font-weight:600;font-size:14.5px;padding:13px 24px}}
+  .cat-btn:hover{{background:var(--plum-deep);border-color:var(--plum-deep)}}
+  .cat-card{{display:block;border:1px solid var(--line)}}
+  .cat-card:hover{{border-color:var(--ink)}}
+  .cat-thumb{{aspect-ratio:16/10;overflow:hidden}}
+  .cat-thumb img{{width:100%;height:100%;object-fit:cover}}
+  .cat-meta{{padding:16px 18px}}
+  .cat-meta b{{display:block;font-weight:600}}
+  .cat-meta span{{font-size:13px;color:var(--faint)}}
   .panel{{display:none}}.panel.on{{display:block}}
   footer{{border-top:1px solid var(--line);margin-top:50px;padding:26px 0;font-size:13px;color:var(--faint)}}
 </style></head><body>
@@ -179,6 +192,7 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
     <div class="tab on" data-tab="clients">Clients</div>
     <div class="tab" data-tab="orders">Orders</div>
     <div class="tab" data-tab="winback">Worth a nudge</div>
+    <div class="tab" data-tab="catalogues">Catalogues</div>
   </div>
 
   <div class="panel on" id="p-clients">
@@ -204,6 +218,22 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
       <th>Customer</th><th class="num">Orders</th><th class="num">Spent</th><th>Last order</th><th>Status</th><th>Message</th>
     </tr></thead><tbody>{_client_rows(payload.get("winback", []), winback=True)}</tbody></table></div>
   </div>
+
+  <div class="panel" id="p-catalogues">
+    <div class="cat-head">
+      <div>
+        <h2 class="cat-h2">A private selection, sent as a link.</h2>
+        <p class="cat-p">Pick pieces from your shop, add a personal line, and share a beautiful
+        page. Your customer ticks what they like and the enquiry lands in your inbox. Send the
+        same link by email or WhatsApp from any client on the desk.</p>
+        <a class="cat-btn" href="/storeconcierge/catalogue-demo" target="_blank" rel="noopener">Open a sample catalogue &rsaquo;</a>
+      </div>
+      <a class="cat-card" href="/storeconcierge/catalogue-demo" target="_blank" rel="noopener">
+        <div class="cat-thumb"><img src="img/luxurybag.jpg" alt="A catalogue selection"></div>
+        <div class="cat-meta"><b>A private selection for Grace</b><span>6 pieces &middot; share link ready</span></div>
+      </a>
+    </div>
+  </div>
 </div>
 
 <footer><div class="wrap">Store Concierge reads your orders to help you look after customers. It keeps nothing. A product of Midnight Lantern Technologies Ltd.</div></footer>
@@ -216,7 +246,7 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
 
   // tabs
   var tabs=document.querySelectorAll('.tab');
-  var panels={{clients:document.getElementById('p-clients'),orders:document.getElementById('p-orders'),winback:document.getElementById('p-winback')}};
+  var panels={{clients:document.getElementById('p-clients'),orders:document.getElementById('p-orders'),winback:document.getElementById('p-winback'),catalogues:document.getElementById('p-catalogues')}};
   tabs.forEach(function(t){{t.onclick=function(){{
     tabs.forEach(function(x){{x.classList.remove('on')}});t.classList.add('on');
     for(var k in panels)panels[k].classList.toggle('on',k===t.dataset.tab);

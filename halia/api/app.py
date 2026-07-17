@@ -147,6 +147,9 @@ for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
 # The Store Concierge sample desk (clienteling-only, built by scripts/build_sc_demo.py).
 app.add_api_route("/storeconcierge/demo", lambda: _serve_page("sc-demo"),
                   methods=["GET"], include_in_schema=False, response_class=_HTML)
+# The sample catalogue (the real catalog_form_html renderer; scripts/build_catalogue_demo.py).
+app.add_api_route("/storeconcierge/catalogue-demo", lambda: _serve_page("catalogue-demo"),
+                  methods=["GET"], include_in_schema=False, response_class=_HTML)
 
 
 # ---- The decks (/pitch, /present, /present-brands): password-gated, never indexed. ----------
