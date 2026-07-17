@@ -140,9 +140,15 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
   .ok {{ text-align: center; padding: 22px 6px; }}
   .ok .tick {{ width: 54px; height: 54px; border-radius: 50%; background: #1a1712; color: #fff;
     font-size: 26px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }}
-  .foot {{ text-align: center; color: #b6b1a5; font-size: 12px; padding: 20px 0 34px; }}
+  .excl {{ text-align: center; color: #9a9385; font-size: 11px; letter-spacing: .04em;
+    padding: 16px 0 0; }}
+  .foot {{ text-align: center; padding: 26px 0 40px; color: #b6b1a5; font-size: 12px; }}
+  .foot summary {{ cursor: pointer; list-style: none; color: #9a9385; display: inline-block; }}
+  .foot summary::-webkit-details-marker {{ display: none; }}
+  .foot .more {{ max-width: 54ch; margin: 10px auto 0; line-height: 1.55; color: #b6b1a5; }}
 </style></head><body>
 <div class="wrap">
+  <div class="excl">Please do not share. This catalogue was sent exclusively to you.</div>
   <header>
     {f'<img class="logo" src="{_attr(logo)}" alt="">' if logo else ''}
     <div class="eyebrow">{subtitle}</div>
@@ -152,7 +158,11 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
       the team directly and they will be in touch.</p>
   </header>
   <div class="grid" id="grid">{cards}</div>
-  <div class="foot">Powered by Halia · your details are sent to the store and not stored here.</div>
+  <details class="foot">
+    <summary>About this catalogue</summary>
+    <div class="more">This catalogue was prepared exclusively for you and shared through Store Concierge,
+      the app your boutique uses to look after its clients.</div>
+  </details>
 </div>
 
 <div class="bar" id="bar"><div class="wrap">
@@ -223,7 +233,7 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     if(!payload.name || !payload.email){{ err.textContent='Please add your name and email.'; err.style.display='block'; return; }}
     btn.disabled=true; btn.textContent='Sending…';
     // POST relative to how this page was served, so it works both directly and under the App Proxy
-    // (theirbrand.com/a/catalogue/{{id}} -> …/{{id}}/enquire), never hard-coding a Halia URL.
+    // (theirbrand.com/a/catalogue/{{id}} -> …/{{id}}/enquire), never hard-coding an app URL.
     var enquireUrl = window.location.pathname.replace(/\\/+$/, '') + '/enquire';
     fetch(enquireUrl, {{ method:'POST', headers:{{'content-type':'application/json'}}, body:JSON.stringify(payload) }})
       .then(function(r){{ return r.json().then(function(d){{ return {{ok:r.ok, d:d}}; }}); }})
