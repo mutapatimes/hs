@@ -150,6 +150,7 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
         logo = f'<img class="logo" src="{_esc(s["logo"])}" alt="">' if s["logo"] else ""
         cover = f"""<section class="cover">
     {logo}
+    <div class="excl">Please do not share &middot; sent exclusively to you</div>
     <div class="eyebrow">{eyebrow}</div>
     <h1>{_esc(s["name"])}</h1>
     {f'<div class="sub">{personal}</div>' if personal else ''}
@@ -158,6 +159,7 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <style>
   @page {{ size: {page['size']}; margin: {page['margin']};
+    @bottom-left {{ content: "Store Concierge"; font: 7.5pt 'Helvetica'; color: #b6b1a5; }}
     @bottom-center {{ content: "{_esc(s['footer'])}"; font: 8pt 'Helvetica'; color: #9a9385; }}
     @bottom-right {{ content: counter(page); font: 8pt 'Helvetica'; color: #9a9385; }} }}
   {'@page :first { margin: 0; @bottom-center { content: none; } @bottom-right { content: none; } }' if s['cover'] else ''}
@@ -168,6 +170,8 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
   .cover::before {{ content: ""; position: absolute; inset: 0 0 auto; height: 2.5mm; background: {brand}; }}
   .cover .logo {{ position: absolute; top: 16mm; left: 28mm; max-height: 16mm; max-width: 62mm;
     object-fit: contain; z-index: 2; }}
+  .cover .excl {{ position: absolute; top: 16mm; right: 28mm; font: 600 7pt 'Helvetica';
+    letter-spacing: .1em; text-transform: uppercase; color: #9a9385; z-index: 2; }}
   .cover .eyebrow {{ font: 600 9pt 'Helvetica'; letter-spacing: .22em; text-transform: uppercase;
     color: #8a857a; margin-bottom: 9mm; }}
   .cover h1 {{ font: 400 32pt 'Helvetica', Arial, sans-serif; margin: 0 0 6mm; line-height: 1.05;
