@@ -41,11 +41,11 @@
   .brand .g{color:var(--gold);font-size:23px}
   .nav-links{display:flex;gap:32px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
   .nav .right{display:flex;gap:20px;align-items:center}
-  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:13px 24px;border-radius:999px;border:1px solid var(--ink);color:#f4f1ea;background:var(--ink);transition:.25s}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:13px 24px;border-radius:0;border:1px solid var(--ink);color:#f4f1ea;background:var(--ink);transition:.25s}
   .btn:hover{background:transparent;color:var(--ink)}
   .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
   @media(max-width:900px){.nav-links{display:none}}
-  .burger{display:none;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;flex:none;padding:0}
+  .burger{display:none;align-items:center;justify-content:center;width:42px;height:42px;border-radius:0;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;flex:none;padding:0}
   .burger svg{width:20px;height:20px}
   .mscrim{position:fixed;inset:0;background:rgba(10,10,11,.5);opacity:0;visibility:hidden;transition:opacity .3s;z-index:55}
   .mscrim.show{opacity:1;visibility:visible}
@@ -54,7 +54,7 @@
   .mdrawer .mclose{align-self:flex-end;background:none;border:none;color:var(--mute);font-size:28px;line-height:1;cursor:pointer;padding:2px 4px;margin-bottom:6px}
   .mdrawer a{font:500 17px var(--sans);color:var(--ink);padding:14px 0;border-bottom:1px solid var(--line-2)}
   .mdrawer a.msi{color:var(--mute);font-size:15px}
-  .mdrawer a.mcta{margin-top:20px;border:none;background:var(--ink);color:var(--bg);text-align:center;border-radius:999px;padding:15px;font-weight:600}
+  .mdrawer a.mcta{margin-top:20px;border:none;background:var(--ink);color:var(--bg);text-align:center;border-radius:0;padding:15px;font-weight:600}
   @media(max-width:900px){.burger{display:inline-flex}}
   section{padding:clamp(60px,9vh,110px) 0;border-top:1px solid var(--line-2)}
   .phero{padding:170px 0 30px;border-top:0}.phero h1{margin:18px 0 24px;max-width:18ch}
@@ -64,22 +64,22 @@
   /* principle cards */
   .princ{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   @media(max-width:680px){.princ{grid-template-columns:1fr}}
-  .pcard{border:1px solid var(--line);border-radius:16px;padding:30px 30px 32px}
+  .pcard{border:1px solid var(--line);border-radius:0;padding:30px 30px 32px}
   .pcard .g{color:var(--gold);font-size:34px;line-height:1}
   .pcard h3{font-size:26px;margin:14px 0 10px}
   .pcard p{margin:0;font-size:15.5px}
   /* signal split */
   .split{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:8px}
   @media(max-width:680px){.split{grid-template-columns:1fr}}
-  .col{border:1px solid var(--line);border-radius:16px;padding:26px 28px}
+  .col{border:1px solid var(--line);border-radius:0;padding:26px 28px}
   .col .lab{font:500 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;margin-bottom:14px}
   .col.on .lab{color:#1f7a52}.col.off .lab{color:#a23b2a}
   ul.do{list-style:none;padding:0;margin:0}ul.do li{position:relative;padding:9px 0 9px 28px;font-size:15px;color:var(--mute);border-top:1px solid var(--line-2)}
   ul.do li:first-child{border-top:0}
-  ul.do li:before{content:"";position:absolute;left:2px;top:15px;width:8px;height:8px;border-radius:2px;transform:rotate(45deg)}
+  ul.do li:before{content:"";position:absolute;left:2px;top:15px;width:8px;height:8px;border-radius:0;transform:rotate(45deg)}
   ul.do.yes li:before{background:#1f7a52}ul.do.no li:before{background:#a23b2a}
   .docs{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px}
-  .caveat{border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;padding:22px 26px;margin-top:26px;font-size:15px}
+  .caveat{border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:0;padding:22px 26px;margin-top:26px;font-size:15px}
   footer{border-top:1px solid var(--line);padding:54px 0 44px;margin-top:20px}
   .foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:var(--faint);font-size:13px}
   .legal-nav{display:flex;gap:20px;flex-wrap:wrap}.legal-nav a{color:var(--mute)}.legal-nav a:hover{color:var(--ink)}
