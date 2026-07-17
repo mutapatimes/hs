@@ -1509,11 +1509,18 @@ def register(app) -> None:
                    .replace("__SHOP_INSTALL_URL__", json.dumps(config.HALIA_SHOPIFY_INSTALL_URL or "")))
 
     @app.post("/v1/onboard")
-    def onboard(payload: dict = Body(...)) -> dict:
+    def onboard(payload: dict = Body(...), request: Request = None) -> dict:
         p = payload or {}
 
         def g(k: str) -> str:
             return str(p.get(k, "") or "").strip()
+
+        # Which product is being signed up for: an explicit payload brand wins, else the host the
+        # signup came through (storeconcierge.app -> storeconcierge), else Halia.
+        from halia.brands import BRANDS, brand_for_host
+        _pb = g("brand").lower()
+        brand_key = _pb if _pb in BRANDS else brand_for_host(
+            request.headers.get("host", "") if request else "").key
 
         def num(k: str) -> float:
             try:
@@ -1632,6 +1639,7 @@ def register(app) -> None:
         if acct and acct.lower() not in (e.lower() for e in recipients):
             recipients = clean_emails([acct]) + recipients  # the owner hears about it by default
         store.save_settings(shop, _json.dumps({
+            "brand": brand_key,
             "vic_threshold": num("vic_threshold") or 5000,
             "sender_name": g("sender_name")[:120],
             "aov": num("aov"), "max_orders": int(num("max_orders")), "highest_lt": num("highest_lt"),
