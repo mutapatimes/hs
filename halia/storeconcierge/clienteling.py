@@ -22,6 +22,7 @@ _LAST_COLS = ("Last Shopped", "last_order_at")
 
 WINBACK_DAYS = 90          # "gone quiet" once this many days have passed since the last order
 WINBACK_MIN_ORDERS = 2     # only proven, repeat customers belong on a win-back list
+ORDER_FRESH_DAYS = 30      # a purchase this recent still counts as a live order in the orders view
 
 
 def _first_col(df: pd.DataFrame, names: tuple) -> Optional[str]:
@@ -58,8 +59,9 @@ def clienteling_payload(
     last_col = _first_col(df, _LAST_COLS)
 
     if df is None or len(df) == 0 or last_col is None:
-        return {"stats": {"customers": 0, "active": 0, "lapsed": 0, "winback": 0, "ltv": 0.0},
-                "customers": [], "winback": []}
+        return {"stats": {"customers": 0, "active": 0, "lapsed": 0, "winback": 0,
+                          "orders": 0, "ltv": 0.0},
+                "customers": [], "winback": [], "orders": []}
 
     g = df.copy()
     g["_orders"] = _num(g[orders_col]).astype(int).clip(lower=1) if orders_col else 1
@@ -78,6 +80,7 @@ def clienteling_payload(
             "cid": str(r.get("CUST_ID", "") or "").split(".")[0],
             "name": str(r.get("Name", "") or "").strip() or "Customer",
             "email": str(r.get("EMAIL_ADDR", "") or "").strip(),
+            "phone": str(r.get("PHONE", "") or r.get("phone", "") or "").strip(),
             "orders": int(r["_orders"]),
             "spent": float(r["_spent"]),
             "last": last.date().isoformat() if pd.notna(last) else "",
@@ -95,11 +98,29 @@ def clienteling_payload(
     winback_frame = ranked[(~ranked["_active"]) & worth]
     winback = [_row(r) for _, r in winback_frame.head(limit).iterrows()]
 
+    # Orders view: a customer's most recent purchase, still fresh enough to be a live order,
+    # with a lifecycle stage inferred from how long ago it landed. Real Shopify orders carry a
+    # true fulfilment status; this reads the aggregate frame we have and stages by recency.
+    def _stage(days: int) -> str:
+        if days <= 2:
+            return "preparing"
+        if days <= 9:
+            return "on its way"
+        return "delivered"
+
+    recent = g[g["_days"] <= ORDER_FRESH_DAYS].sort_values("_days")
+    orders = []
+    for _, r in recent.head(limit).iterrows():
+        row = _row(r)
+        row["stage"] = _stage(int(r["_days"]))
+        orders.append(row)
+
     stats = {
         "customers": int(len(g)),
         "active": int(g["_active"].sum()),
         "lapsed": int((~g["_active"]).sum()),
         "winback": int(len(winback_frame)),
+        "orders": int(len(recent)),
         "ltv": round(float(g["_spent"].sum()), 2),
     }
-    return {"stats": stats, "customers": customers, "winback": winback}
+    return {"stats": stats, "customers": customers, "winback": winback, "orders": orders}

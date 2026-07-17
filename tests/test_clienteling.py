@@ -38,7 +38,7 @@ def test_winback_is_lapsed_repeat_or_valuable():
 def test_no_wealth_or_score_fields_leak():
     p = clienteling_payload(_frame(), as_of=pd.Timestamp("2026-07-17"))
     for c in p["customers"]:
-        assert set(c) == {"cid", "name", "email", "orders", "spent", "last", "days", "status"}
+        assert set(c) == {"cid", "name", "email", "phone", "orders", "spent", "last", "days", "status"}
         assert "score" not in c and "grade" not in c and "tier" not in c
 
 
