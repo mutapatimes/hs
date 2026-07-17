@@ -144,6 +144,10 @@ for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
                       methods=["GET"], include_in_schema=False, response_class=_HTML)
 
+# The Store Concierge sample desk (clienteling-only, built by scripts/build_sc_demo.py).
+app.add_api_route("/storeconcierge/demo", lambda: _serve_page("sc-demo"),
+                  methods=["GET"], include_in_schema=False, response_class=_HTML)
+
 
 # ---- The decks (/pitch, /present, /present-brands): password-gated, never indexed. ----------
 # A shared password (rotatable via env) gates all three; entering it once sets a signed
