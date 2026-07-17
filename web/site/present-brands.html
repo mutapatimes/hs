@@ -167,6 +167,23 @@
   .dbtn .ar{font-size:17px;line-height:1}
   a.bwin{text-decoration:none}
 
+  /* competitor positioning quadrant */
+  .quad{position:relative;max-width:720px;margin:44px auto 0;aspect-ratio:16/11;border:1px solid var(--line);background:
+    linear-gradient(90deg,transparent 49.6%,var(--line-2) 49.6%,var(--line-2) 50.4%,transparent 50.4%),
+    linear-gradient(0deg,transparent 49.6%,var(--line-2) 49.6%,var(--line-2) 50.4%,transparent 50.4%)}
+  .quad .qlab{position:absolute;font:600 10.5px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+  .quad .qlab.t{top:12px;left:50%;transform:translateX(-50%)}
+  .quad .qlab.b{bottom:12px;left:50%;transform:translateX(-50%)}
+  .quad .qlab.l{left:14px;top:50%;transform:translateY(-50%)}
+  .quad .qlab.r{right:14px;top:50%;transform:translateY(-50%)}
+  .quad .pt{position:absolute;transform:translate(-50%,-50%);text-align:center;width:0}
+  .quad .pt .dot{width:9px;height:9px;border-radius:50%;background:var(--mute);margin:0 auto 9px}
+  .quad .pt .nm{font:500 12px var(--sans);color:var(--mute);white-space:nowrap;line-height:1.3}
+  .quad .pt .nm small{display:block;font-size:10.5px;color:var(--faint);letter-spacing:.02em}
+  .quad .pt.halia .dot{width:16px;height:16px;background:var(--gold);box-shadow:0 0 0 7px rgba(216,210,198,.16)}
+  .quad .pt.halia .nm{color:var(--ink);font-weight:600;font-size:15px;font-family:var(--serif)}
+  @media(max-width:720px){.quad .pt .nm small{display:none}.quad .qlab{font-size:9px;letter-spacing:.08em}}
+
   .kicker{font:500 12px var(--mono);letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
   .imgcard{border-radius:18px;overflow:hidden;box-shadow:0 40px 100px -30px rgba(0,0,0,.85);border:1px solid var(--line)}
   .imgcard img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:4/5}
@@ -180,7 +197,7 @@
 <body>
 
 <div id="bar"></div>
-<div id="count">1 / 17</div>
+<div id="count">1 / 18</div>
 <div id="hint">Use &larr; &rarr; to navigate</div>
 <div id="dots"></div>
 <button class="navbtn" id="prev" aria-label="Previous">&larr;</button>
@@ -361,7 +378,25 @@
   </div>
 </section>
 
-<!-- 12 · ENGINE (proof: why the number is trustworthy) -->
+<!-- 12 · COMPETITION (positioning quadrant) -->
+<section class="slide">
+  <div class="in">
+    <div class="eyebrow" data-r="1">The alternatives</div>
+    <h2 class="big" data-r="2">The others keep your data.<br><em>We keep nothing.</em></h2>
+    <div class="quad" data-r="3">
+      <div class="qlab t">Keeps nothing &middot; EU-lawful</div>
+      <div class="qlab b">Retains your data &middot; US-only</div>
+      <div class="qlab l">Reaches followers</div>
+      <div class="qlab r">Reaches wealth</div>
+      <div class="pt halia" style="left:79%;top:23%"><div class="dot"></div><div class="nm">&#8258; Halia<small>capacity, kept in memory</small></div></div>
+      <div class="pt" style="left:74%;top:73%"><div class="dot"></div><div class="nm">US clienteling tools<small>wealth, stored stateside</small></div></div>
+      <div class="pt" style="left:25%;top:69%"><div class="dot"></div><div class="nm">Influencer platforms<small>reach, not revenue</small></div></div>
+    </div>
+    <p class="sub" data-r="4" style="max-width:70ch;margin-left:auto;margin-right:auto;text-align:center">Influencer tools find who is followed. American clienteling tools find who is wealthy, then hold it on US servers you cannot lawfully use in Europe. Halia finds capacity, scores it in memory, and keeps nothing. <b>You stay the data controller.</b></p>
+  </div>
+</section>
+
+<!-- 13 · ENGINE (proof: why the number is trustworthy) -->
 <section class="slide" id="engineSlide">
   <div class="in">
     <div class="cols">
