@@ -93,3 +93,19 @@ def test_flag_intl_postcode_frame_uses_both_sides():
     out = flag_intl_postcode(df)
     assert out["intl_postcode"].tolist() == [True]
     assert "Zurich" in str(out.loc[0, "intl_postcode_reason"])
+
+
+def test_wealth_office_recognises_law_firm_addresses_with_city_guard():
+    """Top law-firm offices signal a senior lawyer; the city guard blocks same-street collisions."""
+    df = pd.DataFrame([
+        {"LATEST_BILLING_ADDRESS1": "70 Kingsway", "LATEST_BILLING_ADDRESS2": "Africa House",
+         "LATEST_BILLING_ADDRESS3": "London", "LATEST_BILLING_ZIP": "WC2B 6AH"},
+        {"LATEST_SHIPPING_ADDRESS1": "125 Broad Street", "LATEST_SHIPPING_ADDRESS3": "New York",
+         "LATEST_SHIPPING_ZIP": "10004"},
+        {"LATEST_BILLING_ADDRESS1": "125 Broad Street", "LATEST_BILLING_ADDRESS3": "Bristol",
+         "LATEST_BILLING_ZIP": "BS1 2AA"},   # right street, wrong city -> no match
+    ])
+    out = flag_wealth_office(df)
+    assert out.loc[0, OFFICE_COL] == "Mishcon de Reya"
+    assert out.loc[1, OFFICE_COL] == "Sullivan & Cromwell"
+    assert out.loc[2, "wealth_office_match"] == False

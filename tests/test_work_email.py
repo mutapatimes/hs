@@ -84,3 +84,16 @@ def test_short_or_ambiguous_employer_names_are_skipped():
     assert match_company("UBS", names) == (False, None)
     assert match_company("GS Retail", names) == (False, None)
     assert match_company(None, names) == (False, None)
+
+
+def test_elite_law_firms_are_recognised():
+    """Top law firms were added as a high-earner tell (email domain + company field)."""
+    domains = load_domains()
+    ok, reason = match_email("jane@mishcon.com", domains)
+    assert ok and reason == "Mishcon de Reya (law firm)"
+    ok, _ = match_email("x@emea.kirkland.com", domains)   # subdomain still matches
+    assert ok
+    # named in the order's company field, on a free email
+    ok, reason = match_company("Slaughter and May LLP", employer_names(domains))
+    assert ok and "Slaughter and May" in reason
+    assert match_email("someone@gmail.com", domains)[0] is False
