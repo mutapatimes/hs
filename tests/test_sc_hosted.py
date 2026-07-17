@@ -14,6 +14,7 @@ from halia.store import ShopStore
 def client(tmp_path, monkeypatch):
     store = ShopStore(db_path=tmp_path / "t.db")
     monkeypatch.setattr(shopify_auth, "_shop_store", store)
+    monkeypatch.setattr(onboarding, "_validate_woo", lambda *a, **k: (True, ""))  # no network
     monkeypatch.setattr(onboarding, "_start_sync", lambda *a, **k: None)
     monkeypatch.setattr("halia.config.SIGNUP_CODE", None)
     return TestClient(app), store
@@ -54,6 +55,30 @@ def test_storeconcierge_tenant_gets_the_desk_not_the_wealth_dashboard(client):
         assert "hidden VIC" not in r.text and "wealth" not in r.text.lower()
     finally:
         cache.evict("scshop")
+
+
+def test_onboard_marks_the_storeconcierge_brand(client):
+    """A signup declaring the storeconcierge brand is stored as such (the SC connect flow)."""
+    import json as _json
+    from halia.storeconcierge.tenant import brand_of
+    c, store = client
+    r = c.post("/v1/onboard", json={
+        "store_url": "https://maison-aurelle.com", "consumer_key": "ck", "consumer_secret": "cs",
+        "label": "Maison Aurelle", "accept_terms": True, "platform": "", "brand": "storeconcierge"})
+    assert r.status_code == 200
+    s = _json.loads(store.get_settings_raw("maison-aurelle-com"))
+    assert s["brand"] == "storeconcierge"
+    assert brand_of("maison-aurelle-com") == "storeconcierge"
+
+
+def test_onboard_defaults_to_halia_brand(client):
+    import json as _json
+    c, store = client
+    c.post("/v1/onboard", json={"store_url": "https://plain.co.uk", "consumer_key": "ck",
+                                "consumer_secret": "cs", "label": "Plain", "accept_terms": True,
+                                "platform": ""})
+    s = _json.loads(store.get_settings_raw("plain-co-uk"))
+    assert s["brand"] == "halia"
 
 
 def test_clienteling_runs_on_a_scored_style_frame():
