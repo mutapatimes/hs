@@ -368,7 +368,14 @@
     .split,.sol-grid,.dept-grid,.sec-points{grid-template-columns:1fr}
     .split.rev .media{order:0}.sgrid,.sol-grid{grid-template-columns:1fr}
     .dept-grid,.sol-grid{grid-template-columns:1fr 1fr}
-    .hero .wrap{padding-top:100px;padding-bottom:82px}
+    /* flow the hero from the top instead of splitting top/bottom, so the buttons
+       sit under the copy and never collide with the scroll cue or chat bubble */
+    .hero{height:auto;min-height:0}
+    .hero .wrap{justify-content:flex-start;gap:clamp(28px,6vh,56px);
+      padding-top:132px;padding-bottom:clamp(96px,16vh,140px)}
+    .hero .cta{gap:12px}
+    .hero .cta .btn{flex:1 1 auto;justify-content:center}
+    .scroll-cue{display:none}   /* decorative, and it overlapped the CTAs on small screens */
   }
   /* light (cream) sections */
   .light{background:#f4f1ea;color:#13110c;
