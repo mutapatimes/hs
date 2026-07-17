@@ -26,6 +26,9 @@ SIGNAL_VENUES_FILE = VENUES_DIR / "signal_venues.csv"
 WEALTH_OFFICES_FILE = VENUES_DIR / "wealth_offices.csv"
 DOMAINS_DIR = REFERENCE_DIR / "domains"
 WEALTH_DOMAINS_FILE = DOMAINS_DIR / "wealth_employer_domains.csv"
+# Broad-headcount employers (big tech, enterprise software, energy): a weak per-capita tell,
+# scored corroboration-only at a low weight (see scoring.signals.broad_employer).
+BROAD_EMPLOYER_DOMAINS_FILE = DOMAINS_DIR / "broad_employer_domains.csv"
 PREMIUM_EMAIL_FILE = DOMAINS_DIR / "premium_email_domains.csv"
 FREE_EMAIL_FILE = DOMAINS_DIR / "free_email_providers.csv"
 ELITE_ALUMNI_FILE = DOMAINS_DIR / "elite_alumni_domains.csv"

@@ -1,0 +1,25 @@
+domain,organisation,category
+# Broad-headcount employers: big tech, enterprise software, energy majors.
+# These employ hundreds of thousands across the whole pay spectrum, so a work email
+# here is a WEAK per-capita wealth tell. It is scored CORROBORATION-ONLY at a low
+# weight (see scoring.signals.broad_employer + SUPPORTING_SIGNALS): it never surfaces
+# a customer on its own, only nudges the rank of someone a stronger signal has flagged.
+# Same matching as wealth_employer_domains.csv (domain part of EMAIL_ADDR, subdomains too,
+# plus the order's COMPANY_NAME). EDIT to add more. Lines starting with # are ignored.
+#
+# --- Big tech ---
+google.com,Google,big_tech
+meta.com,Meta,big_tech
+apple.com,Apple,big_tech
+microsoft.com,Microsoft,big_tech
+# --- Enterprise software ---
+salesforce.com,Salesforce,enterprise_software
+oracle.com,Oracle,enterprise_software
+servicenow.com,ServiceNow,enterprise_software
+datadoghq.com,Datadog,enterprise_software
+# --- Energy / petroleum ---
+exxonmobil.com,ExxonMobil,energy
+shell.com,Shell,energy
+chevron.com,Chevron,energy
+bp.com,BP,energy
+slb.com,SLB,energy
