@@ -121,3 +121,54 @@ innerplace.co.uk,Innerplace,luxury_concierge
 bonvivant.co.uk,Bon Vivant,luxury_concierge
 # NOTE: personal-shopping / VIP-styling agencies moved to styling_services.csv
 # (the dedicated B2B trade-account signal).
+#
+# --- Elite law firms (a lawyer's work email / company field is a high-earner tell) ---
+# UK private-client & HNW firms (most wealth-relevant):
+mishcon.com,Mishcon de Reya,law_firm
+withersworldwide.com,Withers,law_firm
+macfarlanes.com,Macfarlanes,law_firm
+forsters.co.uk,Forsters,law_firm
+farrer.co.uk,Farrer & Co,law_firm
+boodlehatfield.com,Boodle Hatfield,law_firm
+charlesrussellspeechlys.com,Charles Russell Speechlys,law_firm
+phb.co.uk,Payne Hicks Beach,law_firm
+stewartslaw.com,Stewarts,law_firm
+harbottle.com,Harbottle & Lewis,law_firm
+schillingspartners.com,Schillings,law_firm
+# UK Magic Circle:
+cliffordchance.com,Clifford Chance,law_firm
+freshfields.com,Freshfields,law_firm
+linklaters.com,Linklaters,law_firm
+aoshearman.com,A&O Shearman,law_firm
+allenovery.com,Allen & Overy,law_firm
+slaughterandmay.com,Slaughter and May,law_firm
+# UK Silver Circle / top commercial:
+ashurst.com,Ashurst,law_firm
+hsf.com,Herbert Smith Freehills,law_firm
+traverssmith.com,Travers Smith,law_firm
+bclplaw.com,Bryan Cave Leighton Paisner,law_firm
+# US elite (Wall Street / white-shoe):
+wlrk.com,Wachtell Lipton Rosen & Katz,law_firm
+cravath.com,Cravath Swaine & Moore,law_firm
+sullcrom.com,Sullivan & Cromwell,law_firm
+davispolk.com,Davis Polk & Wardwell,law_firm
+skadden.com,Skadden Arps,law_firm
+stblaw.com,Simpson Thacher & Bartlett,law_firm
+kirkland.com,Kirkland & Ellis,law_firm
+lw.com,Latham & Watkins,law_firm
+paulweiss.com,Paul Weiss,law_firm
+weil.com,Weil Gotshal & Manges,law_firm
+gibsondunn.com,Gibson Dunn,law_firm
+sidley.com,Sidley Austin,law_firm
+milbank.com,Milbank,law_firm
+clearygottlieb.com,Cleary Gottlieb,law_firm
+debevoise.com,Debevoise & Plimpton,law_firm
+ropesgray.com,Ropes & Gray,law_firm
+quinnemanuel.com,Quinn Emanuel,law_firm
+# International:
+jonesday.com,Jones Day,law_firm
+whitecase.com,White & Case,law_firm
+bakermckenzie.com,Baker McKenzie,law_firm
+nortonrosefulbright.com,Norton Rose Fulbright,law_firm
+hoganlovells.com,Hogan Lovells,law_firm
+mayerbrown.com,Mayer Brown,law_firm

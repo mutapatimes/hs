@@ -107,3 +107,29 @@ By Constance Rose,stylist,LONDON,49 STEWARTS GROVE
 Styled Sharp,stylist,NEW YORK;NY,1460 BROADWAY
 Nick Hems Style,stylist,LONDON,32 THREADNEEDLE STREET
 One of a Style,stylist,LONDON,30 GREAT GUILDFORD STREET;METAL BOX FACTORY
+
+# --- Elite law firm offices (billed at / shipping to one signals a senior lawyer) ---
+# City-guarded with distinctive street tokens. VERIFY / EXPAND: firms relocate, and
+# a wrong address simply fails to match (city-guard + street token means no false hits).
+# London:
+Mishcon de Reya,law_firm,LONDON,70 KINGSWAY;AFRICA HOUSE
+Clifford Chance,law_firm,LONDON,10 UPPER BANK STREET
+Freshfields,law_firm,LONDON,100 BISHOPSGATE
+Linklaters,law_firm,LONDON,ONE SILK STREET;1 SILK STREET
+Slaughter and May,law_firm,LONDON,ONE BUNHILL ROW;1 BUNHILL ROW
+A&O Shearman,law_firm,LONDON,ONE BISHOPS SQUARE;1 BISHOPS SQUARE
+Macfarlanes,law_firm,LONDON,20 CURSITOR STREET
+Farrer & Co,law_firm,LONDON,66 LINCOLNS INN FIELDS;66 LINCOLN'S INN FIELDS
+Withers,law_firm,LONDON,20 OLD BAILEY
+Charles Russell Speechlys,law_firm,LONDON,5 FLEET PLACE
+Boodle Hatfield,law_firm,LONDON,240 BLACKFRIARS ROAD
+Payne Hicks Beach,law_firm,LONDON,10 NEW SQUARE
+Travers Smith,law_firm,LONDON,10 SNOW HILL
+# New York:
+Skadden Arps,law_firm,NEW YORK;NY,ONE MANHATTAN WEST
+Sullivan & Cromwell,law_firm,NEW YORK;NY,125 BROAD STREET
+Davis Polk & Wardwell,law_firm,NEW YORK;NY,450 LEXINGTON AVENUE
+Simpson Thacher & Bartlett,law_firm,NEW YORK;NY,425 LEXINGTON AVENUE
+Paul Weiss,law_firm,NEW YORK;NY,1285 AVENUE OF THE AMERICAS
+Wachtell Lipton Rosen & Katz,law_firm,NEW YORK;NY,51 WEST 52ND STREET
+Kirkland & Ellis,law_firm,NEW YORK;NY,601 LEXINGTON AVENUE
