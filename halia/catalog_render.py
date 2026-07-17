@@ -193,7 +193,7 @@ def catalog_html(catalog: dict, products: list[dict], shop_name: str = "") -> st
   .variants {{ font: 500 8pt 'Helvetica'; color: #9a9385; }}
   .desc {{ font: 400 8.5pt 'Helvetica'; line-height: 1.45; color: #615b50; margin-top: 2mm; }}
   .enquire {{ display: inline-block; margin-top: 2.5mm; font: 600 8pt 'Helvetica'; color: {text};
-    text-decoration: none; border: 0.3mm solid #c7c3b9; border-radius: 1mm; padding: 1mm 3.5mm; }}
+    text-decoration: none; border: 0.3mm solid #c7c3b9; border-radius:0; padding: 1mm 3.5mm; }}
   /* list — a detailed row per product */
   .items.list {{ display: block; }}
   .items.list .card {{ display: flex; gap: 6mm; align-items: flex-start;

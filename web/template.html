@@ -85,7 +85,7 @@
 
   /* ---------- Catalogue cards ---------- */
   .catcard{display:flex;align-items:center;gap:16px;padding:15px 17px;background:var(--card);
-    border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow-sm);margin-bottom:10px;
+    border:1px solid var(--line);border-radius:0;box-shadow:var(--shadow-sm);margin-bottom:10px;
     transition:box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease),transform var(--dur) var(--ease)}
   .catcard:hover{box-shadow:var(--shadow-hover);border-color:var(--line-strong);transform:translateY(-1px)}
   .catcard.active{border-color:var(--brand);box-shadow:inset 3px 0 0 var(--brand),var(--shadow-sm)}
@@ -93,19 +93,19 @@
   .catcard-name{display:flex;align-items:center;gap:9px;font-weight:600;font-size:14.5px;color:var(--ink);
     letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .catcard-pill{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-    color:var(--brand);background:var(--brand-tint);border-radius:20px;padding:2px 9px}
+    color:var(--brand);background:var(--brand-tint);border-radius:0;padding:2px 9px}
   .catcard-meta{display:flex;align-items:center;gap:7px;margin-top:4px;font-size:12.5px;color:var(--faint)}
   .catcard-meta .rdy{display:inline-flex;align-items:center;gap:5px;color:var(--soft)}
-  .catcard-meta .rdy::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--brand)}
+  .catcard-meta .rdy::before{content:"";width:5px;height:5px;border-radius:0;background:var(--brand)}
   .catcard-meta .rdy.off::before{background:var(--line-strong)}
   .catcard-meta .rdy.off{color:var(--faint)}
   .catcard-actions{display:flex;align-items:center;gap:8px;flex:none;position:relative}
   .catmenu-btn{padding:7px 11px;font-size:16px;line-height:1}
   .catmenu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:184px;background:var(--card);
-    border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);overflow:hidden;z-index:40;padding:5px}
+    border:1px solid var(--line);border-radius:0;box-shadow:var(--shadow);overflow:hidden;z-index:40;padding:5px}
   .catmenu.open{display:block}
   .catmenu button,.catmenu a{display:flex;width:100%;align-items:center;gap:9px;padding:9px 11px;border:0;
-    background:none;font:inherit;font-size:13px;color:var(--ink);text-align:left;cursor:pointer;border-radius:7px;
+    background:none;font:inherit;font-size:13px;color:var(--ink);text-align:left;cursor:pointer;border-radius:0;
     text-decoration:none;transition:background var(--dur) var(--ease)}
   .catmenu button:hover,.catmenu a:hover{background:var(--rowhover)}
   .catmenu .sep{height:1px;background:var(--line);margin:5px 7px}
@@ -128,9 +128,9 @@
   /* ---------- Skeleton loaders (calm shimmer, never a spinner) ---------- */
   @keyframes skelsheen{to{background-position:-160% 0}}
   .skel{background:linear-gradient(90deg,var(--line) 8%,#EFEEE9 24%,var(--line) 40%);
-    background-size:220% 100%;animation:skelsheen 1.25s linear infinite;border-radius:8px}
-  .skcard{height:72px;margin-bottom:10px;border-radius:13px}
-  .sktile{height:0;padding-bottom:120%;border-radius:12px}
+    background-size:220% 100%;animation:skelsheen 1.25s linear infinite;border-radius:0}
+  .skcard{height:72px;margin-bottom:10px;border-radius:0}
+  .sktile{height:0;padding-bottom:120%;border-radius:0}
 
   /* ---------- Shopify admin chrome ---------- */
   .admin{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
@@ -141,27 +141,27 @@
     position:sticky;top:0;z-index:40;
   }
   .sf-logo{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:.2px;font-size:14px;color:#fff;opacity:.92}
-  .sf-bag{width:22px;height:22px;border-radius:5px;background:#5A8E3B;display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
+  .sf-bag{width:22px;height:22px;border-radius:0;background:#5A8E3B;display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
   .sf-search{
-    flex:1;max-width:520px;margin:0 auto;height:32px;border-radius:8px;
+    flex:1;max-width:520px;margin:0 auto;height:32px;border-radius:0;
     background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.08);
     display:flex;align-items:center;padding:0 12px;color:#C3C6CB;font-size:13px;gap:8px
   }
   .sf-store{display:flex;align-items:center;gap:9px;font-size:13px;color:#D7D9DC}
-  .sf-ava{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6f9c6a,#3c6f53);display:grid;place-items:center;color:#fff;font-weight:600;font-size:11px}
+  .sf-ava{width:26px;height:26px;border-radius:0;background:linear-gradient(135deg,#6f9c6a,#3c6f53);display:grid;place-items:center;color:#fff;font-weight:600;font-size:11px}
 
   .sidenav{
     background:var(--shell);border-right:1px solid var(--line-strong);
     padding:12px 10px;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto
   }
   .nav-item{
-    display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;
+    display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:0;
     color:var(--shell-ink);font-size:13.5px;font-weight:500;cursor:default;margin-bottom:1px;opacity:.78
   }
   .nav-item .ic{width:17px;height:17px;opacity:.7;flex:none}
   .nav-sec{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:14px 10px 6px;font-weight:600}
   .nav-item.app{background:var(--card);opacity:1;color:var(--ink);font-weight:600;box-shadow:inset 0 0 0 1px var(--line)}
-  .nav-item.app .dot{width:18px;height:18px;border-radius:5px;background:var(--brand-deep);display:grid;place-items:center;color:#fff;font-family:'Fraunces',serif;font-size:12px;font-weight:600;flex:none}
+  .nav-item.app .dot{width:18px;height:18px;border-radius:0;background:var(--brand-deep);display:grid;place-items:center;color:#fff;font-family:'Fraunces',serif;font-size:12px;font-weight:600;flex:none}
 
   /* ---------- App canvas ---------- */
   .canvas{background:var(--bg);min-height:calc(100vh - 52px);padding:26px 30px 80px}
@@ -174,12 +174,12 @@
   .title{font-family:'Fraunces',serif;font-weight:500;font-size:30px;letter-spacing:-.01em;line-height:1.05}
   .sub{color:var(--soft);font-size:14px;margin-top:7px;max-width:560px}
   .live{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--soft);white-space:nowrap}
-  .pulse{width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 0 rgba(31,86,74,.5);animation:pulse 2.4s infinite}
+  .pulse{width:7px;height:7px;border-radius:0;background:var(--brand);box-shadow:0 0 0 0 rgba(31,86,74,.5);animation:pulse 2.4s infinite}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(31,86,74,.45)}70%{box-shadow:0 0 0 7px rgba(31,86,74,0)}100%{box-shadow:0 0 0 0 rgba(31,86,74,0)}}
 
   /* stat strip */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 8px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow);transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:0;padding:15px 16px;box-shadow:var(--shadow);transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
   .stat:hover{transform:translateY(-1px);box-shadow:var(--shadow-hover)}
   .stat .k{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);font-weight:600}
   .stat .v{font-family:'Fraunces',serif;font-weight:500;font-size:25px;margin-top:7px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
@@ -199,7 +199,7 @@
   .chips{display:flex;gap:7px;flex-wrap:wrap;flex:1}
   .chip{
     border:1px solid var(--line-strong);background:var(--card);color:var(--soft);
-    padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;cursor:pointer;
+    padding:6px 12px;border-radius:0;font-size:12.5px;font-weight:600;cursor:pointer;
     transition:all var(--dur) var(--ease);white-space:nowrap
   }
   .chip:hover{border-color:#B9B5A9;color:var(--ink)}
@@ -208,7 +208,7 @@
   .chip.on .ct{opacity:.7}
   .search{
     display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line-strong);
-    border-radius:10px;padding:0 11px;height:36px;min-width:210px
+    border-radius:0;padding:0 11px;height:36px;min-width:210px
   }
   .search input{border:0;outline:0;background:none;font:inherit;font-size:13.5px;width:100%;color:var(--ink)}
   .search svg{opacity:.45;flex:none}
@@ -217,11 +217,11 @@
   .controls{display:flex;align-items:center;gap:14px;margin:0 0 16px;flex-wrap:wrap}
   .controls label{display:flex;align-items:center;gap:7px;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);font-weight:600}
   .controls label.push{margin-left:auto}
-  .controls select{font:inherit;font-size:13px;font-weight:500;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:9px;padding:6px 10px;cursor:pointer;text-transform:none;letter-spacing:0}
+  .controls select{font:inherit;font-size:13px;font-weight:500;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:0;padding:6px 10px;cursor:pointer;text-transform:none;letter-spacing:0}
   .controls select:hover{border-color:#B9B5A9}
   /* date-range filter */
   .daterange{display:inline-flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0}
-  .drseg{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden}
+  .drseg{display:inline-flex;border:1px solid var(--line-strong);border-radius:0;overflow:hidden}
   .drseg button{border:0;border-right:1px solid var(--line-strong);background:var(--card);color:var(--soft);font:600 12px system-ui;padding:6px 11px;cursor:pointer}
   .drseg button:last-child{border-right:0}
   .drseg button:hover{color:var(--ink)}
@@ -229,23 +229,23 @@
   .drseg button.locked{opacity:.5;cursor:not-allowed}
   .drseg button.locked::after{content:"\1F512";font-size:9px;margin-left:3px}
   .drcustom{display:inline-flex;align-items:center;gap:5px;color:var(--faint)}
-  .drcustom input[type=date]{font:12px system-ui;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:8px;padding:5px 8px;cursor:pointer}
+  .drcustom input[type=date]{font:12px system-ui;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:0;padding:5px 8px;cursor:pointer}
   .drcustom input[type=date].set{border-color:var(--brand-deep)}
   /* full-history upgrade teaser */
   .histbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px;padding:12px 16px;
-    border:1px solid #e6dcc2;border-radius:12px;background:linear-gradient(180deg,#fbf7ec,#f7f1e2);
+    border:1px solid #e6dcc2;border-radius:0;background:linear-gradient(180deg,#fbf7ec,#f7f1e2);
     font-size:13.5px;color:var(--ink)}
   .histbar b{color:var(--brand-deep);font-weight:700}
   .histbar .histup{margin-left:auto;border:0;background:var(--brand-deep);color:#fff;font:600 13px system-ui;
-    padding:8px 15px;border-radius:9px;cursor:pointer;white-space:nowrap}
+    padding:8px 15px;border-radius:0;cursor:pointer;white-space:nowrap}
   .histbar .histup:hover{background:var(--brand)}
 
   /* table */
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
-  #rows,#orows{overflow:hidden;border-radius:0 0 16px 16px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:var(--shadow)}
+  #rows,#orows{overflow:hidden;border-radius:0}
   .thead{
     display:grid;grid-template-columns:34px 56px 1fr 132px 120px 92px 96px;
-    gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);border-radius:16px 16px 0 0;
+    gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);border-radius:0;
     font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700;align-items:center;
     position:sticky;top:0;z-index:6;background:var(--card)
   }
@@ -261,22 +261,22 @@
   .last-cell{font-size:12.5px;color:var(--soft);font-weight:500}
   .selall{cursor:pointer}
   .gradekey{position:relative;display:inline-flex;align-items:center;margin-left:5px}
-  .gradekey .qm{width:14px;height:14px;border-radius:50%;border:1px solid var(--line-strong);color:var(--faint);
+  .gradekey .qm{width:14px;height:14px;border-radius:0;border:1px solid var(--line-strong);color:var(--faint);
     font-size:9px;font-weight:700;display:grid;place-items:center;cursor:help;text-transform:none}
   .gradekey .pop{display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
-    width:210px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 16px 40px -18px rgba(0,0,0,.3);
+    width:210px;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:0 16px 40px -18px rgba(0,0,0,.3);
     padding:12px 14px;z-index:30;text-transform:none;letter-spacing:0;font-weight:400}
   .gradekey:hover .pop{display:block}
   .gradekey .pop .gk{display:flex;gap:9px;align-items:baseline;padding:4px 0;font-size:12px;color:var(--soft)}
   .gradekey .pop .gk b{font-size:13px;min-width:22px}
-  .rated{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;border-radius:999px;
+  .rated{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;border-radius:0;
     padding:1px 7px;margin-left:7px;vertical-align:middle}
   .rated.fit{background:rgba(58,140,90,.12);color:var(--brand)}
   .rated.nofit{background:rgba(20,18,12,.06);color:var(--faint)}
   .row:last-child{border-bottom:0}
   .row:hover{background:var(--rowhover)}
   .row.sel{background:var(--brand-tint)}
-  .cbx{width:18px;height:18px;border:1.5px solid var(--line-strong);border-radius:5px;display:grid;place-items:center;background:var(--card);transition:all var(--dur) var(--ease)}
+  .cbx{width:18px;height:18px;border:1.5px solid var(--line-strong);border-radius:0;display:grid;place-items:center;background:var(--card);transition:all var(--dur) var(--ease)}
   .cbx.on{background:var(--brand);border-color:var(--brand)}
   .cbx svg{opacity:0}
   .cbx.on svg{opacity:1}
@@ -284,7 +284,7 @@
   .rank{font-family:'Spline Sans Mono',monospace;font-size:13px;color:var(--faint);font-weight:500}
 
   .client{display:flex;gap:13px;align-items:center;min-width:0}
-  .ava{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:#fff;background:var(--tierB)}
+  .ava{width:38px;height:38px;border-radius:0;flex:none;display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:#fff;background:var(--tierB)}
   .ava.A1{background:linear-gradient(140deg,#1d4d42,#143a32)}
   .ava.A{background:linear-gradient(140deg,#26695b,#1f564a)}
   .cinfo{min-width:0}
@@ -293,11 +293,11 @@
   .csignals{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
   .sig{
     font-size:11px;font-weight:600;color:var(--brand-deep);background:var(--brand-tint);
-    border-radius:6px;padding:2px 7px;white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis
+    border-radius:0;padding:2px 7px;white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis
   }
   .sig.more{background:#F1EFE9;color:var(--soft)}
-  .catchip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--soft);background:#F5F4F0;border:1px solid var(--line);border-radius:6px;padding:2px 8px;white-space:nowrap}
-  .catchip .cdot{width:7px;height:7px;border-radius:50%;background:var(--cc,#999);flex:none}
+  .catchip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--soft);background:#F5F4F0;border:1px solid var(--line);border-radius:0;padding:2px 8px;white-space:nowrap}
+  .catchip .cdot{width:7px;height:7px;border-radius:0;background:var(--cc,#999);flex:none}
   .catchip b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:700}
 
   .score{display:flex;align-items:center;gap:10px}
@@ -315,13 +315,13 @@
   .money .lbl{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;font-family:'Hanken Grotesk',sans-serif;font-weight:600}
   .latent .big{color:var(--brand)}
 
-  .go{justify-self:end;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--faint);border:1px solid transparent}
+  .go{justify-self:end;width:30px;height:30px;border-radius:0;display:grid;place-items:center;color:var(--faint);border:1px solid transparent}
   .row:hover .go{border-color:var(--line);color:var(--soft)}
 
   /* bulk action bar */
   .bulk{
     position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(140%);
-    background:var(--ink);color:#fff;border-radius:14px;padding:11px 12px 11px 18px;
+    background:var(--ink);color:#fff;border-radius:0;padding:11px 12px 11px 18px;
     display:flex;align-items:center;gap:16px;box-shadow:var(--shadow-lg);z-index:50;
     transition:transform .3s cubic-bezier(.2,.8,.2,1);opacity:0
   }
@@ -331,7 +331,7 @@
   .bulk .acts{display:flex;gap:8px}
   .bbtn{
     border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;font-weight:600;font-size:13px;
-    padding:8px 13px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:background var(--dur) var(--ease)
+    padding:8px 13px;border-radius:0;cursor:pointer;display:flex;align-items:center;gap:7px;transition:background var(--dur) var(--ease)
   }
   .bbtn:hover{background:rgba(255,255,255,.2)}
   .bbtn.primary{background:var(--brand);}
@@ -339,13 +339,13 @@
   /* Shared button component (light surfaces): primary + ghost. Used by catalogues, CSV export. */
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--brand-deep);
     background:var(--brand-deep);color:#fff;font:inherit;font-weight:600;font-size:13px;padding:8px 14px;
-    border-radius:9px;cursor:pointer;white-space:nowrap;
+    border-radius:0;cursor:pointer;white-space:nowrap;
     transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease),color var(--dur) var(--ease)}
   .btn:hover{background:var(--brand)}
   .btn.ghost{background:var(--card);border-color:var(--line-strong);color:var(--ink)}
   .btn.ghost:hover{border-color:#B9B5A9;background:var(--rowhover)}
   .btn:disabled{opacity:.5;cursor:not-allowed}
-  .bclear{background:none;border:0;color:#B9BBC0;cursor:pointer;font:inherit;font-size:18px;padding:4px 8px;border-radius:8px}
+  .bclear{background:none;border:0;color:#B9BBC0;cursor:pointer;font:inherit;font-size:18px;padding:4px 8px;border-radius:0}
   .bclear:hover{color:#fff}
 
   /* drawer */
@@ -359,21 +359,21 @@
   .drawer.show{transform:none}
   .drawer.wide{width:920px}
   .dctl{display:flex;gap:8px;align-items:center;flex:none}
-  .dexpand{background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:9px;cursor:pointer;color:var(--soft);display:grid;place-items:center}
+  .dexpand{background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:0;cursor:pointer;color:var(--soft);display:grid;place-items:center}
   .dexpand:hover{background:var(--rowhover);color:var(--ink)}
   .dexpand svg{width:15px;height:15px}
   @media(max-width:960px){.drawer.wide{width:92vw}}
   .dhead{padding:22px 24px 18px;border-bottom:1px solid var(--line);background:var(--card)}
   .dtop{display:flex;justify-content:space-between;align-items:flex-start}
-  .dclose{background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:9px;cursor:pointer;color:var(--soft);font-size:16px;display:grid;place-items:center}
+  .dclose{background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:0;cursor:pointer;color:var(--soft);font-size:16px;display:grid;place-items:center}
   .dclose:hover{background:var(--rowhover);color:var(--ink)}
   .dident{display:flex;gap:14px;align-items:center;margin-top:4px}
-  .dava{width:52px;height:52px;border-radius:13px;display:grid;place-items:center;font-family:'Fraunces',serif;font-size:21px;color:#fff}
+  .dava{width:52px;height:52px;border-radius:0;display:grid;place-items:center;font-family:'Fraunces',serif;font-size:21px;color:#fff}
   .dname{font-family:'Fraunces',serif;font-size:22px;font-weight:500}
   .dmeta{font-size:12.5px;color:var(--soft);margin-top:2px}
   .dbody{padding:20px 24px;overflow:auto;flex:1}
   .dscore{display:flex;gap:12px;margin-bottom:22px}
-  .dcard{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+  .dcard{flex:1;background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 14px}
   .dcard .k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);font-weight:700}
   .dcard .v{font-family:'Fraunces',serif;font-size:21px;margin-top:6px}
   .dcard .v.mono{font-family:'Spline Sans Mono',monospace;font-size:19px}
@@ -382,34 +382,34 @@
 
   .dlabel{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:4px 0 12px}
   .evidence{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
-  .ev{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;display:flex;gap:12px;align-items:flex-start}
-  .ev .badge{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--brand-deep);background:var(--brand-tint);padding:3px 8px;border-radius:6px;white-space:nowrap;flex:none;margin-top:1px}
+  .ev{background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 14px;display:flex;gap:12px;align-items:flex-start}
+  .ev .badge{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--brand-deep);background:var(--brand-tint);padding:3px 8px;border-radius:0;white-space:nowrap;flex:none;margin-top:1px}
   .ev .d{font-size:13.5px;color:var(--ink);line-height:1.4}
   .ev .d small{display:block;color:var(--soft);font-size:12px;margin-top:2px}
 
   /* grouped evidence: signals bucketed by what they tell you */
-  .evgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:11px}
+  .evgrp{background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 15px;margin-bottom:11px}
   .evgrp .gh{display:flex;align-items:center;gap:8px;font:600 12.5px 'Hanken Grotesk',sans-serif;color:var(--ink)}
-  .evgrp .gh .gic{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;flex:none;color:#fff}
+  .evgrp .gh .gic{width:22px;height:22px;border-radius:0;display:grid;place-items:center;flex:none;color:#fff}
   .evgrp .gh .gic svg{width:13px;height:13px}
   .evgrp .gh .ct{margin-left:auto;font-size:10.5px;font-weight:600;color:var(--faint);letter-spacing:.02em;white-space:nowrap}
   .evgrp .gd{font-size:11.5px;color:var(--soft);line-height:1.45;margin:7px 0 2px}
   .evi{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
-  .evi .evtag{font:600 10.5px 'Hanken Grotesk',sans-serif;color:var(--brand-deep);background:var(--brand-tint);border-radius:6px;padding:3px 8px;white-space:nowrap;flex:none;margin-top:1px}
+  .evi .evtag{font:600 10.5px 'Hanken Grotesk',sans-serif;color:var(--brand-deep);background:var(--brand-tint);border-radius:0;padding:3px 8px;white-space:nowrap;flex:none;margin-top:1px}
   .evi .evb{min-width:0}
   .evi .evdt{font-size:13px;color:var(--ink);line-height:1.35;word-break:break-word}
   .evi .evwy{font-size:11.5px;color:var(--soft);line-height:1.4;margin-top:2px}
-  .evgrp .evstr{height:3px;border-radius:3px;background:var(--line);margin:9px 0 1px;overflow:hidden}
-  .evgrp .evstr-fill{display:block;height:100%;width:var(--w,50%);border-radius:3px;opacity:.85}
+  .evgrp .evstr{height:3px;border-radius:0;background:var(--line);margin:9px 0 1px;overflow:hidden}
+  .evgrp .evstr-fill{display:block;height:100%;width:var(--w,50%);border-radius:0;opacity:.85}
   @keyframes barfill{from{width:0}}
   @keyframes evrow{from{opacity:0;transform:translateX(7px)}}
 
-  .reco{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:12px;padding:14px 16px;margin-bottom:22px}
+  .reco{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:0;padding:14px 16px;margin-bottom:22px}
   .reco .k{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:6px}
   .reco p{font-size:13.5px;color:var(--ink);line-height:1.5}
 
   .dactions{padding:16px 24px;border-top:1px solid var(--line);background:var(--card);display:flex;gap:10px;flex-wrap:wrap}
-  .dbtn{flex:1 1 auto;white-space:nowrap;text-align:center;line-height:1.2;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line-strong);background:var(--card);font:inherit;font-weight:600;font-size:13.5px;padding:10px 14px;border-radius:10px;cursor:pointer;color:var(--ink)}
+  .dbtn{flex:1 1 auto;white-space:nowrap;text-align:center;line-height:1.2;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line-strong);background:var(--card);font:inherit;font-weight:600;font-size:13.5px;padding:10px 14px;border-radius:0;cursor:pointer;color:var(--ink)}
   .dbtn:hover{background:var(--rowhover)}
   .dbtn.primary{background:var(--brand-deep);border-color:var(--brand-deep);color:#fff}
   .dbtn.primary:hover{background:var(--brand)}
@@ -419,11 +419,11 @@
   /* toast */
   .toast{
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(140%);
-    background:var(--brand-deep);color:#fff;padding:13px 18px;border-radius:12px;font-size:13.5px;font-weight:500;
+    background:var(--brand-deep);color:#fff;padding:13px 18px;border-radius:0;font-size:13.5px;font-weight:500;
     box-shadow:var(--shadow-lg);z-index:90;transition:transform .3s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;gap:10px;max-width:90vw
   }
   .toast.show{transform:translateX(-50%)}
-  .toast .tick{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;flex:none}
+  .toast .tick{width:20px;height:20px;border-radius:0;background:rgba(255,255,255,.2);display:grid;place-items:center;flex:none}
 
   .foot{text-align:center;color:var(--faint);font-size:12px;margin-top:24px;line-height:1.6}
   .foot b{color:var(--soft);font-weight:600}
@@ -468,10 +468,10 @@
     .sgrid3{grid-template-columns:1fr!important}
     .tmplgrid{grid-template-columns:1fr!important}
   }
-  :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:0}
   /* view tabs + Orders view */
-  .views{display:inline-flex;gap:4px;background:var(--shell);border:1px solid var(--line);border-radius:12px;padding:4px;margin:0 0 18px}
-  .vtab{border:none;background:transparent;font:600 13px 'Hanken Grotesk',sans-serif;color:var(--soft);padding:8px 18px;border-radius:9px;cursor:pointer;transition:color var(--dur) var(--ease),background var(--dur) var(--ease)}
+  .views{display:inline-flex;gap:4px;background:var(--shell);border:1px solid var(--line);border-radius:0;padding:4px;margin:0 0 18px}
+  .vtab{border:none;background:transparent;font:600 13px 'Hanken Grotesk',sans-serif;color:var(--soft);padding:8px 18px;border-radius:0;cursor:pointer;transition:color var(--dur) var(--ease),background var(--dur) var(--ease)}
   .vtab:hover{color:var(--ink)}
   .vtab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .othead{grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px}
@@ -482,15 +482,15 @@
   .onm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;color:var(--ink)}
   .oid{color:var(--soft);font-variant-numeric:tabular-nums}
   .oamt{text-align:right;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
-  .gchip{flex:none;font:700 10.5px system-ui;padding:2px 7px;border-radius:6px;color:#fff;letter-spacing:.02em}
+  .gchip{flex:none;font:700 10.5px system-ui;padding:2px 7px;border-radius:0;color:#fff;letter-spacing:.02em}
   .gchip.A1{background:#1f564a}.gchip.A{background:#26695b}.gchip.B{background:#8a7b53}.gchip.none{background:#cfd3cf}
-  .sb{font:600 11px system-ui;padding:3px 9px;border-radius:999px;display:inline-block;white-space:nowrap}
+  .sb{font:600 11px system-ui;padding:3px 9px;border-radius:0;display:inline-block;white-space:nowrap}
   .sb.new{background:#fff3e0;color:#9a5b12}.sb.fulfilled{background:#e6f4ea;color:#1f7a40}.sb.refunded{background:#fdecea;color:#a23b2a}.sb.cancelled{background:#eef0ee;color:#6b675e}
   .oact{display:flex;gap:8px;justify-content:flex-end;align-items:center}
-  .obtn{font:600 12px system-ui;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none;white-space:nowrap}
+  .obtn{font:600 12px system-ui;padding:7px 12px;border-radius:0;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none;white-space:nowrap}
   .obtn.primary{background:#1f564a;border-color:#1f564a;color:#fff}
   .omw{position:relative}
-  .omenu{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:212px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 34px -14px rgba(0,0,0,.22);overflow:hidden;z-index:60}
+  .omenu{display:none;position:absolute;right:0;top:calc(100% + 6px);min-width:212px;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:0 14px 34px -14px rgba(0,0,0,.22);overflow:hidden;z-index:60}
   .omenu.show{display:block}
   .omi{display:block;padding:9px 13px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px}
   .omi:last-child{border-bottom:0}.omi:hover{background:#f4f6f4}
@@ -501,9 +501,9 @@
   .clientsum{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 16px;font-size:12.5px;color:var(--soft)}
   .clientsum:empty{display:none}
   .csm{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);
-    border-radius:999px;padding:5px 12px}
+    border-radius:0;padding:5px 12px}
   .csm b{color:var(--ink);font-family:'Spline Sans Mono',monospace;font-weight:600}
-  .csm .gd{width:9px;height:9px;border-radius:3px;flex:none}
+  .csm .gd{width:9px;height:9px;border-radius:0;flex:none}
   .csm.lead{color:var(--faint)}
 
   /* ---------- pagination ---------- */
@@ -514,16 +514,16 @@
   .pnav{display:flex;align-items:center;gap:8px}
   .ppage{font-size:12.5px;color:var(--faint);white-space:nowrap;min-width:96px;text-align:center}
   .pbtn{border:1px solid var(--line-strong);background:var(--card);color:var(--ink);font:inherit;font-weight:600;
-    font-size:13px;padding:7px 13px;border-radius:9px;cursor:pointer;transition:all var(--dur) var(--ease);white-space:nowrap}
+    font-size:13px;padding:7px 13px;border-radius:0;cursor:pointer;transition:all var(--dur) var(--ease);white-space:nowrap}
   .pbtn:hover:not(:disabled){border-color:#B9B5A9;background:var(--rowhover)}
   .pbtn:disabled{opacity:.4;cursor:default}
   .ocheck{display:flex;align-items:center;gap:8px;cursor:pointer}
-  #viewOrders .controls #oq{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:13px system-ui}
+  #viewOrders .controls #oq{border:1px solid var(--line);border-radius:0;padding:7px 10px;font:13px system-ui}
   @media(max-width:820px){.othead .oid,.orow .oid,.odate{display:none}.othead,.orow{grid-template-columns:30px minmax(120px,1fr) 96px 78px 180px}}
 
   /* ---------- Overview (birds-eye) + Map pages ---------- */
   .grid{display:grid;gap:16px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:var(--shadow)}
   .card .ch{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:16px 18px 4px}
   .card .ch h3{font-family:'Fraunces',serif;font-weight:500;font-size:16px;letter-spacing:-.01em}
   .card .ch .hint{font-size:11.5px;color:var(--faint)}
@@ -537,15 +537,15 @@
   .donut svg{flex:none}
   .dlgd{display:flex;flex-direction:column;gap:9px;min-width:120px}
   .dlgd .li{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--soft)}
-  .dlgd .sw{width:11px;height:11px;border-radius:3px;flex:none}
+  .dlgd .sw{width:11px;height:11px;border-radius:0;flex:none}
   .dlgd .li b{color:var(--ink);font-variant-numeric:tabular-nums;margin-left:auto;font-family:'Spline Sans Mono',monospace;font-weight:600}
 
   /* horizontal bars */
   .bars{display:flex;flex-direction:column;gap:11px}
   .bar{display:grid;grid-template-columns:120px 1fr 54px;align-items:center;gap:12px;font-size:12.5px}
   .bar .lb{color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
-  .bar .tk{height:9px;border-radius:5px;background:var(--brand-tint);overflow:hidden}
-  .bar .tk i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--brand),var(--brand-deep));min-width:3px}
+  .bar .tk{height:9px;border-radius:0;background:var(--brand-tint);overflow:hidden}
+  .bar .tk i{display:block;height:100%;border-radius:0;background:linear-gradient(90deg,var(--brand),var(--brand-deep));min-width:3px}
   .bar .vl{text-align:right;font-family:'Spline Sans Mono',monospace;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
   .bar.g .tk i{background:linear-gradient(90deg,#c9a24a,var(--gold))}
 
@@ -558,7 +558,7 @@
   .tl{display:flex;align-items:center;gap:12px;padding:11px 4px;border-top:1px solid var(--line);cursor:pointer}
   .tl:first-child{border-top:0}
   .tl:hover{background:var(--rowhover)}
-  .tl .ava{width:32px;height:32px;font-size:13px;border-radius:9px}
+  .tl .ava{width:32px;height:32px;font-size:13px;border-radius:0}
   .tl .nm{font-weight:600;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tl .mt{font-size:11.5px;color:var(--soft)}
   .tl .sc{margin-left:auto;text-align:right;flex:none}
@@ -577,26 +577,26 @@
   .rg .lv{text-align:right;font-family:'Spline Sans Mono',monospace;font-weight:600;color:var(--brand);font-variant-numeric:tabular-nums}
 
   /* World map (drag to pan, scroll / buttons to zoom) */
-  .mapwrap{position:relative;width:100%;background:linear-gradient(180deg,#f7f6f2,#eef0ec);border-radius:12px;overflow:hidden}
+  .mapwrap{position:relative;width:100%;background:linear-gradient(180deg,#f7f6f2,#eef0ec);border-radius:0;overflow:hidden}
   .mapwrap svg{display:block;width:100%;height:auto;cursor:grab;touch-action:none}
   .mapwrap svg.dragging{cursor:grabbing}
   .land{fill:#e3e6df;stroke:#cfd3ca;stroke-width:1;stroke-linejoin:round;vector-effect:non-scaling-stroke}
   .mapzoom{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:6}
-  .mapzoom button{width:30px;height:30px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.92);color:var(--ink);font:600 15px system-ui;cursor:pointer;box-shadow:0 3px 10px -4px rgba(0,0,0,.25);transition:background var(--dur) var(--ease)}
+  .mapzoom button{width:30px;height:30px;border:1px solid var(--line);border-radius:0;background:rgba(255,255,255,.92);color:var(--ink);font:600 15px system-ui;cursor:pointer;box-shadow:0 3px 10px -4px rgba(0,0,0,.25);transition:background var(--dur) var(--ease)}
   .mapzoom button:hover{background:var(--card)}
   .bub{fill:rgba(31,86,74,.55);stroke:#fff;stroke-width:1.2;cursor:pointer;transition:fill var(--dur) var(--ease);vector-effect:non-scaling-stroke}
   .bub:hover{fill:rgba(20,58,50,.85)}
   .bub.g{fill:rgba(166,124,52,.62)}
   .bub.g:hover{fill:rgba(166,124,52,.9)}
-  .maptip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;padding:7px 10px;border-radius:9px;opacity:0;transform:translate(-50%,-124%);transition:opacity var(--dur) var(--ease);white-space:nowrap;z-index:5;box-shadow:0 8px 22px -8px rgba(0,0,0,.4)}
+  .maptip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;padding:7px 10px;border-radius:0;opacity:0;transform:translate(-50%,-124%);transition:opacity var(--dur) var(--ease);white-space:nowrap;z-index:5;box-shadow:0 8px 22px -8px rgba(0,0,0,.4)}
   .maptip b{font-family:'Spline Sans Mono',monospace}
   .maplgd{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 2px 0;font-size:12px;color:var(--soft)}
   .maplgd .bd{display:inline-flex;align-items:center;gap:7px}
-  .maplgd .dt{border-radius:50%;background:rgba(31,86,74,.5);border:1.2px solid #fff}
+  .maplgd .dt{border-radius:0;background:rgba(31,86,74,.5);border:1.2px solid #fff}
   /* Client landscape: wealth x activity tiles */
   .lsgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   @media(max-width:900px){.lsgrid{grid-template-columns:repeat(2,1fr)}}
-  .lstile{padding:14px 15px;border:1px solid var(--line);border-radius:11px;background:var(--card)}
+  .lstile{padding:14px 15px;border:1px solid var(--line);border-radius:0;background:var(--card)}
   .lstile.click{cursor:pointer;transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
   .lstile.click:hover{border-color:var(--brand);box-shadow:0 6px 18px -10px rgba(31,86,74,.35)}
   .lstile .n{font-family:'Spline Sans Mono',monospace;font-size:22px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -604,7 +604,7 @@
   .lstile .t{font-size:12.5px;font-weight:600;color:var(--ink);margin-top:2px}
   .lstile .c{font-size:11.5px;color:var(--soft);margin-top:2px;line-height:1.35}
   /* Behaviour band pill (drawer) */
-  .bandpill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font:600 11px system-ui;letter-spacing:.2px}
+  .bandpill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:0;font:600 11px system-ui;letter-spacing:.2px}
   .bandpill.active{background:var(--brand-tint);color:var(--brand-deep)}
   .bandpill.cooling{background:#f3ecd9;color:#7a5f22}
   .bandpill.lapsed{background:#eee9f2;color:#5d4a73}
@@ -615,7 +615,7 @@
   /* Overview client search + live results dropdown */
   .ovsearch{position:relative;margin-bottom:18px;max-width:460px}
   .ovres{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);border:1px solid var(--line);
-    border-radius:12px;box-shadow:0 18px 44px -18px rgba(0,0,0,.28);z-index:30;overflow:hidden;max-height:60vh;overflow-y:auto}
+    border-radius:0;box-shadow:0 18px 44px -18px rgba(0,0,0,.28);z-index:30;overflow:hidden;max-height:60vh;overflow-y:auto}
   .ovrow{display:flex;align-items:center;gap:11px;padding:10px 13px;border-top:1px solid var(--line);cursor:pointer}
   .ovrow:first-child{border-top:0}
   .ovrow:hover{background:var(--rowhover)}
@@ -629,25 +629,25 @@
 
   /* ---------- Pipeline kanban ---------- */
   .kb{display:flex;gap:14px;overflow-x:auto;padding:6px 2px 20px;align-items:flex-start}
-  .kbcol{flex:0 0 268px;background:var(--shell);border:1px solid var(--line);border-radius:14px;padding:10px;min-height:120px}
+  .kbcol{flex:0 0 268px;background:var(--shell);border:1px solid var(--line);border-radius:0;padding:10px;min-height:120px}
   .kbcol.over{border-color:var(--brand);background:var(--brand-tint)}
   .kbhead{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 10px;font:700 12px 'Hanken Grotesk',sans-serif;letter-spacing:.03em;color:var(--shell-ink)}
-  .kbhead .n{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px;color:var(--soft)}
-  .kbcard{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:9px;cursor:grab;box-shadow:var(--shadow)}
+  .kbhead .n{background:var(--card);border:1px solid var(--line);border-radius:0;padding:1px 8px;font-size:11px;color:var(--soft)}
+  .kbcard{background:var(--card);border:1px solid var(--line);border-radius:0;padding:11px 12px;margin-bottom:9px;cursor:grab;box-shadow:var(--shadow)}
   .kbcard:active{cursor:grabbing}
   .kbcard.drag{opacity:.5}
   .kbcard .top{display:flex;align-items:center;gap:9px}
-  .kbcard .ava{width:30px;height:30px;border-radius:8px;font-size:12px}
+  .kbcard .ava{width:30px;height:30px;border-radius:0;font-size:12px}
   .kbcard .nm{font-weight:600;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .kbcard .g{margin-left:auto;font:700 10.5px 'Hanken Grotesk',sans-serif;padding:1px 7px;border-radius:6px;color:#fff}
+  .kbcard .g{margin-left:auto;font:700 10.5px 'Hanken Grotesk',sans-serif;padding:1px 7px;border-radius:0;color:#fff}
   .kbcard .meta{font-size:11.5px;color:var(--soft);margin-top:7px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-  .kbcard .asg{background:var(--brand-tint);color:var(--brand-deep);border-radius:999px;padding:1px 8px;font-weight:600}
+  .kbcard .asg{background:var(--brand-tint);color:var(--brand-deep);border-radius:0;padding:1px 8px;font-weight:600}
   .kbcard .last{color:var(--faint)}
   .kbempty{color:var(--faint);font-size:12.5px;text-align:center;padding:18px 6px}
   .kbnote{padding:40px;text-align:center;color:var(--faint);font-size:13.5px}
   /* drawer pipeline section */
   .dp .row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
-  .dp select,.dp input{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);color:var(--ink)}
+  .dp select,.dp input{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line-strong);border-radius:0;background:var(--card);color:var(--ink)}
   /* pipeline timeline — fully reset the shared .tl/.ev styles it would otherwise inherit
      (card border, cursor:pointer, top border, hover bg) so it reads as a plain activity log */
   .dp .tl{display:block;border:0;border-left:2px solid var(--line);border-radius:0;padding:0 0 0 13px;margin-top:8px;cursor:default;gap:0}
@@ -694,9 +694,9 @@
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
           <div class="live"><span class="pulse"></span> Scored from your data · <span class="mono">__STAT_SCORED__</span> customers · <button class="rescore" id="rescore">Re-score</button></div>
           <div style="display:flex;gap:8px;position:relative">
-            <button class="dbtn" id="alertsBell" style="border:1px solid var(--line);background:var(--card);position:relative;display:none">🔔 Alerts<span id="alertsCount" style="display:none;position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#1f564a;color:#fff;font:700 11px/18px system-ui;text-align:center"></span></button>
+            <button class="dbtn" id="alertsBell" style="border:1px solid var(--line);background:var(--card);position:relative;display:none">🔔 Alerts<span id="alertsCount" style="display:none;position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:0;background:#1f564a;color:#fff;font:700 11px/18px system-ui;text-align:center"></span></button>
             <button class="dbtn" id="openSettings" style="border:1px solid var(--line);background:var(--card)">⚙ Settings</button>
-            <div id="alertsPanel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-height:440px;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 22px 54px -22px rgba(0,0,0,.28);z-index:140;text-align:left"></div>
+            <div id="alertsPanel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-height:440px;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:0 22px 54px -22px rgba(0,0,0,.28);z-index:140;text-align:left"></div>
           </div>
         </div>
       </div>
@@ -940,7 +940,7 @@
 
 <!-- Meta Ads audience builder: hashes emails in the browser (nothing sent to Halia) -->
 <div id="metaModal" style="display:none;position:fixed;inset:0;z-index:120;background:rgba(10,10,11,.55);backdrop-filter:blur(3px)">
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:90vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lg);padding:26px 26px 22px">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:90vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:var(--shadow-lg);padding:26px 26px 22px">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px">
       <div><div style="font:500 21px 'Fraunces',serif;color:var(--ink)">Build a Meta Ads audience</div>
         <div style="font:13px/1.55 'Hanken Grotesk',sans-serif;color:var(--soft);margin-top:4px;max-width:44ch">Choose who to include. Emails are hashed in your browser and downloaded as a Meta-ready file. Nothing is sent to Halia.</div></div>
@@ -954,16 +954,16 @@
 
     <div id="metaSigWrap" style="margin-top:18px;display:none">
       <div style="font:600 11px 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:8px">Narrow to a signal (optional)</div>
-      <select id="metaSig" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line-strong);border-radius:10px;font:14px 'Hanken Grotesk';color:var(--ink);background:var(--card)"></select>
+      <select id="metaSig" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line-strong);border-radius:0;font:14px 'Hanken Grotesk';color:var(--ink);background:var(--card)"></select>
     </div>
 
     <label style="display:flex;align-items:center;gap:10px;margin-top:18px;font:500 13.5px 'Hanken Grotesk';color:var(--ink);cursor:pointer">
       <input type="checkbox" id="metaPhone" style="width:16px;height:16px;accent-color:#1f564a"> Include phone numbers too (better match rate)
     </label>
 
-    <div id="metaCount" style="margin-top:18px;padding:12px 14px;border:1px solid var(--brand);background:var(--brand-tint);border-radius:11px;font:13.5px 'Hanken Grotesk';color:var(--brand-deep)"></div>
+    <div id="metaCount" style="margin-top:18px;padding:12px 14px;border:1px solid var(--brand);background:var(--brand-tint);border-radius:0;font:13.5px 'Hanken Grotesk';color:var(--brand-deep)"></div>
 
-    <div style="margin-top:16px;font:12px/1.6 'Hanken Grotesk';color:var(--soft);background:var(--rowhover);border-radius:10px;padding:11px 13px">
+    <div style="margin-top:16px;font:12px/1.6 'Hanken Grotesk';color:var(--soft);background:var(--rowhover);border-radius:0;padding:11px 13px">
       <b style="color:var(--ink)">Use it as:</b> a lookalike seed (find more clients like these), a retargeting audience, or a suppression list (exclude these from discount ads). Upload the file in Meta Ads Manager &rarr; Audiences &rarr; Create a Custom Audience &rarr; Customer list.
       <div style="margin-top:8px">You are the data controller: make sure you have a lawful basis to advertise to these clients before uploading.</div>
     </div>
@@ -1553,7 +1553,7 @@ document.getElementById("csvbtn").onclick=async()=>{
   ];
   function draw(){
     document.getElementById("metaScope").innerHTML=scopeDefs.map(([k,t,d])=>
-      `<label style="display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border:1px solid ${scope===k?'var(--brand)':'var(--line-strong)'};border-radius:11px;cursor:pointer;background:${scope===k?'var(--brand-tint)':'var(--card)'}">
+      `<label style="display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border:1px solid ${scope===k?'var(--brand)':'var(--line-strong)'};border-radius:0;cursor:pointer;background:${scope===k?'var(--brand-tint)':'var(--card)'}">
         <input type="radio" name="mscope" value="${k}" ${scope===k?'checked':''} style="margin-top:2px;accent-color:#1f564a">
         <span><span style="font:600 13.5px 'Hanken Grotesk';color:var(--ink)">${t}</span>
         <span style="display:block;font:12px 'Hanken Grotesk';color:var(--soft);margin-top:1px">${d}</span></span></label>`).join("");
@@ -2065,10 +2065,10 @@ function updateAreaBanner(){
   let el=document.getElementById("areaBanner");
   if(!areaFilter){if(el)el.remove();return;}
   if(!el){el=document.createElement("div");el.id="areaBanner";
-    el.style.cssText="display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:9px 13px;background:var(--brand-tint);border:1px solid #c9ddd5;border-radius:10px;font-size:13px;color:var(--brand-deep)";
+    el.style.cssText="display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:9px 13px;background:var(--brand-tint);border:1px solid #c9ddd5;border-radius:0;font-size:13px;color:var(--brand-deep)";
     const vc=document.getElementById("viewClients");vc.insertBefore(el,vc.firstChild);}
   el.innerHTML=`<b>${isUSArea(areaFilter)?"ZIP area "+areaFilter:"Postcode area "+areaFilter}</b> <span style="color:var(--soft)">filtered from the map</span>
-    <button id="areaClear" style="margin-left:auto;background:var(--card);border:1px solid #c9ddd5;border-radius:8px;padding:4px 10px;font:600 12px system-ui;color:var(--brand-deep);cursor:pointer">Clear ×</button>`;
+    <button id="areaClear" style="margin-left:auto;background:var(--card);border:1px solid #c9ddd5;border-radius:0;padding:4px 10px;font:600 12px system-ui;color:var(--brand-deep);cursor:pointer">Clear ×</button>`;
   document.getElementById("areaClear").onclick=()=>{areaFilter="";page=1;updateAreaBanner();renderRows();};
 }
 
@@ -2222,7 +2222,7 @@ function lastActivity(card){const a=(card&&card.activity)||[];if(!a.length)retur
 function timeAgo(iso){if(!iso)return"";const d=Math.floor((Date.now()-new Date(iso).getTime())/1000);
   if(d<60)return"just now";if(d<3600)return Math.floor(d/60)+"m ago";if(d<86400)return Math.floor(d/3600)+"h ago";
   return Math.floor(d/86400)+"d ago";}
-function renderBoard(){const el=document.getElementById("boardRoot");if(el)el.innerHTML='<div style="display:flex;gap:14px;padding:2px">'+Array.from({length:4},()=>'<div class="skel" style="flex:1;height:340px;border-radius:14px"></div>').join('')+'</div>';boardLoad(true,_renderBoardNow);}
+function renderBoard(){const el=document.getElementById("boardRoot");if(el)el.innerHTML='<div style="display:flex;gap:14px;padding:2px">'+Array.from({length:4},()=>'<div class="skel" style="flex:1;height:340px;border-radius:0"></div>').join('')+'</div>';boardLoad(true,_renderBoardNow);}
 function _renderBoardNow(){
   const el=document.getElementById("boardRoot");if(!el)return;
   if(!BOARD.available){el.innerHTML='<div class="kbnote">The outreach pipeline is available for Shopify stores with write-back enabled.<br>Add clients to it from the <b>Pipeline</b> button on any client.</div>';return;}
@@ -2434,7 +2434,7 @@ function openDrawer(id){
               <div class="dname">${esc(c.name)}</div>
               ${c.name?`<div style="position:relative;flex:none">
                 <button class="dbtn" id="dlook" style="padding:5px 11px;font-size:12px" title="Search the web for this client — from your browser, never sent to Halia">Look up ▾</button>
-                <div id="dlookmenu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:50">${lookupItems(c)}</div>
+                <div id="dlookmenu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:50">${lookupItems(c)}</div>
               </div>`:''}
             </div>
             <div class="dmeta" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${c.band?`<span class="bandpill ${c.band}">${BAND_LABEL[c.band]||c.band}</span>`:""}<span>${esc(c.loc)} · ${c.ordersCount} order${c.ordersCount===1?"":"s"} · AOV ${gbp(c.aov)} · last ${c.last}</span></div>
@@ -2453,7 +2453,7 @@ function openDrawer(id){
 
       ${c.cart?`
       <div class="dlabel">Open basket</div>
-      <div style="background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:22px">
+      <div style="background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:0;padding:14px 16px;margin-bottom:22px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
           <div style="font-family:'Fraunces',serif;font-size:21px">${gbp(c.cart.value)}</div>
           <div style="font-size:12px;color:var(--soft)">${c.cart.count} item${c.cart.count===1?'':'s'} · started ${cartAge(c.cart.started)}</div>
@@ -2471,10 +2471,10 @@ function openDrawer(id){
       ${c.reco?`<div class="reco"><div class="k">Recommended approach</div><p>${esc(c.reco)}</p></div>`:""}
 
       <div class="dlabel">Latent value, explained</div>
-      <div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:22px">
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 15px;margin-bottom:22px">
         <div style="display:flex;align-items:center;gap:8px;font-size:13.5px">
           <span class="mono" style="color:var(--soft)">${gbp(c.spend)}</span>
-          <span style="flex:1;height:6px;border-radius:4px;background:linear-gradient(90deg,var(--brand-tint),var(--brand));position:relative;min-width:60px"><span style="position:absolute;top:-3px;left:calc(${Math.max(2,Math.min(96,c.spend/Math.max(1,c.latent)*100)).toFixed(0)}% - 6px);width:12px;height:12px;border-radius:50%;background:var(--brand);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></span>
+          <span style="flex:1;height:6px;border-radius:0;background:linear-gradient(90deg,var(--brand-tint),var(--brand));position:relative;min-width:60px"><span style="position:absolute;top:-3px;left:calc(${Math.max(2,Math.min(96,c.spend/Math.max(1,c.latent)*100)).toFixed(0)}% - 6px);width:12px;height:12px;border-radius:0;background:var(--brand);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></span>
           <span class="mono" style="color:var(--brand);font-weight:600">${gbpK(c.latent)}</span>
         </div>
         <div style="font-size:11.5px;color:var(--soft);margin-top:9px;line-height:1.5">Grown from their current spend toward your client ceiling, scaled by a Halia score of <b>${c.score}</b>.</div>
@@ -2490,7 +2490,7 @@ function openDrawer(id){
       <div style="color:var(--faint);font-size:11.5px;margin-top:6px">Trains Halia to your book. Your verdict is tagged on the client in your store; Halia keeps only an anonymous per-signal tally.</div>
 
       <div class="dlabel">Order history${c.orders&&c.orders.length?` · ${c.orders.length}`:""}</div>
-      <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+      <div style="border:1px solid var(--line);border-radius:0;overflow:hidden">
         ${(c.orders&&c.orders.length)
           ? c.orders.slice(0,12).map(o=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px">
               <span style="color:var(--soft)">${o.date||"·"}</span>
@@ -2504,11 +2504,11 @@ function openDrawer(id){
       ${(c.adminUrl||c.shopifyUrl)?`<a class="dbtn" href="${c.adminUrl||c.shopifyUrl}" target="_top">Open in ${PLATFORM_LABEL}</a>`:""}
       <div class="dactm">
         <button class="dbtn" id="dmail">Email ▾</button>
-        <div id="dmailmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${mailtoItems(c)}</div>
+        <div id="dmailmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${mailtoItems(c)}</div>
       </div>
       ${phoneDigits(c.phone)?`<div class="dactm">
         <button class="dbtn" id="dwa">WhatsApp ▾</button>
-        <div id="dwamenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${whatsappItems(c)}</div>
+        <div id="dwamenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${whatsappItems(c)}</div>
       </div>`:""}
       ${CATALOG_URL?`<button class="dbtn" id="dcatlink" title="Copy a catalogue link addressed to this client">Copy catalogue link</button>`:""}
       ${SETTINGS.mailchimp_connected?`<button class="dbtn${SETTINGS.klaviyo_connected?'':' primary'}" id="dpushmc">Push to Mailchimp</button>`:""}
@@ -2662,7 +2662,7 @@ document.getElementById("q").oninput=e=>{query=e.target.value;areaFilter="";page
     const matches=DATA.filter(c=>clientMatches(c,q)).sort((a,b)=>(b.score-a.score)||(b.latent-a.latent));
     const top=matches.slice(0,7);
     ovRes.innerHTML = (top.length?top.map(c=>`<div class="ovrow" data-id="${c.id}">
-        <div class="ava ${c.tier}" style="width:30px;height:30px;font-size:12px;border-radius:8px">${esc(c.init)}</div>
+        <div class="ava ${c.tier}" style="width:30px;height:30px;font-size:12px;border-radius:0">${esc(c.init)}</div>
         <div style="min-width:0"><div class="nm">${esc(c.name)}</div><div class="mt">${esc(c.loc)}${c.email?" &middot; "+esc(c.email):""}</div></div>
         <div class="sc">${c.score} <span class="tier ${c.tier}">${tierLabel(c.tier)}</span></div>
       </div>`).join(""):`<div class="ovnone">No clients match &ldquo;${esc(q)}&rdquo;.</div>`)
@@ -2710,9 +2710,9 @@ const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").rep
 function showConnectBanner(){
   const wrap=document.querySelector(".wrap"); if(!wrap||document.getElementById("kv-banner")) return;
   const div=document.createElement("div"); div.id="kv-banner";
-  div.style.cssText="margin:0 0 18px;padding:14px 16px;background:var(--card);border:1px solid #d8c79a;border-left:3px solid var(--brand);border-radius:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+  div.style.cssText="margin:0 0 18px;padding:14px 16px;background:var(--card);border:1px solid #d8c79a;border-left:3px solid var(--brand);border-radius:0;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
   div.innerHTML='<div style="flex:1;min-width:240px"><b>Connect Klaviyo</b> <span style="color:var(--soft)">Paste your Klaviyo <b>private</b> API key (pk_…) to push grades, build segments, and email clients. You can also do this in ⚙ Settings.</span></div>'
-    +'<input id="kv-key" type="password" placeholder="pk_live_…" autocomplete="off" style="flex:0 0 220px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px system-ui">'
+    +'<input id="kv-key" type="password" placeholder="pk_live_…" autocomplete="off" style="flex:0 0 220px;padding:8px 10px;border:1px solid var(--line);border-radius:0;font:13px system-ui">'
     +'<button id="kv-connect" class="dbtn primary" style="border:none">Connect</button>';
   wrap.insertBefore(div, wrap.firstChild);
   document.getElementById("kv-connect").onclick=()=>{
@@ -2749,7 +2749,7 @@ function openSettings(page){
     if(b) list[tsel].body=b.value;
   }
   function tListPane(){const list=currentList();
-    return list.map((t,i)=>`<button data-sel="${i}" style="display:block;width:100%;text-align:left;margin-bottom:6px;padding:10px 12px;border-radius:9px;border:1px solid ${i===tsel?'var(--brand)':'var(--line-strong)'};background:${i===tsel?'var(--brand-tint)':'var(--card)'};color:var(--ink);font:600 13px ${SF};cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name||'Untitled')}</button>`).join("")
+    return list.map((t,i)=>`<button data-sel="${i}" style="display:block;width:100%;text-align:left;margin-bottom:6px;padding:10px 12px;border-radius:0;border:1px solid ${i===tsel?'var(--brand)':'var(--line-strong)'};background:${i===tsel?'var(--brand-tint)':'var(--card)'};color:var(--ink);font:600 13px ${SF};cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name||'Untitled')}</button>`).join("")
       +`<button id="addTmpl" style="${BS};margin-top:6px;width:100%">+ Add template</button>`;}
   function tEditorPane(){const list=currentList();
     if(!list.length) return `<div style="${P};margin:0">No templates yet. Add one on the left.</div>`;
@@ -2767,18 +2767,18 @@ function openSettings(page){
     const s=el.selectionStart==null?el.value.length:el.selectionStart, e=el.selectionEnd==null?el.value.length:el.selectionEnd;
     el.value=el.value.slice(0,s)+tok+el.value.slice(e);el.focus();el.selectionStart=el.selectionEnd=s+tok.length;}
   const SF="'Hanken Grotesk',system-ui,sans-serif";
-  const I="box-sizing:border-box;padding:10px 13px;border:1px solid var(--line-strong);border-radius:10px;font:14px "+SF+";color:var(--ink);background:var(--card);outline:none";
-  const C="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:14px;box-shadow:var(--shadow)";
+  const I="box-sizing:border-box;padding:10px 13px;border:1px solid var(--line-strong);border-radius:0;font:14px "+SF+";color:var(--ink);background:var(--card);outline:none";
+  const C="background:var(--card);border:1px solid var(--line);border-radius:0;padding:22px 24px;margin-bottom:14px;box-shadow:var(--shadow)";
   const H="font:500 17px 'Fraunces',serif;letter-spacing:-.01em;color:var(--ink);margin:0 0 5px";
   const P="font:13.5px/1.55 "+SF+";color:var(--soft);margin:0 0 16px";
-  const BP="background:var(--brand-deep);color:#fff;border:none;border-radius:10px;padding:11px 20px;font:600 13px "+SF+";cursor:pointer";
-  const BS="background:var(--card);color:var(--ink);border:1px solid var(--line-strong);border-radius:10px;padding:10px 16px;font:600 13px "+SF+";cursor:pointer";
+  const BP="background:var(--brand-deep);color:#fff;border:none;border-radius:0;padding:11px 20px;font:600 13px "+SF+";cursor:pointer";
+  const BS="background:var(--card);color:var(--ink);border:1px solid var(--line-strong);border-radius:0;padding:10px 16px;font:600 13px "+SF+";cursor:pointer";
   const LBL="font:600 12px "+SF+";color:var(--faint);letter-spacing:.02em;margin-bottom:6px";
-  const TAB_ON="background:var(--brand-deep);color:#fff;border:1px solid var(--brand-deep);border-radius:9px;padding:8px 16px;font:600 13px "+SF+";cursor:pointer";
-  const TAB_OFF="background:var(--card);color:var(--soft);border:1px solid var(--line-strong);border-radius:9px;padding:8px 16px;font:600 13px "+SF+";cursor:pointer";
-  const SUB_ON="background:var(--brand);color:#fff;border:none;border-radius:999px;padding:6px 13px;font:600 12px "+SF+";cursor:pointer";
-  const SUB_OFF="background:var(--shell);color:var(--soft);border:none;border-radius:999px;padding:6px 13px;font:600 12px "+SF+";cursor:pointer";
-  const CHIP="background:var(--brand-tint);border:1px solid #c9ddd5;border-radius:6px;padding:3px 9px;font:600 12px 'Spline Sans Mono',ui-monospace,monospace;color:var(--brand-deep);cursor:pointer;margin:0 6px 6px 0";
+  const TAB_ON="background:var(--brand-deep);color:#fff;border:1px solid var(--brand-deep);border-radius:0;padding:8px 16px;font:600 13px "+SF+";cursor:pointer";
+  const TAB_OFF="background:var(--card);color:var(--soft);border:1px solid var(--line-strong);border-radius:0;padding:8px 16px;font:600 13px "+SF+";cursor:pointer";
+  const SUB_ON="background:var(--brand);color:#fff;border:none;border-radius:0;padding:6px 13px;font:600 12px "+SF+";cursor:pointer";
+  const SUB_OFF="background:var(--shell);color:var(--soft);border:none;border-radius:0;padding:6px 13px;font:600 12px "+SF+";cursor:pointer";
+  const CHIP="background:var(--brand-tint);border:1px solid #c9ddd5;border-radius:0;padding:3px 9px;font:600 12px 'Spline Sans Mono',ui-monospace,monospace;color:var(--brand-deep);cursor:pointer;margin:0 6px 6px 0";
   // top page-tabs (underline style, like a real settings nav)
   const STAB_ON="background:none;border:none;border-bottom:2px solid var(--brand);color:var(--ink);padding:10px 4px;margin-right:22px;font:600 14px "+SF+";cursor:pointer;white-space:nowrap";
   const STAB_OFF="background:none;border:none;border-bottom:2px solid transparent;color:var(--soft);padding:10px 4px;margin-right:22px;font:600 14px "+SF+";cursor:pointer;white-space:nowrap";
@@ -2807,7 +2807,7 @@ function openSettings(page){
           <p style="${P}">Choose the platform you use, then paste your key. Halia writes each client's grade, score and reasons across so you can segment and email them where you already work.</p>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:620px">
             ${[["klaviyo","Klaviyo",kv],["mailchimp","Mailchimp",mc],["hubspot","HubSpot",hs]].map(([k,label,on])=>`
-              <button data-integ="${k}" style="text-align:left;padding:14px 15px;border-radius:12px;border:1px solid ${integ===k?'var(--brand)':'var(--line-strong)'};background:${integ===k?'var(--brand-tint)':'var(--card)'};cursor:pointer">
+              <button data-integ="${k}" style="text-align:left;padding:14px 15px;border-radius:0;border:1px solid ${integ===k?'var(--brand)':'var(--line-strong)'};background:${integ===k?'var(--brand-tint)':'var(--card)'};cursor:pointer">
                 <div style="font:600 14px ${SF};color:var(--ink)">${label}</div>
                 <div style="font:600 12px ${SF};color:${on?'#0f7b4f':'var(--faint)'};margin-top:5px">${on?'● Connected':'○ Not connected'}</div>
               </button>`).join("")}
@@ -2818,7 +2818,7 @@ function openSettings(page){
           ${integ==='klaviyo'?`
             <div style="${H}">Klaviyo</div>
             <p style="${P}">Push grades, build segments, and email clients. Uses your <b>private</b> API key (starts <code>pk_</code>).</p>
-            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:10px;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Klaviyo, go to <b>Account → Settings → API keys → Create Private API Key</b>. Give it full access to Profiles and Segments. The key starts <code>pk_</code>.</div>
+            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Klaviyo, go to <b>Account → Settings → API keys → Create Private API Key</b>. Give it full access to Profiles and Segments. The key starts <code>pk_</code>.</div>
             <div style="font:600 13px system-ui;color:${kv?'#0f7b4f':'#616161'};margin-bottom:10px">${kv?"● Connected":"○ Not connected"}</div>
             <div style="display:flex;gap:8px;max-width:540px">
               <input id="setKvKey" type="password" placeholder="pk_live_… (paste to connect or replace)" style="flex:1;${I}">
@@ -2828,7 +2828,7 @@ function openSettings(page){
           `:integ==='mailchimp'?`
             <div style="${H}">Mailchimp</div>
             <p style="${P}">Push grades, tags, and segments to your audience. Uses an API key that ends in <b>-usXX</b> (your data centre).</p>
-            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:10px;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Mailchimp, go to <b>Account → Extras → API keys → Create A Key</b>. Copy the whole key; it ends in a data-centre suffix like <code>-us21</code>.</div>
+            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Mailchimp, go to <b>Account → Extras → API keys → Create A Key</b>. Copy the whole key; it ends in a data-centre suffix like <code>-us21</code>.</div>
             <div style="font:600 13px system-ui;color:${mc?'#0f7b4f':'#616161'};margin-bottom:10px">${mc?"● Connected"+(SETTINGS.mailchimp_list_name?" · "+esc(SETTINGS.mailchimp_list_name):""):"○ Not connected"}</div>
             <div style="display:flex;gap:8px;max-width:540px">
               <input id="setMcKey" type="password" placeholder="xxxxxxxx-us21 (paste to connect or replace)" style="flex:1;${I}">
@@ -2838,7 +2838,7 @@ function openSettings(page){
           `:`
             <div style="${H}">HubSpot</div>
             <p style="${P}">Write each client's Halia grade, score, and reasons onto their HubSpot contact. Uses a <b>Private App token</b> (starts <code>pat-</code>).</p>
-            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:10px;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in HubSpot, go to <b>Settings → Integrations → Private Apps → Create a private app</b>. Grant the CRM contact read + write scopes. The token starts <code>pat-</code>.</div>
+            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in HubSpot, go to <b>Settings → Integrations → Private Apps → Create a private app</b>. Grant the CRM contact read + write scopes. The token starts <code>pat-</code>.</div>
             <div style="font:600 13px system-ui;color:${hs?'#0f7b4f':'#616161'};margin-bottom:10px">${hs?"● Connected":"○ Not connected"}</div>
             <div style="display:flex;gap:8px;max-width:540px">
               <input id="setHsKey" type="password" placeholder="pat-… (paste to connect or replace)" style="flex:1;${I}">
@@ -2861,7 +2861,7 @@ function openSettings(page){
              ["A proven client goes quiet","Customer tag added &middot; tag = <code>Halia:GoneQuiet</code>","Create a task (or internal email) to reach out with a personal note."],
              ["A VIC places an order","Order created &middot; customer tags include <code>Halia:A*</code>","Notify the associate on shift so the parcel leaves with a handwritten card."],
              ["A VIP list for Shopify Email","Customer segment &middot; <code>customer_tags CONTAINS 'Halia:A*'</code>","Target the segment in Shopify Email; no Flow needed."]]
-            .map(r=>`<div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px">
+            .map(r=>`<div style="border:1px solid var(--line);border-radius:0;padding:12px 14px;margin-top:8px">
               <div style="font:600 13px ${SF};color:var(--ink)">${r[0]}</div>
               <div style="font:12.5px/1.6 ${SF};color:var(--soft);margin-top:3px"><b>When:</b> ${r[1]}<br><b>Then:</b> ${r[2]}</div>
             </div>`).join("")}
@@ -2928,14 +2928,14 @@ function openSettings(page){
             <input type="checkbox" id="setBasketAlerts" ${SETTINGS.basket_alerts!==false?"checked":""} style="width:16px;height:16px;accent-color:#1f564a"> Also alert on high-value open baskets</label>
           <div style="font:12px system-ui;color:#8a8a8a;margin-top:5px">When a high-grade client has an unpaid checkout above your threshold, we send the same Slack / email alert so your team can recover it while it's warm.</div>
           <div style="margin-top:20px"><div style="${LBL}">Real-time webhook</div>
-            <code style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);background:var(--rowhover);border-radius:8px;padding:11px 13px;word-break:break-all;margin-top:6px">${esc(SETTINGS.webhook_url||"")}</code>
+            <code style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);background:var(--rowhover);border-radius:0;padding:11px 13px;word-break:break-all;margin-top:6px">${esc(SETTINGS.webhook_url||"")}</code>
             <p style="${P};margin-top:8px;font-size:12px">Add this as an “Order created” webhook in your store (WooCommerce → Settings → Advanced → Webhooks, or a Shopify orders/create webhook) for instant alerts even when Halia is closed. Nothing about your customers is stored to power them.</p></div>
         </div>
 
         <div style="${C}">
           <div style="${H}">Slack alerts</div>
           <p style="${P}">Post to a Slack channel the moment a high-grade client orders, so your team can recognise them in the moment. Nothing about your customers is stored to power this.</p>
-          <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:10px;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Slack, go to <b>Apps → Incoming Webhooks → Add to Slack</b>, pick the channel, and copy the webhook URL. It starts <code>https://hooks.slack.com/</code>.</div>
+          <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Slack, go to <b>Apps → Incoming Webhooks → Add to Slack</b>, pick the channel, and copy the webhook URL. It starts <code>https://hooks.slack.com/</code>.</div>
           <div style="font:600 13px system-ui;color:${sl?'#0f7b4f':'#616161'};margin-bottom:10px">${sl?"● Connected"+(SETTINGS.slack_webhook?" · "+esc(SETTINGS.slack_webhook):""):"○ Not connected"}</div>
           <div style="display:flex;gap:8px;max-width:540px">
             <input id="setSlackHook" type="password" placeholder="https://hooks.slack.com/services/… (paste to connect or replace)" style="flex:1;${I}">
@@ -2963,8 +2963,8 @@ function openSettings(page){
           <div style="${H}">Default catalogue logo</div>
           <p style="${P}">Shown top-left on every new catalogue. Each catalogue can still override it in the builder.</p>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <img id="setLogoImg" src="${esc(SET_LOGO||'')}" alt="" style="max-height:44px;max-width:180px;object-fit:contain;background:#faf9f6;border:1px solid #ece9e1;border-radius:8px;padding:6px 10px;${SET_LOGO?'':'display:none'}">
-            <span id="setLogoNone" style="font:12.5px system-ui;color:#a8a29a;background:#faf9f6;border:1px dashed #d8d4c8;border-radius:8px;padding:12px 16px;${SET_LOGO?'display:none':''}">No logo yet</span>
+            <img id="setLogoImg" src="${esc(SET_LOGO||'')}" alt="" style="max-height:44px;max-width:180px;object-fit:contain;background:#faf9f6;border:1px solid #ece9e1;border-radius:0;padding:6px 10px;${SET_LOGO?'':'display:none'}">
+            <span id="setLogoNone" style="font:12.5px system-ui;color:#a8a29a;background:#faf9f6;border:1px dashed #d8d4c8;border-radius:0;padding:12px 16px;${SET_LOGO?'display:none':''}">No logo yet</span>
             <button type="button" id="setLogoBtn" style="${BS}">${SET_LOGO?'Replace':'Upload logo'}</button>
             <button type="button" id="setLogoRm" style="${BS};color:#8e1f0b;${SET_LOGO?'':'display:none'}">Remove</button>
             <input type="file" id="setLogoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none">
@@ -3005,7 +3005,7 @@ function openSettings(page){
         <div style="${C}">
           <div style="${H}">Privacy wording for your policy</div>
           <p style="${P}">Suggested wording to add to your own privacy policy — a starting point, not legal advice. Need the full paperwork? <a href="mailto:hello@haliascore.com?subject=Halia%20compliance%20pack" style="color:#1f564a;font-weight:600">Request the DPA &amp; compliance pack</a>.</p>
-          ${PRIVACY_INSERTS.map((p,i)=>`<div style="border:1px solid #e3e3e3;border-radius:10px;padding:12px;margin-bottom:10px;background:var(--rowhover)">
+          ${PRIVACY_INSERTS.map((p,i)=>`<div style="border:1px solid #e3e3e3;border-radius:0;padding:12px;margin-bottom:10px;background:var(--rowhover)">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px"><div style="font:650 13px system-ui;color:var(--ink)">${p.h}</div><button data-copy="${i}" style="${BS};padding:5px 12px">Copy</button></div>
             <div style="font:13px/1.55 system-ui;color:var(--soft)">${esc(p.body)}</div></div>`).join("")}
         </div>
@@ -3014,7 +3014,7 @@ function openSettings(page){
           <p style="${P}">This permanently erases everything Halia holds for you: your store connection and API keys, settings, email templates, connected integrations, and billing record. Any active subscription is cancelled. Your own store and its customer data are untouched. This cannot be undone.</p>
           <label style="font:13px ${SF};color:var(--soft)">Type <b>DELETE</b> to confirm</label>
           <input id="delConfirm" autocomplete="off" placeholder="DELETE" style="${I};max-width:220px;margin:6px 0 12px;display:block">
-          <button id="delAccount" disabled style="background:var(--danger);color:#fff;border:none;border-radius:10px;padding:11px 20px;font:600 13px ${SF};cursor:pointer;opacity:.5">Delete account</button>
+          <button id="delAccount" disabled style="background:var(--danger);color:#fff;border:none;border-radius:0;padding:11px 20px;font:600 13px ${SF};cursor:pointer;opacity:.5">Delete account</button>
         </div>
 
         </div><!-- /privacy -->
@@ -3171,7 +3171,7 @@ function openSettings(page){
       }
       else{
         const plan=b.plan;
-        if(plan&&plan.name){h+=`<div style="border:1px solid var(--brand);background:var(--brand-tint);border-radius:12px;padding:14px 16px;margin-bottom:14px">`
+        if(plan&&plan.name){h+=`<div style="border:1px solid var(--brand);background:var(--brand-tint);border-radius:0;padding:14px 16px;margin-bottom:14px">`
           +`<div style="font:12px system-ui;color:var(--soft)">Your book: <b>${(plan.count||0).toLocaleString("en-GB")}</b> customers</div>`
           +`<div style="font:500 20px 'Fraunces',serif;color:var(--brand-deep);margin-top:2px">Matched to the ${esc(plan.name)} plan</div></div>`;}
         h+=`<p style="${P}">Subscribe to unlock the full dashboard.</p><button id="billSub" style="${BP}">Subscribe →</button>`;
@@ -3200,7 +3200,7 @@ function openSettings(page){
       const box=document.getElementById("billingBox"); if(!box) return;
       const REASONS=["Too expensive","Not using it enough","Missing features I need","Switching to another tool","Taking a break","Other"];
       let reason=REASONS[0], detail="";
-      const dngr="background:#8e1f0b;color:#fff;border:none;border-radius:8px;padding:11px 20px;font:600 13px system-ui;cursor:pointer";
+      const dngr="background:#8e1f0b;color:#fff;border:none;border-radius:0;padding:11px 20px;font:600 13px system-ui;cursor:pointer";
       function step1(){
         box.innerHTML=`<div style="${H};margin-bottom:6px">Before you go</div>
           <p style="${P}">We'd love to know what isn't working — it genuinely helps us improve.</p>
@@ -3243,7 +3243,7 @@ function openSettings(page){
       const rws=(rep||[]).filter(r=>r.n_fired>0);
       if(!rws.length){calibBox.innerHTML=`<div style="${P};margin:0">No signals have fired on your store yet — nothing to calibrate.</div>`;return;}
       calibBox.innerHTML=`${note?`<div style="${LBL};margin-bottom:8px">${note}</div>`:""}
-        <div style="overflow:auto;border:1px solid #e3e3e3;border-radius:10px">
+        <div style="overflow:auto;border:1px solid #e3e3e3;border-radius:0">
         <table style="width:100%;border-collapse:collapse;font:12.5px system-ui">
           <thead><tr style="background:var(--rowhover);color:#616161;text-align:left">
             <th style="padding:8px 10px">Signal</th><th style="padding:8px 10px">Fired</th>
@@ -3282,7 +3282,7 @@ function openSettings(page){
       const rws=(rep||[]).filter(r=>r.n>0);
       if(!rws.length){fbBox.innerHTML=`<div style="${P};margin:0">No feedback yet — mark a few clients 👍 good call / 👎 not a fit, then come back.</div>`;return;}
       fbBox.innerHTML=`${note?`<div style="${LBL};margin-bottom:8px">${note} · ${verdicts} verdict${verdicts===1?"":"s"} so far</div>`:""}
-        <div style="overflow:auto;border:1px solid #e3e3e3;border-radius:10px">
+        <div style="overflow:auto;border:1px solid #e3e3e3;border-radius:0">
         <table style="width:100%;border-collapse:collapse;font:12.5px system-ui">
           <thead><tr style="background:var(--rowhover);color:#616161;text-align:left">
             <th style="padding:8px 10px">Signal</th><th style="padding:8px 10px">Verdicts</th>
@@ -3341,7 +3341,7 @@ function openSettings(page){
 document.getElementById("openSettings").onclick=openSettings;
 
 // ── Product-catalogue builder (Settings → Catalogues) ──────────────────────
-const CI="box-sizing:border-box;padding:9px 11px;border:1px solid var(--line-strong);border-radius:9px;font:14px 'Hanken Grotesk',sans-serif;color:var(--ink);background:var(--card);margin-top:5px";
+const CI="box-sizing:border-box;padding:9px 11px;border:1px solid var(--line-strong);border-radius:0;font:14px 'Hanken Grotesk',sans-serif;color:var(--ink);background:var(--card);margin-top:5px";
 const CAT_FIELD_DEFAULTS={image:true,title:true,vendor:true,price:true,description:false,sku:false,variants:false};
 const catState={loaded:false,editing:null,name:"",subtitle:"",logo:"",template:"grid",brand:"#1f564a",text:"#1a1712",active:false,
   columns:3,pageSize:"A4",cover:true,footer:"",enquiryEmail:"",enquire:true,fields:Object.assign({},CAT_FIELD_DEFAULTS),
@@ -3409,7 +3409,7 @@ function catOpenBuilder(c){
   catState.page=1; catState.search=""; catState.fCol=""; catState.fTag=""; catState.fVendor=""; catState.fSize="";
   catRenderBuilder(); catLoadProducts();
 }
-const CAT_SEC="border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px;background:var(--card);box-shadow:var(--shadow-sm)";
+const CAT_SEC="border:1px solid var(--line);border-radius:0;padding:16px 18px;margin-bottom:14px;background:var(--card);box-shadow:var(--shadow-sm)";
 const CAT_LB="font:600 11px 'Hanken Grotesk',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:12px";
 const CAT_FIELD_LABELS={image:"Image",title:"Title",vendor:"Vendor",price:"Price",description:"Description",sku:"SKU",variants:"Variants"};
 function catRenderBuilder(){
@@ -3423,7 +3423,7 @@ function catRenderBuilder(){
       </div>
       <label style="display:block;margin-top:12px;font:600 12px Hanken Grotesk,sans-serif;color:var(--soft)">Personal message <span style="color:var(--faint);font-weight:400">(shown under the title)</span>
         <input id="catSubtitle" value="${esc(catState.subtitle)}" placeholder="Prepared exclusively for {name}" style="width:100%;${CI}"></label>
-      <div style="font:12px Hanken Grotesk,sans-serif;color:var(--faint);margin-top:9px">Personalise the title and message with <b>{first_name}</b>, <b>{name}</b> or <b>{store}</b>. They fill in from the client when you share a link like <code style="background:var(--bg);padding:1px 5px;border-radius:5px">…/catalogue/id?name=Jane%20Doe</code>.</div>
+      <div style="font:12px Hanken Grotesk,sans-serif;color:var(--faint);margin-top:9px">Personalise the title and message with <b>{first_name}</b>, <b>{name}</b> or <b>{store}</b>. They fill in from the client when you share a link like <code style="background:var(--bg);padding:1px 5px;border-radius:0">…/catalogue/id?name=Jane%20Doe</code>.</div>
     </div>
     <div id="catCustomize"></div>
     <div style="${CAT_SEC}">
@@ -3479,12 +3479,12 @@ function catRenderCustomize(){
   const el=document.getElementById("catCustomize"); if(!el) return;
   const isList=catState.template==='list';
   const prev={
-    grid:'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'+Array(4).fill('<div style="height:20px;background:var(--line-strong);border-radius:3px"></div>').join('')+'</div>',
-    list:'<div style="display:flex;flex-direction:column;gap:6px">'+Array(3).fill('<div style="display:flex;gap:5px;align-items:center"><div style="width:16px;height:16px;background:var(--line-strong);border-radius:3px"></div><div style="flex:1;height:6px;background:var(--line);border-radius:3px"></div></div>').join('')+'</div>',
-    minimal:'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+Array(2).fill('<div style="height:32px;background:var(--line-strong);border-radius:3px"></div>').join('')+'</div>'
+    grid:'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'+Array(4).fill('<div style="height:20px;background:var(--line-strong);border-radius:0"></div>').join('')+'</div>',
+    list:'<div style="display:flex;flex-direction:column;gap:6px">'+Array(3).fill('<div style="display:flex;gap:5px;align-items:center"><div style="width:16px;height:16px;background:var(--line-strong);border-radius:0"></div><div style="flex:1;height:6px;background:var(--line);border-radius:0"></div></div>').join('')+'</div>',
+    minimal:'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+Array(2).fill('<div style="height:32px;background:var(--line-strong);border-radius:0"></div>').join('')+'</div>'
   };
-  const tplCard=(k,label,desc)=>`<button data-cattpl="${k}" style="text-align:left;cursor:pointer;flex:1;min-width:130px;border:1.5px solid ${catState.template===k?'var(--brand)':'var(--line)'};background:${catState.template===k?'var(--brand-tint)':'var(--card)'};border-radius:12px;padding:12px;transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease)">
-      <div style="background:var(--bg);border-radius:8px;padding:11px;margin-bottom:9px;height:70px;display:flex;flex-direction:column;justify-content:center">${prev[k]}</div>
+  const tplCard=(k,label,desc)=>`<button data-cattpl="${k}" style="text-align:left;cursor:pointer;flex:1;min-width:130px;border:1.5px solid ${catState.template===k?'var(--brand)':'var(--line)'};background:${catState.template===k?'var(--brand-tint)':'var(--card)'};border-radius:0;padding:12px;transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease)">
+      <div style="background:var(--bg);border-radius:0;padding:11px;margin-bottom:9px;height:70px;display:flex;flex-direction:column;justify-content:center">${prev[k]}</div>
       <div style="font:600 13px Hanken Grotesk,sans-serif;color:var(--ink)">${label}</div>
       <div style="font:11.5px Hanken Grotesk,sans-serif;color:var(--faint);margin-top:2px">${desc}</div></button>`;
   const colPill=n=>`<button data-catcol="${n}" class="chip${catState.columns===n?' on':''}" style="width:42px;justify-content:center;padding:7px 0;text-align:center;font-variant-numeric:tabular-nums">${n}</button>`;
@@ -3507,14 +3507,14 @@ function catRenderCustomize(){
     <div style="${CAT_SEC}">
       <div style="${CAT_LB}">Brand &amp; text</div>
       <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end">
-        <label style="font:600 12px Hanken Grotesk,sans-serif;color:var(--soft)">Brand colour<input id="catBrand" type="color" value="${esc(catState.brand)}" style="width:52px;height:38px;padding:2px;border:1px solid var(--line-strong);border-radius:8px;margin-top:6px;display:block"></label>
-        <label style="font:600 12px Hanken Grotesk,sans-serif;color:var(--soft)">Text colour<input id="catText" type="color" value="${esc(catState.text)}" style="width:52px;height:38px;padding:2px;border:1px solid var(--line-strong);border-radius:8px;margin-top:6px;display:block"></label>
+        <label style="font:600 12px Hanken Grotesk,sans-serif;color:var(--soft)">Brand colour<input id="catBrand" type="color" value="${esc(catState.brand)}" style="width:52px;height:38px;padding:2px;border:1px solid var(--line-strong);border-radius:0;margin-top:6px;display:block"></label>
+        <label style="font:600 12px Hanken Grotesk,sans-serif;color:var(--soft)">Text colour<input id="catText" type="color" value="${esc(catState.text)}" style="width:52px;height:38px;padding:2px;border:1px solid var(--line-strong);border-radius:0;margin-top:6px;display:block"></label>
         <label style="flex:1;min-width:220px;font:600 12px Hanken Grotesk,sans-serif;color:var(--soft)">Footer text<input id="catFooter" value="${esc(catState.footer)}" placeholder="e.g. © 2026 Your Brand · hello@brand.com" style="width:100%;${CI}"></label>
       </div>
       <div style="margin-top:16px">
         <div style="font:600 12px Hanken Grotesk,sans-serif;color:var(--soft);margin-bottom:8px">Logo <span style="color:var(--faint);font-weight:400">(shown top-left on the catalogue)</span></div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          ${catState.logo?`<img src="${esc(catState.logo)}" alt="" style="max-height:44px;max-width:180px;object-fit:contain;background:var(--rowhover);border:1px solid var(--line);border-radius:8px;padding:6px 10px">`:`<div style="font:12.5px Hanken Grotesk,sans-serif;color:var(--faint);background:var(--rowhover);border:1px dashed var(--line-strong);border-radius:8px;padding:12px 16px">No logo yet</div>`}
+          ${catState.logo?`<img src="${esc(catState.logo)}" alt="" style="max-height:44px;max-width:180px;object-fit:contain;background:var(--rowhover);border:1px solid var(--line);border-radius:0;padding:6px 10px">`:`<div style="font:12.5px Hanken Grotesk,sans-serif;color:var(--faint);background:var(--rowhover);border:1px dashed var(--line-strong);border-radius:0;padding:12px 16px">No logo yet</div>`}
           <button type="button" id="catLogoBtn" class="btn ghost" style="padding:7px 14px">${catState.logo?'Replace':'Upload logo'}</button>
           ${catState.logo?`<button type="button" id="catLogoRm" class="btn ghost" style="padding:7px 12px;color:var(--danger)">Remove</button>`:''}
           <input type="file" id="catLogoFile" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none">
@@ -3583,8 +3583,8 @@ function catRenderProducts(){
   el.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">'+catState.items.map(p=>{
     const sel=catState.selected.has(p.id);
     const nv=p.variants?(' · '+p.variants+' variant'+(p.variants===1?'':'s')):'';
-    return `<div data-catpid="${esc(p.id)}" style="position:relative;border:1.5px solid ${sel?'var(--brand)':'var(--line)'};border-radius:12px;overflow:hidden;cursor:pointer;background:${sel?'var(--brand-tint)':'var(--card)'}">
-      <div style="position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:${sel?'var(--brand)':'rgba(255,255,255,.85)'};border:1px solid ${sel?'var(--brand)':'var(--line-strong)'};color:#fff;font:700 12px Hanken Grotesk,sans-serif;display:flex;align-items:center;justify-content:center;z-index:2">${sel?'✓':''}</div>
+    return `<div data-catpid="${esc(p.id)}" style="position:relative;border:1.5px solid ${sel?'var(--brand)':'var(--line)'};border-radius:0;overflow:hidden;cursor:pointer;background:${sel?'var(--brand-tint)':'var(--card)'}">
+      <div style="position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:0;background:${sel?'var(--brand)':'rgba(255,255,255,.85)'};border:1px solid ${sel?'var(--brand)':'var(--line-strong)'};color:#fff;font:700 12px Hanken Grotesk,sans-serif;display:flex;align-items:center;justify-content:center;z-index:2">${sel?'✓':''}</div>
       <div style="aspect-ratio:1;background:var(--bg)${p.image_url?(" url('"+esc(p.image_url)+"') center/cover no-repeat"):""}"></div>
       <div style="padding:8px 10px">
         ${p.vendor?`<div style="font:600 9px Hanken Grotesk,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.vendor)}</div>`:''}
@@ -3608,10 +3608,10 @@ function catRenderOrder(){
   const el=document.getElementById("catOrder"); if(!el) return;
   if(!catState.order.length){el.innerHTML="";return;}
   const rows=catState.order.map((id,i)=>{const p=catState.prodInfo[id]||{};const m=catMoney(p);
-    return `<div data-catrow="${esc(id)}" draggable="true" style="display:flex;align-items:center;gap:9px;padding:6px 9px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;background:var(--card)">
+    return `<div data-catrow="${esc(id)}" draggable="true" style="display:flex;align-items:center;gap:9px;padding:6px 9px;border:1px solid var(--line);border-radius:0;margin-bottom:6px;background:var(--card)">
       <span data-cathandle title="Drag to reorder" style="font:15px Hanken Grotesk,sans-serif;color:#c8c4bb;cursor:grab;flex:none;user-select:none">&#x2261;</span>
       <span style="font:600 12px Hanken Grotesk,sans-serif;color:var(--faint);width:18px;text-align:center;flex:none">${i+1}</span>
-      <div style="width:32px;height:32px;border-radius:6px;flex:none;background:var(--bg)${p.image?(" url('"+esc(p.image)+"') center/cover no-repeat"):""}"></div>
+      <div style="width:32px;height:32px;border-radius:0;flex:none;background:var(--bg)${p.image?(" url('"+esc(p.image)+"') center/cover no-repeat"):""}"></div>
       <div style="flex:1;min-width:0"><div style="font:600 12.5px Hanken Grotesk,sans-serif;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.title||id)}</div>
         <div style="font:11.5px Hanken Grotesk,sans-serif;color:#8a857a">${esc(m)}</div></div>
       <button data-catup="${esc(id)}" class="btn ghost" style="padding:3px 9px"${i===0?' disabled':''}>&uarr;</button>
@@ -3693,7 +3693,7 @@ function catGenerate(id){
     if(!ok)throw new Error(d.detail||"Generation failed");
     const res=document.getElementById("catResult");
     const formUrl=(d.url||"").replace(/\.pdf$/,"");
-    if(res){res.innerHTML=`<div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:10px;padding:13px 15px;font:13px Hanken Grotesk,sans-serif">
+    if(res){res.innerHTML=`<div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:13px 15px;font:13px Hanken Grotesk,sans-serif">
       <div style="margin-bottom:8px">Generated <b>${d.count}</b> products.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <a href="${esc(d.url)}" target="_blank" style="color:var(--brand);font-weight:600">Open PDF →</a>
@@ -3721,11 +3721,11 @@ function showFirstRun(){
   if(stats) stats.style.display="none";
   ["viewOverview","viewClients","viewOrders","viewMap","viewBoard","viewCatalogs"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
   const box=document.createElement("div");
-  box.innerHTML=`<div style="max-width:520px;margin:52px auto;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:44px 36px;box-shadow:var(--shadow)">
-    <div style="width:56px;height:56px;border-radius:15px;margin:0 auto 18px;background:var(--brand-tint);display:grid;place-items:center;color:var(--brand-deep);font:600 26px 'Fraunces',serif">&#8258;</div>
+  box.innerHTML=`<div style="max-width:520px;margin:52px auto;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:0;padding:44px 36px;box-shadow:var(--shadow)">
+    <div style="width:56px;height:56px;border-radius:0;margin:0 auto 18px;background:var(--brand-tint);display:grid;place-items:center;color:var(--brand-deep);font:600 26px 'Fraunces',serif">&#8258;</div>
     <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:22px;letter-spacing:-.01em">No potential VICs surfaced yet</h2>
     <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">Halia hasn't scored your customers yet. Run a sync to pull your orders from Shopify and surface the high-potential clients your spend thresholds miss.</p>
-    <button id="firstRunSync" style="margin-top:22px;padding:11px 22px;border-radius:10px;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">Score my customers</button>
+    <button id="firstRunSync" style="margin-top:22px;padding:11px 22px;border-radius:0;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">Score my customers</button>
     <p style="color:var(--faint);font-size:12px;margin-top:14px">This usually takes under a minute.</p>
   </div>`;
   wrap.appendChild(box);

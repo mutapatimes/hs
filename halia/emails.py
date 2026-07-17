@@ -33,9 +33,9 @@ def base_url() -> str:
 def _btn(label: str, href: str) -> str:
     return (
         f"<table role=presentation cellpadding=0 cellspacing=0 style='margin:26px 0 10px'><tr><td "
-        f"style='border-radius:999px;background:{_ACCENT}'>"
+        f"style='border-radius:0;background:{_ACCENT}'>"
         f"<a href='{href}' style='display:inline-block;padding:14px 30px;font:600 14px {_SANS};"
-        f"letter-spacing:.03em;color:#ffffff;text-decoration:none;border-radius:999px'>"
+        f"letter-spacing:.03em;color:#ffffff;text-decoration:none;border-radius:0'>"
         f"{_html.escape(label)} &#8594;</a>"
         f"</td></tr></table>")
 
@@ -90,10 +90,10 @@ def _layout(subject: str, greeting: str, body_html: str, unsub_url: str, eyebrow
         # masthead hero
         f"{_hero(eyebrow)}"
         # card — a fine gold top rule, then the white body
-        f"<tr><td style='height:3px;background:{_GOLD};border-radius:16px 16px 0 0;"
+        f"<tr><td style='height:3px;background:{_GOLD};border-radius:0;"
         f"line-height:3px;font-size:0'>&nbsp;</td></tr>"
         f"<tr><td style='background:{_PAPER};border:1px solid {_LINE};border-top:none;"
-        f"border-radius:0 0 16px 16px;padding:36px 38px 30px'>"
+        f"border-radius:0;padding:36px 38px 30px'>"
         f"<p style='margin:0 0 20px;font:600 17px/1.5 {_SERIF};color:{_INK}'>{greeting}</p>"
         f"{body_html}"
         # sign-off

@@ -36,9 +36,9 @@ header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;t
 .hfoot .hf-news{display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap;padding-bottom:50px;margin-bottom:50px;border-bottom:1px solid var(--line,rgba(20,18,12,.14))}
 .hfoot .hf-news h3{font-family:var(--serif,'Cormorant Garamond',Georgia,serif);font-weight:300;font-size:clamp(24px,3vw,34px);max-width:28ch;line-height:1.1;margin:0}
 .hfoot .hf-news form{display:flex;gap:10px;flex-wrap:wrap;margin:0}
-.hfoot .hf-news input{background:var(--bg-2,#efeadd);border:1px solid var(--line,rgba(20,18,12,.14));border-radius:999px;padding:13px 20px;color:var(--ink,#1a1712);font:500 14px var(--sans,'Inter',system-ui,sans-serif);min-width:250px;outline:none}
+.hfoot .hf-news input{background:var(--bg-2,#efeadd);border:1px solid var(--line,rgba(20,18,12,.14));border-radius:0;padding:13px 20px;color:var(--ink,#1a1712);font:500 14px var(--sans,'Inter',system-ui,sans-serif);min-width:250px;outline:none}
 .hfoot .hf-news input::placeholder{color:var(--faint,#9a9385)}
-.hfoot .hf-news button{display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--ink,#1a1712);background:var(--ink,#1a1712);color:var(--bg,#f5f2ea);border-radius:999px;padding:13px 24px;font:500 14px var(--sans,'Inter',system-ui,sans-serif);transition:.2s}
+.hfoot .hf-news button{display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--ink,#1a1712);background:var(--ink,#1a1712);color:var(--bg,#f5f2ea);border-radius:0;padding:13px 24px;font:500 14px var(--sans,'Inter',system-ui,sans-serif);transition:.2s}
 .hfoot .hf-news button:hover{background:transparent;color:var(--ink,#1a1712)}
 .hfoot .hf-news .ok{color:var(--mute,#615b50);font-size:15px}
 .hfoot .hf-brand{margin-bottom:48px}
@@ -63,12 +63,12 @@ header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;t
    --vars, so it adapts to the light subpages and the dark homepage nav alike. */
 .nav-drop{position:relative;display:inline-flex;align-items:center}
 .nav-menu{position:absolute;top:100%;left:50%;transform:translateX(-50%) translateY(14px);min-width:236px;
-  background:var(--bg,#f5f2ea);border:1px solid var(--line,rgba(20,18,12,.14));border-radius:12px;padding:8px;
+  background:var(--bg,#f5f2ea);border:1px solid var(--line,rgba(20,18,12,.14));border-radius:0;padding:8px;
   box-shadow:0 26px 60px -28px rgba(10,10,11,.5);display:flex;flex-direction:column;gap:1px;
   opacity:0;visibility:hidden;transition:opacity .2s,transform .2s;z-index:60}
 .nav-menu::before{content:"";position:absolute;left:0;right:0;top:-16px;height:16px}  /* hover bridge */
 .nav-drop:hover .nav-menu,.nav-drop:focus-within .nav-menu{opacity:1;visibility:visible;transform:translateX(-50%) translateY(8px)}
-.nav-menu a{font:500 13.5px var(--sans,'Inter',system-ui,sans-serif);color:var(--mute,#615b50);padding:9px 12px;border-radius:8px;white-space:nowrap}
+.nav-menu a{font:500 13.5px var(--sans,'Inter',system-ui,sans-serif);color:var(--mute,#615b50);padding:9px 12px;border-radius:0;white-space:nowrap}
 .nav-menu a:hover{background:var(--bg-2,#efeadd);color:var(--ink,#1a1712)}
 .nav-menu a.all{color:var(--gold,#7a7363);border-top:1px solid var(--line-2,rgba(20,18,12,.07));border-radius:0;margin-top:4px;padding-top:11px}
 

@@ -65,27 +65,27 @@
     position:sticky;top:0;z-index:40;
   }
   .sf-logo{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:.2px;font-size:14px;color:#fff;opacity:.92}
-  .sf-bag{width:22px;height:22px;border-radius:5px;background:#5A8E3B;display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
+  .sf-bag{width:22px;height:22px;border-radius:0;background:#5A8E3B;display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
   .sf-search{
-    flex:1;max-width:520px;margin:0 auto;height:32px;border-radius:8px;
+    flex:1;max-width:520px;margin:0 auto;height:32px;border-radius:0;
     background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.08);
     display:flex;align-items:center;padding:0 12px;color:#C3C6CB;font-size:13px;gap:8px
   }
   .sf-store{display:flex;align-items:center;gap:9px;font-size:13px;color:#D7D9DC}
-  .sf-ava{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6f9c6a,#3c6f53);display:grid;place-items:center;color:#fff;font-weight:600;font-size:11px}
+  .sf-ava{width:26px;height:26px;border-radius:0;background:linear-gradient(135deg,#6f9c6a,#3c6f53);display:grid;place-items:center;color:#fff;font-weight:600;font-size:11px}
 
   .sidenav{
     background:var(--shell);border-right:1px solid var(--line-strong);
     padding:12px 10px;position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto
   }
   .nav-item{
-    display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;
+    display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:0;
     color:var(--shell-ink);font-size:13.5px;font-weight:500;cursor:default;margin-bottom:1px;opacity:.78
   }
   .nav-item .ic{width:17px;height:17px;opacity:.7;flex:none}
   .nav-sec{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:14px 10px 6px;font-weight:600}
   .nav-item.app{background:var(--card);opacity:1;color:var(--ink);font-weight:600;box-shadow:inset 0 0 0 1px var(--line)}
-  .nav-item.app .dot{width:18px;height:18px;border-radius:5px;background:var(--brand-deep);display:grid;place-items:center;color:#fff;font-family:'Fraunces',serif;font-size:12px;font-weight:600;flex:none}
+  .nav-item.app .dot{width:18px;height:18px;border-radius:0;background:var(--brand-deep);display:grid;place-items:center;color:#fff;font-family:'Fraunces',serif;font-size:12px;font-weight:600;flex:none}
 
   /* ---------- App canvas ---------- */
   .canvas{background:var(--bg);min-height:calc(100vh - 52px);padding:26px 30px 80px}
@@ -98,12 +98,12 @@
   .title{font-family:'Fraunces',serif;font-weight:500;font-size:30px;letter-spacing:-.01em;line-height:1.05}
   .sub{color:var(--soft);font-size:14px;margin-top:7px;max-width:560px}
   .live{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--soft);white-space:nowrap}
-  .pulse{width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 0 rgba(31,86,74,.5);animation:pulse 2.4s infinite}
+  .pulse{width:7px;height:7px;border-radius:0;background:var(--brand);box-shadow:0 0 0 0 rgba(31,86,74,.5);animation:pulse 2.4s infinite}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(31,86,74,.45)}70%{box-shadow:0 0 0 7px rgba(31,86,74,0)}100%{box-shadow:0 0 0 0 rgba(31,86,74,0)}}
 
   /* stat strip */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 8px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow)}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:0;padding:15px 16px;box-shadow:var(--shadow)}
   .stat .k{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);font-weight:600}
   .stat .v{font-family:'Fraunces',serif;font-weight:500;font-size:25px;margin-top:7px;letter-spacing:-.01em}
   .stat .n{font-size:12px;color:var(--soft);margin-top:3px}
@@ -118,7 +118,7 @@
   .chips{display:flex;gap:7px;flex-wrap:wrap;flex:1}
   .chip{
     border:1px solid var(--line-strong);background:var(--card);color:var(--soft);
-    padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;cursor:pointer;
+    padding:6px 12px;border-radius:0;font-size:12.5px;font-weight:600;cursor:pointer;
     transition:all .15s;white-space:nowrap
   }
   .chip:hover{border-color:#B9B5A9;color:var(--ink)}
@@ -127,7 +127,7 @@
   .chip.on .ct{opacity:.7}
   .search{
     display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line-strong);
-    border-radius:10px;padding:0 11px;height:36px;min-width:210px
+    border-radius:0;padding:0 11px;height:36px;min-width:210px
   }
   .search input{border:0;outline:0;background:none;font:inherit;font-size:13.5px;width:100%;color:var(--ink)}
   .search svg{opacity:.45;flex:none}
@@ -136,11 +136,11 @@
   .controls{display:flex;align-items:center;gap:14px;margin:0 0 16px;flex-wrap:wrap}
   .controls label{display:flex;align-items:center;gap:7px;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);font-weight:600}
   .controls label.push{margin-left:auto}
-  .controls select{font:inherit;font-size:13px;font-weight:500;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:9px;padding:6px 10px;cursor:pointer;text-transform:none;letter-spacing:0}
+  .controls select{font:inherit;font-size:13px;font-weight:500;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:0;padding:6px 10px;cursor:pointer;text-transform:none;letter-spacing:0}
   .controls select:hover{border-color:#B9B5A9}
 
   /* table */
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:var(--shadow);overflow:hidden}
   .thead{
     display:grid;grid-template-columns:34px 56px 1fr 132px 120px 96px;
     gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);
@@ -156,7 +156,7 @@
   .row:last-child{border-bottom:0}
   .row:hover{background:var(--rowhover)}
   .row.sel{background:var(--brand-tint)}
-  .cbx{width:18px;height:18px;border:1.5px solid var(--line-strong);border-radius:5px;display:grid;place-items:center;background:#fff;transition:all .12s}
+  .cbx{width:18px;height:18px;border:1.5px solid var(--line-strong);border-radius:0;display:grid;place-items:center;background:#fff;transition:all .12s}
   .cbx.on{background:var(--brand);border-color:var(--brand)}
   .cbx svg{opacity:0}
   .cbx.on svg{opacity:1}
@@ -164,7 +164,7 @@
   .rank{font-family:'Spline Sans Mono',monospace;font-size:13px;color:var(--faint);font-weight:500}
 
   .client{display:flex;gap:13px;align-items:center;min-width:0}
-  .ava{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:#fff;background:var(--tierB)}
+  .ava{width:38px;height:38px;border-radius:0;flex:none;display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:#fff;background:var(--tierB)}
   .ava.A1{background:linear-gradient(140deg,#1d4d42,#143a32)}
   .ava.A{background:linear-gradient(140deg,#26695b,#1f564a)}
   .cinfo{min-width:0}
@@ -173,7 +173,7 @@
   .csignals{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
   .sig{
     font-size:11px;font-weight:600;color:var(--brand-deep);background:var(--brand-tint);
-    border-radius:6px;padding:2px 7px;white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis
+    border-radius:0;padding:2px 7px;white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis
   }
   .sig.more{background:#F1EFE9;color:var(--soft)}
 
@@ -192,13 +192,13 @@
   .money .lbl{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;font-family:'Hanken Grotesk',sans-serif;font-weight:600}
   .latent .big{color:var(--brand)}
 
-  .go{justify-self:end;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--faint);border:1px solid transparent}
+  .go{justify-self:end;width:30px;height:30px;border-radius:0;display:grid;place-items:center;color:var(--faint);border:1px solid transparent}
   .row:hover .go{border-color:var(--line);color:var(--soft)}
 
   /* bulk action bar */
   .bulk{
     position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(140%);
-    background:var(--ink);color:#fff;border-radius:14px;padding:11px 12px 11px 18px;
+    background:var(--ink);color:#fff;border-radius:0;padding:11px 12px 11px 18px;
     display:flex;align-items:center;gap:16px;box-shadow:var(--shadow-lg);z-index:50;
     transition:transform .3s cubic-bezier(.2,.8,.2,1);opacity:0
   }
@@ -208,12 +208,12 @@
   .bulk .acts{display:flex;gap:8px}
   .bbtn{
     border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;font-weight:600;font-size:13px;
-    padding:8px 13px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:background .14s
+    padding:8px 13px;border-radius:0;cursor:pointer;display:flex;align-items:center;gap:7px;transition:background .14s
   }
   .bbtn:hover{background:rgba(255,255,255,.2)}
   .bbtn.primary{background:var(--brand);}
   .bbtn.primary:hover{background:#27695b}
-  .bclear{background:none;border:0;color:#B9BBC0;cursor:pointer;font:inherit;font-size:18px;padding:4px 8px;border-radius:8px}
+  .bclear{background:none;border:0;color:#B9BBC0;cursor:pointer;font:inherit;font-size:18px;padding:4px 8px;border-radius:0}
   .bclear:hover{color:#fff}
 
   /* drawer */
@@ -227,15 +227,15 @@
   .drawer.show{transform:none}
   .dhead{padding:22px 24px 18px;border-bottom:1px solid var(--line);background:var(--card)}
   .dtop{display:flex;justify-content:space-between;align-items:flex-start}
-  .dclose{background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:9px;cursor:pointer;color:var(--soft);font-size:16px;display:grid;place-items:center}
+  .dclose{background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:0;cursor:pointer;color:var(--soft);font-size:16px;display:grid;place-items:center}
   .dclose:hover{background:var(--rowhover);color:var(--ink)}
   .dident{display:flex;gap:14px;align-items:center;margin-top:4px}
-  .dava{width:52px;height:52px;border-radius:13px;display:grid;place-items:center;font-family:'Fraunces',serif;font-size:21px;color:#fff}
+  .dava{width:52px;height:52px;border-radius:0;display:grid;place-items:center;font-family:'Fraunces',serif;font-size:21px;color:#fff}
   .dname{font-family:'Fraunces',serif;font-size:22px;font-weight:500}
   .dmeta{font-size:12.5px;color:var(--soft);margin-top:2px}
   .dbody{padding:20px 24px;overflow:auto;flex:1}
   .dscore{display:flex;gap:12px;margin-bottom:22px}
-  .dcard{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+  .dcard{flex:1;background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 14px}
   .dcard .k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);font-weight:700}
   .dcard .v{font-family:'Fraunces',serif;font-size:21px;margin-top:6px}
   .dcard .v.mono{font-family:'Spline Sans Mono',monospace;font-size:19px}
@@ -244,17 +244,17 @@
 
   .dlabel{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:4px 0 12px}
   .evidence{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
-  .ev{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;display:flex;gap:12px;align-items:flex-start}
-  .ev .badge{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--brand-deep);background:var(--brand-tint);padding:3px 8px;border-radius:6px;white-space:nowrap;flex:none;margin-top:1px}
+  .ev{background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 14px;display:flex;gap:12px;align-items:flex-start}
+  .ev .badge{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--brand-deep);background:var(--brand-tint);padding:3px 8px;border-radius:0;white-space:nowrap;flex:none;margin-top:1px}
   .ev .d{font-size:13.5px;color:var(--ink);line-height:1.4}
   .ev .d small{display:block;color:var(--soft);font-size:12px;margin-top:2px}
 
-  .reco{background:#fff;border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:12px;padding:14px 16px;margin-bottom:22px}
+  .reco{background:#fff;border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:0;padding:14px 16px;margin-bottom:22px}
   .reco .k{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:6px}
   .reco p{font-size:13.5px;color:var(--ink);line-height:1.5}
 
   .dactions{padding:16px 24px;border-top:1px solid var(--line);background:var(--card);display:flex;gap:10px}
-  .dbtn{flex:1;border:1px solid var(--line-strong);background:#fff;font:inherit;font-weight:600;font-size:13.5px;padding:11px;border-radius:10px;cursor:pointer;color:var(--ink)}
+  .dbtn{flex:1;border:1px solid var(--line-strong);background:#fff;font:inherit;font-weight:600;font-size:13.5px;padding:11px;border-radius:0;cursor:pointer;color:var(--ink)}
   .dbtn:hover{background:var(--rowhover)}
   .dbtn.primary{background:var(--brand-deep);border-color:var(--brand-deep);color:#fff}
   .dbtn.primary:hover{background:var(--brand)}
@@ -262,11 +262,11 @@
   /* toast */
   .toast{
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(140%);
-    background:var(--brand-deep);color:#fff;padding:13px 18px;border-radius:12px;font-size:13.5px;font-weight:500;
+    background:var(--brand-deep);color:#fff;padding:13px 18px;border-radius:0;font-size:13.5px;font-weight:500;
     box-shadow:var(--shadow-lg);z-index:90;transition:transform .3s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;gap:10px;max-width:90vw
   }
   .toast.show{transform:translateX(-50%)}
-  .toast .tick{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;flex:none}
+  .toast .tick{width:20px;height:20px;border-radius:0;background:rgba(255,255,255,.2);display:grid;place-items:center;flex:none}
 
   .foot{text-align:center;color:var(--faint);font-size:12px;margin-top:24px;line-height:1.6}
   .foot b{color:var(--soft);font-weight:600}
@@ -281,7 +281,7 @@
     .canvas{padding:20px 16px 80px}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-  :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:0}
 </style>
 </head>
 <body>
@@ -631,7 +631,7 @@ function openDrawer(id){
       </div>
 
       <div class="dlabel">Order history${c.orders&&c.orders.length?` · ${c.orders.length}`:""}</div>
-      <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+      <div style="border:1px solid var(--line);border-radius:0;overflow:hidden">
         ${(c.orders&&c.orders.length)
           ? c.orders.slice(0,12).map(o=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px">
               <span style="color:var(--soft)">${o.date||"·"}</span>
@@ -645,7 +645,7 @@ function openDrawer(id){
       ${c.shopifyUrl?`<a class="dbtn" href="${c.shopifyUrl}" target="_top">Open in Shopify</a>`:""}
       <div style="position:relative">
         <button class="dbtn" id="dmail">Email ▾</button>
-        <div id="dmailmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${mailtoItems(c)}</div>
+        <div id="dmailmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:0;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${mailtoItems(c)}</div>
       </div>
       <button class="dbtn primary" id="dpush">Open in Klaviyo →</button>
     </div>`;
@@ -712,9 +712,9 @@ const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").rep
 function showConnectBanner(){
   const wrap=document.querySelector(".wrap"); if(!wrap||document.getElementById("kv-banner")) return;
   const div=document.createElement("div"); div.id="kv-banner";
-  div.style.cssText="margin:0 0 18px;padding:14px 16px;background:#fff;border:1px solid #d8c79a;border-left:3px solid var(--brand);border-radius:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+  div.style.cssText="margin:0 0 18px;padding:14px 16px;background:#fff;border:1px solid #d8c79a;border-left:3px solid var(--brand);border-radius:0;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
   div.innerHTML='<div style="flex:1;min-width:240px"><b>Connect Klaviyo</b> <span style="color:var(--soft)">Paste your Klaviyo <b>private</b> API key (pk_…) to push grades, build segments, and email clients. You can also do this in ⚙ Settings.</span></div>'
-    +'<input id="kv-key" type="password" placeholder="pk_live_…" autocomplete="off" style="flex:0 0 220px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px system-ui">'
+    +'<input id="kv-key" type="password" placeholder="pk_live_…" autocomplete="off" style="flex:0 0 220px;padding:8px 10px;border:1px solid var(--line);border-radius:0;font:13px system-ui">'
     +'<button id="kv-connect" class="dbtn primary" style="border:none">Connect</button>';
   wrap.insertBefore(div, wrap.firstChild);
   document.getElementById("kv-connect").onclick=()=>{
@@ -731,7 +731,7 @@ const settingsEl=document.getElementById("settings");
 function closeSettings(){settingsEl.style.display="none";}
 function openSettings(){
   let tmpl=JSON.parse(JSON.stringify(EMAIL_TEMPLATES||[]));
-  function rows(){return tmpl.map((t,i)=>`<div style="border:1px solid #e3e3e3;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafafa">
+  function rows(){return tmpl.map((t,i)=>`<div style="border:1px solid #e3e3e3;border-radius:0;padding:12px;margin-bottom:10px;background:#fafafa">
       <input data-tn="${i}" value="${esc(t.name)}" placeholder="Template name" style="width:100%;${I};margin-bottom:8px">
       <input data-ts="${i}" value="${esc(t.subject)}" placeholder="Subject" style="width:100%;${I};margin-bottom:8px">
       <textarea data-tb="${i}" rows="5" placeholder="Body: use {first_name} and {sender}" style="width:100%;${I};resize:vertical">${esc(t.body)}</textarea>
@@ -741,12 +741,12 @@ function openSettings(){
     settingsEl.querySelectorAll("[data-ts]").forEach(el=>tmpl[+el.dataset.ts].subject=el.value);
     settingsEl.querySelectorAll("[data-tb]").forEach(el=>tmpl[+el.dataset.tb].body=el.value);
   }
-  const I="box-sizing:border-box;padding:8px 12px;border:1px solid #8a8a8a;border-radius:8px;font:14px system-ui;color:#303030;background:#fff";
-  const C="background:#fff;border:1px solid #e3e3e3;border-radius:12px;padding:18px 20px;margin-bottom:16px";
+  const I="box-sizing:border-box;padding:8px 12px;border:1px solid #8a8a8a;border-radius:0;font:14px system-ui;color:#303030;background:#fff";
+  const C="background:#fff;border:1px solid #e3e3e3;border-radius:0;padding:18px 20px;margin-bottom:16px";
   const H="font:650 14px system-ui;color:#303030;margin:0 0 4px";
   const P="font:13px/1.5 system-ui;color:#616161;margin:0 0 14px";
-  const BP="background:#303030;color:#fff;border:none;border-radius:8px;padding:11px 20px;font:600 13px system-ui;cursor:pointer";
-  const BS="background:#fff;color:#303030;border:1px solid #999;border-radius:8px;padding:9px 15px;font:600 13px system-ui;cursor:pointer";
+  const BP="background:#303030;color:#fff;border:none;border-radius:0;padding:11px 20px;font:600 13px system-ui;cursor:pointer";
+  const BS="background:#fff;color:#303030;border:1px solid #999;border-radius:0;padding:9px 15px;font:600 13px system-ui;cursor:pointer";
   const LBL="font:500 12px system-ui;color:#616161;margin-bottom:5px";
   const kv=SETTINGS.klaviyo_connected;
   const mc=SETTINGS.mailchimp_connected;
@@ -857,6 +857,6 @@ document.getElementById("openSettings").onclick=openSettings;
 renderChips();renderRows();
 loadSettings().then(s=>{ if(!s.klaviyo_connected) showConnectBanner(); });
 </script>
-<div style="position:fixed;left:16px;bottom:16px;z-index:600;background:#1f564a;color:#fff;font:600 12px system-ui;padding:9px 15px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.28)">Live demo &middot; sample data &nbsp;&middot;&nbsp; <a href="/connect" style="color:#fff;text-decoration:underline">Connect your store &rarr;</a></div>
+<div style="position:fixed;left:16px;bottom:16px;z-index:600;background:#1f564a;color:#fff;font:600 12px system-ui;padding:9px 15px;border-radius:0;box-shadow:0 8px 24px rgba(0,0,0,.28)">Live demo &middot; sample data &nbsp;&middot;&nbsp; <a href="/connect" style="color:#fff;text-decoration:underline">Connect your store &rarr;</a></div>
 </body>
 </html>
