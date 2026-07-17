@@ -136,6 +136,11 @@
   .tiers .tn{font-family:var(--serif);font-size:clamp(19px,2.2vw,26px);color:var(--ink)}
   .tiers .tp{font:500 clamp(13px,1.6vw,16px) var(--mono);color:var(--gold);white-space:nowrap}
   .tiers td small{display:block;font:400 12px/1.55 var(--sans);color:var(--mute);margin-top:6px}
+  /* the anchor tier — quietly emphasised so the eye lands on the middle option */
+  .tiers tr.pop td{background:rgba(216,210,198,.06);border-color:rgba(216,210,198,.34)}
+  .tiers tr.pop .tn{color:var(--gold)}
+  .tiers .most{display:inline-block;vertical-align:middle;margin-left:10px;font:600 9.5px var(--sans);
+    letter-spacing:.16em;text-transform:uppercase;color:var(--bg);background:var(--gold);padding:3px 8px;border-radius:0}
 
   /* checklist */
   .ast-list{list-style:none;margin-top:36px}
@@ -153,6 +158,52 @@
   .cv .what b{display:block;color:var(--ink);font-weight:600;font-size:clamp(14px,1.6vw,16.5px)}
   .cv .what span{font:400 13px/1.6 var(--sans);color:var(--mute)}
 
+  /* agenda list */
+  .agenda{list-style:none;margin-top:14px;max-width:720px}
+  .agenda li{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:baseline;padding:19px 0;border-top:1px solid var(--line-2)}
+  .agenda li:last-child{border-bottom:1px solid var(--line-2)}
+  .agenda .no{font-family:var(--serif);font-size:clamp(22px,2.8vw,36px);color:var(--gold);line-height:1;font-variant-numeric:tabular-nums}
+  .agenda .tx{font-size:clamp(15px,1.8vw,21px);color:var(--ink);line-height:1.4}
+  /* deck CTA button (links out to the live sample dashboard) */
+  .dbtn{display:inline-flex;align-items:center;gap:11px;margin-top:38px;padding:15px 30px;border-radius:999px;
+    border:1px solid var(--gold);background:var(--gold);color:#1a1408;text-decoration:none;
+    font:600 15px var(--sans);letter-spacing:.01em;transition:background .25s,color .25s,transform .25s}
+  .dbtn:hover{background:transparent;color:var(--gold);transform:translateX(4px)}
+  .dbtn .ar{font-size:17px;line-height:1}
+  a.bwin{text-decoration:none}
+  /* competitor positioning quadrant */
+  .quad{position:relative;max-width:720px;margin:44px auto 0;aspect-ratio:16/11;border:1px solid var(--line);background:
+    linear-gradient(90deg,transparent 49.6%,var(--line-2) 49.6%,var(--line-2) 50.4%,transparent 50.4%),
+    linear-gradient(0deg,transparent 49.6%,var(--line-2) 49.6%,var(--line-2) 50.4%,transparent 50.4%)}
+  .quad .qlab{position:absolute;font:600 10.5px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+  .quad .qlab.t{top:12px;left:50%;transform:translateX(-50%)}
+  .quad .qlab.b{bottom:12px;left:50%;transform:translateX(-50%)}
+  .quad .qlab.l{left:14px;top:50%;transform:translateY(-50%)}
+  .quad .qlab.r{right:14px;top:50%;transform:translateY(-50%)}
+  .quad .pt{position:absolute;transform:translate(-50%,-50%);text-align:center;width:0}
+  .quad .pt .dot{width:9px;height:9px;border-radius:50%;background:var(--mute);margin:0 auto 9px}
+  .quad .pt .nm{font:500 12px var(--sans);color:var(--mute);white-space:nowrap;line-height:1.3}
+  .quad .pt .nm small{display:block;font-size:10.5px;color:var(--faint);letter-spacing:.02em}
+  .quad .pt.halia .dot{width:16px;height:16px;background:var(--gold);box-shadow:0 0 0 7px rgba(216,210,198,.16)}
+  .quad .pt.halia .nm{color:var(--ink);font-weight:600;font-size:15px;font-family:var(--serif)}
+  @media(max-width:720px){.quad .pt .nm small{display:none}.quad .qlab{font-size:9px;letter-spacing:.08em}}
+  /* rep-only link builder overlay */
+  #builder{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;
+    background:rgba(6,6,8,.72);backdrop-filter:blur(4px)}
+  #builder.on{display:flex}
+  #builder .bx{width:min(92vw,460px);background:var(--bg-2);border:1px solid var(--line);padding:26px 26px 22px;font-family:var(--sans)}
+  #builder .bh{display:flex;justify-content:space-between;align-items:center;font-family:var(--serif);font-size:23px;color:var(--ink);margin-bottom:12px}
+  #builder .bh button{background:none;border:none;color:var(--mute);font-size:24px;cursor:pointer;line-height:1}
+  #builder label{display:block;font:600 10.5px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:14px 0 6px}
+  #builder input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);font:14px var(--sans);padding:11px 12px;outline:none}
+  #builder input:focus{border-color:var(--gold)}
+  #builder #bUrl{font-family:var(--mono);font-size:12.5px;color:var(--gold)}
+  #builder .brow{display:flex;gap:10px;margin-top:16px}
+  #builder .bbtn{flex:1;cursor:pointer;border:1px solid var(--gold);background:var(--gold);color:var(--bg);font:600 13px var(--sans);padding:11px}
+  #builder .bbtn.ghost{background:transparent;color:var(--gold)}
+  #builder .bhint{margin-top:14px;font-size:11.5px;color:var(--faint);text-align:center}
+  #builder .bhint b{color:var(--mute)}
+
   .kicker{font:500 12px var(--mono);letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
   .goldline{width:64px;height:1px;background:var(--gold);margin:30px 0}
 </style>
@@ -160,24 +211,61 @@
 <body>
 
 <div id="bar"></div>
-<div id="count">1 / 14</div>
+<div id="count">1 / 16</div>
 <div id="hint">Use &larr; &rarr; to navigate</div>
 <div id="dots"></div>
 <button class="navbtn" id="prev" aria-label="Previous">&larr;</button>
 <button class="navbtn" id="next" aria-label="Next">&rarr;</button>
 
+<!-- Rep-only link builder. Press "b" to open; generates a personalised deck URL. Prospects never see it. -->
+<div id="builder" role="dialog" aria-label="Build a personalised link">
+  <div class="bx">
+    <div class="bh">Build a personalised link <button id="bClose" aria-label="Close">&times;</button></div>
+    <label for="bHouse">Store name</label>
+    <input id="bHouse" type="text" placeholder="e.g. Dover Street Market" autocomplete="off">
+    <label for="bAccent">Accent colour (optional)</label>
+    <input id="bAccent" type="text" placeholder="#000000 or leave blank" autocomplete="off">
+    <label for="bUrl">Your link</label>
+    <input id="bUrl" type="text" readonly>
+    <div class="brow">
+      <button id="bCopy" class="bbtn">Copy link</button>
+      <button id="bOpen" class="bbtn ghost">Preview</button>
+    </div>
+    <div class="bhint">Press <b>b</b> to open this any time. Prospects never see it.</div>
+  </div>
+</div>
+
 <!-- 1 · COVER -->
 <section class="slide">
   <div class="bleed-bg"><video src="img/hero.mp4" autoplay muted loop playsinline poster="img/find_your_most_valuable_clients.jpg"></video><div class="veil"></div></div>
   <div class="in z">
-    <div class="eyebrow" data-r="1">A private briefing for your store</div>
+    <div class="eyebrow" data-r="1" id="t-eyebrow">A private briefing for your store</div>
     <h1 class="huge" data-r="2">&#8258; Halia</h1>
     <p class="sub" data-r="3" style="font-family:var(--serif);font-size:clamp(20px,2.6vw,30px);font-style:italic;color:var(--gold);max-width:none">Private client intelligence for luxury retail.</p>
-    <p class="sub" data-r="4">Halia reads your own customer list and tells you which clients are wealthy enough to become top clients, <b>before their spending shows it</b>.</p>
+    <p class="sub" data-r="4">The clients wealthy enough to become your top clients, found <b>before their spending shows it</b>.</p>
   </div>
 </section>
 
-<!-- 2 · THE FEELING -->
+<!-- 2 · AGENDA -->
+<section class="slide">
+  <div class="in">
+    <div class="cols">
+      <div>
+        <div class="eyebrow" data-r="1">Agenda</div>
+        <h2 class="big" data-r="2">Fifteen minutes.</h2>
+        <ul class="agenda" data-r="3">
+          <li><span class="no">1</span><span class="tx">The clients you cannot see today</span></li>
+          <li><span class="no">2</span><span class="tx">One scan of a real book, live</span></li>
+          <li><span class="no">3</span><span class="tx">What your associates do on Monday</span></li>
+          <li><span class="no">4</span><span class="tx">Where to start, and what it costs</span></li>
+        </ul>
+      </div>
+      <div class="imgcard" data-r="4"><img src="img/three_clients.jpg" alt="Clients in store"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · THE QUIET TRUTH (pain) -->
 <section class="slide">
   <div class="in">
     <div class="eyebrow" data-r="1">The quiet truth</div>
@@ -187,49 +275,18 @@
       <div><div class="n">Past spend</div><div class="l">is the only thing your CRM can rank clients by</div></div>
       <div><div class="n">Capacity</div><div class="l">is what Halia ranks them by: what they could spend with you</div></div>
     </div>
-    <p class="sub" data-r="4">The collector who bought one candle. The founder who ordered once. Today they look like small clients, and they are treated like small clients. Halia finds them for you.</p>
+    <p class="sub" data-r="4">The collector who bought one candle. The founder who ordered once. Today they look like small clients. Halia finds them for you.</p>
   </div>
 </section>
 
-<!-- 3 · ENGINE (live visualiser) -->
-<section class="slide" id="engineSlide">
-  <div class="in">
-    <div class="cols">
-      <div>
-        <div class="eyebrow" data-r="1">The engine · live</div>
-        <h2 class="big" data-r="2">Forty-three signals.<br>One quiet score.</h2>
-        <p class="sub" data-r="3">Public wealth registers and open data: land prices, company ownership, board seats, the address on the order. Evidence corroborates before anyone is surfaced, and every score arrives with its reasons written in plain English.</p>
-      </div>
-      <div class="graph" id="graph" data-r="4">
-        <canvas id="nodelines"></canvas>
-        <div class="score-node"><div class="sv" id="scoreVal">0</div><div class="sg"><b id="scoreGrade">C</b> &middot; Halia score</div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 4 · HOW IT WORKS -->
-<section class="slide">
-  <div class="in">
-    <div class="eyebrow" data-r="1">How it works</div>
-    <h2 class="big" data-r="2">Live in an afternoon.</h2>
-    <div class="srcs" data-r="3" style="grid-template-columns:repeat(3,1fr)">
-      <div><div class="tag">Step one · 10 minutes</div><h3>Connect</h3><p>A read-only connection to Shopify, WooCommerce, BigCommerce or Centra. Your team installs it themselves; there is no IT project.</p></div>
-      <div><div class="tag">Step two · under a minute</div><h3>Score</h3><p>Your book is scored in memory against the registers and released. Halia keeps nothing.</p></div>
-      <div><div class="tag">Step three · same day</div><h3>Act</h3><p>A ranked list with plain reasons, ready for a personal note, a private appointment, a quiet call.</p></div>
-    </div>
-    <p class="sub" data-r="4">Your associates keep working the way they already work. Halia simply tells them who deserves the extra step.</p>
-  </div>
-</section>
-
-<!-- 5 · DEMO (terminal) -->
+<!-- 4 · THE SCAN (terminal, the number) -->
 <section class="slide" id="demoSlide">
   <div class="in">
     <div class="cols">
       <div>
         <div class="eyebrow" data-r="1">A real scan</div>
         <h2 class="big" data-r="2">One scan.<br>Money you did not<br>know you had.</h2>
-        <p class="sub" data-r="3">A UK luxury retailer's book, 47,015 customers, scored in under a minute. This is what your first scan looks like.</p>
+        <p class="sub" data-r="3">A UK luxury retailer's book, 47,015 customers, scored in under a minute.</p>
       </div>
       <div class="term" data-r="4">
         <div class="tbar"><i></i><i></i><i></i><span>halia · engine v1.3</span></div>
@@ -239,33 +296,25 @@
   </div>
 </section>
 
-<!-- 6 · PRODUCT SHOT -->
+<!-- 5 · SEE IT LIVE (links to the sample dashboard) -->
 <section class="slide">
   <div class="in">
-    <div class="eyebrow" data-r="1">Your desk</div>
-    <h2 class="big" data-r="2">A clienteling desk<br>your team opens daily.</h2>
-    <div class="bwin" data-r="3" style="margin-top:40px">
-      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.haliascore.com &middot; Hidden VICs</div></div>
-      <img src="img/dashboard.png" alt="The Halia dashboard: ranked hidden VICs with reasons and latent value">
-    </div>
-    <p class="sub" data-r="4">Ranked clients, win-back plays, a world map of your book, print-ready catalogues, an outreach pipeline for the team, and lookup at the till.</p>
-  </div>
-</section>
-
-<!-- 7 · PLAYS -->
-<section class="slide">
-  <div class="in">
-    <div class="eyebrow" data-r="1">The plays</div>
-    <h2 class="big" data-r="2">Three lists for<br>Monday morning.</h2>
-    <div class="plays">
-      <div class="play" data-r="3"><div class="pn">Hidden VICs</div><div class="pv">the introduction</div><p>Strong wealth signals on modest spend. A personal note and a private appointment before your competitor finds them first.</p></div>
-      <div class="play" data-r="4"><div class="pn">Gone quiet</div><div class="pv">the win-back</div><p>Proven high spenders whose orders stopped. In one real book: a £394,000 lifetime client, quiet for a year, top of the list.</p></div>
-      <div class="play" data-r="5"><div class="pn">Active VICs</div><div class="pv">the protection</div><p>Wealth signals, shopping now. Keep the service impeccable and recognise them by name.</p></div>
+    <div class="cols">
+      <div>
+        <div class="eyebrow" data-r="1">See it live</div>
+        <h2 class="big" data-r="2">Open a real book.</h2>
+        <p class="sub" data-r="3">A fully scored sample store. Explore the grades, the reasons and the plays for yourself.</p>
+        <a class="dbtn" data-r="4" href="/demo" target="_blank" rel="noopener">Explore the live demo <span class="ar">&rarr;</span></a>
+      </div>
+      <a class="bwin" data-r="5" href="/demo" target="_blank" rel="noopener" style="display:block;margin:0">
+        <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">haliascore.com/demo &middot; Hidden VICs</div></div>
+        <img src="img/dashboard.png" alt="Explore the live Halia demo dashboard">
+      </a>
     </div>
   </div>
 </section>
 
-<!-- 8 · THE REASONS -->
+<!-- 6 · THE REASONS -->
 <section class="slide">
   <div class="in">
     <div class="eyebrow" data-r="1">What your team reads</div>
@@ -279,22 +328,55 @@
 <div class="ln dim">Corroborated · 3 independent sources · engine v1.3</div>
       </div>
     </div>
-    <p class="sub" data-r="4">Bare facts from public sources, stated plainly. <b>Your associate reads the reason and decides what to do.</b> The judgement stays human; Halia supplies the sight.</p>
+    <p class="sub" data-r="4">Bare facts from public sources. <b>Your associate reads the reason and decides.</b> The judgement stays human.</p>
   </div>
 </section>
 
-<!-- 9 · PRIVACY -->
+<!-- 7 · YOUR DESK (product shot) -->
 <section class="slide">
-  <div class="bleed-bg"><img src="img/we_keep_nothing.jpg" alt=""><div class="veil"></div></div>
-  <div class="in z">
-    <div class="eyebrow" data-r="1">Discretion, by architecture</div>
-    <h2 class="huge" data-r="2">We keep nothing.</h2>
-    <p class="sub" data-r="3">Your customer records are scored in memory and released; every record stays yours. The reference data is public registers. You remain the data controller, Halia processes transiently under a DPA, and you can delete your account yourself at any time.</p>
-    <p class="sub" data-r="4"><b>Your clients simply experience better service.</b> The wording for your own privacy policy ships in the product, ready to paste.</p>
+  <div class="in">
+    <div class="eyebrow" data-r="1">Your desk</div>
+    <h2 class="big" data-r="2">A clienteling desk<br>your team opens daily.</h2>
+    <div class="bwin" data-r="3" style="margin-top:40px">
+      <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.haliascore.com &middot; Hidden VICs</div></div>
+      <img src="img/dashboard_detail.png" alt="The Halia dashboard: ranked hidden VICs with reasons and latent value">
+    </div>
+    <p class="sub" data-r="4">Ranked clients, win-back plays, a world map of your book, and lookup at the till.</p>
   </div>
 </section>
 
-<!-- 10 · YOUR STACK -->
+<!-- 8 · PLAYS -->
+<section class="slide">
+  <div class="in">
+    <div class="eyebrow" data-r="1">The plays</div>
+    <h2 class="big" data-r="2">Three lists for<br>Monday morning.</h2>
+    <div class="plays">
+      <div class="play" data-r="3"><div class="pn">Hidden VICs</div><div class="pv">the introduction</div><p>Strong wealth signals on modest spend. A personal note and a private appointment before your competitor finds them first.</p></div>
+      <div class="play" data-r="4"><div class="pn">Gone quiet</div><div class="pv">the win-back</div><p>Proven high spenders whose orders stopped. In one real book: a £394,000 lifetime client, quiet for a year, top of the list.</p></div>
+      <div class="play" data-r="5"><div class="pn">Active VICs</div><div class="pv">the protection</div><p>Wealth signals, shopping now. Keep the service impeccable and recognise them by name.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 · COMPETITION (positioning quadrant) -->
+<section class="slide">
+  <div class="in">
+    <div class="eyebrow" data-r="1">The alternatives</div>
+    <h2 class="big" data-r="2">The others keep your data.<br><em>We keep nothing.</em></h2>
+    <div class="quad" data-r="3">
+      <div class="qlab t">Keeps nothing &middot; EU-lawful</div>
+      <div class="qlab b">Retains your data &middot; US-only</div>
+      <div class="qlab l">Reaches followers</div>
+      <div class="qlab r">Reaches wealth</div>
+      <div class="pt halia" style="left:79%;top:23%"><div class="dot"></div><div class="nm">&#8258; Halia<small>capacity, kept in memory</small></div></div>
+      <div class="pt" style="left:74%;top:73%"><div class="dot"></div><div class="nm">US clienteling tools<small>wealth, stored stateside</small></div></div>
+      <div class="pt" style="left:25%;top:69%"><div class="dot"></div><div class="nm">Influencer platforms<small>reach, not revenue</small></div></div>
+    </div>
+    <p class="sub" data-r="4" style="max-width:70ch;margin-left:auto;margin-right:auto;text-align:center">Influencer tools find who is followed. American clienteling tools find who is wealthy, then hold it on US servers you cannot lawfully use in Europe. Halia finds capacity, scores it in memory, and keeps nothing. <b>You stay the data controller.</b></p>
+  </div>
+</section>
+
+<!-- 10 · YOUR STACK (act) -->
 <section class="slide">
   <div class="in">
     <div class="eyebrow" data-r="1">Your stack</div>
@@ -312,7 +394,49 @@
   </div>
 </section>
 
-<!-- 11 · PRICING -->
+<!-- 11 · ENGINE (proof: why the number is trustworthy) -->
+<section class="slide" id="engineSlide">
+  <div class="in">
+    <div class="cols">
+      <div>
+        <div class="eyebrow" data-r="1">Why you can trust it</div>
+        <h2 class="big" data-r="2">Forty-three signals.<br>One quiet score.</h2>
+        <p class="sub" data-r="3">Public wealth registers and open data: land prices, company ownership, board seats, the address on the order. Evidence corroborates before anyone is surfaced.</p>
+      </div>
+      <div class="graph" id="graph" data-r="4">
+        <canvas id="nodelines"></canvas>
+        <div class="score-node"><div class="sv" id="scoreVal">0</div><div class="sg"><b id="scoreGrade">C</b> &middot; Halia score</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 · HOW IT WORKS -->
+<section class="slide">
+  <div class="in">
+    <div class="eyebrow" data-r="1">How it works</div>
+    <h2 class="big" data-r="2">Live in an afternoon.</h2>
+    <div class="srcs" data-r="3" style="grid-template-columns:repeat(3,1fr)">
+      <div><div class="tag">Step one · 10 minutes</div><h3>Connect</h3><p>Read-only to Shopify, WooCommerce, BigCommerce or Centra. Your team installs it themselves, no IT project.</p></div>
+      <div><div class="tag">Step two · under a minute</div><h3>Score</h3><p>Your book is scored in memory, then released. Halia keeps nothing.</p></div>
+      <div><div class="tag">Step three · same day</div><h3>Act</h3><p>A ranked list with plain reasons, ready for the note, the appointment, the call.</p></div>
+    </div>
+    <p class="sub" data-r="4">Your associates work the way they already work. Halia tells them who deserves the extra step.</p>
+  </div>
+</section>
+
+<!-- 13 · PRIVACY -->
+<section class="slide">
+  <div class="bleed-bg"><img src="img/we_keep_nothing.jpg" alt=""><div class="veil"></div></div>
+  <div class="in z">
+    <div class="eyebrow" data-r="1">Discretion, by architecture</div>
+    <h2 class="huge" data-r="2">We keep nothing.</h2>
+    <p class="sub" data-r="3">Your records are scored in memory and released. You remain the data controller, and can delete your account yourself at any time.</p>
+    <p class="sub" data-r="4"><b>Your clients simply experience better service.</b></p>
+  </div>
+</section>
+
+<!-- 14 · PRICING -->
 <section class="slide">
   <div class="in">
     <div class="eyebrow" data-r="1">The arrangement</div>
@@ -320,35 +444,35 @@
     <table class="tiers" data-r="3">
       <tr><th>Tier</th><th>Monthly</th><th>Onboarding scan</th><th>For</th></tr>
       <tr><td class="tn">Discovery</td><td class="tp">£150</td><td class="tp">£750</td><td>Up to 15k customers<small>The single-door boutique</small></td></tr>
-      <tr><td class="tn">Signal</td><td class="tp">£500</td><td class="tp">£1,250</td><td>15k&ndash;75k customers<small>The established multi-label store</small></td></tr>
+      <tr class="pop"><td class="tn">Signal <span class="most">Most chosen</span></td><td class="tp">£500</td><td class="tp">£1,250</td><td>15k&ndash;75k customers<small>The established multi-label store</small></td></tr>
       <tr><td class="tn">Atelier</td><td class="tp">£1,200</td><td class="tp">£2,000+</td><td>75k+ customers<small>Flagships and multi-door retailers</small></td></tr>
       <tr><td class="tn">Maison</td><td class="tp">Custom</td><td class="tp">Bespoke</td><td>Groups &amp; department stores</td></tr>
     </table>
-    <p class="sub" data-r="4">Every tier includes the full product, every play, every integration and a person who answers. <b>Your scan is free: see how many VICs are hiding before a card is ever asked for.</b> The onboarding scan is optional, and refundable if it surfaces fewer VICs than promised. One recovered client typically covers the year.</p>
+    <p class="sub" data-r="4"><b>Your scan is free: see how many VICs are hiding before a card is ever asked for.</b> One recovered client typically covers the year.</p>
   </div>
 </section>
 
-<!-- 12 · FIRST MONTH -->
+<!-- 15 · FIRST MONTH -->
 <section class="slide">
   <div class="in">
     <div class="eyebrow" data-r="1">Your first month</div>
     <h2 class="big" data-r="2">What to expect.</h2>
     <div class="cv" data-r="3" style="max-width:720px">
-      <div class="yr">Day 1</div><div class="what"><b>Connect and scan</b><span>Read-only connection, first scan, and your ranked list the same afternoon.</span></div>
-      <div class="yr">Week 1</div><div class="what"><b>First outreach</b><span>Your team works the Gone quiet list first: proven clients, warmest welcome back. We walk your associates through the reasons.</span></div>
-      <div class="yr">Week 2&ndash;4</div><div class="what"><b>Calibrate</b><span>Your benchmarks (top client, average order) tune the latent values to your numbers; scores refresh with every sync.</span></div>
-      <div class="yr">Day 30</div><div class="what"><b>Review</b><span>We sit down over the results: who was reached, who responded, what it earned. You decide from evidence.</span></div>
+      <div class="yr">Day 1</div><div class="what"><b>Connect and scan</b><span>Read-only connection, first scan, ranked list the same afternoon.</span></div>
+      <div class="yr">Week 1</div><div class="what"><b>Win-back first</b><span>Your team works the Gone quiet list: proven clients, warmest welcome back. We walk your associates through the reasons.</span></div>
+      <div class="yr">Week 2&ndash;4</div><div class="what"><b>Calibrate</b><span>Your benchmarks tune the latent values to your numbers; scores refresh with every sync.</span></div>
+      <div class="yr">Day 30</div><div class="what"><b>Review</b><span>Who was reached, who responded, what it earned. You decide from evidence.</span></div>
     </div>
   </div>
 </section>
 
-<!-- 13 · CLOSE -->
+<!-- 16 · CLOSE -->
 <section class="slide">
   <div class="bleed-bg"><img src="img/find_your_most_valuable_clients.jpg" alt=""><div class="veil"></div></div>
   <div class="in z">
     <div class="eyebrow" data-r="1">The next step</div>
-    <h2 class="huge" data-r="2">See your book scored.</h2>
-    <p class="sub" data-r="3">Connect your store and see your own numbers the same day: how many hidden VICs, how much latent value, who went quiet. <b>Your data stays yours throughout.</b></p>
+    <h2 class="huge" data-r="2" id="t-close">See your book scored.</h2>
+    <p class="sub" data-r="3">Connect your store and see your own numbers the same day. <b>Your data stays yours throughout.</b></p>
     <div class="goldline" data-r="4"></div>
     <p class="sub" data-r="5" style="font-family:var(--serif);font-size:clamp(22px,3vw,34px);font-style:italic;color:var(--ink);max-width:none">&#8258; Halia</p>
     <p class="sub" data-r="6" style="margin-top:10px"><b>hello@haliascore.com</b> &middot; haliascore.com/connect</p>
@@ -380,6 +504,10 @@
   }
 
   addEventListener('keydown',function(e){
+    // never navigate while typing in the link builder, or while it is open
+    var tag=e.target&&e.target.tagName;
+    if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;
+    var bx=document.getElementById('builder'); if(bx&&bx.classList.contains('on'))return;
     if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(cur+1);}
     else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();go(cur-1);}
     else if(e.key==='Home')go(0); else if(e.key==='End')go(N-1);
@@ -474,6 +602,56 @@
 
   slides[0].classList.add('on');
   bar.style.width=(1/N*100)+'%';dEls[0].classList.add('on');
+  count.textContent='1 / '+N;
+})();
+
+/* Per-prospect personalisation: ?house=Dover Street Market names them on the cover, the close,
+   and the tab. Optional &accent=RRGGBB tints the highlight. textContent so a name can't inject. */
+(function(){
+  try{
+    var params=new URLSearchParams(location.search);
+    var house=(params.get('house')||'').trim().slice(0,48);
+    if(house){
+      var eb=document.getElementById('t-eyebrow'); if(eb) eb.textContent='A private briefing for '+house;
+      var cl=document.getElementById('t-close');   if(cl) cl.textContent=house+', see your book scored.';
+      try{ document.title=house+' · a private briefing from Halia'; }catch(_){}
+    }
+    var ac=(params.get('accent')||'').trim().replace(/^#/,'');
+    if(/^[0-9a-fA-F]{6}$/.test(ac)) document.documentElement.style.setProperty('--gold','#'+ac);
+  }catch(e){}
+})();
+
+/* Rep-only link builder: press "b" to open, type the store name, copy the URL. */
+(function(){
+  var box=document.getElementById('builder'); if(!box)return;
+  var house=document.getElementById('bHouse'), accent=document.getElementById('bAccent'),
+      url=document.getElementById('bUrl'), copy=document.getElementById('bCopy'),
+      openb=document.getElementById('bOpen'), closeb=document.getElementById('bClose');
+  function build(){
+    var base=location.origin+location.pathname, p=[];
+    var h=house.value.trim(); if(h)p.push('house='+encodeURIComponent(h));
+    var a=accent.value.trim().replace(/^#/,''); if(/^[0-9a-fA-F]{6}$/.test(a))p.push('accent='+a);
+    url.value=base+(p.length?'?'+p.join('&'):'');
+    return url.value;
+  }
+  [house,accent].forEach(function(el){el.addEventListener('input',build);});
+  function open(){build();box.classList.add('on');setTimeout(function(){house.focus();},30);}
+  function close(){box.classList.remove('on');}
+  closeb.onclick=close;
+  box.addEventListener('click',function(e){if(e.target===box)close();});
+  copy.onclick=function(){var v=build();
+    function done(){copy.textContent='Copied';setTimeout(function(){copy.textContent='Copy link';},1400);}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(v).then(done,function(){url.select();try{document.execCommand('copy');}catch(_){}done();});
+    }else{url.select();try{document.execCommand('copy');}catch(_){}done();}
+  };
+  openb.onclick=function(){window.open(build(),'_blank','noopener');};
+  addEventListener('keydown',function(e){
+    var tag=e.target&&e.target.tagName;
+    if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'){ if(e.key==='Escape')close(); return; }
+    if(e.key==='b'||e.key==='B'){e.preventDefault(); box.classList.contains('on')?close():open();}
+    else if(e.key==='Escape')close();
+  });
 })();
 </script>
 </body>
