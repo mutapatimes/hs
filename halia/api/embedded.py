@@ -71,12 +71,22 @@ from config import ROOT as _ROOT  # noqa: E402
 _SITE_FILE = _ROOT / "web" / "site" / "index.html"
 
 
-def _marketing() -> str:
+def _marketing(host: str = "") -> str:
+    """The public front door, resolved by Host so one deployment serves both brands:
+    haliascore.com -> the Halia site, storeconcierge.app -> the Store Concierge site.
+    Only the Halia site carries the CMS overrides + shared site scripts (analytics, chat);
+    the Store Concierge page is self-contained."""
+    from halia.brands import brand_for_host
+    b = brand_for_host(host)
+    site_file = _ROOT / "web" / "site" / f"{b.landing}.html"
     try:
-        from halia.api.content import apply_overrides, with_site_scripts
-        return with_site_scripts(apply_overrides(_SITE_FILE.read_text(encoding="utf-8")))
+        html = site_file.read_text(encoding="utf-8")
     except OSError:
         return _OPEN_FROM_ADMIN
+    if b.key == "halia":
+        from halia.api.content import apply_overrides, with_site_scripts
+        html = with_site_scripts(apply_overrides(html))
+    return html
 
 
 def _csp(shop: str) -> str:
@@ -111,7 +121,8 @@ def register(app) -> None:
             session_token = token_for_request(request)
             shop = verify_session_token(session_token)
         except Exception:
-            return HTMLResponse(_marketing())  # public visitor → the marketing site
+            # public visitor → the marketing site for whichever brand this host serves
+            return HTMLResponse(_marketing(request.headers.get("host", "")))
 
         head = _head()
         try:
