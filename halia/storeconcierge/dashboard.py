@@ -107,7 +107,7 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Store Concierge · Your desk</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='17' font-size='22' text-anchor='middle' dominant-baseline='central'>&#128206;</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235C3B54'><circle cx='12' cy='7.4' r='1.5'/><path d='M4.5 17C4.5 7.8 19.5 7.8 19.5 17Z'/><rect x='2.8' y='16.3' width='18.4' height='2.5'/></svg>">
 <style>
   :root{{--white:#fff;--tint:#F4F4F4;--ink:#000;--soft:#3D3D3D;--faint:#8A8A8A;
     --plum:#5C3B54;--plum-deep:#3B2436;--line:rgba(0,0,0,.14);--line-2:rgba(0,0,0,.08);
@@ -119,6 +119,7 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
   header{{border-bottom:1px solid var(--line)}}
   header .bar{{display:flex;align-items:center;justify-content:space-between;height:66px}}
   .logo{{display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:19px;letter-spacing:-.01em}}
+  .logo .bell{{color:var(--plum);flex:none}}
   header .who{{font-size:13px;color:var(--faint)}}
   .demo{{background:var(--plum);color:#fff;font-size:13px;text-align:center;padding:9px 16px}}
   h1{{font-weight:600;font-size:clamp(24px,3.4vw,34px);letter-spacing:-.02em;margin:34px 0 6px}}
@@ -179,7 +180,7 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
 </style></head><body>
 {banner}
 <header><div class="wrap bar">
-  <a class="logo" href="/storeconcierge">&#128206; Store Concierge</a>
+  <a class="logo" href="/storeconcierge"><svg class="bell" viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true"><circle cx="12" cy="7.4" r="1.5"/><path d="M4.5 17C4.5 7.8 19.5 7.8 19.5 17Z"/><rect x="2.8" y="16.3" width="18.4" height="2.5"/></svg> Store Concierge</a>
   <span class="who">Your desk</span>
 </div></header>
 
