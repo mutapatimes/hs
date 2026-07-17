@@ -16,6 +16,7 @@ import pandas as pd
 
 from scoring.signals import (
     assistant_order,
+    broad_employer,
     card_bin,
     card_brand,
     charity_trustee,
@@ -66,6 +67,7 @@ from scoring.signals.type_labels import humanize_type
 # Editable. Higher = stronger signal. Low (1) = supporting "flag all, rank low".
 SIGNAL_WEIGHTS: dict[str, int] = {
     "work_email": 3,
+    "broad_employer": 1,   # big tech / enterprise software / energy — weak, corroboration-only
     "hnwi_postcode": 3,
     "us_hnwi_zip": 3,
     "us_property": 2,     # US high-value home ZIP: base; the tier overrides (US_PROPERTY_AREA_WEIGHTS)
@@ -203,6 +205,11 @@ SUPPORTING_SIGNALS = {"name_structure", "nobiliary_particle", "assistant_order",
                       "stylist_directory", "landline",  # a fixed line is common — corroborates,
                       # never surfaces a customer on its own
 
+                      # broad_employer — big tech / enterprise software / energy majors employ
+                      # across the whole pay spectrum, so a work email there is a weak per-capita
+                      # tell. It nudges the rank of someone already flagged, never a sole basis.
+                      "broad_employer",
+
                       # A bare custom (non-free) email domain is far too common to be a
                       # VIC on its own — half a store's buyers can have one. It corroborates
                       # (e.g. alongside a premium provider, company billing, or prime
@@ -316,6 +323,8 @@ def _reason_delivery(row: pd.Series) -> str:
 SIGNALS = [
     ("work_email", "Work email", work_email.flag_work_email,
      work_email.FLAG_COL, lambda r: r[work_email.REASON_COL]),
+    ("broad_employer", "Broad employer", broad_employer.flag_broad_employer,
+     broad_employer.FLAG_COL, lambda r: r[broad_employer.REASON_COL]),
     ("premium_email", "Premium email", premium_email.flag_premium_email,
      premium_email.FLAG_COL, lambda r: r[premium_email.REASON_COL]),
     ("elite_alumni", "Ivy alumni", elite_alumni.flag_elite_alumni,
