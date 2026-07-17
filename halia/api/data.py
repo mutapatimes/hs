@@ -136,6 +136,12 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None) 
     if not billing.is_paid(shop):
         from build_mvp import cap_payload_recent
         payload = cap_payload_recent(payload, 30)
+    # Store Concierge desk: the clienteling view (pure RFM, no scoring) rides along in the same
+    # RAM cache. Computed from the customer frame we already built, so no extra fetch. The hosted
+    # route serves this instead of the wealth dashboard for storeconcierge-brand tenants.
+    if s.get("brand") == "storeconcierge":
+        from halia.storeconcierge.clienteling import clienteling_payload
+        payload["desk"] = clienteling_payload(scored)
     cache.set(shop, results, payload, _order_index(orders))
     entry = cache.get(shop)
 
