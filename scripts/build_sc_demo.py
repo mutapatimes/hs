@@ -25,7 +25,7 @@ def main() -> None:
     last = pd.to_datetime(df.get("Last Shopped"), errors="coerce")
     as_of = last.max() if last.notna().any() else None      # anchor "today" to the data
     payload = clienteling_payload(df, as_of=as_of, limit=250)
-    OUT.write_text(render_clienteling(payload, demo=True), encoding="utf-8")
+    OUT.write_text(render_clienteling(payload, shop="Maison Aurelle", demo=True), encoding="utf-8")
     s = payload["stats"]
     print(f"wrote {OUT}  ({s['customers']:,} customers, {s['winback']:,} win-back, "
           f"rows shown: {len(payload['customers'])})")
