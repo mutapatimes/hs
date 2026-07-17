@@ -1839,6 +1839,18 @@ def register(app) -> None:
             _start_sync(shop, notify=True)
             return _preparing_page(shop)
 
+        # Store Concierge tenants get the clienteling desk, not the wealth dashboard or its teaser.
+        from halia.storeconcierge.tenant import is_storeconcierge
+        if is_storeconcierge(shop):
+            from halia.storeconcierge.dashboard import render_clienteling
+            tenant = shop_store().get_tenant(shop)
+            label = (tenant["label"] if tenant else None) or shop
+            desk = entry["payload"].get("desk") or {
+                "stats": {}, "customers": [], "winback": [], "orders": []}
+            resp = HTMLResponse(render_clienteling(desk, shop=label))
+            resp.headers["Cache-Control"] = "no-store"
+            return resp
+
         # Free tier: until they subscribe, show the teaser (count + latent value), not the dashboard.
         from halia.api import billing
         if not billing.is_paid(shop):

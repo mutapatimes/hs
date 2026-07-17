@@ -181,6 +181,9 @@ def settings_for(shop: str) -> dict:
     default_threshold = console_setting("default_vic_threshold", DEFAULT_VIC_THRESHOLD)
     default_grades = console_setting("default_notify_grades", ["A*", "A"])
     return {
+        # Which product this tenant is: "halia" (the wealth engine) or "storeconcierge" (the
+        # clienteling desk, no scoring). Drives which dashboard the hosted route serves.
+        "brand": (d.get("brand") or "halia"),
         "vic_threshold": d.get("vic_threshold", default_threshold),
         "sender_name": d.get("sender_name", ""),
         "email_templates": d.get("email_templates") or DEFAULT_TEMPLATES,
