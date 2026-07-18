@@ -24,16 +24,16 @@ _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 def _clean_config(raw: Any) -> dict:
     raw = raw or {}
-    def _strs(key, upper=False):
+    def _strs(key, upper=False, cap=200):
         vals = raw.get(key) or []
         out = []
         for v in vals if isinstance(vals, list) else []:
             s = str(v).strip()
             if s:
                 out.append(s.upper() if upper else s)
-        return out[:200]
+        return out[:cap]
     return {"tiers": _strs("tiers", upper=True), "signals": _strs("signals"),
-            "members": _strs("members")}
+            "members": _strs("members", cap=5000)}   # hand-picked lists can be larger
 
 
 def _campaign_dict(row: dict) -> dict:
@@ -72,6 +72,25 @@ def register(app) -> None:
     def delete_campaign(campaign_id: str, shop: str = Depends(require_shop)) -> dict:
         shop_store().delete_campaign(campaign_id, shop)
         return {"ok": True}
+
+    @app.post("/v1/campaigns/{campaign_id}/members")
+    def campaign_member(campaign_id: str, shop: str = Depends(require_shop),
+                        payload: Any = Body(...)) -> dict:
+        """Hand-pick a client into (or out of) a campaign. cid is an opaque customer id."""
+        row = shop_store().get_campaign(campaign_id, shop)
+        if not row:
+            raise HTTPException(404, "Campaign not found.")
+        cid = str((payload or {}).get("cid") or "").strip()
+        if not cid:
+            raise HTTPException(400, "No client id.")
+        cfg = _clean_config(json.loads(row.get("config_json") or "{}"))
+        members = [m for m in cfg["members"] if m != cid]
+        if not (payload or {}).get("remove"):
+            members.append(cid)
+        cfg["members"] = members
+        shop_store().save_campaign(campaign_id, shop, row["name"], row["starts"], row["ends"],
+                                   json.dumps(cfg))
+        return {"ok": True, "in": not bool((payload or {}).get("remove")), "count": len(members)}
 
     @app.get("/v1/campaigns/{campaign_id}/monitor", response_class=HTMLResponse)
     def monitor(campaign_id: str, shop: str = Depends(require_shop)) -> HTMLResponse:

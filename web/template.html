@@ -490,6 +490,9 @@
   .clbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:700}
   .cchecks{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px}
   .ckbx{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink);cursor:pointer}
+  .cmchips{display:flex;flex-wrap:wrap;gap:6px}
+  .cmchip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--brand);background:var(--brand-tint,#EAF0ED);padding:4px 8px}
+  .cmchip button{border:none;background:none;color:var(--brand);font-size:15px;line-height:1;cursor:pointer;padding:0}
   .othead{grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px}
   .orow{display:grid;grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line);font-size:13px}
   .orow:hover{background:var(--rowhover)}
@@ -2182,7 +2185,7 @@ function renderMap(){
 }
 
 /* ---- campaigns: create/target/monitor ---- */
-let CAMP_LOADED=false;
+let CAMP_LOADED=false, CAMP_CACHE=null;
 function campGradeOpts(sel){
   return [["A1","A*"],["A","A"],["B","B"]].map(([v,l])=>
     `<label class="ckbx"><input type="checkbox" name="ctier" value="${v}"${sel.includes(v)?" checked":""}> ${l}</label>`).join("");
@@ -2209,6 +2212,7 @@ function campInit(force){
   const root=document.getElementById("campaignsRoot");
   root.innerHTML='<div style="color:var(--soft);font-size:13.5px">Loading…</div>';
   fetch("/v1/campaigns").then(r=>r.json()).then(d=>{
+    CAMP_CACHE=d.campaigns||[];                         // keep the drawer's picker in step
     const list=(d.campaigns||[]).map(c=>{
       const tgt=[...(c.config.tiers||[]).map(t=>t==="A1"?"A*":t),
                  ...(c.config.signals||[]).map(s=>(SEGMENTS[s]||{}).label||s)].join(", ")||"everyone";
@@ -2251,6 +2255,37 @@ function campWireForm(){
       .then(r=>r.json()).then(d=>{if(d.ok){toast("Campaign saved.");campInit(true);}else{toast((d&&d.detail)||"Save failed.");}})
       .catch(()=>toast("Save failed."));};
   const cancel=document.getElementById("cCancel"); if(cancel)cancel.onclick=()=>campInit(true);
+}
+/* Drawer: add this client to / remove from a campaign (hand-picked members). */
+function campListLoad(cb){
+  if(CAMP_CACHE){cb(CAMP_CACHE);return;}
+  fetch("/v1/campaigns").then(r=>r.json()).then(d=>{CAMP_CACHE=d.campaigns||[];cb(CAMP_CACHE);}).catch(()=>cb([]));
+}
+function campMember(campId,cid,remove,cb){
+  fetch("/v1/campaigns/"+encodeURIComponent(campId)+"/members",{method:"POST",
+    headers:{"content-type":"application/json"},body:JSON.stringify({cid:cid,remove:remove})})
+    .then(r=>r.json()).then(()=>{
+      const c=(CAMP_CACHE||[]).find(x=>x.id===campId);   // update the local cache so the drawer re-renders in step
+      if(c){c.config=c.config||{};let m=(c.config.members||[]).filter(x=>x!==String(cid));if(!remove)m.push(String(cid));c.config.members=m;}
+      cb&&cb();}).catch(()=>toast("Couldn't update campaign."));
+}
+function renderDrawerCampaigns(c){
+  const box=document.getElementById("drawerCampaigns"); if(!box)return;
+  campListLoad(camps=>{
+    if(!camps.length){box.innerHTML='<div class="dlabel">Campaigns</div><div style="color:var(--faint);font-size:12.5px">No campaigns yet. Create one in the Campaigns tab.</div>';return;}
+    const cid=String(c.cid);
+    const inC=camps.filter(x=>((x.config&&x.config.members)||[]).includes(cid));
+    const chips=inC.map(x=>`<span class="cmchip">${esc(x.name)}<button data-rm="${esc(x.id)}" title="Remove">×</button></span>`).join("")
+      ||'<span style="color:var(--faint);font-size:12.5px">Not in any campaign yet.</span>';
+    const opts=camps.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
+    box.innerHTML=`<div class="dlabel">Campaigns</div><div class="cmchips">${chips}</div>
+      <div class="row" style="margin-top:8px"><select id="cmSel" style="flex:1">${opts}</select>
+      <button class="dbtn" id="cmAdd" style="padding:6px 12px">Add</button></div>`;
+    document.getElementById("cmAdd").onclick=()=>campMember(document.getElementById("cmSel").value,cid,false,
+      ()=>{toast("Added to campaign.");renderDrawerCampaigns(c);});
+    box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>campMember(b.dataset.rm,cid,true,
+      ()=>{toast("Removed from campaign.");renderDrawerCampaigns(c);}));
+  });
 }
 
 /* ---- page router ---- */
@@ -2584,6 +2619,7 @@ function openDrawer(id){
       </div>
 
       <div id="drawerPipe" style="margin-bottom:22px"></div>
+      <div id="drawerCampaigns" style="margin-bottom:22px"></div>
 
       <div class="dlabel">Was this a good call?</div>
       <div id="dfb" style="display:flex;gap:8px">
@@ -2622,6 +2658,7 @@ function openDrawer(id){
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   wireDrawerCtl();
   renderDrawerPipe(c);   // outreach-pipeline section (stage / owner / activity)
+  renderDrawerCampaigns(c);   // add this client to / remove from a campaign
   // Associate feedback loop: one tap records an anonymous per-signal tally (Halia) + tags the
   // client in the merchant's own store. This is the label that later fixes calibration direction.
   (function(){

@@ -120,3 +120,19 @@ def test_api_create_list_monitor_delete(api):
 
     c.delete(f"/v1/campaigns/{cid}")
     assert c.get("/v1/campaigns").json()["campaigns"] == []
+
+
+def test_api_add_and_remove_member(api):
+    c, _ = api
+    cid = c.post("/v1/campaigns", json={"name": "W", "starts": "2025-03-01", "ends": "2025-05-31",
+                                        "config": {}}).json()["id"]
+    r = c.post(f"/v1/campaigns/{cid}/members", json={"cid": "cust_9"})
+    assert r.status_code == 200 and r.json()["in"] is True and r.json()["count"] == 1
+    # idempotent add (no duplicate)
+    c.post(f"/v1/campaigns/{cid}/members", json={"cid": "cust_9"})
+    got = c.get("/v1/campaigns").json()["campaigns"][0]
+    assert got["config"]["members"] == ["cust_9"]
+    # remove
+    r2 = c.post(f"/v1/campaigns/{cid}/members", json={"cid": "cust_9", "remove": True})
+    assert r2.json()["in"] is False and r2.json()["count"] == 0
+    assert c.get("/v1/campaigns").json()["campaigns"][0]["config"]["members"] == []
