@@ -490,6 +490,7 @@
   .clbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:700}
   .cchecks{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px}
   .ckbx{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink);cursor:pointer}
+  .campframe{width:100%;height:80vh;border:1px solid var(--line);background:#fff;display:block}
   .cmchips{display:flex;flex-wrap:wrap;gap:6px}
   .cmchip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--brand);background:var(--brand-tint,#EAF0ED);padding:4px 8px}
   .cmchip button{border:none;background:none;color:var(--brand);font-size:15px;line-height:1;cursor:pointer;padding:0}
@@ -2252,17 +2253,23 @@ function campInit(force){
   }).catch(()=>{const el=document.getElementById("campList");
     if(el)el.innerHTML='<div style="color:var(--faint);font-size:12.5px;padding:8px 0">Your saved campaigns will appear here once your store is connected.</div>';});
 }
-// Open the monitor via the app's AUTHENTICATED fetch (a plain window.open to /v1/... carries no
-// Shopify session token, so the server can't resolve the shop -> "Campaign not found"). Open a
-// blank tab synchronously (survives pop-up blockers), fetch the authed HTML, then write it in.
+// Open the monitor INSIDE the app (stays within Shopify), not a new tab. Fetch the HTML through
+// the app's AUTHENTICATED fetch (a plain navigation to /v1/... carries no session token, so the
+// server can't resolve the shop -> "Campaign not found"), then show it in an isolated iframe so
+// the monitor's styles never collide with the dashboard.
 function openMonitor(id){
-  const w=window.open("","_blank");
-  if(w){try{w.document.write('<!doctype html><meta charset=utf-8><title>Loading…</title>'
-    +'<body style="font:15px system-ui;padding:28px;color:#333">Loading campaign monitor…</body>');}catch(e){}}
+  const root=document.getElementById("campaignsRoot"); if(!root)return;
+  root.innerHTML='<div style="color:var(--soft);font-size:13.5px;padding:8px 0">Loading monitor…</div>';
   fetch("/v1/campaigns/"+encodeURIComponent(id)+"/monitor")
     .then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
-    .then(html=>{ if(w){w.document.open();w.document.write(html);w.document.close();} else toast("Allow pop-ups to open the monitor."); })
-    .catch(()=>{ if(w){try{w.document.body.innerHTML='<p style="font:15px system-ui;padding:28px">Could not load the monitor.</p>';}catch(e){}} toast("Couldn't open the monitor."); });
+    .then(html=>{
+      root.innerHTML='<button class="lx" id="cmBack" style="margin-bottom:12px">&larr; Back to campaigns</button>'
+        +'<iframe class="campframe" title="Campaign monitor"></iframe>';
+      root.querySelector(".campframe").srcdoc=html;
+      document.getElementById("cmBack").onclick=()=>campInit(true);
+    })
+    .catch(()=>{ root.innerHTML='<div style="color:var(--soft);font-size:13.5px;padding:8px 0">Couldn’t load the monitor. '
+      +'<button class="lx" onclick="campInit(true)">Back</button></div>'; });
 }
 function campWireList(camps){
   const root=document.getElementById("campList"); if(!root)return;
