@@ -2267,48 +2267,26 @@ function campWireList(camps){
 function campWireForm(){
   const save=document.getElementById("cSave"); if(!save)return;
   save.onclick=()=>{
+    if(save.disabled)return;                                  // block the rapid double-click
     const name=document.getElementById("cName").value.trim();
     const starts=document.getElementById("cStart").value, ends=document.getElementById("cEnd").value;
     if(!name){toast("Name the campaign.");return;}
     if(!starts||!ends){toast("Set start and end dates.");return;}
     const id=document.getElementById("cId").value;
+    const label=save.textContent; save.disabled=true; save.textContent="Saving…";  // instant feedback
     // name + dates only; membership is built from the Clients tab (config omitted -> preserved)
     fetch("/v1/campaigns",{method:"POST",headers:{"content-type":"application/json"},
       body:JSON.stringify({id:id||undefined,name:name,starts:starts,ends:ends})})
-      .then(r=>r.json()).then(d=>{if(d.ok){toast("Campaign saved.");campInit(true);}else{toast((d&&d.detail)||"Save failed.");}})
-      .catch(()=>toast("Save failed."));};
+      .then(r=>r.json()).then(d=>{
+        if(d.ok){toast("Campaign saved.");campInit(true);}    // re-renders the form fresh
+        else{toast((d&&d.detail)||"Save failed.");save.disabled=false;save.textContent=label;}})
+      .catch(()=>{toast("Save failed.");save.disabled=false;save.textContent=label;});};
   const cancel=document.getElementById("cCancel"); if(cancel)cancel.onclick=()=>campInit(true);
 }
-/* Drawer: add this client to / remove from a campaign (hand-picked members). */
+/* Campaign membership is built from the Clients list (bulk 'Add to campaign'), not the drawer. */
 function campListLoad(cb){
   if(CAMP_CACHE){cb(CAMP_CACHE);return;}
   fetch("/v1/campaigns").then(r=>r.json()).then(d=>{CAMP_CACHE=d.campaigns||[];cb(CAMP_CACHE);}).catch(()=>cb([]));
-}
-function campMember(campId,cid,remove,cb){
-  fetch("/v1/campaigns/"+encodeURIComponent(campId)+"/members",{method:"POST",
-    headers:{"content-type":"application/json"},body:JSON.stringify({cid:cid,remove:remove})})
-    .then(r=>r.json()).then(()=>{
-      const c=(CAMP_CACHE||[]).find(x=>x.id===campId);   // update the local cache so the drawer re-renders in step
-      if(c){c.config=c.config||{};let m=(c.config.members||[]).filter(x=>x!==String(cid));if(!remove)m.push(String(cid));c.config.members=m;}
-      cb&&cb();}).catch(()=>toast("Couldn't update campaign."));
-}
-function renderDrawerCampaigns(c){
-  const box=document.getElementById("drawerCampaigns"); if(!box)return;
-  campListLoad(camps=>{
-    if(!camps.length){box.innerHTML='<div class="dlabel">Campaigns</div><div style="color:var(--faint);font-size:12.5px">No campaigns yet. Create one in the Campaigns tab.</div>';return;}
-    const cid=String(c.cid);
-    const inC=camps.filter(x=>((x.config&&x.config.members)||[]).includes(cid));
-    const chips=inC.map(x=>`<span class="cmchip">${esc(x.name)}<button data-rm="${esc(x.id)}" title="Remove">×</button></span>`).join("")
-      ||'<span style="color:var(--faint);font-size:12.5px">Not in any campaign yet.</span>';
-    const opts=camps.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
-    box.innerHTML=`<div class="dlabel">Campaigns</div><div class="cmchips">${chips}</div>
-      <div class="row" style="margin-top:8px"><select id="cmSel" style="flex:1">${opts}</select>
-      <button class="dbtn" id="cmAdd" style="padding:6px 12px">Add</button></div>`;
-    document.getElementById("cmAdd").onclick=()=>campMember(document.getElementById("cmSel").value,cid,false,
-      ()=>{toast("Added to campaign.");renderDrawerCampaigns(c);});
-    box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>campMember(b.dataset.rm,cid,true,
-      ()=>{toast("Removed from campaign.");renderDrawerCampaigns(c);}));
-  });
 }
 
 /* ---- page router ---- */
@@ -2642,7 +2620,6 @@ function openDrawer(id){
       </div>
 
       <div id="drawerPipe" style="margin-bottom:22px"></div>
-      <div id="drawerCampaigns" style="margin-bottom:22px"></div>
 
       <div class="dlabel">Was this a good call?</div>
       <div id="dfb" style="display:flex;gap:8px">
@@ -2681,7 +2658,6 @@ function openDrawer(id){
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   wireDrawerCtl();
   renderDrawerPipe(c);   // outreach-pipeline section (stage / owner / activity)
-  renderDrawerCampaigns(c);   // add this client to / remove from a campaign
   // Associate feedback loop: one tap records an anonymous per-signal tally (Halia) + tags the
   // client in the merchant's own store. This is the label that later fixes calibration direction.
   (function(){
