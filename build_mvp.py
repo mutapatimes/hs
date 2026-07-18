@@ -214,6 +214,11 @@ _LOCATION_LABELS = {
 }
 _LOCATION_SEG = "prime-location"
 _LOCATION_LABEL = "Prime location"
+
+# QA / corroboration-only tells: they help the engine confirm a score but are not
+# reasons a merchant would act on or filter by, so they never become a filter chip or a
+# client-facing reason. They still contribute to scoring under the hood (see combine.py).
+_QA_LABELS = {"Name mismatch", "Shared phone"}
 _TIER_ORDER = ["Ultra-prime", "Prime", "High-value"]
 _POSTCODE_RE = re.compile(r"^[A-Z]{1,2}\d[A-Z\d]?(\s*\d[A-Z]{2})?$", re.I)
 
@@ -274,6 +279,8 @@ def _parse_signals(reasons: object, seg_labels: dict[str, str],
         if not part:
             continue
         label, _, detail = part.partition(": ")
+        if label in _QA_LABELS:               # corroboration-only: scores, but never a chip/reason
+            continue
         if label in _LOCATION_LABELS:
             if loc_pos is None:               # reserve the strongest tell's slot (order-preserving)
                 loc_pos = len(sigs)

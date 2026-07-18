@@ -128,7 +128,9 @@ def match_name(name: object, table: dict[str, list[tuple[str, str, str]]],
         if not need:
             return True, reason, tier
         if need in districts:
-            return True, f"{reason[:-1]}; register address matches)", tier
+            # comma, not "; " — "; " is the dashboard's reason separator, so a semicolon here
+            # would leak this corroboration note out as its own broken filter chip.
+            return True, f"{reason[:-1]}, register address matches)", tier
     return False, None, None
 
 
