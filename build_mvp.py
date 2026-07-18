@@ -219,6 +219,13 @@ _LOCATION_LABEL = "Prime location"
 # reasons a merchant would act on or filter by, so they never become a filter chip or a
 # client-facing reason. They still contribute to scoring under the hood (see combine.py).
 _QA_LABELS = {"Name mismatch", "Shared phone"}
+
+# The generic "Custom domain" tell (they use a non-free email domain) is the same fact as a
+# named employer / high-earning domain read from that SAME email: we know the employer because
+# of the domain. When a stronger email tell is present, fold the generic one away so a client
+# never shows the domain twice.
+_CUSTOM_DOMAIN_LABEL = "Custom domain"
+_EMAIL_SUPERSEDES_CUSTOM = {"Work email", "Major employer", "High-earning domain"}
 _TIER_ORDER = ["Ultra-prime", "Prime", "High-value"]
 _POSTCODE_RE = re.compile(r"^[A-Z]{1,2}\d[A-Z\d]?(\s*\d[A-Z]{2})?$", re.I)
 
@@ -274,12 +281,15 @@ def _parse_signals(reasons: object, seg_labels: dict[str, str],
     sigs: list = []
     loc_details: list[tuple[str, str]] = []
     loc_pos: int | None = None
-    for part in str(reasons or "").split("; "):
-        part = part.strip()
-        if not part:
-            continue
+    parts = [p.strip() for p in str(reasons or "").split("; ") if p.strip()]
+    # a named employer / high-earning domain already identifies the email domain, so the generic
+    # "Custom domain" tell is that same fact restated — drop it when a stronger one is present
+    drop_custom = bool({p.partition(": ")[0] for p in parts} & _EMAIL_SUPERSEDES_CUSTOM)
+    for part in parts:
         label, _, detail = part.partition(": ")
         if label in _QA_LABELS:               # corroboration-only: scores, but never a chip/reason
+            continue
+        if drop_custom and label == _CUSTOM_DOMAIN_LABEL:
             continue
         if label in _LOCATION_LABELS:
             if loc_pos is None:               # reserve the strongest tell's slot (order-preserving)
