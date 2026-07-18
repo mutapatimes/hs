@@ -706,7 +706,7 @@ a{color:inherit;text-decoration:none}
 .prow .eta{margin-left:auto;color:var(--faint);letter-spacing:.02em;text-transform:none;font-size:12px}
 .dot{width:8px;height:8px;border-radius:0;background:var(--gold);animation:pl 1.1s infinite;flex:none}@keyframes pl{0%,100%{opacity:.3}50%{opacity:1}}
 .prog h1{font-family:var(--serif);font-weight:300;font-size:clamp(26px,4.6vw,40px);line-height:1.08;margin:14px 0 8px}
-.prog h1 em{font-style:italic;color:var(--gold)}
+.prog h1 em{font-style:normal;color:inherit}
 .lede{font-size:15.5px;color:var(--mute);line-height:1.5;min-height:2.4em;transition:opacity .25s;margin:0}
 .lede b{color:var(--ink);font-weight:600}
 .track{height:7px;background:rgba(20,18,12,.09);border-radius:0;overflow:hidden;margin:18px 0 0;position:relative}
@@ -919,7 +919,7 @@ a{color:inherit;text-decoration:none}
 .stage{max-width:680px;margin:0 auto;padding:clamp(20px,6vh,70px) 28px 90px;text-align:center}
 .eyebrow{font:500 12px var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
 h1{font-family:var(--serif);font-weight:300;font-size:clamp(34px,6vw,58px);line-height:1.05;letter-spacing:-.01em;margin:0 0 18px}
-h1 em{font-style:italic;color:var(--gold)}
+h1 em{font-style:normal;color:inherit}
 .lede{font-size:18px;color:var(--mute);line-height:1.55;max-width:54ch;margin:0 auto 30px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:34px 0 30px}
 @media(max-width:560px){.stats{grid-template-columns:1fr}}
@@ -1057,7 +1057,7 @@ a{color:inherit;text-decoration:none}
 @keyframes in{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 .eyebrow{font:500 12px var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
 h1{font-family:var(--serif);font-weight:300;font-size:clamp(33px,5.4vw,50px);line-height:1.06;letter-spacing:-.01em;margin:0 0 16px}
-h1 em{font-style:italic;color:var(--gold)}
+h1 em{font-style:normal;color:inherit}
 .lede{font-size:18px;color:var(--mute);line-height:1.55;max-width:48ch;margin:0 0 26px}
 label{display:block;font:600 13px var(--sans);margin:18px 0 7px}
 .termsrow{display:flex;gap:10px;align-items:flex-start;font:400 13.5px var(--sans);color:var(--mute);margin:22px 0 0;cursor:pointer}
