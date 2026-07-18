@@ -12,6 +12,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 _DAY = "%Y-%m-%d"
+QUIET_DAYS = 90   # no order for this long before the window = "gone quiet"; a buy in-window = reactivated
 
 
 def _d(value) -> date | None:
@@ -69,14 +70,23 @@ def campaign_metrics(campaign: dict, clients: list[dict]) -> dict:
     by_tier: dict[str, float] = {}
     seg_label = {}
     total_rev = total_orders = buyers = 0.0
+    reactivated = 0
+    reactivated_rev = 0.0
     rows = []
 
     for c in members:
         rev = 0.0
         ordn = 0
+        last_pre = None   # most recent order BEFORE the window (to spot "gone quiet")
         for o in c.get("orders", []) or []:
             od = _d(o.get("date"))
-            if od is None or start is None or end is None or not (start <= od <= end):
+            if od is None or start is None or end is None:
+                continue
+            if od < start:
+                if last_pre is None or od > last_pre:
+                    last_pre = od
+                continue
+            if not (start <= od <= end):
                 continue
             amt = float(o.get("amount") or 0)
             rev += amt
@@ -88,6 +98,11 @@ def campaign_metrics(campaign: dict, clients: list[dict]) -> dict:
         total_orders += ordn
         if rev > 0:
             buyers += 1
+            # reactivation: they had gone quiet before the window (a prior order, long ago) and
+            # bought during it. Their in-window spend is the win-back the campaign recovered.
+            if last_pre is not None and (start - last_pre).days >= QUIET_DAYS:
+                reactivated += 1
+                reactivated_rev += rev
         tier = str(c.get("tier") or "—")
         by_tier[tier] = by_tier.get(tier, 0.0) + rev
         for s in c.get("signals", []) or []:
@@ -107,6 +122,8 @@ def campaign_metrics(campaign: dict, clients: list[dict]) -> dict:
         "revenue": round(total_rev, 2),
         "orders": int(total_orders),
         "aov": round(total_rev / total_orders, 2) if total_orders else 0.0,
+        "reactivated": reactivated,
+        "reactivated_revenue": round(reactivated_rev, 2),
     }
     return {
         "name": campaign.get("name", "Campaign"),

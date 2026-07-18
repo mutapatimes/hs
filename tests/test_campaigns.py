@@ -46,6 +46,25 @@ def test_metrics_respect_the_window_and_break_down_by_signal_and_grade():
     assert r["top"][0]["name"] == "Ava" and r["top"][0]["revenue"] == 100.0
 
 
+def test_reactivation_counts_gone_quiet_clients_who_bought_in_window():
+    clients = [
+        # gone quiet (last order 2024-10, >90d before 2025-03-01) then bought in window -> reactivated
+        {"cid": "1", "name": "Quiet Returner", "tier": "A1", "signals": [{"seg": "work-email", "d": "Work email: X"}],
+         "orders": [{"date": "2024-10-01", "amount": 500}, {"date": "2025-03-20", "amount": 800}]},
+        # active already (last order 2025-02-20, <90d before start) then bought in window -> NOT reactivation
+        {"cid": "2", "name": "Loyal", "tier": "A1", "signals": [{"seg": "work-email", "d": "Work email: Y"}],
+         "orders": [{"date": "2025-02-20", "amount": 300}, {"date": "2025-03-25", "amount": 300}]},
+        # brand new (no prior order) -> NOT a reactivation
+        {"cid": "3", "name": "New", "tier": "A1", "signals": [{"seg": "work-email", "d": "Work email: Z"}],
+         "orders": [{"date": "2025-04-01", "amount": 900}]},
+    ]
+    camp = {"name": "W", "starts": "2025-03-01", "ends": "2025-05-31", "config": {"tiers": ["A1"]}}
+    k = campaign_metrics(camp, clients)["kpis"]
+    assert k["reactivated"] == 1
+    assert k["reactivated_revenue"] == 800.0
+    assert k["buyers"] == 3
+
+
 def test_store_crud(tmp_path):
     s = ShopStore(db_path=tmp_path / "t.db")
     cfg = json.dumps({"tiers": ["A1"], "signals": ["work-email"], "members": []})
