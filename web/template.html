@@ -2210,7 +2210,11 @@ function campForm(c){
 function campInit(force){
   if(CAMP_LOADED&&!force)return; CAMP_LOADED=true;
   const root=document.getElementById("campaignsRoot");
-  root.innerHTML='<div style="color:var(--soft);font-size:13.5px">Loading…</div>';
+  // Always render the create form (and a slot for the list) so a campaign can be created even
+  // before/without the list loading. The list then fills in when the API answers.
+  root.innerHTML=`<div id="campList" class="camplist"><div style="color:var(--faint);font-size:13px;padding:6px 0">Loading campaigns…</div></div>
+    <div class="campnew"><div class="clbl" style="margin-bottom:10px">New campaign</div>${campForm()}</div>`;
+  campWireForm();
   fetch("/v1/campaigns").then(r=>r.json()).then(d=>{
     CAMP_CACHE=d.campaigns||[];                         // keep the drawer's picker in step
     const list=(d.campaigns||[]).map(c=>{
@@ -2221,14 +2225,14 @@ function campInit(force){
         <div class="ca"><button class="btn" data-mon="${esc(c.id)}">Open monitor →</button>
         <button class="lx" data-edit="${esc(c.id)}">Edit</button>
         <button class="lx" data-del="${esc(c.id)}">Delete</button></div></div>`;
-    }).join("")||'<div style="color:var(--faint);font-size:13px;padding:14px 0">No campaigns yet. Create your first below.</div>';
-    root.innerHTML=`<div class="camplist">${list}</div>
-      <div class="campnew"><div class="clbl" style="margin-bottom:10px">New campaign</div>${campForm()}</div>`;
-    campWire(d.campaigns||[]);
-  }).catch(()=>{root.innerHTML='<div style="color:var(--soft)">Could not load campaigns.</div>';});
+    }).join("")||'<div style="color:var(--faint);font-size:13px;padding:8px 0">No campaigns yet. Create your first below.</div>';
+    document.getElementById("campList").innerHTML=list;
+    campWireList(d.campaigns||[]);
+  }).catch(()=>{const el=document.getElementById("campList");
+    if(el)el.innerHTML='<div style="color:var(--faint);font-size:12.5px;padding:8px 0">Your saved campaigns will appear here once your store is connected.</div>';});
 }
-function campWire(camps){
-  const root=document.getElementById("campaignsRoot");
+function campWireList(camps){
+  const root=document.getElementById("campList"); if(!root)return;
   root.querySelectorAll("[data-mon]").forEach(b=>b.onclick=()=>window.open("/v1/campaigns/"+encodeURIComponent(b.dataset.mon)+"/monitor","_blank","noopener"));
   root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
     if(!confirm("Delete this campaign?"))return;
@@ -2238,7 +2242,6 @@ function campWire(camps){
     const c=camps.find(x=>x.id===b.dataset.edit); if(!c)return;
     document.querySelector(".campnew").innerHTML='<div class="clbl" style="margin-bottom:10px">Edit campaign</div>'+campForm(c);
     campWireForm();});
-  campWireForm();
 }
 function campWireForm(){
   const save=document.getElementById("cSave"); if(!save)return;
