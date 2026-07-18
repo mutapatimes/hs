@@ -219,6 +219,19 @@ _TABLES = [
         created_at  TEXT,
         updated_at  TEXT
     )""",
+    # Campaigns: a named, dated monitoring window over a target (segments / signals / tiers,
+    # plus optional hand-picked members held as OPAQUE customer ids — no names/emails/PII).
+    # Sales metrics are computed live from the RAM-cached book; only this config is durable.
+    """CREATE TABLE IF NOT EXISTS campaigns (
+        id          TEXT PRIMARY KEY,
+        shop        TEXT,
+        name        TEXT,
+        starts      TEXT,
+        ends        TEXT,
+        config_json TEXT,
+        created_at  TEXT,
+        updated_at  TEXT
+    )""",
 ]
 # Earlier versions cached customer PII in these tables. Drop them so any deploy purges it.
 _DROP_LEGACY = [
@@ -736,6 +749,36 @@ class ShopStore(_DB):
         if not row or not row["pdf_b64"]:
             return None
         return base64.b64decode(row["pdf_b64"])
+
+    # ── campaigns (monitoring windows; config only, no customer PII) ─────────────
+    def save_campaign(self, campaign_id: str, shop: str, name: str, starts: str,
+                      ends: str, config_json: str) -> None:
+        now = _now()
+        self._run(
+            """INSERT INTO campaigns (id, shop, name, starts, ends, config_json, created_at, updated_at)
+               VALUES (:id, :shop, :name, :s, :e, :cfg, :at, :at)
+               ON CONFLICT(id) DO UPDATE SET name=excluded.name, starts=excluded.starts,
+                ends=excluded.ends, config_json=excluded.config_json, updated_at=excluded.updated_at""",
+            {"id": campaign_id, "shop": shop, "name": name, "s": starts, "e": ends,
+             "cfg": config_json, "at": now})
+
+    def get_campaign(self, campaign_id: str, shop: str) -> dict | None:
+        row = self._run(
+            "SELECT id, shop, name, starts, ends, config_json, created_at, updated_at "
+            "FROM campaigns WHERE id = :id AND shop = :shop",
+            {"id": campaign_id, "shop": shop}, fetch="one")
+        return dict(row) if row else None
+
+    def list_campaigns(self, shop: str) -> list[dict]:
+        rows = self._run(
+            "SELECT id, shop, name, starts, ends, config_json, created_at, updated_at "
+            "FROM campaigns WHERE shop = :shop ORDER BY updated_at DESC",
+            {"shop": shop}, fetch="all") or []
+        return [dict(r) for r in rows]
+
+    def delete_campaign(self, campaign_id: str, shop: str) -> None:
+        self._run("DELETE FROM campaigns WHERE id = :id AND shop = :shop",
+                  {"id": campaign_id, "shop": shop})
 
     # ── per-shop subscription state (Stripe) ────────────────────────────────────
     def get_billing(self, shop: str) -> dict | None:

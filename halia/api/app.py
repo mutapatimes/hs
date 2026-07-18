@@ -150,6 +150,9 @@ app.add_api_route("/storeconcierge/demo", lambda: _serve_page("sc-demo"),
 # The sample catalogue (the real catalog_form_html renderer; scripts/build_catalogue_demo.py).
 app.add_api_route("/storeconcierge/catalogue-demo", lambda: _serve_page("catalogue-demo"),
                   methods=["GET"], include_in_schema=False, response_class=_HTML)
+# The sample campaign-monitoring dashboard (scripts/build_campaign_demo.py).
+app.add_api_route("/campaign-demo", lambda: _serve_page("campaign-demo"),
+                  methods=["GET"], include_in_schema=False, response_class=_HTML)
 
 
 # ---- The decks (/pitch, /present, /present-brands): password-gated, never indexed. ----------
