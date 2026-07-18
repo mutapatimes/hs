@@ -2252,9 +2252,21 @@ function campInit(force){
   }).catch(()=>{const el=document.getElementById("campList");
     if(el)el.innerHTML='<div style="color:var(--faint);font-size:12.5px;padding:8px 0">Your saved campaigns will appear here once your store is connected.</div>';});
 }
+// Open the monitor via the app's AUTHENTICATED fetch (a plain window.open to /v1/... carries no
+// Shopify session token, so the server can't resolve the shop -> "Campaign not found"). Open a
+// blank tab synchronously (survives pop-up blockers), fetch the authed HTML, then write it in.
+function openMonitor(id){
+  const w=window.open("","_blank");
+  if(w){try{w.document.write('<!doctype html><meta charset=utf-8><title>Loading…</title>'
+    +'<body style="font:15px system-ui;padding:28px;color:#333">Loading campaign monitor…</body>');}catch(e){}}
+  fetch("/v1/campaigns/"+encodeURIComponent(id)+"/monitor")
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
+    .then(html=>{ if(w){w.document.open();w.document.write(html);w.document.close();} else toast("Allow pop-ups to open the monitor."); })
+    .catch(()=>{ if(w){try{w.document.body.innerHTML='<p style="font:15px system-ui;padding:28px">Could not load the monitor.</p>';}catch(e){}} toast("Couldn't open the monitor."); });
+}
 function campWireList(camps){
   const root=document.getElementById("campList"); if(!root)return;
-  root.querySelectorAll("[data-mon]").forEach(b=>b.onclick=()=>window.open("/v1/campaigns/"+encodeURIComponent(b.dataset.mon)+"/monitor","_blank","noopener"));
+  root.querySelectorAll("[data-mon]").forEach(b=>b.onclick=()=>openMonitor(b.dataset.mon));
   root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
     if(!confirm("Delete this campaign?"))return;
     fetch("/v1/campaigns/"+encodeURIComponent(b.dataset.del),{method:"DELETE"})
