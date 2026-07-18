@@ -102,14 +102,22 @@ def register(app) -> None:
         return {"ok": True, "in": not bool(p.get("remove")), "count": len(members),
                 "added": len(targets) if not p.get("remove") else 0}
 
-    @app.get("/v1/campaigns/{campaign_id}/monitor", response_class=HTMLResponse)
-    def monitor(campaign_id: str, shop: str = Depends(require_shop)) -> HTMLResponse:
+    def _metrics_for(campaign_id: str, shop: str) -> dict:
         row = shop_store().get_campaign(campaign_id, shop)
         if not row:
             raise HTTPException(404, "Campaign not found.")
         entry = cache.get(shop)
         clients = ((entry or {}).get("payload") or {}).get("data", []) if entry else []
-        metrics = campaign_metrics(_campaign_dict(row), clients)
-        resp = HTMLResponse(render_campaign(metrics))
+        return campaign_metrics(_campaign_dict(row), clients)
+
+    @app.get("/v1/campaigns/{campaign_id}/metrics")
+    def campaign_metrics_json(campaign_id: str, shop: str = Depends(require_shop)) -> dict:
+        """Monitor data as JSON — the dashboard renders it natively as its own view."""
+        return _metrics_for(campaign_id, shop)
+
+    @app.get("/v1/campaigns/{campaign_id}/monitor", response_class=HTMLResponse)
+    def monitor(campaign_id: str, shop: str = Depends(require_shop)) -> HTMLResponse:
+        """Standalone HTML monitor (used by the sample page and any shareable link)."""
+        resp = HTMLResponse(render_campaign(_metrics_for(campaign_id, shop)))
         resp.headers["Cache-Control"] = "no-store"
         return resp

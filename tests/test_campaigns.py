@@ -152,3 +152,19 @@ def test_bulk_members_and_edit_preserves_membership(api):
     got = c.get("/v1/campaigns").json()["campaigns"][0]
     assert got["name"] == "W2" and got["starts"] == "2025-03-02"
     assert sorted(got["config"]["members"]) == ["a", "b", "c"]
+
+
+def test_api_metrics_json_endpoint(api):
+    from halia.cache import cache
+    c, _ = api
+    cid = c.post("/v1/campaigns", json={"name": "M", "starts": "2025-03-01", "ends": "2025-05-31"}).json()["id"]
+    cache.set("shopx", [], {"data": [{"cid": "1", "name": "Ava", "tier": "A1",
+              "signals": [{"seg": "work-email", "d": "Work email: X"}],
+              "orders": [{"date": "2025-03-10", "amount": 250}]}]}, {})
+    try:
+        c.post(f"/v1/campaigns/{cid}/members", json={"cids": ["1"]})
+        j = c.get(f"/v1/campaigns/{cid}/metrics").json()
+        assert j["name"] == "M" and j["kpis"]["members"] == 1 and j["kpis"]["revenue"] == 250.0
+        assert "series" in j and "by_signal" in j and "top" in j
+    finally:
+        cache.evict("shopx")

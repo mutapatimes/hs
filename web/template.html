@@ -490,7 +490,45 @@
   .clbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:700}
   .cchecks{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px}
   .ckbx{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink);cursor:pointer}
-  .campframe{width:100%;height:80vh;border:1px solid var(--line);background:#fff;display:block}
+  /* native campaign monitor */
+  .cm-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
+  .cm-title{font:700 clamp(20px,2.6vw,26px)/1.1 'Fraunces',serif;letter-spacing:-.02em;margin:6px 0 2px}
+  .cm-datesub{color:var(--soft);font-size:13.5px;margin-bottom:20px}
+  .cm-kpis{display:grid;grid-template-columns:repeat(6,1fr);border:1px solid var(--line);border-right:0;background:var(--card);margin-bottom:20px}
+  @media(max-width:760px){.cm-kpis{grid-template-columns:repeat(3,1fr)}}
+  .cm-kpi{border-right:1px solid var(--line);padding:15px 16px}
+  .cm-kn{font-size:clamp(17px,2.3vw,24px);font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .cm-kl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-top:5px;line-height:1.3}
+  .cm-winback{display:flex;align-items:center;gap:16px;background:var(--brand-deep);color:#fff;padding:16px 20px;margin-bottom:20px}
+  .cm-wn{font-size:clamp(26px,3.6vw,36px);font-weight:700;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+  .cm-wt{font-size:14.5px;font-weight:600}.cm-wt span{display:block;font-weight:400;opacity:.85;font-size:13px;margin-top:3px}
+  .cm-panel{background:var(--card);border:1px solid var(--line);padding:18px 20px;margin-bottom:18px}
+  .cm-panel h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin-bottom:14px}
+  .cm-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:760px){.cm-cols{grid-template-columns:1fr}}
+  .cm-chart{width:100%;height:auto;display:block}
+  .cm-chart .cm-grid{stroke:var(--line)}.cm-chart .cm-area{fill:var(--brand-tint,#EAF0ED)}
+  .cm-chart .cm-line{fill:none;stroke:var(--brand);stroke-width:2.5}.cm-chart .cm-dot{fill:var(--brand)}
+  .cm-chart .cm-yt{fill:var(--faint);font:10px 'Hanken Grotesk',sans-serif;text-anchor:end}
+  .cm-chart .cm-xt{fill:var(--faint);font:10px 'Hanken Grotesk',sans-serif;text-anchor:middle}
+  .cm-bars{display:flex;flex-direction:column;gap:10px}
+  .cm-bar{display:grid;grid-template-columns:130px 1fr 62px;align-items:center;gap:10px;font-size:13px}
+  .cm-bl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cm-bt{background:var(--bg,#f2f1ed);height:14px;position:relative}
+  .cm-bf{position:absolute;left:0;top:0;bottom:0;background:var(--brand)}
+  .cm-bv{text-align:right;font-variant-numeric:tabular-nums;color:var(--soft)}
+  .cm-tbl{width:100%;border-collapse:collapse;font-size:14px}
+  .cm-tbl th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:700;padding:9px 12px;border-bottom:1px solid var(--line)}
+  .cm-tbl th.num,.cm-tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .cm-tbl td{padding:11px 12px;border-bottom:1px solid var(--line)}.cm-tbl td.nm{font-weight:600}
+  .cm-empty{color:var(--faint);padding:22px;text-align:center}
+  /* PDF: print only the monitor, cleanly */
+  @media print{
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body *{visibility:hidden}
+    #campaignMonitor,#campaignMonitor *{visibility:visible}
+    #campaignMonitor{position:absolute;left:0;top:0;width:100%}
+    @page{margin:14mm}
+  }
   .cmchips{display:flex;flex-wrap:wrap;gap:6px}
   .cmchip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--brand);background:var(--brand-tint,#EAF0ED);padding:4px 8px}
   .cmchip button{border:none;background:none;color:var(--brand);font-size:15px;line-height:1;cursor:pointer;padding:0}
@@ -2253,23 +2291,69 @@ function campInit(force){
   }).catch(()=>{const el=document.getElementById("campList");
     if(el)el.innerHTML='<div style="color:var(--faint);font-size:12.5px;padding:8px 0">Your saved campaigns will appear here once your store is connected.</div>';});
 }
-// Open the monitor INSIDE the app (stays within Shopify), not a new tab. Fetch the HTML through
-// the app's AUTHENTICATED fetch (a plain navigation to /v1/... carries no session token, so the
-// server can't resolve the shop -> "Campaign not found"), then show it in an isolated iframe so
-// the monitor's styles never collide with the dashboard.
+// The monitor is a NATIVE dashboard view: fetch the metrics as JSON (via authenticated fetch, so
+// the shop resolves) and render it here with the dashboard's own styling — no iframe, no new tab.
+function cmMoney(v){v=+v||0;const a=Math.abs(v);
+  if(a>=1e6)return "£"+(v/1e6).toFixed(1).replace(/\.0$/,"")+"m";
+  if(a>=1e3)return "£"+(v/1e3).toFixed(1).replace(/\.0$/,"")+"k";
+  return "£"+Math.round(v).toLocaleString();}
+function cmArea(series){
+  if(!series||!series.length)return '<div class="cm-empty">No sales in this window yet.</div>';
+  const w=760,h=240,pl=46,pb=26,pt=14,iw=w-pl-14,ih=h-pb-pt,n=series.length;
+  const vmax=Math.max(1,...series.map(p=>p.value));
+  const X=i=>pl+(n>1?iw*i/(n-1):iw/2), Y=v=>pt+ih-ih*v/vmax;
+  const pts=series.map((p,i)=>[X(i),Y(p.value)]);
+  const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
+  const area="M"+pts[0][0].toFixed(1)+","+(pt+ih)+" "+pts.map(p=>"L"+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+" L"+pts[n-1][0].toFixed(1)+","+(pt+ih)+" Z";
+  let grid="";[0,vmax/2,vmax].forEach(gv=>{const gy=Y(gv);grid+=`<line x1="${pl}" y1="${gy.toFixed(1)}" x2="${w-14}" y2="${gy.toFixed(1)}" class="cm-grid"/><text x="${pl-8}" y="${(gy+3).toFixed(1)}" class="cm-yt">${cmMoney(gv)}</text>`;});
+  const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" class="cm-dot"/>`).join("");
+  let xl="";[0,Math.floor(n/2),n-1].forEach(i=>{xl+=`<text x="${X(i).toFixed(1)}" y="${h-8}" class="cm-xt">${esc(String(series[i].week).slice(5))}</text>`;});
+  return `<svg viewBox="0 0 ${w} ${h}" class="cm-chart" preserveAspectRatio="xMidYMid meet">${grid}<path d="${area}" class="cm-area"/><path d="${line}" class="cm-line"/>${dots}${xl}</svg>`;
+}
+function cmBars(items,key){
+  if(!items||!items.length)return '<div class="cm-empty">Nothing yet.</div>';
+  const vmax=Math.max(1,...items.map(it=>it.value));
+  return '<div class="cm-bars">'+items.slice(0,8).map(it=>{
+    const pct=Math.max(2,Math.round(100*it.value/vmax));
+    return `<div class="cm-bar"><span class="cm-bl">${esc(it[key])}</span><span class="cm-bt"><span class="cm-bf" style="width:${pct}%"></span></span><span class="cm-bv">${cmMoney(it.value)}</span></div>`;
+  }).join("")+'</div>';
+}
+function renderMonitor(m){
+  const root=document.getElementById("campaignsRoot"); if(!root)return;
+  const k=m.kpis||{};
+  const kpi=(v,l)=>`<div class="cm-kpi"><div class="cm-kn">${v}</div><div class="cm-kl">${l}</div></div>`;
+  const kpis=[kpi(cmMoney(k.revenue),"revenue in window"),kpi((k.members||0).toLocaleString(),"in campaign"),
+    kpi((k.buyers||0).toLocaleString(),"bought"),kpi(Math.round((k.conversion||0)*100)+"%","conversion"),
+    kpi((k.orders||0).toLocaleString(),"orders"),kpi(cmMoney(k.aov),"avg order")].join("");
+  const top=(m.top||[]).map(r=>`<tr><td class="nm">${esc(r.name)}</td><td><span class="pill">${esc(r.tier)}</span></td><td class="num">${r.orders}</td><td class="num">${cmMoney(r.revenue)}</td></tr>`).join("")
+    ||'<tr><td colspan="4" class="cm-empty">No buyers in this window yet.</td></tr>';
+  root.innerHTML=`
+    <div class="cm-head">
+      <button class="lx" id="cmBack">&larr; Back to campaigns</button>
+      <button class="btn" id="cmPdf" style="padding:8px 16px">Save as PDF</button>
+    </div>
+    <h2 class="cm-title">${esc(m.name)}</h2>
+    <div class="cm-datesub">${esc(m.starts)} &rarr; ${esc(m.ends)}</div>
+    <div id="campaignMonitor">
+      <div class="cm-kpis">${kpis}</div>
+      <div class="cm-winback"><div class="cm-wn">${(k.reactivated||0).toLocaleString()}</div><div class="cm-wt">clients came back from gone quiet<span>reactivated during the campaign, worth <b>${cmMoney(k.reactivated_revenue)}</b> recovered</span></div></div>
+      <div class="cm-panel"><h3>Sales over time</h3>${cmArea(m.series)}</div>
+      <div class="cm-cols">
+        <div class="cm-panel"><h3>Revenue by signal</h3>${cmBars(m.by_signal,"label")}</div>
+        <div class="cm-panel"><h3>Revenue by grade</h3>${cmBars(m.by_tier,"tier")}</div>
+      </div>
+      <div class="cm-panel"><h3>Top clients in this campaign</h3><table class="cm-tbl"><thead><tr><th>Client</th><th>Grade</th><th class="num">Orders</th><th class="num">Revenue</th></tr></thead><tbody>${top}</tbody></table></div>
+    </div>`;
+  document.getElementById("cmBack").onclick=()=>campInit(true);
+  document.getElementById("cmPdf").onclick=()=>window.print();
+}
 function openMonitor(id){
   const root=document.getElementById("campaignsRoot"); if(!root)return;
   root.innerHTML='<div style="color:var(--soft);font-size:13.5px;padding:8px 0">Loading monitor…</div>';
-  fetch("/v1/campaigns/"+encodeURIComponent(id)+"/monitor")
-    .then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
-    .then(html=>{
-      root.innerHTML='<button class="lx" id="cmBack" style="margin-bottom:12px">&larr; Back to campaigns</button>'
-        +'<iframe class="campframe" title="Campaign monitor"></iframe>';
-      root.querySelector(".campframe").srcdoc=html;
-      document.getElementById("cmBack").onclick=()=>campInit(true);
-    })
-    .catch(()=>{ root.innerHTML='<div style="color:var(--soft);font-size:13.5px;padding:8px 0">Couldn’t load the monitor. '
-      +'<button class="lx" onclick="campInit(true)">Back</button></div>'; });
+  fetch("/v1/campaigns/"+encodeURIComponent(id)+"/metrics")
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
+    .then(m=>renderMonitor(m))
+    .catch(()=>{root.innerHTML='<div style="color:var(--soft);font-size:13.5px;padding:8px 0">Couldn’t load the monitor. <button class="lx" onclick="campInit(true)">Back</button></div>';});
 }
 function campWireList(camps){
   const root=document.getElementById("campList"); if(!root)return;
