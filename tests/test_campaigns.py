@@ -110,8 +110,9 @@ def test_api_create_list_monitor_delete(api):
               "orders": [{"date": "2025-03-10", "amount": 250}]}]}, {})
     try:
         m = c.get(f"/v1/campaigns/{cid}/monitor")
-        assert m.status_code == 200 and "Spring" in m.text and "Campaign monitoring" in m.text
+        assert m.status_code == 200 and "Spring" in m.text and "revenue in window" in m.text
         assert "£250" in m.text
+        assert "Save as PDF" in m.text        # the print-to-PDF control is present
     finally:
         cache.evict("shopx")
 
