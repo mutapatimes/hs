@@ -474,6 +474,22 @@
   .vtab{border:none;background:transparent;font:600 13px 'Hanken Grotesk',sans-serif;color:var(--soft);padding:8px 18px;border-radius:0;cursor:pointer;transition:color var(--dur) var(--ease),background var(--dur) var(--ease)}
   .vtab:hover{color:var(--ink)}
   .vtab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  /* campaigns tab */
+  .camplist{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+  .camprow{display:flex;justify-content:space-between;align-items:center;gap:14px;border:1px solid var(--line);background:var(--card);padding:14px 16px}
+  .camprow .ci b{font-weight:700}.camprow .ci span{display:block;font-size:12.5px;color:var(--soft);margin-top:2px}
+  .camprow .ca{display:flex;gap:10px;align-items:center;flex:none}
+  .lx{border:none;background:none;color:var(--soft);font:600 12.5px 'Hanken Grotesk',sans-serif;cursor:pointer}
+  .lx:hover{color:var(--ink)}
+  .campnew{border:1px solid var(--line);background:var(--card);padding:18px}
+  .campform #cName{width:100%;border:1px solid var(--line);padding:10px 12px;font:14px 'Hanken Grotesk',sans-serif;margin-bottom:12px}
+  .campform .crow{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
+  .campform label{font-size:12px;color:var(--soft);display:flex;flex-direction:column;gap:4px}
+  .campform input[type=date]{border:1px solid var(--line);padding:8px 10px;font:14px 'Hanken Grotesk',sans-serif}
+  .cgrp{margin-bottom:14px}
+  .clbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:700}
+  .cchecks{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px}
+  .ckbx{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink);cursor:pointer}
   .othead{grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px}
   .orow{display:grid;grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line);font-size:13px}
   .orow:hover{background:var(--rowhover)}
@@ -733,6 +749,7 @@
         <button class="vtab" data-view="map">Map</button>
         <button class="vtab" data-view="board">Pipeline</button>
         <button class="vtab" data-view="catalogs">Catalogues</button>
+        <button class="vtab" data-view="campaigns">Campaigns</button>
       </div>
 
       <!-- OVERVIEW (birds-eye) -->
@@ -908,6 +925,12 @@
         <div id="catalogsRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
       </div><!-- /viewCatalogs -->
 
+      <!-- CAMPAIGNS: name a window, target grades/signals, monitor sales + reactivations live -->
+      <div id="viewCampaigns" style="display:none">
+        <p style="color:var(--soft);font-size:13.5px;line-height:1.6;max-width:74ch;margin:0 0 16px">Create a campaign, set its dates, and target whole grades or signals. Halia then monitors the sales it drives, sales over time, revenue by signal and grade, and the clients who came back from gone quiet, computed live from your book and kept nowhere.</p>
+        <div id="campaignsRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
+      </div><!-- /viewCampaigns -->
+
       <div class="foot">
         __FOOT_DEMO__Latent value is a client's projected worth once nurtured into a top client: today's spend grown toward your ceiling, weighted by their Halia score. Your ceiling is your <b>highest lifetime client</b> or <b>AOV × most orders from one client</b>, whichever is higher. Tune it in <b>⚙ Settings</b>.
       </div>
@@ -1003,8 +1026,8 @@ const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce
 // "settings" is an overlay, not a view, so it routes specially. Query params (host/embedded)
 // are always preserved.
 const EMBEDDED = !!document.querySelector('meta[name="shopify-api-key"]');
-const SEG2VIEW = {clients:"clients",catalogues:"catalogs",pipeline:"board",orders:"orders",map:"map"};
-const VIEW2SEG = {clients:"clients",catalogs:"catalogues",board:"pipeline",orders:"orders",map:"map"};
+const SEG2VIEW = {clients:"clients",catalogues:"catalogs",pipeline:"board",orders:"orders",map:"map",campaigns:"campaigns"};
+const VIEW2SEG = {clients:"clients",catalogs:"catalogues",board:"pipeline",orders:"orders",map:"map",campaigns:"campaigns"};
 function routeFromUrl(){
   const m = location.pathname.match(/\/view\/([a-z]+)/);
   if(!m) return {view:"overview"};
@@ -2158,6 +2181,78 @@ function renderMap(){
   document.getElementById("mapHint").textContent=`${mapped} of ${CORE.length} located · ${areas.length} area${areas.length===1?"":"s"}`;
 }
 
+/* ---- campaigns: create/target/monitor ---- */
+let CAMP_LOADED=false;
+function campGradeOpts(sel){
+  return [["A1","A*"],["A","A"],["B","B"]].map(([v,l])=>
+    `<label class="ckbx"><input type="checkbox" name="ctier" value="${v}"${sel.includes(v)?" checked":""}> ${l}</label>`).join("");
+}
+function campSignalOpts(sel){
+  return Object.keys(SEGMENTS).map(k=>
+    `<label class="ckbx"><input type="checkbox" name="csig" value="${esc(k)}"${sel.includes(k)?" checked":""}> ${esc(SEGMENTS[k].label)}</label>`).join("");
+}
+function campForm(c){
+  c=c||{}; const cfg=c.config||{};
+  return `<div class="campform">
+    <input id="cName" placeholder="Campaign name (e.g. Spring Private Preview)" value="${esc(c.name||"")}">
+    <div class="crow"><label>Start<input id="cStart" type="date" value="${esc(c.starts||"")}"></label>
+      <label>End<input id="cEnd" type="date" value="${esc(c.ends||"")}"></label></div>
+    <div class="cgrp"><span class="clbl">Target grades</span><div class="cchecks">${campGradeOpts(cfg.tiers||[])}</div></div>
+    <div class="cgrp"><span class="clbl">Target signals</span><div class="cchecks">${campSignalOpts(cfg.signals||[])}</div></div>
+    <input type="hidden" id="cId" value="${esc(c.id||"")}">
+    <div class="crow"><button class="btn" id="cSave">${c.id?"Save changes":"Create campaign"}</button>
+      ${c.id?'<button class="btn ghost" id="cCancel">Cancel</button>':''}</div>
+  </div>`;
+}
+function campInit(force){
+  if(CAMP_LOADED&&!force)return; CAMP_LOADED=true;
+  const root=document.getElementById("campaignsRoot");
+  root.innerHTML='<div style="color:var(--soft);font-size:13.5px">Loading…</div>';
+  fetch("/v1/campaigns").then(r=>r.json()).then(d=>{
+    const list=(d.campaigns||[]).map(c=>{
+      const tgt=[...(c.config.tiers||[]).map(t=>t==="A1"?"A*":t),
+                 ...(c.config.signals||[]).map(s=>(SEGMENTS[s]||{}).label||s)].join(", ")||"everyone";
+      return `<div class="camprow"><div class="ci"><b>${esc(c.name)}</b>
+        <span>${esc(c.starts)} → ${esc(c.ends)} · ${esc(tgt)}</span></div>
+        <div class="ca"><button class="btn" data-mon="${esc(c.id)}">Open monitor →</button>
+        <button class="lx" data-edit="${esc(c.id)}">Edit</button>
+        <button class="lx" data-del="${esc(c.id)}">Delete</button></div></div>`;
+    }).join("")||'<div style="color:var(--faint);font-size:13px;padding:14px 0">No campaigns yet. Create your first below.</div>';
+    root.innerHTML=`<div class="camplist">${list}</div>
+      <div class="campnew"><div class="clbl" style="margin-bottom:10px">New campaign</div>${campForm()}</div>`;
+    campWire(d.campaigns||[]);
+  }).catch(()=>{root.innerHTML='<div style="color:var(--soft)">Could not load campaigns.</div>';});
+}
+function campWire(camps){
+  const root=document.getElementById("campaignsRoot");
+  root.querySelectorAll("[data-mon]").forEach(b=>b.onclick=()=>window.open("/v1/campaigns/"+encodeURIComponent(b.dataset.mon)+"/monitor","_blank","noopener"));
+  root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
+    if(!confirm("Delete this campaign?"))return;
+    fetch("/v1/campaigns/"+encodeURIComponent(b.dataset.del),{method:"DELETE"})
+      .then(()=>{toast("Campaign deleted.");campInit(true);}).catch(()=>toast("Delete failed."));});
+  root.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{
+    const c=camps.find(x=>x.id===b.dataset.edit); if(!c)return;
+    document.querySelector(".campnew").innerHTML='<div class="clbl" style="margin-bottom:10px">Edit campaign</div>'+campForm(c);
+    campWireForm();});
+  campWireForm();
+}
+function campWireForm(){
+  const save=document.getElementById("cSave"); if(!save)return;
+  save.onclick=()=>{
+    const name=document.getElementById("cName").value.trim();
+    const starts=document.getElementById("cStart").value, ends=document.getElementById("cEnd").value;
+    if(!name){toast("Name the campaign.");return;}
+    if(!starts||!ends){toast("Set start and end dates.");return;}
+    const tiers=[...document.querySelectorAll('input[name=ctier]:checked')].map(x=>x.value);
+    const signals=[...document.querySelectorAll('input[name=csig]:checked')].map(x=>x.value);
+    const id=document.getElementById("cId").value;
+    fetch("/v1/campaigns",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({id:id||undefined,name:name,starts:starts,ends:ends,config:{tiers:tiers,signals:signals}})})
+      .then(r=>r.json()).then(d=>{if(d.ok){toast("Campaign saved.");campInit(true);}else{toast((d&&d.detail)||"Save failed.");}})
+      .catch(()=>toast("Save failed."));};
+  const cancel=document.getElementById("cCancel"); if(cancel)cancel.onclick=()=>campInit(true);
+}
+
 /* ---- page router ---- */
 const ORIG_STATS_DISPLAY=document.querySelector(".stats").style.display||"";
 const PAGE_META={
@@ -2165,7 +2260,8 @@ const PAGE_META={
   orders:{t:"Orders",s:"Every order, newest first, ranked by the client behind it. Act on each one while it is live, the message matches the order's status."},
   map:{t:"Where your VICs are",s:"Geographic concentration of your potential VICs, by UK postcode area and US ZIP. Drag to move, scroll to zoom, click a bubble to see the clients there."},
   board:{t:"Outreach pipeline",s:"Track outreach on your VIC clients across the team. Drag a client between stages; every move, assignment and note is logged with who did it and when."},
-  catalogs:{t:"Catalogues",s:"Turn your products into a print-ready PDF and a shareable enquiry form, then send it to clients."}
+  catalogs:{t:"Catalogues",s:"Turn your products into a print-ready PDF and a shareable enquiry form, then send it to clients."},
+  campaigns:{t:"Campaigns",s:"Name a window, target grades or signals, and monitor the sales it drives, live and kept nowhere."}
 };
 function showView(v){
   CURRENT_VIEW=v;
@@ -2173,7 +2269,7 @@ function showView(v){
   REVEAL_ACTIVE=false;
   if(v==="overview"||v==="clients") beginReveal();   // reveal the first time a scored view paints
   document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("on",x.dataset.view===v));
-  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"],["catalogs","viewCatalogs"]].forEach(([k,id])=>{
+  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"],["catalogs","viewCatalogs"],["campaigns","viewCampaigns"]].forEach(([k,id])=>{
     const el=document.getElementById(id);if(el)el.style.display=k===v?"":"none";});
   const statsEl=document.querySelector(".stats");
   if(v==="clients"){
@@ -2194,6 +2290,10 @@ function showView(v){
     document.querySelector(".title").textContent=PAGE_META.catalogs.t;document.querySelector(".sub").textContent=PAGE_META.catalogs.s;
     statsEl.style.display="none";
     catInit();
+  } else if(v==="campaigns"){
+    document.querySelector(".title").textContent=PAGE_META.campaigns.t;document.querySelector(".sub").textContent=PAGE_META.campaigns.s;
+    statsEl.style.display="none";
+    campInit();
   } else {
     document.querySelector(".title").textContent=PAGE_META.map.t;document.querySelector(".sub").textContent=PAGE_META.map.s;
     statsEl.style.display="none";

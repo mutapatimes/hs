@@ -1,6 +1,12 @@
-"""Campaign monitoring: member selection, window metrics, and store persistence."""
+"""Campaign monitoring: member selection, window metrics, store persistence, and the API."""
 import json
 
+import pytest
+from fastapi.testclient import TestClient
+
+from halia.api import shopify_auth
+from halia.api.app import app
+from halia.api.shopify_auth import require_shop
 from halia.campaigns import campaign_metrics, select_members
 from halia.store import ShopStore
 
@@ -77,3 +83,40 @@ def test_store_crud(tmp_path):
     assert s.get_campaign("camp1", "other") is None
     s.delete_campaign("camp1", "shopx")
     assert s.list_campaigns("shopx") == []
+
+
+@pytest.fixture()
+def api(tmp_path, monkeypatch):
+    store = ShopStore(db_path=tmp_path / "c.db")
+    monkeypatch.setattr(shopify_auth, "_shop_store", store)
+    app.dependency_overrides[require_shop] = lambda: "shopx"
+    yield TestClient(app), store
+    app.dependency_overrides.pop(require_shop, None)
+
+
+def test_api_create_list_monitor_delete(api):
+    from halia.cache import cache
+    c, _ = api
+    r = c.post("/v1/campaigns", json={"name": "Spring", "starts": "2025-03-01", "ends": "2025-05-31",
+                                      "config": {"tiers": ["a1"], "signals": ["work-email"]}})
+    assert r.status_code == 200 and r.json()["ok"]
+    cid = r.json()["id"]
+    lst = c.get("/v1/campaigns").json()["campaigns"]
+    assert len(lst) == 1 and lst[0]["name"] == "Spring"
+    assert lst[0]["config"]["tiers"] == ["A1"]                       # normalised to upper-case
+
+    cache.set("shopx", [], {"data": [{"cid": "1", "name": "Ava", "tier": "A1",
+              "signals": [{"seg": "work-email", "d": "Work email: X"}],
+              "orders": [{"date": "2025-03-10", "amount": 250}]}]}, {})
+    try:
+        m = c.get(f"/v1/campaigns/{cid}/monitor")
+        assert m.status_code == 200 and "Spring" in m.text and "Campaign monitoring" in m.text
+        assert "£250" in m.text
+    finally:
+        cache.evict("shopx")
+
+    assert c.post("/v1/campaigns", json={"name": "", "starts": "2025-03-01", "ends": "2025-05-31"}).status_code == 400
+    assert c.post("/v1/campaigns", json={"name": "X", "starts": "2025-05-01", "ends": "2025-03-01"}).status_code == 400
+
+    c.delete(f"/v1/campaigns/{cid}")
+    assert c.get("/v1/campaigns").json()["campaigns"] == []
