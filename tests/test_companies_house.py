@@ -59,7 +59,7 @@ def test_gated_entry_needs_matching_district():
     assert not ch.match_name("James Whitmore", table)[0]
     # customer postcode in the register person's district: fires, and says why
     hit, reason, tier = ch.match_name("James Whitmore", table, districts={"GL54"})
-    assert hit and tier == "high" and reason.endswith("; register address matches)")
+    assert hit and tier == "high" and reason.endswith(", register address matches)")
     # a different district: still no match
     assert not ch.match_name("James Whitmore", table, districts={"SW10"})[0]
 

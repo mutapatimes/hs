@@ -323,7 +323,7 @@ def _reason_delivery(row: pd.Series) -> str:
 SIGNALS = [
     ("work_email", "Work email", work_email.flag_work_email,
      work_email.FLAG_COL, lambda r: r[work_email.REASON_COL]),
-    ("broad_employer", "Broad employer", broad_employer.flag_broad_employer,
+    ("broad_employer", "Major employer", broad_employer.flag_broad_employer,
      broad_employer.FLAG_COL, lambda r: r[broad_employer.REASON_COL]),
     ("premium_email", "Premium email", premium_email.flag_premium_email,
      premium_email.FLAG_COL, lambda r: r[premium_email.REASON_COL]),
