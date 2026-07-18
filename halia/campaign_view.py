@@ -98,6 +98,7 @@ def render_campaign(metrics: dict, *, demo: bool = False) -> str:
     --brand:#1F564A;--brand-deep:#143A32;--gold:#A67C34;--line:#E4E2DB;--tint:#EAF0ED;
     --f:'Helvetica Neue',Helvetica,Arial,sans-serif}}
   *{{box-sizing:border-box;margin:0;padding:0}}
+  html{{-webkit-print-color-adjust:exact;print-color-adjust:exact}}   /* keep brand colours + charts when printed */
   body{{background:var(--bg);color:var(--ink);font-family:var(--f);line-height:1.5;-webkit-font-smoothing:antialiased}}
   .wrap{{max-width:1080px;margin:0 auto;padding:0 24px}}
   .demo{{background:var(--brand);color:#fff;font-size:13px;text-align:center;padding:9px}}
@@ -141,9 +142,17 @@ def render_campaign(metrics: dict, *, demo: bool = False) -> str:
   .winback .wb-t b{{font-weight:700}}
   .empty{{color:var(--faint);padding:26px;text-align:center}}
   footer{{color:var(--faint);font-size:12px;padding:24px 0 40px}}
+  .pdfbtn{{border:1px solid var(--brand);background:var(--brand);color:#fff;font:600 13px var(--f);padding:9px 16px;cursor:pointer}}
+  .pdfbtn:hover{{background:var(--brand-deep)}}
+  @media print{{
+    .pdfbtn,.demo{{display:none!important}}
+    header{{border:none}} body{{background:#fff}}
+    .panel,.stats,.winback,.cols>.panel{{break-inside:avoid}}
+    @page{{margin:14mm}}
+  }}
 </style></head><body>
 {banner}
-<header><div class="wrap bar"><span class="logo">&#8258; Halia</span><span class="sub" style="margin:0">Campaign monitoring</span></div></header>
+<header><div class="wrap bar"><span class="logo">&#8258; Halia</span><button class="pdfbtn" onclick="window.print()">Save as PDF &darr;</button></div></header>
 <div class="wrap">
   <h1>{_e(metrics.get("name"))}</h1>
   <div class="sub">{window}</div>
