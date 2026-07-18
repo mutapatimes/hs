@@ -51,6 +51,7 @@ _NAV_MENU = (
     '<a href="/view/clients">Clients</a>'
     '<a href="/view/catalogues">Catalogues</a>'
     '<a href="/view/pipeline">Pipeline</a>'
+    '<a href="/view/campaigns">Campaigns</a>'
     '<a href="/view/orders">Orders</a>'
     '<a href="/view/map">Map</a>'
     '<a href="/view/settings">Settings</a>'
