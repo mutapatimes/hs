@@ -64,8 +64,15 @@ def register(app) -> None:
         if ends < starts:
             raise HTTPException(400, "The end date must be on or after the start date.")
         cid = str(p.get("id") or "").strip() or ("camp_" + secrets.token_urlsafe(8))
-        shop_store().save_campaign(cid, shop, name, starts, ends,
-                                   json.dumps(_clean_config(p.get("config"))))
+        # Campaigns are membership-based (added from the Clients tab). Editing name/dates must
+        # NOT wipe the members: when the form omits config, preserve the existing one.
+        if p.get("config") is not None:
+            cfg = _clean_config(p.get("config"))
+        else:
+            existing = shop_store().get_campaign(cid, shop) if p.get("id") else None
+            cfg = (_clean_config(json.loads(existing.get("config_json") or "{}"))
+                   if existing else _clean_config({}))
+        shop_store().save_campaign(cid, shop, name, starts, ends, json.dumps(cfg))
         return {"ok": True, "id": cid}
 
     @app.delete("/v1/campaigns/{campaign_id}")
@@ -80,17 +87,20 @@ def register(app) -> None:
         row = shop_store().get_campaign(campaign_id, shop)
         if not row:
             raise HTTPException(404, "Campaign not found.")
-        cid = str((payload or {}).get("cid") or "").strip()
-        if not cid:
-            raise HTTPException(400, "No client id.")
+        p = payload or {}
+        raw = p.get("cids") if isinstance(p.get("cids"), list) else [p.get("cid")]
+        targets = {str(x).strip() for x in raw if str(x or "").strip()}
+        if not targets:
+            raise HTTPException(400, "No client id(s).")
         cfg = _clean_config(json.loads(row.get("config_json") or "{}"))
-        members = [m for m in cfg["members"] if m != cid]
-        if not (payload or {}).get("remove"):
-            members.append(cid)
+        members = [m for m in cfg["members"] if m not in targets]     # drop, then re-add (dedup)
+        if not p.get("remove"):
+            members += sorted(targets)
         cfg["members"] = members
         shop_store().save_campaign(campaign_id, shop, row["name"], row["starts"], row["ends"],
                                    json.dumps(cfg))
-        return {"ok": True, "in": not bool((payload or {}).get("remove")), "count": len(members)}
+        return {"ok": True, "in": not bool(p.get("remove")), "count": len(members),
+                "added": len(targets) if not p.get("remove") else 0}
 
     @app.get("/v1/campaigns/{campaign_id}/monitor", response_class=HTMLResponse)
     def monitor(campaign_id: str, shop: str = Depends(require_shop)) -> HTMLResponse:
