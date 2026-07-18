@@ -290,8 +290,12 @@ SIGNAL_GROUP: dict[str, str] = {
     # Payment tells (gated; mostly dormant) — don't let BIN + brand double-count.
     "premium_card": "payment",
     "card_brand": "payment",
-    # Email-domain tells — a finance-keyword domain IS also a custom domain, so
-    # group them: the stronger (domain_keyword) counts in full, custom_email at decay.
+    # Email-domain tells — a known employer, a finance-keyword domain, and a bare custom
+    # domain are all read from the SAME email domain, so group them: the strongest counts
+    # in full and the rest decay, and they count as ONE source. Otherwise "Google (big tech)"
+    # and "Custom domain: google.com" would double-count the one fact.
+    "work_email": "email",
+    "broad_employer": "email",
     "custom_email": "email",
     "domain_keyword": "email",
 }
