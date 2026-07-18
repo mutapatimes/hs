@@ -965,18 +965,16 @@
 
       <!-- CATALOGUES: build print-ready PDF + shareable enquiry-form catalogues from products -->
       <div id="viewCatalogs" style="display:none">
-        <p style="color:var(--soft);font-size:13.5px;line-height:1.6;max-width:70ch;margin:0 0 16px">Build a print-ready PDF catalogue from your products, then share it two ways: a <b>PDF</b> (with an Enquire link on every product) and an interactive <b>enquiry form</b> where clients tick what they want and their request is emailed to you. Insert <b>{catalog_link}</b> in a client-email template to drop your active catalogue into the message.</p>
         <div id="catalogsRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
       </div><!-- /viewCatalogs -->
 
       <!-- CAMPAIGNS: name a window, target grades/signals, monitor sales + reactivations live -->
       <div id="viewCampaigns" style="display:none">
-        <p style="color:var(--soft);font-size:13.5px;line-height:1.6;max-width:74ch;margin:0 0 16px">Create a campaign, set its dates, and target whole grades or signals. Halia then monitors the sales it drives, sales over time, revenue by signal and grade, and the clients who came back from gone quiet, computed live from your book and kept nowhere.</p>
         <div id="campaignsRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
       </div><!-- /viewCampaigns -->
 
       <div class="foot">
-        __FOOT_DEMO__Latent value is a client's projected worth once nurtured into a top client: today's spend grown toward your ceiling, weighted by their Halia score. Your ceiling is your <b>highest lifetime client</b> or <b>AOV × most orders from one client</b>, whichever is higher. Tune it in <b>⚙ Settings</b>.
+        __FOOT_DEMO__Latent value is a client's projected worth once nurtured into a top client. Tune your ceiling in <b>⚙ Settings</b>.
       </div>
     </div>
   </main>
@@ -2395,12 +2393,12 @@ function campListLoad(cb){
 /* ---- page router ---- */
 const ORIG_STATS_DISPLAY=document.querySelector(".stats").style.display||"";
 const PAGE_META={
-  overview:{t:"Overview",s:"A birds-eye view of the potential VICs Halia surfaced from your store: who they are, what they are worth, and where they are."},
-  orders:{t:"Orders",s:"Every order, newest first, ranked by the client behind it. Act on each one while it is live, the message matches the order's status."},
-  map:{t:"Where your VICs are",s:"Geographic concentration of your potential VICs, by UK postcode area and US ZIP. Drag to move, scroll to zoom, click a bubble to see the clients there."},
-  board:{t:"Outreach pipeline",s:"Track outreach on your VIC clients across the team. Drag a client between stages; every move, assignment and note is logged with who did it and when."},
-  catalogs:{t:"Catalogues",s:"Turn your products into a print-ready PDF and a shareable enquiry form, then send it to clients."},
-  campaigns:{t:"Campaigns",s:"Name a window, target grades or signals, and monitor the sales it drives, live and kept nowhere."}
+  overview:{t:"Overview",s:"The potential VICs Halia surfaced from your store."},
+  orders:{t:"Orders",s:"Every order, newest first, ranked by the client behind it."},
+  map:{t:"Where your VICs are",s:"Your potential VICs by area."},
+  board:{t:"Outreach pipeline",s:"Track outreach across the team."},
+  catalogs:{t:"Catalogues",s:"Build a catalogue and share it as a PDF or enquiry form."},
+  campaigns:{t:"Campaigns",s:"Track the sales a campaign drives."}
 };
 function showView(v){
   CURRENT_VIEW=v;
