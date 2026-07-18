@@ -134,6 +134,11 @@ def render_campaign(metrics: dict, *, demo: bool = False) -> str:
   th.num,td.num{{text-align:right;font-variant-numeric:tabular-nums}}
   td{{padding:12px;border-bottom:1px solid var(--line)}} td.nm{{font-weight:600}}
   .pill{{font-size:11px;font-weight:700;padding:2px 8px;border:1px solid var(--line);color:var(--brand)}}
+  .winback{{display:flex;align-items:center;gap:18px;background:var(--brand);color:#fff;padding:18px 22px;margin-bottom:22px}}
+  .winback .wb-n{{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}}
+  .winback .wb-t{{font-size:15px;font-weight:600}}
+  .winback .wb-t span{{display:block;font-weight:400;opacity:.85;font-size:13.5px;margin-top:3px}}
+  .winback .wb-t b{{font-weight:700}}
   .empty{{color:var(--faint);padding:26px;text-align:center}}
   footer{{color:var(--faint);font-size:12px;padding:24px 0 40px}}
 </style></head><body>
@@ -143,6 +148,11 @@ def render_campaign(metrics: dict, *, demo: bool = False) -> str:
   <h1>{_e(metrics.get("name"))}</h1>
   <div class="sub">{window}</div>
   <div class="stats">{kpis}</div>
+
+  <div class="winback">
+    <div class="wb-n">{k.get("reactivated", 0):,}</div>
+    <div class="wb-t">clients came back from gone quiet<span>reactivated during the campaign, worth <b>{_money(k.get("reactivated_revenue", 0))}</b> recovered</span></div>
+  </div>
 
   <div class="panel">
     <h2>Sales over time</h2>

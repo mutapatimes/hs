@@ -45,6 +45,14 @@ def main() -> None:
             continue
         aov = float(m.get("aov") or 0) or max(400.0, float(m.get("spend") or 0) / 6 or 900.0)
         orders = []
+        # seed each buyer's real last-shopped date as a prior order, so those who had gone quiet
+        # before the window (>90 days) register as reactivations when they buy in-window
+        ls = m.get("lastSort")
+        if ls:
+            try:
+                orders.append({"date": date.fromtimestamp(int(ls)).isoformat(), "amount": round(aov, 2)})
+            except (ValueError, OverflowError, OSError):
+                pass
         for _ in range(rng.randint(1, 3)):
             d = START + timedelta(days=rng.randint(0, span))
             amt = round(aov * rng.uniform(0.6, 1.8), 2)
