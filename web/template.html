@@ -1038,7 +1038,7 @@ const tierLabel = t => t==="A1"?"A*":t;
 function cartAge(d){ if(!d) return ""; const days=Math.round((Date.now()-new Date(d).getTime())/86400000);
   return days<=0?"today":days===1?"yesterday":days+" days ago"; }
 
-let activeSeg = "all";
+let activeSegs = new Set();   // empty = "all signals"; Cmd/Ctrl-click combines several
 let sortKey = "score";
 let sortDir = "desc";            // "desc" (default) or "asc"; toggles when a sort column is re-clicked
 let query = "";
@@ -1101,14 +1101,17 @@ function renderChips(){
       playFilter = playFilter===b.dataset.play ? "" : b.dataset.play;
       page=1;renderChips();renderRows();});
   }
-  let html = `<button class="chip ${activeSeg==='all'&&!playFilter?'on':''}" data-seg="all">All signals <span class="ct">${CORE.length}</span></button>`;
+  let html = `<button class="chip ${activeSegs.size===0&&!playFilter?'on':''}" data-seg="all">All signals <span class="ct">${CORE.length}</span></button>`;
   Object.keys(SEGMENTS).forEach(k=>{
     if(!segCounts[k]) return;
-    html += `<button class="chip ${activeSeg===k?'on':''}" data-seg="${k}">${SEGMENTS[k].label} <span class="ct">${segCounts[k]}</span></button>`;
+    html += `<button class="chip ${activeSegs.has(k)?'on':''}" data-seg="${k}" title="Cmd/Ctrl-click to select several">${SEGMENTS[k].label} <span class="ct">${segCounts[k]}</span></button>`;
   });
   chipsEl.innerHTML = html;
-  chipsEl.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
-    activeSeg=b.dataset.seg; if(b.dataset.seg==="all") playFilter="";
+  chipsEl.querySelectorAll(".chip").forEach(b=>b.onclick=(e)=>{
+    const seg=b.dataset.seg;
+    if(seg==="all"){ activeSegs.clear(); playFilter=""; }               // "All" resets
+    else if(e.metaKey||e.ctrlKey){ activeSegs.has(seg)?activeSegs.delete(seg):activeSegs.add(seg); } // toggle in multi-select
+    else { activeSegs.clear(); activeSegs.add(seg); }                   // plain click = just this one
     page=1;renderChips();renderRows();});
 }
 
@@ -1274,7 +1277,7 @@ function visible(){
   const base = playFilter==="sleeping" ? DATA : CORE;
   let list = base.filter(c=>{
     const playOk = !playFilter || playOf(c)===playFilter;
-    const segOk = activeSeg==="all" || c.signals.some(s=>s.seg===activeSeg);
+    const segOk = activeSegs.size===0 || c.signals.some(s=>activeSegs.has(s.seg));
     const qOk = clientMatches(c, query);
     const gradeOk = gradeFilter==="all" || c.grade===gradeFilter;
     const cityOk = cityFilter==="all" || c.city===cityFilter;
@@ -2114,7 +2117,7 @@ function renderLandscape(){
   if(!el||!LANDSCAPE.hidden) return;
   const tiles=[
     {k:"hidden",   t:"Hidden VICs",      c:"Strong wealth signals on modest spend. Your introduction list.",
-     n:LANDSCAPE.hidden.n,   v:LANDSCAPE.hidden.value,  vlbl:"latent", click:()=>{playFilter="";activeSeg="all";page=1;showView("clients");renderChips();renderRows();}},
+     n:LANDSCAPE.hidden.n,   v:LANDSCAPE.hidden.value,  vlbl:"latent", click:()=>{playFilter="";activeSegs.clear();page=1;showView("clients");renderChips();renderRows();}},
     {k:"sleeping", t:"Gone quiet",       c:"Proven clients whose orders stopped. A quiet note brings them back.",
      n:LANDSCAPE.sleeping.n, v:LANDSCAPE.sleeping.value, vlbl:"lifetime", click:()=>filterToPlay("sleeping")},
     {k:"active",   t:"Active VICs",      c:"Strong wealth signals, shopping now. Keep the service impeccable."   , n:LANDSCAPE.active.n},
@@ -2129,7 +2132,7 @@ function renderLandscape(){
 }
 // Jump to the Clients view with a play chip switched on (from a landscape tile).
 function filterToPlay(play){
-  playFilter=play;activeSeg="all";query="";document.getElementById("q").value="";page=1;
+  playFilter=play;activeSegs.clear();query="";document.getElementById("q").value="";page=1;
   showView("clients");renderChips();renderRows();
 }
 // Open baskets = clients with an unpaid checkout (abandoned checkout / cart). A timely,
