@@ -3980,8 +3980,15 @@ else { renderChips();renderRows();wireRescore();
   const r0=routeFromUrl();
   showView(r0.view||"overview");
   if(r0.settings) openSettings();                    // deep-linked to /app/settings
-  // App Bridge nav (or back/forward) changes the path without a reload -> follow it.
-  addEventListener("popstate",()=>applyRoute(routeFromUrl())); }
+  // Back/forward fire popstate; App Bridge's sidebar nav changes the path via history.pushState,
+  // which does NOT fire popstate — so patch pushState/replaceState to emit an event we can follow.
+  // applyRoute is a no-op when the view already matches, so our own setUrlPath() can't loop.
+  addEventListener("popstate",()=>applyRoute(routeFromUrl()));
+  for(const m of ["pushState","replaceState"]){
+    const orig=history[m];
+    history[m]=function(){ const ret=orig.apply(this,arguments);
+      try{ applyRoute(routeFromUrl()); }catch(_){} return ret; };
+  } }
 loadSettings().then(s=>{ if(!s.klaviyo_connected&&!s.mailchimp_connected) showConnectBanner(); initAlerts(s); refreshIntegrationUI(); });
 
 // Live high-grade order alerts (in-dashboard feed + desktop notifications).
