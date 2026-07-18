@@ -664,6 +664,7 @@ def _hosted_head(store: str = "") -> str:
         "['clients','Clients',`<circle cx='12' cy='8' r='4'/><path d='M4 21c0-4 4-6 8-6s8 2 8 6'/>`],"
         "['catalogs','Catalogues',`<rect x='4' y='4' width='7' height='7' rx='1'/><rect x='13' y='4' width='7' height='7' rx='1'/><rect x='4' y='13' width='7' height='7' rx='1'/><rect x='13' y='13' width='7' height='7' rx='1'/>`],"
         "['board','Pipeline',`<path d='M4 4h4v16H4zM10 4h4v11h-4zM16 4h4v7h-4z'/>`],"
+        "['campaigns','Campaigns',`<path d='M4 19V5'/><path d='M4 19h16'/><path d='M8 15l3.5-4 3 3L20 8'/>`],"
         "['orders','Orders',`<path d='M6 2l1.5 3h9L18 2M5 5h14l-1.4 13a2 2 0 01-2 1.8H8.4a2 2 0 01-2-1.8z'/>`],"
         "['map','Map',`<path d='M9 3L3 6v15l6-3 6 3 6-3V3l-6 3z'/><path d='M9 3v15M15 6v15'/>`]"
         "];"
