@@ -136,3 +136,18 @@ def test_api_add_and_remove_member(api):
     r2 = c.post(f"/v1/campaigns/{cid}/members", json={"cid": "cust_9", "remove": True})
     assert r2.json()["in"] is False and r2.json()["count"] == 0
     assert c.get("/v1/campaigns").json()["campaigns"][0]["config"]["members"] == []
+
+
+def test_bulk_members_and_edit_preserves_membership(api):
+    c, _ = api
+    cid = c.post("/v1/campaigns", json={"name": "W", "starts": "2025-03-01", "ends": "2025-05-31"}).json()["id"]
+    # created without config -> no members
+    assert c.get("/v1/campaigns").json()["campaigns"][0]["config"]["members"] == []
+    # bulk add several at once (cids list), deduped
+    r = c.post(f"/v1/campaigns/{cid}/members", json={"cids": ["a", "b", "b", "c"]})
+    assert r.status_code == 200 and r.json()["count"] == 3
+    # editing name/dates WITHOUT config must not wipe members
+    c.post("/v1/campaigns", json={"id": cid, "name": "W2", "starts": "2025-03-02", "ends": "2025-06-01"})
+    got = c.get("/v1/campaigns").json()["campaigns"][0]
+    assert got["name"] == "W2" and got["starts"] == "2025-03-02"
+    assert sorted(got["config"]["members"]) == ["a", "b", "c"]

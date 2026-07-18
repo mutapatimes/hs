@@ -493,6 +493,8 @@
   .cmchips{display:flex;flex-wrap:wrap;gap:6px}
   .cmchip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--brand);background:var(--brand-tint,#EAF0ED);padding:4px 8px}
   .cmchip button{border:none;background:none;color:var(--brand);font-size:15px;line-height:1;cursor:pointer;padding:0}
+  #bulkcampmenu .bmi{display:block;width:100%;text-align:left;border:none;background:none;padding:9px 12px;font:500 13px 'Hanken Grotesk',sans-serif;color:var(--ink);cursor:pointer}
+  #bulkcampmenu .bmi:hover{background:var(--rowhover)}
   .othead{grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px}
   .orow{display:grid;grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line);font-size:13px}
   .orow:hover{background:var(--rowhover)}
@@ -945,6 +947,10 @@
 <div class="bulk" id="bulk">
   <div class="n"><b id="bulkN">0</b> selected</div>
   <div class="acts">
+    <span class="bcampwrap" style="position:relative">
+      <button class="bbtn" id="bulkcamp">Add to campaign ▾</button>
+      <div id="bulkcampmenu" style="display:none;position:absolute;bottom:44px;left:0;min-width:220px;max-height:260px;overflow:auto;background:var(--card);border:1px solid var(--line);box-shadow:0 10px 26px rgba(0,0,0,.13);z-index:60"></div>
+    </span>
     <button class="bbtn primary" id="bulkpush">Sync to Klaviyo</button>
     <button class="bbtn" id="bulklist">Create Klaviyo list</button>
     <button class="bbtn" id="bulkpushmc" style="display:none">Sync to Mailchimp</button>
@@ -1438,6 +1444,31 @@ async function haliaPush(cids){
     toast(`${d.pushed} client${d.pushed===1?"":"s"} synced to Klaviyo with their Halia grade.`);
   }catch(e){ toast("Klaviyo sync failed: "+e.message); }
 }
+
+// bulk action: add the ticked clients to a campaign (opens a picker of the merchant's campaigns)
+document.getElementById("bulkcamp").onclick=()=>{
+  const menu=document.getElementById("bulkcampmenu");
+  if(menu.style.display==="block"){menu.style.display="none";return;}
+  campListLoad(camps=>{
+    menu.innerHTML=camps.length
+      ? camps.map(c=>`<button class="bmi" data-cid="${esc(c.id)}">${esc(c.name)}</button>`).join("")
+      : '<div style="padding:10px 12px;color:var(--faint);font-size:12.5px">No campaigns yet. Create one in the Campaigns tab.</div>';
+    menu.querySelectorAll("[data-cid]").forEach(b=>b.onclick=()=>{
+      const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
+      menu.style.display="none";
+      if(!cids.length){toast("Tick some clients first.");return;}
+      fetch("/v1/campaigns/"+encodeURIComponent(b.dataset.cid)+"/members",{method:"POST",
+        headers:{"content-type":"application/json"},body:JSON.stringify({cids:cids})})
+        .then(r=>r.json()).then(d=>{
+          if(d&&d.ok){toast((d.added||cids.length)+" added to campaign.");
+            const cc=(CAMP_CACHE||[]).find(x=>x.id===b.dataset.cid);
+            if(cc){cc.config=cc.config||{};const s=new Set(cc.config.members||[]);cids.forEach(x=>s.add(String(x)));cc.config.members=[...s];}
+          }else toast("Couldn't add to campaign.");
+        }).catch(()=>toast("Couldn't add to campaign."));
+    });
+    menu.style.display="block";
+  });
+};
 
 // bulk action: sync the selected clients
 // A quick guard before an irreversible bulk sync/tag, so a stray click can't fire it.
@@ -2186,25 +2217,16 @@ function renderMap(){
 
 /* ---- campaigns: create/target/monitor ---- */
 let CAMP_LOADED=false, CAMP_CACHE=null;
-function campGradeOpts(sel){
-  return [["A1","A*"],["A","A"],["B","B"]].map(([v,l])=>
-    `<label class="ckbx"><input type="checkbox" name="ctier" value="${v}"${sel.includes(v)?" checked":""}> ${l}</label>`).join("");
-}
-function campSignalOpts(sel){
-  return Object.keys(SEGMENTS).map(k=>
-    `<label class="ckbx"><input type="checkbox" name="csig" value="${esc(k)}"${sel.includes(k)?" checked":""}> ${esc(SEGMENTS[k].label)}</label>`).join("");
-}
 function campForm(c){
-  c=c||{}; const cfg=c.config||{};
+  c=c||{};
   return `<div class="campform">
     <input id="cName" placeholder="Campaign name (e.g. Spring Private Preview)" value="${esc(c.name||"")}">
     <div class="crow"><label>Start<input id="cStart" type="date" value="${esc(c.starts||"")}"></label>
       <label>End<input id="cEnd" type="date" value="${esc(c.ends||"")}"></label></div>
-    <div class="cgrp"><span class="clbl">Target grades</span><div class="cchecks">${campGradeOpts(cfg.tiers||[])}</div></div>
-    <div class="cgrp"><span class="clbl">Target signals</span><div class="cchecks">${campSignalOpts(cfg.signals||[])}</div></div>
     <input type="hidden" id="cId" value="${esc(c.id||"")}">
     <div class="crow"><button class="btn" id="cSave">${c.id?"Save changes":"Create campaign"}</button>
       ${c.id?'<button class="btn ghost" id="cCancel">Cancel</button>':''}</div>
+    <div style="font-size:12.5px;color:var(--faint);margin-top:8px">Add clients from the <b>Clients</b> tab: tick people, then choose <b>Add to campaign</b>.</div>
   </div>`;
 }
 function campInit(force){
@@ -2218,10 +2240,9 @@ function campInit(force){
   fetch("/v1/campaigns").then(r=>r.json()).then(d=>{
     CAMP_CACHE=d.campaigns||[];                         // keep the drawer's picker in step
     const list=(d.campaigns||[]).map(c=>{
-      const tgt=[...(c.config.tiers||[]).map(t=>t==="A1"?"A*":t),
-                 ...(c.config.signals||[]).map(s=>(SEGMENTS[s]||{}).label||s)].join(", ")||"everyone";
+      const n=((c.config&&c.config.members)||[]).length;
       return `<div class="camprow"><div class="ci"><b>${esc(c.name)}</b>
-        <span>${esc(c.starts)} → ${esc(c.ends)} · ${esc(tgt)}</span></div>
+        <span>${esc(c.starts)} → ${esc(c.ends)} · ${n} client${n===1?"":"s"}</span></div>
         <div class="ca"><button class="btn" data-mon="${esc(c.id)}">Open monitor →</button>
         <button class="lx" data-edit="${esc(c.id)}">Edit</button>
         <button class="lx" data-del="${esc(c.id)}">Delete</button></div></div>`;
@@ -2250,11 +2271,10 @@ function campWireForm(){
     const starts=document.getElementById("cStart").value, ends=document.getElementById("cEnd").value;
     if(!name){toast("Name the campaign.");return;}
     if(!starts||!ends){toast("Set start and end dates.");return;}
-    const tiers=[...document.querySelectorAll('input[name=ctier]:checked')].map(x=>x.value);
-    const signals=[...document.querySelectorAll('input[name=csig]:checked')].map(x=>x.value);
     const id=document.getElementById("cId").value;
+    // name + dates only; membership is built from the Clients tab (config omitted -> preserved)
     fetch("/v1/campaigns",{method:"POST",headers:{"content-type":"application/json"},
-      body:JSON.stringify({id:id||undefined,name:name,starts:starts,ends:ends,config:{tiers:tiers,signals:signals}})})
+      body:JSON.stringify({id:id||undefined,name:name,starts:starts,ends:ends})})
       .then(r=>r.json()).then(d=>{if(d.ok){toast("Campaign saved.");campInit(true);}else{toast((d&&d.detail)||"Save failed.");}})
       .catch(()=>toast("Save failed."));};
   const cancel=document.getElementById("cCancel"); if(cancel)cancel.onclick=()=>campInit(true);
