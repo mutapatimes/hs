@@ -96,6 +96,9 @@ STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID") or None
 # shorthand allowed). When set, this overrides STRIPE_PRICE_ID; unset falls back to the single price.
 STRIPE_TIERS = os.environ.get("STRIPE_TIERS") or None
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET") or None
+# Store Concierge (the £14/mo clienteling brand) has its own flat recurring price. A storeconcierge
+# tenant is billed this instead of the Halia size tiers; unset -> SC tenants fall back to the Halia price.
+STRIPE_PRICE_STORECONCIERGE = os.environ.get("STRIPE_PRICE_STORECONCIERGE") or None
 # Optional preconfigured Stripe coupon id for the 50%-off retention offer (else created ad-hoc).
 STRIPE_RETENTION_COUPON = os.environ.get("STRIPE_RETENTION_COUPON") or None
 # Shopify Billing (the embedded app's Plans screen subscribes via Shopify's own recurring charges,

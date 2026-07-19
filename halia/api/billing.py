@@ -64,9 +64,21 @@ def _scanned_count(shop: str) -> int:
         return 0
 
 
+def _is_storeconcierge(shop: str) -> bool:
+    """True when this tenant is on the Store Concierge brand (flat £14 clienteling plan)."""
+    try:
+        from halia.storeconcierge.tenant import brand_of
+        return brand_of(shop) == "storeconcierge"
+    except Exception:  # noqa: BLE001 — never let a brand lookup break checkout
+        return False
+
+
 def price_for_shop(shop: str) -> str | None:
-    """The Stripe price for this tenant: the size tier its customer count falls in, else the single
-    STRIPE_PRICE_ID. A store scanned at 0 (cache cold) defaults to the smallest tier."""
+    """The Stripe price for this tenant: Store Concierge tenants get their own flat price; otherwise
+    the size tier the customer count falls in, else the single STRIPE_PRICE_ID. A store scanned at 0
+    (cache cold) defaults to the smallest tier."""
+    if _is_storeconcierge(shop) and config.STRIPE_PRICE_STORECONCIERGE:
+        return config.STRIPE_PRICE_STORECONCIERGE
     tiers = _parse_tiers()
     if not tiers:
         return config.STRIPE_PRICE_ID
@@ -87,6 +99,8 @@ def plan_for_shop(shop: str) -> dict | None:
     Turns the gate from a generic "subscribe" into "your book: 47,015 customers -> Signal". None
     when tiered pricing is not configured (single-price or billing off).
     """
+    if _is_storeconcierge(shop):
+        return {"name": "Store Concierge", "count": _scanned_count(shop)}
     tiers = _parse_tiers()
     if not tiers:
         return None

@@ -33,6 +33,26 @@ def _enable(monkeypatch):
     monkeypatch.setattr("halia.config.HALIA_FREE_SHOPS", set())
 
 
+def test_storeconcierge_tenant_gets_its_own_flat_price_and_plan(client, monkeypatch):
+    _, store = client
+    monkeypatch.setattr("halia.config.STRIPE_PRICE_ID", "price_halia")
+    monkeypatch.setattr("halia.config.STRIPE_TIERS",
+                        "15000:price_discovery,75000:price_signal,*:price_atelier")
+    monkeypatch.setattr("halia.config.STRIPE_PRICE_STORECONCIERGE", "price_sc14")
+    from halia.storeconcierge.tenant import set_brand
+    store.create_tenant("scshop", "woocommerce", "SC Shop", "h")
+    # a Halia tenant still gets a size tier
+    store.create_tenant("haliashop", "woocommerce", "Halia Shop", "h")
+    assert billing.price_for_shop("haliashop") == "price_discovery"
+    # the Store Concierge tenant gets its own flat price + plan name
+    set_brand("scshop", "storeconcierge")
+    assert billing.price_for_shop("scshop") == "price_sc14"
+    assert billing.plan_for_shop("scshop")["name"] == "Store Concierge"
+    # falls back to the Halia price if the SC price isn't configured
+    monkeypatch.setattr("halia.config.STRIPE_PRICE_STORECONCIERGE", None)
+    assert billing.price_for_shop("scshop") == "price_discovery"
+
+
 def test_is_paid_open_when_billing_off(client, monkeypatch):
     monkeypatch.setattr("halia.config.STRIPE_SECRET_KEY", None)
     assert billing.is_paid("anyshop") is True
