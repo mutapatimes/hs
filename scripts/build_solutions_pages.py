@@ -571,7 +571,7 @@ def _footer() -> str:
         '<div class="hf-news"><h3>The quiet edge in luxury retail, in your inbox.</h3>'
         '<form id="newsForm" novalidate><input id="newsEmail" type="email" placeholder="Your work email" required>'
         '<button type="submit">Subscribe &rarr;</button></form></div>'
-        '<div class="hf-grid"><div>'
+        '<div class="hf-cols"><div>'
         f'<a class="brand" href="/"><span aria-hidden="true" style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:22px;line-height:1;color:var(--gold,#8a8377)">{_ASTER}</span>Halia</a>'
         '<p class="hf-bio">Halia is private client intelligence for luxury retail. We read the '
         'wealth signals already sitting in your customer data, grade every customer from A&#42; to C, '
