@@ -54,6 +54,7 @@ _NAV_MENU = (
     '<a href="/view/campaigns">Campaigns</a>'
     '<a href="/view/orders">Orders</a>'
     '<a href="/view/map">Map</a>'
+    '<a href="/view/plans">Plans</a>'
     '<a href="/view/settings">Settings</a>'
     "</ui-nav-menu>"
 )

@@ -521,6 +521,40 @@
   .cm-tbl th.num,.cm-tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
   .cm-tbl td{padding:11px 12px;border-bottom:1px solid var(--line)}.cm-tbl td.nm{font-weight:600}
   .cm-empty{color:var(--faint);padding:22px;text-align:center}
+  /* plans & pricing */
+  .pl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+  @media(max-width:900px){.pl-grid{grid-template-columns:1fr}}
+  .pl-card{background:var(--card);border:1px solid var(--line);padding:24px 22px;display:flex;flex-direction:column}
+  .pl-card.feat{background:var(--brand-deep);border-color:var(--brand-deep);color:#fff}
+  .pl-card.cur{outline:2px solid var(--brand);outline-offset:-2px}
+  .pl-badge{align-self:flex-start;font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-deep);background:var(--gold);padding:3px 9px;margin-bottom:12px}
+  .pl-card.feat .pl-badge{background:var(--gold);color:var(--brand-deep)}
+  .pl-name{font:700 18px 'Fraunces',serif;letter-spacing:-.01em}
+  .pl-price{font:700 clamp(28px,3.4vw,36px)/1 'Fraunces',serif;letter-spacing:-.02em;margin:6px 0 2px}
+  .pl-price span{font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+  .pl-card.feat .pl-price span{color:rgba(255,255,255,.6)}
+  .pl-who{font-size:12.5px;color:var(--soft);min-height:32px;margin-bottom:14px}
+  .pl-card.feat .pl-who{color:rgba(255,255,255,.72)}
+  .pl-feats{list-style:none;margin:0 0 20px;padding:14px 0 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:9px;flex:1}
+  .pl-card.feat .pl-feats{border-top-color:rgba(255,255,255,.18)}
+  .pl-feats li{display:flex;gap:9px;font-size:13px;line-height:1.35}
+  .pl-feats li .tk{color:var(--brand);flex:none;font-weight:700}
+  .pl-card.feat .pl-feats li .tk{color:#8fd3b6}
+  .pl-feats li.off{color:var(--faint);text-decoration:line-through}
+  .pl-feats li.off .tk{color:var(--faint);text-decoration:none}
+  .pl-card.feat .pl-feats li.off{color:rgba(255,255,255,.4)}
+  .pl-cta{border:1px solid var(--brand);background:var(--brand);color:#fff;font:600 13px 'Hanken Grotesk',sans-serif;padding:11px 16px;cursor:pointer;text-align:center;text-decoration:none;display:block}
+  .pl-cta:hover{background:var(--brand-deep);border-color:var(--brand-deep)}
+  .pl-cta.ghost{background:transparent;color:var(--brand)}.pl-cta.ghost:hover{background:var(--brand-tint);color:var(--brand-deep)}
+  .pl-card.feat .pl-cta{background:#fff;color:var(--brand-deep);border-color:#fff}.pl-card.feat .pl-cta:hover{background:var(--gold);border-color:var(--gold)}
+  .pl-cta.cur{background:var(--bg,#f2f1ed);color:var(--soft);border-color:var(--line);cursor:default}
+  .pl-card.feat .pl-cta.cur{background:rgba(255,255,255,.14);color:rgba(255,255,255,.7);border-color:transparent}
+  .pl-note{font-size:12px;color:var(--faint);margin:16px 2px 0}
+  .pl-faq{margin-top:34px;border-top:1px solid var(--line);padding-top:22px}
+  .pl-faq h3{font:700 12px 'Hanken Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin-bottom:16px}
+  .pl-qa{margin-bottom:16px;max-width:70ch}
+  .pl-qa .q{font-weight:600;font-size:14px;margin-bottom:3px}
+  .pl-qa .a{font-size:13.5px;color:var(--soft);line-height:1.55}
   /* PDF: print only the monitor, cleanly */
   @media print{
     body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -794,6 +828,7 @@
         <button class="vtab" data-view="board">Pipeline</button>
         <button class="vtab" data-view="catalogs">Catalogues</button>
         <button class="vtab" data-view="campaigns">Campaigns</button>
+        <button class="vtab" data-view="plans">Plans</button>
       </div>
 
       <!-- OVERVIEW (birds-eye) -->
@@ -973,6 +1008,10 @@
         <div id="campaignsRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
       </div><!-- /viewCampaigns -->
 
+      <div id="viewPlans" style="display:none">
+        <div id="plansRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
+      </div><!-- /viewPlans -->
+
       <div class="foot">
         __FOOT_DEMO__Latent value is a client's projected worth once nurtured into a top client. Tune your ceiling in <b>⚙ Settings</b>.
       </div>
@@ -1072,8 +1111,8 @@ const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce
 // "settings" is an overlay, not a view, so it routes specially. Query params (host/embedded)
 // are always preserved.
 const EMBEDDED = !!document.querySelector('meta[name="shopify-api-key"]');
-const SEG2VIEW = {clients:"clients",catalogues:"catalogs",pipeline:"board",orders:"orders",map:"map",campaigns:"campaigns"};
-const VIEW2SEG = {clients:"clients",catalogs:"catalogues",board:"pipeline",orders:"orders",map:"map",campaigns:"campaigns"};
+const SEG2VIEW = {clients:"clients",catalogues:"catalogs",pipeline:"board",orders:"orders",map:"map",campaigns:"campaigns",plans:"plans"};
+const VIEW2SEG = {clients:"clients",catalogs:"catalogues",board:"pipeline",orders:"orders",map:"map",campaigns:"campaigns",plans:"plans"};
 function routeFromUrl(){
   const m = location.pathname.match(/\/view\/([a-z]+)/);
   if(!m) return {view:"overview"};
@@ -2252,6 +2291,73 @@ function renderMap(){
   document.getElementById("mapHint").textContent=`${mapped} of ${CORE.length} located · ${areas.length} area${areas.length===1?"":"s"}`;
 }
 
+/* ---- plans & pricing (Shopify billing) ---- */
+let PLANS_CACHE=null;
+function planInit(force){
+  const root=document.getElementById("plansRoot"); if(!root) return;
+  if(PLANS_CACHE && !force){ planRender(PLANS_CACHE); return; }
+  root.innerHTML='<div style="color:var(--soft);font-size:13.5px">Loading plans…</div>';
+  fetch("/v1/plans/status").then(r=>r.json()).then(d=>{ PLANS_CACHE=d; planRender(d); })
+    .catch(()=>{ root.innerHTML='<div style="color:var(--soft);font-size:13.5px">Couldn\'t load plans. Try again shortly.</div>'; });
+}
+function planCta(p,cur){
+  // p: a plan card from the catalogue; cur: current plan key. Returns the CTA button HTML.
+  if(p.key===cur) return `<span class="pl-cta cur">Current plan</span>`;
+  if(p.custom) return `<a class="pl-cta ghost" href="mailto:hello@haliascore.com?subject=Halia%20Maison%20plan">Talk to us →</a>`;
+  if(p.key==="free") return `<button class="pl-cta ghost" data-downgrade="1">Downgrade to Free</button>`;
+  const paidCur = cur && cur!=="free";
+  return `<button class="pl-cta" data-plan="${p.key}">${paidCur?"Switch to "+esc(p.name):"Upgrade"}</button>`;
+}
+function planRender(d){
+  const root=document.getElementById("plansRoot"); if(!root) return;
+  const cur=d.current||"free";
+  if(!d.shopify){
+    root.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);padding:20px 22px;color:var(--soft);font-size:14px">Plans are managed from your Halia billing settings. <b>Settings → Billing</b>.</div>`;
+    return;
+  }
+  const cards=(d.plans||[]).map(p=>{
+    const feats=p.features.map(f=>`<li class="${f.included?"":"off"}"><span class="tk">${f.included?"✓":"✕"}</span><span>${f.label}</span></li>`).join("");
+    const price=p.custom?`<div class="pl-price">Custom</div>`
+      :`<div class="pl-price">${p.priceLabel}${p.price?`<span> /month</span>`:``}</div>`;
+    return `<div class="pl-card${p.highlighted?" feat":""}${p.key===cur?" cur":""}">
+      ${p.highlighted?`<span class="pl-badge">Most popular</span>`:(p.key===cur?`<span class="pl-badge">Your plan</span>`:``)}
+      <div class="pl-name">${esc(p.name)}</div>
+      ${price}
+      <div class="pl-who">${p.who}</div>
+      <ul class="pl-feats">${feats}</ul>
+      ${planCta(p,cur)}
+    </div>`;
+  }).join("");
+  const testNote=d.test?`<p class="pl-note">Billing is in test mode: you'll see Shopify's approval screen, but no charge is made. Prices in ${esc(d.currency||"GBP")}, excluding VAT.</p>`
+    :`<p class="pl-note">Billed monthly through Shopify. Prices in ${esc(d.currency||"GBP")}, excluding VAT. Change or cancel anytime.</p>`;
+  const faq=`<div class="pl-faq"><h3>Frequently asked</h3>
+    <div class="pl-qa"><div class="q">How does billing work?</div><div class="a">Plans are a flat monthly price banded by the size of your customer book, charged through Shopify alongside your other app charges. No per-customer fees, ever.</div></div>
+    <div class="pl-qa"><div class="q">Can I change plans anytime?</div><div class="a">Yes. Upgrade, switch, or downgrade to Free whenever you like. Changes take effect immediately and Shopify prorates the difference.</div></div>
+    <div class="pl-qa"><div class="q">What counts as a VIC?</div><div class="a">A customer who fires at least one wealth or intent signal and sits below your own VIP spend threshold, exactly the definition your dashboard counts.</div></div>
+    <div class="pl-qa"><div class="q">Is my customer data private?</div><div class="a">Always. Customers are scored in memory and released. Halia keeps nothing about them: only your plan and settings are stored.</div></div>
+  </div>`;
+  root.innerHTML=`<div class="pl-grid">${cards}</div>${testNote}${faq}`;
+  root.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>planSubscribe(b,b.dataset.plan));
+  const dg=root.querySelector("[data-downgrade]"); if(dg) dg.onclick=()=>planDowngrade(dg);
+}
+function planSubscribe(btn,key){
+  btn.disabled=true; const t=btn.textContent; btn.textContent="Opening Shopify…";
+  fetch("/v1/plans/subscribe",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({plan:key})})
+    .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+      if(!ok||!d.confirmationUrl) throw new Error((d&&d.detail)||"Couldn't start checkout.");
+      // The approval page must load at the TOP of the window, outside the Shopify admin iframe.
+      try{ window.top.location.href=d.confirmationUrl; }catch(_){ window.location.href=d.confirmationUrl; }
+    }).catch(e=>{ toast("Billing error: "+e.message); btn.disabled=false; btn.textContent=t; });
+}
+function planDowngrade(btn){
+  if(!confirm("Downgrade to the Free plan? Your paid features stop at the end of the current period.")) return;
+  btn.disabled=true; const t=btn.textContent; btn.textContent="Cancelling…";
+  fetch("/v1/plans/cancel",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+    if(!ok) throw new Error((d&&d.detail)||"failed");
+    toast("Cancelled. You're on the Free plan."); PLANS_CACHE=null; planInit(true);
+  }).catch(e=>{ toast("Billing error: "+e.message); btn.disabled=false; btn.textContent=t; });
+}
+
 /* ---- campaigns: create/target/monitor ---- */
 let CAMP_LOADED=false, CAMP_CACHE=null;
 function campForm(c){
@@ -2397,6 +2503,7 @@ const PAGE_META={
   orders:{t:"Orders",s:"Every order, newest first, ranked by the client behind it."},
   map:{t:"Where your VICs are",s:"Your potential VICs by area."},
   board:{t:"Outreach pipeline",s:"Track outreach across the team."},
+  plans:{t:"Plans & Pricing",s:"Choose the plan that fits your store."},
   catalogs:{t:"Catalogues",s:"Build a catalogue and share it as a PDF or enquiry form."},
   campaigns:{t:"Campaigns",s:"Track the sales a campaign drives."}
 };
@@ -2406,7 +2513,7 @@ function showView(v){
   REVEAL_ACTIVE=false;
   if(v==="overview"||v==="clients") beginReveal();   // reveal the first time a scored view paints
   document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("on",x.dataset.view===v));
-  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"],["catalogs","viewCatalogs"],["campaigns","viewCampaigns"]].forEach(([k,id])=>{
+  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"],["catalogs","viewCatalogs"],["campaigns","viewCampaigns"],["plans","viewPlans"]].forEach(([k,id])=>{
     const el=document.getElementById(id);if(el)el.style.display=k===v?"":"none";});
   const statsEl=document.querySelector(".stats");
   if(v==="clients"){
@@ -2431,6 +2538,10 @@ function showView(v){
     document.querySelector(".title").textContent=PAGE_META.campaigns.t;document.querySelector(".sub").textContent=PAGE_META.campaigns.s;
     statsEl.style.display="none";
     campInit();
+  } else if(v==="plans"){
+    document.querySelector(".title").textContent=PAGE_META.plans.t;document.querySelector(".sub").textContent=PAGE_META.plans.s;
+    statsEl.style.display="none";
+    planInit();
   } else {
     document.querySelector(".title").textContent=PAGE_META.map.t;document.querySelector(".sub").textContent=PAGE_META.map.s;
     statsEl.style.display="none";
