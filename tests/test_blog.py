@@ -145,7 +145,21 @@ def test_seed_is_idempotent(tmp_path, monkeypatch):
     monkeypatch.setattr(shopify_auth, "_shop_store", store)
     blog.seed_blog()
     blog.seed_blog()
-    # the three seeded posts (OuterSignal/Mercana, Altrata, Julius Baer report), no duplicates
-    assert store.count_posts(published_only=False) == 3
-    for slug in (blog.COMPARISON_SLUG, blog.ALTRATA_SLUG, blog.JULIUS_BAER_SLUG):
+    # the four seeded posts (OuterSignal/Mercana, Altrata, Julius Baer, Knight Frank), no dups
+    assert store.count_posts(published_only=False) == 4
+    slugs = (blog.COMPARISON_SLUG, blog.ALTRATA_SLUG, blog.JULIUS_BAER_SLUG, blog.KNIGHT_FRANK_SLUG)
+    for slug in slugs:
         assert store.get_post(slug)
+
+    # publish dates must be at least one week apart
+    from datetime import datetime
+    dates = sorted(datetime.fromisoformat(store.get_post(s)["published_at"]) for s in slugs)
+    gaps = [(b - a).days for a, b in zip(dates, dates[1:])]
+    assert all(g >= 7 for g in gaps), gaps
+
+    # a post already seeded at an off-schedule date gets its spacing reconciled (not duplicated)
+    store.upsert_post({**store.get_post(blog.JULIUS_BAER_SLUG),
+                       "published_at": "2026-07-17T09:00:00+00:00"})
+    blog.seed_blog()
+    assert store.count_posts(published_only=False) == 4
+    assert store.get_post(blog.JULIUS_BAER_SLUG)["published_at"] == "2026-07-12T09:00:00+00:00"

@@ -32,6 +32,7 @@ PAGE_SIZE = 9
 COMPARISON_SLUG = "influence-or-net-worth-halia-vs-outersignal-mercana"
 ALTRATA_SLUG = "stored-or-scored-halia-vs-altrata"
 JULIUS_BAER_SLUG = "julius-baer-wealth-report-2026-the-quiet-buyer"
+KNIGHT_FRANK_SLUG = "knight-frank-wealth-report-2025-wealth-is-moving"
 
 _SCRIPT_RE = re.compile(r"<(script|iframe)\b[^>]*>.*?</\1>", re.I | re.S)
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -583,50 +584,106 @@ reading, and any opinions, are our own.</p>
 """
 
 
+# ── Knight Frank Wealth Report 2025 seed ─────────────────────────────────────────────
+_KNIGHT_FRANK_BODY = """
+<p>Knight Frank's Wealth Report is now in its 19th edition, and though it is written for people who buy
+prime property and private jets, its picture of where wealth sits and how it behaves is one of the most
+useful maps a luxury retailer can read. This year's edition describes a wealthy population that is
+growing, spreading, moving, and changing hands, and every one of those verbs matters at the counter.</p>
+
+<h2>More wealthy people, in more places</h2>
+<p>The number of individuals worth US$10 million or more rose 4.4 per cent last year, and those worth
+US$100 million passed 100,000 for the first time. The United States still dominates, home to nearly 40
+per cent of the world's wealthy and leading in new wealth creation. But the growth is broadening: India
+now ranks fourth by HNWI population, the Middle East holds an outsized share of the very wealthiest, and
+Knight Frank expects Africa to outperform in the years ahead.</p>
+<p>For a luxury house, the useful part is not the league table. It is that your next great client is
+less predictable by nationality than ever. Wealth is being made in more industries and more countries,
+which means it walks through your door under more names than it used to.</p>
+
+<h2>Wealth that moves</h2>
+<p>The report's loudest theme is mobility. The wealthy relocate, hold several homes, and move capital
+between jurisdictions with growing ease, supercharging markets from Miami to Dubai, where a US$1 million
+prime property in 2020 had become US$1.9 million and US$2.7 million respectively by 2025. Governments
+are competing to attract this mobile wealth and, in places, to tax it.</p>
+<p>A mobile client is not a postcode. The person who bought from your London boutique in spring may
+spend the autumn in Singapore and the winter in Dubai. What holds that relationship together is being
+remembered. The house that recognises them wherever they appear keeps the relationship; the one that
+treats every visit as a stranger's first tends to lose it.</p>
+
+<h2>The next generation is already here</h2>
+<p>Underneath the numbers is a generational handover. Knight Frank's Next Generation Survey of wealthy
+18- to 35-year-olds finds a cohort that works remotely and globally, prizes experiences and health over
+possessions, and researches online long before it commits. When they do buy a luxury asset, real estate
+leads their wish list, but the way they arrive at any purchase is relationship-led and information-rich.
+They expect the brands they favour to know them.</p>
+<p>As the great wealth transfer accelerates, these are the clients whose loyalty is worth securing
+early. They will inherit the accounts that matter, and they will give them to the houses that treated
+them as clients before they had to.</p>
+
+<h2>Which brings it back to the counter</h2>
+<p>Property, jets, and vineyards are the report's subject, but its through-line belongs to retail too:
+wealth is larger, more global, more mobile, and younger than the person in front of you appears. A quiet
+first order can belong to an ultra-high-net-worth individual, a mobile professional on their way into
+the millions, or the heir to a fortune deciding which brands to keep.</p>
+<p>None of that is legible from a receipt. Reading it is the work. Halia was built to find the wealth
+signals already present in your own customer data, grade the person honestly, estimate the latent value
+behind a modest order, and hand your team the move that turns a passing buyer into a client for the next
+decade, wherever in the world they happen to spend it.</p>
+
+<p class="cmp-src">Figures cited are from the Knight Frank Wealth Report 2025 (19th edition). The
+reading, and any opinions, are our own.</p>
+"""
+
+
+# House Journal seed posts, in publish order. Dates are held one week apart on purpose;
+# seed_blog() reconciles them so the spacing survives even for posts already published.
+_SEED_POSTS = [
+    {"slug": COMPARISON_SLUG, "published_at": "2026-06-28T09:00:00+00:00",
+     "title": "Influence, or net worth: how Halia compares to OuterSignal and Mercana",
+     "dek": "All three find VIPs. The difference is which ones, and whether they grow your "
+            "revenue or your reach.",
+     "body": _COMPARISON_BODY, "tags": "comparison, luxury, positioning"},
+    {"slug": ALTRATA_SLUG, "published_at": "2026-07-05T09:00:00+00:00",
+     "title": "Stored, or scored: how Halia compares to Altrata's Salesforce app",
+     "dek": "Altrata pours executive and wealth data into your CRM and keeps it current. "
+            "Halia scores your buyers in memory and keeps nothing. Which you want depends "
+            "on the job.",
+     "body": _ALTRATA_BODY, "tags": "comparison, wealth data, positioning"},
+    {"slug": JULIUS_BAER_SLUG, "published_at": "2026-07-12T09:00:00+00:00",
+     "title": "The quiet buyer just got harder to read: on the Julius Baer Wealth Report 2026",
+     "dek": "The 2026 Global Wealth and Lifestyle Report says the affluent buyer is now "
+            "mobile, deliberate, and spending across borders. That is exactly the client "
+            "luxury retail keeps missing.",
+     "body": _JULIUS_BAER_BODY, "tags": "wealth, luxury, research"},
+    {"slug": KNIGHT_FRANK_SLUG, "published_at": "2026-07-19T09:00:00+00:00",
+     "title": "Wealth is moving, and getting younger: reading the Knight Frank Wealth Report 2025",
+     "dek": "Knight Frank's 19th Wealth Report finds affluence expanding, globalising, mobile, "
+            "and passing to a next generation that buys on relationship. For luxury retail, that "
+            "raises the value of simply knowing who your quiet clients are.",
+     "body": _KNIGHT_FRANK_BODY, "tags": "wealth, luxury, research"},
+]
+
+
 def seed_blog() -> None:
-    """Publish the seed posts if they are not already present (idempotent)."""
+    """Publish the seed posts, and keep their publish dates one week apart.
+
+    New posts are created; posts already present are left untouched except for their
+    ``published_at``, which is reconciled to the canonical one-week-apart schedule so the
+    spacing holds even after earlier seeds. Body edits made in the CMS are preserved."""
     store = shop_store()
-    if not store.get_post(COMPARISON_SLUG):
-        store.upsert_post({
-            "slug": COMPARISON_SLUG,
-            "title": "Influence, or net worth: how Halia compares to OuterSignal and Mercana",
-            "dek": "All three find VIPs. The difference is which ones, and whether they grow your "
-                   "revenue or your reach.",
-            "body_html": _sanitize(_COMPARISON_BODY),
-            "author": "The Halia team",
-            "cover_image_id": None,
-            "tags": "comparison, luxury, positioning",
-            "status": "published",
-            "published_at": "2026-07-08T09:00:00+00:00",
-        })
-    if not store.get_post(ALTRATA_SLUG):
-        store.upsert_post({
-            "slug": ALTRATA_SLUG,
-            "title": "Stored, or scored: how Halia compares to Altrata's Salesforce app",
-            "dek": "Altrata pours executive and wealth data into your CRM and keeps it current. "
-                   "Halia scores your buyers in memory and keeps nothing. Which you want depends "
-                   "on the job.",
-            "body_html": _sanitize(_ALTRATA_BODY),
-            "author": "The Halia team",
-            "cover_image_id": None,
-            "tags": "comparison, wealth data, positioning",
-            "status": "published",
-            "published_at": "2026-07-15T09:00:00+00:00",
-        })
-    if not store.get_post(JULIUS_BAER_SLUG):
-        store.upsert_post({
-            "slug": JULIUS_BAER_SLUG,
-            "title": "The quiet buyer just got harder to read: on the Julius Baer Wealth Report 2026",
-            "dek": "The 2026 Global Wealth and Lifestyle Report says the affluent buyer is now "
-                   "mobile, deliberate, and spending across borders. That is exactly the client "
-                   "luxury retail keeps missing.",
-            "body_html": _sanitize(_JULIUS_BAER_BODY),
-            "author": "The Halia team",
-            "cover_image_id": None,
-            "tags": "wealth, luxury, research",
-            "status": "published",
-            "published_at": "2026-07-19T09:00:00+00:00",
-        })
+    for spec in _SEED_POSTS:
+        existing = store.get_post(spec["slug"])
+        if existing is None:
+            store.upsert_post({
+                "slug": spec["slug"], "title": spec["title"], "dek": spec["dek"],
+                "body_html": _sanitize(spec["body"]), "author": "The Halia team",
+                "cover_image_id": None, "tags": spec["tags"], "status": "published",
+                "published_at": spec["published_at"],
+            })
+        elif existing.get("published_at") != spec["published_at"]:
+            existing["published_at"] = spec["published_at"]     # fix spacing, keep any edits
+            store.upsert_post(existing)
 
 
 # ── routes ─────────────────────────────────────────────────────────────────────────
