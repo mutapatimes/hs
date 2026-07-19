@@ -53,6 +53,39 @@ def test_storeconcierge_tenant_gets_its_own_flat_price_and_plan(client, monkeypa
     assert billing.price_for_shop("scshop") == "price_discovery"
 
 
+def test_billing_plans_endpoint_carries_stripe_links_and_recommendation(client, monkeypatch):
+    c, store = client
+    tok = _tenant(store, "shopx")
+    _enable(monkeypatch)
+    monkeypatch.setattr("halia.config.STRIPE_TIERS",
+                        "15000:price_discovery,75000:price_signal,*:price_atelier")
+    monkeypatch.setattr("halia.config.STRIPE_PLAN_LINKS",
+                        "discovery=https://buy.stripe.com/d,signal=https://buy.stripe.com/s")
+    from halia.api.tenant_auth import COOKIE
+    r = c.get("/v1/billing/plans", cookies={COOKIE: tok})
+    assert r.status_code == 200
+    j = r.json()
+    by = {p["key"]: p for p in j["plans"]}
+    assert [p["key"] for p in j["plans"]] == ["free", "discovery", "signal", "atelier", "maison"]
+    assert by["signal"]["link"] == "https://buy.stripe.com/s"
+    assert by["free"]["link"] == "" and by["maison"]["link"] == ""
+    assert j["enabled"] is True and "recommended" in j
+
+
+def test_plan_links_parsing():
+    monkey = {"STRIPE_PLAN_LINKS": "signal=https://buy.stripe.com/x , bad=notaurl,=skip,"
+                                   "atelier=https://buy.stripe.com/y"}
+    import halia.config as cfg
+    orig = cfg.STRIPE_PLAN_LINKS
+    try:
+        cfg.STRIPE_PLAN_LINKS = monkey["STRIPE_PLAN_LINKS"]
+        links = billing.plan_links()
+        assert links == {"signal": "https://buy.stripe.com/x",
+                         "atelier": "https://buy.stripe.com/y"}   # bad/empty dropped
+    finally:
+        cfg.STRIPE_PLAN_LINKS = orig
+
+
 def test_is_paid_open_when_billing_off(client, monkeypatch):
     monkeypatch.setattr("halia.config.STRIPE_SECRET_KEY", None)
     assert billing.is_paid("anyshop") is True
