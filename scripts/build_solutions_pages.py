@@ -20,6 +20,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "web" / "site" / "solutions"
 
+import html as _html_mod
+
+
+def _esc(s) -> str:
+    return _html_mod.escape(str(s), quote=True)
+
+
+# Per-industry Open Graph / social image (in web/site/img/). Keep in step with the INDUSTRIES slugs.
+_OG_IMAGE = {
+    "fashion": "luxury_bag_detail.jpg", "wine": "wine_bottle_hug.jpg", "beauty": "perfume.jpg",
+    "jewellery": "pearl_necklace.jpg", "home": "home_furniture.jpg", "gifting": "gifts_wrapped.jpg",
+    "collectibles": "nice_books_with_mug.jpg", "electronics": "head_phones.jpg",
+}
+
 
 def gbp(n: int) -> str:
     if n >= 1000:
@@ -773,13 +787,31 @@ def render(ind: dict) -> str:
   <a class="btn" href="/connect">Connect your store <span class="arrow">&rarr;</span></a>
 </div></section>
 """
+    origin = "https://haliascore.com"
+    url = f"{origin}/solutions/{ind['slug']}"
+    img = f"{origin}/img/{_OG_IMAGE.get(ind['slug'], 'three_clients.jpg')}"
+    title = f"{ind['name']} · Halia"
+    desc = (f"Halia for {ind['name'].lower()}: the high-value clients hiding in a book full of "
+            "low-ticket orders, with the latent value they represent and the move to win them.")
+    e = _esc
     return (
         "<!doctype html><html lang=\"en\"><head>"
         "<link rel=\"stylesheet\" href=\"/static/brand.css\"><script src=\"/static/brand.js\" defer></script>"
         f"<link rel=\"icon\" href=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>{_ASTER}</text></svg>\">"
         "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-        f"<title>{ind['name']} · Halia</title>"
-        f"<meta name=\"description\" content=\"Halia for {ind['name'].lower()}: the high-value clients hiding in a book full of low-ticket orders, with the latent value they represent and the move to win them.\">"
+        f"<title>{e(title)}</title>"
+        f"<meta name=\"description\" content=\"{e(desc)}\">"
+        f"<link rel=\"canonical\" href=\"{url}\">"
+        f"<meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Halia\">"
+        f"<meta property=\"og:url\" content=\"{url}\">"
+        f"<meta property=\"og:title\" content=\"{e(title)}\">"
+        f"<meta property=\"og:description\" content=\"{e(desc)}\">"
+        f"<meta property=\"og:image\" content=\"{img}\">"
+        f"<meta property=\"og:image:alt\" content=\"{e(ind['name'])}\">"
+        f"<meta name=\"twitter:card\" content=\"summary_large_image\">"
+        f"<meta name=\"twitter:title\" content=\"{e(title)}\">"
+        f"<meta name=\"twitter:description\" content=\"{e(desc)}\">"
+        f"<meta name=\"twitter:image\" content=\"{img}\">"
         "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>"
         "<link href=\"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500&display=swap\" rel=\"stylesheet\">"
         f"<style>{_CSS}</style></head><body>"

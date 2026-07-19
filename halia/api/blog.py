@@ -153,8 +153,99 @@ _BLOG_CSS = """
 """
 
 
-def _doc(title: str, meta_desc: str, body: str, *, index: bool = True, extra_head: str = "") -> str:
+def _origin() -> str:
+    import os
+    return os.environ.get("HALIA_SITE_URL", "https://haliascore.com").rstrip("/")
+
+
+def _abs_url(path_or_url: str) -> str:
+    if not path_or_url:
+        return ""
+    if path_or_url.startswith("http"):
+        return path_or_url
+    return _origin() + ("" if path_or_url.startswith("/") else "/") + path_or_url
+
+
+def _social_head(title: str, desc: str, *, canonical: str = "", og_type: str = "website",
+                 image: str = "") -> str:
+    """Canonical + Open Graph + Twitter tags for a blog page. `canonical` is a path (e.g. /blog)."""
+    e = _html.escape
+    url = _abs_url(canonical) if canonical else ""
+    img = _abs_url(image) if image else f"{_origin()}/img/three_clients.jpg"
+    tags = []
+    if url:
+        tags.append(f'<link rel="canonical" href="{e(url)}">')
+        tags.append(f'<meta property="og:url" content="{e(url)}">')
+    tags += [
+        '<meta property="og:site_name" content="Halia">',
+        f'<meta property="og:type" content="{e(og_type)}">',
+        f'<meta property="og:title" content="{e(title)}">',
+        f'<meta property="og:description" content="{e(desc)}">',
+        f'<meta property="og:image" content="{e(img)}">',
+        '<meta name="twitter:card" content="summary_large_image">',
+        f'<meta name="twitter:title" content="{e(title)}">',
+        f'<meta name="twitter:description" content="{e(desc)}">',
+        f'<meta name="twitter:image" content="{e(img)}">',
+    ]
+    return "".join(tags)
+
+
+def _breadcrumb(items: list) -> dict:
+    return {"@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": i + 1, "name": name, "item": _abs_url(path)}
+        for i, (name, path) in enumerate(items)]}
+
+
+def _index_jsonld() -> str:
+    from halia.api.content import jsonld_script, org_graph
+    o = _origin()
+    graph = org_graph() + [
+        {"@type": "Blog", "@id": f"{o}/blog#blog", "name": "The Halia Journal",
+         "url": f"{o}/blog", "inLanguage": "en",
+         "description": "Field notes and comparisons on private client intelligence for luxury retail.",
+         "publisher": {"@id": f"{o}/#organization"}},
+        _breadcrumb([("Home", "/"), ("Journal", "/blog")]),
+    ]
+    return jsonld_script(graph)
+
+
+def _post_jsonld(post: dict, canonical: str, desc: str, image: str) -> str:
+    from halia.api.content import jsonld_script, org_graph
+    o = _origin()
+    url = _abs_url(canonical)
+    author = post.get("author") or "Halia"
+    author_type = "Organization" if "team" in author.lower() or author == "Halia" else "Person"
+    published = post.get("published_at") or ""
+    node = {
+        "@type": "BlogPosting",
+        "@id": f"{url}#post",
+        "headline": (post.get("title") or "")[:110],
+        "description": desc,
+        "url": url,
+        "mainEntityOfPage": {"@id": url},
+        "author": {"@type": author_type, "name": author},
+        "publisher": {"@id": f"{o}/#organization"},
+        "isPartOf": {"@id": f"{o}/blog#blog"},
+        "inLanguage": "en",
+    }
+    if published:
+        node["datePublished"] = published
+        node["dateModified"] = post.get("updated_at") or published
+    if image:
+        node["image"] = _abs_url(image)
+    if _tags(post):
+        node["keywords"] = ", ".join(_tags(post))
+    graph = org_graph() + [
+        node,
+        _breadcrumb([("Home", "/"), ("Journal", "/blog"), (post.get("title") or "Post", canonical)]),
+    ]
+    return jsonld_script(graph)
+
+
+def _doc(title: str, meta_desc: str, body: str, *, index: bool = True, extra_head: str = "",
+         canonical: str = "", og_type: str = "website", image: str = "", jsonld: str = "") -> str:
     robots = "" if index else '<meta name="robots" content="noindex, nofollow">'
+    social = _social_head(title, meta_desc, canonical=canonical, og_type=og_type, image=image) if index else ""
     return (
         "<!doctype html><html lang=\"en\"><head>"
         "<link rel=\"stylesheet\" href=\"/static/brand.css\"><script src=\"/static/brand.js\" defer></script>"
@@ -162,9 +253,10 @@ def _doc(title: str, meta_desc: str, body: str, *, index: bool = True, extra_hea
         "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"{robots}<title>{_html.escape(title)}</title>"
         f"<meta name=\"description\" content=\"{_html.escape(meta_desc)}\">"
+        f"{social}"
         "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>"
         "<link href=\"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500&display=swap\" rel=\"stylesheet\">"
-        f"<style>{_BLOG_CSS}</style>{extra_head}</head><body>"
+        f"<style>{_BLOG_CSS}</style>{jsonld}{extra_head}</head><body>"
         f"{_nav()}{body}{_footer()}{_SCRIPT}{_chat()}</body></html>"
     )
 
@@ -238,7 +330,8 @@ def render_index(store, page: int, sort: str, tag: str | None) -> str:
         f'{_pager(page, pages, sort, tag)}'
         '</div></section>')
     return _doc("The Halia Journal", "Field notes and comparisons on private client "
-                "intelligence for luxury retail.", body)
+                "intelligence for luxury retail.", body,
+                canonical="/blog", og_type="website", jsonld=_index_jsonld())
 
 
 def render_post(post: dict, *, preview: bool = False) -> str:
@@ -271,8 +364,15 @@ def render_post(post: dict, *, preview: bool = False) -> str:
         'store and Halia surfaces your hidden VICs, usually within the hour.</p>'
         '<a class="btn" href="/connect">Connect your store <span class="arrow">&rarr;</span></a>'
         '</div></section>')
-    return _doc(f"{post.get('title')} · Halia Journal", post.get("dek") or "",
-                body, index=not preview)
+    slug = post.get("slug") or ""
+    canonical = f"/blog/{slug}"
+    desc = post.get("dek") or (
+        f"{post.get('title') or 'From the Halia Journal'} — notes on private client "
+        "intelligence for luxury retail, from Halia.")
+    image = f"/blog/img/{post['cover_image_id']}" if post.get("cover_image_id") else ""
+    jsonld = "" if preview else _post_jsonld(post, canonical, desc, image)
+    return _doc(f"{post.get('title')} · Halia Journal", desc, body, index=not preview,
+                canonical=canonical, og_type="article", image=image, jsonld=jsonld)
 
 
 # ── admin authoring ────────────────────────────────────────────────────────────────
