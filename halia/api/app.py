@@ -219,19 +219,25 @@ for _name in _DECKS:
                       include_in_schema=False, response_class=_HTML)
 
 
+# The connection guides are public — they aid discovery and reveal nothing about how Halia scores.
+# The product playbook (docs/using-halia: grades, signals, latent value) stays sign-in gated so the
+# how-we-score guidance isn't handed to the public / competitors.
+_PUBLIC_DOCS = {"docs", "docs/connect-your-store", "docs/crm-and-email"}
+
+
 def _docs_handler(request: Request) -> _HTML:
-    """Documentation is gated behind sign-in: only a merchant with a valid Halia
-    session (or access link) can read the setup guides, so we don't hand our
-    onboarding and product playbook to the public / competitors. Unauthenticated
-    visitors get the same sign-in page as the dashboard.
+    """Serve a documentation page. The public connection guides render to anyone; the gated
+    playbook shows the sign-in page to visitors without a valid Halia session (or access link).
 
     The page to serve is the request path itself (``/docs`` -> ``docs.html``,
     ``/docs/using-halia`` -> ``docs/using-halia.html``)."""
-    from halia.api.tenant_auth import resolve_tenant
-    from halia.api.onboarding import _signin_page
-    if not resolve_tenant(request):
-        return _HTML(_signin_page())
-    return _serve_page(request.url.path.strip("/"))
+    path = request.url.path.strip("/")
+    if path not in _PUBLIC_DOCS:
+        from halia.api.tenant_auth import resolve_tenant
+        from halia.api.onboarding import _signin_page
+        if not resolve_tenant(request):
+            return _HTML(_signin_page())
+    return _serve_page(path)
 
 
 # Documentation (web/site/docs.html + web/site/docs/<slug>.html) — sign-in gated.
@@ -259,6 +265,7 @@ _SITE_ORIGIN = _os.environ.get("HALIA_SITE_URL", "https://haliascore.com").rstri
 _INDEXABLE_PATHS = [
     "/", "/brand", "/clienteling", "/faq", "/pricing", "/responsible",
     "/security", "/solutions", "/demo", "/status", "/blog",
+    "/docs", "/docs/connect-your-store", "/docs/crm-and-email",   # public connection guides
 ] + [f"/solutions/{_i}" for _i in
      ("fashion", "wine", "beauty", "jewellery", "home", "gifting",
       "collectibles", "electronics")]
@@ -274,7 +281,7 @@ def robots_txt():
         "Disallow: /app\n"
         "Disallow: /console\n"
         "Disallow: /admin\n"
-        "Disallow: /docs\n"   # docs are sign-in gated (a bot would only get the sign-in page)
+        "Disallow: /docs/using-halia\n"   # only the product playbook is gated; connection guides are public
         f"\nSitemap: {_SITE_ORIGIN}/sitemap.xml\n"
     )
     return PlainTextResponse(body, media_type="text/plain")

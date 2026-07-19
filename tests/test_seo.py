@@ -58,16 +58,29 @@ def test_blog_index_and_post_carry_canonical_og_and_schema(client):
     assert any(n.get("@type") == "BreadcrumbList" for d in _ld(post) for n in d.get("@graph", [d]))
 
 
-def test_sitemap_includes_blog_posts_excludes_gated_docs(client):
+def test_sitemap_lists_public_docs_and_blog_but_not_the_gated_playbook(client):
     xml = client.get("/sitemap.xml").text
     assert xml.startswith("<?xml")
     assert "<loc>https://haliascore.com/blog</loc>" in xml
     assert "/blog/" in xml and "<lastmod>" in xml          # posts with a lastmod
-    assert "/docs" not in xml                              # docs are sign-in gated
+    assert "/docs/connect-your-store" in xml and "/docs/crm-and-email" in xml
+    assert "/docs/using-halia" not in xml                  # the playbook stays gated
 
 
 def test_robots_disallows_private_areas_and_points_at_sitemap(client):
     body = client.get("/robots.txt").text
-    for path in ("/app", "/console", "/admin", "/docs"):
+    for path in ("/app", "/console", "/admin", "/docs/using-halia"):
         assert f"Disallow: {path}" in body
+    assert "Disallow: /docs\n" not in body                 # public connection guides stay crawlable
     assert "Sitemap: https://haliascore.com/sitemap.xml" in body
+
+
+def test_public_docs_render_without_sign_in_but_playbook_is_gated(client):
+    # connection guides are public content (real doc body, not the sign-in wall)
+    for path in ("/docs", "/docs/connect-your-store", "/docs/crm-and-email"):
+        html = client.get(path).text
+        assert 'class="doc' in html or "Connect your" in html or "Documentation" in html
+        assert 'id="signin"' not in html and "Sign in to Halia" not in html
+    # using-halia shows the sign-in page to an anonymous visitor
+    gated = client.get("/docs/using-halia").text
+    assert "Using <em>Halia" not in gated                  # the real guide is not served

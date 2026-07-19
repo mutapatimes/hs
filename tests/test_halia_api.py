@@ -69,10 +69,11 @@ def test_sitemap_lists_public_pages_only():
     r = TestClient(app).get("/sitemap.xml")
     assert r.status_code == 200 and "xml" in r.headers["content-type"]
     body = r.text
-    for path in ("/", "/pricing", "/security", "/solutions/fashion"):
+    for path in ("/", "/pricing", "/security", "/solutions/fashion",
+                 "/docs", "/docs/connect-your-store", "/docs/crm-and-email"):
         assert f"<loc>https://haliascore.com{path}</loc>" in body
     # gated / noindex routes must never be advertised for crawling
-    assert "/docs" not in body and "/admin" not in body and "/privacy" not in body
+    assert "/docs/using-halia" not in body and "/admin" not in body and "/privacy" not in body
 
 
 @pytest.mark.parametrize("path", [
@@ -159,17 +160,18 @@ def test_embedded_home_without_token_serves_marketing_site():
     assert r.status_code == 200 and "Connect your store" in r.text and "Halia" in r.text
 
 
-def test_docs_are_gated_behind_signin():
-    # Logged-out visitors (and competitors) must NOT see the setup guides — they get
-    # the sign-in page instead. A signed-in merchant sees the docs.
+def test_docs_public_guides_open_but_playbook_gated():
+    # The connection guides (store, email/CRM) are public — they aid discovery and reveal no
+    # scoring internals. The product playbook (using-halia) stays gated; a logged-out visitor
+    # gets the sign-in page instead, and only a signed-in merchant sees it.
     from halia.api.tenant_auth import make_session, SESSION_COOKIE
 
     out = TestClient(app)
-    for path in ("/docs", "/docs/connect-your-store", "/docs/crm-and-email", "/docs/using-halia"):
-        r = out.get(path)
-        assert r.status_code == 200, path
-        assert "Up and running" not in r.text and "What happens next" not in r.text, path
+    assert "Up and running" in out.get("/docs").text                    # docs hub, public
+    assert "What happens next" in out.get("/docs/connect-your-store").text  # guide, public
+    gated = out.get("/docs/using-halia")
+    assert gated.status_code == 200
+    assert "weekly rhythm" not in gated.text                            # the real guide is withheld
 
     signed_in = TestClient(app, cookies={SESSION_COOKIE: make_session("demo.myshopify.com")})
-    assert "Up and running" in signed_in.get("/docs").text
-    assert "What happens next" in signed_in.get("/docs/connect-your-store").text
+    assert "weekly rhythm" in signed_in.get("/docs/using-halia").text
