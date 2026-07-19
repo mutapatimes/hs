@@ -98,6 +98,10 @@ STRIPE_TIERS = os.environ.get("STRIPE_TIERS") or None
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET") or None
 # Optional preconfigured Stripe coupon id for the 50%-off retention offer (else created ad-hoc).
 STRIPE_RETENTION_COUPON = os.environ.get("STRIPE_RETENTION_COUPON") or None
+# Shopify Billing (the embedded app's Plans screen subscribes via Shopify's own recurring charges,
+# not Stripe). Test mode creates the real approval flow but never charges the merchant — keep it on
+# until the App Store listing is live, then set HALIA_SHOPIFY_BILLING_TEST=false to bill for real.
+SHOPIFY_BILLING_TEST = _flag("HALIA_SHOPIFY_BILLING_TEST", True)
 # Tenant keys granted full access without paying (e.g. a comped first client), comma-separated.
 HALIA_FREE_SHOPS = {s.strip() for s in os.environ.get("HALIA_FREE_SHOPS", "").split(",") if s.strip()}
 
