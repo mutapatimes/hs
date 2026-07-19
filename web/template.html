@@ -828,7 +828,6 @@
         <button class="vtab" data-view="board">Pipeline</button>
         <button class="vtab" data-view="catalogs">Catalogues</button>
         <button class="vtab" data-view="campaigns">Campaigns</button>
-        <button class="vtab" data-view="plans">Plans</button>
       </div>
 
       <!-- OVERVIEW (birds-eye) -->
@@ -1008,9 +1007,6 @@
         <div id="campaignsRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
       </div><!-- /viewCampaigns -->
 
-      <div id="viewPlans" style="display:none">
-        <div id="plansRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
-      </div><!-- /viewPlans -->
 
       <div class="foot">
         __FOOT_DEMO__Latent value is a client's projected worth once nurtured into a top client. Tune your ceiling in <b>⚙ Settings</b>.
@@ -1111,8 +1107,8 @@ const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce
 // "settings" is an overlay, not a view, so it routes specially. Query params (host/embedded)
 // are always preserved.
 const EMBEDDED = !!document.querySelector('meta[name="shopify-api-key"]');
-const SEG2VIEW = {clients:"clients",catalogues:"catalogs",pipeline:"board",orders:"orders",map:"map",campaigns:"campaigns",plans:"plans"};
-const VIEW2SEG = {clients:"clients",catalogs:"catalogues",board:"pipeline",orders:"orders",map:"map",campaigns:"campaigns",plans:"plans"};
+const SEG2VIEW = {clients:"clients",catalogues:"catalogs",pipeline:"board",orders:"orders",map:"map",campaigns:"campaigns"};
+const VIEW2SEG = {clients:"clients",catalogs:"catalogues",board:"pipeline",orders:"orders",map:"map",campaigns:"campaigns"};
 function routeFromUrl(){
   const m = location.pathname.match(/\/view\/([a-z]+)/);
   if(!m) return {view:"overview"};
@@ -2291,71 +2287,39 @@ function renderMap(){
   document.getElementById("mapHint").textContent=`${mapped} of ${CORE.length} located · ${areas.length} area${areas.length===1?"":"s"}`;
 }
 
-/* ---- plans & pricing (Shopify billing) ---- */
+/* ---- plan cards (rendered inside Settings -> Billing; Stripe Payment Links, new tab) ---- */
 let PLANS_CACHE=null;
-function planInit(force){
-  const root=document.getElementById("plansRoot"); if(!root) return;
-  if(PLANS_CACHE && !force){ planRender(PLANS_CACHE); return; }
-  root.innerHTML='<div style="color:var(--soft);font-size:13.5px">Loading plans…</div>';
-  fetch("/v1/plans/status").then(r=>r.json()).then(d=>{ PLANS_CACHE=d; planRender(d); })
-    .catch(()=>{ root.innerHTML='<div style="color:var(--soft);font-size:13.5px">Couldn\'t load plans. Try again shortly.</div>'; });
+function loadPlanCards(container, force){
+  if(!container) return;
+  if(PLANS_CACHE && !force){ container.innerHTML=planCardsHTML(PLANS_CACHE); return; }
+  container.innerHTML='<div style="color:var(--soft);font-size:13.5px">Loading plans…</div>';
+  fetch("/v1/billing/plans").then(r=>r.json()).then(d=>{ PLANS_CACHE=d; container.innerHTML=planCardsHTML(d); })
+    .catch(()=>{ container.innerHTML='<div style="color:var(--soft);font-size:13.5px">Couldn\'t load plans.</div>'; });
 }
-function planCta(p,cur){
-  // p: a plan card from the catalogue; cur: current plan key. Returns the CTA button HTML.
-  if(p.key===cur) return `<span class="pl-cta cur">Current plan</span>`;
+function planCardCta(p,d){
+  // Stripe Checkout can't be framed inside Shopify admin, so every paid CTA is an anchor that
+  // opens the Stripe Payment Link in a NEW TAB. Free is the default plan; Maison is a conversation.
   if(p.custom) return `<a class="pl-cta ghost" href="mailto:hello@haliascore.com?subject=Halia%20Maison%20plan">Talk to us →</a>`;
-  if(p.key==="free") return `<button class="pl-cta ghost" data-downgrade="1">Downgrade to Free</button>`;
-  const paidCur = cur && cur!=="free";
-  return `<button class="pl-cta" data-plan="${p.key}">${paidCur?"Switch to "+esc(p.name):"Upgrade"}</button>`;
+  if(p.key==="free") return `<span class="pl-cta cur">${d.paid?"Included":"Current plan"}</span>`;
+  if(p.link) return `<a class="pl-cta" href="${esc(p.link)}" target="_blank" rel="noopener">Choose ${esc(p.name)} →</a>`;
+  return `<a class="pl-cta ghost" href="mailto:hello@haliascore.com?subject=Halia%20${encodeURIComponent(p.name)}%20plan">Get ${esc(p.name)} →</a>`;
 }
-function planRender(d){
-  const root=document.getElementById("plansRoot"); if(!root) return;
-  const cur=d.current||"free";
-  if(!d.shopify){
-    root.innerHTML=`<div style="background:var(--card);border:1px solid var(--line);padding:20px 22px;color:var(--soft);font-size:14px">Plans are managed from your Halia billing settings. <b>Settings → Billing</b>.</div>`;
-    return;
-  }
+function planCardsHTML(d){
+  const rec=(d.recommended||"").toLowerCase();
   const cards=(d.plans||[]).map(p=>{
+    const isRec=p.name.toLowerCase()===rec;
     const feats=p.features.map(f=>`<li class="${f.included?"":"off"}"><span class="tk">${f.included?"✓":"✕"}</span><span>${f.label}</span></li>`).join("");
-    const price=p.custom?`<div class="pl-price">Custom</div>`
-      :`<div class="pl-price">${p.priceLabel}${p.price?`<span> /month</span>`:``}</div>`;
-    return `<div class="pl-card${p.highlighted?" feat":""}${p.key===cur?" cur":""}">
-      ${p.highlighted?`<span class="pl-badge">Most popular</span>`:(p.key===cur?`<span class="pl-badge">Your plan</span>`:``)}
-      <div class="pl-name">${esc(p.name)}</div>
-      ${price}
+    const price=p.custom?`<div class="pl-price">Custom</div>`:`<div class="pl-price">${p.priceLabel}${p.price?`<span> /month</span>`:``}</div>`;
+    const badge=p.highlighted?`<span class="pl-badge">Most popular</span>`:(isRec?`<span class="pl-badge">Your book</span>`:``);
+    return `<div class="pl-card${p.highlighted?" feat":""}${isRec?" cur":""}">
+      ${badge}<div class="pl-name">${esc(p.name)}</div>${price}
       <div class="pl-who">${p.who}</div>
       <ul class="pl-feats">${feats}</ul>
-      ${planCta(p,cur)}
+      ${planCardCta(p,d)}
     </div>`;
   }).join("");
-  const testNote=d.test?`<p class="pl-note">Billing is in test mode: you'll see Shopify's approval screen, but no charge is made. Prices in ${esc(d.currency||"GBP")}, excluding VAT.</p>`
-    :`<p class="pl-note">Billed monthly through Shopify. Prices in ${esc(d.currency||"GBP")}, excluding VAT. Change or cancel anytime.</p>`;
-  const faq=`<div class="pl-faq"><h3>Frequently asked</h3>
-    <div class="pl-qa"><div class="q">How does billing work?</div><div class="a">Plans are a flat monthly price banded by the size of your customer book, charged through Shopify alongside your other app charges. No per-customer fees, ever.</div></div>
-    <div class="pl-qa"><div class="q">Can I change plans anytime?</div><div class="a">Yes. Upgrade, switch, or downgrade to Free whenever you like. Changes take effect immediately and Shopify prorates the difference.</div></div>
-    <div class="pl-qa"><div class="q">What counts as a VIC?</div><div class="a">A customer who fires at least one wealth or intent signal and sits below your own VIP spend threshold, exactly the definition your dashboard counts.</div></div>
-    <div class="pl-qa"><div class="q">Is my customer data private?</div><div class="a">Always. Customers are scored in memory and released. Halia keeps nothing about them: only your plan and settings are stored.</div></div>
-  </div>`;
-  root.innerHTML=`<div class="pl-grid">${cards}</div>${testNote}${faq}`;
-  root.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>planSubscribe(b,b.dataset.plan));
-  const dg=root.querySelector("[data-downgrade]"); if(dg) dg.onclick=()=>planDowngrade(dg);
-}
-function planSubscribe(btn,key){
-  btn.disabled=true; const t=btn.textContent; btn.textContent="Opening Shopify…";
-  fetch("/v1/plans/subscribe",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({plan:key})})
-    .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
-      if(!ok||!d.confirmationUrl) throw new Error((d&&d.detail)||"Couldn't start checkout.");
-      // The approval page must load at the TOP of the window, outside the Shopify admin iframe.
-      try{ window.top.location.href=d.confirmationUrl; }catch(_){ window.location.href=d.confirmationUrl; }
-    }).catch(e=>{ toast("Billing error: "+e.message); btn.disabled=false; btn.textContent=t; });
-}
-function planDowngrade(btn){
-  if(!confirm("Downgrade to the Free plan? Your paid features stop at the end of the current period.")) return;
-  btn.disabled=true; const t=btn.textContent; btn.textContent="Cancelling…";
-  fetch("/v1/plans/cancel",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
-    if(!ok) throw new Error((d&&d.detail)||"failed");
-    toast("Cancelled. You're on the Free plan."); PLANS_CACHE=null; planInit(true);
-  }).catch(e=>{ toast("Billing error: "+e.message); btn.disabled=false; btn.textContent=t; });
+  return `<div class="pl-grid">${cards}</div>`
+    +`<p class="pl-note">Secure checkout via Stripe, opens in a new tab. Prices in GBP, excluding VAT. Change or cancel anytime from Manage billing.</p>`;
 }
 
 /* ---- campaigns: create/target/monitor ---- */
@@ -2503,7 +2467,6 @@ const PAGE_META={
   orders:{t:"Orders",s:"Every order, newest first, ranked by the client behind it."},
   map:{t:"Where your VICs are",s:"Your potential VICs by area."},
   board:{t:"Outreach pipeline",s:"Track outreach across the team."},
-  plans:{t:"Plans & Pricing",s:"Choose the plan that fits your store."},
   catalogs:{t:"Catalogues",s:"Build a catalogue and share it as a PDF or enquiry form."},
   campaigns:{t:"Campaigns",s:"Track the sales a campaign drives."}
 };
@@ -2513,7 +2476,7 @@ function showView(v){
   REVEAL_ACTIVE=false;
   if(v==="overview"||v==="clients") beginReveal();   // reveal the first time a scored view paints
   document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("on",x.dataset.view===v));
-  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"],["catalogs","viewCatalogs"],["campaigns","viewCampaigns"],["plans","viewPlans"]].forEach(([k,id])=>{
+  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"],["catalogs","viewCatalogs"],["campaigns","viewCampaigns"]].forEach(([k,id])=>{
     const el=document.getElementById(id);if(el)el.style.display=k===v?"":"none";});
   const statsEl=document.querySelector(".stats");
   if(v==="clients"){
@@ -2538,10 +2501,6 @@ function showView(v){
     document.querySelector(".title").textContent=PAGE_META.campaigns.t;document.querySelector(".sub").textContent=PAGE_META.campaigns.s;
     statsEl.style.display="none";
     campInit();
-  } else if(v==="plans"){
-    document.querySelector(".title").textContent=PAGE_META.plans.t;document.querySelector(".sub").textContent=PAGE_META.plans.s;
-    statsEl.style.display="none";
-    planInit();
   } else {
     document.querySelector(".title").textContent=PAGE_META.map.t;document.querySelector(".sub").textContent=PAGE_META.map.s;
     statsEl.style.display="none";
@@ -3455,31 +3414,31 @@ function openSettings(page){
       const dot=b.paid?'#0f7b4f':'#8a6d3b';
       const fmt=ts=>ts?new Date(ts*1000).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}):"";
       let h=`<div style="font:600 13px system-ui;color:${dot};margin-bottom:12px">● Plan: ${label}</div>`;
-      if(b.comped){h+=`<p style="${P};margin:0">Your access is complimentary — there's nothing to manage.</p>`;}
-      else if(b.manageable){
+      if(b.comped){box.innerHTML=h+`<p style="${P};margin:0">Your access is complimentary — there's nothing to manage.</p>`;return;}
+      if(b.manageable){
         if(b.cancel_at_period_end){
           h+=`<p style="${P}">Your subscription is set to cancel on <b>${fmt(b.current_period_end)}</b>. You keep full access until then.</p>`
             +`<div style="display:flex;gap:8px;flex-wrap:wrap"><button id="billResume" style="${BP}">Resume subscription</button>`
             +`<button id="billPortal" style="${BS}">Manage billing →</button></div>`;
         } else {
-          h+=`<p style="${P}">Update your card or view invoices in the Stripe portal, or cancel below. Cancelling keeps access until the end of your current period.</p>`
+          h+=`<p style="${P}">Update your card, view invoices, or cancel in the Stripe portal (opens in a new tab). Cancelling keeps access until the end of your current period.</p>`
             +`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button id="billPortal" style="${BP}">Manage billing →</button>`
             +`<button id="billCancel" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0 8px">Cancel subscription</button></div>`;
         }
+      } else {
+        h+=`<p style="${P}">Choose a plan to unlock the full dashboard. Checkout is secure via Stripe and opens in a new tab.</p>`;
       }
-      else{
-        const plan=b.plan;
-        if(plan&&plan.name){h+=`<div style="border:1px solid var(--brand);background:var(--brand-tint);border-radius:0;padding:14px 16px;margin-bottom:14px">`
-          +`<div style="font:12px system-ui;color:var(--soft)">Your book: <b>${(plan.count||0).toLocaleString("en-GB")}</b> customers</div>`
-          +`<div style="font:500 20px 'Fraunces',serif;color:var(--brand-deep);margin-top:2px">Matched to the ${esc(plan.name)} plan</div></div>`;}
-        h+=`<p style="${P}">Subscribe to unlock the full dashboard.</p><button id="billSub" style="${BP}">Subscribe →</button>`;
-      }
+      h+=`<div id="billPlans" style="margin-top:18px"></div>`;
       box.innerHTML=h;
-      const openUrl=(url,btn,label)=>{btn.disabled=true;btn.textContent="One moment…";
+      // Stripe pages cannot be framed inside Shopify admin, so open the portal in a NEW TAB.
+      const openUrl=(url,btn,label)=>{
+        const w=window.open("about:blank","_blank");
+        btn.disabled=true;btn.textContent="One moment…";
         fetch(url,{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
-          if(!ok||!d.url)throw new Error((d&&d.detail)||"Couldn't open billing.");location.href=d.url;})
-          .catch(e=>{toast("Billing error: "+e.message);btn.disabled=false;btn.textContent=label;});};
-      const sub=document.getElementById("billSub"); if(sub) sub.onclick=()=>openUrl("/v1/checkout",sub,"Subscribe →");
+          if(!ok||!d.url)throw new Error((d&&d.detail)||"Couldn't open billing.");
+          if(w)w.location=d.url; else window.open(d.url,"_blank");
+          btn.disabled=false;btn.textContent=label;})
+          .catch(e=>{if(w)w.close();toast("Billing error: "+e.message);btn.disabled=false;btn.textContent=label;});};
       const portal=document.getElementById("billPortal"); if(portal) portal.onclick=()=>openUrl("/v1/billing/portal",portal,"Manage billing →");
       const setCancel=(url,confirmMsg)=>{
         if(confirmMsg&&!confirm(confirmMsg))return;
@@ -3493,6 +3452,7 @@ function openSettings(page){
       if(canc) canc.onclick=()=>startCancel(b);
       const res=document.getElementById("billResume");
       if(res) res.onclick=()=>setCancel("/v1/billing/resume",null);
+      loadPlanCards(document.getElementById("billPlans"));   // the plan cards live in Billing now
     }
     function startCancel(b){
       const box=document.getElementById("billingBox"); if(!box) return;

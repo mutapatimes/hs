@@ -96,6 +96,11 @@ STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID") or None
 # shorthand allowed). When set, this overrides STRIPE_PRICE_ID; unset falls back to the single price.
 STRIPE_TIERS = os.environ.get("STRIPE_TIERS") or None
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET") or None
+# Stripe Payment Links per plan, shown as Upgrade buttons on the in-app Plans cards (Settings ->
+# Billing). Used while Halia is a custom Shopify app (Shopify's own billing needs a listed app);
+# these open in a new tab, so they sidestep the Shopify admin iframe that blocks Stripe Checkout.
+# Format: "discovery=https://buy.stripe.com/...,signal=https://buy.stripe.com/...,atelier=..."
+STRIPE_PLAN_LINKS = os.environ.get("STRIPE_PLAN_LINKS", "")
 # Store Concierge (the £14/mo clienteling brand) has its own flat recurring price. A storeconcierge
 # tenant is billed this instead of the Halia size tiers; unset -> SC tenants fall back to the Halia price.
 STRIPE_PRICE_STORECONCIERGE = os.environ.get("STRIPE_PRICE_STORECONCIERGE") or None

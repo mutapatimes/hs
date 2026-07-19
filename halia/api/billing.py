@@ -110,6 +110,18 @@ def plan_for_shop(shop: str) -> dict | None:
     return {"name": name, "count": int(count)}
 
 
+def plan_links() -> dict:
+    """Map of plan key -> Stripe Payment Link, parsed from config.STRIPE_PLAN_LINKS."""
+    out = {}
+    for part in (config.STRIPE_PLAN_LINKS or "").split(","):
+        if "=" in part:
+            key, url = part.split("=", 1)
+            key, url = key.strip().lower(), url.strip()
+            if key and url.startswith("http"):
+                out[key] = url
+    return out
+
+
 def _free_shops():
     """Comped tenant keys: the console's dashboard override, else env HALIA_FREE_SHOPS."""
     from halia.console_config import console_setting
@@ -310,6 +322,29 @@ def register(app) -> None:
     @app.get("/v1/billing/status")
     def billing_status(shop: str = Depends(require_shop)) -> dict:
         return billing_state(shop)
+
+    @app.get("/v1/billing/plans")
+    def billing_plans(shop: str = Depends(require_shop)) -> dict:
+        """The plan catalogue for the in-app Plans cards, each with its Stripe Payment Link, plus
+        the tenant's billing state and the tier recommended for their book size."""
+        from halia import plans as plancat
+        links = plan_links()
+        state = billing_state(shop)
+        matched = plan_for_shop(shop)
+        cards = []
+        for p in plancat.public_catalogue():
+            p = dict(p)
+            p["link"] = links.get(p["key"], "")
+            cards.append(p)
+        return {
+            "plans": cards,
+            "enabled": state["enabled"],
+            "paid": state["paid"],
+            "comped": state["comped"],
+            "status": state["status"],
+            "manageable": state["manageable"],
+            "recommended": (matched or {}).get("name"),
+        }
 
     @app.post("/v1/billing/portal")
     def billing_portal(shop: str = Depends(require_shop)) -> dict:
