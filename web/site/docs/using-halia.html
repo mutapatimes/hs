@@ -158,6 +158,10 @@
  <a href="#grades">What the grades mean</a>
  <a href="#reach">Reaching out</a>
  <a href="#alerts">Real-time alerts</a>
+ <a href="#orders">The Orders page</a>
+ <a href="#catalogues">Catalogues</a>
+ <a href="#campaigns">Campaign monitoring</a>
+ <a href="#latent-value">Latent value</a>
  <a href="#rhythm">A simple weekly rhythm</a>
  </nav>
  <div class="doc-main">
@@ -207,26 +211,68 @@
  into a loyal one.</p>
  </section>
 
+ <section id="orders" class="reveal">
+ <h2>The Orders page</h2>
+ <p class="lead-p">Every order, newest first, ranked by the client behind it, so the ones worth a personal
+ touch rise to the top.</p>
+ <p>Each row shows the date, the client with their grade, the order number, its status, and the amount.
+ The stats above the list track the <strong>order value in view</strong>, how many <strong>need fulfilling</strong>,
+ and how many are already fulfilled, so you can see the day's shape at a glance.</p>
+ <ol class="steps">
+ <li><strong>Filter to what matters</strong><p>Show only clients graded above C, or every grade. Narrow by status (unfulfilled, fulfilled, refunded, cancelled), by date range, or search by name.</p></li>
+ <li><strong>Open an order</strong><p>Click any row to see the full order and the client behind it, their grade, the reasons for it, and their history with you.</p></li>
+ <li><strong>Act while it's live</strong><p>Each order offers a ready message that matches its status, a warm thank-you on a fresh order, a note when it ships. Send it from your own inbox or WhatsApp.</p></li>
+ </ol>
+ <div class="callout">A well-timed thank-you after a big order is one of the simplest ways to turn a good
+ customer into a loyal one. The Orders page is built for exactly that moment.</div>
+ </section>
+
  <section id="catalogues" class="reveal">
  <h2>Catalogues</h2>
- <p class="lead-p">Turn your products into a private catalogue you can send to a client.</p>
+ <p class="lead-p">Turn a hand-picked selection of products into a private catalogue you can send to one
+ client. Available once your Shopify store is connected.</p>
  <ol class="steps">
- <li><strong>Build it</strong><p>In the Catalogues tab, pick products, add a personal cover line, and save. You get a print-ready PDF and an interactive enquiry form.</p></li>
- <li><strong>Share it two ways</strong><p>The PDF has an Enquire link on every product. The enquiry form lets a client tick what they'd like, and their request is emailed straight to you.</p></li>
- <li><strong>Drop it into an email</strong><p>Put <code>{catalog_link}</code> in a client-email template and Halia inserts a link to your active catalogue, personalised to that client.</p></li>
+ <li><strong>Build it</strong><p>In the Catalogues tab, create a catalogue, pick the products, and add a personal cover line. Save it and Halia builds both formats for you.</p></li>
+ <li><strong>Two ways to share</strong><p><strong>Open PDF</strong> gives you a print-ready catalogue with an Enquire link on every product. <strong>Open form</strong> is an interactive page where the client ticks what they'd like; their request is emailed straight to you.</p></li>
+ <li><strong>Send the link</strong><p>Copy the PDF or form link and send it your way, or set a catalogue as <strong>active</strong> and drop <code>{catalog_link}</code> into any client-email template, Halia inserts a link personalised to that client.</p></li>
  </ol>
- <div class="callout">Every catalogue is private to the client it's sent to and carries no Halia branding.</div>
+ <div class="callout">Every catalogue is private to the client it's sent to. It carries no Halia branding
+ and never shows the client's own details back to them.</div>
  </section>
 
  <section id="campaigns" class="reveal">
- <h2>Campaigns</h2>
- <p class="lead-p">Give a piece of outreach a name and dates, add the clients you're targeting, and watch the sales it drives.</p>
+ <h2>Campaign monitoring</h2>
+ <p class="lead-p">Give a piece of outreach a name and a window, add the clients you're targeting, then
+ watch, in one screen, exactly what sales it drove.</p>
+
+ <h3>Set it up</h3>
  <ol class="steps">
- <li><strong>Create it</strong><p>In the Campaigns tab, name the campaign and set a start and end date.</p></li>
- <li><strong>Add clients</strong><p>On the Clients tab, tick the people you're targeting and choose <strong>Add to campaign</strong>. Add more at any time.</p></li>
- <li><strong>Open the monitor</strong><p>See revenue in the window, how many bought, sales over time, revenue by signal and by grade, your top clients, and the clients who came back from gone quiet. Save it as a PDF to share.</p></li>
+ <li><strong>Create the campaign</strong><p>In the Campaigns tab, give it a name and set a start and end date. That window is what every number is measured against.</p></li>
+ <li><strong>Add the clients</strong><p>On the Clients tab, tick the people you're targeting, use the filters to find them fast, and choose <strong>Add to campaign</strong>. Add more at any time; editing the name or dates never clears who's in it.</p></li>
+ <li><strong>Open the monitor</strong><p>Click a campaign to open its monitor as a full page inside the app.</p></li>
  </ol>
- <p>Everything is measured live from your own orders and kept nowhere. The clients in a campaign are held only as anonymous ids.</p>
+
+ <h3>What the monitor shows</h3>
+ <p>Six headline figures sit across the top:</p>
+ <ul class="grades">
+ <li><span class="g">Revenue</span><span class="d">Total sales from campaign members inside the window.</span></li>
+ <li><span class="g">In campaign</span><span class="d">How many clients you added.</span></li>
+ <li><span class="g">Bought</span><span class="d">How many of them actually ordered.</span></li>
+ <li><span class="g">Conversion</span><span class="d">Bought as a share of members.</span></li>
+ <li><span class="g">Orders</span><span class="d">Number of orders placed in the window.</span></li>
+ <li><span class="g">Avg order</span><span class="d">Average value of those orders.</span></li>
+ </ul>
+ <p>Below that, the detail:</p>
+ <ol class="steps">
+ <li><strong>Came back from gone quiet</strong><p>The stand-out number: clients who had gone silent (no order for 90 days before the window) and bought again during the campaign, and the revenue you recovered by bringing them back.</p></li>
+ <li><strong>Sales over time</strong><p>A week-by-week chart of revenue across the window, so you can see when the campaign landed.</p></li>
+ <li><strong>Revenue by signal and by grade</strong><p>Which kinds of client drove the sales, by the signal that surfaced them (work email, prime postcode, and so on) and by their Halia grade.</p></li>
+ <li><strong>Top clients</strong><p>The members who spent the most in the window, with their grade, order count, and revenue.</p></li>
+ </ol>
+ <div class="callout">Save the whole screen as a PDF from the button at the top, handy for a team
+ review or a note to the buyer.</div>
+ <p>Every figure is computed live from your own orders each time you open the monitor. Halia stores only
+ the campaign's name, dates, and an anonymous id for each member, nothing about the customers themselves.</p>
  </section>
 
  <section id="latent-value" class="reveal">
