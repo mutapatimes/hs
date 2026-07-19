@@ -124,9 +124,91 @@ def with_chat_widget(html_text: str) -> str:
     return _before_body(html_text, chat_widget_snippet())
 
 
+def _site_origin() -> str:
+    import os
+    return os.environ.get("HALIA_SITE_URL", "https://haliascore.com").rstrip("/")
+
+
+def org_graph() -> list:
+    """The Organization + WebSite schema.org nodes, reused wherever we emit structured data so
+    every page resolves to one canonical Halia entity (name, logo, social)."""
+    origin = _site_origin()
+    return [
+        {
+            "@type": "Organization",
+            "@id": f"{origin}/#organization",
+            "name": "Halia",
+            "url": f"{origin}/",
+            "logo": f"{origin}/img/three_clients.jpg",
+            "description": ("Private client intelligence for luxury retail. Halia reads the wealth "
+                            "signals already in your customer data to surface your highest-value "
+                            "clients, with zero retention."),
+            "sameAs": ["https://www.linkedin.com/company/haliascore"],
+        },
+        {
+            "@type": "WebSite",
+            "@id": f"{origin}/#website",
+            "url": f"{origin}/",
+            "name": "Halia",
+            "inLanguage": "en",
+            "publisher": {"@id": f"{origin}/#organization"},
+        },
+    ]
+
+
+def jsonld_script(graph: list) -> str:
+    """Serialise a schema.org @graph into a compact ld+json <script> block."""
+    import json as _json
+    data = {"@context": "https://schema.org", "@graph": graph}
+    return ('<script type="application/ld+json">'
+            + _json.dumps(data, separators=(",", ":")) + "</script>")
+
+
+def org_jsonld() -> str:
+    """Sitewide Organization + WebSite structured data, so search engines resolve one canonical
+    Halia entity and can attribute every page to it. Injected on the Halia marketing pages only;
+    the dashboards and Store Concierge are served by other paths."""
+    return jsonld_script(org_graph())
+
+
+_FAQ_RE = re.compile(
+    r'<details class="q"><summary>(.*?)<span class="pl">.*?</summary>\s*'
+    r'<div class="a">(.*?)</div>\s*</details>', re.DOTALL)
+
+
+def _plain_text(fragment: str) -> str:
+    import html as _htmlmod
+    txt = re.sub(r"<[^>]+>", "", fragment)          # drop tags, keep their text
+    return _htmlmod.unescape(re.sub(r"\s+", " ", txt)).strip()
+
+
+def faq_jsonld(html_text: str) -> str:
+    """Build FAQPage structured data from the page's <details class="q"> blocks, so the schema
+    always matches the visible Q&A (Google requires that). Returns '' if the page has no FAQ."""
+    pairs = _FAQ_RE.findall(html_text)
+    if not pairs:
+        return ""
+    entities = [{
+        "@type": "Question", "name": _plain_text(q),
+        "acceptedAnswer": {"@type": "Answer", "text": _plain_text(a)},
+    } for q, a in pairs if _plain_text(q) and _plain_text(a)]
+    if not entities:
+        return ""
+    return jsonld_script([{"@type": "FAQPage", "mainEntity": entities}])
+
+
 def with_site_scripts(html_text: str) -> str:
-    """Marketing-page extras: the support chat bubble + GoatCounter analytics."""
-    return _before_body(with_chat_widget(html_text), analytics_snippet())
+    """Marketing-page extras: Organization/WebSite structured data (plus FAQPage on the FAQ), the
+    support chat bubble, and GoatCounter analytics. Skips the org graph if the page already declares
+    our entity; a page may still ship its own extra schema and receive the org graph alongside it."""
+    out = html_text
+    # Guard on the WebSite node id (only the injected graph defines it) rather than #organization,
+    # which a page's own schema may merely *reference* (e.g. SoftwareApplication.publisher).
+    if "#website" not in out:
+        out = _before_body(out, org_jsonld())
+    if 'class="faq-cat"' in out and '"FAQPage"' not in out:
+        out = _before_body(out, faq_jsonld(out))
+    return _before_body(with_chat_widget(out), analytics_snippet())
 
 
 def apply_overrides(html_text: str) -> str:

@@ -258,7 +258,7 @@ _SITE_ORIGIN = _os.environ.get("HALIA_SITE_URL", "https://haliascore.com").rstri
 # noindex legal pages (which already carry X-Robots-Tag: noindex).
 _INDEXABLE_PATHS = [
     "/", "/brand", "/clienteling", "/faq", "/pricing", "/responsible",
-    "/security", "/solutions", "/demo", "/status",
+    "/security", "/solutions", "/demo", "/status", "/blog",
 ] + [f"/solutions/{_i}" for _i in
      ("fashion", "wine", "beauty", "jewellery", "home", "gifting",
       "collectibles", "electronics")]
@@ -267,28 +267,48 @@ _INDEXABLE_PATHS = [
 @app.get("/robots.txt", include_in_schema=False)
 def robots_txt():
     from fastapi.responses import PlainTextResponse
+    # Public marketing + docs + blog are crawlable; the app, operator console and CMS admin are not.
     body = (
         "User-agent: *\n"
         "Allow: /\n"
         "Disallow: /app\n"
         "Disallow: /console\n"
         "Disallow: /admin\n"
-        "Disallow: /docs\n"
+        "Disallow: /docs\n"   # docs are sign-in gated (a bot would only get the sign-in page)
         f"\nSitemap: {_SITE_ORIGIN}/sitemap.xml\n"
     )
     return PlainTextResponse(body, media_type="text/plain")
 
 
+def _blog_sitemap_entries() -> list[tuple[str, str | None]]:
+    """(loc, lastmod) for every published blog post, newest first. Best-effort: an empty list on
+    any DB hiccup so the sitemap always renders the static pages."""
+    try:
+        from halia.api.shopify_auth import shop_store
+        posts = shop_store().list_posts(published_only=True, limit=1000)
+    except Exception:  # noqa: BLE001
+        return []
+    out = []
+    for p in posts:
+        slug = p.get("slug")
+        if not slug:
+            continue
+        stamp = (p.get("updated_at") or p.get("published_at") or "")[:10] or None
+        out.append((f"/blog/{slug}", stamp))
+    return out
+
+
 @app.get("/sitemap.xml", include_in_schema=False)
 def sitemap_xml():
     from fastapi.responses import Response
-    urls = "".join(
-        f"<url><loc>{_SITE_ORIGIN}{p}</loc></url>" for p in _INDEXABLE_PATHS
-    )
+    parts = [f"<url><loc>{_SITE_ORIGIN}{p}</loc></url>" for p in _INDEXABLE_PATHS]
+    for loc, lastmod in _blog_sitemap_entries():
+        lm = f"<lastmod>{lastmod}</lastmod>" if lastmod else ""
+        parts.append(f"<url><loc>{_SITE_ORIGIN}{loc}</loc>{lm}</url>")
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-        f"{urls}</urlset>"
+        f"{''.join(parts)}</urlset>"
     )
     return Response(xml, media_type="application/xml")
 
