@@ -30,6 +30,8 @@ from scripts.build_solutions_pages import _footer, _nav, _SCRIPT
 _ASTER = "&#8258;"
 PAGE_SIZE = 9
 COMPARISON_SLUG = "influence-or-net-worth-halia-vs-outersignal-mercana"
+ALTRATA_SLUG = "stored-or-scored-halia-vs-altrata"
+JULIUS_BAER_SLUG = "julius-baer-wealth-report-2026-the-quiet-buyer"
 
 _SCRIPT_RE = re.compile(r"<(script|iframe)\b[^>]*>.*?</\1>", re.I | re.S)
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -454,23 +456,177 @@ client for years.</p>
 """
 
 
+# ── Altrata (Salesforce app) seed ────────────────────────────────────────────────────
+_ALTRATA_BODY = """
+<p>Altrata has put its data into Salesforce. Wealth-X, WealthEngine, BoardEx, and RelSci, the
+datasets behind much of the wealth-screening world, now arrive as one standardised feed inside the
+CRM, matched to your records and refreshed automatically. It is a serious piece of infrastructure.
+It also answers a different question from the one a luxury house asks at the counter.</p>
+
+<h2>Relationship intelligence, or a buyer in your book</h2>
+<p>Altrata is built for reaching <strong>executives and organisations</strong>: the board member to
+warm up before a raise, the C-suite name behind an account, the decision-maker a search firm needs to
+place. Its heritage is dealmaking, fundraising, executive search, and account-based marketing, work
+where knowing who sits where, and who knows whom, is the whole advantage.</p>
+<p>Halia is built for a quieter figure: the <strong>high-net-worth private client already buying from
+you</strong>. Not a prospect to source from a database, but the person who placed a modest first order
+last week and, once recognised and looked after, becomes a material share of your year. Altrata helps
+you find someone out in the world and open a door. Halia helps you notice someone already inside it.</p>
+<p>Both are real jobs, and they rarely overlap. A wealth-screening feed points a sales or development
+team at named individuals to pursue. A clienteling engine tells a boutique which of today's buyers
+deserves a personal note this afternoon.</p>
+
+<h2>Where the data lives, and whether it stays</h2>
+<p>The Altrata app works by enrichment: it matches your Salesforce contacts and accounts to its
+datasets, writes the detail onto the record, and keeps it current with automated updates. The value is
+a CRM that stays populated and clean. The trade-off is built into the design: you are accumulating a
+retained store of third-party data about individuals, and committing to keep it fresh indefinitely.</p>
+<p>Halia is built the other way around. Each customer is scored in memory, in the moment, from open
+reference data held offline, and then let go. No enriched profile is written into your systems, and
+nothing about a customer is kept once the score is shown. For a house that would rather hold
+intelligence than an inventory of personal data, that is the point rather than a footnote.</p>
+
+<h2>Enterprise CRM, or the tools your floor already uses</h2>
+<p>Altrata's app assumes Salesforce: an enterprise CRM, a data operation, and a team whose day runs
+through it. Halia assumes a shop. It grades every customer from A&#42; to C, estimates the latent value
+behind a small order, and hands your clienteling team a specific move inside the tools they already
+open, Shopify and the inbox, with no data warehouse to feed.</p>
+
+<h2>What it means in the EU</h2>
+<p>Enriching customer records with retained wealth data, and keeping it updated, is a posture that
+draws hard questions from a European regulator. Halia's answer is architectural: because it retains
+nothing, there is no store to disclose, minimise, or delete on request. Zero retention is a position
+you can stand behind, rather than a box you tick.</p>
+
+<div class="cmp-wrap"><table class="cmp">
+<thead><tr><th>&nbsp;</th><th class="h">Halia</th><th>Altrata in Salesforce</th></tr></thead>
+<tbody>
+<tr><td class="row">Who it surfaces</td><td class="us">High-net-worth private clients in your book</td><td>Executives, boards &amp; organisations</td></tr>
+<tr><td class="row">What you do with it</td><td class="us">Grow revenue &amp; lifetime value from existing buyers</td><td>Source, verify &amp; connect with named people</td></tr>
+<tr><td class="row">How it delivers</td><td class="us">A live score, in memory</td><td>Enriched records inside the CRM</td></tr>
+<tr><td class="row">Customer data retention</td><td class="us">None: scored, then released</td><td>Retained &amp; automatically updated</td></tr>
+<tr><td class="row">Where it runs</td><td class="us">Shopify &amp; the tools you already use</td><td>Salesforce</td></tr>
+<tr><td class="row">EU / GDPR fit</td><td class="us">Serviceable by architecture</td><td>US-based wealth data</td></tr>
+<tr><td class="row">Market focus</td><td class="us">Luxury &amp; premium retail</td><td>Dealmaking, fundraising, executive search</td></tr>
+</tbody></table></div>
+<p class="cmp-src">Altrata product details are drawn from Altrata's public Salesforce-app and product
+pages, current as of writing. Altrata is a substantial, capable platform; the comparison is about fit,
+not merit.</p>
+
+<h2>When each one fits</h2>
+<p>If your next move is a capital raise, an acquisition, a placement, or a programme aimed at named
+executives, Altrata's breadth is hard to match, and having it live in Salesforce is a genuine
+advantage.</p>
+<p>If you run a luxury or premium house and your growth comes from recognising the wealthy buyer hiding
+behind a quiet first order, then looking after them for years, Halia is built for exactly that, and it
+does the job without keeping a single customer record.</p>
+"""
+
+
+# ── Julius Baer Wealth Report 2026 seed ──────────────────────────────────────────────
+_JULIUS_BAER_BODY = """
+<p>Julius Baer's 2026 Global Wealth and Lifestyle Report is, on its surface, a story about prices. The
+cost of a premium standard of living rose about 10 per cent in US dollar terms over the year, Singapore
+held its place at the top, Zurich and Monaco rose to meet it, and London slipped to fifth. Read a
+little closer and it is a story about behaviour, and the behaviour it describes is the reason
+recognising your best clients has never mattered more.</p>
+
+<h2>Currency, not appetite</h2>
+<p>Much of this year's apparent inflation is a currency effect. Cities anchored to a strong franc or
+euro climbed the ranking; those tracking the dollar slipped. A Zurich resident barely felt the rise
+that pushed their city up the table, while a visitor carrying a weaker currency felt all of it. The
+report's own conclusion is that wealth today is global, and its purchasing power depends as much on
+where money sits as on what things cost.</p>
+<p>For a luxury house, the practical version of that insight is uncomfortable: the price on your shelf
+increasingly reflects financial conditions somewhere else. Many luxury brands anchor pricing to the
+euro or the franc and hold it level across markets, exporting currency strength into every till. The
+client paying it is doing their own arithmetic.</p>
+
+<h2>The buyer who shops across borders</h2>
+<p>And they are acting on it. This is the finding that should reshape how retailers think. At least one
+in three high-net-worth individuals have already changed the geographic origin of some of their luxury
+purchases. More than half would now travel internationally to buy, partly to sidestep tariffs, and
+around a quarter already do. In China, buyers are moving toward domestic labels that feel closer to
+home.</p>
+<p>The affluent consumer, in the report's words, is no longer a passive price-taker. They choose where
+to live, where to spend, and where to buy the very same handbag. Their loyalty follows recognition and
+relationship rather than postcode. A client who bought from your London store in spring may buy the
+identical piece in Singapore in autumn, from whoever remembered them.</p>
+
+<h2>A two-speed floor</h2>
+<p>Nor is the spending even. The report describes a two-speed luxury economy: APAC and the Middle East
+pulling ahead, Europe contracting hardest, with jewellery and watch spending in Europe down sharply
+even as gold-driven prices rose, jewellery up more than 16 per cent and watches more than 15.
+Experiences held up everywhere; goods did not. Health spending rose in every region. The wealthy are
+still buying, but they are buying deliberately, and differently by region and by mood.</p>
+<p>The lesson for a premium retailer, and a European one especially, is that volume will not save the
+year. Growth has to come from depth: from knowing the clients already in the book well enough to be
+their choice wherever they happen to be standing.</p>
+
+<h2>Which brings it back to the shop floor</h2>
+<p>Here is the through-line. The report's wealthy individual is mobile, deliberate, currency-aware, and
+quietly enormous, and almost none of that is legible from a single receipt. The modest first order in
+your store may belong to a client who spends across three continents and has simply not yet decided you
+are worth returning to.</p>
+<p>Recognising that person is now the edge. It is a specific act: seeing, from what is already in front
+of you, that this quiet buyer is worth a personal appointment, an early allocation, a note that
+remembers their last visit. Do that consistently and you become the name they think of in Zurich and in
+Singapore alike.</p>
+<p>That recognition is the whole job Halia was built for: to find the high-net-worth client hiding
+behind an unremarkable order, grade them honestly, and hand your team the move that keeps them. In a
+year when the wealthy will happily buy the same thing somewhere else, being the house that knew them is
+worth more than being the cheapest counter, which, thanks to the currency, you were never going to be
+anyway.</p>
+
+<p class="cmp-src">Figures cited are from the Julius Baer Global Wealth and Lifestyle Report 2026. The
+reading, and any opinions, are our own.</p>
+"""
+
+
 def seed_blog() -> None:
-    """Publish the comparison post if it is not already present (idempotent)."""
+    """Publish the seed posts if they are not already present (idempotent)."""
     store = shop_store()
-    if store.get_post(COMPARISON_SLUG):
-        return
-    store.upsert_post({
-        "slug": COMPARISON_SLUG,
-        "title": "Influence, or net worth: how Halia compares to OuterSignal and Mercana",
-        "dek": "All three find VIPs. The difference is which ones, and whether they grow your "
-               "revenue or your reach.",
-        "body_html": _sanitize(_COMPARISON_BODY),
-        "author": "The Halia team",
-        "cover_image_id": None,
-        "tags": "comparison, luxury, positioning",
-        "status": "published",
-        "published_at": "2026-07-08T09:00:00+00:00",
-    })
+    if not store.get_post(COMPARISON_SLUG):
+        store.upsert_post({
+            "slug": COMPARISON_SLUG,
+            "title": "Influence, or net worth: how Halia compares to OuterSignal and Mercana",
+            "dek": "All three find VIPs. The difference is which ones, and whether they grow your "
+                   "revenue or your reach.",
+            "body_html": _sanitize(_COMPARISON_BODY),
+            "author": "The Halia team",
+            "cover_image_id": None,
+            "tags": "comparison, luxury, positioning",
+            "status": "published",
+            "published_at": "2026-07-08T09:00:00+00:00",
+        })
+    if not store.get_post(ALTRATA_SLUG):
+        store.upsert_post({
+            "slug": ALTRATA_SLUG,
+            "title": "Stored, or scored: how Halia compares to Altrata's Salesforce app",
+            "dek": "Altrata pours executive and wealth data into your CRM and keeps it current. "
+                   "Halia scores your buyers in memory and keeps nothing. Which you want depends "
+                   "on the job.",
+            "body_html": _sanitize(_ALTRATA_BODY),
+            "author": "The Halia team",
+            "cover_image_id": None,
+            "tags": "comparison, wealth data, positioning",
+            "status": "published",
+            "published_at": "2026-07-15T09:00:00+00:00",
+        })
+    if not store.get_post(JULIUS_BAER_SLUG):
+        store.upsert_post({
+            "slug": JULIUS_BAER_SLUG,
+            "title": "The quiet buyer just got harder to read: on the Julius Baer Wealth Report 2026",
+            "dek": "The 2026 Global Wealth and Lifestyle Report says the affluent buyer is now "
+                   "mobile, deliberate, and spending across borders. That is exactly the client "
+                   "luxury retail keeps missing.",
+            "body_html": _sanitize(_JULIUS_BAER_BODY),
+            "author": "The Halia team",
+            "cover_image_id": None,
+            "tags": "wealth, luxury, research",
+            "status": "published",
+            "published_at": "2026-07-19T09:00:00+00:00",
+        })
 
 
 # ── routes ─────────────────────────────────────────────────────────────────────────
