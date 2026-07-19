@@ -145,4 +145,7 @@ def test_seed_is_idempotent(tmp_path, monkeypatch):
     monkeypatch.setattr(shopify_auth, "_shop_store", store)
     blog.seed_blog()
     blog.seed_blog()
-    assert store.count_posts(published_only=False) == 1
+    # the three seeded posts (OuterSignal/Mercana, Altrata, Julius Baer report), no duplicates
+    assert store.count_posts(published_only=False) == 3
+    for slug in (blog.COMPARISON_SLUG, blog.ALTRATA_SLUG, blog.JULIUS_BAER_SLUG):
+        assert store.get_post(slug)
