@@ -175,6 +175,51 @@ def test_context_returns_templates_and_running_campaigns(env):
     assert d["campaigns"][0]["id"] == "camp_now"  # running sorts first
 
 
+# ── one-click actions ─────────────────────────────────────────────────────────
+def test_action_requires_token_and_cid(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    assert client.post("/v1/extension/action", json={"action": "pipeline", "cid": "1"}).status_code == 401
+    assert client.post("/v1/extension/action", json={"action": "pipeline"},
+                       headers={"X-Halia-Ext-Token": ext}).status_code == 422
+
+
+def test_action_campaign_add_appends_member(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    import json as _json
+    store.save_campaign("camp1", SHOP, "Spring", "2025-03-01", "2025-05-31",
+                        _json.dumps({"tiers": [], "signals": [], "members": []}))
+    r = client.post("/v1/extension/action",
+                    json={"action": "campaign_add", "campaign_id": "camp1", "cid": "c9"},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 200 and r.json()["count"] == 1
+    got = _json.loads(store.get_campaign("camp1", SHOP)["config_json"])
+    assert got["members"] == ["c9"]
+    # idempotent: adding again does not duplicate
+    client.post("/v1/extension/action",
+                json={"action": "campaign_add", "campaign_id": "camp1", "cid": "c9"},
+                headers={"X-Halia-Ext-Token": ext})
+    got2 = _json.loads(store.get_campaign("camp1", SHOP)["config_json"])
+    assert got2["members"] == ["c9"]
+
+
+def test_action_pipeline_needs_shopify_writeback(env):
+    client, store, tok = env  # SHOP is a woocommerce tenant here
+    ext = _ext_token(client, tok)
+    r = client.post("/v1/extension/action", json={"action": "pipeline", "cid": "c1"},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 400  # pipeline is Shopify-write-back only
+
+
+def test_action_rejects_unknown(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    r = client.post("/v1/extension/action", json={"action": "wat", "cid": "c1"},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 422
+
+
 # ── unit helpers ──────────────────────────────────────────────────────────────
 def test_play_of_rules():
     assert extension._play_of({"known": True}) == "sleeping"

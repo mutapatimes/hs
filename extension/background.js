@@ -84,6 +84,32 @@ async function context() {
   }
 }
 
+async function action(body) {
+  const { base, token } = await config();
+  if (!token) return { error: "no-token" };
+  let res;
+  try {
+    res = await fetch(base + "/v1/extension/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Halia-Ext-Token": token },
+      body: JSON.stringify(body || {})
+    });
+  } catch (e) {
+    return { error: "network" };
+  }
+  if (res.status === 401) return { error: "unauthorized" };
+  if (!res.ok) {
+    let detail = "";
+    try { detail = (await res.json()).detail || ""; } catch (e) { /* ignore */ }
+    return { error: "http-" + res.status, detail };
+  }
+  try {
+    return await res.json();
+  } catch (e) {
+    return { error: "parse" };
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg && msg.type === "halia:lookup") {
     lookup(msg.query).then(sendResponse);
@@ -91,6 +117,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg && msg.type === "halia:context") {
     context().then(sendResponse);
+    return true;
+  }
+  if (msg && msg.type === "halia:action") {
+    action(msg.body).then(sendResponse);
     return true;
   }
   if (msg && msg.type === "halia:config") {
