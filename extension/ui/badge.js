@@ -67,6 +67,8 @@
     input.psearch { flex: 1; padding: 7px 9px; border: 1px solid #d8cfbc; background: #fff; font-size: 12.5px;
       font-family: inherit; color: #1a1a1a; }
     .tot { margin-top: 7px; font-weight: 600; font-size: 13px; }
+    .pth { width: 38px; height: 38px; object-fit: cover; border: 1px solid #ece5d6; flex: none;
+      background: #f2efe6; }
     select { width: 100%; padding: 6px; border: 1px solid #d8cfbc; background: #fff; font-size: 12px; }
     textarea { width: 100%; padding: 7px 9px; border: 1px solid #d8cfbc; background: #fff; font-size: 12.5px;
       font-family: inherit; resize: vertical; color: #1a1a1a; }
@@ -326,14 +328,20 @@
       const vs = p.variants || [];
       const single = vs.length === 1;
       const opts = vs.map((v, vi) => `<option value="${vi}">${esc(v.title || "Default")}${v.price ? " · £" + esc(v.price) : ""}</option>`).join("");
-      return `<div class="row">
-        <div class="rn">${esc(p.title)}</div>
-        <div style="display:flex;gap:6px;margin-top:5px;align-items:center">
-          ${single ? `<span class="rd" style="flex:1">${esc(vs[0].title === "Default Title" ? "" : vs[0].title)}${vs[0].price ? " · £" + esc(vs[0].price) : ""}</span>`
-            : `<select data-pv="${pi}" style="flex:1">${opts}</select>`}
-          <button class="btn" data-padd="${pi}">Add</button>
+      return `<div class="row" style="display:flex;gap:8px;align-items:center">
+        ${p.image ? `<img class="pth" data-pi="${pi}" src="${esc(p.image)}" referrerpolicy="no-referrer" alt="">` : ""}
+        <div style="flex:1;min-width:0">
+          <div class="rn">${esc(p.title)}</div>
+          <div style="display:flex;gap:6px;margin-top:4px;align-items:center">
+            ${single ? `<span class="rd" style="flex:1">${esc(vs[0].title === "Default Title" ? "" : vs[0].title)}${vs[0].price ? " · £" + esc(vs[0].price) : ""}</span>`
+              : `<select data-pv="${pi}" style="flex:1">${opts}</select>`}
+            <button class="btn" data-padd="${pi}">Add</button>
+          </div>
         </div></div>`;
     }).join("");
+    // Attach onerror in JS (inline handlers are blocked by strict page CSPs): a blocked or missing
+    // image just hides itself rather than showing a broken icon.
+    box.querySelectorAll("img.pth").forEach((im) => { im.onerror = () => { im.style.display = "none"; }; });
     prodResults.forEach((p, pi) => {
       const b = box.querySelector(`[data-padd="${pi}"]`);
       if (b) b.onclick = () => {
@@ -348,7 +356,8 @@
     if (!cart.length) { box.innerHTML = ""; return; }
     const total = cart.reduce((s, i) => s + (parseFloat(i.price) || 0) * i.qty, 0);
     const count = cart.reduce((s, i) => s + i.qty, 0);
-    box.innerHTML = `<div class="lbl">Cart <span class="n">${count}</span></div>` +
+    const who = client && client.data && client.data.name ? " for " + esc(String(client.data.name).split(" ")[0]) : "";
+    box.innerHTML = `<div class="lbl">Cart${who} <span class="n">${count}</span></div>` +
       cart.map((i, ci) => `<div class="row" style="display:flex;align-items:center;gap:6px">
         <span style="flex:1">${esc(i.label)}</span>
         <button class="mini" data-qd="${ci}">−</button><span>${i.qty}</span><button class="mini" data-qi="${ci}">+</button>
@@ -380,7 +389,8 @@
         }
         prodResults = r.products || [];
         if (r.cart_base) cartBase = r.cart_base;
-        paintResults();
+        if (!prodResults.length && box) box.innerHTML = `<div class="muted">No products found.</div>`;
+        else paintResults();
       });
     } catch (e) { /* ignore */ }
   }
@@ -433,7 +443,7 @@
     setClient(state) {
       client = state; // null | {loading,name} | {found,data} | {notfound,name} | {error}
       if (state && state.found) client = { data: state.data };
-      if (root) { renderClient(); renderTemplates(); renderCampaigns(); }
+      if (root) { renderClient(); renderTemplates(); renderCampaigns(); paintCart(); }
     },
     setInserter(fn) { inserter = fn; },
     setChannel(ch) { if (CHAN[ch]) channel = ch; },
