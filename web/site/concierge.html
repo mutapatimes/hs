@@ -1,0 +1,294 @@
+<!doctype html><html lang="en"><head>
+<link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='23' font-size='24' text-anchor='middle' font-family='Georgia,serif' fill='%237a7363'>&#8258;</text></svg>">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="canonical" href="https://haliascore.com/concierge">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Halia">
+<meta property="og:title" content="Halia Concierge · An entire private-client team, in one presence">
+<meta property="og:description" content="The intelligence of an entire clienteling team, brought to the moment a client reaches you. Recognition, the right words, and the next move, wherever you serve. It reads live and keeps nothing.">
+<meta property="og:url" content="https://haliascore.com/concierge">
+<meta property="og:image" content="https://haliascore.com/img/three_clients.jpg">
+<meta property="og:image:alt" content="Halia Concierge, private client intelligence for luxury retail">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Halia Concierge · An entire private-client team, in one presence">
+<meta name="twitter:description" content="Recognition, the right words, and the next move, brought to the moment a client reaches you. It reads live and keeps nothing.">
+<meta name="twitter:image" content="https://haliascore.com/img/three_clients.jpg">
+<title>Halia Concierge · Halia</title>
+<meta name="description" content="Halia Concierge brings the intelligence of an entire private-client team to the moment a client reaches you: recognition, the right words, and the next move, wherever you serve. It reads live and keeps nothing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0b;--bg-2:#0e0e10;--ink:#f4f1ea;--mute:#8c887f;--faint:#56534d;
+    --gold:#d8d2c6;--gold-2:#b6ac97;--line:rgba(255,255,255,.12);--line-2:rgba(255,255,255,.07);
+    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:var(--gold);color:#1a1408}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 40px}
+  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+  h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.04}
+  em{font-style:italic;color:var(--gold)}
+  .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);font-weight:400;line-height:1.6}
+
+  /* nav */
+  header#hdr{position:sticky;top:0;z-index:50;backdrop-filter:blur(8px);
+    background:rgba(10,10,11,.72);border-bottom:1px solid transparent;transition:border-color .3s}
+  header#hdr.solid{border-color:var(--line-2)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:70px}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--sans);font-weight:500;letter-spacing:.02em;font-size:16px}
+  .brand .as{font-family:var(--serif);font-size:22px;line-height:1;color:var(--gold)}
+  .nav-links{display:flex;gap:30px}
+  .nav-links a{color:var(--mute);font-size:14px;transition:color .2s}
+  .nav-links a:hover,.nav-links a.on{color:var(--ink)}
+  .right{display:flex;align-items:center;gap:22px}
+  .si{color:var(--mute);font-size:14px;transition:color .2s}.si:hover{color:var(--ink)}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:#0a0a0b;
+    padding:11px 20px;border-radius:0;font-size:13px;font-weight:500;letter-spacing:.02em;transition:.2s;border:1px solid var(--ink)}
+  .btn:hover{background:transparent;color:var(--ink)}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn.ghost:hover{border-color:var(--ink)}
+  .burger{display:none;background:none;border:0;color:var(--ink);cursor:pointer}
+  @media(max-width:860px){.nav-links,.right .si{display:none}.burger{display:block}}
+
+  /* hero */
+  .hero{padding:96px 0 24px;text-align:center}
+  .hero h1{font-size:clamp(42px,6.4vw,90px);max-width:15ch;margin:26px auto 0}
+  .hero .lede{max-width:44ch;margin:28px auto 0}
+  .hero .actions{margin-top:38px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+
+  /* the film: an animated demo scene */
+  .film{margin:70px auto 0;max-width:860px}
+  .scene{position:relative;border:1px solid var(--line);background:
+      radial-gradient(120% 120% at 50% -10%,rgba(216,210,198,.06),transparent 55%),var(--bg-2);
+    border-radius:14px;overflow:hidden;padding:22px;min-height:430px}
+  .chat{max-width:420px;margin:0 auto}
+  .chat .ch-hd{display:flex;align-items:center;gap:11px;padding:0 4px 16px;border-bottom:1px solid var(--line-2)}
+  .ava{width:38px;height:38px;border-radius:50%;background:#2a2620;color:var(--gold);display:grid;place-items:center;
+    font-family:var(--serif);font-size:16px;flex:none}
+  .ch-hd .nm{font-weight:500;font-size:14px}.ch-hd .st{font-size:12px;color:var(--faint)}
+  .msgs{padding:20px 4px 0;display:flex;flex-direction:column;gap:12px}
+  .bub{max-width:78%;padding:11px 14px;border-radius:14px;font-size:14px;line-height:1.5}
+  .bub.in{align-self:flex-start;background:#1b1a17;color:var(--ink);border-bottom-left-radius:4px}
+  .bub.out{align-self:flex-end;background:#33302a;color:var(--ink);border-bottom-right-radius:4px;white-space:pre-line}
+  /* concierge card, slides in over the scene */
+  .card{position:absolute;right:22px;bottom:22px;width:300px;max-width:calc(100% - 44px);
+    background:#141310;border:1px solid var(--line);border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.5);
+    padding:15px 16px;text-align:left}
+  .card .cn{display:flex;align-items:center;gap:8px;font:500 10px/1 var(--sans);letter-spacing:.22em;
+    text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+  .card .head{display:flex;align-items:center;gap:11px}
+  .grade{width:42px;height:42px;flex:none;display:grid;place-items:center;background:linear-gradient(160deg,#c8a86a,#9a7b3f);
+    color:#141310;font-family:var(--serif);font-size:20px;font-weight:500;border-radius:8px}
+  .who .nm2{font-weight:500;font-size:15px}.who .tag{font-size:11px;color:var(--gold-2);letter-spacing:.04em;text-transform:uppercase}
+  .latent{margin-top:12px;padding:9px 11px;background:#1c1a15;border:1px solid var(--line-2);border-radius:7px}
+  .latent .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .latent .v{font-family:var(--serif);font-size:21px;color:var(--ink)}
+  .rz{margin-top:11px;font-size:12.5px;color:var(--mute);line-height:1.5}
+  .rz b{color:var(--ink);font-weight:500}
+  .mv{margin-top:11px;font-size:12.5px;color:var(--ink);border-top:1px solid var(--line-2);padding-top:10px}
+  .mv .k{color:var(--gold);font-weight:500}
+
+  /* sections */
+  section.blk{padding:118px 0;border-top:1px solid var(--line-2)}
+  .say{font-family:var(--serif);font-weight:300;font-size:clamp(30px,5vw,58px);line-height:1.08;letter-spacing:-.01em;max-width:20ch}
+  .say.mid{margin:0 auto;text-align:center}
+  .body{font-size:1.1rem;color:var(--mute);max-width:54ch;line-height:1.75;margin:24px 0 0}
+  .body.mid{margin:24px auto 0;text-align:center}
+  h2.h2{font-family:var(--serif);font-weight:300;font-size:clamp(30px,4.4vw,52px);line-height:1.06;max-width:17ch;margin:14px 0 0}
+
+  /* suite */
+  .pillars{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-2);border:1px solid var(--line-2);margin:56px 0 0}
+  .cell{background:var(--bg);padding:34px 32px}
+  .cell .k{font:500 11px/1 var(--sans);letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+  .cell h3{font-family:var(--serif);font-weight:400;font-size:26px;margin:13px 0 9px;line-height:1.1}
+  .cell p{margin:0;color:var(--mute);font-size:15px;line-height:1.62}
+  .value{margin:48px 0 0;display:flex;flex-wrap:wrap;align-items:baseline;gap:12px 30px}
+  .value .big{font-family:var(--serif);font-weight:300;font-size:clamp(24px,3.4vw,38px);line-height:1.16;max-width:22ch}
+  .value .sub{font:500 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+
+  /* surfaces */
+  .surf{display:flex;flex-wrap:wrap;gap:12px 26px;margin:28px 0 0;align-items:baseline}
+  .surf span{font-family:var(--serif);font-size:clamp(22px,3vw,34px);color:var(--ink)}
+  .surf .dot{color:var(--faint)}
+
+  .cta{text-align:center;padding:130px 0}
+  .cta h2{font-family:var(--serif);font-weight:300;font-size:clamp(32px,5vw,60px);line-height:1.08;max-width:20ch;margin:0 auto}
+  .cta .actions{margin-top:36px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+  .cta .small{margin-top:20px;font-size:13px;color:var(--faint)}
+
+  footer{border-top:1px solid var(--line-2);padding:56px 0 40px}
+  .foot{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap;align-items:flex-start}
+  .foot .bio{max-width:42ch;color:var(--mute);font-size:14px;line-height:1.6;margin:12px 0 0}
+  .foot .lk{display:flex;gap:26px;flex-wrap:wrap}
+  .foot .lk a{color:var(--mute);font-size:14px}.foot .lk a:hover{color:var(--ink)}
+  .foot .bot{margin-top:40px;padding-top:22px;border-top:1px solid var(--line-2);display:flex;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;font-size:12px;color:var(--faint);letter-spacing:.02em}
+
+  @media(max-width:640px){.pillars{grid-template-columns:1fr}section.blk{padding:82px 0}.card{position:static;width:auto;margin:22px auto 0}.scene{min-height:0}}
+
+  /* the film plays on a loop; static and readable if motion is reduced */
+  @media(prefers-reduced-motion:no-preference){
+    .rise{opacity:0;transform:translateY(18px);animation:rise 1s cubic-bezier(.2,.7,.2,1) forwards}
+    .r2{animation-delay:.12s}.r3{animation-delay:.26s}.r4{animation-delay:.42s}
+    @keyframes rise{to{opacity:1;transform:none}}
+    .anim .bub.in{opacity:0;animation:pop 13s .3s infinite}
+    .anim .card{opacity:0;transform:translateY(14px) scale(.98);animation:cardin 13s .3s infinite}
+    .anim .card .head{opacity:0;animation:fin 13s .3s infinite;animation-delay:calc(.3s + 4s)}
+    .anim .card .latent{opacity:0;animation:fin 13s infinite;animation-delay:calc(.3s + 4.5s)}
+    .anim .card .rz{opacity:0;animation:fin 13s infinite;animation-delay:calc(.3s + 5s)}
+    .anim .card .mv{opacity:0;animation:fin 13s infinite;animation-delay:calc(.3s + 5.5s)}
+    .anim .bub.out{opacity:0;animation:reply 13s .3s infinite}
+    @keyframes pop{0%,4%{opacity:0;transform:translateY(8px)}12%,90%{opacity:1;transform:none}97%,100%{opacity:0}}
+    @keyframes cardin{0%,22%{opacity:0;transform:translateY(14px) scale(.98)}30%,90%{opacity:1;transform:none}97%,100%{opacity:0;transform:translateY(8px)}}
+    @keyframes fin{0%,32%{opacity:0}40%,90%{opacity:1}97%,100%{opacity:0}}
+    @keyframes reply{0%,58%{opacity:0;transform:translateY(8px)}68%,90%{opacity:1;transform:none}97%,100%{opacity:0}}
+  }
+</style></head>
+<body>
+
+<header id="hdr"><div class="wrap nav">
+  <a class="brand" href="/"><span class="as" aria-hidden="true">&#8258;</span> Halia</a>
+  <nav class="nav-links">
+    <a href="/clienteling">Clienteling</a>
+    <a href="/concierge" class="on">Concierge</a>
+    <a href="/solutions">Solutions</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/blog">Blog</a>
+  </nav>
+  <div class="right">
+    <a class="si" href="/app">Sign in</a>
+    <a class="btn" href="/connect">Connect your store <span aria-hidden="true">&rarr;</span></a>
+    <button class="burger" id="burger" aria-label="Open menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  </div>
+</div></header>
+
+<main>
+  <section class="hero"><div class="wrap">
+    <div class="eyebrow rise">Halia Concierge</div>
+    <h1 class="rise r2">Serve every client as though the whole <em>house</em> stood behind you.</h1>
+    <p class="lede rise r3">The instinct of an entire private-client team, brought to the moment a client
+      reaches you. One presence. Always there.</p>
+    <div class="actions rise r4">
+      <a class="btn" href="/connect">Connect your store <span aria-hidden="true">&rarr;</span></a>
+      <a class="btn ghost" href="#suite">What it is</a>
+    </div>
+
+    <div class="film rise r4">
+      <div class="scene anim" aria-label="A client message arrives and Halia Concierge quietly recognises them.">
+        <div class="chat">
+          <div class="ch-hd"><span class="ava">TB</span><div><div class="nm">Tarek B.</div><div class="st">online</div></div></div>
+          <div class="msgs">
+            <div class="bub in">Hi, do you have the navy overcoat in a 40?</div>
+            <div class="bub out">Dear Tarek,
+
+It would be my pleasure. I have set one aside in your size, and would love to arrange a private moment for you to see it.
+
+Warmly,
+Amara</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="cn"><span style="font-family:var(--serif);font-size:14px">&#8258;</span> Halia Concierge</div>
+          <div class="head">
+            <div class="grade">A&#42;</div>
+            <div class="who"><div class="nm2">Tarek Bensa&iuml;me</div><div class="tag">Hidden VIC</div></div>
+          </div>
+          <div class="latent"><div class="k">Latent value</div><div class="v">&pound;12,400</div></div>
+          <div class="rz"><b>Why:</b> prime central address, senior finance, quietly high potential on modest spend.</div>
+          <div class="mv"><span class="k">Next move:</span> offer a private appointment before the new season lands.</div>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="blk"><div class="wrap">
+    <p class="say">It is simply <em>there</em>.</p>
+    <p class="body">The moment a client reaches you, it knows who they are, what they are worth to you,
+      and the word that will land. Your team moves as one, so no one who matters is ever kept waiting.
+      And when a favoured client returns, you are the first to know.</p>
+  </div></section>
+
+  <section class="blk" id="suite"><div class="wrap">
+    <div class="eyebrow">One presence, in place of many</div>
+    <h2 class="h2">An entire clienteling department. Without the department.</h2>
+    <div class="pillars">
+      <div class="cell">
+        <div class="k">The Analyst</div>
+        <h3>Sees the fortune before the spend does</h3>
+        <p>It knows the client quietly worth a great deal, long before their spending would ever tell you. The wealth others miss, surfaced.</p>
+      </div>
+      <div class="cell">
+        <div class="k">The Memory</div>
+        <h3>Every client, perfectly recalled</h3>
+        <p>Their history, their taste, their standing and their grade, held where you already work, ready the instant you need it.</p>
+      </div>
+      <div class="cell">
+        <div class="k">The Concierge</div>
+        <h3>The right gesture, in a single touch</h3>
+        <p>The words that land, a private catalogue, a basket already prepared, composed for this client and sent in a moment.</p>
+      </div>
+      <div class="cell">
+        <div class="k">The Associate</div>
+        <h3>Recognises, anticipates, never waits</h3>
+        <p>It greets the ones who matter, remembers what a colleague already said, and lets no valued client be kept waiting twice.</p>
+      </div>
+    </div>
+    <div class="value">
+      <div class="big">A clienteling floor, an analyst, a private-client CRM and your finest VIP associate. Held in one presence, in place of many salaries.</div>
+      <div class="sub">The work of a team &nbsp;&middot;&nbsp; thousands saved each month</div>
+    </div>
+  </div></section>
+
+  <section class="blk"><div class="wrap">
+    <p class="say">Wherever a client reaches you.</p>
+    <div class="surf">
+      <span>WhatsApp</span><span class="dot">&middot;</span>
+      <span>The inbox</span><span class="dot">&middot;</span>
+      <span>The appointment</span><span class="dot">&middot;</span>
+      <span>The shop floor</span>
+    </div>
+    <p class="body">It arrives in the moment, unannounced, and steps back the instant you are done.</p>
+  </div></section>
+
+  <section class="blk"><div class="wrap">
+    <p class="say">It asks nothing of your clients. And remembers <em>nothing</em> of them.</p>
+    <p class="body">Recognition without a record. The discretion a great house is built on, kept by design. Halia reads what is in front of you and stores nothing about your customers.</p>
+  </div></section>
+
+  <section class="cta"><div class="wrap">
+    <h2>See it once, and you will not serve without it again.</h2>
+    <div class="actions">
+      <a class="btn" href="/connect">Connect your store <span aria-hidden="true">&rarr;</span></a>
+      <a class="btn ghost" href="/pricing">View pricing</a>
+    </div>
+    <div class="small">Reads live &middot; stores nothing &middot; ready in minutes</div>
+  </div></section>
+</main>
+
+<footer><div class="wrap">
+  <div class="foot">
+    <div>
+      <a class="brand" href="/"><span class="as" aria-hidden="true">&#8258;</span> Halia</a>
+      <p class="bio">Halia is private client intelligence for luxury retail. It finds the quiet wealth in your customers, and Halia Concierge brings it to your team, wherever they serve.</p>
+    </div>
+    <div class="lk">
+      <a href="/clienteling">Clienteling</a>
+      <a href="/solutions">Solutions</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/security">Security</a>
+      <a href="/connect">Connect</a>
+    </div>
+  </div>
+  <div class="bot">
+    <span>&copy; 2026 Halia. All rights reserved.</span>
+    <span>Zero-retention by design &middot; Shopify &middot; WooCommerce &middot; BigCommerce</span>
+  </div>
+</div></footer>
+
+</body></html>
