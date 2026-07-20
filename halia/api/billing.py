@@ -340,21 +340,19 @@ def register(app) -> None:
         from halia import plans as plancat
         links = plan_links()
         state = billing_state(shop)
-        matched = plan_for_shop(shop)
+        common = {"enabled": state["enabled"], "paid": state["paid"], "comped": state["comped"],
+                  "status": state["status"], "manageable": state["manageable"]}
+        # Store Concierge is its own brand and one flat plan — never the Halia wealth-engine tiers.
+        if _is_storeconcierge(shop):
+            card = plancat.storeconcierge_card()
+            card["link"] = link_with_ref(links.get("storeconcierge", ""), shop)
+            return {"plans": [card], "recommended": "Store Concierge", **common}
         cards = []
         for p in plancat.public_catalogue():
             p = dict(p)
             p["link"] = link_with_ref(links.get(p["key"], ""), shop)
             cards.append(p)
-        return {
-            "plans": cards,
-            "enabled": state["enabled"],
-            "paid": state["paid"],
-            "comped": state["comped"],
-            "status": state["status"],
-            "manageable": state["manageable"],
-            "recommended": (matched or {}).get("name"),
-        }
+        return {"plans": cards, "recommended": (plan_for_shop(shop) or {}).get("name"), **common}
 
     @app.post("/v1/billing/portal")
     def billing_portal(shop: str = Depends(require_shop)) -> dict:

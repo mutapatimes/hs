@@ -73,6 +73,23 @@ def test_billing_plans_endpoint_carries_stripe_links_and_recommendation(client, 
     assert j["enabled"] is True and "recommended" in j
 
 
+def test_billing_plans_storeconcierge_gets_its_own_single_card(client, monkeypatch):
+    c, store = client
+    tok = _tenant(store, "scshop")
+    _enable(monkeypatch)
+    monkeypatch.setattr("halia.config.STRIPE_PLAN_LINKS",
+                        "signal=https://buy.stripe.com/s,storeconcierge=https://buy.stripe.com/sc")
+    from halia.storeconcierge.tenant import set_brand
+    set_brand("scshop", "storeconcierge")
+    from halia.api.tenant_auth import COOKIE
+    j = c.get("/v1/billing/plans", cookies={COOKIE: tok}).json()
+    assert [p["key"] for p in j["plans"]] == ["storeconcierge"]        # not the Halia tiers
+    card = j["plans"][0]
+    assert card["priceLabel"] == "£14"
+    assert card["link"] == "https://buy.stripe.com/sc?client_reference_id=scshop"
+    assert j["recommended"] == "Store Concierge"
+
+
 def test_webhook_maps_payment_link_cancellation_back_to_shop(client):
     c, store = client
     # a Payment Link checkout activated this shop, storing the Stripe subscription id

@@ -87,6 +87,27 @@ def public_catalogue() -> list[dict]:
     return [_card(p) for p in _PLANS]
 
 
+# Store Concierge is a separate brand with a single flat plan (never the wealth engine). Its own
+# card, so a storeconcierge tenant is offered the £14 clienteling plan, not the Halia tiers.
+_SC_FEATURES = [
+    "Private catalogues (PDF &amp; enquiry form)",
+    "Win-back list for quiet clients",
+    "Per-client notes",
+    "Appointment &amp; message templates",
+    "One-tap email &amp; WhatsApp",
+    "Orders by lifecycle stage",
+]
+
+
+def storeconcierge_card() -> dict:
+    return {
+        "key": "storeconcierge", "name": "Store Concierge",
+        "who": "Look after your best customers like a boutique",
+        "price": 14, "priceLabel": "£14", "custom": False, "highlighted": True, "billable": True,
+        "features": [{"label": f, "included": True} for f in _SC_FEATURES],
+    }
+
+
 def recommended_key(customer_count: int) -> str:
     """The smallest paid tier a book of this size fits under (Discovery/Signal/Atelier)."""
     if customer_count <= 15000:
