@@ -74,6 +74,30 @@ def _dashboard_link() -> str:
     return (config.HALIA_APP_URL or "").rstrip("/") + "/app"
 
 
+def _todos(shop: str) -> list[dict]:
+    """Team to-dos from the scored book: fresh orders from top clients to acknowledge, and proven
+    clients gone quiet to win back. Warm cache only, so this is cheap. No customer data stored."""
+    import time
+    from halia.cache import cache
+    rows = ((cache.get(shop) or {}).get("payload") or {}).get("data") or []
+    now = time.time()
+    out = []
+    for r in rows:
+        name = r.get("name") or "A client"
+        grade = r.get("grade") or ""
+        ls = r.get("lastSort") or 0
+        recent = ls and (now - ls) <= 7 * 86400
+        top = str(r.get("tier") or "").startswith("A")
+        if top and r.get("band") == "active" and recent:
+            out.append({"kind": "new_order", "cid": r.get("cid"), "name": name, "grade": grade,
+                        "text": f"New order · {name} ({grade}) · send a personal note"})
+        elif _play_of(r) == "sleeping":
+            out.append({"kind": "gone_quiet", "cid": r.get("cid"), "name": name, "grade": grade,
+                        "text": f"Gone quiet · {name} ({grade}) · reach out"})
+    out.sort(key=lambda t: 0 if t["kind"] == "new_order" else 1)
+    return out[:15]
+
+
 def _cart_base(shop: str) -> str:
     """The storefront origin for a Shopify /cart permalink: the primary domain, else myshopify."""
     dom = ""
@@ -280,6 +304,8 @@ def register(app) -> None:
             "dashboard": _dashboard_link(),
             "templates": _templates(shop, None, catalog),
             "campaigns": campaigns,
+            "todos": _todos(shop),
+            "slack": bool(shop_store().get_slack(shop)),   # team broadcasts available?
         }
 
     @app.post("/v1/extension/lookup")
@@ -373,6 +399,35 @@ def register(app) -> None:
         if not cid:
             raise HTTPException(422, "cid is required")
 
+        who = str(body.get("actor") or "").strip()[:80] or "A team member"
+
+        if action == "contacted":
+            # Log that this client was reached out to, so the team is in the loop and nobody
+            # double-messages. Records to the shared pipeline activity (Shopify) AND broadcasts to
+            # the team's Slack if connected. Best-effort on each side; at least one should land.
+            reason = str(body.get("reason") or "").strip()[:200]
+            client_name = str(body.get("client_name") or "").strip()[:120]
+            recorded = False
+            try:
+                from halia.api.board import _sink, _write_soft, append_activity, load_pipe
+                sink = _sink(shop)
+                pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
+                append_activity(pipe, "contacted", None, who, note=reason or None)
+                recorded = not _write_soft(sink, cid, pipe)
+            except Exception:
+                recorded = False                     # non-Shopify tenant or write hiccup
+            slacked = False
+            conn = shop_store().get_slack(shop)
+            if conn and conn.get("webhook_url"):
+                from halia import notify
+                txt = f"{who} contacted {client_name or 'a client'}" + (f" — {reason}" if reason else "")
+                try:
+                    slacked = bool(notify.send_slack(conn["webhook_url"], txt))
+                except Exception:
+                    slacked = False
+            data.record_activity(shop, "extension_contacted")
+            return {"ok": True, "recorded": recorded, "slack": slacked}
+
         if action == "note":
             from halia.api.board import _sink, _write_soft, append_activity, load_pipe
             note = str(body.get("note") or "").strip()
@@ -380,7 +435,7 @@ def register(app) -> None:
                 raise HTTPException(422, "note is required")
             sink = _sink(shop)                       # 400 if not a Shopify write-back tenant
             pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
-            append_activity(pipe, "note", None, "Extension", note=note)
+            append_activity(pipe, "note", None, who, note=note)
             if _write_soft(sink, cid, pipe):
                 raise HTTPException(502, "Could not save to Shopify just now. Please try again.")
             data.record_activity(shop, "extension_note")
@@ -393,7 +448,7 @@ def register(app) -> None:
             stage = "To reach out"
             pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
             pipe["stage"] = stage
-            append_activity(pipe, "added", None, "Extension")
+            append_activity(pipe, "added", None, who)
             sink.untag_customer(cid, [stage_tag(s) for s in STAGES if s != stage])
             sink.tag_customer(cid, [stage_tag(stage)])
             _write_soft(sink, cid, pipe)

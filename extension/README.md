@@ -42,6 +42,22 @@ the dashboard does. No customer data is stored by Halia.
 When no client is on screen the toolbar still shows templates, campaigns and catalogue, so it is
 always useful.
 
+### Clienteling mode vs Internal (team) mode
+
+A toggle in the toolbar header switches between two modes, so the whole team stays in the loop and
+nobody double-messages a client:
+
+- **Clienteling** (default on WhatsApp/Gmail/admin): the client-facing sections above.
+- **Internal** (default on Slack): a **Team** section instead — log that you contacted the current
+  client (with a reason), which records to the shared pipeline and broadcasts to your team's Slack
+  if connected; premade team messages to paste into a channel; and a to-do list built from your
+  book (new orders from top clients to acknowledge, proven clients gone quiet to win back). Set your
+  name in the extension options so team logs are attributed to you.
+
+On Slack the toolbar opens in Internal mode automatically and inserts team messages into the
+composer. Zero-retention holds: contact logs are written to your own Shopify and/or posted to your
+own Slack; Halia stores nothing about the customer.
+
 ## Install (unpacked, for now)
 
 1. Open `chrome://extensions` and turn on **Developer mode** (top right).

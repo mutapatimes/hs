@@ -257,6 +257,42 @@ def test_action_note_requires_text_and_shopify(env):
                        headers={"X-Halia-Ext-Token": ext}).status_code == 400
 
 
+def test_context_carries_team_todos(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row(cid="q1", name="Grace", known=True, band="lapsed", tier="A1")])  # gone quiet -> todo
+    d = client.get("/v1/extension/context", headers={"X-Halia-Ext-Token": ext}).json()
+    assert "todos" in d and "slack" in d
+    assert any(t["kind"] == "gone_quiet" and t["cid"] == "q1" for t in d["todos"])
+
+
+def test_action_contacted_records_and_reports(env, monkeypatch):
+    client, store, tok = env  # woo tenant: Shopify record fails, but the action still succeeds
+    ext = _ext_token(client, tok)
+    r = client.post("/v1/extension/action",
+                    json={"action": "contacted", "cid": "c1", "client_name": "Grace",
+                          "reason": "Sent a note", "actor": "Sarah"},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["ok"] is True and j["recorded"] is False and j["slack"] is False
+
+
+def test_action_contacted_broadcasts_to_slack_when_connected(env, monkeypatch):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    store.save_slack(SHOP, "https://hooks.slack.com/services/xxx")
+    sent = {}
+    import halia.notify as notify
+    monkeypatch.setattr(notify, "send_slack", lambda url, text, *a, **k: sent.update(url=url, text=text) or True)
+    r = client.post("/v1/extension/action",
+                    json={"action": "contacted", "cid": "c1", "client_name": "Grace",
+                          "reason": "Called", "actor": "Sarah"},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.json()["slack"] is True
+    assert "Sarah contacted Grace" in sent["text"] and "Called" in sent["text"]
+
+
 def test_action_rejects_unknown(env):
     client, store, tok = env
     ext = _ext_token(client, tok)

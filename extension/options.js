@@ -7,16 +7,19 @@ function setStatus(el, msg, ok) {
 }
 
 async function load() {
-  const { haliaBase, haliaToken } = await chrome.storage.sync.get(["haliaBase", "haliaToken"]);
+  const { haliaBase, haliaToken, haliaName } = await chrome.storage.sync.get(
+    ["haliaBase", "haliaToken", "haliaName"]);
   $("token").value = haliaToken || "";
   $("base").value = haliaBase || DEFAULT_BASE;
+  $("name").value = haliaName || "";
   renderStores();
 }
 
 async function save() {
   const token = $("token").value.trim();
+  const name = $("name").value.trim().slice(0, 80);
   let base = ($("base").value.trim() || DEFAULT_BASE).replace(/\/+$/, "");
-  await chrome.storage.sync.set({ haliaToken: token, haliaBase: base });
+  await chrome.storage.sync.set({ haliaToken: token, haliaBase: base, haliaName: name });
   setStatus($("status"), "Saved", true);
 }
 

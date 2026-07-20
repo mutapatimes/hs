@@ -29,6 +29,15 @@
     .bar .m { color: #8a7a4f; font-size: 15px; }
     .bar .t { font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 11px; color: #6b6355; }
     .bar .sp { flex: 1; }
+    .modebtn { border: 1px solid #d8cfbc; background: #fff; color: #6b6355; font-size: 10px;
+      text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; cursor: pointer; }
+    .modebtn.int { background: #1a1a1a; color: #fbfaf7; border-color: #1a1a1a; }
+    .chip { border: 1px solid #d8cfbc; background: #fff; color: #33302a; cursor: pointer; font-size: 11px;
+      padding: 3px 8px; }
+    .chip:hover { background: #f4f1ea; }
+    .todo { padding: 8px 10px; border: 1px solid #ece5d6; background: #fff; margin-bottom: 6px;
+      display: flex; gap: 8px; align-items: center; }
+    .todo .tt { flex: 1; font-size: 12.5px; line-height: 1.35; }
     .ic { border: 0; background: transparent; cursor: pointer; color: #8a8271; font-size: 15px; padding: 2px 5px; }
     .ic:hover { color: #1a1a1a; }
     .scroll { overflow-y: auto; flex: 1; }
@@ -90,6 +99,7 @@
   let host = null, root = null, open = true, inserter = null, channel = "email";
   let ctx = null, client = null; // ctx = standing context; client = active client state
   let cart = [], prodResults = [], cartBase = ""; // the working cart + last product search
+  let mode = "clienteling"; // "clienteling" (client-facing) | "internal" (team coordination)
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
@@ -127,6 +137,15 @@
     } catch (e) { toast("Action failed"); }
   }
   function activeCid() { return client && client.data && client.data.cid; }
+  function activeName() { return (client && client.data && client.data.name) || ""; }
+  function logContact(cid, name, reason) {
+    act({ action: "contacted", cid, client_name: name, reason: reason || "" },
+      "Logged" + (ctx && ctx.slack ? " and told the team" : ""));
+  }
+
+  const _CONTACT_REASONS = ["Sent a note", "Called", "WhatsApp", "Booked appointment", "Followed up"];
+  const _TEAM_MSGS = ["I'm looking after {client}", "I've just contacted {client}",
+    "{client} needs a follow-up", "Taking {client} from here"];
 
   function ensure() {
     if (root) return;
@@ -144,10 +163,12 @@
       <button class="handle" data-a="open"><span class="m">⁂</span>Halia</button>
       <aside class="panel">
         <div class="bar"><span class="m">⁂</span><span class="t">Halia</span><span class="sp"></span>
+          <button class="modebtn" data-a="mode" title="Switch between client and team mode">Clienteling</button>
           <button class="ic" data-a="refresh" title="Refresh">⟳</button>
           <button class="ic" data-a="close" title="Collapse">›</button></div>
         <div class="scroll">
           <section class="sec" data-s="client"></section>
+          <section class="sec" data-s="team"></section>
           <section class="sec" data-s="tpl"></section>
           <section class="sec" data-s="camp"></section>
           <section class="sec" data-s="prod"></section>
@@ -160,7 +181,24 @@
     dock.querySelector('[data-a="open"]').onclick = () => setOpen(true);
     dock.querySelector('[data-a="close"]').onclick = () => setOpen(false);
     dock.querySelector('[data-a="refresh"]').onclick = () => window.dispatchEvent(new CustomEvent("halia:refresh"));
-    renderClient(); renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue();
+    dock.querySelector('[data-a="mode"]').onclick = () => setMode(mode === "internal" ? "clienteling" : "internal");
+    renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue();
+    applyMode();
+  }
+
+  function setMode(m, persist) {
+    mode = m === "internal" ? "internal" : "clienteling";
+    if (persist !== false) { try { chrome.storage.local.set({ haliaMode: mode }); } catch (e) { /* ignore */ } }
+    if (root) applyMode();
+  }
+  function applyMode() {
+    const internal = mode === "internal";
+    const show = (name, on) => { const el = sec(name); if (el) el.style.display = on ? "" : "none"; };
+    show("team", internal);
+    show("tpl", !internal); show("camp", !internal); show("prod", !internal); show("cat", !internal);
+    const tg = root && root.querySelector('[data-a="mode"]');
+    if (tg) { tg.textContent = internal ? "Internal" : "Clienteling"; tg.classList.toggle("int", internal); }
+    renderClient(); renderTeam();
   }
 
   function setOpen(v) {
@@ -234,6 +272,52 @@
       act({ action: "note", cid: d.cid, note: v }, "Note saved");
       if (ta) ta.value = "";
     };
+  }
+
+  // ── TEAM (internal mode) ──────────────────────────────────────────────────
+  function renderTeam() {
+    const el = sec("team"); if (!el) return;
+    const todos = (ctx && ctx.todos) || [];
+    const cname = activeName();
+    const fill = (m) => m.replace("{client}", cname || "this client");
+    el.innerHTML = `
+      <div class="sh">Team</div>
+      <div class="muted" style="margin-bottom:11px">${ctx && ctx.slack
+        ? "Contact logs post to your team Slack, so nobody double-messages a client."
+        : "Connect Slack in Halia → Settings to broadcast contact logs to your team."}</div>
+      ${activeCid() ? `<div class="lbl">Log that you contacted ${esc(cname || "this client")}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">
+          ${_CONTACT_REASONS.map((x) => `<button class="chip" data-lr="${esc(x)}">${esc(x)}</button>`).join("")}
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:13px">
+          <input data-a="lreason" placeholder="Reason (optional)" style="flex:1;padding:7px 9px;border:1px solid #d8cfbc;font-size:12.5px;color:#1a1a1a;background:#fff">
+          <button class="btn primary" data-a="logc">Log</button>
+        </div>` : ""}
+      <div class="lbl">Message the team</div>
+      <div style="margin-bottom:13px">${_TEAM_MSGS.map((m, i) => `<div class="row" style="display:flex;gap:6px;align-items:center">
+        <span style="flex:1">${esc(fill(m))}</span>
+        ${inserter ? `<button class="mini" data-tmi="${i}">Insert</button>` : ""}
+        <button class="mini" data-tmc="${i}">Copy</button></div>`).join("")}</div>
+      <div class="lbl">To-dos ${todos.length ? `<span class="n">${todos.length}</span>` : ""}</div>
+      ${todos.length ? todos.map((t, i) => `<div class="todo"><span class="tt">${esc(t.text)}</span>${t.cid ? `<button class="mini" data-td="${i}">Contacted</button>` : ""}</div>`).join("")
+        : `<div class="muted">Nothing needs the team right now.</div>`}`;
+    el.querySelectorAll("[data-lr]").forEach((b) => b.onclick = () => {
+      const inp = el.querySelector('[data-a="lreason"]'); if (inp) inp.value = b.dataset.lr;
+    });
+    const logc = el.querySelector('[data-a="logc"]');
+    if (logc) logc.onclick = () => {
+      const inp = el.querySelector('[data-a="lreason"]');
+      logContact(activeCid(), cname, (inp && inp.value) || "");
+      if (inp) inp.value = "";
+    };
+    _TEAM_MSGS.forEach((m, i) => {
+      const ins = el.querySelector(`[data-tmi="${i}"]`); if (ins) ins.onclick = () => place(fill(m));
+      const cp = el.querySelector(`[data-tmc="${i}"]`); if (cp) cp.onclick = () => copy(fill(m), "Copied");
+    });
+    todos.forEach((t, i) => {
+      const b = el.querySelector(`[data-td="${i}"]`);
+      if (b) b.onclick = () => logContact(t.cid, t.name, "");
+    });
   }
 
   // ── TEMPLATES ─────────────────────────────────────────────────────────────
@@ -431,22 +515,24 @@
     mount() {
       ensure();
       try {
-        chrome.storage.local.get(["panelOpen"], (r) => {
+        chrome.storage.local.get(["panelOpen", "haliaMode"], (r) => {
           if (r && typeof r.panelOpen === "boolean") setOpen(r.panelOpen);
+          if (r && r.haliaMode) setMode(r.haliaMode);
         });
       } catch (e) { /* ignore */ }
     },
     setContext(c) {
       ctx = c && !c.error ? c : null;
-      if (root) { renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue(); }
+      if (root) { renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue(); renderTeam(); }
     },
     setClient(state) {
       client = state; // null | {loading,name} | {found,data} | {notfound,name} | {error}
       if (state && state.found) client = { data: state.data };
-      if (root) { renderClient(); renderTemplates(); renderCampaigns(); paintCart(); }
+      if (root) { renderClient(); renderTemplates(); renderCampaigns(); paintCart(); renderTeam(); }
     },
     setInserter(fn) { inserter = fn; },
     setChannel(ch) { if (CHAN[ch]) channel = ch; },
+    setMode(m, persist) { setMode(m, persist); },
     hide() { /* the toolbar is persistent; collapse instead of removing */ setOpen(false); }
   };
 

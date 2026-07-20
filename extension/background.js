@@ -127,6 +127,11 @@ async function batch(body) {
 async function action(body) {
   const { base, token } = await config();
   if (!token) return { error: "no-token" };
+  body = body || {};
+  if (!body.actor) {
+    const { haliaName } = await chrome.storage.sync.get(["haliaName"]);
+    if (haliaName) body.actor = haliaName;          // attribute team logs to the associate
+  }
   let res;
   try {
     res = await fetch(base + "/v1/extension/action", {

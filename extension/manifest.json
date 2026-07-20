@@ -33,6 +33,11 @@
       "matches": ["https://mail.google.com/*"],
       "js": ["ui/badge.js", "content/core.js", "content/gmail.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://app.slack.com/*"],
+      "js": ["ui/badge.js", "content/core.js", "content/slack.js"],
+      "run_at": "document_idle"
     }
   ]
 }
