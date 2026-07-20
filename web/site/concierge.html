@@ -62,37 +62,35 @@
   .hero .lede{max-width:44ch;margin:28px auto 0}
   .hero .actions{margin-top:38px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
 
-  /* the film: an animated demo scene */
-  .film{margin:70px auto 0;max-width:860px}
-  .scene{position:relative;border:1px solid var(--line);background:
-      radial-gradient(120% 120% at 50% -10%,rgba(216,210,198,.06),transparent 55%),var(--bg-2);
-    border-radius:14px;overflow:hidden;padding:22px;min-height:430px}
-  .chat{max-width:420px;margin:0 auto}
-  .chat .ch-hd{display:flex;align-items:center;gap:11px;padding:0 4px 16px;border-bottom:1px solid var(--line-2)}
-  .ava{width:38px;height:38px;border-radius:50%;background:#2a2620;color:var(--gold);display:grid;place-items:center;
-    font-family:var(--serif);font-size:16px;flex:none}
-  .ch-hd .nm{font-weight:500;font-size:14px}.ch-hd .st{font-size:12px;color:var(--faint)}
-  .msgs{padding:20px 4px 0;display:flex;flex-direction:column;gap:12px}
-  .bub{max-width:78%;padding:11px 14px;border-radius:14px;font-size:14px;line-height:1.5}
-  .bub.in{align-self:flex-start;background:#1b1a17;color:var(--ink);border-bottom-left-radius:4px}
-  .bub.out{align-self:flex-end;background:#33302a;color:var(--ink);border-bottom-right-radius:4px;white-space:pre-line}
-  /* concierge card, slides in over the scene */
-  .card{position:absolute;right:22px;bottom:22px;width:300px;max-width:calc(100% - 44px);
-    background:#141310;border:1px solid var(--line);border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.5);
-    padding:15px 16px;text-align:left}
-  .card .cn{display:flex;align-items:center;gap:8px;font:500 10px/1 var(--sans);letter-spacing:.22em;
-    text-transform:uppercase;color:var(--gold);margin-bottom:12px}
-  .card .head{display:flex;align-items:center;gap:11px}
-  .grade{width:42px;height:42px;flex:none;display:grid;place-items:center;background:linear-gradient(160deg,#c8a86a,#9a7b3f);
-    color:#141310;font-family:var(--serif);font-size:20px;font-weight:500;border-radius:8px}
-  .who .nm2{font-weight:500;font-size:15px}.who .tag{font-size:11px;color:var(--gold-2);letter-spacing:.04em;text-transform:uppercase}
-  .latent{margin-top:12px;padding:9px 11px;background:#1c1a15;border:1px solid var(--line-2);border-radius:7px}
-  .latent .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
-  .latent .v{font-family:var(--serif);font-size:21px;color:var(--ink)}
-  .rz{margin-top:11px;font-size:12.5px;color:var(--mute);line-height:1.5}
-  .rz b{color:var(--ink);font-weight:500}
-  .mv{margin-top:11px;font-size:12.5px;color:var(--ink);border-top:1px solid var(--line-2);padding-top:10px}
-  .mv .k{color:var(--gold);font-weight:500}
+  /* the demo: a clean, static product view */
+  .film{margin:64px auto 0;max-width:900px}
+  .scene{display:grid;grid-template-columns:1fr 316px;border:1px solid var(--line);border-radius:14px;
+    overflow:hidden;background:var(--bg-2);text-align:left;box-shadow:0 34px 90px rgba(0,0,0,.5)}
+  .chat{padding:26px 28px;border-right:1px solid var(--line-2);display:flex;flex-direction:column;min-height:392px}
+  .ch-hd{display:flex;align-items:center;gap:12px;padding-bottom:18px;border-bottom:1px solid var(--line-2)}
+  .ava{width:40px;height:40px;border-radius:50%;background:#2a2620;color:var(--gold);display:grid;place-items:center;
+    font-family:var(--serif);font-size:17px;flex:none}
+  .ch-hd .nm{font-weight:500;font-size:15px}.ch-hd .st{font-size:12px;color:var(--faint);margin-top:1px}
+  .msgs{display:flex;flex-direction:column;gap:14px;padding-top:24px}
+  .bub{max-width:82%;padding:12px 15px;font-size:14px;line-height:1.55;border-radius:16px}
+  .bub.in{align-self:flex-start;background:#1c1b17;color:var(--ink);border-bottom-left-radius:5px}
+  .bub.out{align-self:flex-end;background:#34302a;color:var(--ink);border-bottom-right-radius:5px;white-space:pre-line}
+  .card{background:#131210;padding:24px 22px;display:flex;flex-direction:column}
+  .card .cn{display:flex;align-items:center;gap:8px;font:500 10px/1 var(--sans);letter-spacing:.24em;
+    text-transform:uppercase;color:var(--gold);padding-bottom:18px;border-bottom:1px solid var(--line-2)}
+  .card .head{display:flex;align-items:center;gap:13px;margin-top:18px}
+  .grade{width:46px;height:46px;flex:none;display:grid;place-items:center;
+    background:linear-gradient(160deg,#d3b878,#9a7b3f);color:#141310;font-family:var(--serif);font-size:22px;border-radius:9px}
+  .who .nm2{font-weight:500;font-size:16px}
+  .who .tag{font-size:10px;color:var(--gold-2);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+  .latent{margin-top:18px;padding:13px 14px;background:#1b1914;border:1px solid var(--line-2);border-radius:9px}
+  .latent .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .latent .v{font-family:var(--serif);font-size:26px;color:var(--ink);margin-top:2px}
+  .rz{margin-top:16px;font-size:13px;color:var(--mute);line-height:1.55}.rz b{color:var(--ink);font-weight:500}
+  .mv{margin-top:16px;padding-top:15px;border-top:1px solid var(--line-2);font-size:13px;color:var(--ink);line-height:1.5}
+  .mv .k{display:block;color:var(--gold);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px}
+  .film .cap{text-align:center;margin-top:22px;font-size:13px;color:var(--faint);letter-spacing:.02em}
+  @media(max-width:760px){.scene{grid-template-columns:1fr}.chat{border-right:0;border-bottom:1px solid var(--line-2);min-height:0}}
 
   /* sections */
   section.blk{padding:118px 0;border-top:1px solid var(--line-2)}
@@ -132,22 +130,10 @@
 
   @media(max-width:640px){.pillars{grid-template-columns:1fr}section.blk{padding:82px 0}.card{position:static;width:auto;margin:22px auto 0}.scene{min-height:0}}
 
-  /* the film plays on a loop; static and readable if motion is reduced */
   @media(prefers-reduced-motion:no-preference){
     .rise{opacity:0;transform:translateY(18px);animation:rise 1s cubic-bezier(.2,.7,.2,1) forwards}
     .r2{animation-delay:.12s}.r3{animation-delay:.26s}.r4{animation-delay:.42s}
     @keyframes rise{to{opacity:1;transform:none}}
-    .anim .bub.in{opacity:0;animation:pop 13s .3s infinite}
-    .anim .card{opacity:0;transform:translateY(14px) scale(.98);animation:cardin 13s .3s infinite}
-    .anim .card .head{opacity:0;animation:fin 13s .3s infinite;animation-delay:calc(.3s + 4s)}
-    .anim .card .latent{opacity:0;animation:fin 13s infinite;animation-delay:calc(.3s + 4.5s)}
-    .anim .card .rz{opacity:0;animation:fin 13s infinite;animation-delay:calc(.3s + 5s)}
-    .anim .card .mv{opacity:0;animation:fin 13s infinite;animation-delay:calc(.3s + 5.5s)}
-    .anim .bub.out{opacity:0;animation:reply 13s .3s infinite}
-    @keyframes pop{0%,4%{opacity:0;transform:translateY(8px)}12%,90%{opacity:1;transform:none}97%,100%{opacity:0}}
-    @keyframes cardin{0%,22%{opacity:0;transform:translateY(14px) scale(.98)}30%,90%{opacity:1;transform:none}97%,100%{opacity:0;transform:translateY(8px)}}
-    @keyframes fin{0%,32%{opacity:0}40%,90%{opacity:1}97%,100%{opacity:0}}
-    @keyframes reply{0%,58%{opacity:0;transform:translateY(8px)}68%,90%{opacity:1;transform:none}97%,100%{opacity:0}}
   }
 </style></head>
 <body>
@@ -156,7 +142,6 @@
   <a class="brand" href="/"><span class="as" aria-hidden="true">&#8258;</span> Halia</a>
   <nav class="nav-links">
     <a href="/clienteling">Clienteling</a>
-    <a href="/concierge" class="on">Concierge</a>
     <a href="/solutions">Solutions</a>
     <a href="/pricing">Pricing</a>
     <a href="/blog">Blog</a>
@@ -180,7 +165,7 @@
     </div>
 
     <div class="film rise r4">
-      <div class="scene anim" aria-label="A client message arrives and Halia Concierge quietly recognises them.">
+      <div class="scene" aria-label="A client message arrives, and Halia Concierge recognises who they are.">
         <div class="chat">
           <div class="ch-hd"><span class="ava">TB</span><div><div class="nm">Tarek B.</div><div class="st">online</div></div></div>
           <div class="msgs">
@@ -193,7 +178,7 @@ Warmly,
 Amara</div>
           </div>
         </div>
-        <div class="card">
+        <aside class="card">
           <div class="cn"><span style="font-family:var(--serif);font-size:14px">&#8258;</span> Halia Concierge</div>
           <div class="head">
             <div class="grade">A&#42;</div>
@@ -201,9 +186,10 @@ Amara</div>
           </div>
           <div class="latent"><div class="k">Latent value</div><div class="v">&pound;12,400</div></div>
           <div class="rz"><b>Why:</b> prime central address, senior finance, quietly high potential on modest spend.</div>
-          <div class="mv"><span class="k">Next move:</span> offer a private appointment before the new season lands.</div>
-        </div>
+          <div class="mv"><span class="k">Next move</span>Offer a private appointment before the new season lands.</div>
+        </aside>
       </div>
+      <div class="cap">The moment a client writes, Halia knows who they are.</div>
     </div>
   </div></section>
 
