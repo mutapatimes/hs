@@ -61,6 +61,21 @@ On Slack the toolbar opens in Internal mode automatically and inserts team messa
 composer. Zero-retention holds: contact logs are written to your own Shopify and/or posted to your
 own Slack; Halia stores nothing about the customer.
 
+## Ambient surfaces and the radar
+
+The toolbar also runs on **Instagram DMs** (`instagram.com`, matched by the conversation name) and
+**Google Calendar** (`calendar.google.com`), where opening an event surfaces the guest's brief so
+you walk into an appointment knowing exactly who they are (matched by the guest's email).
+
+**Right-click anywhere** — select an email, phone number or name on any page and choose
+**"Look up … in Halia"**; a desktop notification returns their grade, latent value and next move.
+Works on sites the toolbar doesn't run on.
+
+**Proactive VIC radar** — with order alerts set up in Halia, the extension fires a quiet desktop
+notification the moment a high-grade client places an order, wherever you are in the browser.
+Toggle it in the extension options. It reads the same live alert feed the dashboard uses and stores
+nothing; the first check is silent so installing never blasts a backlog.
+
 ## Install (unpacked, for now)
 
 1. Open `chrome://extensions` and turn on **Developer mode** (top right).
