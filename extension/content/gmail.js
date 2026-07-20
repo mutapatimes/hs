@@ -37,9 +37,7 @@
     const box = document.querySelector(
       'div[aria-label="Message Body"], div[role="dialog"] div[contenteditable="true"], ' +
       'div[contenteditable="true"][role="textbox"]');
-    if (!box || !text) return false;
-    box.focus();
-    return document.execCommand("insertText", false, text) !== false;
+    return Halia.insertInto(box, text);
   }
 
   HaliaPanel.setChannel("email");

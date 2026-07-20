@@ -8,9 +8,7 @@
     const box = document.querySelector(
       'div[data-qa="message_input"] div[contenteditable="true"], .ql-editor[contenteditable="true"], ' +
       'div[role="textbox"][contenteditable="true"]');
-    if (!box || !text) return false;
-    box.focus();
-    return document.execCommand("insertText", false, text) !== false;
+    return Halia.insertInto(box, text);
   }
 
   HaliaPanel.mount();

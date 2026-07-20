@@ -17,16 +17,8 @@
 
   // Insert a message into the IG DM composer (a textarea or contenteditable).
   function insert(text) {
-    const ta = document.querySelector('textarea[placeholder], div[role="textbox"][contenteditable="true"]');
-    if (!ta || !text) return false;
-    ta.focus();
-    if (ta.tagName === "TEXTAREA") {
-      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
-      setter.call(ta, (ta.value || "") + text);
-      ta.dispatchEvent(new Event("input", { bubbles: true }));
-      return true;
-    }
-    return document.execCommand("insertText", false, text) !== false;
+    return Halia.insertInto(
+      document.querySelector('textarea[placeholder], div[role="textbox"][contenteditable="true"]'), text);
   }
 
   HaliaPanel.setChannel("email");   // treat IG links as a direct/referral channel for UTMs
