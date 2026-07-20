@@ -175,6 +175,30 @@ def test_context_returns_templates_and_running_campaigns(env):
     assert d["campaigns"][0]["id"] == "camp_now"  # running sorts first
 
 
+# ── inbox triage batch ────────────────────────────────────────────────────────
+def test_batch_grades_known_emails_and_omits_others(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row(email="grace@x.com", known=False, band="lapsed", tier="A1"),
+           _row(cid="c2", email="ben@x.com", grade="B", tier="B", known=False, band="active")])
+    d = client.post("/v1/extension/batch",
+                    json={"emails": ["GRACE@x.com", "ben@x.com", "stranger@nowhere.com"]},
+                    headers={"X-Halia-Ext-Token": ext}).json()
+    g = d["grades"]
+    assert set(g) == {"grace@x.com", "ben@x.com"}         # unknown omitted
+    assert g["grace@x.com"]["grade"] == "A*" and g["ben@x.com"]["grade"] == "B"
+    assert g["ben@x.com"]["play"] == "fresh"
+
+
+def test_batch_is_warm_only_and_needs_a_token(env):
+    client, store, tok = env
+    assert client.post("/v1/extension/batch", json={"emails": ["a@b.com"]}).status_code == 401
+    ext = _ext_token(client, tok)  # no cache seeded -> warm miss returns empty, never syncs
+    d = client.post("/v1/extension/batch", json={"emails": ["a@b.com"]},
+                    headers={"X-Halia-Ext-Token": ext}).json()
+    assert d == {"grades": {}}
+
+
 # ── one-click actions ─────────────────────────────────────────────────────────
 def test_action_requires_token_and_cid(env):
     client, store, tok = env

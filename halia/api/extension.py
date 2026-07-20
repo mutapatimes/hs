@@ -286,6 +286,36 @@ def register(app) -> None:
         data.record_activity(shop, "extension_lookup")
         return _lookup(shop, email, cid, phone, name)
 
+    @app.post("/v1/extension/batch")
+    def extension_batch(x_halia_ext_token: Optional[str] = Header(None),
+                        payload: Any = Body(default=None)) -> dict:
+        """Grade many customers at once by email, for the inbox-list triage dots. Warm cache only:
+        a batch must be cheap, so it never triggers a sync (unknown emails simply return nothing).
+        Returns only grade/tier/play per found email. No customer data is stored."""
+        from halia.cache import cache
+
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        body = payload or {}
+        emails = [str(e).strip().lower() for e in (body.get("emails") or []) if str(e).strip()][:100]
+        if not emails:
+            return {"grades": {}}
+        rows = ((cache.get(shop) or {}).get("payload") or {}).get("data") or []
+        idx: dict = {}
+        for r in rows:
+            em = (r.get("email") or "").lower()
+            if em and (em not in idx or (r.get("score") or 0) > (idx[em].get("score") or 0)):
+                idx[em] = r
+        out = {}
+        for em in set(emails):
+            r = idx.get(em)
+            if r:
+                out[em] = {"grade": r.get("grade"), "tier": r.get("tier"),
+                           "hidden": not r.get("known"), "play": _play_of(r)}
+        return {"grades": out}
+
     @app.post("/v1/extension/action")
     def extension_action(x_halia_ext_token: Optional[str] = Header(None),
                          payload: Any = Body(default=None)) -> dict:
