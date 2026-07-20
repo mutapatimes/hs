@@ -88,6 +88,9 @@
     .row .rd { font-size: 11.5px; color: #6b6355; margin-top: 1px; }
     .row .live { color: #3f7a4f; font-weight: 600; }
     .muted { color: #6b6355; line-height: 1.45; font-size: 12.5px; }
+    .warn { margin-top: 9px; padding: 7px 10px; background: #f7ede0; border: 1px solid #e6ceac;
+      color: #86602a; font-size: 12px; line-height: 1.35; }
+    .warn b { color: #6b481c; }
     .link { color: #9a7b3f; text-decoration: underline; cursor: pointer; font-size: 12px; }
     .foot { flex: none; padding: 9px 14px; border-top: 1px solid #eee7da; font-size: 11px; color: #9a9280;
       display: flex; align-items: center; gap: 6px; }
@@ -100,6 +103,7 @@
   let ctx = null, client = null; // ctx = standing context; client = active client state
   let cart = [], prodResults = [], cartBase = ""; // the working cart + last product search
   let mode = "clienteling"; // "clienteling" (client-facing) | "internal" (team coordination)
+  const contactHist = {};   // cid -> last outreach {at,by,action,note} | null | "pending"
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
@@ -128,6 +132,22 @@
     navigator.clipboard.writeText(text).then(() => toast(msg || "Copied"), () => toast("Copy failed"));
   }
   function place(text) { const ok = inserter && inserter(text); toast(ok ? "Inserted" : "Open a reply first"); }
+  function ago(iso) {
+    const t = Date.parse(iso); if (!t) return "";
+    const s = (Date.now() - t) / 1000;
+    if (s < 90) return "just now";
+    if (s < 3600) return Math.round(s / 60) + "m ago";
+    if (s < 86400) return Math.round(s / 3600) + "h ago";
+    return Math.round(s / 86400) + "d ago";
+  }
+  function fetchHistory(cid) {
+    try {
+      chrome.runtime.sendMessage({ type: "halia:history", cid }, (r) => {
+        contactHist[cid] = (r && !r.error && r.last_contact) ? r.last_contact : null;
+        renderClient();
+      });
+    } catch (e) { contactHist[cid] = null; }
+  }
   function act(body, okMsg) {
     try {
       chrome.runtime.sendMessage({ type: "halia:action", body }, (r) => {
@@ -141,6 +161,7 @@
   function logContact(cid, name, reason) {
     act({ action: "contacted", cid, client_name: name, reason: reason || "" },
       "Logged" + (ctx && ctx.slack ? " and told the team" : ""));
+    if (cid) { delete contactHist[cid]; renderClient(); }   // refresh the 'last contacted' cue
   }
 
   const _CONTACT_REASONS = ["Sent a note", "Called", "WhatsApp", "Booked appointment", "Followed up"];
@@ -237,6 +258,13 @@
       d.spend != null ? money(d.spend) + " spent" : null, d.last ? "last " + d.last : null]
       .filter(Boolean).join(" · ");
     const reasons = (d.reasons || []).slice(0, 5);
+    const h = d.cid ? contactHist[d.cid] : null;
+    let cue = "";
+    if (h && typeof h === "object" && h.at) {
+      const by = h.by ? " by " + esc(h.by) : "";
+      const verb = h.action === "note" ? "Note added" : "Contacted";
+      cue = `<div class="warn">${verb} <b>${esc(ago(h.at))}</b>${by}${h.note ? ` · “${esc(h.note)}”` : ""}</div>`;
+    }
     const acts = [];
     if (d.cid && ctx && ctx.platform === "shopify") acts.push(`<button class="btn" data-a="pipe">Add to pipeline</button>`);
     if (d.adminUrl) acts.push(`<a class="btn" href="${esc(d.adminUrl)}" target="_blank" rel="noopener">Open in store</a>`);
@@ -252,6 +280,7 @@
           ${d.hidden ? `<span class="pill">Hidden VIC</span>` : ""}
         </div>
       </div>
+      ${cue}
       ${d.latent ? `<div class="box"><div class="k">Latent value</div><div class="v">${esc(d.latent)}</div></div>` : ""}
       ${cart ? `<div class="box basket"><div class="k">Open basket</div>
         <div class="v">${money(cart.value)}${cart.count ? ` <span style="font-weight:400;font-size:11px;color:#6b6355">${esc(cart.count)} item${cart.count === 1 ? "" : "s"}</span>` : ""}</div>
@@ -262,6 +291,9 @@
       ${d.cid && ctx && ctx.platform === "shopify" ? `<div class="lbl">Note</div>
         <textarea data-a="note" rows="2" placeholder="Jot a note — saved to this customer in your Shopify"></textarea>
         <div class="acts"><button class="btn" data-a="notesave">Save note</button></div>` : ""}`;
+    if (d.cid && ctx && ctx.platform === "shopify" && !(d.cid in contactHist)) {
+      contactHist[d.cid] = "pending"; fetchHistory(d.cid);   // load the shared contact log once
+    }
     const pipe = el.querySelector('[data-a="pipe"]');
     if (pipe) pipe.onclick = () => act({ action: "pipeline", cid: d.cid }, "Added to pipeline");
     const ns = el.querySelector('[data-a="notesave"]');
