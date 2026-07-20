@@ -107,6 +107,15 @@
     navigator.clipboard.writeText(text).then(() => toast(msg || "Copied"), () => toast("Copy failed"));
   }
   function place(text) { const ok = inserter && inserter(text); toast(ok ? "Inserted" : "Open a reply first"); }
+  function act(body, okMsg) {
+    try {
+      chrome.runtime.sendMessage({ type: "halia:action", body }, (r) => {
+        if (chrome.runtime.lastError || !r || r.error) toast((r && r.detail) || "Couldn't complete that");
+        else toast(okMsg);
+      });
+    } catch (e) { toast("Action failed"); }
+  }
+  function activeCid() { return client && client.data && client.data.cid; }
 
   function ensure() {
     if (root) return;
@@ -179,6 +188,7 @@
       .filter(Boolean).join(" · ");
     const reasons = (d.reasons || []).slice(0, 5);
     const acts = [];
+    if (d.cid && ctx && ctx.platform === "shopify") acts.push(`<button class="btn" data-a="pipe">Add to pipeline</button>`);
     if (d.adminUrl) acts.push(`<a class="btn" href="${esc(d.adminUrl)}" target="_blank" rel="noopener">Open in store</a>`);
     if (d.dashboard) acts.push(`<a class="btn primary" href="${esc(d.dashboard)}" target="_blank" rel="noopener">Open in Halia</a>`);
     el.innerHTML = `
@@ -199,6 +209,8 @@
       ${d.action ? `<div class="lbl">Next move</div><div class="reco">${esc(d.action)}</div>` : ""}
       ${reasons.length ? `<div class="lbl">Why</div><ul class="reasons">${reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}
       <div class="acts">${acts.join("")}</div>`;
+    const pipe = el.querySelector('[data-a="pipe"]');
+    if (pipe) pipe.onclick = () => act({ action: "pipeline", cid: d.cid }, "Added to pipeline");
   }
 
   // ── TEMPLATES ─────────────────────────────────────────────────────────────
@@ -248,7 +260,8 @@
         <div class="rn">${esc(c.name)}</div>
         <div class="rd">${c.running ? `<span class="live">● live</span> · ` : ""}${esc(c.starts)} → ${esc(c.ends)}${c.members ? ` · ${c.members} client${c.members === 1 ? "" : "s"}` : ""}</div>
         <div class="acts">
-          ${ctx.catalog && inserter ? `<button class="btn primary" data-ci="${i}">Insert catalogue link</button>` : ""}
+          ${activeCid() ? `<button class="btn primary" data-cadd="${i}">Add this client</button>` : ""}
+          ${ctx.catalog && inserter ? `<button class="btn" data-ci="${i}">Insert catalogue link</button>` : ""}
           ${ctx.catalog ? `<button class="btn" data-cc="${i}">Copy catalogue link</button>` : ""}
           <button class="btn" data-cu="${i}">Copy UTM</button>
         </div></div>`).join("");
@@ -260,6 +273,9 @@
         const cm = CHAN[channel] || CHAN.email;
         copy("utm_source=" + cm[0] + "&utm_medium=" + cm[1] + "&utm_campaign=" + c.utm, "UTM copied");
       };
+      const ca = el.querySelector(`[data-cadd="${i}"]`);
+      if (ca) ca.onclick = () => act({ action: "campaign_add", campaign_id: c.id, cid: activeCid() },
+        "Added to " + c.name);
     });
   }
 
@@ -295,7 +311,7 @@
     setClient(state) {
       client = state; // null | {loading,name} | {found,data} | {notfound,name} | {error}
       if (state && state.found) client = { data: state.data };
-      if (root) { renderClient(); renderTemplates(); }
+      if (root) { renderClient(); renderTemplates(); renderCampaigns(); }
     },
     setInserter(fn) { inserter = fn; },
     setChannel(ch) { if (CHAN[ch]) channel = ch; },

@@ -13,12 +13,18 @@ closed). The panel has four always-ready sections:
 
 - **Client** — updates as you open a chat, email or customer: grade (A\*, A, B…), hidden-VIC or
   gone-quiet flag, latent value, recent order recency, an open-basket alert with a link, the
-  reasons they scored, the recommended next move, and links to open them in Halia or your store.
+  reasons they scored, the recommended next move, **Add to pipeline** (Shopify write-back stores),
+  and links to open them in Halia or your store.
 - **Templates** — your outreach templates, filled with the active client's name. **Insert** drops
   one straight into the WhatsApp/Gmail reply box, or copy it.
-- **Campaigns** — the campaigns running now, each with a one-click **tagged catalogue link**
-  (carrying the campaign's UTM for the current channel) to insert or copy, plus copy-UTM.
+- **Campaigns** — the campaigns running now. With a client on screen, **Add this client** drops them
+  into the campaign; each also offers a one-click **tagged catalogue link** (carrying the campaign's
+  UTM for the current channel) to insert or copy, plus copy-UTM.
 - **Catalogue** — your live catalogue link, ready to insert or copy.
+
+One-click actions preserve zero-retention: "Add to pipeline" writes a stage tag + metafield into
+your own Shopify; "Add this client" stores only the opaque customer id in the campaign, exactly as
+the dashboard does. No customer data is stored by Halia.
 
 When no client is on screen the toolbar still shows templates, campaigns and catalogue, so it is
 always useful.

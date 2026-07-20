@@ -96,6 +96,7 @@ def _resp_from_row(shop: str, row: dict) -> dict:
     first = (row.get("name") or "").split(" ")[0]
     return {
         "found": True,
+        "cid": row.get("cid"),
         "name": row.get("name"),
         "email": row.get("email"),
         "grade": row.get("grade"),
@@ -125,6 +126,7 @@ def _resp_from_result(shop: str, r) -> dict:
     reasons = [x.strip() for x in (r.reasons or "").replace(";", "\n").split("\n") if x.strip()]
     return {
         "found": True,
+        "cid": getattr(r, "customer_id", None),
         "name": None,
         "email": r.email,
         "grade": r.grade,
@@ -283,3 +285,53 @@ def register(app) -> None:
             raise HTTPException(422, "Provide email, cid, phone or name")
         data.record_activity(shop, "extension_lookup")
         return _lookup(shop, email, cid, phone, name)
+
+    @app.post("/v1/extension/action")
+    def extension_action(x_halia_ext_token: Optional[str] = Header(None),
+                         payload: Any = Body(default=None)) -> dict:
+        """Take a one-click clienteling action on a client from the toolbar. Both actions preserve
+        zero-retention: 'pipeline' writes a stage tag + metafield into the merchant's own Shopify;
+        'campaign_add' stores an opaque customer id in the campaign config (as the dashboard does)."""
+        import json as _json
+
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        body = payload or {}
+        action = str(body.get("action") or "").strip()
+        cid = str(body.get("cid") or "").strip()
+        if not cid:
+            raise HTTPException(422, "cid is required")
+
+        if action == "pipeline":
+            from halia.api.board import _sink, _write_soft, append_activity, load_pipe
+            from scoring.shopify_pipeline import STAGES, stage_tag
+            sink = _sink(shop)                       # 400 if not a Shopify write-back tenant
+            stage = "To reach out"
+            pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
+            pipe["stage"] = stage
+            append_activity(pipe, "added", None, "Extension")
+            sink.untag_customer(cid, [stage_tag(s) for s in STAGES if s != stage])
+            sink.tag_customer(cid, [stage_tag(stage)])
+            _write_soft(sink, cid, pipe)
+            data.record_activity(shop, "extension_pipeline_add")
+            return {"ok": True, "stage": stage}
+
+        if action == "campaign_add":
+            from halia.api.campaigns import _clean_config
+            campaign_id = str(body.get("campaign_id") or "").strip()
+            if not campaign_id:
+                raise HTTPException(422, "campaign_id is required")
+            row = shop_store().get_campaign(campaign_id, shop)
+            if not row:
+                raise HTTPException(404, "Campaign not found")
+            cfg = _clean_config(_json.loads(row.get("config_json") or "{}"))
+            if cid not in cfg["members"]:
+                cfg["members"] = cfg["members"] + [cid]
+            shop_store().save_campaign(campaign_id, shop, row["name"], row["starts"], row["ends"],
+                                       _json.dumps(cfg))
+            data.record_activity(shop, "extension_campaign_add")
+            return {"ok": True, "count": len(cfg["members"])}
+
+        raise HTTPException(422, "Unknown action")
