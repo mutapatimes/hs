@@ -592,9 +592,9 @@ def pos_score(shop: str = Depends(require_shop),
 # view, and compliance webhooks.
 from halia.api import (  # noqa: E402
     billing, billing_shopify, blog, board, campaigns, catalog, content, embedded, endear_integration,
-    feedback, fulfilment, hubspot_integration, integrations, lifecycle, mailchimp_integration,
-    onboarding, console, realtime, settings, shopify_push, shopify_segments, slack_integration,
-    webhooks,
+    extension, feedback, fulfilment, hubspot_integration, integrations, lifecycle,
+    mailchimp_integration, onboarding, console, realtime, settings, shopify_push, shopify_segments,
+    slack_integration, webhooks,
 )
 
 embedded.register(app)
@@ -619,4 +619,5 @@ billing.register(app)
 billing_shopify.register(app)
 lifecycle.register(app)
 shopify_push.register(app)
+extension.register(app)
 feedback.register(app)

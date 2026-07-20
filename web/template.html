@@ -3124,6 +3124,19 @@ function openSettings(page){
             </div>`).join("")}
         </div>`:""}
 
+        <div style="${C}">
+          <div style="${H}">Browser extension</div>
+          <p style="${P}">Put a client's grade, the reasons behind it, and the next move right where your team already works: your store admin, WhatsApp Web and Gmail. Install the Halia extension, then paste the token below into it once. It reads the client on the page and asks your Halia account, and stores nothing.</p>
+          <div style="font:600 13px system-ui;color:${SETTINGS.extension_enabled?'#0f7b4f':'#616161'};margin-bottom:10px">${SETTINGS.extension_enabled?"● A token is active":"○ No token yet"}</div>
+          <button id="setExtGen" style="${BS}">${SETTINGS.extension_enabled?"Generate a new token":"Generate token"}</button>
+          <div id="setExtOut" style="display:none;margin-top:14px">
+            <div style="${LBL}">Your token, shown once. Copy it now and paste it into the extension.</div>
+            <code id="setExtTok" style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);background:var(--rowhover);border-radius:0;padding:11px 13px;word-break:break-all;margin-top:6px"></code>
+            <div style="margin-top:10px"><button id="setExtCopy" style="background:none;border:none;color:#1f564a;font:600 13px system-ui;cursor:pointer;padding:0">Copy token</button></div>
+          </div>
+          <div style="font:12px system-ui;color:#8a8a8a;margin-top:12px">Generating a new token replaces any previous one, and any extension using the old token will need the new one.</div>
+        </div>
+
         </div><!-- /integrations -->
 
         <div class="spage" data-page="scoring" style="display:${spage==='scoring'?'':'none'}">
@@ -3404,6 +3417,20 @@ function openSettings(page){
     };
     const sldisc=document.getElementById("setSlackDisc"); if(sldisc) sldisc.onclick=()=>{
       fetch("/v1/slack/disconnect",{method:"POST"}).then(()=>{SETTINGS.slack_connected=false;SETTINGS.slack_webhook="";toast("Slack disconnected.");render();});
+    };
+    const extGen=document.getElementById("setExtGen"); if(extGen) extGen.onclick=()=>{
+      extGen.disabled=true;extGen.textContent="Generating…";
+      fetch("/v1/extension/token",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+        if(!ok)throw new Error((d&&d.detail)||"failed");
+        SETTINGS.extension_enabled=true;
+        const out=document.getElementById("setExtOut"),tok=document.getElementById("setExtTok");
+        if(tok)tok.textContent=d.token||"";if(out)out.style.display="";
+        extGen.disabled=false;extGen.textContent="Generate a new token";
+      }).catch(e=>{toast("Could not generate a token: "+e.message);extGen.disabled=false;extGen.textContent="Generate token";});
+    };
+    const extCopy=document.getElementById("setExtCopy"); if(extCopy) extCopy.onclick=()=>{
+      const t=(document.getElementById("setExtTok")||{}).textContent||"";
+      if(t)navigator.clipboard.writeText(t).then(()=>toast("Token copied."),()=>toast("Copy failed."));
     };
     function paintBilling(b){
       const box=document.getElementById("billingBox"); if(!box) return;

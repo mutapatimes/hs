@@ -85,6 +85,13 @@ _TABLES = [
         token      TEXT,
         created_at TEXT
     )""",
+    # Per-shop browser-extension token (the sha256 hash only, like tenants.token_hash). The
+    # capability the Halia badge extension presents to the single-customer lookup endpoint.
+    """CREATE TABLE IF NOT EXISTS extension_tokens (
+        shop       TEXT PRIMARY KEY,
+        token_hash TEXT,
+        created_at TEXT
+    )""",
     # Web Push subscriptions (browser endpoints + keys). Not customer data.
     """CREATE TABLE IF NOT EXISTS push_subs (
         endpoint TEXT PRIMARY KEY,
@@ -464,6 +471,25 @@ class ShopStore(_DB):
 
     def shop_for_webhook(self, token: str) -> str | None:
         row = self._run("SELECT shop FROM webhooks WHERE token = :t", {"t": token}, fetch="one")
+        return row["shop"] if row else None
+
+    # ── browser-extension token (store the sha256 hash; rotating replaces it) ────
+    def set_extension_token(self, shop: str, token_hash: str) -> None:
+        self._run(
+            """INSERT INTO extension_tokens (shop, token_hash, created_at)
+               VALUES (:shop, :th, :at)
+               ON CONFLICT(shop) DO UPDATE SET token_hash=excluded.token_hash,
+                created_at=excluded.created_at""",
+            {"shop": shop, "th": token_hash, "at": _now()})
+
+    def get_extension_token_hash(self, shop: str) -> str | None:
+        row = self._run("SELECT token_hash FROM extension_tokens WHERE shop = :shop",
+                        {"shop": shop}, fetch="one")
+        return row["token_hash"] if row else None
+
+    def shop_for_extension_token(self, token_hash: str) -> str | None:
+        row = self._run("SELECT shop FROM extension_tokens WHERE token_hash = :th",
+                        {"th": token_hash}, fetch="one")
         return row["shop"] if row else None
 
     # ── Web Push subscriptions ──────────────────────────────────────────────────
