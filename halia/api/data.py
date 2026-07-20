@@ -37,17 +37,37 @@ def score_shop(shop: str, token: str):
                            include_origin=_include_origin(shop)), orders
 
 
+def _order_utm(o: dict) -> str:
+    """The order's campaign UTM, for campaign-link attribution. From the journey field, or parsed
+    out of a landing_site query string. '' when absent (attribution simply shows nothing)."""
+    u = o.get("utm_campaign")
+    if u:
+        return str(u)[:80]
+    landing = o.get("landing_site")
+    if landing and "utm_campaign=" in landing:
+        import urllib.parse
+        try:
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(landing).query)
+            return (q.get("utm_campaign") or [""])[0][:80]
+        except Exception:
+            return ""
+    return ""
+
+
 def _history(orders: list[dict]) -> dict:
-    """CUST_ID -> [{date, amount, items}], newest first (per-client order history)."""
+    """CUST_ID -> [{date, amount, items, utm?}], newest first (per-client order history)."""
     by: dict[str, list] = {}
     for o in orders:
         cid = (o.get("customer") or {}).get("id")
         if cid is None:
             continue
         items = sum(int(li.get("quantity") or 0) for li in (o.get("line_items") or []))
-        by.setdefault(str(cid), []).append({
-            "date": str(o.get("created_at") or "")[:10],
-            "amount": round(float(o.get("total_price") or 0), 2), "items": items})
+        row = {"date": str(o.get("created_at") or "")[:10],
+               "amount": round(float(o.get("total_price") or 0), 2), "items": items}
+        utm = _order_utm(o)
+        if utm:                                   # keep the payload lean: only when present
+            row["utm"] = utm
+        by.setdefault(str(cid), []).append(row)
     for rows in by.values():
         rows.sort(key=lambda r: r["date"], reverse=True)
     return by

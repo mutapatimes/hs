@@ -82,6 +82,17 @@ def test_order_node_maps_to_rest_shape():
     assert rest["customer"]["number_of_orders"] == 2
 
 
+def test_order_maps_utm_campaign_from_journey():
+    order = dict(SAMPLE_CUSTOMER["orders"]["nodes"][1])
+    order["customerJourneySummary"] = {"lastVisit": {"utmParameters": {"campaign": "spring-preview"}}}
+    assert order_node_to_rest(order, SAMPLE_CUSTOMER)["utm_campaign"] == "spring-preview"
+
+
+def test_order_utm_campaign_is_none_without_journey():
+    order = SAMPLE_CUSTOMER["orders"]["nodes"][1]
+    assert order_node_to_rest(order, SAMPLE_CUSTOMER)["utm_campaign"] is None
+
+
 def test_adapter_feeds_the_untouched_core():
     orders = graphql_customers_to_orders([SAMPLE_CUSTOMER])
     assert len(orders) == 2                       # two orders, one customer

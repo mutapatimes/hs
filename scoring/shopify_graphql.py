@@ -68,6 +68,23 @@ CUSTOMER_BY_QUERY = (
     "}\n"
 )
 
+# Journey variants: the same queries with each order's UTM (customerJourneySummary). Used only when
+# config.SHOPIFY_JOURNEY is on; the fetch falls back to the plain queries if Shopify rejects the
+# field (missing scope / unavailable), so a sync never breaks over attribution.
+_CUSTOMER_NODE_JOURNEY = _CUSTOMER_NODE.replace(
+    "lineItems(first: 10) { nodes { quantity } }",
+    "lineItems(first: 10) { nodes { quantity } }\n"
+    "          customerJourneySummary { lastVisit { utmParameters { campaign } } }")
+
+CUSTOMERS_QUERY_JOURNEY = (
+    "query Customers($cursor: String) {\n"
+    "  customers(first: 50, after: $cursor) {\n"
+    "    pageInfo { hasNextPage endCursor }\n"
+    "    nodes {" + _CUSTOMER_NODE_JOURNEY + "    }\n"
+    "  }\n"
+    "}\n"
+)
+
 
 # Catalog products — a separate, product-centric pull (not customer data), used by the
 # catalog-PDF builder. Cursor-paged over the products connection.
@@ -162,6 +179,11 @@ def order_node_to_rest(order: dict, customer: dict) -> dict:
     order shape ``flatten_order`` consumes."""
     amount_spent = (customer.get("amountSpent") or {}).get("amount")
     line_items = ((order.get("lineItems") or {}).get("nodes")) or []
+    # UTM of the visit that led to the order (present only when the journey field was queried and
+    # Shopify has journey data for the order). Drives campaign-link sales attribution.
+    journey = order.get("customerJourneySummary") or {}
+    visit = journey.get("lastVisit") or journey.get("firstVisit") or {}
+    utm_campaign = (visit.get("utmParameters") or {}).get("campaign")
 
     return {
         "id": order.get("id"),
@@ -181,6 +203,7 @@ def order_node_to_rest(order: dict, customer: dict) -> dict:
         # Shopify removed Order.clientDetails (browser IP) in recent API versions;
         # the ip_location signal is dormant anyway. Omit it.
         "line_items": [{"quantity": li.get("quantity")} for li in line_items],
+        "utm_campaign": utm_campaign,
         "customer": {
             "id": customer.get("id"),
             "email": customer.get("email"),

@@ -165,5 +165,11 @@ ENABLE_SHOPIFY_SINK = _flag("HALIA_ENABLE_SHOPIFY_SINK", False)
 ENABLE_KLAVIYO_SINK = _flag("HALIA_ENABLE_KLAVIYO_SINK", False)
 ENABLE_HUBSPOT_SINK = _flag("HALIA_ENABLE_HUBSPOT_SINK", False)
 
+# Pull each order's UTM (customerJourneySummary.lastVisit) so the campaign monitor can attribute
+# sales to campaign links. OFF by default: the field is scope-gated (read_orders) and adds query
+# cost, so validate on a dev store before turning it on. When off, attribution shows zero and
+# nothing else changes; the fetch falls back automatically if Shopify rejects the field.
+SHOPIFY_JOURNEY = _flag("HALIA_SHOPIFY_JOURNEY", False)
+
 KLAVIYO_API_KEY = os.environ.get("KLAVIYO_API_KEY")
 HUBSPOT_TOKEN = os.environ.get("HUBSPOT_TOKEN")

@@ -186,6 +186,34 @@ def test_metrics_carries_utm_and_backfills_legacy_campaign(api):
         cache.evict("shopx")
 
 
+def test_attribution_counts_utm_tagged_orders_across_the_book():
+    from halia.campaigns import campaign_metrics
+    camp = {"name": "Spring", "starts": "2025-03-01", "ends": "2025-05-31",
+            "config": {"tiers": ["A1"], "utm": {"campaign": "spring"}}}
+    clients = [
+        {"cid": "1", "name": "Ava", "tier": "A1", "signals": [],
+         "orders": [{"date": "2025-03-10", "amount": 250, "utm": "spring"}]},   # member + attributed
+        {"cid": "2", "name": "Ben", "tier": "B", "signals": [],
+         "orders": [{"date": "2025-03-12", "amount": 100, "utm": "spring"}]},   # not a member, attributed
+        {"cid": "3", "name": "Cid", "tier": "A1", "signals": [],
+         "orders": [{"date": "2025-03-15", "amount": 80}]},                      # member, no UTM
+        {"cid": "4", "name": "Dot", "tier": "A1", "signals": [],
+         "orders": [{"date": "2025-06-30", "amount": 500, "utm": "spring"}]},   # UTM but out of window
+    ]
+    k = campaign_metrics(camp, clients)["kpis"]
+    assert k["attributed_revenue"] == 350.0 and k["attributed_orders"] == 2
+    assert k["attributed_buyers"] == 2
+    assert k["revenue"] == 330.0            # membership window revenue (Ava 250 + Cid 80)
+
+
+def test_attribution_is_zero_without_utm_config():
+    from halia.campaigns import campaign_metrics
+    camp = {"name": "W", "starts": "2025-03-01", "ends": "2025-05-31", "config": {"tiers": ["A1"]}}
+    clients = [{"cid": "1", "tier": "A1", "signals": [],
+                "orders": [{"date": "2025-03-10", "amount": 250, "utm": "spring"}]}]
+    assert campaign_metrics(camp, clients)["kpis"]["attributed_revenue"] == 0.0
+
+
 def test_api_metrics_json_endpoint(api):
     from halia.cache import cache
     c, _ = api
