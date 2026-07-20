@@ -339,6 +339,21 @@ def register(app) -> None:
         data.record_activity(shop, "extension_lookup")
         return _lookup(shop, email, cid, phone, name)
 
+    @app.get("/v1/extension/events")
+    def extension_events(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
+        """Recent high-grade order alerts for the proactive radar. Same RAM feed the dashboard's
+        live alerts use (populated by the order webhook when a VIC orders). Nothing is stored;
+        the extension polls this and fires a desktop notification for events it hasn't seen."""
+        from halia.cache import cache
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        events = [{"order_id": a.get("order_id"), "name": a.get("name"), "grade": a.get("grade"),
+                   "spend": a.get("spend"), "signals": a.get("signals") or [], "when": a.get("when")}
+                  for a in (cache.get_alerts(shop) or [])][-50:]
+        return {"events": events}
+
     @app.get("/v1/extension/history")
     def extension_history(x_halia_ext_token: Optional[str] = Header(None),
                           cid: str = Query("")) -> dict:

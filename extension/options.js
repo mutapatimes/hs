@@ -7,11 +7,12 @@ function setStatus(el, msg, ok) {
 }
 
 async function load() {
-  const { haliaBase, haliaToken, haliaName } = await chrome.storage.sync.get(
-    ["haliaBase", "haliaToken", "haliaName"]);
+  const { haliaBase, haliaToken, haliaName, radarOff } = await chrome.storage.sync.get(
+    ["haliaBase", "haliaToken", "haliaName", "radarOff"]);
   $("token").value = haliaToken || "";
   $("base").value = haliaBase || DEFAULT_BASE;
   $("name").value = haliaName || "";
+  $("radar").checked = !radarOff;
   renderStores();
 }
 
@@ -19,7 +20,8 @@ async function save() {
   const token = $("token").value.trim();
   const name = $("name").value.trim().slice(0, 80);
   let base = ($("base").value.trim() || DEFAULT_BASE).replace(/\/+$/, "");
-  await chrome.storage.sync.set({ haliaToken: token, haliaBase: base, haliaName: name });
+  await chrome.storage.sync.set({ haliaToken: token, haliaBase: base, haliaName: name,
+    radarOff: !$("radar").checked });
   setStatus($("status"), "Saved", true);
 }
 

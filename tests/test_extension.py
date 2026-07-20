@@ -311,6 +311,18 @@ def test_action_rejects_unknown(env):
     assert r.status_code == 422
 
 
+# ── proactive radar events ────────────────────────────────────────────────────
+def test_events_requires_token_and_returns_recent_alerts(env):
+    client, store, tok = env
+    assert client.get("/v1/extension/events").status_code == 401
+    ext = _ext_token(client, tok)
+    assert client.get("/v1/extension/events", headers={"X-Halia-Ext-Token": ext}).json() == {"events": []}
+    cache.add_alert(SHOP, {"order_id": "o9", "name": "Grace", "grade": "A*", "spend": 1689,
+                           "signals": ["Work email"], "when": "2026-07-20T09:00:00"})
+    d = client.get("/v1/extension/events", headers={"X-Halia-Ext-Token": ext}).json()
+    assert d["events"][-1]["order_id"] == "o9" and d["events"][-1]["spend"] == 1689
+
+
 # ── last-contacted cue ────────────────────────────────────────────────────────
 def test_history_requires_token_and_is_null_off_shopify(env):
     client, store, tok = env  # woo tenant: no shared metafield

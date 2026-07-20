@@ -75,6 +75,64 @@ async function syncWooScripts() {
 chrome.runtime.onInstalled.addListener(syncWooScripts);
 chrome.runtime.onStartup.addListener(syncWooScripts);
 
+// ── Right-click "Look up in Halia" — works on any page, on selected text ──────
+function ensureMenu() {
+  try {
+    chrome.contextMenus.removeAll(() => {
+      chrome.contextMenus.create({
+        id: "halia-lookup", title: "Look up “%s” in Halia", contexts: ["selection"]
+      });
+    });
+  } catch (e) { /* ignore */ }
+}
+chrome.runtime.onInstalled.addListener(ensureMenu);
+chrome.runtime.onStartup.addListener(ensureMenu);
+
+function queryFor(text) {
+  const t = (text || "").trim();
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(t)) return { email: t };
+  if (/^\+?[\d][\d\s\-()]{6,}$/.test(t)) return { phone: t.replace(/[^\d+]/g, "") };
+  return { name: t };
+}
+
+const notifUrl = {};   // notification id -> url to open on click
+function notify(id, title, message, url) {
+  notifUrl[id] = url || "";
+  try {
+    chrome.notifications.create(id, {
+      type: "basic", iconUrl: "icons/icon128.png", title: String(title).slice(0, 90),
+      message: String(message || "").slice(0, 220), priority: 1
+    });
+  } catch (e) { /* ignore */ }
+}
+if (chrome.notifications && chrome.notifications.onClicked) {
+  chrome.notifications.onClicked.addListener((id) => {
+    if (notifUrl[id]) chrome.tabs.create({ url: notifUrl[id] });
+    chrome.notifications.clear(id);
+  });
+}
+
+if (chrome.contextMenus && chrome.contextMenus.onClicked) {
+  chrome.contextMenus.onClicked.addListener(async (info) => {
+    if (info.menuItemId !== "halia-lookup") return;
+    const text = (info.selectionText || "").trim();
+    if (!text) return;
+    const r = await lookup(queryFor(text));
+    if (r && r.error) {
+      notify("halia-lu", "Halia", r.error === "no-token"
+        ? "Add your Halia token in the extension options first." : "Could not reach Halia.");
+      return;
+    }
+    if (!r || !r.found) { notify("halia-lu", "Halia", "No signal for “" + text + "”."); return; }
+    const bits = [];
+    if (r.latent) bits.push("Latent " + r.latent);
+    if (r.playLabel) bits.push(r.playLabel);
+    if (r.action) bits.push(r.action);
+    notify("halia-lu", (r.name || text) + " · " + (r.grade || ""),
+      bits.join(" · ") || "In your book", r.dashboard);
+  });
+}
+
 async function context() {
   const { base, token } = await config();
   if (!token) return { error: "no-token" };
@@ -93,6 +151,57 @@ async function context() {
   } catch (e) {
     return { error: "parse" };
   }
+}
+
+async function events() {
+  const { base, token } = await config();
+  if (!token) return { error: "no-token" };
+  try {
+    const res = await hfetch(base + "/v1/extension/events", { headers: { "X-Halia-Ext-Token": token } });
+    if (!res.ok) return { error: "http-" + res.status };
+    return await res.json();
+  } catch (e) {
+    return { error: "network" };
+  }
+}
+
+// ── Proactive VIC radar: poll the live alert feed and fire a desktop notification for each new
+// high-grade order, wherever the associate is. First run is silent (seeds "seen") so installing
+// doesn't blast a backlog.
+async function pollRadar() {
+  const { radarOff } = await chrome.storage.sync.get(["radarOff"]);
+  if (radarOff) return;
+  const { base, token } = await config();
+  if (!token) return;
+  const r = await events();
+  if (!r || r.error || !Array.isArray(r.events)) return;
+  const idOf = (e) => String(e.order_id || e.when || "");
+  const ids = r.events.map(idOf).filter(Boolean);
+  const st = await chrome.storage.local.get(["seenEvents", "radarInit"]);
+  if (!st.radarInit) {                     // first run: remember, don't notify
+    await chrome.storage.local.set({ seenEvents: ids.slice(-200), radarInit: true });
+    return;
+  }
+  const seen = new Set(st.seenEvents || []);
+  const fresh = r.events.filter((e) => idOf(e) && !seen.has(idOf(e)));
+  for (const e of fresh.slice(0, 5)) {
+    const bits = [];
+    if (e.spend) bits.push("£" + Number(e.spend).toLocaleString());
+    if (e.signals && e.signals.length) bits.push(e.signals.join(" · "));
+    notify("halia-ev-" + idOf(e), "New " + (e.grade || "VIC") + " order · " + (e.name || "a client"),
+      bits.join(" · ") || "A high-grade client just ordered.", base + "/app");
+  }
+  const merged = Array.from(new Set([...(st.seenEvents || []), ...ids])).slice(-300);
+  await chrome.storage.local.set({ seenEvents: merged });
+}
+
+function armRadar() {
+  try { chrome.alarms.create("halia-radar", { periodInMinutes: 2, delayInMinutes: 0.2 }); } catch (e) { /* ignore */ }
+}
+chrome.runtime.onInstalled.addListener(armRadar);
+chrome.runtime.onStartup.addListener(armRadar);
+if (chrome.alarms && chrome.alarms.onAlarm) {
+  chrome.alarms.onAlarm.addListener((a) => { if (a.name === "halia-radar") pollRadar(); });
 }
 
 async function history(cid) {
