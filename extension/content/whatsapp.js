@@ -36,4 +36,67 @@
   HaliaPanel.setChannel("whatsapp");
   HaliaPanel.setInserter(insert);
   Halia.observe(extract);
+
+  // ── Chat-list triage dots: a small grade tag on each chat whose saved name matches a client,
+  // so the highest-grade client stands out in the list. Matched by name (WhatsApp exposes no
+  // address in the list), batched per new set of visible names. Nothing is stored.
+  const seen = {};          // lowercased name -> grade obj, or null once looked up
+  let pending = false;
+
+  function dotColor(g) {
+    const t = String(g.grade || "").toUpperCase();
+    return t[0] === "A" ? "#9a7b3f" : t[0] === "B" ? "#55606b" : "#8a8271";
+  }
+  function listRows() { return document.querySelectorAll('#pane-side div[role="listitem"]'); }
+  function rowName(row) {
+    const s = row.querySelector("span[title]");
+    return s ? (s.getAttribute("title") || "").trim() : "";
+  }
+  function markRow(row, g) {
+    const s = row.querySelector("span[title]");
+    if (!s) return;
+    let dot = row.querySelector(".halia-dot");
+    if (!g) { if (dot) dot.remove(); return; }
+    if (dot && dot.dataset.g === String(g.grade)) return;
+    if (dot) dot.remove();
+    dot = document.createElement("span");
+    dot.className = "halia-dot";
+    dot.dataset.g = String(g.grade);
+    dot.textContent = g.grade;
+    dot.title = "Halia grade " + g.grade + (g.play === "sleeping" ? " · gone quiet" : "");
+    dot.style.cssText = "display:inline-block;min-width:15px;height:14px;line-height:14px;" +
+      "text-align:center;font:700 9px Arial,sans-serif;color:#fff;margin-right:5px;padding:0 3px;" +
+      "border-radius:0;vertical-align:middle;background:" + dotColor(g);
+    s.parentNode.insertBefore(dot, s);
+  }
+  function applyKnown() {
+    listRows().forEach((row) => {
+      const n = rowName(row).toLowerCase();
+      if (n && n in seen) markRow(row, seen[n]);
+    });
+  }
+  function scan() {
+    const need = new Set();
+    listRows().forEach((row) => {
+      const n = rowName(row).toLowerCase();
+      if (n && !(n in seen)) need.add(n);
+    });
+    applyKnown();
+    if (!need.size || pending) return;
+    pending = true;
+    try {
+      chrome.runtime.sendMessage({ type: "halia:batch", body: { names: Array.from(need).slice(0, 100) } },
+        (r) => {
+          pending = false;
+          if (chrome.runtime.lastError || !r || r.error) return;
+          const grades = r.grades || {};
+          need.forEach((n) => { seen[n] = grades[n] || null; });
+          applyKnown();
+        });
+    } catch (e) { pending = false; }
+  }
+  const debScan = (() => { let t = null; return () => { clearTimeout(t); t = setTimeout(scan, 700); }; })();
+  new MutationObserver(debScan).observe(document.documentElement, { childList: true, subtree: true });
+  window.addEventListener("scroll", debScan, true);
+  debScan();
 })();

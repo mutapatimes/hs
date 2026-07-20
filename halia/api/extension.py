@@ -399,20 +399,32 @@ def register(app) -> None:
             raise HTTPException(401, "Invalid or missing extension token")
         body = payload or {}
         emails = [str(e).strip().lower() for e in (body.get("emails") or []) if str(e).strip()][:100]
-        if not emails:
+        names = [str(n).strip().lower() for n in (body.get("names") or []) if str(n).strip()][:100]
+        if not emails and not names:
             return {"grades": {}}
         rows = ((cache.get(shop) or {}).get("payload") or {}).get("data") or []
-        idx: dict = {}
+        by_email: dict = {}
+        by_name: dict = {}
         for r in rows:
+            sc = r.get("score") or 0
             em = (r.get("email") or "").lower()
-            if em and (em not in idx or (r.get("score") or 0) > (idx[em].get("score") or 0)):
-                idx[em] = r
+            if em and (em not in by_email or sc > (by_email[em].get("score") or 0)):
+                by_email[em] = r
+            nm = (r.get("name") or "").strip().lower()
+            if nm and (nm not in by_name or sc > (by_name[nm].get("score") or 0)):
+                by_name[nm] = r
+
+        def _slim(r):
+            return {"grade": r.get("grade"), "tier": r.get("tier"),
+                    "hidden": not r.get("known"), "play": _play_of(r)}
+
         out = {}
         for em in set(emails):
-            r = idx.get(em)
-            if r:
-                out[em] = {"grade": r.get("grade"), "tier": r.get("tier"),
-                           "hidden": not r.get("known"), "play": _play_of(r)}
+            if em in by_email:
+                out[em] = _slim(by_email[em])
+        for nm in set(names):                      # WhatsApp list matches on the saved contact name
+            if nm not in out and nm in by_name:
+                out[nm] = _slim(by_name[nm])
         return {"grades": out}
 
     @app.post("/v1/extension/action")
