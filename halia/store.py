@@ -787,6 +787,22 @@ class ShopStore(_DB):
             {"shop": shop}, fetch="one")
         return dict(row) if row else None
 
+    def billing_shop_for(self, subscription_id: str | None = None,
+                         customer_id: str | None = None) -> str | None:
+        """Reverse-map a Stripe subscription or customer id back to its shop. Needed for Payment
+        Link subscriptions, whose later webhook events don't carry our shop reference."""
+        if subscription_id:
+            row = self._run("SELECT shop FROM billing WHERE subscription_id = :s",
+                            {"s": subscription_id}, fetch="one")
+            if row:
+                return row["shop"]
+        if customer_id:
+            row = self._run("SELECT shop FROM billing WHERE customer_id = :c",
+                            {"c": customer_id}, fetch="one")
+            if row:
+                return row["shop"]
+        return None
+
     def set_billing(self, shop: str, status: str, customer_id: str | None = None,
                     subscription_id: str | None = None) -> None:
         self._run(

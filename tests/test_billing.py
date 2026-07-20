@@ -67,9 +67,22 @@ def test_billing_plans_endpoint_carries_stripe_links_and_recommendation(client, 
     j = r.json()
     by = {p["key"]: p for p in j["plans"]}
     assert [p["key"] for p in j["plans"]] == ["free", "discovery", "signal", "atelier", "maison"]
-    assert by["signal"]["link"] == "https://buy.stripe.com/s"
+    # the shop rides along as Stripe's client_reference_id so the webhook can trace the checkout
+    assert by["signal"]["link"] == "https://buy.stripe.com/s?client_reference_id=shopx"
     assert by["free"]["link"] == "" and by["maison"]["link"] == ""
     assert j["enabled"] is True and "recommended" in j
+
+
+def test_webhook_maps_payment_link_cancellation_back_to_shop(client):
+    c, store = client
+    # a Payment Link checkout activated this shop, storing the Stripe subscription id
+    store.set_billing("shopx", "active", "cus_1", "sub_1")
+    # the later subscription.deleted event carries NO shop reference, only the subscription id
+    ev = {"type": "customer.subscription.deleted",
+          "data": {"object": {"id": "sub_1", "customer": "cus_1"}}}
+    r = c.post("/webhooks/stripe", json=ev)
+    assert r.status_code == 200
+    assert store.get_billing("shopx")["status"] == "canceled"    # mapped back and cancelled
 
 
 def test_plan_links_parsing():
