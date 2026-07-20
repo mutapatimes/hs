@@ -2441,6 +2441,7 @@ function renderMonitor(m){
     <div id="campaignMonitor">
       <div class="cm-kpis">${kpis}</div>
       <div class="cm-winback"><div class="cm-wn">${(k.reactivated||0).toLocaleString()}</div><div class="cm-wt">clients came back from gone quiet<span>reactivated during the campaign, worth <b>${cmMoney(k.reactivated_revenue)}</b> recovered</span></div></div>
+      ${(k.attributed_revenue>0||k.attributed_orders>0)?`<div class="cm-winback" style="background:#f4f0e6;border-color:#e7d9bd"><div class="cm-wn">${cmMoney(k.attributed_revenue)}</div><div class="cm-wt">attributed to your campaign links<span><b>${(k.attributed_orders||0).toLocaleString()}</b> order${k.attributed_orders===1?'':'s'} from <b>${(k.attributed_buyers||0).toLocaleString()}</b> client${k.attributed_buyers===1?'':'s'} arrived through this campaign's tagged links (UTM)</span></div></div>`:''}
       <div class="cm-panel"><h3>Sales over time</h3>${cmArea(m.series)}</div>
       <div class="cm-cols">
         <div class="cm-panel"><h3>Revenue by signal</h3>${cmBars(m.by_signal,"label")}</div>

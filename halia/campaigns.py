@@ -114,6 +114,28 @@ def campaign_metrics(campaign: dict, clients: list[dict]) -> dict:
         rows.append({"cid": str(c.get("cid", "")), "name": c.get("name", "Customer"),
                      "tier": tier, "revenue": round(rev, 2), "orders": ordn})
 
+    # Campaign-link attribution: in-window orders whose UTM matches this campaign's tag, across the
+    # whole book (a tagged link can be clicked by anyone, not only targeted members). Populated only
+    # when order UTM data is present (config.SHOPIFY_JOURNEY on); otherwise these stay zero.
+    camp_utm = ((campaign.get("config") or {}).get("utm") or {}).get("campaign") or ""
+    att_rev = 0.0
+    att_orders = 0
+    att_buyers = set()
+    if camp_utm and start and end:
+        for c in clients:
+            bought = False
+            for o in c.get("orders", []) or []:
+                if (o.get("utm") or "") != camp_utm:
+                    continue
+                od = _d(o.get("date"))
+                if od is None or not (start <= od <= end):
+                    continue
+                att_rev += float(o.get("amount") or 0)
+                att_orders += 1
+                bought = True
+            if bought:
+                att_buyers.add(str(c.get("cid", "")))
+
     n = len(members)
     kpis = {
         "members": n,
@@ -124,6 +146,9 @@ def campaign_metrics(campaign: dict, clients: list[dict]) -> dict:
         "aov": round(total_rev / total_orders, 2) if total_orders else 0.0,
         "reactivated": reactivated,
         "reactivated_revenue": round(reactivated_rev, 2),
+        "attributed_revenue": round(att_rev, 2),
+        "attributed_orders": att_orders,
+        "attributed_buyers": len(att_buyers),
     }
     return {
         "name": campaign.get("name", "Campaign"),

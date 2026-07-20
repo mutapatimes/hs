@@ -85,6 +85,23 @@ def test_max_pages_caps_the_pull():
     assert len(orders) == 1                        # stopped after the first page
 
 
+def test_journey_query_falls_back_when_shopify_rejects_the_field(monkeypatch):
+    """With attribution on, a rejected customerJourneySummary must not break the sync."""
+    monkeypatch.setattr("halia.config.SHOPIFY_JOURNEY", True)
+    calls = {"journey": 0, "plain": 0}
+
+    def transport(query, variables):
+        if "customerJourneySummary" in query:
+            calls["journey"] += 1
+            return {"errors": [{"message": "Access denied for customerJourneySummary field"}]}
+        calls["plain"] += 1
+        return _page([_customer("1", "a@x.co", "100.00")], False, None)
+
+    orders = fetch_orders(transport)
+    assert calls["journey"] >= 1 and calls["plain"] >= 1   # tried journey, fell back to plain
+    assert len(orders) == 1                                 # sync still produced orders
+
+
 def test_fetch_scored_runs_the_full_pipeline():
     scored = fetch_scored(_two_page_transport())
     assert len(scored) == 2

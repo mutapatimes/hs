@@ -30,8 +30,18 @@ from typing import Callable, Iterator
 from scoring.shopify_graphql import (
     CUSTOMER_BY_QUERY,
     CUSTOMERS_QUERY,
+    CUSTOMERS_QUERY_JOURNEY,
     graphql_customers_to_orders,
 )
+
+
+def _journey_on() -> bool:
+    """Whether to pull each order's UTM for campaign attribution (config-gated, default off)."""
+    try:
+        from halia import config
+        return bool(config.SHOPIFY_JOURNEY)
+    except Exception:
+        return False
 
 DEFAULT_API_VERSION = "2025-01"
 
@@ -146,8 +156,20 @@ def fetch_customer_nodes(
     """
     cursor: str | None = None
     pages = 0
+    journey = _journey_on()
+    query = CUSTOMERS_QUERY_JOURNEY if journey else CUSTOMERS_QUERY
     while True:
-        data = _run(transport, CUSTOMERS_QUERY, {"cursor": cursor}, retries, _sleep)
+        try:
+            data = _run(transport, query, {"cursor": cursor}, retries, _sleep)
+        except (ShopifyError, ShopifyAuthError):
+            # The journey (UTM) field is scope-gated and cost-heavy. If Shopify rejects it, drop
+            # attribution and keep the sync alive on the plain query rather than failing the pull.
+            if journey and query is CUSTOMERS_QUERY_JOURNEY:
+                journey = False
+                query = CUSTOMERS_QUERY
+                data = _run(transport, query, {"cursor": cursor}, retries, _sleep)
+            else:
+                raise
         conn = data["customers"]
         yield from conn["nodes"]
         pages += 1
