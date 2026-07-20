@@ -62,6 +62,8 @@
     .btn.primary { background: #1a1a1a; color: #fbfaf7; border-color: #1a1a1a; }
     .btn.primary:hover { background: #333; }
     select { width: 100%; padding: 6px; border: 1px solid #d8cfbc; background: #fff; font-size: 12px; }
+    textarea { width: 100%; padding: 7px 9px; border: 1px solid #d8cfbc; background: #fff; font-size: 12.5px;
+      font-family: inherit; resize: vertical; color: #1a1a1a; }
     .prev { margin-top: 6px; padding: 8px; background: #f6f3ec; border: 1px solid #ece5d6; font-size: 12px;
       line-height: 1.4; white-space: pre-wrap; max-height: 116px; overflow-y: auto; }
     .row { padding: 8px 10px; border: 1px solid #ece5d6; background: #fff; margin-bottom: 7px; }
@@ -208,9 +210,20 @@
         ${cart.url ? `<a class="link" href="${esc(cart.url)}" target="_blank" rel="noopener">Open checkout</a>` : ""}</div>` : ""}
       ${d.action ? `<div class="lbl">Next move</div><div class="reco">${esc(d.action)}</div>` : ""}
       ${reasons.length ? `<div class="lbl">Why</div><ul class="reasons">${reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}
-      <div class="acts">${acts.join("")}</div>`;
+      <div class="acts">${acts.join("")}</div>
+      ${d.cid && ctx && ctx.platform === "shopify" ? `<div class="lbl">Note</div>
+        <textarea data-a="note" rows="2" placeholder="Jot a note — saved to this customer in your Shopify"></textarea>
+        <div class="acts"><button class="btn" data-a="notesave">Save note</button></div>` : ""}`;
     const pipe = el.querySelector('[data-a="pipe"]');
     if (pipe) pipe.onclick = () => act({ action: "pipeline", cid: d.cid }, "Added to pipeline");
+    const ns = el.querySelector('[data-a="notesave"]');
+    if (ns) ns.onclick = () => {
+      const ta = el.querySelector('[data-a="note"]');
+      const v = ((ta && ta.value) || "").trim();
+      if (!v) { toast("Write a note first"); return; }
+      act({ action: "note", cid: d.cid, note: v }, "Note saved");
+      if (ta) ta.value = "";
+    };
   }
 
   // ── TEMPLATES ─────────────────────────────────────────────────────────────

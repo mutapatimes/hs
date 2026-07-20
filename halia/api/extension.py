@@ -334,6 +334,19 @@ def register(app) -> None:
         if not cid:
             raise HTTPException(422, "cid is required")
 
+        if action == "note":
+            from halia.api.board import _sink, _write_soft, append_activity, load_pipe
+            note = str(body.get("note") or "").strip()
+            if not note:
+                raise HTTPException(422, "note is required")
+            sink = _sink(shop)                       # 400 if not a Shopify write-back tenant
+            pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
+            append_activity(pipe, "note", None, "Extension", note=note)
+            if _write_soft(sink, cid, pipe):
+                raise HTTPException(502, "Could not save to Shopify just now. Please try again.")
+            data.record_activity(shop, "extension_note")
+            return {"ok": True}
+
         if action == "pipeline":
             from halia.api.board import _sink, _write_soft, append_activity, load_pipe
             from scoring.shopify_pipeline import STAGES, stage_tag
