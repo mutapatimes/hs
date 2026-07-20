@@ -49,6 +49,32 @@
     .grade { flex: none; min-width: 44px; height: 44px; padding: 0 8px; display: flex; align-items: center;
       justify-content: center; font-weight: 700; font-size: 19px; color: #fff; background: #6b6355; }
     .grade.g-a { background: #9a7b3f; } .grade.g-b { background: #55606b; } .grade.g-c { background: #8a8271; }
+    /* initials avatar with a grade badge */
+    .idw { position: relative; flex: none; }
+    .ava2 { width: 46px; height: 46px; border-radius: 50%; background: #efe7d4; color: #7a6a3f;
+      display: grid; place-items: center; font-weight: 600; font-size: 15px; letter-spacing: .02em; }
+    .gbadge { position: absolute; right: -4px; bottom: -4px; min-width: 20px; height: 18px; padding: 0 4px;
+      border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700;
+      font-size: 10px; color: #fff; background: #6b6355; border: 2px solid #fbfaf7; }
+    .gbadge.g-a { background: #9a7b3f; } .gbadge.g-b { background: #55606b; } .gbadge.g-c { background: #8a8271; }
+    /* handle grade chip (shown collapsed when a client is recognised) */
+    .handle .hg { writing-mode: horizontal-tb; color: #fff; font-size: 10px; font-weight: 700;
+      padding: 2px 5px; margin-bottom: 3px; letter-spacing: .02em; }
+    /* skeleton shimmer while a client loads */
+    .sk-row { height: 12px; margin: 8px 0; border-radius: 2px;
+      background: linear-gradient(90deg, #ece5d6 25%, #f6f2ea 40%, #ece5d6 60%); background-size: 300% 100%;
+      animation: shine 1.25s ease-in-out infinite; }
+    .sk-row.gr { width: 46px; height: 46px; border-radius: 50%; margin: 0; flex: none; }
+    /* collapsible sections */
+    .sh { cursor: pointer; user-select: none; }
+    .sh::after { content: "⌄"; margin-left: auto; color: #b3ab97; font-size: 14px; line-height: 1; transition: transform .2s; }
+    .sec.folded .sh::after { transform: rotate(-90deg); }
+    .sec.folded > :not(.sh) { display: none !important; }
+    @media (prefers-reduced-motion: no-preference) {
+      .fadein { animation: hfade .32s cubic-bezier(.2,.7,.2,1) both; }
+      @keyframes hfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      @keyframes shine { 0% { background-position: 130% 0; } 100% { background-position: -30% 0; } }
+    }
     .who { flex: 1; min-width: 0; }
     .who .nm { font-weight: 600; font-size: 15px; line-height: 1.2; }
     .who .sub { color: #6b6355; font-size: 12px; margin-top: 2px; line-height: 1.35; }
@@ -111,6 +137,8 @@
   let cart = [], prodResults = [], cartBase = ""; // the working cart + last product search
   let mode = "clienteling"; // "clienteling" (client-facing) | "internal" (team coordination)
   let tplQuery = "", tplSel = null;   // template search text + selected index
+  let animKey = "";                   // last client key animated (so we fade in only on a new client)
+  const folded = new Set();           // collapsed section names, persisted
   const contactHist = {};   // cid -> last outreach {at,by,action,note} | null | "pending"
 
   function esc(s) {
@@ -121,6 +149,39 @@
   function gradeClass(g) {
     g = String(g || "").trim().toUpperCase();
     return g[0] === "A" ? "g-a" : g[0] === "B" ? "g-b" : g[0] === "C" ? "g-c" : "";
+  }
+  function gradeBg(g) {
+    g = String(g || "").trim().toUpperCase();
+    return g[0] === "A" ? "#9a7b3f" : g[0] === "B" ? "#55606b" : g[0] === "C" ? "#8a8271" : "#6b6355";
+  }
+  function initials(s) {
+    s = String(s || "").trim();
+    if (!s) return "·";
+    if (s.indexOf("@") >= 0) {
+      const l = s.split("@")[0].replace(/[^a-zA-Z]/g, "");
+      return (l.slice(0, 2) || "·").toUpperCase();
+    }
+    const p = s.split(/\s+/).filter(Boolean);
+    return (((p[0] || "")[0] || "") + ((p[1] || "")[0] || "")).toUpperCase() || "·";
+  }
+  function paintHandle() {
+    const h = root && root.querySelector(".handle"); if (!h) return;
+    const g = client && client.data && client.data.grade;
+    let chip = h.querySelector(".hg");
+    if (g) {
+      if (!chip) { chip = document.createElement("span"); chip.className = "hg"; h.insertBefore(chip, h.firstChild); }
+      chip.textContent = g; chip.style.background = gradeBg(g);
+    } else if (chip) { chip.remove(); }
+  }
+  function applyFolds() {
+    ["client", "team", "tpl", "camp", "prod", "cat"].forEach((n) => {
+      const el = sec(n); if (el) el.classList.toggle("folded", folded.has(n));
+    });
+  }
+  function toggleFold(name) {
+    if (folded.has(name)) folded.delete(name); else folded.add(name);
+    applyFolds();
+    try { chrome.storage.local.set({ folded: Array.from(folded) }); } catch (e) { /* ignore */ }
   }
   function appendUtm(url, utm) {
     if (!url) return "";
@@ -211,8 +272,13 @@
     dock.querySelector('[data-a="close"]').onclick = () => setOpen(false);
     dock.querySelector('[data-a="refresh"]').onclick = () => window.dispatchEvent(new CustomEvent("halia:refresh"));
     dock.querySelector('[data-a="mode"]').onclick = () => setMode(mode === "internal" ? "clienteling" : "internal");
+    // collapse a section by tapping its header (delegated, so it survives re-renders)
+    dock.querySelector(".scroll").addEventListener("click", (e) => {
+      const sh = e.target.closest(".sh"); if (!sh) return;
+      const s = sh.closest(".sec"); if (s && s.dataset.s) toggleFold(s.dataset.s);
+    });
     renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue();
-    applyMode();
+    applyMode(); applyFolds(); paintHandle();
   }
 
   function setMode(m, persist) {
@@ -254,7 +320,12 @@
       <div class="muted">Open a chat or email and Halia shows who they are, their grade and the next move.</div>`;
       return; }
     if (client.loading) { el.innerHTML = `<div class="sh">Client</div>
-      <div class="muted">Looking up ${esc(client.name || "this client")}…</div>`; return; }
+      <div class="head" style="align-items:center">
+        <div class="sk-row gr"></div>
+        <div style="flex:1"><div class="sk-row" style="width:62%"></div><div class="sk-row" style="width:40%"></div></div>
+      </div>
+      <div class="sk-row" style="height:32px;margin-top:14px"></div>
+      <div class="sk-row" style="width:92%"></div><div class="sk-row" style="width:74%"></div>`; return; }
     if (client.error) { el.innerHTML = `<div class="sh">Client</div><div class="muted">${esc(client.error)}</div>`; return; }
     if (client.notfound) { el.innerHTML = `<div class="sh">Client</div>
       <div class="muted">No Halia signal for ${esc(client.name || "this client")}. Not a flagged client in your book.</div>`;
@@ -277,10 +348,15 @@
     if (d.cid && ctx && ctx.platform === "shopify") acts.push(`<button class="btn" data-a="pipe">Add to pipeline</button>`);
     if (d.adminUrl) acts.push(`<a class="btn" href="${esc(d.adminUrl)}" target="_blank" rel="noopener">Open in store</a>`);
     if (d.dashboard) acts.push(`<a class="btn primary" href="${esc(d.dashboard)}" target="_blank" rel="noopener">Open in Halia</a>`);
+    const key = d.cid || d.email || d.name || "";
+    const anim = key !== animKey ? " fadein" : ""; animKey = key;
     el.innerHTML = `
       <div class="sh">Client</div>
-      <div class="head">
-        <div class="grade ${gc}">${esc(d.grade || "—")}</div>
+      <div class="head${anim}">
+        <div class="idw">
+          <div class="ava2">${esc(initials(d.name || d.email || ""))}</div>
+          ${d.grade ? `<div class="gbadge ${gc}">${esc(d.grade)}</div>` : ""}
+        </div>
         <div class="who">
           <div class="nm">${esc(d.name || d.email || "This client")}</div>
           ${sub ? `<div class="sub">${esc(sub)}</div>` : ""}
@@ -574,9 +650,10 @@
     mount() {
       ensure();
       try {
-        chrome.storage.local.get(["panelOpen", "haliaMode"], (r) => {
+        chrome.storage.local.get(["panelOpen", "haliaMode", "folded"], (r) => {
           if (r && typeof r.panelOpen === "boolean") setOpen(r.panelOpen);
           if (r && r.haliaMode) setMode(r.haliaMode);
+          if (r && Array.isArray(r.folded)) { r.folded.forEach((n) => folded.add(n)); applyFolds(); }
         });
       } catch (e) { /* ignore */ }
     },
@@ -587,7 +664,7 @@
     setClient(state) {
       client = state; // null | {loading,name} | {found,data} | {notfound,name} | {error}
       if (state && state.found) client = { data: state.data };
-      if (root) { renderClient(); renderTemplates(); renderCampaigns(); paintCart(); renderTeam(); }
+      if (root) { renderClient(); renderTemplates(); renderCampaigns(); paintCart(); renderTeam(); paintHandle(); }
     },
     setInserter(fn) { inserter = fn; },
     setChannel(ch) { if (CHAN[ch]) channel = ch; },
