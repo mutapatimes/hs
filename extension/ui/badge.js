@@ -78,6 +78,13 @@
     .tot { margin-top: 7px; font-weight: 600; font-size: 13px; }
     .pth { width: 38px; height: 38px; object-fit: cover; border: 1px solid #ece5d6; flex: none;
       background: #f2efe6; }
+    .tlist { border: 1px solid #ece5d6; max-height: 196px; overflow-y: auto; margin-bottom: 8px; background: #fff; }
+    .tcat { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #8a8271;
+      padding: 8px 8px 3px; background: #faf7f0; position: sticky; top: 0; }
+    .titem { display: block; width: 100%; text-align: left; border: 0; background: transparent;
+      padding: 6px 8px; font-size: 12.5px; color: #1a1a1a; cursor: pointer; border-left: 2px solid transparent; }
+    .titem:hover { background: #f4f1ea; }
+    .titem.sel { background: #f2efe6; border-left-color: #9a7b3f; font-weight: 600; }
     select { width: 100%; padding: 6px; border: 1px solid #d8cfbc; background: #fff; font-size: 12px; }
     textarea { width: 100%; padding: 7px 9px; border: 1px solid #d8cfbc; background: #fff; font-size: 12.5px;
       font-family: inherit; resize: vertical; color: #1a1a1a; }
@@ -103,6 +110,7 @@
   let ctx = null, client = null; // ctx = standing context; client = active client state
   let cart = [], prodResults = [], cartBase = ""; // the working cart + last product search
   let mode = "clienteling"; // "clienteling" (client-facing) | "internal" (team coordination)
+  let tplQuery = "", tplSel = null;   // template search text + selected index
   const contactHist = {};   // cid -> last outreach {at,by,action,note} | null | "pending"
 
   function esc(s) {
@@ -362,23 +370,42 @@
     const list = templateList();
     if (!list.length) { el.innerHTML = `<div class="sh">Templates</div>
       <div class="muted">Add outreach templates in Halia → Settings → Templates.</div>`; return; }
-    el.innerHTML = `<div class="sh">Templates <span class="n">${list.length}</span></div>
-      <select data-a="tsel">${list.map((t, i) => `<option value="${i}">${esc(t.name || ("Template " + (i + 1)))}</option>`).join("")}</select>
-      <div class="prev" data-a="tprev"></div>
-      <div class="acts">
-        ${inserter ? `<button class="btn primary" data-a="tins">Insert</button>` : ""}
-        <button class="btn" data-a="tcopy">Copy</button>
-        <button class="btn" data-a="tcopys">Copy subject</button>
-      </div>`;
-    const selEl = el.querySelector('[data-a="tsel"]');
-    const prev = el.querySelector('[data-a="tprev"]');
     const fill = (s) => String(s || "").split("{first_name}").join(activeFirst());
-    const body = () => fill((list[+selEl.value] || {}).body);
-    const paint = () => { prev.textContent = body(); };
-    selEl.onchange = paint; paint();
+    const q = tplQuery.trim().toLowerCase();
+    const matches = list.map((t, i) => ({ t, i }))
+      .filter(({ t }) => !q || ((t.name || "") + " " + (t.category || "") + " " + (t.body || "")).toLowerCase().includes(q));
+    // group by category, preserving first-seen order
+    const groups = []; const idx = {};
+    matches.forEach(({ t, i }) => {
+      const c = t.category || "General";
+      if (!(c in idx)) { idx[c] = groups.length; groups.push({ cat: c, items: [] }); }
+      groups[idx[c]].items.push({ t, i });
+    });
+    const sel = (tplSel != null && list[tplSel]) ? list[tplSel] : null;
+    el.innerHTML = `
+      <div class="sh">Templates <span class="n">${list.length}</span></div>
+      <input class="psearch" data-a="tsearch" placeholder="Search templates" value="${esc(tplQuery)}" style="margin-bottom:8px">
+      <div class="tlist">${groups.length
+        ? groups.map((g) => `<div class="tcat">${esc(g.cat)}</div>` +
+            g.items.map(({ t, i }) => `<button class="titem${i === tplSel ? " sel" : ""}" data-ti="${i}">${esc(t.name || ("Template " + (i + 1)))}</button>`).join("")).join("")
+        : `<div class="muted" style="padding:10px">No templates match.</div>`}</div>
+      ${sel ? `<div class="prev">${esc(fill(sel.body))}</div>
+        <div class="acts">
+          ${inserter ? `<button class="btn primary" data-a="tins">Insert</button>` : ""}
+          <button class="btn" data-a="tcopy">Copy</button>
+          <button class="btn" data-a="tcopys">Copy subject</button>
+        </div>` : `<div class="muted">Pick a template above.</div>`}`;
+    const search = el.querySelector('[data-a="tsearch"]');
+    if (search) search.oninput = () => {
+      tplQuery = search.value; renderTemplates();
+      const s2 = sec("tpl") && sec("tpl").querySelector('[data-a="tsearch"]');
+      if (s2) { s2.focus(); s2.setSelectionRange(s2.value.length, s2.value.length); }
+    };
+    el.querySelectorAll("[data-ti]").forEach((b) => b.onclick = () => { tplSel = +b.dataset.ti; renderTemplates(); });
+    const body = () => fill((list[tplSel] || {}).body);
     const ins = el.querySelector('[data-a="tins"]'); if (ins) ins.onclick = () => place(body());
-    el.querySelector('[data-a="tcopy"]').onclick = () => copy(body(), "Message copied");
-    el.querySelector('[data-a="tcopys"]').onclick = () => copy(fill((list[+selEl.value] || {}).subject), "Subject copied");
+    const cp = el.querySelector('[data-a="tcopy"]'); if (cp) cp.onclick = () => copy(body(), "Message copied");
+    const cs = el.querySelector('[data-a="tcopys"]'); if (cs) cs.onclick = () => copy(fill((list[tplSel] || {}).subject), "Subject copied");
   }
 
   // ── CAMPAIGNS ─────────────────────────────────────────────────────────────

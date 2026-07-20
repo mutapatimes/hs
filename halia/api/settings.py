@@ -24,28 +24,154 @@ from halia.cache import cache
 
 DEFAULT_VIC_THRESHOLD = 5000
 
+# The category order used to group templates in the editor and the extension picker.
+TEMPLATE_CATEGORIES = [
+    "Welcome", "Appointments", "Previews & arrivals", "Orders & changes",
+    "Shipping & delivery", "Returns & exchanges", "Gifting", "Win-back",
+    "Occasions", "Care & feedback",
+]
+
 # Seed templates the merchant starts with (they can edit/add/delete). Placeholders:
-# {first_name} = the client's first name, {sender} = the merchant's sign-off name.
+# {first_name} = the client's first name, {sender} = the merchant's sign-off, {catalog_link} = the
+# active catalogue link. Brand voice: warm and personal, no em dashes.
 DEFAULT_TEMPLATES = [
-    {"name": "Personal welcome", "subject": "A personal note",
+    {"category": "Welcome", "name": "Personal welcome", "subject": "A personal note",
      "body": "Dear {first_name},\n\nThank you for being one of our valued clients. I wanted to "
-             "reach out personally — if there's ever anything you're looking for, it would be my "
-             "pleasure to help you find it.\n\nWarm regards,\n{sender}"},
-    {"name": "Private preview invite", "subject": "An early preview, just for you",
+             "introduce myself personally. If there is ever anything you are looking for, it would "
+             "be my pleasure to help you find it.\n\nWarm regards,\n{sender}"},
+    {"category": "Welcome", "name": "First-order thank you", "subject": "Thank you, and welcome",
+     "body": "Dear {first_name},\n\nThank you for your first order with us. It is a real pleasure to "
+             "welcome you. I am here personally for anything you need, from styling to a particular "
+             "piece you have in mind.\n\nWarmly,\n{sender}"},
+
+    {"category": "Appointments", "name": "Appointment invitation",
+     "subject": "A private appointment, whenever suits you",
+     "body": "Dear {first_name},\n\nWould you enjoy a private appointment with our team? We would "
+             "love to set aside some time, show you a few pieces we think you will love, and look "
+             "after you properly. Simply let me know a day and time that suits.\n\nKind regards,\n{sender}"},
+    {"category": "Appointments", "name": "Appointment confirmation",
+     "subject": "Your appointment is confirmed",
+     "body": "Dear {first_name},\n\nYour appointment is confirmed and we are looking forward to "
+             "seeing you. If anything changes on your side, just reply here and I will happily "
+             "rearrange. See you soon.\n\nWarmly,\n{sender}"},
+    {"category": "Appointments", "name": "Appointment reminder",
+     "subject": "Looking forward to seeing you",
+     "body": "Dear {first_name},\n\nA gentle reminder of your appointment with us. I have set aside "
+             "some pieces I think you will enjoy. If you would like me to have anything particular "
+             "ready, let me know and I will prepare it.\n\nWarm regards,\n{sender}"},
+    {"category": "Appointments", "name": "After your visit", "subject": "Lovely to see you",
+     "body": "Dear {first_name},\n\nIt was a real pleasure to see you today, thank you for your "
+             "time. If you would like anything set aside, delivered, or held while you decide, I am "
+             "here. It would be my pleasure.\n\nWarmly,\n{sender}"},
+
+    {"category": "Previews & arrivals", "name": "Private preview invitation",
+     "subject": "An early preview, just for you",
      "body": "Dear {first_name},\n\nWe have a private preview of our new pieces coming up, and I "
-             "immediately thought of you. I'd love to set aside some time for you ahead of "
-             "everyone else.\n\nWarmly,\n{sender}"},
-    {"name": "Private appointment", "subject": "A personal appointment",
-     "body": "Dear {first_name},\n\nWould you enjoy a private appointment with our team? We'd love "
-             "to show you a few pieces we think you'll love, at a time that suits you.\n\n"
-             "Kind regards,\n{sender}"},
-    {"name": "New arrival for you", "subject": "Something I thought you'd love",
-     "body": "Dear {first_name},\n\nA new arrival came in that reminded me of your taste. I've set "
-             "one aside in case you'd like to see it — no obligation at all.\n\nWarm regards,\n{sender}"},
-    {"name": "Concierge check-in", "subject": "Checking in",
-     "body": "Dear {first_name},\n\nJust a note to say we're here whenever you need us — a gift, a "
-             "particular piece, or simply a recommendation. It's always a pleasure to look after "
-             "you.\n\nWarmly,\n{sender}"},
+             "immediately thought of you. I would love to set aside some time for you ahead of "
+             "everyone else. You can see the selection here:\n{catalog_link}\n\nWarmly,\n{sender}"},
+    {"category": "Previews & arrivals", "name": "Early access",
+     "subject": "First look, before anyone else",
+     "body": "Dear {first_name},\n\nOur new arrivals go live shortly, and I wanted you to have first "
+             "look. If anything catches your eye, tell me and I will reserve it in your size "
+             "straight away.\n{catalog_link}\n\nKind regards,\n{sender}"},
+    {"category": "Previews & arrivals", "name": "New arrival for you",
+     "subject": "Something I thought you would love",
+     "body": "Dear {first_name},\n\nA new arrival came in that reminded me of your taste. I have set "
+             "one aside in case you would like to see it, with no obligation at all.\n\n"
+             "Warm regards,\n{sender}"},
+    {"category": "Previews & arrivals", "name": "Back in stock", "subject": "It is back",
+     "body": "Dear {first_name},\n\nGood news, the piece you had your eye on is back in stock. I have "
+             "reserved one for you for a little while. Just let me know and it is yours.\n\n"
+             "Warmly,\n{sender}"},
+
+    {"category": "Orders & changes", "name": "Order received", "subject": "Your order is in good hands",
+     "body": "Dear {first_name},\n\nThank you for your order. I have personally flagged it for careful "
+             "handling and will be in touch the moment it ships. If there is anything you would like "
+             "alongside it, I am here to help.\n\nWarmly,\n{sender}"},
+    {"category": "Orders & changes", "name": "Change delivery address",
+     "subject": "Happy to update your delivery",
+     "body": "Dear {first_name},\n\nOf course, I can update the delivery address on your order. Could "
+             "you reply with the full address you would like it sent to, and I will make sure it "
+             "goes to the right place.\n\nKind regards,\n{sender}"},
+    {"category": "Orders & changes", "name": "Add an item before it ships",
+     "subject": "Adding to your order",
+     "body": "Dear {first_name},\n\nYour order has not shipped yet, so I would be glad to add anything "
+             "else you have had your eye on and send it together, to save you a second delivery. "
+             "Just let me know.\n\nWarmly,\n{sender}"},
+    {"category": "Orders & changes", "name": "Priority dispatch",
+     "subject": "Good news about your order",
+     "body": "Dear {first_name},\n\nI have arranged priority dispatch on your order so it reaches you "
+             "as quickly as possible. Could you confirm you are happy with the delivery address on "
+             "file, and I will get it moving today.\n\nWarmly,\n{sender}"},
+    {"category": "Orders & changes", "name": "A small delay", "subject": "Keeping you posted",
+     "body": "Dear {first_name},\n\nI wanted to let you know of a small delay with your order, and to "
+             "reassure you it is being looked after. I expect it to ship very shortly and will "
+             "confirm the moment it does. Thank you for your patience.\n\nWith warm regards,\n{sender}"},
+
+    {"category": "Shipping & delivery", "name": "On its way", "subject": "Your order is on its way",
+     "body": "Dear {first_name},\n\nJust to let you know your order is on its way. I hope it reaches "
+             "you soon and that you love it. If anything is not quite right when it arrives, reply "
+             "here and I will sort it out straight away.\n\nWarmly,\n{sender}"},
+    {"category": "Shipping & delivery", "name": "Arrived, checking in",
+     "subject": "I hope it arrived safely",
+     "body": "Dear {first_name},\n\nI wanted to check that your order arrived safely and that you are "
+             "happy with it. If you would like any advice on styling or caring for it, I am always "
+             "here to help.\n\nWarm regards,\n{sender}"},
+
+    {"category": "Returns & exchanges", "name": "Arranging your exchange",
+     "subject": "Happy to arrange your exchange",
+     "body": "Dear {first_name},\n\nOf course, I would be glad to arrange an exchange for you. Let me "
+             "know the size or piece you would prefer, and I will check availability and reserve it "
+             "while we sort the return.\n\nKind regards,\n{sender}"},
+    {"category": "Returns & exchanges", "name": "Exchange on its way",
+     "subject": "Your exchange is on its way",
+     "body": "Dear {first_name},\n\nYour exchange is on its way to you, thank you for your patience "
+             "while we arranged it. If the new piece is not quite right either, tell me directly and "
+             "I will make it right.\n\nWarmly,\n{sender}"},
+    {"category": "Returns & exchanges", "name": "Refund processed",
+     "subject": "Your refund is on its way",
+     "body": "Dear {first_name},\n\nYour refund has been processed and is on its way back to you. I am "
+             "sorry this piece was not the one. Whenever you are ready, I would love to help you find "
+             "something that suits you beautifully.\n\nWarm regards,\n{sender}"},
+
+    {"category": "Gifting", "name": "Complimentary gift wrapping",
+     "subject": "Complimentary gift wrapping",
+     "body": "Dear {first_name},\n\nIf this is a gift, it would be my pleasure to arrange "
+             "complimentary gift wrapping and a handwritten note before it ships. Just let me know "
+             "and I will take care of it.\n\nWarmly,\n{sender}"},
+    {"category": "Gifting", "name": "Gift message and receipt",
+     "subject": "A gift message, and a discreet receipt",
+     "body": "Dear {first_name},\n\nWould you like me to include a personal gift message, and a "
+             "discreet gift receipt with no prices shown? Send me the message you would like and I "
+             "will make sure it is presented beautifully.\n\nKind regards,\n{sender}"},
+
+    {"category": "Win-back", "name": "We have missed you", "subject": "It has been a little while",
+     "body": "Dear {first_name},\n\nIt has been a little while, and I wanted to reach out personally "
+             "to say we would love to look after you again. If there is anything you are looking "
+             "for, or you would simply like a recommendation, I am here.\n\nWarmly,\n{sender}"},
+    {"category": "Win-back", "name": "Thinking of you", "subject": "A few pieces with you in mind",
+     "body": "Dear {first_name},\n\nA few new pieces arrived that I think would suit you, and I "
+             "wanted you to be among the first to see them. I would be glad to set anything aside "
+             "for you.\n{catalog_link}\n\nWarm regards,\n{sender}"},
+
+    {"category": "Occasions", "name": "Happy birthday", "subject": "Happy birthday, {first_name}",
+     "body": "Dear {first_name},\n\nWishing you a very happy birthday from all of us. If there is "
+             "something you have had your eye on, it would be my pleasure to help you treat "
+             "yourself, or to arrange it as a gift.\n\nWarmly,\n{sender}"},
+    {"category": "Occasions", "name": "A year with us", "subject": "Thank you for a wonderful year",
+     "body": "Dear {first_name},\n\nIt has been a year since your first order with us, and I wanted to "
+             "say thank you for your custom and your trust. It is a pleasure to look after you.\n\n"
+             "With warm regards,\n{sender}"},
+
+    {"category": "Care & feedback", "name": "Caring for your piece",
+     "subject": "Caring for your new piece",
+     "body": "Dear {first_name},\n\nI hope you are enjoying your recent piece. If you would like any "
+             "advice on caring for it so it lasts beautifully, I am happy to help. Just reply "
+             "here.\n\nWarm regards,\n{sender}"},
+    {"category": "Care & feedback", "name": "How did we do", "subject": "I would love your thoughts",
+     "body": "Dear {first_name},\n\nIf you have a moment, I would love to know how you found your "
+             "experience with us, and whether there is anything we could do better for you next "
+             "time. Your thoughts mean a great deal.\n\nWith thanks,\n{sender}"},
 ]
 
 # Order-action templates power the Orders view (status-aware). Keyed by order status.
@@ -262,7 +388,8 @@ def _clean_templates(raw) -> list[dict]:
         body = str(t.get("body", "")).strip()
         if name and body:
             out.append({"name": name[:80], "subject": str(t.get("subject", ""))[:160],
-                        "body": body[:4000]})
+                        "body": body[:4000],
+                        "category": (str(t.get("category", "") or "General").strip()[:40])})
     return out
 
 
