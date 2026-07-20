@@ -6,10 +6,19 @@
   function extract() {
     const main = document.querySelector("#main");
     if (!main) return null;
-    const titleEl = main.querySelector("header span[title]");
-    const title = titleEl ? (titleEl.getAttribute("title") || "").trim() : "";
-    if (!title) return null;
-    const looksPhone = /^\+?[\d\s\-()]{7,}$/.test(title);
+    const header = main.querySelector("header");
+    if (!header) return null;
+    // The open chat's name (or raw number if unsaved) lives in the header. WhatsApp's markup shifts,
+    // so try a title attribute first, then the first readable text span, and clean it up.
+    let title = "";
+    const cand = header.querySelector('span[title][dir="auto"], span[title], span[dir="auto"]');
+    if (cand) title = (cand.getAttribute("title") || cand.textContent || "").trim();
+    if (!title) {
+      const h1 = header.querySelector("h1, h2");
+      if (h1) title = (h1.textContent || "").trim();
+    }
+    if (!title || title.length > 80) return null;
+    const looksPhone = /^\+?[\d][\d\s\-()]{6,}$/.test(title);
     if (looksPhone) return { phone: title.replace(/[^\d+]/g, "") };
     return { name: title };
   }

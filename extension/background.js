@@ -9,12 +9,23 @@ async function config() {
   return { base: (haliaBase || DEFAULT_BASE).replace(/\/+$/, ""), token: haliaToken || "" };
 }
 
+// fetch with a hard timeout, so a slow or unreachable Halia fails fast instead of hanging forever.
+async function hfetch(url, init, ms) {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), ms || 20000);
+  try {
+    return await fetch(url, Object.assign({}, init, { signal: c.signal }));
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 async function lookup(query) {
   const { base, token } = await config();
   if (!token) return { error: "no-token" };
   let res;
   try {
-    res = await fetch(base + "/v1/extension/lookup", {
+    res = await hfetch(base + "/v1/extension/lookup", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Halia-Ext-Token": token },
       body: JSON.stringify(query || {})
@@ -69,7 +80,7 @@ async function context() {
   if (!token) return { error: "no-token" };
   let res;
   try {
-    res = await fetch(base + "/v1/extension/context", {
+    res = await hfetch(base + "/v1/extension/context", {
       headers: { "X-Halia-Ext-Token": token }
     });
   } catch (e) {
@@ -88,7 +99,7 @@ async function history(cid) {
   const { base, token } = await config();
   if (!token) return { error: "no-token" };
   try {
-    const res = await fetch(base + "/v1/extension/history?cid=" + encodeURIComponent(cid || ""),
+    const res = await hfetch(base + "/v1/extension/history?cid=" + encodeURIComponent(cid || ""),
       { headers: { "X-Halia-Ext-Token": token } });
     if (!res.ok) return { error: "http-" + res.status };
     return await res.json();
@@ -103,7 +114,7 @@ async function products(q) {
   const url = base + "/v1/extension/products?limit=20&q=" + encodeURIComponent(q || "");
   let res;
   try {
-    res = await fetch(url, { headers: { "X-Halia-Ext-Token": token } });
+    res = await hfetch(url, { headers: { "X-Halia-Ext-Token": token } });
   } catch (e) {
     return { error: "network" };
   }
@@ -121,7 +132,7 @@ async function batch(body) {
   if (!token) return { error: "no-token" };
   let res;
   try {
-    res = await fetch(base + "/v1/extension/batch", {
+    res = await hfetch(base + "/v1/extension/batch", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Halia-Ext-Token": token },
       body: JSON.stringify(body || {})
@@ -147,7 +158,7 @@ async function action(body) {
   }
   let res;
   try {
-    res = await fetch(base + "/v1/extension/action", {
+    res = await hfetch(base + "/v1/extension/action", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Halia-Ext-Token": token },
       body: JSON.stringify(body || {})
