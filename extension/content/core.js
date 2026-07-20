@@ -86,5 +86,28 @@
     debounced();
   }
 
-  window.Halia = { observe, lookup };
+  // Insert text into a composer, preserving line breaks. Plain execCommand("insertText") with "\n"
+  // collapses newlines in contenteditable editors (WhatsApp, Gmail, Slack), so split on newlines and
+  // emit a real line break between lines. Textareas (Instagram) keep "\n" natively.
+  function insertInto(el, text) {
+    if (!el || !text) return false;
+    el.focus();
+    const t = String(text);
+    if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+      const proto = el.tagName === "TEXTAREA"
+        ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+      const setter = Object.getOwnPropertyDescriptor(proto, "value").set;
+      setter.call(el, (el.value || "") + t);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      return true;
+    }
+    const lines = t.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      if (i > 0) document.execCommand("insertLineBreak");
+      if (lines[i]) document.execCommand("insertText", false, lines[i]);
+    }
+    return true;
+  }
+
+  window.Halia = { observe, lookup, insertInto };
 })();

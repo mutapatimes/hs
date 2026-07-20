@@ -27,10 +27,7 @@
   // execCommand insertText fires the input events it listens for, so the text is really typed,
   // not just pasted into a dead node.
   function insert(text) {
-    const box = document.querySelector('footer [contenteditable="true"]');
-    if (!box || !text) return false;
-    box.focus();
-    return document.execCommand("insertText", false, text) !== false;
+    return Halia.insertInto(document.querySelector('footer [contenteditable="true"]'), text);
   }
 
   HaliaPanel.setChannel("whatsapp");
