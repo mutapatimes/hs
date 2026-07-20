@@ -14,7 +14,8 @@ closed). The panel has four always-ready sections:
 - **Client** — updates as you open a chat, email or customer: grade (A\*, A, B…), hidden-VIC or
   gone-quiet flag, latent value, recent order recency, an open-basket alert with a link, the
   reasons they scored, the recommended next move, **Add to pipeline** (Shopify write-back stores),
-  and links to open them in Halia or your store.
+  a **Note** field to jot context (saved to the customer in your Shopify, shown in the dashboard
+  pipeline), and links to open them in Halia or your store.
 - **Templates** — your outreach templates, filled with the active client's name. **Insert** drops
   one straight into the WhatsApp/Gmail reply box, or copy it.
 - **Campaigns** — the campaigns running now. With a client on screen, **Add this client** drops them

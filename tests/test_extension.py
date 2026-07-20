@@ -236,6 +236,18 @@ def test_action_pipeline_needs_shopify_writeback(env):
     assert r.status_code == 400  # pipeline is Shopify-write-back only
 
 
+def test_action_note_requires_text_and_shopify(env):
+    client, store, tok = env  # woo tenant
+    ext = _ext_token(client, tok)
+    # empty note -> 422 (checked before the Shopify sink)
+    assert client.post("/v1/extension/action", json={"action": "note", "cid": "c1", "note": "  "},
+                       headers={"X-Halia-Ext-Token": ext}).status_code == 422
+    # real note on a non-Shopify tenant -> 400 (write-back only)
+    assert client.post("/v1/extension/action",
+                       json={"action": "note", "cid": "c1", "note": "Prefers navy"},
+                       headers={"X-Halia-Ext-Token": ext}).status_code == 400
+
+
 def test_action_rejects_unknown(env):
     client, store, tok = env
     ext = _ext_token(client, tok)
