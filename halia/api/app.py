@@ -138,7 +138,7 @@ def _serve_page(name: str) -> _HTML:
     raise HTTPException(404, "Page not found")
 
 
-for _name in ("solutions", "security", "clienteling", "faq", "demo", "brand",
+for _name in ("solutions", "security", "clienteling", "concierge", "faq", "demo", "brand",
               "responsible", "pricing", "privacy", "terms", "cookies", "subprocessors",
               "status", "storeconcierge"):
     app.add_api_route(f"/{_name}", (lambda n: lambda: _serve_page(n))(_name),
@@ -263,7 +263,7 @@ _SITE_ORIGIN = _os.environ.get("HALIA_SITE_URL", "https://haliascore.com").rstri
 # Every publicly indexable route. Excludes the sign-in-gated docs and the
 # noindex legal pages (which already carry X-Robots-Tag: noindex).
 _INDEXABLE_PATHS = [
-    "/", "/brand", "/clienteling", "/faq", "/pricing", "/responsible",
+    "/", "/brand", "/clienteling", "/concierge", "/faq", "/pricing", "/responsible",
     "/security", "/solutions", "/demo", "/status", "/blog",
     "/docs", "/docs/connect-your-store", "/docs/crm-and-email",   # public connection guides
 ] + [f"/solutions/{_i}" for _i in
