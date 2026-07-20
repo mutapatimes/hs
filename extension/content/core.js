@@ -86,9 +86,10 @@
     debounced();
   }
 
-  // Insert text into a composer, preserving line breaks. Plain execCommand("insertText") with "\n"
-  // collapses newlines in contenteditable editors (WhatsApp, Gmail, Slack), so split on newlines and
-  // emit a real line break between lines. Textareas (Instagram) keep "\n" natively.
+  // Insert text into a composer, preserving line breaks. execCommand("insertText") collapses "\n"
+  // and Lexical editors (WhatsApp) ignore insertLineBreak, so for contenteditable we dispatch a
+  // synthetic paste: the editor's own paste handler inserts the text with its line breaks intact.
+  // Textareas (Instagram) keep "\n" natively via the value setter.
   function insertInto(el, text) {
     if (!el || !text) return false;
     el.focus();
@@ -101,12 +102,20 @@
       el.dispatchEvent(new Event("input", { bubbles: true }));
       return true;
     }
-    const lines = t.split(/\r?\n/);
-    for (let i = 0; i < lines.length; i++) {
-      if (i > 0) document.execCommand("insertLineBreak");
-      if (lines[i]) document.execCommand("insertText", false, lines[i]);
+    try {
+      const dt = new DataTransfer();
+      dt.setData("text/plain", t);
+      el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+      return true;
+    } catch (e) {
+      // Older engines: line-by-line with a real line break between paragraphs.
+      const lines = t.split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        if (i > 0) document.execCommand("insertLineBreak");
+        if (lines[i]) document.execCommand("insertText", false, lines[i]);
+      }
+      return true;
     }
-    return true;
   }
 
   window.Halia = { observe, lookup, insertInto };
