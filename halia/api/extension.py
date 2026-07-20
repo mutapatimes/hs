@@ -74,6 +74,20 @@ def _dashboard_link() -> str:
     return (config.HALIA_APP_URL or "").rstrip("/") + "/app"
 
 
+def _last_outreach(activity: list) -> Optional[dict]:
+    """The most recent outreach (contacted / note) from a pipeline activity log, so the toolbar can
+    warn 'already contacted' before someone messages again. None if the client has never been touched."""
+    last = None
+    for a in activity or []:
+        if a.get("action") in ("contacted", "note"):
+            if last is None or (a.get("at") or "") > (last.get("at") or ""):
+                last = a
+    if not last:
+        return None
+    return {"at": last.get("at"), "by": last.get("actor_name"),
+            "action": last.get("action"), "note": last.get("note")}
+
+
 def _todos(shop: str) -> list[dict]:
     """Team to-dos from the scored book: fresh orders from top clients to acknowledge, and proven
     clients gone quiet to win back. Warm cache only, so this is cheap. No customer data stored."""
@@ -324,6 +338,26 @@ def register(app) -> None:
             raise HTTPException(422, "Provide email, cid, phone or name")
         data.record_activity(shop, "extension_lookup")
         return _lookup(shop, email, cid, phone, name)
+
+    @app.get("/v1/extension/history")
+    def extension_history(x_halia_ext_token: Optional[str] = Header(None),
+                          cid: str = Query("")) -> dict:
+        """The client's last outreach from the shared pipeline log, so the toolbar can flag
+        'already contacted' before anyone messages again. Shopify only (the log lives in the
+        merchant's own customer metafield). Reads live; stores nothing."""
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        cid = (cid or "").strip()
+        if not cid:
+            return {"last_contact": None}
+        try:
+            from halia.api.board import _sink, load_pipe
+            pipe = load_pipe(_sink(shop).get_metafield(cid, "pipeline"))
+        except Exception:
+            return {"last_contact": None}            # non-Shopify tenant, or no metafield yet
+        return {"last_contact": _last_outreach(pipe.get("activity"))}
 
     @app.get("/v1/extension/products")
     def extension_products(x_halia_ext_token: Optional[str] = Header(None),

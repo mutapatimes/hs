@@ -84,6 +84,19 @@ async function context() {
   }
 }
 
+async function history(cid) {
+  const { base, token } = await config();
+  if (!token) return { error: "no-token" };
+  try {
+    const res = await fetch(base + "/v1/extension/history?cid=" + encodeURIComponent(cid || ""),
+      { headers: { "X-Halia-Ext-Token": token } });
+    if (!res.ok) return { error: "http-" + res.status };
+    return await res.json();
+  } catch (e) {
+    return { error: "network" };
+  }
+}
+
 async function products(q) {
   const { base, token } = await config();
   if (!token) return { error: "no-token" };
@@ -174,6 +187,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg && msg.type === "halia:products") {
     products(msg.q).then(sendResponse);
+    return true;
+  }
+  if (msg && msg.type === "halia:history") {
+    history(msg.cid).then(sendResponse);
     return true;
   }
   if (msg && msg.type === "halia:config") {

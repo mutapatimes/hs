@@ -12,7 +12,9 @@ A handle sits on the right edge of the page; click it to open the panel (it reme
 closed). The panel has four always-ready sections:
 
 - **Client** — updates as you open a chat, email or customer: grade (A\*, A, B…), hidden-VIC or
-  gone-quiet flag, latent value, recent order recency, an open-basket alert with a link, the
+  gone-quiet flag, a **"contacted 2d ago by Sarah"** warning if a colleague already reached out
+  (read from the shared log, so you don't double-message), latent value, recent order recency, an
+  open-basket alert with a link, the
   reasons they scored, the recommended next move, **Add to pipeline** (Shopify write-back stores),
   a **Note** field to jot context (saved to the customer in your Shopify, shown in the dashboard
   pipeline), and links to open them in Halia or your store.

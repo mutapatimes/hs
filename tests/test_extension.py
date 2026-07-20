@@ -301,6 +301,27 @@ def test_action_rejects_unknown(env):
     assert r.status_code == 422
 
 
+# ── last-contacted cue ────────────────────────────────────────────────────────
+def test_history_requires_token_and_is_null_off_shopify(env):
+    client, store, tok = env  # woo tenant: no shared metafield
+    assert client.get("/v1/extension/history?cid=c1").status_code == 401
+    ext = _ext_token(client, tok)
+    d = client.get("/v1/extension/history?cid=c1", headers={"X-Halia-Ext-Token": ext}).json()
+    assert d == {"last_contact": None}
+
+
+def test_last_outreach_picks_the_most_recent_contact():
+    acts = [
+        {"action": "added", "actor_name": "Sys", "at": "2026-07-01T09:00:00"},
+        {"action": "note", "actor_name": "Ben", "at": "2026-07-05T09:00:00", "note": "Prefers navy"},
+        {"action": "contacted", "actor_name": "Sarah", "at": "2026-07-10T09:00:00", "note": "Called"},
+    ]
+    last = extension._last_outreach(acts)
+    assert last["by"] == "Sarah" and last["action"] == "contacted" and last["note"] == "Called"
+    assert extension._last_outreach([{"action": "added", "at": "x"}]) is None
+    assert extension._last_outreach([]) is None
+
+
 # ── unit helpers ──────────────────────────────────────────────────────────────
 def test_play_of_rules():
     assert extension._play_of({"known": True}) == "sleeping"
