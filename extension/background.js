@@ -84,6 +84,25 @@ async function context() {
   }
 }
 
+async function products(q) {
+  const { base, token } = await config();
+  if (!token) return { error: "no-token" };
+  const url = base + "/v1/extension/products?limit=20&q=" + encodeURIComponent(q || "");
+  let res;
+  try {
+    res = await fetch(url, { headers: { "X-Halia-Ext-Token": token } });
+  } catch (e) {
+    return { error: "network" };
+  }
+  if (res.status === 401) return { error: "unauthorized" };
+  if (!res.ok) return { error: "http-" + res.status };
+  try {
+    return await res.json();
+  } catch (e) {
+    return { error: "parse" };
+  }
+}
+
 async function batch(body) {
   const { base, token } = await config();
   if (!token) return { error: "no-token" };
@@ -146,6 +165,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg && msg.type === "halia:batch") {
     batch(msg.body).then(sendResponse);
+    return true;
+  }
+  if (msg && msg.type === "halia:products") {
+    products(msg.q).then(sendResponse);
     return true;
   }
   if (msg && msg.type === "halia:config") {

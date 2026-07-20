@@ -82,6 +82,21 @@ def test_order_node_maps_to_rest_shape():
     assert rest["customer"]["number_of_orders"] == 2
 
 
+def test_product_search_node_extracts_numeric_variant_ids():
+    from scoring.shopify_graphql import product_search_node
+    node = {"id": "gid://shopify/Product/9", "title": "Silk Scarf",
+            "featuredImage": {"url": "http://img"},
+            "variants": {"nodes": [
+                {"id": "gid://shopify/ProductVariant/111", "title": "Blue", "price": "120.00",
+                 "availableForSale": True},
+                {"id": "gid://shopify/ProductVariant/222", "title": "Red", "price": "120.00",
+                 "availableForSale": False}]}}
+    p = product_search_node(node)
+    assert p["id"] == "9" and p["title"] == "Silk Scarf" and p["image"] == "http://img"
+    assert [v["id"] for v in p["variants"]] == ["111"]        # unavailable variant dropped
+    assert p["variants"][0]["price"] == "120.00"
+
+
 def test_order_maps_utm_campaign_from_journey():
     order = dict(SAMPLE_CUSTOMER["orders"]["nodes"][1])
     order["customerJourneySummary"] = {"lastVisit": {"utmParameters": {"campaign": "spring-preview"}}}

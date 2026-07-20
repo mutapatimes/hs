@@ -21,6 +21,10 @@ closed). The panel has four always-ready sections:
 - **Campaigns** — the campaigns running now. With a client on screen, **Add this client** drops them
   into the campaign; each also offers a one-click **tagged catalogue link** (carrying the campaign's
   UTM for the current channel) to insert or copy, plus copy-UTM.
+- **Build a cart** (Shopify) — search your products, add variants to a cart for the client, then
+  **Send cart**: it builds a Shopify cart permalink (`/cart/{variant}:{qty},…`) that pre-loads their
+  basket, dropped straight into the reply or copied. If a campaign is running, the link is tagged
+  with its UTM so the purchase attributes.
 - **Catalogue** — your live catalogue link, ready to insert or copy.
 
 ### Inbox triage dots (Gmail)

@@ -108,6 +108,41 @@ PRODUCTS_QUERY = (
 )
 
 
+# Bounded product SEARCH for the extension's cart builder — includes variant IDs (needed for a
+# /cart/{variantId}:{qty} permalink), which the catalogue PRODUCTS_QUERY deliberately omits. Kept
+# separate so the catalogue backfill's query cost is unchanged. Pass {"q": "<term>", "n": 20}.
+PRODUCT_SEARCH_QUERY = (
+    "query ProductSearch($q: String!, $n: Int!) {\n"
+    "  products(first: $n, query: $q, sortKey: TITLE) {\n"
+    "    nodes {\n"
+    "      id title status\n"
+    "      featuredImage { url }\n"
+    "      variants(first: 25) { nodes { id title price availableForSale } }\n"
+    "    }\n"
+    "  }\n"
+    "}\n"
+)
+
+
+def product_search_node(node: dict) -> dict:
+    """A search-result product with its buyable variants (numeric ids) for the cart builder."""
+    node = node or {}
+    variants = []
+    for v in ((node.get("variants") or {}).get("nodes")) or []:
+        if v.get("availableForSale") is False:
+            continue
+        vid = str(v.get("id") or "").rsplit("/", 1)[-1]   # gid -> numeric variant id
+        if not vid.isdigit():
+            continue
+        variants.append({"id": vid, "title": v.get("title") or "", "price": v.get("price")})
+    return {
+        "id": str(node.get("id") or "").rsplit("/", 1)[-1],
+        "title": node.get("title") or "",
+        "image": (node.get("featuredImage") or {}).get("url"),
+        "variants": variants,
+    }
+
+
 def product_node_to_dict(node: dict) -> dict:
     """Shopify product node -> a flat dict for the catalog picker / renderer."""
     node = node or {}
