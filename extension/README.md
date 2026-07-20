@@ -29,13 +29,14 @@ closed). The panel has four always-ready sections:
   with its UTM so the purchase attributes.
 - **Catalogue** — your live catalogue link, ready to insert or copy.
 
-### Inbox triage dots (Gmail)
+### Inbox triage dots (Gmail + WhatsApp)
 
 In the Gmail inbox list, each conversation from a known client gets a small grade tag (A\*, A, B…)
 before the sender's name, coloured by grade, so the highest-grade client is answered first. Grades
 are looked up in one batched request per new set of visible senders and match against your book;
-non-clients get no tag. WhatsApp's chat list only exposes a name, not an address, so the dots are
-Gmail-only for now.
+non-clients get no tag. The **WhatsApp chat list** gets the same dots, matched on the saved contact
+name (WhatsApp exposes no address there), so naming your Shopify customers the same as your WhatsApp
+contacts gives the best match.
 
 One-click actions preserve zero-retention: "Add to pipeline" writes a stage tag + metafield into
 your own Shopify; "Add this client" stores only the opaque customer id in the campaign, exactly as

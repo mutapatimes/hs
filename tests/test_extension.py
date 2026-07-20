@@ -199,6 +199,16 @@ def test_batch_grades_known_emails_and_omits_others(env):
     assert g["ben@x.com"]["play"] == "fresh"
 
 
+def test_batch_grades_by_name_for_whatsapp_list(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row(name="Tarek Bensaime", email="t@x.com", tier="A1")])
+    d = client.post("/v1/extension/batch", json={"names": ["Tarek Bensaime", "Nobody"]},
+                    headers={"X-Halia-Ext-Token": ext}).json()
+    assert set(d["grades"]) == {"tarek bensaime"}
+    assert d["grades"]["tarek bensaime"]["grade"] == "A*"
+
+
 def test_batch_is_warm_only_and_needs_a_token(env):
     client, store, tok = env
     assert client.post("/v1/extension/batch", json={"emails": ["a@b.com"]}).status_code == 401
