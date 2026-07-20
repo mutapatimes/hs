@@ -154,6 +154,38 @@ def test_bulk_members_and_edit_preserves_membership(api):
     assert sorted(got["config"]["members"]) == ["a", "b", "c"]
 
 
+def test_create_generates_utm_campaign_from_name(api):
+    c, _ = api
+    r = c.post("/v1/campaigns", json={"name": "Spring Private Preview",
+                                      "starts": "2025-03-01", "ends": "2025-05-31"})
+    assert r.json()["utm"]["campaign"] == "spring-private-preview"
+    got = c.get("/v1/campaigns").json()["campaigns"][0]
+    assert got["config"]["utm"]["campaign"] == "spring-private-preview"
+
+
+def test_utm_campaign_is_stable_across_rename(api):
+    c, _ = api
+    cid = c.post("/v1/campaigns", json={"name": "Spring", "starts": "2025-03-01",
+                                        "ends": "2025-05-31"}).json()["id"]
+    c.post("/v1/campaigns", json={"id": cid, "name": "Autumn", "starts": "2025-03-01",
+                                  "ends": "2025-05-31"})            # rename, config omitted
+    got = c.get("/v1/campaigns").json()["campaigns"][0]
+    assert got["name"] == "Autumn" and got["config"]["utm"]["campaign"] == "spring"
+
+
+def test_metrics_carries_utm_and_backfills_legacy_campaign(api):
+    from halia.cache import cache
+    c, store = api
+    store.save_campaign("camp_old", "shopx", "Winter Sale", "2025-01-01", "2025-02-01",
+                        json.dumps({"tiers": ["A1"], "signals": [], "members": []}))  # no utm
+    cache.set("shopx", [], {"data": []}, {})
+    try:
+        m = c.get("/v1/campaigns/camp_old/metrics").json()
+        assert m["utm"]["campaign"] == "winter-sale"
+    finally:
+        cache.evict("shopx")
+
+
 def test_api_metrics_json_endpoint(api):
     from halia.cache import cache
     c, _ = api

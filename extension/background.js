@@ -64,10 +64,34 @@ async function syncWooScripts() {
 chrome.runtime.onInstalled.addListener(syncWooScripts);
 chrome.runtime.onStartup.addListener(syncWooScripts);
 
+async function context() {
+  const { base, token } = await config();
+  if (!token) return { error: "no-token" };
+  let res;
+  try {
+    res = await fetch(base + "/v1/extension/context", {
+      headers: { "X-Halia-Ext-Token": token }
+    });
+  } catch (e) {
+    return { error: "network" };
+  }
+  if (res.status === 401) return { error: "unauthorized" };
+  if (!res.ok) return { error: "http-" + res.status };
+  try {
+    return await res.json();
+  } catch (e) {
+    return { error: "parse" };
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg && msg.type === "halia:lookup") {
     lookup(msg.query).then(sendResponse);
     return true; // keep the channel open for the async response
+  }
+  if (msg && msg.type === "halia:context") {
+    context().then(sendResponse);
+    return true;
   }
   if (msg && msg.type === "halia:config") {
     config().then((c) => sendResponse({ base: c.base, hasToken: !!c.token }));

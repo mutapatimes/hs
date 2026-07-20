@@ -45,5 +45,6 @@
     return woocommerce();
   }
 
+  HaliaPanel.setChannel("admin");
   Halia.observe(extract);
 })();

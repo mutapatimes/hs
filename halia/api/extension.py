@@ -45,20 +45,28 @@ def _play_of(row: dict) -> str:
     return ""
 
 
-def _templates(shop: str, first_name: str) -> list[dict]:
+def _fill(text: str, first, sender: str, catalog) -> str:
+    """Fill template tokens. first=None leaves {first_name} for the toolbar to fill per client."""
+    t = text or ""
+    if first is not None:
+        t = t.replace("{first_name}", first or "there")
+    t = t.replace("{sender}", sender or "")
+    if catalog:
+        t = t.replace("{catalog_link}", catalog)
+    return t
+
+
+def _templates(shop: str, first_name, catalog=None) -> list[dict]:
     """The merchant's own editable outreach templates, with placeholders filled for this client."""
     from halia.api.settings import settings_for
     s = settings_for(shop)
     sender = s.get("sender_name") or ""
-    first = first_name or "there"
-
-    def fill(t: str) -> str:
-        return (t or "").replace("{first_name}", first).replace("{sender}", sender)
-
+    cat = catalog if catalog is not None else _catalog_link(shop)
     out = []
-    for t in (s.get("email_templates") or [])[:8]:
-        out.append({"name": t.get("name", ""), "subject": fill(t.get("subject", "")),
-                    "body": fill(t.get("body", ""))})
+    for t in (s.get("email_templates") or [])[:12]:
+        out.append({"name": t.get("name", ""),
+                    "subject": _fill(t.get("subject", ""), first_name, sender, cat),
+                    "body": _fill(t.get("body", ""), first_name, sender, cat)})
     return out
 
 
@@ -215,6 +223,49 @@ def register(app) -> None:
     def extension_token_status(shop: str = Depends(require_shop)) -> dict:
         return {"enabled": bool(shop_store().get_extension_token_hash(shop)),
                 "base": (config.HALIA_APP_URL or "").rstrip("/")}
+
+    @app.get("/v1/extension/context")
+    def extension_context(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
+        """The toolbar's standing context, independent of any one client: the merchant's templates,
+        their live catalogue, and the campaigns running now. Refreshed by the extension so the
+        toolbar is always ready. No customer data."""
+        import json
+        from datetime import date, timezone, datetime
+
+        from halia.api.campaigns import _utm_slug
+        from halia.api.settings import settings_for
+
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        s = settings_for(shop)
+        catalog = _catalog_link(shop)
+        today = datetime.now(timezone.utc).date().isoformat()
+        campaigns = []
+        for row in shop_store().list_campaigns(shop):
+            try:
+                cfg = json.loads(row.get("config_json") or "{}")
+            except (TypeError, ValueError):
+                cfg = {}
+            starts, ends = row.get("starts") or "", row.get("ends") or ""
+            campaigns.append({
+                "id": row["id"], "name": row["name"], "starts": starts, "ends": ends,
+                "running": bool(starts <= today <= ends) if (starts and ends) else False,
+                "members": len((cfg.get("members") or [])),
+                "utm": (cfg.get("utm") or {}).get("campaign") or _utm_slug(row["name"]) or row["id"],
+            })
+        campaigns.sort(key=lambda c: (not c["running"], c["starts"] or ""))
+        tenant = dict(shop_store().get_tenant(shop) or {})
+        return {
+            "label": tenant.get("label") or shop,
+            "platform": tenant.get("kind") or ("shopify" if shop.endswith(".myshopify.com") else "shopify"),
+            "brand": s.get("brand") or "halia",
+            "catalog": catalog,
+            "dashboard": _dashboard_link(),
+            "templates": _templates(shop, None, catalog),
+            "campaigns": campaigns,
+        }
 
     @app.post("/v1/extension/lookup")
     def extension_lookup(x_halia_ext_token: Optional[str] = Header(None),

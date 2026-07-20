@@ -149,6 +149,32 @@ def test_lookup_unknown_customer_is_not_found(env):
     assert d == {"found": False}
 
 
+# ── standing toolbar context ──────────────────────────────────────────────────
+def test_context_requires_token(env):
+    client, store, tok = env
+    assert client.get("/v1/extension/context").status_code == 401
+    assert client.get("/v1/extension/context",
+                      headers={"X-Halia-Ext-Token": "nope"}).status_code == 401
+
+
+def test_context_returns_templates_and_running_campaigns(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    import json as _json
+    store.save_campaign("camp_now", SHOP, "Spring Preview", "2000-01-01", "2999-01-01",
+                        _json.dumps({"tiers": [], "signals": [], "members": ["a", "b"]}))
+    store.save_campaign("camp_old", SHOP, "Old Sale", "2000-01-01", "2000-02-01",
+                        _json.dumps({"tiers": [], "signals": [], "members": []}))
+    d = client.get("/v1/extension/context", headers={"X-Halia-Ext-Token": ext}).json()
+    # templates keep {first_name} for the toolbar to fill per client
+    assert d["templates"] and any("{first_name}" in t["body"] for t in d["templates"])
+    running = [c for c in d["campaigns"] if c["running"]]
+    assert [c["id"] for c in running] == ["camp_now"]
+    now = next(c for c in d["campaigns"] if c["id"] == "camp_now")
+    assert now["utm"] == "spring-preview" and now["members"] == 2
+    assert d["campaigns"][0]["id"] == "camp_now"  # running sorts first
+
+
 # ── unit helpers ──────────────────────────────────────────────────────────────
 def test_play_of_rules():
     assert extension._play_of({"known": True}) == "sleeping"

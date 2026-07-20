@@ -2333,7 +2333,7 @@ function campForm(c){
     <input type="hidden" id="cId" value="${esc(c.id||"")}">
     <div class="crow"><button class="btn" id="cSave">${c.id?"Save changes":"Create campaign"}</button>
       ${c.id?'<button class="btn ghost" id="cCancel">Cancel</button>':''}</div>
-    <div style="font-size:12.5px;color:var(--faint);margin-top:8px">Add clients from the <b>Clients</b> tab: tick people, then choose <b>Add to campaign</b>.</div>
+    <div style="font-size:12.5px;color:var(--faint);margin-top:8px">Add clients from the <b>Clients</b> tab: tick people, then choose <b>Add to campaign</b>. A UTM tag is created automatically: open the monitor for ready-tagged links to paste into Klaviyo, WhatsApp and your catalogue.</div>
   </div>`;
 }
 function campInit(force){
@@ -2365,6 +2365,17 @@ function cmMoney(v){v=+v||0;const a=Math.abs(v);
   if(a>=1e6)return "£"+(v/1e6).toFixed(1).replace(/\.0$/,"")+"m";
   if(a>=1e3)return "£"+(v/1e3).toFixed(1).replace(/\.0$/,"")+"k";
   return "£"+Math.round(v).toLocaleString();}
+// utm_source / utm_medium defaults per channel; utm_campaign is fixed per campaign.
+const UTM_CHAN={klaviyo:["klaviyo","email"],email:["email","email"],whatsapp:["whatsapp","chat"],
+  sms:["sms","sms"],instagram:["instagram","social"],catalogue:["catalogue","referral"]};
+function appendUtm(url,utm){
+  if(!url)return "";
+  let base=url,frag="";const hi=url.indexOf("#");if(hi>=0){frag=url.slice(hi);base=url.slice(0,hi);}
+  const q=["source","medium","campaign","content"].filter(k=>utm[k])
+    .map(k=>"utm_"+k+"="+encodeURIComponent(utm[k])).join("&");
+  if(!q)return url;
+  return base+(base.indexOf("?")>=0?"&":"?")+q+frag;
+}
 function cmArea(series){
   if(!series||!series.length)return '<div class="cm-empty">No sales in this window yet.</div>';
   const w=760,h=240,pl=46,pb=26,pt=14,iw=w-pl-14,ih=h-pb-pt,n=series.length;
@@ -2402,6 +2413,31 @@ function renderMonitor(m){
     </div>
     <h2 class="cm-title">${esc(m.name)}</h2>
     <div class="cm-datesub">${esc(m.starts)} &rarr; ${esc(m.ends)}</div>
+    <div class="cm-panel" style="margin-bottom:14px">
+      <h3>Campaign links &amp; UTM</h3>
+      <p style="font-size:13px;line-height:1.55;color:var(--soft);margin:0 0 12px">Tag the links in your Klaviyo emails, WhatsApp messages and catalogue with this campaign so its clicks and sales group under one name in your store analytics. Halia sends the audience; you paste these tagged links into your own emails.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <span style="font-weight:600;font-size:12px;color:var(--faint);letter-spacing:.02em">Channel</span>
+        <select id="utmChan" style="padding:9px 11px;border:1px solid var(--line-strong);font:14px inherit;color:var(--ink);background:var(--card)">
+          <option value="klaviyo">Klaviyo email</option><option value="email">Email</option>
+          <option value="whatsapp">WhatsApp</option><option value="sms">SMS</option>
+          <option value="instagram">Instagram</option><option value="catalogue">Catalogue</option>
+        </select>
+        <span style="font:12px 'Spline Sans Mono',monospace;color:var(--faint)">utm_campaign=<b style="color:var(--ink)">${esc((m.utm||{}).campaign||"")}</b></span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="utmUrl" placeholder="Paste a link (product, collection, or booking page)" style="flex:1;min-width:240px;padding:9px 11px;border:1px solid var(--line-strong);font:14px inherit;color:var(--ink);background:var(--card)">
+        <button class="btn" id="utmTag">Tag link</button>
+      </div>
+      <div id="utmOut" style="display:none;margin-top:10px;background:var(--rowhover);padding:10px 12px">
+        <code id="utmResult" style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);word-break:break-all"></code>
+        <button class="lx" id="utmCopy" style="margin-top:8px">Copy tagged link</button>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px">
+        ${CATALOG_URL?`<button class="lx" id="utmCat">Copy tagged catalogue link</button>`:''}
+        <button class="lx" id="utmRaw">Copy UTM parameters only</button>
+      </div>
+    </div>
     <div id="campaignMonitor">
       <div class="cm-kpis">${kpis}</div>
       <div class="cm-winback"><div class="cm-wn">${(k.reactivated||0).toLocaleString()}</div><div class="cm-wt">clients came back from gone quiet<span>reactivated during the campaign, worth <b>${cmMoney(k.reactivated_revenue)}</b> recovered</span></div></div>
@@ -2414,6 +2450,22 @@ function renderMonitor(m){
     </div>`;
   document.getElementById("cmBack").onclick=()=>campInit(true);
   document.getElementById("cmPdf").onclick=()=>window.print();
+  const CAMP=(m.utm||{}).campaign||"";
+  const utmObj=()=>{const c=(document.getElementById("utmChan")||{}).value||"klaviyo";
+    const cm=UTM_CHAN[c]||["halia","referral"];return {source:cm[0],medium:cm[1],campaign:CAMP};};
+  const copy=(t,msg)=>{if(t)navigator.clipboard.writeText(t).then(()=>toast(msg),()=>toast("Copy failed."));};
+  const tagBtn=document.getElementById("utmTag");
+  if(tagBtn)tagBtn.onclick=()=>{const u=(document.getElementById("utmUrl").value||"").trim();
+    if(!u){toast("Paste a link first.");return;}
+    document.getElementById("utmResult").textContent=appendUtm(u,utmObj());
+    document.getElementById("utmOut").style.display="";};
+  const cp=document.getElementById("utmCopy");
+  if(cp)cp.onclick=()=>copy((document.getElementById("utmResult")||{}).textContent,"Tagged link copied.");
+  const cat=document.getElementById("utmCat");
+  if(cat)cat.onclick=()=>copy(appendUtm(CATALOG_URL,{source:"catalogue",medium:"referral",campaign:CAMP}),"Tagged catalogue link copied.");
+  const raw=document.getElementById("utmRaw");
+  if(raw)raw.onclick=()=>{const o=utmObj();
+    copy("utm_source="+encodeURIComponent(o.source)+"&utm_medium="+encodeURIComponent(o.medium)+"&utm_campaign="+encodeURIComponent(o.campaign),"UTM parameters copied.");};
 }
 function openMonitor(id){
   const root=document.getElementById("campaignsRoot"); if(!root)return;
