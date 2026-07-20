@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    * { box-sizing: border-box; }
+    body { width: 260px; margin: 0; font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #fbfaf7; color: #1a1a1a; padding: 16px; }
+    .mark { color: #8a7a4f; font-size: 18px; }
+    h1 { font-size: 15px; margin: 4px 0 2px; font-weight: 600; }
+    p { font-size: 12px; color: #6b6355; line-height: 1.45; margin: 0 0 12px; }
+    .state { font-size: 12px; padding: 7px 9px; border: 1px solid #e3ded3; background: #fff; margin-bottom: 12px; }
+    .state.ok { border-color: #cfe0d3; color: #3f7a4f; }
+    .state.bad { border-color: #e6cfc9; color: #a2453b; }
+    button { width: 100%; font-family: inherit; font-size: 13px; padding: 9px; border: 1px solid #1a1a1a;
+      background: #1a1a1a; color: #fbfaf7; cursor: pointer; }
+    button:hover { opacity: .9; }
+  </style>
+</head>
+<body>
+  <div class="mark">⁂</div>
+  <h1>Halia</h1>
+  <p>Client grades where you work: store admin, WhatsApp Web, Gmail.</p>
+  <div id="state" class="state">Checking…</div>
+  <button id="open">Open settings</button>
+  <script src="popup.js"></script>
+</body>
+</html>

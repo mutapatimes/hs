@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Halia extension — settings</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: #1a1a1a; background: #fbfaf7; }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 40px 24px 64px; }
+    .mark { color: #8a7a4f; font-size: 22px; }
+    h1 { font-size: 22px; margin: 8px 0 4px; font-weight: 600; }
+    .lede { color: #6b6355; line-height: 1.5; margin: 0 0 28px; }
+    .card { background: #fff; border: 1px solid #e3ded3; padding: 20px; margin-bottom: 20px; }
+    .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: #6b6355;
+      margin: 0 0 14px; }
+    label { display: block; font-size: 13px; margin: 0 0 6px; color: #33302a; }
+    input[type=text], input[type=url] { width: 100%; padding: 9px 10px; border: 1px solid #d8cfbc;
+      background: #fbfaf7; font-size: 14px; font-family: inherit; }
+    input:focus { outline: 2px solid #9a7b3f; outline-offset: -1px; }
+    .row { margin-bottom: 16px; }
+    .hint { font-size: 12px; color: #8a8271; margin-top: 5px; line-height: 1.45; }
+    .btns { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+    button { font-family: inherit; font-size: 13px; padding: 9px 16px; border: 1px solid #1a1a1a;
+      background: #1a1a1a; color: #fbfaf7; cursor: pointer; }
+    button.ghost { background: #fff; color: #1a1a1a; border-color: #d8cfbc; }
+    button:hover { opacity: .9; }
+    .status { font-size: 13px; margin-left: 4px; }
+    .status.ok { color: #3f7a4f; } .status.bad { color: #a2453b; }
+    .stores { list-style: none; padding: 0; margin: 10px 0 0; }
+    .stores li { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      padding: 7px 0; border-top: 1px solid #eee7da; font-size: 13px; }
+    .stores button { padding: 4px 10px; }
+    ol.steps { margin: 0; padding-left: 18px; color: #33302a; line-height: 1.6; font-size: 13px; }
+    a { color: #9a7b3f; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="mark">⁂</div>
+    <h1>Halia</h1>
+    <p class="lede">Show a client's grade, the reasons behind it, and the next move right where you
+      already work: your store admin, WhatsApp Web and Gmail. The extension reads the client on the
+      page and asks your Halia account. It stores nothing.</p>
+
+    <div class="card">
+      <h2>Connect</h2>
+      <div class="row">
+        <label for="token">Your Halia extension token</label>
+        <input id="token" type="text" placeholder="Paste the token from Halia → Settings" autocomplete="off" />
+        <div class="hint">In Halia, open <strong>Settings → Browser extension</strong> and generate a
+          token. It is shown once. Paste it here.</div>
+      </div>
+      <div class="row">
+        <label for="base">Halia address</label>
+        <input id="base" type="url" placeholder="https://haliascore.com" autocomplete="off" />
+        <div class="hint">Leave as is unless your team uses a different Halia URL.</div>
+      </div>
+      <div class="btns">
+        <button id="save">Save</button>
+        <button id="test" class="ghost">Test connection</button>
+        <span id="status" class="status"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>WooCommerce store</h2>
+      <p class="hint" style="margin-top:0">Shopify, BigCommerce, WhatsApp Web and Gmail work out of
+        the box. For WooCommerce, add your store's address so the badge can run inside your own
+        wp-admin. You'll be asked to grant access to that one site.</p>
+      <div class="row" style="margin-top:12px">
+        <label for="woo">Your store address</label>
+        <input id="woo" type="url" placeholder="https://yourstore.com" autocomplete="off" />
+      </div>
+      <div class="btns"><button id="addwoo" class="ghost">Add store</button>
+        <span id="woostatus" class="status"></span></div>
+      <ul id="stores" class="stores"></ul>
+    </div>
+
+    <div class="card">
+      <h2>How to use it</h2>
+      <ol class="steps">
+        <li>Open a customer or order in your store admin, a chat in WhatsApp Web, or an email in Gmail.</li>
+        <li>The Halia card appears in the corner with their grade, why, and the next move.</li>
+        <li>Pick a message template and copy it, or jump to the client in Halia.</li>
+      </ol>
+    </div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Halia — client grades where you work",
+  "version": "0.1.0",
+  "description": "Surfaces a client's Halia grade, reasons and next move inside your store admin, WhatsApp Web and Gmail. Reads nothing, stores nothing.",
+  "action": { "default_popup": "popup.html", "default_title": "Halia" },
+  "options_page": "options.html",
+  "permissions": ["storage", "scripting"],
+  "host_permissions": [
+    "https://haliascore.com/*",
+    "https://*.onrender.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "optional_host_permissions": ["*://*/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://admin.shopify.com/*",
+        "https://*.myshopify.com/admin/*",
+        "https://*.mybigcommerce.com/manage/*"
+      ],
+      "js": ["ui/badge.js", "content/core.js", "content/admin.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["ui/badge.js", "content/core.js", "content/whatsapp.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["ui/badge.js", "content/core.js", "content/gmail.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
