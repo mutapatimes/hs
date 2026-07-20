@@ -61,6 +61,12 @@
     .btn:hover { background: #f4f1ea; }
     .btn.primary { background: #1a1a1a; color: #fbfaf7; border-color: #1a1a1a; }
     .btn.primary:hover { background: #333; }
+    .mini { border: 1px solid #d8cfbc; background: #fff; color: #1a1a1a; cursor: pointer; font-size: 12px;
+      padding: 1px 7px; line-height: 1.5; }
+    .mini:hover { background: #f4f1ea; }
+    input.psearch { flex: 1; padding: 7px 9px; border: 1px solid #d8cfbc; background: #fff; font-size: 12.5px;
+      font-family: inherit; color: #1a1a1a; }
+    .tot { margin-top: 7px; font-weight: 600; font-size: 13px; }
     select { width: 100%; padding: 6px; border: 1px solid #d8cfbc; background: #fff; font-size: 12px; }
     textarea { width: 100%; padding: 7px 9px; border: 1px solid #d8cfbc; background: #fff; font-size: 12.5px;
       font-family: inherit; resize: vertical; color: #1a1a1a; }
@@ -81,6 +87,7 @@
 
   let host = null, root = null, open = true, inserter = null, channel = "email";
   let ctx = null, client = null; // ctx = standing context; client = active client state
+  let cart = [], prodResults = [], cartBase = ""; // the working cart + last product search
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
@@ -141,6 +148,7 @@
           <section class="sec" data-s="client"></section>
           <section class="sec" data-s="tpl"></section>
           <section class="sec" data-s="camp"></section>
+          <section class="sec" data-s="prod"></section>
           <section class="sec" data-s="cat"></section>
         </div>
         <div class="foot"><span class="m" style="color:#8a7a4f">⁂</span> Read live from your book. Nothing stored.</div>
@@ -150,7 +158,7 @@
     dock.querySelector('[data-a="open"]').onclick = () => setOpen(true);
     dock.querySelector('[data-a="close"]').onclick = () => setOpen(false);
     dock.querySelector('[data-a="refresh"]').onclick = () => window.dispatchEvent(new CustomEvent("halia:refresh"));
-    renderClient(); renderTemplates(); renderCampaigns(); renderCatalogue();
+    renderClient(); renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue();
   }
 
   function setOpen(v) {
@@ -292,6 +300,107 @@
     });
   }
 
+  // ── PRODUCTS / CART BUILDER (Shopify) ─────────────────────────────────────
+  function cartLink() {
+    if (!cartBase || !cart.length) return "";
+    const items = cart.map((i) => i.id + ":" + i.qty).join(",");
+    let url = cartBase.replace(/\/$/, "") + "/cart/" + items;
+    const camp = ((ctx && ctx.campaigns) || []).find((c) => c.running);   // attribute to a live campaign
+    if (camp) {
+      const cm = CHAN[channel] || CHAN.email;
+      url = appendUtm(url, { source: cm[0], medium: cm[1], campaign: camp.utm });
+    }
+    return url;
+  }
+  function addToCart(v, ptitle) {
+    const ex = cart.find((i) => i.id === v.id);
+    if (ex) ex.qty += 1;
+    else cart.push({ id: v.id, qty: 1, price: v.price,
+      label: ptitle + (v.title && v.title !== "Default Title" ? " · " + v.title : "") });
+    paintCart(); toast("Added to cart");
+  }
+  function paintResults() {
+    const box = root && root.querySelector('[data-a="presults"]'); if (!box) return;
+    if (!prodResults.length) { box.innerHTML = ""; return; }
+    box.innerHTML = prodResults.slice(0, 20).map((p, pi) => {
+      const vs = p.variants || [];
+      const single = vs.length === 1;
+      const opts = vs.map((v, vi) => `<option value="${vi}">${esc(v.title || "Default")}${v.price ? " · £" + esc(v.price) : ""}</option>`).join("");
+      return `<div class="row">
+        <div class="rn">${esc(p.title)}</div>
+        <div style="display:flex;gap:6px;margin-top:5px;align-items:center">
+          ${single ? `<span class="rd" style="flex:1">${esc(vs[0].title === "Default Title" ? "" : vs[0].title)}${vs[0].price ? " · £" + esc(vs[0].price) : ""}</span>`
+            : `<select data-pv="${pi}" style="flex:1">${opts}</select>`}
+          <button class="btn" data-padd="${pi}">Add</button>
+        </div></div>`;
+    }).join("");
+    prodResults.forEach((p, pi) => {
+      const b = box.querySelector(`[data-padd="${pi}"]`);
+      if (b) b.onclick = () => {
+        const sel = box.querySelector(`[data-pv="${pi}"]`);
+        const v = (p.variants || [])[sel ? +sel.value : 0];
+        if (v) addToCart(v, p.title);
+      };
+    });
+  }
+  function paintCart() {
+    const box = root && root.querySelector('[data-a="pcart"]'); if (!box) return;
+    if (!cart.length) { box.innerHTML = ""; return; }
+    const total = cart.reduce((s, i) => s + (parseFloat(i.price) || 0) * i.qty, 0);
+    const count = cart.reduce((s, i) => s + i.qty, 0);
+    box.innerHTML = `<div class="lbl">Cart <span class="n">${count}</span></div>` +
+      cart.map((i, ci) => `<div class="row" style="display:flex;align-items:center;gap:6px">
+        <span style="flex:1">${esc(i.label)}</span>
+        <button class="mini" data-qd="${ci}">−</button><span>${i.qty}</span><button class="mini" data-qi="${ci}">+</button>
+        <button class="mini" data-rm="${ci}">✕</button></div>`).join("") +
+      `<div class="tot">Total ~ £${total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+       <div class="acts">
+         ${inserter ? `<button class="btn primary" data-a="csend">Send cart</button>` : ""}
+         <button class="btn" data-a="ccopy">Copy cart link</button>
+         <button class="mini" data-a="cclear">Clear</button>
+       </div>`;
+    cart.forEach((i, ci) => {
+      const qd = box.querySelector(`[data-qd="${ci}"]`); if (qd) qd.onclick = () => { i.qty = Math.max(1, i.qty - 1); paintCart(); };
+      const qi = box.querySelector(`[data-qi="${ci}"]`); if (qi) qi.onclick = () => { i.qty += 1; paintCart(); };
+      const rm = box.querySelector(`[data-rm="${ci}"]`); if (rm) rm.onclick = () => { cart.splice(ci, 1); paintCart(); };
+    });
+    const send = box.querySelector('[data-a="csend"]'); if (send) send.onclick = () => place(cartLink());
+    const cp = box.querySelector('[data-a="ccopy"]'); if (cp) cp.onclick = () => copy(cartLink(), "Cart link copied");
+    const cl = box.querySelector('[data-a="cclear"]'); if (cl) cl.onclick = () => { cart = []; paintCart(); };
+  }
+  function doProductSearch(q) {
+    const box = root && root.querySelector('[data-a="presults"]');
+    if (box) box.innerHTML = `<div class="muted">Searching…</div>`;
+    try {
+      chrome.runtime.sendMessage({ type: "halia:products", q }, (r) => {
+        if (chrome.runtime.lastError || !r || r.error) {
+          prodResults = [];
+          if (box) box.innerHTML = `<div class="muted">Couldn't load products.</div>`;
+          return;
+        }
+        prodResults = r.products || [];
+        if (r.cart_base) cartBase = r.cart_base;
+        paintResults();
+      });
+    } catch (e) { /* ignore */ }
+  }
+  function renderProducts() {
+    const el = sec("prod"); if (!el) return;
+    if (!ctx || ctx.platform !== "shopify") { el.innerHTML = ""; return; }  // cart permalinks are Shopify
+    el.innerHTML = `<div class="sh">Build a cart</div>
+      <div style="display:flex;gap:6px">
+        <input class="psearch" data-a="psearch" placeholder="Search products">
+        <button class="btn" data-a="pgo">Search</button>
+      </div>
+      <div data-a="presults" style="margin-top:8px"></div>
+      <div data-a="pcart" style="margin-top:8px"></div>`;
+    const inp = el.querySelector('[data-a="psearch"]');
+    const go = () => doProductSearch((inp && inp.value) || "");
+    el.querySelector('[data-a="pgo"]').onclick = go;
+    if (inp) inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+    paintResults(); paintCart();
+  }
+
   // ── CATALOGUE ─────────────────────────────────────────────────────────────
   function renderCatalogue() {
     const el = sec("cat"); if (!el) return;
@@ -319,7 +428,7 @@
     },
     setContext(c) {
       ctx = c && !c.error ? c : null;
-      if (root) { renderTemplates(); renderCampaigns(); renderCatalogue(); }
+      if (root) { renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue(); }
     },
     setClient(state) {
       client = state; // null | {loading,name} | {found,data} | {notfound,name} | {error}

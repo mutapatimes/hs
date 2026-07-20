@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from fastapi import Body, Depends, Header, HTTPException
+from fastapi import Body, Depends, Header, HTTPException, Query
 
 from halia import config
 from halia.api import data
@@ -72,6 +72,19 @@ def _templates(shop: str, first_name, catalog=None) -> list[dict]:
 
 def _dashboard_link() -> str:
     return (config.HALIA_APP_URL or "").rstrip("/") + "/app"
+
+
+def _cart_base(shop: str) -> str:
+    """The storefront origin for a Shopify /cart permalink: the primary domain, else myshopify."""
+    dom = ""
+    try:
+        from halia.api.catalog import _primary_domain
+        dom = _primary_domain(shop) or ""
+    except Exception:
+        dom = ""
+    if not dom:
+        dom = shop if shop.endswith(".myshopify.com") else f"{shop}.myshopify.com"
+    return "https://" + dom
 
 
 def _catalog_link(shop: str) -> Optional[str]:
@@ -285,6 +298,32 @@ def register(app) -> None:
             raise HTTPException(422, "Provide email, cid, phone or name")
         data.record_activity(shop, "extension_lookup")
         return _lookup(shop, email, cid, phone, name)
+
+    @app.get("/v1/extension/products")
+    def extension_products(x_halia_ext_token: Optional[str] = Header(None),
+                           q: Optional[str] = Query(None),
+                           limit: int = Query(20)) -> dict:
+        """Search the merchant's Shopify products (with buyable variant ids) so the toolbar can build
+        a cart permalink for a client. Shopify-only; returns the storefront base for the /cart link.
+        Products are the merchant's own catalogue, not customer data."""
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        token = shop_store().get_token(shop)
+        if not token:                                # non-Shopify or read-only: no cart builder
+            return {"products": [], "cart_base": None}
+        from scoring.shopify_fetch import _run, http_transport
+        from scoring.shopify_graphql import PRODUCT_SEARCH_QUERY, product_search_node
+        n = max(1, min(int(limit or 20), 30))
+        term = (q or "").strip()[:80]
+        try:
+            data_ = _run(http_transport(shop, token), PRODUCT_SEARCH_QUERY, {"q": term, "n": n}, 2)
+        except Exception:
+            return {"products": [], "cart_base": _cart_base(shop)}
+        nodes = ((data_.get("products") or {}).get("nodes")) or []
+        products = [p for p in (product_search_node(x) for x in nodes) if p["variants"]]
+        return {"products": products, "cart_base": _cart_base(shop)}
 
     @app.post("/v1/extension/batch")
     def extension_batch(x_halia_ext_token: Optional[str] = Header(None),
