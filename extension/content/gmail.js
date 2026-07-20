@@ -42,6 +42,7 @@
     return document.execCommand("insertText", false, text) !== false;
   }
 
-  HaliaBadge.setInserter(insert);
+  HaliaPanel.setChannel("email");
+  HaliaPanel.setInserter(insert);
   Halia.observe(extract);
 })();

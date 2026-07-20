@@ -22,6 +22,11 @@ from halia.campaign_view import render_campaign
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
+def _utm_slug(text: str) -> str:
+    """A tidy utm_campaign value from the campaign name (lowercase, hyphenated)."""
+    return re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")[:80]
+
+
 def _clean_config(raw: Any) -> dict:
     raw = raw or {}
     def _strs(key, upper=False, cap=200):
@@ -32,8 +37,14 @@ def _clean_config(raw: Any) -> dict:
             if s:
                 out.append(s.upper() if upper else s)
         return out[:cap]
+    utm_raw = raw.get("utm") if isinstance(raw.get("utm"), dict) else {}
+    utm = {}
+    camp = str(utm_raw.get("campaign") or "").strip()[:80]
+    if camp:
+        utm["campaign"] = camp
     return {"tiers": _strs("tiers", upper=True), "signals": _strs("signals"),
-            "members": _strs("members", cap=5000)}   # hand-picked lists can be larger
+            "members": _strs("members", cap=5000),   # hand-picked lists can be larger
+            "utm": utm}
 
 
 def _campaign_dict(row: dict) -> dict:
@@ -72,8 +83,12 @@ def register(app) -> None:
             existing = shop_store().get_campaign(cid, shop) if p.get("id") else None
             cfg = (_clean_config(json.loads(existing.get("config_json") or "{}"))
                    if existing else _clean_config({}))
+        # A utm_campaign value is generated once (from the name) and then kept stable, so the
+        # tag stays consistent in the merchant's analytics even if they later rename the campaign.
+        if not cfg.get("utm", {}).get("campaign"):
+            cfg.setdefault("utm", {})["campaign"] = _utm_slug(name) or cid
         shop_store().save_campaign(cid, shop, name, starts, ends, json.dumps(cfg))
-        return {"ok": True, "id": cid}
+        return {"ok": True, "id": cid, "utm": cfg["utm"]}
 
     @app.delete("/v1/campaigns/{campaign_id}")
     def delete_campaign(campaign_id: str, shop: str = Depends(require_shop)) -> dict:
@@ -108,7 +123,16 @@ def register(app) -> None:
             raise HTTPException(404, "Campaign not found.")
         entry = cache.get(shop)
         clients = ((entry or {}).get("payload") or {}).get("data", []) if entry else []
-        return campaign_metrics(_campaign_dict(row), clients)
+        cdict = _campaign_dict(row)
+        m = campaign_metrics(cdict, clients)
+        # Carry the campaign's UTM tag so the monitor can offer tagged links. Older campaigns saved
+        # before UTM existed get one derived from the name on the fly (shown, not yet persisted).
+        utm = dict(cdict["config"].get("utm") or {})
+        if not utm.get("campaign"):
+            utm["campaign"] = _utm_slug(row["name"]) or campaign_id
+        m["id"] = campaign_id
+        m["utm"] = utm
+        return m
 
     @app.get("/v1/campaigns/{campaign_id}/metrics")
     def campaign_metrics_json(campaign_id: str, shop: str = Depends(require_shop)) -> dict:

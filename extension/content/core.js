@@ -1,15 +1,15 @@
-// Halia content core — shared by every surface. A surface script calls Halia.observe(extract),
-// where extract() returns an identity {cid|email|phone|name} for whatever client the page is
-// currently showing, or null. The core watches the (single-page) app for navigation and DOM
-// changes, debounces, de-dupes by identity, and drives the badge. One lookup per distinct client.
+// Halia content core — shared by every surface. Mounts the persistent toolbar, loads the standing
+// context (templates, running campaigns, catalogue), and keeps the toolbar's "client" section in
+// step with whoever the page is showing. A surface script calls Halia.observe(extract), where
+// extract() returns an identity {cid|email|phone|name} for the current client, or null.
 
 (function () {
   if (window.Halia) return;
 
-  function lookup(query) {
+  function send(type, query) {
     return new Promise((resolve) => {
       try {
-        chrome.runtime.sendMessage({ type: "halia:lookup", query }, (resp) => {
+        chrome.runtime.sendMessage({ type, query }, (resp) => {
           if (chrome.runtime.lastError) return resolve({ error: "network" });
           resolve(resp || { error: "empty" });
         });
@@ -18,14 +18,28 @@
       }
     });
   }
+  const lookup = (query) => send("halia:lookup", query);
+
+  function loadContext() {
+    send("halia:context").then((resp) => HaliaPanel.setContext(resp && !resp.error ? resp : null));
+  }
 
   function keyOf(id) {
     if (!id) return "";
     return ["cid:" + (id.cid || ""), "e:" + (id.email || ""), "p:" + (id.phone || ""),
       "n:" + (id.name || "")].join("|");
   }
+  const friendly = {
+    "no-token": "Add your Halia token in the extension options to start.",
+    "unauthorized": "Your Halia token is not recognised. Re-generate it in Settings.",
+    "network": "Could not reach Halia. Check the address in the options."
+  };
 
   function observe(extract) {
+    HaliaPanel.mount();
+    loadContext();
+    window.addEventListener("halia:refresh", loadContext);
+
     let last = "";
     let inflight = 0;
 
@@ -34,25 +48,22 @@
       try { id = extract(); } catch (e) { id = null; }
       const key = id ? keyOf(id) : "";
       if (!key) {
-        if (last) { last = ""; HaliaBadge.hide(); }
+        if (last) { last = ""; HaliaPanel.setClient(null); }
         return;
       }
       if (key === last) return;
       last = key;
       const mine = ++inflight;
-      HaliaBadge.loading(id);
+      const label = (id.name || id.email || "this client");
+      HaliaPanel.setClient({ loading: true, name: label });
       const resp = await lookup(id);
-      if (mine !== inflight || last !== key) return; // a newer client took over while we waited
+      if (mine !== inflight || last !== key) return; // a newer client took over
       if (resp && resp.error) {
-        if (resp.error === "no-token" || resp.error === "unauthorized" || resp.error === "network") {
-          HaliaBadge.error(resp.error);
-        } else {
-          HaliaBadge.hide();
-        }
+        HaliaPanel.setClient(friendly[resp.error] ? { error: friendly[resp.error] } : null);
         return;
       }
-      if (!resp || !resp.found) { HaliaBadge.notFound(id); return; }
-      HaliaBadge.mount(resp);
+      if (!resp || !resp.found) { HaliaPanel.setClient({ notfound: true, name: label }); return; }
+      HaliaPanel.setClient({ found: true, data: resp });
     }
 
     const debounced = (() => {
@@ -60,7 +71,6 @@
       return () => { clearTimeout(t); t = setTimeout(tick, 400); };
     })();
 
-    // URL changes (SPA nav) — patch history + poll as a backstop.
     let lastUrl = location.href;
     const onNav = () => { if (location.href !== lastUrl) { lastUrl = location.href; debounced(); } };
     ["pushState", "replaceState"].forEach((m) => {
@@ -70,11 +80,10 @@
     window.addEventListener("popstate", onNav);
     setInterval(onNav, 1200);
 
-    // DOM changes (content swaps without a URL change, e.g. opening a chat/email).
     const mo = new MutationObserver(debounced);
     mo.observe(document.documentElement, { childList: true, subtree: true });
 
-    debounced(); // first run
+    debounced();
   }
 
   window.Halia = { observe, lookup };

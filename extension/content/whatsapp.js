@@ -24,6 +24,7 @@
     return document.execCommand("insertText", false, text) !== false;
   }
 
-  HaliaBadge.setInserter(insert);
+  HaliaPanel.setChannel("whatsapp");
+  HaliaPanel.setInserter(insert);
   Halia.observe(extract);
 })();

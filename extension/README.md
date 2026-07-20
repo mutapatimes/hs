@@ -1,22 +1,27 @@
 # Halia browser extension
 
-Puts a client's Halia grade, the reasons behind it, and the next move right where your team
-already works: the store admin (Shopify, BigCommerce, WooCommerce), WhatsApp Web, and Gmail. The
-extension reads the client shown on the page, asks your Halia account for their grade, and renders
-a small card in the corner. It stores nothing about the customer, in keeping with Halia's
-zero-retention model.
+A persistent clienteling toolbar that lives where your team already works: the store admin
+(Shopify, BigCommerce, WooCommerce), WhatsApp Web, and Gmail. It keeps your templates, running
+campaigns and catalogue one click away, and its top "client" section updates live as you move
+between conversations. It reads the client shown on the page, asks your Halia account, and stores
+nothing about the customer, in keeping with Halia's zero-retention model.
 
-## What it shows
+## The toolbar
 
-On a customer/order in your store admin, an open chat in WhatsApp Web, or an open email in Gmail:
+A handle sits on the right edge of the page; click it to open the panel (it remembers open or
+closed). The panel has four always-ready sections:
 
-- the grade (A\*, A, B…) and whether they are a hidden VIC or a proven client gone quiet
-- their latent value, recent order recency, and why they scored (the signals)
-- an open-basket flag when they have an abandoned checkout, with a link to it
-- the recommended next move
-- your own outreach templates: **insert one straight into the reply box** on WhatsApp Web and
-  Gmail, or copy it
-- a link to open them in Halia or in your store, and to copy your catalogue link
+- **Client** — updates as you open a chat, email or customer: grade (A\*, A, B…), hidden-VIC or
+  gone-quiet flag, latent value, recent order recency, an open-basket alert with a link, the
+  reasons they scored, the recommended next move, and links to open them in Halia or your store.
+- **Templates** — your outreach templates, filled with the active client's name. **Insert** drops
+  one straight into the WhatsApp/Gmail reply box, or copy it.
+- **Campaigns** — the campaigns running now, each with a one-click **tagged catalogue link**
+  (carrying the campaign's UTM for the current channel) to insert or copy, plus copy-UTM.
+- **Catalogue** — your live catalogue link, ready to insert or copy.
+
+When no client is on screen the toolbar still shows templates, campaigns and catalogue, so it is
+always useful.
 
 ## Install (unpacked, for now)
 
