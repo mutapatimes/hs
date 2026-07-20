@@ -63,8 +63,9 @@ def _templates(shop: str, first_name, catalog=None) -> list[dict]:
     sender = s.get("sender_name") or ""
     cat = catalog if catalog is not None else _catalog_link(shop)
     out = []
-    for t in (s.get("email_templates") or [])[:12]:
+    for t in (s.get("email_templates") or [])[:60]:
         out.append({"name": t.get("name", ""),
+                    "category": t.get("category", "") or "General",
                     "subject": _fill(t.get("subject", ""), first_name, sender, cat),
                     "body": _fill(t.get("body", ""), first_name, sender, cat)})
     return out

@@ -1812,6 +1812,12 @@ const PRIVACY_INSERTS=[
   {h:"What it looks at",body:"It draws on commercial and address facts — what and how often you have bought from us, and publicly recognisable signs of an area or a professional email domain. It does not use your nationality, your ethnicity, or the origin of your name."},
   {h:"A person always decides",body:"The tool only highlights customers for our team to consider. It never makes an automatic decision about you and never withholds a product, price or service — a member of our team always decides whether to get in touch. You can ask us to stop at any time."}
 ];
+// Group templates by category with small headers, so a long library stays scannable in the menus.
+function tmplMenuGroups(templates,itemFn){
+  const groups=[]; const gi={};
+  (templates||[]).forEach(t=>{const c=t.category||'General'; if(!(c in gi)){gi[c]=groups.length;groups.push({c,items:[]});} groups[gi[c]].items.push(t);});
+  return groups.map(g=>`<div style="padding:8px 14px 3px;font:600 10px 'Hanken Grotesk',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);background:var(--shell);position:sticky;top:0">${esc(g.c)}</div>`+g.items.map(itemFn).join("")).join("");
+}
 function mailtoItems(c){
   const em=c.email||"";
   const item=(label,href)=>`<a href="${href}" target="_top" style="display:block;padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px">${label}</a>`;
@@ -1820,8 +1826,9 @@ function mailtoItems(c){
     out+=item("Send catalogue &#9656;",`mailto:${em}?subject=${encodeURIComponent("A selection for you")}&body=${encodeURIComponent(catMsg(c))}`);
   if(CMS_DRAFT&&(CMS_DRAFT.subject||CMS_DRAFT.body))
     out+=item("Personal note",`mailto:${em}?subject=${encodeURIComponent(fillTemplate(CMS_DRAFT.subject||"",c))}&body=${encodeURIComponent(fillTemplate(CMS_DRAFT.body||"",c))}`);
-  return out+(EMAIL_TEMPLATES||[]).map(t=>item(t.name,`mailto:${em}?subject=${encodeURIComponent(t.subject||"")}&body=${encodeURIComponent(fillTemplate(t.body,c))}`)).join("")
-    + item("Blank email",`mailto:${em}`);
+  return `<div style="max-height:340px;overflow-y:auto">`+out
+    +tmplMenuGroups(EMAIL_TEMPLATES,t=>item(t.name,`mailto:${em}?subject=${encodeURIComponent(t.subject||"")}&body=${encodeURIComponent(fillTemplate(t.body,c))}`))
+    +item("Blank email",`mailto:${em}`)+`</div>`;
 }
 // WhatsApp: same prepopulated templates as wa.me links (body only — no subject).
 // Needs an international number; phoneDigits() returns "" when it can't route reliably.
@@ -1840,8 +1847,9 @@ function whatsappItems(c){
     out+=item("Send catalogue &#9656;",`https://wa.me/${num}?text=${encodeURIComponent(catMsg(c))}`);
   if(CMS_DRAFT&&CMS_DRAFT.body)
     out+=item("Personal note",`https://wa.me/${num}?text=${encodeURIComponent(fillTemplate(CMS_DRAFT.body,c))}`);
-  return out+(EMAIL_TEMPLATES||[]).map(t=>item(t.name,`https://wa.me/${num}?text=${encodeURIComponent(fillTemplate(t.body,c))}`)).join("")
-    + item("Blank message",`https://wa.me/${num}`);
+  return `<div style="max-height:340px;overflow-y:auto">`+out
+    +tmplMenuGroups(EMAIL_TEMPLATES,t=>item(t.name,`https://wa.me/${num}?text=${encodeURIComponent(fillTemplate(t.body,c))}`))
+    +item("Blank message",`https://wa.me/${num}`)+`</div>`;
 }
 // Web look-up: search this client's name on external sources to sanity-check the signals.
 // Built ENTIRELY in the browser (the name is already in DATA) and opened in a NEW TAB — nothing
@@ -3047,26 +3055,44 @@ function openSettings(page){
   let tab="client", ostatus="new", lastField=null, spage=(typeof page==="string"&&page)||"integrations";
   let integ = SETTINGS.mailchimp_connected?"mailchimp":(SETTINGS.hubspot_connected?"hubspot":"klaviyo");
   let tsel = 0;   // selected template index in the two-pane template editor
+  let tSearch = "";   // template list search text (client templates)
+  const TCATS = ["Welcome","Appointments","Previews & arrivals","Orders & changes","Shipping & delivery","Returns & exchanges","Gifting","Win-back","Occasions","Care & feedback"];
   const SPAGES=[["integrations","Integrations"],["scoring","Scoring"],["alerts","Alerts"],["templates","Templates"],["billing","Billing"],["privacy","Privacy"],["support","Support"]];
   const OSTAT=["new","fulfilled","refunded","cancelled"];
   const OSTLBL={new:"New",fulfilled:"Fulfilled",refunded:"Refunded",cancelled:"Cancelled"};
   function currentList(){return tab==="client"?tmpl:(otmpl[ostatus]=otmpl[ostatus]||[]);}
   // Two-pane template editor: a selectable list on the left, one big editor on the right.
   function collect(){const list=currentList(); if(!list.length||tsel<0||tsel>=list.length) return;
-    const n=settingsEl.querySelector("#tEditName"), s=settingsEl.querySelector("#tEditSubject"), b=settingsEl.querySelector("#tEditBody");
+    const n=settingsEl.querySelector("#tEditName"), s=settingsEl.querySelector("#tEditSubject"), b=settingsEl.querySelector("#tEditBody"), c=settingsEl.querySelector("#tEditCat");
     if(n) list[tsel].name=n.value;
     if(s) list[tsel].subject=s.value;
     if(b) list[tsel].body=b.value;
+    if(c) list[tsel].category=c.value;
   }
+  function tItemBtn(t,i){return `<button data-sel="${i}" style="display:block;width:100%;text-align:left;margin-bottom:5px;padding:9px 11px;border-radius:0;border:1px solid ${i===tsel?'var(--brand)':'var(--line-strong)'};background:${i===tsel?'var(--brand-tint)':'var(--card)'};color:var(--ink);font:600 13px ${SF};cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name||'Untitled')}</button>`;}
   function tListPane(){const list=currentList();
-    return list.map((t,i)=>`<button data-sel="${i}" style="display:block;width:100%;text-align:left;margin-bottom:6px;padding:10px 12px;border-radius:0;border:1px solid ${i===tsel?'var(--brand)':'var(--line-strong)'};background:${i===tsel?'var(--brand-tint)':'var(--card)'};color:var(--ink);font:600 13px ${SF};cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name||'Untitled')}</button>`).join("")
-      +`<button id="addTmpl" style="${BS};margin-top:6px;width:100%">+ Add template</button>`;}
+    const add=`<button id="addTmpl" style="${BS};margin-top:8px;width:100%">+ Add template</button>`;
+    if(tab!=='client')  // order templates: short, status-keyed — keep the simple flat list
+      return list.map((t,i)=>tItemBtn(t,i)).join("")+add;
+    // client templates: search + group by category
+    const q=(tSearch||"").trim().toLowerCase();
+    const matches=list.map((t,i)=>({t,i})).filter(({t})=> !q || ((t.name||'')+' '+(t.category||'')+' '+(t.body||'')).toLowerCase().includes(q));
+    const groups=[]; const gi={};
+    matches.forEach(({t,i})=>{const cat=t.category||'General'; if(!(cat in gi)){gi[cat]=groups.length;groups.push({cat,items:[]});} groups[gi[cat]].items.push({t,i});});
+    const search=`<input id="tSearch" value="${esc(tSearch||'')}" placeholder="Search ${list.length} templates" style="width:100%;${I};margin-bottom:10px">`;
+    const body=groups.length
+      ? `<div style="max-height:430px;overflow-y:auto;padding-right:2px">`+groups.map(g=>`<div style="${LBL};margin:8px 0 4px">${esc(g.cat)}</div>`+g.items.map(({t,i})=>tItemBtn(t,i)).join("")).join("")+`</div>`
+      : `<div style="${P};margin:6px 0 0">No templates match “${esc(tSearch)}”.</div>`;
+    return search+body+add;}
   function tEditorPane(){const list=currentList();
     if(!list.length) return `<div style="${P};margin:0">No templates yet. Add one on the left.</div>`;
     if(tsel>=list.length) tsel=list.length-1; if(tsel<0) tsel=0;
     const t=list[tsel];
     const toks=(tab==='order'?["{first_name}","{sender}","{order_number}","{order_total}"]:["{first_name}","{sender}","{catalog_link}"]);
+    const catRow=(tab==='client')?`<input id="tEditCat" value="${esc(t.category||'')}" placeholder="Category (e.g. Appointments)" list="tCatList" style="width:100%;${I};margin-bottom:10px">
+      <datalist id="tCatList">${TCATS.map(c=>`<option value="${esc(c)}"></option>`).join("")}</datalist>`:'';
     return `<input id="tEditName" value="${esc(t.name)}" placeholder="Template name" style="width:100%;${I};margin-bottom:10px">
+      ${catRow}
       <input id="tEditSubject" value="${esc(t.subject)}" placeholder="Subject line" style="width:100%;${I};margin-bottom:10px">
       <textarea id="tEditBody" placeholder="Write your message…" style="width:100%;min-height:320px;${I};resize:vertical;line-height:1.6">${esc(t.body)}</textarea>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap">
@@ -3076,6 +3102,16 @@ function openSettings(page){
   function insertToken(tok){const el=lastField;if(!el){toast("Tap a template field first, then insert.");return;}
     const s=el.selectionStart==null?el.value.length:el.selectionStart, e=el.selectionEnd==null?el.value.length:el.selectionEnd;
     el.value=el.value.slice(0,s)+tok+el.value.slice(e);el.focus();el.selectionStart=el.selectionEnd=s+tok.length;}
+  // Wire the template list (add / select / search). Called on full render and after a partial
+  // list re-render on search, so typing in the search box does not rebuild the whole modal.
+  function wireTmplList(){
+    const add=document.getElementById("addTmpl");
+    if(add) add.onclick=()=>{collect();currentList().push({name:"New template",category:(tab==='client'?"General":""),subject:"",body:(tab==='order'?"Hi {first_name},\n\n\n\n{sender}":"Dear {first_name},\n\n\n\n{sender}")});tsel=currentList().length-1;tSearch="";render();};
+    const host=document.getElementById("tmplList");
+    if(host) host.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{const sc=document.getElementById("sScroll");const y=sc?sc.scrollTop:0;collect();tsel=+b.dataset.sel;render();const sc2=document.getElementById("sScroll");if(sc2)sc2.scrollTop=y;});
+    const srch=document.getElementById("tSearch");
+    if(srch) srch.oninput=()=>{collect();tSearch=srch.value;const h=document.getElementById("tmplList");if(h)h.innerHTML=tListPane();wireTmplList();const s2=document.getElementById("tSearch");if(s2){s2.focus();s2.setSelectionRange(s2.value.length,s2.value.length);}};
+  }
   const SF="'Hanken Grotesk',system-ui,sans-serif";
   const I="box-sizing:border-box;padding:10px 13px;border:1px solid var(--line-strong);border-radius:0;font:14px "+SF+";color:var(--ink);background:var(--card);outline:none";
   const C="background:var(--card);border:1px solid var(--line);border-radius:0;padding:22px 24px;margin-bottom:14px;box-shadow:var(--shadow)";
@@ -3386,9 +3422,7 @@ function openSettings(page){
       const sb=document.getElementById("saveBar"); if(sb) sb.style.display=["scoring","alerts","templates"].includes(spage)?"":"none";
       const sc=document.getElementById("sScroll"); if(sc) sc.scrollTop=0;
     });
-    const addBtn=document.getElementById("addTmpl");
-    if(addBtn) addBtn.onclick=()=>{collect();currentList().push({name:"New template",subject:"",body:(tab==='order'?"Hi {first_name},\n\n\n\n{sender}":"Dear {first_name},\n\n\n\n{sender}")});tsel=currentList().length-1;render();};
-    settingsEl.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{const sc=document.getElementById("sScroll");const y=sc?sc.scrollTop:0;collect();tsel=+b.dataset.sel;render();const sc2=document.getElementById("sScroll");if(sc2)sc2.scrollTop=y;});
+    wireTmplList();
     const delBtn=document.getElementById("delTmpl");
     if(delBtn) delBtn.onclick=()=>{collect();currentList().splice(tsel,1);if(tsel>0)tsel--;render();};
     settingsEl.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{collect();tab=b.dataset.tab;tsel=0;render();});
