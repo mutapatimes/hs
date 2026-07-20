@@ -122,6 +122,16 @@ def plan_links() -> dict:
     return out
 
 
+def link_with_ref(url: str, shop: str) -> str:
+    """Attach the shop as Stripe's client_reference_id so a Payment Link checkout can be traced back
+    to this tenant by the webhook (Payment Links are static and otherwise carry no shop identity)."""
+    if not url:
+        return url
+    import urllib.parse
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}client_reference_id={urllib.parse.quote(shop, safe='')}"
+
+
 def _free_shops():
     """Comped tenant keys: the console's dashboard override, else env HALIA_FREE_SHOPS."""
     from halia.console_config import console_setting
@@ -334,7 +344,7 @@ def register(app) -> None:
         cards = []
         for p in plancat.public_catalogue():
             p = dict(p)
-            p["link"] = links.get(p["key"], "")
+            p["link"] = link_with_ref(links.get(p["key"], ""), shop)
             cards.append(p)
         return {
             "plans": cards,
@@ -394,11 +404,15 @@ def register(app) -> None:
         except Exception:  # noqa: BLE001
             raise HTTPException(400, "Bad payload")
         obj = (event.get("data") or {}).get("object") or {}
+        typ = event.get("type", "")
+        store = shop_store()
         shop = obj.get("client_reference_id") or (obj.get("metadata") or {}).get("shop")
         if not shop:
+            # Payment Link subscriptions carry no shop on later events — map back by stored ids.
+            sub_id = obj.get("id") if typ.startswith("customer.subscription.") else obj.get("subscription")
+            shop = store.billing_shop_for(subscription_id=sub_id, customer_id=obj.get("customer"))
+        if not shop:
             return {"received": True}
-        store = shop_store()
-        typ = event.get("type", "")
         if typ == "checkout.session.completed":
             store.set_billing(shop, "active", obj.get("customer"), obj.get("subscription"))
         elif typ == "customer.subscription.deleted":
