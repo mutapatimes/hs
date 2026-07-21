@@ -118,5 +118,16 @@
     }
   }
 
-  window.Halia = { observe, lookup, insertInto };
+  // Find the customer's email within a scope (a helpdesk ticket panel, a profile header). Prefers a
+  // mailto link (the reliable signal), then the first email-looking string. Scope tightly to avoid
+  // grabbing an agent's own address or a footer.
+  function pageEmail(scope) {
+    const r = scope || document;
+    const a = r.querySelector('a[href^="mailto:"]');
+    if (a) return decodeURIComponent((a.getAttribute("href") || "").slice(7).split("?")[0]).trim();
+    const m = (r.textContent || "").match(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/i);
+    return m ? m[0].toLowerCase() : "";
+  }
+
+  window.Halia = { observe, lookup, insertInto, pageEmail };
 })();
