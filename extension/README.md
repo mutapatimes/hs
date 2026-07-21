@@ -67,6 +67,19 @@ The toolbar also runs on **Instagram DMs** (`instagram.com`, matched by the conv
 **Google Calendar** (`calendar.google.com`), where opening an event surfaces the guest's brief so
 you walk into an appointment knowing exactly who they are (matched by the guest's email).
 
+It also appears in the **helpdesk and marketing tools your team already uses**, so support and
+marketing see who quietly matters:
+
+- **Gorgias** and **Zendesk** — on an open ticket, the requester is recognised by email, so support
+  knows if it is an A\* client and can reply in the right register (and insert a template).
+- **Klaviyo** — on a customer profile, their Halia grade appears (read-only), so a marketer sees who
+  matters while building flows and segments.
+- **Microsoft Teams** — a second internal surface (like Slack): the toolbar opens in Internal mode
+  with team to-dos and premade messages, inserted into the Teams composer.
+
+Identity matching on each of these is best-effort against the tool's own markup (mostly by email);
+if a surface comes up empty, the selectors just need tuning for that tool's current UI.
+
 **Right-click anywhere** — select an email, phone number or name on any page and choose
 **"Look up … in Halia"**; a desktop notification returns their grade, latent value and next move.
 Works on sites the toolbar doesn't run on.
