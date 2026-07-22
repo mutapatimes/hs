@@ -872,6 +872,14 @@ class ShopStore(_DB):
                ON CONFLICT(shop, week, metric) DO UPDATE SET count = metrics.count + :n""",
             {"shop": shop, "week": week or _iso_week(), "metric": metric, "n": int(n)})
 
+    def shop_metric(self, shop: str, metric: str, week: str | None = None) -> int:
+        """One shop's count for a metric in a single week bucket (the current ISO week by default).
+        Used as a cheap per-tenant, per-week cost guard (e.g. the AI-draft ceiling)."""
+        row = self._run(
+            "SELECT count FROM metrics WHERE shop = :shop AND week = :week AND metric = :metric",
+            {"shop": shop, "week": week or _iso_week(), "metric": metric}, fetch="one")
+        return int(row["count"]) if row else 0
+
     def metric_totals(self, weeks: list[str] | None = None) -> dict[str, int]:
         """Sum each metric across all shops, optionally restricted to a set of week buckets."""
         if weeks:

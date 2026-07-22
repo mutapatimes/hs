@@ -18,6 +18,14 @@ closed). The panel has four always-ready sections:
   reasons they scored, the recommended next move, **Add to pipeline** (Shopify write-back stores),
   a **Note** field to jot context (saved to the customer in your Shopify, shown in the dashboard
   pipeline), and links to open them in Halia or your store.
+- **Draft with Halia** — at the top of the Templates section. Press **Draft a message** and Halia
+  writes the associate's next reply, tailored to who this client is (their grade, why they quietly
+  matter, whether they have gone quiet) and to the visible conversation on the page. Add an optional
+  line of intent ("confirm the exchange", "invite to the trunk show") to steer it. **Insert** drops
+  the draft into the reply box, or copy it. It always returns something: with no AI key configured,
+  or once a shop's weekly draft cap is reached, it falls back to your best-matching template, filled
+  for this client. Zero-retention holds: the client's standing and the thread are read live and used
+  in-flight, never stored.
 - **Templates** — your outreach templates, filled with the active client's name. **Insert** drops
   one straight into the WhatsApp/Gmail reply box, or copy it.
 - **Campaigns** — the campaigns running now. With a client on screen, **Add this client** drops them

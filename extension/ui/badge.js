@@ -116,6 +116,11 @@
       font-family: inherit; resize: vertical; color: #1a1a1a; }
     .prev { margin-top: 6px; padding: 8px; background: #f6f3ec; border: 1px solid #ece5d6; font-size: 12px;
       line-height: 1.4; white-space: pre-wrap; max-height: 116px; overflow-y: auto; }
+    .dbox { border: 1px solid #ece5d6; background: #fbf9f4; padding: 9px; margin-bottom: 11px; }
+    .dbox .sh { margin: 0 0 7px; }
+    textarea.dinstr { width: 100%; box-sizing: border-box; border: 1px solid #d8cfbc; background: #fff;
+      font: inherit; font-size: 12.5px; padding: 7px 9px; resize: vertical; min-height: 32px; color: #1a1a1a; }
+    .dsrc { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: #8a8271; margin-top: 6px; }
     .row { padding: 8px 10px; border: 1px solid #ece5d6; background: #fff; margin-bottom: 7px; }
     .row .rn { font-weight: 600; font-size: 13px; }
     .row .rd { font-size: 11.5px; color: #6b6355; margin-top: 1px; }
@@ -137,6 +142,9 @@
   let cart = [], prodResults = [], cartBase = ""; // the working cart + last product search
   let mode = "clienteling"; // "clienteling" (client-facing) | "internal" (team coordination)
   let tplQuery = "", tplSel = null;   // template search text + selected index
+  let threadReader = null;            // surface-supplied () => [{from,text}] of the visible chat
+  let draftInstr = "";                // the associate's optional "what to say" note
+  let draft = null;                   // { text, source, busy, error, aiAvailable }
   let animKey = "";                   // last client key animated (so we fade in only on a new client)
   const folded = new Set();           // collapsed section names, persisted
   const contactHist = {};   // cid -> last outreach {at,by,action,note} | null | "pending"
@@ -441,11 +449,77 @@
     const t = client && client.data && client.data.templates;
     return (t && t.length ? t : (ctx && ctx.templates) || []);
   }
+
+  // ── DRAFT WITH HALIA ──────────────────────────────────────────────────────
+  // Reads the client on screen plus the visible thread and asks Halia to draft the next message.
+  // Works without AI too: the backend falls back to the merchant's best-matching template.
+  function collectThread() {
+    try { return threadReader ? (threadReader() || []) : []; } catch (e) { return []; }
+  }
+  function draftErr(r) {
+    const e = r && r.error;
+    if (e === "no-token") return "Add your Halia token in the options to draft.";
+    if (e === "unauthorized") return "Your token is not recognised. Re-generate it in Settings.";
+    if (e === "network") return "Could not reach Halia. Check the address in the options.";
+    return "Could not draft just now. Please try again.";
+  }
+  function runDraft() {
+    const d = (client && client.data) || {};
+    draft = { busy: true, text: (draft && draft.text) || "", source: (draft && draft.source) || "", error: "" };
+    renderTemplates();
+    const body = { cid: d.cid || "", email: d.email || "", phone: d.phone || "", name: d.name || "",
+      channel, instruction: draftInstr, thread: collectThread() };
+    try {
+      chrome.runtime.sendMessage({ type: "halia:draft", body }, (r) => {
+        if (chrome.runtime.lastError || !r || r.error) {
+          draft = { busy: false, text: "", source: "", error: draftErr(r) };
+        } else {
+          draft = { busy: false, text: r.draft || "", source: r.source || "template",
+            error: "", aiAvailable: r.ai_available };
+        }
+        renderTemplates();
+      });
+    } catch (e) { draft = { busy: false, error: "Draft failed" }; renderTemplates(); }
+  }
+  function draftBoxHtml() {
+    const busy = draft && draft.busy;
+    const has = draft && draft.text;
+    const srcLine = has
+      ? (draft.source === "ai" ? "Written by Halia" : "From your template") +
+        (draft.aiAvailable === false && draft.source !== "ai"
+          ? " · add an AI key in Halia for tailored drafts" : "")
+      : "";
+    return `<div class="dbox">
+      <div class="sh">Draft with Halia</div>
+      <textarea class="dinstr" data-a="dinstr" rows="1" placeholder="What do you want to say? (optional)">${esc(draftInstr)}</textarea>
+      <div class="acts">
+        <button class="btn primary" data-a="draft"${busy ? " disabled" : ""}>${busy ? "Drafting…" : (has ? "Draft again" : "Draft a message")}</button>
+      </div>
+      ${draft && draft.error ? `<div class="muted" style="margin-top:7px">${esc(draft.error)}</div>` : ""}
+      ${has ? `<div class="prev" style="margin-top:8px">${esc(draft.text)}</div>
+        <div class="dsrc">${esc(srcLine)}</div>
+        <div class="acts">
+          ${inserter ? `<button class="btn primary" data-a="dins">Insert</button>` : ""}
+          <button class="btn" data-a="dcopy">Copy</button>
+        </div>` : ""}
+    </div>`;
+  }
+  function wireDraft(el) {
+    const ta = el.querySelector('[data-a="dinstr"]');
+    if (ta) ta.oninput = () => { draftInstr = ta.value; };   // store without a re-render, to keep focus
+    const b = el.querySelector('[data-a="draft"]'); if (b) b.onclick = runDraft;
+    const di = el.querySelector('[data-a="dins"]'); if (di) di.onclick = () => place(draft.text);
+    const dc = el.querySelector('[data-a="dcopy"]'); if (dc) dc.onclick = () => copy(draft.text, "Draft copied");
+  }
+
   function renderTemplates() {
     const el = sec("tpl"); if (!el) return;
     const list = templateList();
-    if (!list.length) { el.innerHTML = `<div class="sh">Templates</div>
-      <div class="muted">Add outreach templates in Halia → Settings → Templates.</div>`; return; }
+    if (!list.length) {
+      el.innerHTML = draftBoxHtml() + `<div class="sh">Templates</div>
+        <div class="muted">Add outreach templates in Halia → Settings → Templates.</div>`;
+      wireDraft(el); return;
+    }
     const fill = (s) => String(s || "").split("{first_name}").join(activeFirst());
     const q = tplQuery.trim().toLowerCase();
     const matches = list.map((t, i) => ({ t, i }))
@@ -458,7 +532,7 @@
       groups[idx[c]].items.push({ t, i });
     });
     const sel = (tplSel != null && list[tplSel]) ? list[tplSel] : null;
-    el.innerHTML = `
+    el.innerHTML = draftBoxHtml() + `
       <div class="sh">Templates <span class="n">${list.length}</span></div>
       <input class="psearch" data-a="tsearch" placeholder="Search templates" value="${esc(tplQuery)}" style="margin-bottom:8px">
       <div class="tlist">${groups.length
@@ -482,6 +556,7 @@
     const ins = el.querySelector('[data-a="tins"]'); if (ins) ins.onclick = () => place(body());
     const cp = el.querySelector('[data-a="tcopy"]'); if (cp) cp.onclick = () => copy(body(), "Message copied");
     const cs = el.querySelector('[data-a="tcopys"]'); if (cs) cs.onclick = () => copy(fill((list[tplSel] || {}).subject), "Subject copied");
+    wireDraft(el);
   }
 
   // ── CAMPAIGNS ─────────────────────────────────────────────────────────────
@@ -664,9 +739,11 @@
     setClient(state) {
       client = state; // null | {loading,name} | {found,data} | {notfound,name} | {error}
       if (state && state.found) client = { data: state.data };
+      draft = null; draftInstr = "";   // a fresh client means a fresh draft; never carry one over
       if (root) { renderClient(); renderTemplates(); renderCampaigns(); paintCart(); renderTeam(); paintHandle(); }
     },
     setInserter(fn) { inserter = fn; },
+    setThreadReader(fn) { threadReader = fn; },   // surface supplies () => [{from,text}] of the chat
     setChannel(ch) { if (CHAN[ch]) channel = ch; },
     setMode(m, persist) { setMode(m, persist); },
     hide() { /* the toolbar is persistent; collapse instead of removing */ setOpen(false); }

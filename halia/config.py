@@ -173,3 +173,17 @@ SHOPIFY_JOURNEY = _flag("HALIA_SHOPIFY_JOURNEY", False)
 
 KLAVIYO_API_KEY = os.environ.get("KLAVIYO_API_KEY")
 HUBSPOT_TOKEN = os.environ.get("HUBSPOT_TOKEN")
+
+# ── Message drafting (the extension's "Draft with Halia") ────────────────────────────
+# The Claude API key that powers AI drafts. OPTIONAL: with no key set, the drafter falls back to
+# the merchant's own templates, so the feature still works without AI. Accepts either
+# HALIA_LLM_API_KEY or the conventional ANTHROPIC_API_KEY.
+LLM_API_KEY = os.environ.get("HALIA_LLM_API_KEY") or os.environ.get("ANTHROPIC_API_KEY") or None
+# The everyday drafting model: cheap and fast, more than good enough for personalised outreach.
+LLM_MODEL = os.environ.get("HALIA_LLM_MODEL", "claude-haiku-4-5-20251001")
+# Optional premium model used only for top-grade (A / A*) clients, where the extra prose quality
+# earns its keep. Unset -> LLM_MODEL is used for everyone (the cheap, predictable default).
+LLM_MODEL_PREMIUM = os.environ.get("HALIA_LLM_MODEL_PREMIUM") or None
+# Per-shop, per-week ceiling on AI drafts: a hard cost guard. Beyond it the drafter quietly falls
+# back to templates until the next week, so a runaway month is impossible. 0 disables the cap.
+LLM_WEEKLY_CAP = int(os.environ.get("HALIA_LLM_WEEKLY_CAP", "3000"))
