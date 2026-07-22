@@ -49,6 +49,52 @@ _ABBREVIATIONS = {
 }
 
 
+# Words that name a KIND of place rather than a particular one. An alias built ONLY from these
+# ("Grand Hotel", "The Park") fires on ordinary streets and buildings.
+_PLACE_KIND = frozenset("""
+    HOTEL HOTELS RESORT RESORTS RESIDENCE RESIDENCES APARTMENT APARTMENTS SUITE SUITES PENTHOUSE
+    HOUSE COURT PLACE PLAZA TOWER TOWERS PARK GARDEN GARDENS SQUARE STREET ROAD AVENUE LANE
+    MANOR HALL LODGE VILLA PALACE CASTLE ESTATE CLUB SPA MARINA HARBOUR HARBOR PORT QUAY
+    BEACH ISLAND BAY GRAND ROYAL IMPERIAL CENTRAL PRIVATE LUXURY THE OF AND
+    AIRPORT TERMINAL HANGAR JET YACHT MARINE JETTY BERTH INTERNATIONAL NATIONAL GLOBAL
+""".split())
+
+# Words that really do name a venue but collide badly ON THEIR OWN — the reference file's "bad:
+# MANDARIN (-> Mandarin Plaza)" warning. Perfectly good inside a longer alias, never alone.
+_AMBIGUOUS_ALONE = frozenset("""
+    MANDARIN ORIENTAL PENINSULA SAVOY CONNAUGHT BERKELEY GORING DORCHESTER LANGHAM METROPOLE
+    RITZ BRISTOL CARLTON EDEN EXCELSIOR PLAZA REGENT WALDORF WESTBURY BEAUMONT ATHENAEUM
+    CADOGAN CHILTERN MARYLEBONE MAYFAIR CHELSEA BELGRAVIA KNIGHTSBRIDGE
+""".split())
+_MIN_SOLO_ALIAS = 7        # a one-word alias must be a long, distinctive proper noun
+
+
+def usable_alias(norm: str) -> bool:
+    """Whether a normalised alias is specific enough to look for inside a delivery address.
+
+    Specificity comes from length as well as from wording, so the bar loosens as the phrase grows:
+
+    * one word  — the risky shape. Must be long, not a kind-of-place word, and not a word that
+      collides on its own ("Mandarin" reaches Mandarin Plaza; "Lanesborough" reaches nothing else).
+    * two words — must name something in particular: "Mandarin Oriental" yes, "Grand Hotel" no.
+    * three or more — specific enough as a whole phrase, even when every word is ordinary
+      ("Royal Garden Hotel" is a real hotel and matches nothing else).
+
+    Every alias currently shipped passes. This is the guard that stops a future addition, written
+    by hand or generated, from firing on an ordinary street — which the reference file has always
+    warned about but nothing enforced.
+    """
+    toks = norm.split()
+    if not toks:
+        return False
+    if len(toks) == 1:
+        return len(toks[0]) >= _MIN_SOLO_ALIAS and toks[0] not in _AMBIGUOUS_ALONE \
+            and toks[0] not in _PLACE_KIND
+    if len(toks) == 2:
+        return any(t not in _PLACE_KIND for t in toks)
+    return True
+
+
 @dataclass(frozen=True)
 class Venue:
     name: str
@@ -72,8 +118,16 @@ def _normalize(text: object) -> str:
     return " ".join(words).strip()
 
 
-def load_venues(path: Path | str = SIGNAL_VENUES_FILE) -> list[Venue]:
-    """Read the reference list into normalized Venue records."""
+def load_venues(path: Path | str = SIGNAL_VENUES_FILE, alias_guard=None) -> list[Venue]:
+    """Read the reference list into normalized Venue records.
+
+    ``alias_guard`` is an optional predicate applied to each normalised alias. It is OFF by
+    default because this loader is shared by several tables with different risks: the signal-venue
+    list holds hotel and club names that have to be spotted inside a full street address, where a
+    loose alias fires on every neighbour, while the area, prime-residence, wealth-structure and
+    district lists hold place names that are legitimately short ("Gstaad", "Davos"). Only the
+    caller knows which it is reading, so only the caller opts in.
+    """
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Signal-venue reference list not found: {path}")
@@ -89,7 +143,8 @@ def load_venues(path: Path | str = SIGNAL_VENUES_FILE) -> list[Venue]:
             signal_type = row[1].strip() if len(row) > 1 else ""
             raw_aliases = row[2] if len(row) > 2 else ""
             aliases = tuple(
-                a for a in (_normalize(part) for part in raw_aliases.split(";")) if a
+                a for a in (_normalize(part) for part in raw_aliases.split(";"))
+                if a and (alias_guard is None or alias_guard(a))
             )
             if aliases:
                 venues.append(Venue(name, signal_type, aliases))
@@ -129,7 +184,9 @@ def flag_delivery_venue(
 ) -> pd.DataFrame:
     """Add delivery-venue match, venue name, and signal-type columns."""
     if venues is None:
-        venues = load_venues()
+        # The venue table is the one matched inside full street addresses, so it is the one that
+        # needs the collision guard the reference file has always asked for in prose.
+        venues = load_venues(alias_guard=usable_alias)
     if address_cols is None:
         address_cols = DEFAULT_ADDRESS_COLS
 

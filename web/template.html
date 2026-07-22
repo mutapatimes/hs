@@ -381,6 +381,15 @@
   .dcard.accent .k{color:#9DC2B7}.dcard.accent .v{color:#fff}
 
   .dlabel{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:4px 0 12px}
+  /* ask-in-plain-English bar above the Clients filters */
+  .askbar{display:flex;align-items:center;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+  .askbar input{flex:1;min-width:230px;padding:9px 12px;border:1px solid var(--line);border-radius:0;
+    background:var(--card);color:var(--ink);font:inherit;font-size:13.5px}
+  .askbar input:focus{outline:none;border-color:var(--brand)}
+  .askmsg{font-size:12.5px;color:var(--soft)}
+  /* the written one-liner, above the evidence it is drawn from */
+  .dsum{background:var(--brand-tint);border-left:3px solid var(--brand);border-radius:0;
+    padding:12px 15px;margin-bottom:14px;font-size:14px;line-height:1.55;color:var(--ink)}
   .evidence{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
   .ev{background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 14px;display:flex;gap:12px;align-items:flex-start}
   .ev .badge{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--brand-deep);background:var(--brand-tint);padding:3px 8px;border-radius:0;white-space:nowrap;flex:none;margin-top:1px}
@@ -899,6 +908,13 @@
           <input id="q" placeholder="Search client, email, location, signal…" autocomplete="off">
         </div>
       </div>
+      <!-- Ask in plain English: Halia sets the filters below, it does not search. Hidden until
+           the server confirms an AI key is configured. -->
+      <div class="askbar" id="askbar" style="display:none">
+        <input id="askq" placeholder="Or describe who you're after: “quiet A-tier clients in London”" autocomplete="off">
+        <button class="dbtn" id="askgo">Ask</button>
+        <span class="askmsg" id="askmsg"></span>
+      </div>
 
       <!-- filters & sort -->
       <div class="controls">
@@ -1230,6 +1246,54 @@ document.getElementById("fCity").onchange=e=>{cityFilter=e.target.value;page=1;r
 document.getElementById("fMin").onchange=e=>{minSignals=+e.target.value;page=1;renderRows();};
 document.getElementById("fSort").onchange=e=>{sortKey=e.target.value;sortDir="desc";page=1;setSort();};
 wireDate("c", CDATE, ()=>{page=1;renderRows();});
+
+// ---- Ask in plain English. Halia does not search: it chooses values for the very filters above,
+// and anything outside this page's own vocabulary is dropped server-side, so the worst case is a
+// filter that finds nothing rather than a client that doesn't exist. Hidden without an AI key.
+// Revealed by loadSettings() once the server confirms a key; SETTINGS is declared much later in
+// this script and filled asynchronously, so nothing here may read it at init time.
+function showAskBar(){const b=document.getElementById("askbar"); if(b) b.style.display="";}
+(function(){
+  const bar=document.getElementById("askbar");
+  if(!bar) return;
+  const box=document.getElementById("askq"), go=document.getElementById("askgo"),
+        msg=document.getElementById("askmsg");
+  function apply(f){
+    gradeFilter = f.grade || "all";
+    cityFilter  = f.city  || "all";
+    playFilter  = f.play  || "";
+    minSignals  = (typeof f.minSignals==="number") ? f.minSignals : minSignals;
+    sortKey     = f.sort  || "score";
+    query       = f.query || "";
+    activeSegs  = new Set(f.segments || []);
+    // put the controls back in step with what was applied, so the user can see and undo it
+    const g=document.getElementById("fGrade"); if(g) g.value=gradeFilter;
+    const ct=document.getElementById("fCity"); if(ct) ct.value=cityFilter;
+    const mn=document.getElementById("fMin");  if(mn) mn.value=String(minSignals);
+    const st=document.getElementById("fSort"); if(st) st.value=sortKey;
+    const q=document.getElementById("q");      if(q) q.value=query;
+    sortDir="desc"; page=1;
+    renderChips(); renderRows();
+  }
+  function ask(){
+    const q=(box.value||"").trim();
+    if(!q) return;
+    msg.textContent="Reading…"; go.disabled=true;
+    const cities=[...new Set(DATA.map(c=>c.city).filter(x=>x && x!=="·"))].sort();
+    fetch("/v1/clients/query",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({q, cities, segments:Object.keys(SEGMENTS||{})})})
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{
+        go.disabled=false;
+        if(!d || !d.ok){ msg.textContent="Couldn't read that. Try the filters below."; return; }
+        apply(d.filter||{});
+        msg.textContent=d.filter && d.filter.explain ? d.filter.explain : "";
+      })
+      .catch(()=>{go.disabled=false;msg.textContent="Couldn't reach Halia.";});
+  }
+  go.onclick=ask;
+  box.onkeydown=e=>{ if(e.key==="Enter"){e.preventDefault();ask();} };
+})();
 
 // ---- "Alive engine" reveal: score rings sweep, numbers tabulate, rows arrive in sequence.
 // Fires ONCE when a scored view (overview / clients) first paints, and again on Re-score.
@@ -2837,6 +2901,7 @@ function openDrawer(id){
       </div>`:''}
 
       <div class="dlabel">Why this client surfaced</div>
+      <div id="dsum" class="dsum" style="display:none"></div>
       <div class="evidence">${evidenceHTML(c.signals)}</div>
 
       ${c.reco?`<div class="reco"><div class="k">Recommended approach</div><p>${esc(c.reco)}</p></div>`:""}
@@ -2929,6 +2994,25 @@ function openDrawer(id){
     copyText(link);
     toast("Catalogue link for "+(c.first||c.name||"this client")+" copied.");
   };
+  loadClientSummary(c);
+}
+
+// One plain sentence on why this client matters, written from the evidence the engine already
+// found and shown above that same evidence — so every clause can be checked against a token below
+// it. Silent when no AI key is configured: the drawer has always worked without it.
+function loadClientSummary(c){
+  const box=document.getElementById("dsum");
+  if(!box || !c || !c.cid) return;
+  fetch("/v1/client/summary",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({cid:c.cid})})
+    .then(r=>r.ok?r.json():null)
+    .then(d=>{
+      if(!d || !d.summary) return;                       // no key, capped, or nothing to say
+      if(!document.getElementById("dsum")) return;       // drawer moved on while we waited
+      box.textContent=d.summary;
+      box.style.display="";
+    })
+    .catch(()=>{});                                      // a convenience, never an error
 }
 function closeDrawer(){drawer.classList.remove("show","wide");scrim.classList.remove("show");drawer.setAttribute("aria-hidden","true");}
 // Enlarge / shrink the open drawer (works for both the client and order drawers).
@@ -3019,6 +3103,7 @@ function loadSettings(){
     if(s.email_draft) CMS_DRAFT=s.email_draft;
     SENDER=s.sender_name||"";
     CATALOG_URL=s.catalog_url||"";
+    if(s.ai_drafting) showAskBar();   // ask-in-plain-English needs a key on the server
     return SETTINGS;
   }).catch(()=>SETTINGS);
 }
