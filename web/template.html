@@ -404,6 +404,19 @@
   .dfold>summary:hover{color:var(--brand)}
   .dfold>summary span{font-weight:400;font-size:12.5px;color:var(--soft)}
   .dfold>*:last-child{padding-bottom:16px}
+  /* Enlarging the drawer buys depth, not just width: the explanation of every tell comes inline,
+     the record opens up, and the extra room becomes a second column instead of a longer scroll. */
+  .gd,.evwy{display:none}
+  .drawer.wide .gd,.drawer.wide .evwy{display:block}
+  .drawer.wide .dbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);
+    gap:0 32px;align-items:start}
+  .drawer.wide .dbody>*{grid-column:1;min-width:0}
+  .drawer.wide .drecord{grid-column:2;grid-row:1/-1}
+  .drawer.wide .drecord .dfold:first-child{border-top:0}
+  @media(max-width:960px){
+    .drawer.wide .dbody{display:block}
+    .drawer.wide .drecord{grid-column:auto}
+  }
   /* the written one-liner, above the evidence it is drawn from */
   .dsum{background:var(--brand-tint);border-left:3px solid var(--brand);border-radius:0;
     padding:12px 15px;margin-bottom:14px;font-size:14px;line-height:1.55;color:var(--ink)}
@@ -2903,16 +2916,16 @@ function evidenceHTML(signals){
     const tag=tells>1?`${tells} tells &middot; ${c==="home"?"same place":"corroborating"}`:"1 tell";
     const strength=Math.min(1,0.42+0.29*(tells-1));   // corroboration → bar fill (real tell count)
     const gd=d; d+=STEP;
-    // One line per fact. The explanation of what a tell means is reference material — needed once,
-    // not on every client — so it moves to the row's tooltip rather than sitting under every row.
+    // One line per fact. What a tell MEANS is reference material: it stays in the markup but out
+    // of the way — on the tooltip while the drawer is narrow, and inline once it is enlarged.
     const rows=items.map(s=>{const why=SIG_WHY[s.seg]||"";const rd=d;d+=STEP;
       return `<div class="evi" style="animation:evrow var(--dur) var(--ease) ${rd}ms both"${why?` title="${esc(why)}"`:""}><span class="evtag">${esc(_sigName(s))}</span>
-        <div class="evdt">${esc(_sigDetail(s))||"&mdash;"}</div></div>`;
+        <div class="evb"><div class="evdt">${esc(_sigDetail(s))||"&mdash;"}</div>${why?`<div class="evwy">${why}</div>`:""}</div></div>`;
     }).join("");
     return `<div class="evgrp" style="animation:settle var(--dur) var(--ease) ${gd}ms both">
       <div class="gh"${meta.d?` title="${esc(meta.d)}"`:""}><span class="gic" style="background:${meta.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">${_ICON[c]}</svg></span>${meta.t}<span class="ct">${tag}</span></div>
       <div class="evstr"><span class="evstr-fill" style="--w:${(strength*100).toFixed(0)}%;background:${meta.c};animation:barfill var(--dur-slow) var(--ease) ${gd+50}ms both"></span></div>
-      ${rows}</div>`;
+      ${meta.d?`<div class="gd">${meta.d}</div>`:""}${rows}</div>`;
   }).join("");
 }
 
@@ -2965,6 +2978,7 @@ function openDrawer(id){
 
       ${c.reco?`<div class="reco"><div class="k">Recommended approach</div><p>${esc(c.reco)}</p></div>`:""}
 
+      <div class="drecord">
       <details class="dfold"><summary>How the latent value is built<span>${gbp(c.spend)} → ${gbpK(c.latent)}</span></summary>
       <div style="background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 15px;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:8px;font-size:13.5px">
@@ -2996,6 +3010,7 @@ function openDrawer(id){
           : `<div style="padding:12px 14px;color:var(--faint);font-size:13px">No orders on record.</div>`}
         ${c.orders&&c.orders.length>12?`<div style="padding:9px 14px;color:var(--faint);font-size:12.5px">+${c.orders.length-12} earlier orders</div>`:""}
       </div></details>
+      </div>
     </div>
     <div class="dactions">
       <div class="dactm">
@@ -3082,8 +3097,16 @@ function closeDrawer(){drawer.classList.remove("show","wide");scrim.classList.re
 // Enlarge / shrink the open drawer (works for both the client and order drawers).
 const EXPAND_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H4a1 1 0 00-1 1v5M15 3h5a1 1 0 011 1v5M9 21H4a1 1 0 01-1-1v-5M15 21h5a1 1 0 001-1v-5"/></svg>';
 const COMPRESS_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/></svg>';
-function drawerCtl(){return `<div class="dctl"><button class="dexpand" id="dexpand" title="Enlarge">${EXPAND_ICON}</button><button class="dclose" id="dclose">&times;</button></div>`;}
-function toggleDrawerWide(){const w=drawer.classList.toggle("wide");const b=document.getElementById("dexpand");if(b){b.innerHTML=w?COMPRESS_ICON:EXPAND_ICON;b.title=w?"Shrink":"Enlarge";}}
+function drawerCtl(){return `<div class="dctl"><button class="dexpand" id="dexpand" title="Show the full record">${EXPAND_ICON}</button><button class="dclose" id="dclose">&times;</button></div>`;}
+// Enlarging is a request for more, not just wider: it opens the folded record and brings each
+// tell's explanation inline. Shrinking puts it away again, so the narrow drawer stays the
+// who / why / what-to-do view it is meant to be.
+function toggleDrawerWide(){
+  const w=drawer.classList.toggle("wide");
+  drawer.querySelectorAll("details.dfold").forEach(d=>{d.open=w;});
+  const b=document.getElementById("dexpand");
+  if(b){b.innerHTML=w?COMPRESS_ICON:EXPAND_ICON;b.title=w?"Show less":"Show the full record";}
+}
 function wireDrawerCtl(){const c=document.getElementById("dclose");if(c)c.onclick=closeDrawer;const e=document.getElementById("dexpand");if(e)e.onclick=toggleDrawerWide;}
 scrim.onclick=()=>{closeDrawer();closeSettings();};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeDrawer();closeSettings();}});
