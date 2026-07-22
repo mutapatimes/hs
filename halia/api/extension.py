@@ -265,6 +265,109 @@ def _lookup(shop: str, email: Optional[str], cid: Optional[str],
     return {"found": False}
 
 
+# ── message drafting ("Draft with Halia") ────────────────────────────────────────────
+_DRAFT_SYSTEM = (
+    "You are a clienteling assistant for a luxury retailer, writing the sales associate's next "
+    "message to a client. Write one short, warm, genuinely personal message the associate can send "
+    "as is or lightly edit. Match the client's standing and history: a proven client of long "
+    "standing is greeted differently from a first-time buyer. Be specific and concrete; never "
+    "generic filler. Plain text only: no markdown, no emoji unless the thread already uses them. "
+    "Do not invent facts you were not given (no fake order numbers, dates, prices or product "
+    "names). Leave no placeholders such as [name]. Do not use em dashes; use commas, colons or "
+    "periods. Return only the message itself, with no preamble or surrounding quotes. Add a "
+    "sign-off only if a sender name is provided."
+)
+
+
+def _clean_thread(raw: Any) -> list[dict]:
+    """The last few turns of the on-screen conversation, normalised. Capped hard, both to bound
+    LLM cost and to keep the model focused on the live exchange. Read in-flight, never stored."""
+    out: list[dict] = []
+    if isinstance(raw, list):
+        for m in raw[-10:]:
+            if not isinstance(m, dict):
+                continue
+            who = "them" if str(m.get("from") or "").lower().startswith(("them", "client", "cust")) \
+                else "me"
+            txt = str(m.get("text") or "").strip().replace("\r", "")[:800]
+            if txt:
+                out.append({"from": who, "text": txt})
+    return out[-6:]
+
+
+def _standing(resp: dict) -> str:
+    if resp.get("play") == "sleeping":
+        return "a proven client who has gone quiet, worth a personal touch to bring them back"
+    if resp.get("hidden"):
+        return "a hidden high-value client, quietly important though they may not look a VIP on the surface"
+    if str(resp.get("tier") or "").startswith("A"):
+        return "a top-grade client"
+    return "a client"
+
+
+def _draft_context(shop: str, resp: dict, channel: str, thread: list[dict], instruction: str) -> str:
+    """Assemble the user prompt: the client's live standing plus the visible conversation."""
+    from halia.api.settings import settings_for
+    s = settings_for(shop)
+    sender = (s.get("sender_name") or "").strip()
+    brand = (s.get("brand") or "").strip()
+    lines: list[str] = []
+    if channel:
+        lines.append(f"Channel: {channel}")
+    if brand and brand.lower() != "halia":
+        lines.append(f"Boutique / brand: {brand}")
+    if sender:
+        lines.append(f"You are writing as: {sender}")
+    if resp.get("found"):
+        lines.append(f"Client: {resp.get('name') or 'the client'}")
+        if resp.get("grade"):
+            lines.append(f"Halia grade {resp['grade']}: {_standing(resp)}")
+        if resp.get("ordersCount"):
+            lines.append(f"Orders to date: {resp['ordersCount']}")
+        if resp.get("last"):
+            lines.append(f"Most recent order: {resp['last']}")
+        if resp.get("latent"):
+            lines.append(f"Estimated latent value: {resp['latent']}")
+        reasons = [r for r in (resp.get("reasons") or []) if r][:6]
+        if reasons:
+            lines.append("Why they quietly matter: " + "; ".join(reasons))
+        gesture = resp.get("action") or resp.get("reco")
+        if gesture:
+            lines.append(f"Suggested gesture: {gesture}")
+    else:
+        lines.append("This person is not a flagged client in the book. Write a warm, professional "
+                     "message from the conversation itself.")
+    if thread:
+        lines.append("\nRecent conversation (oldest first):")
+        for m in thread:
+            lines.append(("Client: " if m["from"] == "them" else "You: ") + m["text"])
+    if instruction:
+        lines.append(f"\nWhat you want to say (your intent): {instruction}")
+    lines.append("\nDraft the associate's next message now.")
+    return "\n".join(lines)
+
+
+def _fallback_draft(shop: str, resp: dict) -> str:
+    """A draft when AI is off or unavailable: the merchant's own best-matching template, filled for
+    this client. Play-aware (gone quiet -> a win-back template, fresh -> a welcome). Always returns
+    something usable, so the button never comes back empty."""
+    first = ((resp.get("name") or "").split(" ")[0]) if resp.get("found") else ""
+    templates = resp.get("templates") or _templates(shop, first or None)
+    want = {"sleeping": "win", "fresh": "welcome"}.get(resp.get("play") or "", "")
+    pick = None
+    if want:
+        for t in templates:
+            if want in (t.get("category") or "").lower():
+                pick = t
+                break
+    if pick is None and templates:
+        pick = templates[0]
+    body = ((pick or {}).get("body") or "").replace("{first_name}", first or "there").strip()
+    if body:
+        return body
+    return f"Hi {first or 'there'}, just checking in from our side. Is there anything I can help you with?"
+
+
 def register(app) -> None:
 
     @app.post("/v1/extension/token")
@@ -339,6 +442,52 @@ def register(app) -> None:
             raise HTTPException(422, "Provide email, cid, phone or name")
         data.record_activity(shop, "extension_lookup")
         return _lookup(shop, email, cid, phone, name)
+
+    @app.post("/v1/extension/draft")
+    def extension_draft(x_halia_ext_token: Optional[str] = Header(None),
+                        payload: Any = Body(default=None)) -> dict:
+        """Draft the associate's next message for the client on screen. Reads the client's live
+        grade and reasons (the same warm book as /lookup) plus the visible thread the associate is
+        already looking at, and returns a ready-to-edit reply. Falls back to the merchant's own
+        template when no AI key is configured, when the per-week cost cap is reached, or when a
+        draft can't be produced, so the button always returns something. Zero-retention: the client
+        context and thread are used in-flight and discarded; nothing about the customer is stored."""
+        from halia import llm
+
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        body = payload or {}
+        email = (str(body.get("email") or "").strip()) or None
+        cid = (str(body.get("cid") or body.get("customer_id") or "").strip()) or None
+        phone = (str(body.get("phone") or "").strip()) or None
+        name = (str(body.get("name") or "").strip()) or None
+        channel = str(body.get("channel") or "").strip()[:24]
+        instruction = str(body.get("instruction") or "").strip()[:500]
+        thread = _clean_thread(body.get("thread"))
+
+        resp = _lookup(shop, email, cid, phone, name) if (email or cid or phone or name) \
+            else {"found": False}
+
+        draft, source, model = None, "template", None
+        cap = config.LLM_WEEKLY_CAP
+        used = shop_store().shop_metric(shop, "extension_draft_ai") if cap else 0
+        if llm.available() and (not cap or used < cap):
+            tier = str(resp.get("tier") or "")
+            model = (config.LLM_MODEL_PREMIUM if (config.LLM_MODEL_PREMIUM and tier.startswith("A"))
+                     else config.LLM_MODEL)
+            text = llm.complete(_DRAFT_SYSTEM, _draft_context(shop, resp, channel, thread, instruction),
+                                model=model, max_tokens=600)
+            if text:
+                draft, source = text, "ai"
+                data.record_activity(shop, "extension_draft_ai")
+        if draft is None:
+            draft, model = _fallback_draft(shop, resp), None
+        data.record_activity(shop, "extension_draft")
+        return {"draft": draft, "source": source, "model": model,
+                "found": bool(resp.get("found")), "name": resp.get("name"),
+                "grade": resp.get("grade"), "ai_available": llm.available()}
 
     @app.get("/v1/extension/events")
     def extension_events(x_halia_ext_token: Optional[str] = Header(None)) -> dict:

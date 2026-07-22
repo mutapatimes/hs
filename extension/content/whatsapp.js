@@ -30,8 +30,23 @@
     return Halia.insertInto(document.querySelector('footer [contenteditable="true"]'), text);
   }
 
+  // The last few turns of the open chat, so "Draft with Halia" can answer what the client actually
+  // said. message-out is the associate, message-in is the client. Read live; nothing is stored.
+  function readThread() {
+    const main = document.querySelector("#main");
+    if (!main) return [];
+    const out = [];
+    main.querySelectorAll("div.message-in, div.message-out").forEach((r) => {
+      const sp = r.querySelector("span.selectable-text, span.copyable-text, .selectable-text");
+      const text = sp ? (sp.innerText || sp.textContent || "").trim() : "";
+      if (text) out.push({ from: r.classList.contains("message-out") ? "me" : "them", text });
+    });
+    return out.slice(-6);
+  }
+
   HaliaPanel.setChannel("whatsapp");
   HaliaPanel.setInserter(insert);
+  HaliaPanel.setThreadReader(readThread);
   Halia.observe(extract);
 
   // ── Chat-list triage dots: a small grade tag on each chat whose saved name matches a client,

@@ -40,8 +40,29 @@
     return Halia.insertInto(box, text);
   }
 
+  // The open thread's recent messages, so "Draft with Halia" can answer what was actually written.
+  // Each message body (.a3s) is attributed to its sender: the signed-in account is "me", everyone
+  // else is "them". Read live; nothing is stored.
+  function readThread() {
+    if (!threadOpen()) return [];
+    const main = document.querySelector('[role="main"]');
+    if (!main) return [];
+    const me = accountEmail();
+    const out = [];
+    main.querySelectorAll("div.a3s").forEach((b) => {
+      const text = (b.innerText || b.textContent || "").trim();
+      if (!text) return;
+      const box = b.closest("[data-message-id], .gs, .adn") || b.parentElement;
+      const s = box && box.querySelector("span[email]");
+      const sender = s ? (s.getAttribute("email") || "").toLowerCase() : "";
+      out.push({ from: (me && sender === me) ? "me" : "them", text: text.slice(0, 1200) });
+    });
+    return out.slice(-4);
+  }
+
   HaliaPanel.setChannel("email");
   HaliaPanel.setInserter(insert);
+  HaliaPanel.setThreadReader(readThread);
   Halia.observe(extract);
 
   // ── Inbox triage dots: a small grade marker on each conversation row, so the highest-grade
