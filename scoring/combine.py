@@ -516,28 +516,49 @@ def _actionable_mask(out: pd.DataFrame) -> np.ndarray:
                      for nm, e in zip(names.tolist(), emails.tolist())], dtype=bool)
 
 
+def _repaired(df: pd.DataFrame) -> pd.DataFrame:
+    """Undo mechanical damage (mistyped postcodes and e-mail domains, single-case names) so the
+    reference tables get a fair comparison, and rate each record's own quality. Conservative by
+    construction: see scoring/repair.py. Never fails a scoring run."""
+    try:
+        from scoring.repair import repair_frame
+        from scoring.signals.work_email import load_domains
+        try:
+            known = frozenset(load_domains())      # so a mistyped employer domain is recoverable
+        except Exception:  # noqa: BLE001 — the table is an enrichment, not load-bearing
+            known = None
+        return repair_frame(df, known_domains=known)
+    except Exception:  # noqa: BLE001 — repair must never break scoring; score what we were given
+        return df
+
+
 def score_customers(
     df: pd.DataFrame,
     weights: dict[str, int] | None = None,
     vic_threshold: float = VIC_SPEND_THRESHOLD,
     include_origin: bool = False,
+    repair: bool = True,
 ) -> pd.DataFrame:
     """Add signal_score, signal_count, reasons, and hidden_vic columns.
 
     ``include_origin`` is OFF by default: origin-proxy signals (nationality / name /
     ethnicity tells, see ORIGIN_PROXY_SIGNALS) do not contribute or surface unless a
     caller opts in for a tenant with a documented lawful basis.
+
+    ``repair`` runs the deterministic data-repair pass first (scoring/repair.py) and adds the
+    data-quality columns. On by default: a repair only ever turns a provably malformed value into
+    a provably well-formed one, so it can recover a lost match but cannot rewrite a good value.
     """
     weights = weights or SIGNAL_WEIGHTS
     # An empty book (a brand-new store, or an export with a header and no rows) must score cleanly,
     # not crash: pandas .apply on a 0-row frame can't infer a tuple-returning signal's shape. Return
     # the frame with the output columns present-but-empty so every downstream reader still works.
     if len(df) == 0:
-        out = df.copy()
+        out = _repaired(df) if repair else df.copy()
         for col in (SCORE_COL, COUNT_COL, CONFIDENCE_COL, REASONS_COL, HIDDEN_COL):
             out[col] = pd.Series(dtype=("bool" if col == HIDDEN_COL else "object"))
         return out
-    out = run_all_signals(df, include_origin)
+    out = run_all_signals(_repaired(df) if repair else df, include_origin)
     active = active_signals(include_origin)
 
     flag_of = {key: flag_col for key, _l, _a, flag_col, _r in active}

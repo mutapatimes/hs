@@ -121,12 +121,14 @@ def test_three_correlated_geo_tells_score_below_their_raw_sum():
 def test_gate_is_spend_not_segment():
     # Same firing signal (HNWI postcode); only spend decides "hidden". The old
     # VIP/VIC SEGMENT tag must NOT gate anymore.
+    # repair=False: these rows use lower-case labels as row ids, and the data-repair pass would
+    # re-case them (see tests/test_repair.py). The gate is what is under test here.
     out = score_customers(_frame([
         {"Name": "big", "Spent": 50000, "LATEST_BILLING_ZIP": "SW10 9SJ"},
         {"Name": "small", "Spent": 100, "LATEST_BILLING_ZIP": "SW10 9SJ"},
         {"Name": "tagged_but_poor", "SEGMENT": "VIP", "Spent": 50,
          "LATEST_BILLING_ZIP": "SW10 9SJ"},
-    ]))
+    ]), repair=False)
     hidden = out.set_index("Name")[HIDDEN_COL]
     assert not hidden["big"]              # already above threshold -> known
     assert hidden["small"]               # below threshold + signal -> hidden VIC
@@ -148,7 +150,7 @@ def test_top_hidden_vics_sorted_by_score_then_spend():
          "EMAIL_ADDR": "x@calculuscapital.com",
          "LATEST_BILLING_ZIP": "SW10 9SJ",
          "LATEST_BILLING_ADDRESS4": "Kuwait"},                            # 3 signals
-    ]), include_origin=True)  # origin proxies opted in: "one" rides gcc_billing
+    ]), include_origin=True, repair=False)  # origin proxies opted in: "one" rides gcc_billing
     ranked = top_hidden_vics(out, n=10)
     assert ranked.iloc[0]["Name"] == "three"   # highest score wins despite £1 spend
     assert list(ranked["Name"]) == ["three", "one"]   # "low" excluded (no signal)
