@@ -95,6 +95,11 @@ marketing see who quietly matters:
 Identity matching on each of these is best-effort against the tool's own markup (mostly by email);
 if a surface comes up empty, the selectors just need tuning for that tool's current UI.
 
+**The brief reads the conversation on every surface that has one**: WhatsApp Web, Gmail, Instagram
+DMs, Gorgias and Zendesk. On a helpdesk that means the brief answers the actual complaint, not just
+the client's grade. Where there is no conversation to read (Klaviyo, a customer page in the store
+admin) the button still works and briefs from the client's standing alone.
+
 **Right-click anywhere** — select an email, phone number or name on any page and choose
 **"Look up … in Halia"**; a desktop notification returns their grade, latent value and next move.
 Works on sites the toolbar doesn't run on.

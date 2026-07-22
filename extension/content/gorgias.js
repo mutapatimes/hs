@@ -19,7 +19,18 @@
     return Halia.insertInto(box, text);
   }
 
+  // The ticket's recent messages, so the brief answers the actual complaint rather than the
+  // client's grade alone. Agent replies carry an outgoing/agent hint in their markup; everything
+  // else is treated as the customer. Read live; nothing is stored.
+  function readThread() {
+    const scope = document.querySelector('[class*="ticket" i], [class*="conversation" i], main') ||
+      document;
+    return Halia.readMessages(scope, '[class*="message" i], [class*="MessageBody" i]',
+      /outgoing|agent|sent-by-us|from-agent|internal/i, 6);
+  }
+
   HaliaPanel.setChannel("email");
   HaliaPanel.setInserter(insert);
+  HaliaPanel.setThreadReader(readThread);
   Halia.observe(extract);
 })();

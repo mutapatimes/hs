@@ -19,7 +19,20 @@
     return Halia.insertInto(box, text);
   }
 
+  // The ticket's recent comments, so the brief answers the actual request. Zendesk renders each
+  // comment in the conversation log; agent replies carry an agent/outbound hint. Read live;
+  // nothing is stored.
+  function readThread() {
+    if (!/\/agent\//.test(location.pathname)) return [];
+    const scope = document.querySelector(
+      '[data-test-id*="omni-log" i], [class*="conversation" i], [class*="ticket" i], main') || document;
+    return Halia.readMessages(scope,
+      '.zd-comment, [data-test-id*="comment" i], [class*="comment" i], [class*="event-message" i]',
+      /agent|outbound|outgoing|internal|private/i, 6);
+  }
+
   HaliaPanel.setChannel("email");
   HaliaPanel.setInserter(insert);
+  HaliaPanel.setThreadReader(readThread);
   Halia.observe(extract);
 })();

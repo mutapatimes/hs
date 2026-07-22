@@ -129,5 +129,33 @@
     return m ? m[0].toLowerCase() : "";
   }
 
-  window.Halia = { observe, lookup, insertInto, pageEmail };
+  // Read a best-effort message list out of a thread, for the brief. Each node matching `sel`
+  // becomes one message; a node is attributed to "me" when `mine` matches its class / aria-label /
+  // test id, and to the client otherwise (the safer default, since the client's words are what a
+  // reply has to answer). Nested matches are collapsed to the innermost node, so a loose selector
+  // like [class*="message"] doesn't return the same text several times over.
+  function readMessages(root, sel, mine, limit) {
+    const stop = root || document;
+    // The text lives on the innermost node, but the which-side hint is usually on an ancestor
+    // (the message row), so read the hint from the node plus a few levels up.
+    function hintOf(n) {
+      let h = "", cur = n;
+      for (let i = 0; i < 4 && cur && cur !== stop; i++, cur = cur.parentElement) {
+        h += " " + String(cur.className || "") + " " + (cur.getAttribute("aria-label") || "") +
+          " " + (cur.getAttribute("data-test-id") || "") + " " + (cur.getAttribute("data-testid") || "");
+      }
+      return h;
+    }
+    const all = Array.prototype.slice.call(stop.querySelectorAll(sel)).slice(-60);
+    const leaves = all.filter((n) => !all.some((o) => o !== n && n.contains(o)));
+    const out = [];
+    leaves.forEach((n) => {
+      const text = (n.innerText || n.textContent || "").trim();
+      if (!text) return;
+      out.push({ from: mine && mine.test(hintOf(n)) ? "me" : "them", text: text.slice(0, 1200) });
+    });
+    return out.slice(-(limit || 6));
+  }
+
+  window.Halia = { observe, lookup, insertInto, pageEmail, readMessages };
 })();
