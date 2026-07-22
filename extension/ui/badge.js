@@ -121,6 +121,16 @@
     textarea.dinstr { width: 100%; box-sizing: border-box; border: 1px solid #d8cfbc; background: #fff;
       font: inherit; font-size: 12.5px; padding: 7px 9px; resize: vertical; min-height: 32px; color: #1a1a1a; }
     .dsrc { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: #8a8271; margin-top: 6px; }
+    .urg { background: #ece5d6; color: #6b6355; font-size: 10px; padding: 1px 6px; letter-spacing: 0;
+      text-transform: none; margin-left: 6px; }
+    .bsum { margin-top: 9px; font-size: 12.5px; line-height: 1.5; color: #1a1a1a; }
+    .blist { margin-top: 9px; display: flex; flex-direction: column; gap: 5px; }
+    .bact { display: block; width: 100%; text-align: left; font: inherit; padding: 7px 9px;
+      border: 1px solid #ece5d6; background: #fff; cursor: pointer; }
+    .bact:hover { background: #f4f1ea; border-color: #d8cfbc; }
+    .bact.note { cursor: default; background: transparent; border-style: dashed; }
+    .bact b { display: block; font-size: 12.5px; font-weight: 600; color: #1a1a1a; }
+    .bact i { display: block; font-style: normal; font-size: 11.5px; color: #6b6355; margin-top: 1px; }
     .row { padding: 8px 10px; border: 1px solid #ece5d6; background: #fff; margin-bottom: 7px; }
     .row .rn { font-weight: 600; font-size: 13px; }
     .row .rd { font-size: 11.5px; color: #6b6355; margin-top: 1px; }
@@ -450,66 +460,99 @@
     return (t && t.length ? t : (ctx && ctx.templates) || []);
   }
 
-  // ── DRAFT WITH HALIA ──────────────────────────────────────────────────────
-  // Reads the client on screen plus the visible thread and asks Halia to draft the next message.
-  // Works without AI too: the backend falls back to the merchant's best-matching template.
+  // ── THE BRIEF ─────────────────────────────────────────────────────────────
+  // Reads the client on screen plus the visible conversation and asks Halia for one brief: where
+  // the relationship stands, the next moves worth making, and a ready-to-send reply. Works without
+  // AI too: the backend falls back to the scored book and the merchant's best-matching template.
   function collectThread() {
     try { return threadReader ? (threadReader() || []) : []; } catch (e) { return []; }
   }
   function draftErr(r) {
     const e = r && r.error;
-    if (e === "no-token") return "Add your Halia token in the options to draft.";
+    if (e === "no-token") return "Add your Halia token in the options to use this.";
     if (e === "unauthorized") return "Your token is not recognised. Re-generate it in Settings.";
     if (e === "network") return "Could not reach Halia. Check the address in the options.";
-    return "Could not draft just now. Please try again.";
+    return "Could not read that just now. Please try again.";
   }
-  function runDraft() {
+  function runBrief() {
     const d = (client && client.data) || {};
-    draft = { busy: true, text: (draft && draft.text) || "", source: (draft && draft.source) || "", error: "" };
+    draft = Object.assign({}, draft, { busy: true, error: "" });
     renderTemplates();
     const body = { cid: d.cid || "", email: d.email || "", phone: d.phone || "", name: d.name || "",
       channel, instruction: draftInstr, thread: collectThread() };
     try {
-      chrome.runtime.sendMessage({ type: "halia:draft", body }, (r) => {
+      chrome.runtime.sendMessage({ type: "halia:brief", body }, (r) => {
         if (chrome.runtime.lastError || !r || r.error) {
-          draft = { busy: false, text: "", source: "", error: draftErr(r) };
+          draft = { busy: false, error: draftErr(r) };
         } else {
-          draft = { busy: false, text: r.draft || "", source: r.source || "template",
-            error: "", aiAvailable: r.ai_available };
+          draft = { busy: false, error: "", summary: r.summary || "", text: r.reply || "",
+            urgency: r.urgency || "", actions: r.actions || [], campaign: r.campaign || null,
+            read: r.read_thread || 0, source: r.source || "book", aiAvailable: r.ai_available };
         }
         renderTemplates();
       });
-    } catch (e) { draft = { busy: false, error: "Draft failed" }; renderTemplates(); }
+    } catch (e) { draft = { busy: false, error: "Brief failed" }; renderTemplates(); }
+  }
+  // An action is a button when the toolbar can actually carry it out, and a note otherwise.
+  const _DOABLE = { pipeline: 1, campaign: 1, contacted: 1, catalogue: 1 };
+  function doAction(a) {
+    const cid = activeCid();
+    if (a.kind === "pipeline" && cid) return act({ action: "pipeline", cid }, "Added to your list");
+    if (a.kind === "campaign" && cid && draft && draft.campaign) {
+      return act({ action: "campaign_add", campaign_id: draft.campaign.id, cid },
+        "Added to " + draft.campaign.name);
+    }
+    if (a.kind === "contacted" && cid) return logContact(cid, activeName(), a.label || "");
+    if (a.kind === "catalogue" && ctx && ctx.catalog) return place(ctx.catalog);
+    toast("Nothing to do here yet");
+  }
+  function canDo(a) {
+    if (!_DOABLE[a.kind]) return false;
+    if (a.kind === "campaign") return !!(activeCid() && draft && draft.campaign);
+    if (a.kind === "catalogue") return !!(ctx && ctx.catalog && inserter);
+    return !!activeCid();
   }
   function draftBoxHtml() {
     const busy = draft && draft.busy;
     const has = draft && draft.text;
+    const label = busy ? "Reading…"
+      : (has ? "Read again" : (threadReader ? "Read this conversation" : "Brief me on this client"));
     const srcLine = has
-      ? (draft.source === "ai" ? "Written by Halia" : "From your template") +
+      ? (draft.source === "ai"
+          ? "Read by Halia" + (draft.read ? " · " + draft.read + " message" + (draft.read === 1 ? "" : "s") : "")
+          : "From your book") +
         (draft.aiAvailable === false && draft.source !== "ai"
-          ? " · add an AI key in Halia for tailored drafts" : "")
+          ? " · add an AI key in Halia for a written brief" : "")
       : "";
+    const acts = (draft && draft.actions) || [];
     return `<div class="dbox">
-      <div class="sh">Draft with Halia</div>
-      <textarea class="dinstr" data-a="dinstr" rows="1" placeholder="What do you want to say? (optional)">${esc(draftInstr)}</textarea>
+      <div class="sh">The brief${draft && draft.urgency && has ? ` <span class="urg">${esc(draft.urgency)}</span>` : ""}</div>
       <div class="acts">
-        <button class="btn primary" data-a="draft"${busy ? " disabled" : ""}>${busy ? "Drafting…" : (has ? "Draft again" : "Draft a message")}</button>
+        <button class="btn primary" data-a="brief"${busy ? " disabled" : ""}>${label}</button>
       </div>
       ${draft && draft.error ? `<div class="muted" style="margin-top:7px">${esc(draft.error)}</div>` : ""}
-      ${has ? `<div class="prev" style="margin-top:8px">${esc(draft.text)}</div>
+      ${draft && draft.summary ? `<div class="bsum">${esc(draft.summary)}</div>` : ""}
+      ${acts.length ? `<div class="blist">${acts.map((a, i) => canDo(a)
+        ? `<button class="bact" data-ba="${i}"><b>${esc(a.label)}</b><i>${esc(a.why || "")}</i></button>`
+        : `<div class="bact note"><b>${esc(a.label)}</b><i>${esc(a.why || "")}</i></div>`).join("")}</div>` : ""}
+      ${has ? `<div class="prev" style="margin-top:9px">${esc(draft.text)}</div>
         <div class="dsrc">${esc(srcLine)}</div>
         <div class="acts">
           ${inserter ? `<button class="btn primary" data-a="dins">Insert</button>` : ""}
           <button class="btn" data-a="dcopy">Copy</button>
-        </div>` : ""}
+        </div>
+        <textarea class="dinstr" data-a="dinstr" rows="1" placeholder="Steer the reply, then Read again">${esc(draftInstr)}</textarea>` : ""}
     </div>`;
   }
   function wireDraft(el) {
     const ta = el.querySelector('[data-a="dinstr"]');
     if (ta) ta.oninput = () => { draftInstr = ta.value; };   // store without a re-render, to keep focus
-    const b = el.querySelector('[data-a="draft"]'); if (b) b.onclick = runDraft;
+    const b = el.querySelector('[data-a="brief"]'); if (b) b.onclick = runBrief;
+    el.querySelectorAll("[data-ba]").forEach((n) => {
+      n.onclick = () => doAction(((draft && draft.actions) || [])[+n.dataset.ba] || {});
+    });
     const di = el.querySelector('[data-a="dins"]'); if (di) di.onclick = () => place(draft.text);
-    const dc = el.querySelector('[data-a="dcopy"]'); if (dc) dc.onclick = () => copy(draft.text, "Draft copied");
+    const dc = el.querySelector('[data-a="dcopy"]'); if (dc) dc.onclick = () => copy(draft.text, "Reply copied");
   }
 
   function renderTemplates() {

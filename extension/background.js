@@ -310,6 +310,29 @@ async function draft(body) {
   }
 }
 
+// The conversation brief: summary + recommended actions + a ready-to-send reply, in one call.
+async function brief(body) {
+  const { base, token } = await config();
+  if (!token) return { error: "no-token" };
+  let res;
+  try {
+    res = await hfetch(base + "/v1/extension/brief", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Halia-Ext-Token": token },
+      body: JSON.stringify(body || {})
+    }, 45000);   // a structured model call is the slowest thing the toolbar does
+  } catch (e) {
+    return { error: "network" };
+  }
+  if (res.status === 401) return { error: "unauthorized" };
+  if (!res.ok) return { error: "http-" + res.status };
+  try {
+    return await res.json();
+  } catch (e) {
+    return { error: "parse" };
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg && msg.type === "halia:lookup") {
     lookup(msg.query).then(sendResponse);
@@ -337,6 +360,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg && msg.type === "halia:draft") {
     draft(msg.body).then(sendResponse);
+    return true;
+  }
+  if (msg && msg.type === "halia:brief") {
+    brief(msg.body).then(sendResponse);
     return true;
   }
   if (msg && msg.type === "halia:config") {
