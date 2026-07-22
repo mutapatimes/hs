@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from config import WEALTH_DOMAINS_FILE
+from config import EMPLOYER_ALIASES_FILE, WEALTH_DOMAINS_FILE
 
 FLAG_COL = "work_email"
 REASON_COL = "work_email_reason"
@@ -104,19 +104,98 @@ def _norm_company(value: object) -> str:
     return f" {t} " if t else ""
 
 
-def employer_names(domains: dict[str, tuple[str, str]]) -> list[tuple[str, str]]:
+def _norm_name(value: object) -> str:
+    """Upper-case alnum-token form of an employer name, for whole-phrase comparison."""
+    return re.sub(r"[^A-Z0-9]+", " ", str(value or "").upper()).strip()
+
+
+def _distinctive(norm: str) -> bool:
+    """Whether a name is safe to look for inside a free-text company field.
+
+    Multi-token firms, or a single token of 5+ characters, so "UBS"/"GS" are skipped and
+    "Barclays"/"Goldman Sachs"/"Rothschild" are kept."""
+    toks = norm.split()
+    return len(toks) >= 2 or (len(toks) == 1 and len(toks[0]) >= 5)
+
+
+# Words that describe what a firm is rather than which firm it is. A canonical name from the
+# hand-curated domain list may consist of one of these; a generated alias may not, because an
+# alias made only of these would match half the company fields in a book.
+_GENERIC_TOKENS = frozenset("""
+    CAPITAL BANK BANKING GROUP PARTNERS PARTNER GLOBAL HOLDINGS HOLDING INTERNATIONAL MANAGEMENT
+    ADVISORS ADVISERS ADVISORY ASSOCIATES VENTURES VENTURE EQUITY ASSET ASSETS FINANCIAL FINANCE
+    SECURITIES INVESTMENTS INVESTMENT TRUST TRUSTS FUND FUNDS PRIVATE WEALTH LIMITED LTD PLC LLP
+    LLC INC CORP CORPORATION COMPANY CO SERVICES SOLUTIONS CONSULTING CONSULTANTS AND THE OF
+    NATIONAL FIRST ROYAL UNION STANDARD GENERAL AMERICAN EUROPEAN LONDON NEW YORK
+""".split())
+
+
+def _alias_ok(norm: str) -> bool:
+    """A stricter bar for a generated alias than for a curated canonical name: it must be
+    distinctive AND carry at least one token that names this firm rather than its industry."""
+    return _distinctive(norm) and any(t not in _GENERIC_TOKENS for t in norm.split())
+
+
+def load_aliases(path: Path | str = EMPLOYER_ALIASES_FILE,
+                 canonical: dict[str, str] | None = None) -> list[tuple[str, str]]:
+    """Read the employer-alias table as (normalised alias, canonical label) pairs.
+
+    The table is generated offline (scripts/build_employer_aliases.py) and reviewed as a git diff,
+    so this loader is the second line of defence rather than the first. Every rule below exists to
+    keep a bad row inert:
+
+    * an alias whose canonical is not already a known employer is dropped, so the table can never
+      introduce an organisation the domain list does not have;
+    * an alias that is not distinctive is dropped, so it cannot over-match free text;
+    * an alias claimed by two different employers is dropped as ambiguous, never guessed between.
+
+    A missing file is normal and simply means no aliases.
+    """
+    path = Path(path)
+    if not path.exists():
+        return []
+    claimed: dict[str, str] = {}
+    dropped: set[str] = set()
+    with path.open(newline="", encoding="utf-8") as fh:
+        for row in csv.reader(fh):
+            if not row or not row[0].strip() or row[0].lstrip().startswith("#"):
+                continue
+            alias, canon = row[0].strip(), (row[1].strip() if len(row) > 1 else "")
+            if alias.lower() == "alias":
+                continue                                   # header
+            norm, canon_norm = _norm_name(alias), _norm_name(canon)
+            if not norm or not canon_norm or not _alias_ok(norm):
+                continue
+            if canonical is not None:
+                if canon_norm not in canonical:
+                    continue                               # unknown employer: never introduce one
+                canon = canonical[canon_norm]              # use the reference list's own label
+                if norm in canonical:
+                    continue                               # already a canonical name: nothing to add
+            if norm in claimed and claimed[norm] != canon:
+                dropped.add(norm)                          # two employers claim it: ambiguous
+                continue
+            claimed[norm] = canon
+    for norm in dropped:
+        claimed.pop(norm, None)
+    return sorted(claimed.items(), key=lambda kv: -len(kv[0]))
+
+
+def employer_names(domains: dict[str, tuple[str, str]],
+                   aliases_path: Path | str | None = EMPLOYER_ALIASES_FILE) -> list[tuple[str, str]]:
     """Distinctive employer names to match in the COMPANY_NAME field, longest first.
 
-    Only names that are unlikely to collide in free text: multi-token firms, or a
-    single token of 5+ characters (so "UBS"/"GS" are skipped, "Barclays"/"Goldman
-    Sachs"/"Rothschild" are kept)."""
+    Includes the offline-built alias table, so the same employer still matches when it is typed as
+    a legal entity ("Goldman Sachs International"), spaced differently ("J P Morgan" normalises to
+    different tokens than "JPMorgan"), or misspelled. Matching stays exact and deterministic; the
+    aliases are simply more rows to compare against."""
     seen: dict[str, str] = {}
     for org, _cat in domains.values():
-        norm = re.sub(r"[^A-Z0-9]+", " ", (org or "").upper()).strip()
-        if not norm:
-            continue
-        toks = norm.split()
-        if len(toks) >= 2 or (len(toks) == 1 and len(toks[0]) >= 5):
+        norm = _norm_name(org)
+        if norm and _distinctive(norm):
+            seen.setdefault(norm, org)
+    if aliases_path is not None:
+        for norm, org in load_aliases(aliases_path, canonical=dict(seen)):
             seen.setdefault(norm, org)
     return sorted(seen.items(), key=lambda kv: -len(kv[0]))
 
