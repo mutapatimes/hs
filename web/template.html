@@ -381,6 +381,11 @@
   .dcard.accent .k{color:#9DC2B7}.dcard.accent .v{color:#fff}
 
   .dlabel{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:4px 0 12px}
+  /* the Monday digest: one line per thing worth doing */
+  .digest{display:flex;flex-direction:column;gap:9px}
+  .digest div{font-size:14px;line-height:1.5;color:var(--ink);padding-left:15px;position:relative}
+  .digest div::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;
+    background:var(--brand);border-radius:0}
   /* ask-in-plain-English bar above the Clients filters */
   .askbar{display:flex;align-items:center;gap:8px;margin:0 0 14px;flex-wrap:wrap}
   .askbar input{flex:1;min-width:230px;padding:9px 12px;border:1px solid var(--line);border-radius:0;
@@ -847,6 +852,10 @@
             <input id="ovq" placeholder="Search any client by name, email, location…" autocomplete="off">
           </div>
           <div id="ovResults" class="ovres" style="display:none"></div>
+        </div>
+        <div id="ovDigestCard" class="card" style="display:none;margin-bottom:16px;border-color:#b9cfc6">
+          <div class="ch"><h3>This week</h3><span class="hint">what deserves your attention, counted from your own book</span></div>
+          <div class="cb"><div id="ovDigest" class="digest"></div></div>
         </div>
         <div id="ovBasketsCard" class="card" style="display:none;margin-bottom:16px;border-color:#d9c9a3">
           <div class="ch"><h3>Open baskets</h3><span class="hint">clients with an unpaid checkout, act while it's warm</span></div>
@@ -2294,6 +2303,23 @@ function renderOverview(){
   renderOpenBaskets();
   renderGoneQuiet();
   renderLandscape();
+  renderDigest();
+}
+
+// The Monday briefing. Every figure behind it is counted from this same book; a model only
+// phrases them, and only when the server has a key. Silent on a static export or a cold cache.
+let DIGEST_DONE = false;
+function renderDigest(){
+  if(DIGEST_DONE) return;              // one fetch per page load; the server memoises beyond that
+  DIGEST_DONE = true;
+  fetch("/v1/digest").then(r=>r.ok?r.json():null).then(d=>{
+    if(!d || !d.text) return;
+    const el=document.getElementById("ovDigest"), card=document.getElementById("ovDigestCard");
+    if(!el||!card) return;
+    el.innerHTML=String(d.text).split("\n").map(l=>l.trim()).filter(Boolean)
+      .map(l=>`<div>${esc(l)}</div>`).join("");
+    card.style.display="";
+  }).catch(()=>{});                    // a briefing is a convenience, never an error
 }
 // Gone quiet = proven clients with strong wealth signals whose orders stopped (the winback play).
 // Ranked by lifetime spend: the biggest relationship at risk sits on top.
