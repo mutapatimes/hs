@@ -392,6 +392,18 @@
     background:var(--card);color:var(--ink);font:inherit;font-size:13.5px}
   .askbar input:focus{outline:none;border-color:var(--brand)}
   .askmsg{font-size:12.5px;color:var(--soft)}
+  /* Everything below the decision folds away. The drawer answers who / why / what to do; the
+     record behind it is one click, not one scroll. */
+  .dfold{border-top:1px solid var(--line)}
+  .dfold>summary{list-style:none;cursor:pointer;padding:13px 0;display:flex;align-items:baseline;
+    gap:10px;font:600 13px system-ui;color:var(--ink);user-select:none}
+  .dfold>summary::-webkit-details-marker{display:none}
+  .dfold>summary::after{content:"›";margin-left:auto;color:var(--faint);font-size:16px;
+    transition:transform .18s ease}
+  .dfold[open]>summary::after{transform:rotate(90deg)}
+  .dfold>summary:hover{color:var(--brand)}
+  .dfold>summary span{font-weight:400;font-size:12.5px;color:var(--soft)}
+  .dfold>*:last-child{padding-bottom:16px}
   /* the written one-liner, above the evidence it is drawn from */
   .dsum{background:var(--brand-tint);border-left:3px solid var(--brand);border-radius:0;
     padding:12px 15px;margin-bottom:14px;font-size:14px;line-height:1.55;color:var(--ink)}
@@ -2796,6 +2808,11 @@ const SIG_CAT={
   "home-value":"home","prime-area":"home","prime-residence":"home","high-value-area":"home",
   "prime-residential-district":"home","delivery":"home","wealth-office":"home","hotel-concierge":"home",
   "geo-confirmation":"home","ip-location":"home","gcc-billing":"home",
+  // These five were missing, so they fell through to a phantom "Other signals" group — which put
+  // a client's location tell in two places at once and implied corroboration the engine had
+  // deliberately declined to count (see SIGNAL_GROUP "geo" in scoring/combine.py).
+  "high-value-home-area":"home","named-property":"home",
+  "us-insider":"work","charity-trustee":"work","major-employer":"work",
   "work-email":"work","premium-email":"work","custom-domain":"work","high-earning-domain":"work",
   "ivy-alumni":"work","styling-service-b2b":"work","company":"work","companies-house":"work",
   "wealth-structure":"work","fashion-stylist":"work","possible-stylist":"work",
@@ -2859,7 +2876,18 @@ function catChips(signals){
 }
 function _sigName(s){return SEGMENTS[s.seg]?SEGMENTS[s.seg].label:(s.d.split(": ")[0]||"");}
 function _sigDetail(s){const i=s.d.indexOf(": ");return i>=0?s.d.slice(i+2):s.d;}
+// "Prime location" is already the combination of postcode, district and local property values,
+// so listing those separately restates one fact as several. The engine groups them as one "geo"
+// tell and decays them together; the drawer now shows them the same way.
+const SUBSUMED_BY_PRIME = new Set(["high-value-home-area","home-value","prime-area",
+  "hnwi-postcode","us-prime-zip","intl-prime-postcode","prime-residential-district"]);
+function dedupeSignals(signals){
+  const has = s => signals.some(x=>x.seg===s);
+  return (signals||[]).filter(s=>!(has("prime-location") && SUBSUMED_BY_PRIME.has(s.seg)));
+}
+
 function evidenceHTML(signals){
+  signals = dedupeSignals(signals);
   if(!signals||!signals.length) return "";
   const groups={};
   signals.forEach(s=>{const c=SIG_CAT[s.seg]||"other";(groups[c]||(groups[c]=[])).push(s);});
@@ -2869,17 +2897,22 @@ function evidenceHTML(signals){
   let d=0; const STEP=58;
   return CAT_ORDER.filter(c=>groups[c]).map(c=>{
     const meta=CATS[c],items=groups[c],tells=items.length;
-    const tag=tells>1?`${tells} tells &middot; corroborating`:"1 tell";
+    // Location tells are all one species to the engine (SIGNAL_GROUP "geo"): several of them are
+    // deliberately weighed as one, so calling them "corroborating" would claim independence the
+    // score never granted. Say what they are instead.
+    const tag=tells>1?`${tells} tells &middot; ${c==="home"?"same place":"corroborating"}`:"1 tell";
     const strength=Math.min(1,0.42+0.29*(tells-1));   // corroboration → bar fill (real tell count)
     const gd=d; d+=STEP;
+    // One line per fact. The explanation of what a tell means is reference material — needed once,
+    // not on every client — so it moves to the row's tooltip rather than sitting under every row.
     const rows=items.map(s=>{const why=SIG_WHY[s.seg]||"";const rd=d;d+=STEP;
-      return `<div class="evi" style="animation:evrow var(--dur) var(--ease) ${rd}ms both"><span class="evtag">${esc(_sigName(s))}</span>
-        <div class="evb"><div class="evdt">${esc(_sigDetail(s))||"&mdash;"}</div>${why?`<div class="evwy">${why}</div>`:""}</div></div>`;
+      return `<div class="evi" style="animation:evrow var(--dur) var(--ease) ${rd}ms both"${why?` title="${esc(why)}"`:""}><span class="evtag">${esc(_sigName(s))}</span>
+        <div class="evdt">${esc(_sigDetail(s))||"&mdash;"}</div></div>`;
     }).join("");
     return `<div class="evgrp" style="animation:settle var(--dur) var(--ease) ${gd}ms both">
-      <div class="gh"><span class="gic" style="background:${meta.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">${_ICON[c]}</svg></span>${meta.t}<span class="ct">${tag}</span></div>
+      <div class="gh"${meta.d?` title="${esc(meta.d)}"`:""}><span class="gic" style="background:${meta.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">${_ICON[c]}</svg></span>${meta.t}<span class="ct">${tag}</span></div>
       <div class="evstr"><span class="evstr-fill" style="--w:${(strength*100).toFixed(0)}%;background:${meta.c};animation:barfill var(--dur-slow) var(--ease) ${gd+50}ms both"></span></div>
-      ${meta.d?`<div class="gd">${meta.d}</div>`:""}${rows}</div>`;
+      ${rows}</div>`;
   }).join("");
 }
 
@@ -2932,26 +2965,28 @@ function openDrawer(id){
 
       ${c.reco?`<div class="reco"><div class="k">Recommended approach</div><p>${esc(c.reco)}</p></div>`:""}
 
-      <div class="dlabel">Latent value, explained</div>
-      <div style="background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 15px;margin-bottom:22px">
+      <details class="dfold"><summary>How the latent value is built<span>${gbp(c.spend)} → ${gbpK(c.latent)}</span></summary>
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 15px;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:8px;font-size:13.5px">
           <span class="mono" style="color:var(--soft)">${gbp(c.spend)}</span>
           <span style="flex:1;height:6px;border-radius:0;background:linear-gradient(90deg,var(--brand-tint),var(--brand));position:relative;min-width:60px"><span style="position:absolute;top:-3px;left:calc(${Math.max(2,Math.min(96,c.spend/Math.max(1,c.latent)*100)).toFixed(0)}% - 6px);width:12px;height:12px;border-radius:0;background:var(--brand);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></span>
           <span class="mono" style="color:var(--brand);font-weight:600">${gbpK(c.latent)}</span>
         </div>
         <div style="font-size:11.5px;color:var(--soft);margin-top:9px;line-height:1.5">Grown from their current spend toward your client ceiling, scaled by a Halia score of <b>${c.score}</b>.</div>
-      </div>
+      </div></details>
 
-      <div id="drawerPipe" style="margin-bottom:22px"></div>
+      <details class="dfold"><summary>Pipeline<span id="dpipeGist">not started</span></summary>
+        <div id="drawerPipe" style="margin-bottom:6px"></div></details>
 
-      <div class="dlabel">Was this a good call?</div>
-      <div id="dfb" style="display:flex;gap:8px">
-        <button class="dbtn" id="dfbYes">&#128077; Good call</button>
-        <button class="dbtn" id="dfbNo">&#128078; Not a fit</button>
-      </div>
-      <div style="color:var(--faint);font-size:11.5px;margin-top:6px">Trains Halia to your book. Your verdict is tagged on the client in your store; Halia keeps only an anonymous per-signal tally.</div>
+      <details class="dfold"><summary>Was this a good call?<span>trains Halia to your book</span></summary>
+        <div id="dfb" style="display:flex;gap:8px">
+          <button class="dbtn" id="dfbYes">&#128077; Good call</button>
+          <button class="dbtn" id="dfbNo">&#128078; Not a fit</button>
+        </div>
+        <div style="color:var(--faint);font-size:11.5px;margin-top:6px">Your verdict is tagged on the client in your store; Halia keeps only an anonymous per-signal tally.</div>
+      </details>
 
-      <div class="dlabel">Order history${c.orders&&c.orders.length?` · ${c.orders.length}`:""}</div>
+      <details class="dfold"><summary>Order history<span>${c.orders&&c.orders.length?`${c.orders.length} · ${gbp(c.spend)}`:"none on record"}</span></summary>
       <div style="border:1px solid var(--line);border-radius:0;overflow:hidden">
         ${(c.orders&&c.orders.length)
           ? c.orders.slice(0,12).map(o=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px">
@@ -2960,19 +2995,19 @@ function openDrawer(id){
               <span class="mono" style="font-weight:600">${gbp(o.amount)}</span></div>`).join("")
           : `<div style="padding:12px 14px;color:var(--faint);font-size:13px">No orders on record.</div>`}
         ${c.orders&&c.orders.length>12?`<div style="padding:9px 14px;color:var(--faint);font-size:12.5px">+${c.orders.length-12} earlier orders</div>`:""}
-      </div>
+      </div></details>
     </div>
     <div class="dactions">
-      ${(c.adminUrl||c.shopifyUrl)?`<a class="dbtn" href="${c.adminUrl||c.shopifyUrl}" target="_top">Open in ${PLATFORM_LABEL}</a>`:""}
       <div class="dactm">
-        <button class="dbtn" id="dmail">Email ▾</button>
+        <button class="dbtn primary" id="dmail">Message ▾</button>
         <div id="dmailmenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${mailtoItems(c)}</div>
       </div>
       ${phoneDigits(c.phone)?`<div class="dactm">
         <button class="dbtn" id="dwa">WhatsApp ▾</button>
         <div id="dwamenu" style="display:none;position:absolute;bottom:44px;right:0;min-width:230px;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:40">${whatsappItems(c)}</div>
       </div>`:""}
-      ${CATALOG_URL?`<button class="dbtn" id="dcatlink" title="Copy a catalogue link addressed to this client">Copy catalogue link</button>`:""}
+      ${CATALOG_URL?`<button class="dbtn" id="dcatlink" title="Copy a catalogue link addressed to this client">Catalogue link</button>`:""}
+      ${(c.adminUrl||c.shopifyUrl)?`<a class="dbtn" href="${c.adminUrl||c.shopifyUrl}" target="_top">Open in ${PLATFORM_LABEL}</a>`:""}
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   wireDrawerCtl();
@@ -3037,6 +3072,9 @@ function loadClientSummary(c){
       if(!document.getElementById("dsum")) return;       // drawer moved on while we waited
       box.textContent=d.summary;
       box.style.display="";
+      // The written line and the canned "Recommended approach" say the same thing. Show one.
+      const reco=document.querySelector(".dbody .reco");
+      if(reco) reco.style.display="none";
     })
     .catch(()=>{});                                      // a convenience, never an error
 }
