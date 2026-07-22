@@ -418,6 +418,10 @@ def register(app) -> None:
         s["shopify_connected"] = bool(store.get_token(shop))
         # Whether a browser-extension token has been generated (the raw token is shown once, at mint).
         s["extension_enabled"] = bool(store.get_extension_token_hash(shop))
+        # Whether AI drafting ("Draft with Halia") is live: an LLM key is configured on the server.
+        # When off, the extension's draft button falls back to the merchant's templates.
+        from halia import llm
+        s["ai_drafting"] = llm.available()
         # The 1:1 outreach draft (editable at /admin) — the dashboard's "Draft note" opens it as a mailto.
         from halia.api.content import draft_template
         s["email_draft"] = draft_template()

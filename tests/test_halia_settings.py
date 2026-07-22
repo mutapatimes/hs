@@ -36,6 +36,15 @@ def test_defaults(client):
     assert s["aov"] == 0 and s["max_orders"] == 0 and s["highest_lt"] == 0  # latent benchmarks
 
 
+def test_ai_drafting_flag_reflects_llm_availability(client, monkeypatch):
+    from halia import llm
+    c, _ = client
+    monkeypatch.setattr(llm, "available", lambda: False)
+    assert c.get("/v1/settings", headers=_auth()).json()["ai_drafting"] is False
+    monkeypatch.setattr(llm, "available", lambda: True)
+    assert c.get("/v1/settings", headers=_auth()).json()["ai_drafting"] is True
+
+
 def test_save_and_reload(client):
     c, _ = client
     r = c.post("/v1/settings", headers=_auth(), json={
