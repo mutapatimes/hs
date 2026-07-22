@@ -26,6 +26,11 @@ SIGNAL_VENUES_FILE = VENUES_DIR / "signal_venues.csv"
 WEALTH_OFFICES_FILE = VENUES_DIR / "wealth_offices.csv"
 DOMAINS_DIR = REFERENCE_DIR / "domains"
 WEALTH_DOMAINS_FILE = DOMAINS_DIR / "wealth_employer_domains.csv"
+# How the same employer actually gets typed into a company field: legal-entity forms, spacing
+# variants that survive normalisation as different tokens ("J P MORGAN" vs "JPMORGAN"), and common
+# misspellings. Built offline by scripts/build_employer_aliases.py, reviewed as a git diff, and
+# read deterministically at match time — no model runs during scoring. Optional; absent = no aliases.
+EMPLOYER_ALIASES_FILE = DOMAINS_DIR / "employer_aliases.csv"
 # Broad-headcount employers (big tech, enterprise software, energy): a weak per-capita tell,
 # scored corroboration-only at a low weight (see scoring.signals.broad_employer).
 BROAD_EMPLOYER_DOMAINS_FILE = DOMAINS_DIR / "broad_employer_domains.csv"
