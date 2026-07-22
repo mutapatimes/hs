@@ -1,58 +1,106 @@
-"""A tiny, dependency-free client for one Claude call: the engine behind the extension's message
-drafter ("Draft with Halia").
+"""The Claude calls behind the extension's clienteling copilot.
 
-We send the client's live standing (the same warm book the dashboard scores from) and the visible
-thread the associate is already looking at, and get back one suggested reply. Zero-retention holds:
-the context is used in-flight and nothing about the customer is stored. When no key is configured,
-or a call fails for any reason, ``complete`` returns ``None`` so the caller falls back to a
-template, which is why the feature always works without AI.
+Two shapes, both used by `halia/api/extension.py`:
 
-The Anthropic Messages API is a single HTTPS POST, so we use the ``httpx`` already in the stack
-rather than adding an SDK.
+    complete(system, user)               -> plain text (a drafted message)
+    structured(system, user, schema)     -> a dict matching `schema` (the conversation brief)
+
+`structured` uses the Messages API's structured outputs (`output_config.format`), so the brief
+comes back as valid JSON against our schema rather than prose we have to parse.
+
+Both return ``None`` on any failure (no key configured, network, refusal, malformed body) so every
+caller falls back to the merchant's own templates and heuristics. That is why the feature works
+with no AI key at all.
+
+Zero-retention holds: the client's standing and the visible conversation are sent, used to compose
+the answer, and discarded. Nothing about the customer is stored here or by the API call.
 """
 from __future__ import annotations
 
-from typing import Optional
+import json
+from typing import Any, Optional
 
-import httpx
+import anthropic
 
 from halia import config
 
-_API = "https://api.anthropic.com/v1/messages"
-_VERSION = "2023-06-01"
+_cached: Optional[tuple] = None
 
 
 def available() -> bool:
-    """Whether AI drafting is configured. False -> callers fall back to templates."""
+    """Whether AI is configured. False -> callers fall back to templates and heuristics."""
     return bool(config.LLM_API_KEY)
 
 
-def complete(system: str, user: str, *, model: Optional[str] = None,
-             max_tokens: int = 600, timeout: float = 15.0) -> Optional[str]:
-    """One Claude message. Returns the reply text, or ``None`` on any failure (missing key,
-    network error, non-200, empty body) so the caller can fall back. Never raises."""
+def model_for(tier: Any = None) -> str:
+    """The model to use. Top-grade clients optionally get the premium model, where the extra
+    prose quality earns its keep; everyone else runs on the cheap everyday model."""
+    if config.LLM_MODEL_PREMIUM and str(tier or "").startswith("A"):
+        return config.LLM_MODEL_PREMIUM
+    return config.LLM_MODEL
+
+
+def _client():
+    """A cached SDK client, rebuilt if the key changes. None when no key is configured."""
+    global _cached
     key = config.LLM_API_KEY
     if not key:
         return None
-    body = {
-        "model": model or config.LLM_MODEL,
-        "max_tokens": max(64, int(max_tokens)),
-        "system": system,
-        "messages": [{"role": "user", "content": user}],
-    }
+    if _cached is None or _cached[0] != key:
+        _cached = (key, anthropic.Anthropic(api_key=key, timeout=25.0, max_retries=2))
+    return _cached[1]
+
+
+def _text(msg) -> Optional[str]:
+    """The text of a response, or None if the model refused or returned nothing usable."""
+    if getattr(msg, "stop_reason", None) == "refusal":
+        return None
+    out = "".join(b.text for b in msg.content if b.type == "text").strip()
+    return out or None
+
+
+def complete(system: str, user: str, *, model: Optional[str] = None,
+             max_tokens: int = 600) -> Optional[str]:
+    """One Claude message, returned as text. None on any failure, so the caller falls back."""
+    client = _client()
+    if client is None:
+        return None
     try:
-        res = httpx.post(_API, json=body, timeout=timeout, headers={
-            "x-api-key": key,
-            "anthropic-version": _VERSION,
-            "content-type": "application/json",
-        })
+        msg = client.messages.create(
+            model=model or config.LLM_MODEL,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
     except Exception:  # noqa: BLE001 — a drafting hiccup must never break the request
         return None
-    if res.status_code != 200:
+    return _text(msg)
+
+
+def structured(system: str, user: str, schema: dict, *, model: Optional[str] = None,
+               max_tokens: int = 1200) -> Optional[dict]:
+    """One Claude message constrained to ``schema``, returned as a dict. None on any failure.
+
+    Structured outputs guarantee the response is valid JSON matching the schema, so there is no
+    prose-parsing step and no half-formed brief to defend against downstream."""
+    client = _client()
+    if client is None:
         return None
     try:
-        parts = res.json().get("content") or []
-    except Exception:  # noqa: BLE001 — malformed body -> fall back
+        msg = client.messages.create(
+            model=model or config.LLM_MODEL,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+            output_config={"format": {"type": "json_schema", "schema": schema}},
+        )
+    except Exception:  # noqa: BLE001
         return None
-    text = "".join(p.get("text", "") for p in parts if p.get("type") == "text").strip()
-    return text or None
+    text = _text(msg)
+    if not text:
+        return None
+    try:
+        out = json.loads(text)
+    except (TypeError, ValueError):
+        return None
+    return out if isinstance(out, dict) else None

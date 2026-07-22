@@ -305,8 +305,10 @@ def _standing(resp: dict) -> str:
     return "a client"
 
 
-def _draft_context(shop: str, resp: dict, channel: str, thread: list[dict], instruction: str) -> str:
-    """Assemble the user prompt: the client's live standing plus the visible conversation."""
+def _draft_context(shop: str, resp: dict, channel: str, thread: list[dict], instruction: str,
+                   closing: str = "\nDraft the associate's next message now.") -> str:
+    """Assemble the user prompt: the client's live standing plus the visible conversation.
+    ``closing`` is the instruction that ends the prompt; the brief passes its own."""
     from halia.api.settings import settings_for
     s = settings_for(shop)
     sender = (s.get("sender_name") or "").strip()
@@ -343,7 +345,8 @@ def _draft_context(shop: str, resp: dict, channel: str, thread: list[dict], inst
             lines.append(("Client: " if m["from"] == "them" else "You: ") + m["text"])
     if instruction:
         lines.append(f"\nWhat you want to say (your intent): {instruction}")
-    lines.append("\nDraft the associate's next message now.")
+    if closing:
+        lines.append(closing)
     return "\n".join(lines)
 
 
@@ -366,6 +369,135 @@ def _fallback_draft(shop: str, resp: dict) -> str:
     if body:
         return body
     return f"Hi {first or 'there'}, just checking in from our side. Is there anything I can help you with?"
+
+
+# ── the conversation brief (read the thread, recommend a reply and the next moves) ───
+_BRIEF_SYSTEM = (
+    "You are the clienteling desk behind a luxury retailer's sales associate. You are given one "
+    "client's standing (how valuable they quietly are, why, and how the relationship is going) and "
+    "the conversation currently on the associate's screen. Produce a brief that lets the associate "
+    "act in seconds.\n\n"
+    "summary: two sentences at most. Where this relationship stands and what the client wants right "
+    "now. Lead with what changed or what they are asking for, not with a restatement of their grade. "
+    "If the conversation shows an unanswered question, an unresolved problem, or a buying signal, say "
+    "so plainly.\n\n"
+    "reply: the associate's next message, ready to send or lightly edit. Short, warm, specific to "
+    "this person and this conversation. Match the register to their standing: a proven client of long "
+    "standing is greeted differently from a first-time buyer. Answer what they actually asked. Plain "
+    "text only, no markdown, no emoji unless the thread already uses them. Never invent facts you were "
+    "not given: no order numbers, dates, prices, stock levels or product names that do not appear in "
+    "the context. Leave no placeholders. Do not use em dashes; use commas, colons or periods. Add a "
+    "sign-off only if a sender name is given.\n\n"
+    "actions: up to four concrete next moves, most useful first, each with a short label and a one "
+    "line reason. Only suggest an action the context actually supports. Use kind 'advice' for "
+    "anything that is not one of the wired actions.\n\n"
+    "urgency: how soon the associate should act."
+)
+
+_BRIEF_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "summary": {"type": "string"},
+        "reply": {"type": "string"},
+        "urgency": {"type": "string", "enum": ["now", "today", "this week", "no rush"]},
+        "actions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "kind": {"type": "string",
+                             "enum": ["pipeline", "campaign", "contacted", "catalogue", "note",
+                                      "advice"]},
+                    "label": {"type": "string"},
+                    "why": {"type": "string"},
+                },
+                "required": ["kind", "label", "why"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["summary", "reply", "urgency", "actions"],
+    "additionalProperties": False,
+}
+
+
+def _running_campaign(shop: str) -> Optional[dict]:
+    """The campaign running today, if any, so the brief can suggest adding this client to it."""
+    import json
+    from datetime import datetime, timezone
+    today = datetime.now(timezone.utc).date().isoformat()
+    for row in shop_store().list_campaigns(shop):
+        starts, ends = row.get("starts") or "", row.get("ends") or ""
+        if starts and ends and starts <= today <= ends:
+            try:
+                cfg = json.loads(row.get("config_json") or "{}")
+            except (TypeError, ValueError):
+                cfg = {}
+            return {"id": row["id"], "name": row["name"],
+                    "members": len(cfg.get("members") or [])}
+    return None
+
+
+def _summary_of(resp: dict, last_contact: Optional[dict]) -> str:
+    """A factual standing line, built from the scored book. The no-AI version of the brief's
+    summary: no inference, just what is true about this client right now."""
+    if not resp.get("found"):
+        return "Not a flagged client in your book. Reply on the merits of the conversation."
+    name = resp.get("name") or "This client"
+    bits = [f"{name}, grade {resp.get('grade')}" if resp.get("grade") else name]
+    play = resp.get("play")
+    if play == "sleeping":
+        bits.append("a proven client who has gone quiet")
+    elif resp.get("hidden"):
+        bits.append("a hidden high-value client")
+    n = resp.get("ordersCount")
+    if n:
+        bits.append(f"{n} order{'s' if n != 1 else ''}" + (f", last {resp['last']}" if resp.get("last") else ""))
+    if (resp.get("cart") or {}).get("value"):
+        bits.append("has a basket open")
+    if last_contact and last_contact.get("by"):
+        bits.append(f"already contacted by {last_contact['by']}")
+    return ". ".join(bits) + "."
+
+
+def _suggested_actions(resp: dict, campaign: Optional[dict],
+                       last_contact: Optional[dict]) -> list[dict]:
+    """Next moves derived from the client's own standing. The no-AI version of the brief's
+    actions, and the safety net when a model call fails."""
+    out: list[dict] = []
+    if not resp.get("found"):
+        return out
+    if resp.get("play") == "sleeping":
+        out.append({"kind": "pipeline", "label": "Add to your outreach list",
+                    "why": "A proven client who has gone quiet is worth a personal approach."})
+    if (resp.get("cart") or {}).get("value"):
+        out.append({"kind": "advice", "label": "Mention their open basket",
+                    "why": "They left items in a basket, so the intent is already there."})
+    if campaign:
+        out.append({"kind": "campaign", "label": f"Add to {campaign['name']}",
+                    "why": "A campaign is running now and they fit it."})
+    if not last_contact:
+        out.append({"kind": "contacted", "label": "Log that you reached out",
+                    "why": "Keeps the team in step so nobody messages twice."})
+    return out[:4]
+
+
+def _brief_context(shop: str, resp: dict, channel: str, thread: list[dict], instruction: str,
+                   campaign: Optional[dict], last_contact: Optional[dict]) -> str:
+    """The user prompt for the brief: the client's live standing plus the visible conversation."""
+    lines = [_draft_context(shop, resp, channel, thread, instruction, closing="")]
+    if campaign:
+        lines.append(f"Campaign running now: {campaign['name']}")
+    if last_contact:
+        who = last_contact.get("by") or "a colleague"
+        note = last_contact.get("note")
+        lines.append(f"Already contacted by {who}" + (f" ({note})" if note else "")
+                     + ". Do not double up on the same message.")
+    if not thread:
+        lines.append("\nNo conversation is visible on screen. Brief from the client's standing "
+                     "alone, and write an opening message rather than a reply.")
+    lines.append("\nWrite the brief now.")
+    return "\n".join(lines)
 
 
 def register(app) -> None:
@@ -474,9 +606,7 @@ def register(app) -> None:
         cap = config.LLM_WEEKLY_CAP
         used = shop_store().shop_metric(shop, "extension_draft_ai") if cap else 0
         if llm.available() and (not cap or used < cap):
-            tier = str(resp.get("tier") or "")
-            model = (config.LLM_MODEL_PREMIUM if (config.LLM_MODEL_PREMIUM and tier.startswith("A"))
-                     else config.LLM_MODEL)
+            model = llm.model_for(resp.get("tier"))
             text = llm.complete(_DRAFT_SYSTEM, _draft_context(shop, resp, channel, thread, instruction),
                                 model=model, max_tokens=600)
             if text:
@@ -488,6 +618,76 @@ def register(app) -> None:
         return {"draft": draft, "source": source, "model": model,
                 "found": bool(resp.get("found")), "name": resp.get("name"),
                 "grade": resp.get("grade"), "ai_available": llm.available()}
+
+    @app.post("/v1/extension/brief")
+    def extension_brief(x_halia_ext_token: Optional[str] = Header(None),
+                        payload: Any = Body(default=None)) -> dict:
+        """Read the conversation on screen and brief the associate: where the relationship stands,
+        a ready-to-send reply, and the next moves worth making. One model call returns all three,
+        constrained to a schema so the shape is guaranteed.
+
+        Works without AI: with no key configured, past the weekly cap, or on any model failure, the
+        summary comes from the scored book, the actions from the client's own standing, and the
+        reply from the merchant's best-matching template. Zero-retention: the standing and the
+        thread are used in-flight and discarded; nothing about the customer is stored."""
+        from halia import llm
+
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        body = payload or {}
+        email = (str(body.get("email") or "").strip()) or None
+        cid = (str(body.get("cid") or body.get("customer_id") or "").strip()) or None
+        phone = (str(body.get("phone") or "").strip()) or None
+        name = (str(body.get("name") or "").strip()) or None
+        channel = str(body.get("channel") or "").strip()[:24]
+        instruction = str(body.get("instruction") or "").strip()[:500]
+        thread = _clean_thread(body.get("thread"))
+
+        resp = _lookup(shop, email, cid, phone, name) if (email or cid or phone or name) \
+            else {"found": False}
+        campaign = _running_campaign(shop)
+        last_contact = None
+        if resp.get("cid"):
+            try:
+                from halia.api.board import _sink, load_pipe
+                last_contact = _last_outreach(load_pipe(
+                    _sink(shop).get_metafield(resp["cid"], "pipeline")).get("activity"))
+            except Exception:      # noqa: BLE001 — non-Shopify tenant, or no metafield yet
+                last_contact = None
+
+        out, source = None, "book"
+        cap = config.LLM_WEEKLY_CAP
+        used = shop_store().shop_metric(shop, "extension_brief_ai") if cap else 0
+        if llm.available() and (not cap or used < cap):
+            got = llm.structured(
+                _BRIEF_SYSTEM,
+                _brief_context(shop, resp, channel, thread, instruction, campaign, last_contact),
+                _BRIEF_SCHEMA, model=llm.model_for(resp.get("tier")))
+            if got and got.get("reply"):
+                out, source = got, "ai"
+                data.record_activity(shop, "extension_brief_ai")
+        if out is None:                       # no key, past the cap, or the call failed
+            out = {"summary": _summary_of(resp, last_contact),
+                   "reply": _fallback_draft(shop, resp),
+                   "urgency": "today" if resp.get("play") == "sleeping" else "no rush",
+                   "actions": _suggested_actions(resp, campaign, last_contact)}
+        data.record_activity(shop, "extension_brief")
+        return {
+            "summary": out.get("summary") or "",
+            "reply": out.get("reply") or "",
+            "urgency": out.get("urgency") or "",
+            "actions": [a for a in (out.get("actions") or []) if a.get("label")][:4],
+            "source": source,
+            "found": bool(resp.get("found")),
+            "name": resp.get("name"),
+            "grade": resp.get("grade"),
+            "cid": resp.get("cid"),
+            "campaign": campaign,             # so the toolbar can wire the "add to campaign" action
+            "read_thread": len(thread),       # how many messages the brief actually saw
+            "ai_available": llm.available(),
+        }
 
     @app.get("/v1/extension/events")
     def extension_events(x_halia_ext_token: Optional[str] = Header(None)) -> dict:

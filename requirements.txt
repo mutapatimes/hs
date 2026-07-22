@@ -11,3 +11,4 @@ PyJWT>=2.8        # verify Shopify App Bridge session tokens (embedded app auth)
 cryptography>=42  # encrypt the only persisted secrets (Shopify token, Klaviyo key) at rest
 pywebpush>=1.14   # Web Push desktop alerts for high-grade orders (optional; no-op if no VAPID)
 weasyprint>=62    # catalog-PDF generator (HTML->PDF). Needs cairo/pango system libs — see Dockerfile.
+anthropic>=0.69   # "Draft with Halia" / the conversation brief (halia/llm.py). Idle without a key.

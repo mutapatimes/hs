@@ -463,6 +463,129 @@ def test_clean_thread_caps_and_normalises():
     assert extension._clean_thread([{"from": "them", "text": "  "}]) == []   # blank dropped
 
 
+# ── brief (read the thread, recommend a reply and the next moves) ─────────────
+def _brief(client, ext, body):
+    return client.post("/v1/extension/brief", json=body, headers={"X-Halia-Ext-Token": ext})
+
+
+_AI_BRIEF = {"summary": "She asked about the tan coat and has gone quiet since March.",
+             "reply": "Hello Grace, the tan coat is back in your size.",
+             "urgency": "today",
+             "actions": [{"kind": "pipeline", "label": "Add to your list", "why": "Proven, quiet."},
+                         {"kind": "advice", "label": "Mention the trunk show", "why": "She attends."}]}
+
+
+def test_brief_requires_token(env):
+    client, store, tok = env
+    assert client.post("/v1/extension/brief", json={"email": "a@b.com"}).status_code == 401
+
+
+def test_brief_uses_ai_and_reads_the_thread(env, monkeypatch):
+    from halia import llm
+    seen = {}
+    monkeypatch.setattr(llm, "available", lambda: True)
+
+    def fake_structured(system, user, schema, **kw):
+        seen["user"], seen["schema"], seen["model"] = user, schema, kw.get("model")
+        return _AI_BRIEF
+    monkeypatch.setattr(llm, "structured", fake_structured)
+
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _brief(client, ext, {"email": "grace@x.com", "channel": "whatsapp",
+                             "thread": [{"from": "them", "text": "Is the tan coat back?"},
+                                        {"from": "me", "text": "Let me check."}]}).json()
+    assert d["source"] == "ai"
+    assert d["summary"] == _AI_BRIEF["summary"] and d["reply"] == _AI_BRIEF["reply"]
+    assert d["urgency"] == "today" and len(d["actions"]) == 2
+    assert d["read_thread"] == 2 and d["found"] is True and d["grade"] == "A*"
+    # the client's standing and both sides of the conversation reach the prompt
+    assert "Goldman Sachs" in seen["user"] and "tan coat" in seen["user"] and "Let me check" in seen["user"]
+    assert seen["schema"]["required"] == ["summary", "reply", "urgency", "actions"]
+    assert store.shop_metric(SHOP, "extension_brief_ai") == 1
+
+
+def test_brief_without_ai_falls_back_to_the_book(env, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: False)
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _brief(client, ext, {"email": "grace@x.com"}).json()
+    assert d["source"] == "book" and d["ai_available"] is False
+    assert "Grace Ladoja" in d["summary"] and "gone quiet" in d["summary"]
+    assert d["reply"] and "{first_name}" not in d["reply"]
+    assert [a["kind"] for a in d["actions"]]                       # heuristic actions still offered
+    assert store.shop_metric(SHOP, "extension_brief_ai") == 0
+
+
+def test_brief_ai_failure_falls_back(env, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "structured", lambda *a, **k: None)
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _brief(client, ext, {"email": "grace@x.com"}).json()
+    assert d["source"] == "book" and d["summary"] and d["reply"]
+
+
+def test_brief_respects_weekly_cap(env, monkeypatch):
+    from halia import llm
+    called = {"n": 0}
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "structured",
+                        lambda *a, **k: called.__setitem__("n", called["n"] + 1) or _AI_BRIEF)
+    monkeypatch.setattr(extension.config, "LLM_WEEKLY_CAP", 1)
+    client, store, tok = env
+    store.bump_metric(SHOP, "extension_brief_ai", 1)               # cap already reached
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _brief(client, ext, {"email": "grace@x.com"}).json()
+    assert d["source"] == "book" and called["n"] == 0
+
+
+def test_brief_suggests_a_running_campaign(env, monkeypatch):
+    import json as _json
+    from datetime import date, timedelta
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: False)
+    client, store, tok = env
+    today = date.today()
+    store.save_campaign("c-1", SHOP, "Spring Preview", str(today - timedelta(days=1)),
+                        str(today + timedelta(days=7)), _json.dumps({"members": []}))
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _brief(client, ext, {"email": "grace@x.com"}).json()
+    assert d["campaign"]["name"] == "Spring Preview"               # wired for the one-click action
+    assert any(a["kind"] == "campaign" for a in d["actions"])
+
+
+def test_brief_handles_an_unknown_person(env, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: False)
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _brief(client, ext, {"email": "stranger@nowhere.com"}).json()
+    assert d["found"] is False and d["summary"] and d["reply"]
+    assert d["actions"] == []                                      # nothing to act on for a stranger
+
+
+def test_summary_and_actions_from_the_book():
+    row = {"found": True, "name": "Grace Ladoja", "grade": "A*", "play": "sleeping",
+           "ordersCount": 3, "last": "Mar 2026", "cart": {"value": 1800}}
+    s = extension._summary_of(row, {"by": "Sarah"})
+    assert "Grace Ladoja" in s and "gone quiet" in s and "3 orders" in s
+    assert "basket open" in s and "already contacted by Sarah" in s
+    acts = extension._suggested_actions(row, {"id": "c1", "name": "Spring"}, {"by": "Sarah"})
+    kinds = [a["kind"] for a in acts]
+    assert "pipeline" in kinds and "campaign" in kinds
+    assert "contacted" not in kinds                                # already logged, don't re-suggest
+    assert extension._suggested_actions({"found": False}, None, None) == []
+
+
 # ── unit helpers ──────────────────────────────────────────────────────────────
 def test_play_of_rules():
     assert extension._play_of({"known": True}) == "sleeping"

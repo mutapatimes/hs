@@ -18,14 +18,21 @@ closed). The panel has four always-ready sections:
   reasons they scored, the recommended next move, **Add to pipeline** (Shopify write-back stores),
   a **Note** field to jot context (saved to the customer in your Shopify, shown in the dashboard
   pipeline), and links to open them in Halia or your store.
-- **Draft with Halia** — at the top of the Templates section. Press **Draft a message** and Halia
-  writes the associate's next reply, tailored to who this client is (their grade, why they quietly
-  matter, whether they have gone quiet) and to the visible conversation on the page. Add an optional
-  line of intent ("confirm the exchange", "invite to the trunk show") to steer it. **Insert** drops
-  the draft into the reply box, or copy it. It always returns something: with no AI key configured,
-  or once a shop's weekly draft cap is reached, it falls back to your best-matching template, filled
-  for this client. Zero-retention holds: the client's standing and the thread are read live and used
-  in-flight, never stored.
+- **The brief** — at the top of the Templates section, and the fastest way to act. Press **Read this
+  conversation** and Halia returns three things at once:
+  1. **Where the relationship stands** — two lines on who this is and what they want right now, read
+     from the live conversation plus their standing in your book.
+  2. **The next moves** — up to four recommended actions, each with a reason. The ones Halia can
+     carry out are buttons: add to your outreach list, add to the campaign running now, log that you
+     contacted them, drop in the catalogue. The rest are shown as advice.
+  3. **A reply, ready to send** — written for this person and this conversation, in a register that
+     matches their standing. **Insert** drops it into the reply box, or copy it. Add a line of intent
+     ("confirm the exchange", "invite to the trunk show") and press **Read again** to steer it.
+
+  It always returns something. With no AI key configured, once a shop's weekly cap is reached, or on
+  any model failure, the summary comes from your scored book, the actions from the client's own
+  standing, and the reply from your best-matching template. Zero-retention holds: the standing and
+  the thread are read live and used in-flight, never stored.
 - **Templates** — your outreach templates, filled with the active client's name. **Insert** drops
   one straight into the WhatsApp/Gmail reply box, or copy it.
 - **Campaigns** — the campaigns running now. With a client on screen, **Add this client** drops them
