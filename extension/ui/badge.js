@@ -424,7 +424,7 @@
           ${_CONTACT_REASONS.map((x) => `<button class="chip" data-lr="${esc(x)}">${esc(x)}</button>`).join("")}
         </div>
         <div style="display:flex;gap:6px;margin-bottom:13px">
-          <input data-a="lreason" placeholder="Reason (optional)" style="flex:1;padding:7px 9px;border:1px solid #d8cfbc;font-size:12.5px;color:#1a1a1a;background:#fff">
+          <input data-a="lreason" placeholder="Reason (optional)" value="${esc(briefLogReason())}" style="flex:1;padding:7px 9px;border:1px solid #d8cfbc;font-size:12.5px;color:#1a1a1a;background:#fff">
           <button class="btn primary" data-a="logc">Log</button>
         </div>` : ""}
       <div class="lbl">Message the team</div>
@@ -493,6 +493,19 @@
       });
     } catch (e) { draft = { busy: false, error: "Brief failed" }; renderTemplates(); }
   }
+  // What to write in the shared contact log. The brief already knows what the associate is about
+  // to send, so the log can say what was actually said rather than "Sent a note" — which is what a
+  // colleague reading the pipeline next week actually needs. Costs nothing: no extra call.
+  const _CHAN_LABEL = { whatsapp: "WhatsApp", email: "Email", admin: "Store" };
+  function briefLogReason() {
+    const text = (draft && draft.text) || "";
+    if (!text) return "";
+    const first = text.replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s/)[0] || text;
+    const gist = first.length > 90 ? first.slice(0, 87).trimEnd() + "…" : first;
+    const via = _CHAN_LABEL[channel] || "";
+    return (via ? `Replied on ${via}: ` : "Replied: ") + gist;
+  }
+
   // An action is a button when the toolbar can actually carry it out, and a note otherwise.
   const _DOABLE = { pipeline: 1, campaign: 1, contacted: 1, catalogue: 1 };
   function doAction(a) {
@@ -540,6 +553,7 @@
         <div class="acts">
           ${inserter ? `<button class="btn primary" data-a="dins">Insert</button>` : ""}
           <button class="btn" data-a="dcopy">Copy</button>
+          ${activeCid() ? `<button class="btn" data-a="dlog" title="${esc(briefLogReason())}">Log it</button>` : ""}
         </div>
         <textarea class="dinstr" data-a="dinstr" rows="1" placeholder="Steer the reply, then Read again">${esc(draftInstr)}</textarea>` : ""}
     </div>`;
@@ -553,6 +567,8 @@
     });
     const di = el.querySelector('[data-a="dins"]'); if (di) di.onclick = () => place(draft.text);
     const dc = el.querySelector('[data-a="dcopy"]'); if (dc) dc.onclick = () => copy(draft.text, "Reply copied");
+    const dl = el.querySelector('[data-a="dlog"]');
+    if (dl) dl.onclick = () => logContact(activeCid(), activeName(), briefLogReason());
   }
 
   function renderTemplates() {

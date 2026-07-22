@@ -55,6 +55,26 @@ class ResultsCache:
                 return None
             return entry
 
+    # ── memoised derived text (a written client summary) ──────────────────────
+    # Kept inside the shop's own entry so it inherits the same TTL and the same eviction: when the
+    # scored book goes, anything written about it goes with it. Nothing new is persisted.
+    def get_note(self, shop: str, key: str) -> str | None:
+        entry = self.get(shop)
+        if not entry:
+            return None
+        with self._lock:
+            return (entry.get("notes") or {}).get(key)
+
+    def set_note(self, shop: str, key: str, value: str, cap: int = 500) -> None:
+        entry = self.get(shop)
+        if not entry:
+            return
+        with self._lock:
+            notes = entry.setdefault("notes", {})
+            if len(notes) >= cap:
+                notes.clear()          # a whole book's worth: start again rather than grow forever
+            notes[key] = value
+
     def evict(self, shop: str) -> None:
         """Forget a shop immediately (redact / uninstall)."""
         with self._lock:
