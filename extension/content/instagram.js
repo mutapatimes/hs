@@ -21,7 +21,17 @@
       document.querySelector('textarea[placeholder], div[role="textbox"][contenteditable="true"]'), text);
   }
 
+  // The open DM's recent messages, so the brief can answer what was actually said. Instagram
+  // renders each message as a row; outgoing ones are labelled "You sent" in the accessibility
+  // tree, which is the only reliable side-hint IG exposes. Read live; nothing is stored.
+  function readThread() {
+    if (!/\/direct\//.test(location.pathname)) return [];
+    const main = document.querySelector('div[role="main"]') || document;
+    return Halia.readMessages(main, 'div[role="row"]', /you sent|you replied|outgoing/i, 6);
+  }
+
   HaliaPanel.setChannel("email");   // treat IG links as a direct/referral channel for UTMs
   HaliaPanel.setInserter(insert);
+  HaliaPanel.setThreadReader(readThread);
   Halia.observe(extract);
 })();
