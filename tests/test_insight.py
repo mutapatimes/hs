@@ -176,6 +176,38 @@ def test_query_failure_is_reported_not_guessed(client, monkeypatch):
     assert d["ok"] is False and d["reason"] == "failed"
 
 
+# ── the weekly digest endpoint ────────────────────────────────────────────────
+def test_digest_is_silent_on_a_cold_book(client):
+    c, _ = client
+    d = c.get("/v1/digest", headers=_auth()).json()
+    assert d["source"] == "cold" and d["text"] == ""
+
+
+def test_digest_states_the_facts_without_ai(client, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: False)
+    c, _ = client
+    _seed(known=True, spend=9000)
+    d = c.get("/v1/digest", headers=_auth()).json()
+    assert d["source"] == "book" and "Grace Ladoja" in d["text"]
+    assert d["facts"]["quiet"] == 1          # the numbers travel with the prose, always countable
+
+
+def test_digest_is_memoised_for_the_life_of_the_book(client, monkeypatch):
+    from halia import llm
+    calls = {"n": 0}
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "complete",
+                        lambda *a, **k: calls.__setitem__("n", calls["n"] + 1) or "Briefing.")
+    c, _ = client
+    _seed(known=True)
+    first = c.get("/v1/digest", headers=_auth()).json()
+    again = c.get("/v1/digest", headers=_auth()).json()
+    assert calls["n"] == 1
+    assert first["source"] == "ai" and again["source"] == "cache"
+    assert again["text"] == "Briefing."
+
+
 def test_clean_filter_defaults_everything_it_cannot_read():
     out = insight._clean_filter({}, [], [])
     assert out == {"grade": "all", "play": "", "city": "all", "segments": [], "minSignals": 0,

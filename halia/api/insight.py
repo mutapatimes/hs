@@ -172,6 +172,27 @@ def register(app) -> None:
         data.record_activity(shop, "insight_summary_ai")
         return {"summary": text, "source": "ai", "ai_available": True}
 
+    @app.get("/v1/digest")
+    def weekly_digest(shop: str = Depends(require_shop)) -> dict:
+        """The Monday briefing: a few lines on what deserves attention, over figures the engine
+        counted itself. The numbers are always real; the model only phrases them, and only when a
+        key is configured. Memoised for the life of the book, so it costs one call, not one a view."""
+        from halia import digest
+        from halia.cache import cache
+
+        f = digest.facts(shop)
+        if not f.get("warm"):
+            return {"text": "", "source": "cold", "facts": f}
+        cached = cache.get_note(shop, "digest")
+        if cached is not None:
+            return {"text": cached, "source": "cache", "facts": f}
+        text, source = digest.write(f, shop)
+        cache.set_note(shop, "digest", text)
+        if source == "ai":
+            data.record_activity(shop, "digest_ai")
+        data.record_activity(shop, "digest")
+        return {"text": text, "source": source, "facts": f}
+
     @app.post("/v1/clients/query")
     def clients_query(shop: str = Depends(require_shop),
                       payload: Any = Body(default=None)) -> dict:
