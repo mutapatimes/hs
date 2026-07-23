@@ -29,10 +29,10 @@ closed). The panel has four always-ready sections:
      matches their standing. **Insert** drops it into the reply box, or copy it. Add a line of intent
      ("confirm the exchange", "invite to the trunk show") and press **Read again** to steer it.
 
-  It always returns something. With no AI key configured, once a shop's weekly cap is reached, or on
-  any model failure, the summary comes from your scored book, the actions from the client's own
-  standing, and the reply from your best-matching template. Zero-retention holds: the standing and
-  the thread are read live and used in-flight, never stored.
+  It always returns something. If a written brief is ever unavailable, the summary comes from your
+  scored book, the actions from the client's own standing, and the reply from your best-matching
+  template, so the button is never dead. Nothing to set up on your side. Zero-retention holds: the
+  standing and the thread are read live and used in-flight, never stored.
 - **Templates** — your outreach templates, filled with the active client's name. **Insert** drops
   one straight into the WhatsApp/Gmail reply box, or copy it.
 - **Campaigns** — the campaigns running now. With a client on screen, **Add this client** drops them
