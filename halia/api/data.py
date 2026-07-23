@@ -54,16 +54,29 @@ def _order_utm(o: dict) -> str:
     return ""
 
 
+_BOUGHT_CAP = 12          # distinct titles kept per client: enough to see taste, not a catalogue
+
+
 def _history(orders: list[dict]) -> dict:
-    """CUST_ID -> [{date, amount, items, utm?}], newest first (per-client order history)."""
+    """CUST_ID -> [{date, amount, items, titles?, utm?}], newest first (per-client order history).
+
+    ``titles`` are the products on that order. They were previously read for their quantity and
+    then dropped, which threw away the best thing we know about a client's taste: what they have
+    actually bought. Kept lean (a few titles an order) and RAM-only like the rest of the payload,
+    so zero-retention is unchanged.
+    """
     by: dict[str, list] = {}
     for o in orders:
         cid = (o.get("customer") or {}).get("id")
         if cid is None:
             continue
-        items = sum(int(li.get("quantity") or 0) for li in (o.get("line_items") or []))
+        lines = o.get("line_items") or []
+        items = sum(int(li.get("quantity") or 0) for li in lines)
         row = {"date": str(o.get("created_at") or "")[:10],
                "amount": round(float(o.get("total_price") or 0), 2), "items": items}
+        titles = [t for t in ({str(li.get("title") or "").strip() for li in lines}) if t][:6]
+        if titles:
+            row["titles"] = sorted(titles)
         utm = _order_utm(o)
         if utm:                                   # keep the payload lean: only when present
             row["utm"] = utm
@@ -71,6 +84,19 @@ def _history(orders: list[dict]) -> dict:
     for rows in by.values():
         rows.sort(key=lambda r: r["date"], reverse=True)
     return by
+
+
+def bought_titles(history_rows: list, cap: int = _BOUGHT_CAP) -> list[str]:
+    """The distinct products a client has bought, newest order first. The strongest input we have
+    for suggesting what to put in front of them next."""
+    out: list[str] = []
+    for row in history_rows or []:
+        for title in row.get("titles") or []:
+            if title not in out:
+                out.append(title)
+                if len(out) >= cap:
+                    return out
+    return out
 
 
 def _order_index(orders: list[dict]) -> list[dict]:

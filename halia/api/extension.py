@@ -15,6 +15,7 @@ Only the sha256 hash of the token is persisted, exactly like the self-service te
 """
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 from fastapi import Body, Depends, Header, HTTPException, Query
@@ -500,6 +501,113 @@ def _brief_context(shop: str, resp: dict, channel: str, thread: list[dict], inst
     return "\n".join(lines)
 
 
+# ── suggesting products for one client ───────────────────────────────────────────────
+_SUGGEST_SYSTEM = (
+    "You choose which pieces a luxury retailer's sales associate should put in front of one "
+    "client. You are given that client's standing, what they have bought before, the conversation "
+    "on screen if there is one, and a list of the store's products.\n\n"
+    "Choose at most six, best first. Prefer something the client has actually asked about, then "
+    "what sits naturally beside what they already own, then the range they can plainly afford. "
+    "Do not pick six near-identical things; a considered selection beats a category dump.\n\n"
+    "Choose ONLY from the product ids given to you. Never invent a product, a price or an id. If "
+    "nothing in the list genuinely suits this client, return an empty list, which is a correct and "
+    "expected answer.\n\n"
+    "For each pick write one short reason the associate could say out loud, grounded in what you "
+    "were told: what they asked for, what they already own, or the occasion. Never claim stock, "
+    "delivery dates or discounts. Do not use em dashes; use commas, colons or periods."
+)
+
+_SUGGEST_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "picks": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"id": {"type": "string"}, "why": {"type": "string"}},
+                "required": ["id", "why"],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["picks"],
+    "additionalProperties": False,
+}
+
+_CORPUS_CAP = 150        # what the model sees: the whole catalogue would be ~30k tokens a call
+
+
+def _price(value) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _shortlist(products: list, bought: list, aov: float, cap: int = _CORPUS_CAP) -> list:
+    """Narrow the store's products to a shortlist before the model sees any of them.
+
+    This is the cost control, and it is deterministic on purpose: a price band around what the
+    client actually spends, and a lean toward the kinds of thing they already buy. The model then
+    chooses within a set we have already judged plausible, which is both cheaper and better than
+    asking it to rank two thousand items."""
+    if len(products) <= cap:
+        return products
+    words = {w for t in bought for w in re.findall(r"[a-z]{4,}", t.lower())}
+    lo, hi = (aov * 0.35, aov * 3.0) if aov > 0 else (0.0, float("inf"))
+
+    def rank(p):
+        price = _price(p.get("price"))
+        in_band = lo <= price <= hi if price else False
+        text = " ".join([p.get("title") or "", p.get("type") or "", p.get("vendor") or "",
+                         " ".join(p.get("tags") or [])]).lower()
+        affinity = len(words & set(re.findall(r"[a-z]{4,}", text))) if words else 0
+        return (-affinity, 0 if in_band else 1, abs(price - aov) if aov else 0)
+
+    return sorted(products, key=rank)[:cap]
+
+
+def _digest(products: list) -> str:
+    """The shortlist as the model sees it: enough to judge suitability, no more."""
+    lines = []
+    for p in products:
+        bits = [f"{p['id']} | {p.get('title') or ''}"]
+        if p.get("type"):
+            bits.append(str(p["type"]))
+        if p.get("vendor"):
+            bits.append(str(p["vendor"]))
+        if p.get("price"):
+            bits.append(f"{p.get('currency') or ''}{p['price']}".strip())
+        tags = [t for t in (p.get("tags") or [])][:4]
+        if tags:
+            bits.append(", ".join(tags))
+        lines.append(" · ".join(bits))
+    return "\n".join(lines)
+
+
+def _variant_of(shop: str, title: str) -> Optional[dict]:
+    """The cheapest buyable variant for one product title, so a suggestion can reach the cart.
+
+    Only ever called for the handful the associate is actually being shown: the catalogue-wide
+    product query deliberately omits variant ids, and paying for them across the whole store to
+    make six of them buyable would be the wrong trade."""
+    token = shop_store().get_token(shop)
+    if not token or not title:
+        return None
+    from scoring.shopify_fetch import _run, http_transport
+    from scoring.shopify_graphql import PRODUCT_SEARCH_QUERY, product_search_node
+    try:
+        data_ = _run(http_transport(shop, token), PRODUCT_SEARCH_QUERY,
+                     {"q": f'title:"{title}"', "n": 3}, 2)
+    except Exception:  # noqa: BLE001 — a suggestion without a variant is still worth showing
+        return None
+    for node in ((data_.get("products") or {}).get("nodes")) or []:
+        p = product_search_node(node)
+        if p["title"].strip().lower() == title.strip().lower() and p["variants"]:
+            return p["variants"][0]
+    return None
+
+
 def register(app) -> None:
 
     @app.post("/v1/extension/token")
@@ -688,6 +796,114 @@ def register(app) -> None:
             "read_thread": len(thread),       # how many messages the brief actually saw
             "ai_available": llm.available(),
         }
+
+    @app.post("/v1/extension/suggest")
+    def extension_suggest(x_halia_ext_token: Optional[str] = Header(None),
+                          payload: Any = Body(default=None)) -> dict:
+        """Which pieces to put in front of this client, chosen from the merchant's own products.
+
+        The model only ever picks ids out of a shortlist the server built from Shopify, and every
+        id it returns is checked back against that shortlist, so it cannot invent a product, a
+        price or a link. With no model available it returns nothing rather than a guess: the manual
+        product search beside it is untouched. Zero-retention holds — the client's standing and the
+        conversation are used in-flight and discarded."""
+        from halia import llm
+        from halia.api import catalog
+        from halia.api.data import bought_titles
+        from halia.cache import cache
+
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        body = payload or {}
+        email = (str(body.get("email") or "").strip()) or None
+        cid = (str(body.get("cid") or "").strip()) or None
+        phone = (str(body.get("phone") or "").strip()) or None
+        name = (str(body.get("name") or "").strip()) or None
+        instruction = str(body.get("instruction") or "").strip()[:300]
+        thread = _clean_thread(body.get("thread"))
+
+        cap = config.LLM_WEEKLY_CAP
+        used = shop_store().shop_metric(shop, "extension_suggest_ai") if cap else 0
+        if not llm.available() or (cap and used >= cap):
+            return {"picks": [], "source": "none", "ai_available": llm.available()}
+
+        resp = _lookup(shop, email, cid, phone, name) if (email or cid or phone or name) \
+            else {"found": False}
+        row = _row_match(cache.get(shop), email, cid, phone, name) or {}
+        bought = bought_titles(row.get("orders"))
+        n_orders = row.get("ordersCount") or 0
+        aov = (_price(row.get("spend")) / n_orders) if n_orders else 0.0
+
+        try:
+            products = catalog._products(shop)
+        except Exception:  # noqa: BLE001 — no products, no suggestions; never a broken panel
+            products = []
+        if not products:
+            return {"picks": [], "source": "none", "ai_available": True}
+        short = _shortlist(products, bought, aov)
+        by_id = {str(p["id"]): p for p in short}
+
+        lines = [f"Client: {resp.get('name') or 'this client'}"]
+        if resp.get("grade"):
+            lines.append(f"Halia grade {resp['grade']}: {_standing(resp)}")
+        if aov:
+            lines.append(f"Typical order: {round(aov)}")
+        if bought:
+            lines.append("Has bought: " + "; ".join(bought))
+        reasons = [s.get("d") for s in (row.get("signals") or []) if s.get("d")][:5]
+        if reasons:
+            lines.append("Why they matter: " + "; ".join(reasons))
+        if thread:
+            lines.append("\nConversation on screen (oldest first):")
+            lines += [("Client: " if m["from"] == "them" else "You: ") + m["text"] for m in thread]
+        if instruction:
+            lines.append(f"\nWhat the associate is looking for: {instruction}")
+        lines.append("\nProducts to choose from (id | title · type · vendor · price · tags):")
+        lines.append(_digest(short))
+        lines.append("\nChoose now.")
+
+        got = llm.structured(_SUGGEST_SYSTEM, "\n".join(lines), _SUGGEST_SCHEMA,
+                             model=llm.model_for(row.get("tier")), max_tokens=900)
+        picks = []
+        for p in ((got or {}).get("picks") or [])[:6]:
+            prod = by_id.get(str(p.get("id") or ""))
+            if not prod:
+                continue                        # not one of ours: drop it rather than show it
+            variant = _variant_of(shop, prod.get("title") or "")
+            picks.append({
+                "product_id": str(prod["id"]), "title": prod.get("title") or "",
+                "image": prod.get("image_url"), "price": prod.get("price"),
+                "currency": prod.get("currency"),
+                "variant_id": (variant or {}).get("id"),
+                "why": str(p.get("why") or "")[:200],
+            })
+        if picks:
+            data.record_activity(shop, "extension_suggest_ai")
+        data.record_activity(shop, "extension_suggest")
+        return {"picks": picks, "source": "ai" if picks else "none", "considered": len(short),
+                "ai_available": True}
+
+    @app.post("/v1/extension/catalogue")
+    def extension_catalogue(x_halia_ext_token: Optional[str] = Header(None),
+                            payload: Any = Body(default=None)) -> dict:
+        """Mint a shareable link for the selection the associate has built, addressed to this
+        client. Nothing is stored: the products travel in the signed link and the name travels in
+        it too, exactly as every other personalised catalogue link already works."""
+        from halia.api.catalog import adhoc_url
+
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        body = payload or {}
+        ids = [str(p).strip() for p in (body.get("product_ids") or []) if str(p).strip()][:40]
+        if not ids:
+            raise HTTPException(422, "product_ids is required")
+        first = (str(body.get("name") or "").strip().split(" ") or [""])[0][:80]
+        data.record_activity(shop, "extension_catalogue")
+        return {"url": adhoc_url(shop, ids, first)}
 
     @app.get("/v1/extension/events")
     def extension_events(x_halia_ext_token: Optional[str] = Header(None)) -> dict:

@@ -7,10 +7,14 @@ a client email via the {catalog_link} token.
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import math
+import re
 import secrets
 import time
+import urllib.parse as _up
 from typing import Any
 
 from fastapi import Body, Depends, HTTPException, Request
@@ -139,7 +143,7 @@ def _enquiry_text(cat_name, name, email, phone, message, picked) -> str:
 
 def _fetch_products_for(shop: str) -> list[dict]:
     """Pull catalogue products from whichever platform this tenant is on (Shopify or WooCommerce)."""
-    kind = (shop_store().get_tenant(shop) or {}).get("kind")
+    kind = dict(shop_store().get_tenant(shop) or {}).get("kind")   # sqlite3.Row has no .get
     if kind == "woocommerce":
         creds = shop_store().get_woocommerce(shop)
         if not creds:
@@ -220,8 +224,9 @@ def _resolve(shop: str, selection: dict) -> list[dict]:
 
 
 def _shop_display(shop: str) -> str:
-    t = shop_store().get_tenant(shop)
-    return (t or {}).get("label") or str(shop).replace(".myshopify.com", "")
+    # dict() first: the store hands back a sqlite3.Row, which has no .get (same trap as /context).
+    t = dict(shop_store().get_tenant(shop) or {})
+    return t.get("label") or str(shop).replace(".myshopify.com", "")
 
 
 _DOMAIN_CACHE: dict = {}     # shop -> {"at": monotonic, "host": "theirbrand.com"}
@@ -313,6 +318,68 @@ def _personalize(text: str, ctx: dict) -> str:
     for k, v in ctx.items():
         text = text.replace("{" + k + "}", v)
     return text
+
+
+# ── a bespoke selection for one client, stored nowhere ───────────────────────────────
+# An associate building a handful of pieces for one person in the extension does not want a saved
+# catalogue, and we do not want the row: the client's name would have to live in it, and that would
+# be the first customer-identifying record in this table. So the selection travels in the link,
+# exactly as the recipient's name already does, and the page is rendered live on request. The
+# presentation is borrowed from the shop's active catalogue, so a one-off still looks like the house.
+_ADHOC_MAX = 40
+
+
+def adhoc_sig(shop: str, ids: str) -> str:
+    """Sign a selection so this endpoint cannot be used to render arbitrary combinations of a
+    shop's products by anyone who works out the URL shape."""
+    from halia.api.tenant_auth import _secret
+    return hmac.new(_secret(), f"cat|{shop}|{ids}".encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def _adhoc_ids(raw: str) -> list[str]:
+    return [x for x in re.split(r"[,\s]+", str(raw or "")) if x][:_ADHOC_MAX]
+
+
+def adhoc_url(shop: str, product_ids: list, name: str = "") -> str:
+    """The shareable link for a bespoke selection, on the merchant's own domain where possible."""
+    ids = ",".join(str(p) for p in (product_ids or [])[:_ADHOC_MAX])
+    q = {"p": ids, "s": adhoc_sig(shop, ids)}
+    if name:
+        q["to"] = name[:160]
+    base = catalog_share_base(shop)
+    if base.rstrip("/").endswith(f"/{config.PROXY_SUBPATH}"):
+        return f"{base}/for?{_up.urlencode(q)}"          # merchant domain via the App Proxy
+    q["sh"] = shop                                        # direct Halia URL needs the tenant named
+    return f"{base}/for?{_up.urlencode(q)}"
+
+
+def _adhoc_response(shop: str, request: Request):
+    """Render a bespoke selection as the catalogue form. Writes nothing."""
+    from fastapi.responses import HTMLResponse
+    from halia.catalog_form import catalog_form_html
+    ids = _adhoc_ids(request.query_params.get("p") or "")
+    if not ids:
+        raise HTTPException(404, "Nothing to show.")
+    if not hmac.compare_digest(request.query_params.get("s") or "",
+                               adhoc_sig(shop, ",".join(ids))):
+        raise HTTPException(403, "This link is not valid.")
+    products = _resolve(shop, {"product_ids": ids})
+    if not products:
+        raise HTTPException(404, "Nothing to show.")
+    cat = shop_store().active_catalog(shop) or {}
+    cfg = json.loads(cat.get("config_json") or "{}") if cat else {}
+    prefill = {"name": _link_name(request),
+               "email": (request.query_params.get("email") or "")[:160],
+               "phone": (request.query_params.get("phone") or "")[:160]}
+    ctx = _person_ctx(prefill.get("name", ""), _shop_display(shop))
+    title = _personalize(cfg.get("adhoc_title") or "A selection for {first_name}", ctx)
+    html = catalog_form_html(
+        {"name": title, "subtitle": _personalize(cfg.get("subtitle", ""), ctx),
+         "logo": cfg.get("logo", ""), "brand_color": cfg.get("brand_color"),
+         "fields": cfg.get("fields")},
+        products, shop_name=_shop_display(shop), catalog_id=(cat.get("id") or ""),
+        enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill)
+    return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
 
 def _render_pdf(cat: dict, cfg: dict, shop: str, ctx: dict):
@@ -573,6 +640,24 @@ def register(app) -> None:
             raise HTTPException(503, "The PDF engine is not available in this environment yet.") from exc
         shop_store().set_catalog_pdf(catalog_id, pdf)
         return {"url": f"{catalog_share_base(shop)}/{catalog_id}.pdf", "count": count}
+
+    # ── A bespoke selection for one client. Registered BEFORE the {catalog_id} routes, or "for"
+    #    would be matched as a catalogue id. Nothing is written: the selection is in the link. ────
+    @app.get("/catalog/for")
+    def catalog_adhoc(request: Request):
+        shop = (request.query_params.get("sh") or "").strip()
+        if not shop:
+            raise HTTPException(404, "Nothing to show.")
+        return _adhoc_response(shop, request)
+
+    @app.get("/proxy/catalogue/for")
+    def proxy_adhoc(request: Request):
+        if not verify_app_proxy(request):
+            raise HTTPException(403, "Invalid app-proxy signature.")
+        shop = (request.query_params.get("shop") or "").strip()   # Shopify names the tenant
+        if not shop:
+            raise HTTPException(404, "Nothing to show.")
+        return _adhoc_response(shop, request)
 
     # ── Direct links (Halia domain) ──────────────────────────────────────────────────────────
     @app.get("/catalog/{catalog_id}.pdf")

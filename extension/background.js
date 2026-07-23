@@ -333,6 +333,29 @@ async function brief(body) {
   }
 }
 
+// Which pieces to put in front of this client, and the shareable link for the selection.
+async function post(path, body, ms) {
+  const { base, token } = await config();
+  if (!token) return { error: "no-token" };
+  let res;
+  try {
+    res = await hfetch(base + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Halia-Ext-Token": token },
+      body: JSON.stringify(body || {})
+    }, ms || 30000);
+  } catch (e) {
+    return { error: "network" };
+  }
+  if (res.status === 401) return { error: "unauthorized" };
+  if (!res.ok) return { error: "http-" + res.status };
+  try {
+    return await res.json();
+  } catch (e) {
+    return { error: "parse" };
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg && msg.type === "halia:lookup") {
     lookup(msg.query).then(sendResponse);
@@ -364,6 +387,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg && msg.type === "halia:brief") {
     brief(msg.body).then(sendResponse);
+    return true;
+  }
+  if (msg && msg.type === "halia:suggest") {
+    post("/v1/extension/suggest", msg.body, 45000).then(sendResponse);
+    return true;
+  }
+  if (msg && msg.type === "halia:catalogue") {
+    post("/v1/extension/catalogue", msg.body).then(sendResponse);
     return true;
   }
   if (msg && msg.type === "halia:config") {
