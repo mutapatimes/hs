@@ -39,6 +39,14 @@ _METRIC_LABELS = {
     "notify_slack": "Slack alerts",
     "notify_push": "Push alerts",
     "pos_lookup": "POS lookups",
+    # Written-brief usage. A non-zero count here is the operator's confirmation that the model key
+    # is live and working — merchants are never asked about it and never see it.
+    "extension_brief": "Briefs opened",
+    "extension_brief_ai": "Briefs written",
+    "extension_draft_ai": "Replies written",
+    "insight_summary_ai": "Client summaries written",
+    "insight_query_ai": "Plain-English searches",
+    "digest_ai": "Weekly briefings written",
 }
 
 
