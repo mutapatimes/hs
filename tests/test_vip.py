@@ -39,7 +39,7 @@ FULL = {"industry": "fashion", "products": ["womenswear", "shoes"],
         "terms": {"styling": "free", "alterations": "vip"},
         "perks": ["early_access", "after_hours"],
         "vip_offer": "we would open on a Sunday for her", "definition": "feel",
-        "tone": "warm", "escalate": "anything over 2000, or a complaint"}
+        "tone": "warm"}
 
 
 # ── nothing answered must cost nothing ────────────────────────────────────────
@@ -84,16 +84,20 @@ def test_an_invented_service_cannot_be_posted_in():
 
 
 def test_free_text_is_kept_and_bounded():
-    got = vip.clean_profile({"vip_offer": "x" * 900, "escalate": "  over 2k  "})
-    assert len(got["vip_offer"]) == 600 and got["escalate"] == "over 2k"
+    got = vip.clean_profile({"vip_offer": "  " + "x" * 900 + "  "})
+    assert len(got["vip_offer"]) == 600
 
 
 def test_the_merchants_own_words_are_carried_through():
     assert 'we would open on a Sunday for her' in vip.house_block(FULL)
 
 
-def test_escalation_reaches_the_prompt():
-    assert "Hand to a person when: anything over 2000" in vip.house_block(FULL)
+def test_there_is_no_escalation_question():
+    """Halia never sends anything, so a conversation is always with a person. Asking when to hand
+    over would imply an autonomy the product does not have."""
+    assert all("escalate" not in (q.get("free") or "") for q in vip.QUESTIONS)
+    assert "Hand to a person" not in vip.house_block(FULL)
+    assert vip.clean_profile({"escalate": "over 2k"}) == {}
 
 
 # ── tone ──────────────────────────────────────────────────────────────────────
