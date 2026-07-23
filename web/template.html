@@ -400,6 +400,13 @@
   .vipopt .tick{width:15px;height:15px;border:1px solid var(--line-strong);flex:none;
     display:grid;place-items:center;font-size:10px;color:#fff}
   .vipopt.on .tick{background:var(--brand);border-color:var(--brand)}
+  .viprow{display:flex;flex-direction:column;gap:7px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .vipsv{font-size:13.5px;font-weight:600}
+  .vipterms{display:flex;gap:6px;flex-wrap:wrap}
+  .vipterm{border:1px solid var(--line);background:var(--card);color:var(--soft);font:inherit;
+    font-size:12px;padding:5px 10px;cursor:pointer}
+  .vipterm:hover{background:var(--rowhover)}
+  .vipterm.on{background:var(--brand);border-color:var(--brand);color:#fff}
   .vipfree{width:100%;border:1px solid var(--line);background:var(--card);color:var(--ink);
     font:inherit;font-size:14px;padding:11px 13px;resize:vertical;min-height:74px;margin-bottom:6px}
   .viplbl{font-size:13px;font-weight:600;margin-bottom:6px}
@@ -2366,11 +2373,13 @@ function renderOverview(){
 // the goal is signal, not a completed policy document. Most merchants have never written a VIP
 // policy down, so the free-text box matters as much as the checklists. What they answer bounds
 // what Halia may offer on their behalf; it never decides anything for them.
-let VIPQ = [], VIPA = {}, vipAt = 0;
+let VIPQ = [], VIPA = {}, vipAt = 0, VIPPOOL = {};
 function vipOpen(fromSettings){
   fetch("/v1/vip/questions").then(r=>r.ok?r.json():null).then(d=>{
     if(!d || !d.questions) return;
     VIPQ = d.questions; VIPA = Object.assign({}, d.profile || {}); vipAt = 0;
+    VIPPOOL = {products:d.products||{}, services:d.services||{},
+               common:d.common_services||[], terms:d.terms||[]};
     document.getElementById("vipwrap").classList.add("show");
     document.getElementById("vipwrap").setAttribute("aria-hidden","false");
     vipRender();
@@ -2395,19 +2404,45 @@ function vipPick(q, v){
   }
   vipRender();
 }
+function vipStepBy(fwd){
+  vipAt = Math.max(0, vipAt + fwd);
+  if(vipAt >= VIPQ.length){ vipSave(true); vipClose(); return; }
+  vipSave(false); vipRender();
+}
+// A jeweller and a fashion house share almost no vocabulary, so steps 2 and 3 re-point to the
+// trade picked on step 1. Common services (gift wrap, private appointments) are offered to everyone.
+function vipOptions(q){
+  if(!q.by_industry) return q.options || [];
+  const own = (VIPPOOL[q.by_industry] || {})[VIPA.industry] || [];
+  return q.by_industry === "services" ? own.concat(VIPPOOL.common || []) : own;
+}
+function vipLabel(key, v){
+  for(const q of VIPQ){ if(q.key!==key) continue;
+    for(const o of vipOptions(q)) if(o.v===v) return o.l; }
+  return v;
+}
 function vipRender(){
   const q = VIPQ[vipAt]; if(!q) return;
+  if(q.by_industry && !vipOptions(q).length){ return vipStepBy(1); }  // nothing to ask this trade
+  if(q.type === "terms" && !(VIPA.services||[]).length){ return vipStepBy(1); }
+  const opts = vipOptions(q);
   const sel = VIPA[q.key], many = q.type==="many";
   const on = v => many ? ((sel||[]).indexOf(v)>=0) : sel===v;
   const last = vipAt === VIPQ.length-1;
+  const terms = VIPA.terms || {};
   document.getElementById("vipBody").innerHTML = `
     <div class="vipbar"><i style="width:${Math.round((vipAt)/VIPQ.length*100)}%"></i></div>
     <div class="vipstep">Step ${vipAt+1} of ${VIPQ.length}</div>
     <h2 class="vipq" id="vipQ">${esc(q.title)}</h2>
     <p class="viphint">${esc(q.hint||"")}</p>
-    <div class="vipopts">${q.options.map(o=>`
+    ${q.type==="terms" ? `<div class="vipopts">${(VIPA.services||[]).map(sv=>`
+      <div class="viprow"><span class="vipsv">${esc(vipLabel("services",sv))}</span>
+        <span class="vipterms">${(VIPPOOL.terms||[]).map(t=>`
+          <button class="vipterm${terms[sv]===t.v?" on":""}" data-sv="${esc(sv)}" data-t="${esc(t.v)}"
+            title="${esc(t.hint||"")}">${esc(t.l)}</button>`).join("")}</span></div>`).join("")}</div>`
+    : `<div class="vipopts">${opts.map(o=>`
       <button class="vipopt${on(o.v)?" on":""}" data-v="${esc(o.v)}">
-        <span class="tick">${on(o.v)?"&#10003;":""}</span>${esc(o.l)}</button>`).join("")}</div>
+        <span class="tick">${on(o.v)?"&#10003;":""}</span>${esc(o.l)}</button>`).join("")}</div>`}
     ${q.free?`<div class="viplbl">${esc(q.free_label||"")}</div>
       <textarea class="vipfree" id="vipFree" placeholder="${esc(q.free_hint||"")}">${esc(VIPA[q.free]||"")}</textarea>`:""}
     <div class="vipacts">
@@ -2418,14 +2453,14 @@ function vipRender(){
     </div>`;
   const body = document.getElementById("vipBody");
   body.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>vipPick(q,b.dataset.v));
+  body.querySelectorAll("[data-sv]").forEach(b=>b.onclick=()=>{
+    const t = VIPA.terms || (VIPA.terms = {});
+    t[b.dataset.sv] = (t[b.dataset.sv]===b.dataset.t) ? undefined : b.dataset.t;
+    vipRender();
+  });
   const free = document.getElementById("vipFree");
   if(free) free.oninput = ()=>{ VIPA[q.free] = free.value; };
-  const step = fwd => {
-    if(free) VIPA[q.free] = free.value;
-    vipAt = Math.max(0, vipAt + fwd);
-    if(vipAt >= VIPQ.length){ vipSave(true); vipClose(); return; }
-    vipSave(false); vipRender();
-  };
+  const step = fwd => { if(free) VIPA[q.free] = free.value; vipStepBy(fwd); };
   const nx=document.getElementById("vipNext"); if(nx) nx.onclick=()=>step(1);
   const bk=document.getElementById("vipBack"); if(bk) bk.onclick=()=>step(-1);
   const sk=document.getElementById("vipSkip"); if(sk) sk.onclick=()=>{
