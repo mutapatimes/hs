@@ -381,6 +381,32 @@
   .dcard.accent .k{color:#9DC2B7}.dcard.accent .v{color:#fff}
 
   .dlabel{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:4px 0 12px}
+  /* VIP questionnaire */
+  .vipwrap{position:fixed;inset:0;z-index:120;background:rgba(26,28,34,.42);display:none;
+    align-items:center;justify-content:center;padding:24px}
+  .vipwrap.show{display:flex}
+  .vipcard{background:var(--card);border:1px solid var(--line);border-radius:0;width:100%;
+    max-width:560px;max-height:88vh;overflow-y:auto;padding:26px 28px;box-shadow:var(--shadow-lg)}
+  .vipbar{height:3px;background:var(--line);margin-bottom:20px}
+  .vipbar i{display:block;height:100%;background:var(--brand);transition:width .3s ease}
+  .vipstep{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+  .vipq{font-family:'Fraunces',serif;font-weight:400;font-size:23px;line-height:1.25;margin:0 0 6px}
+  .viphint{color:var(--soft);font-size:13.5px;margin:0 0 18px;line-height:1.5}
+  .vipopts{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+  .vipopt{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--card);
+    padding:11px 14px;cursor:pointer;font:inherit;font-size:14px;text-align:left;color:var(--ink);width:100%}
+  .vipopt:hover{background:var(--rowhover)}
+  .vipopt.on{border-color:var(--brand);background:var(--brand-tint)}
+  .vipopt .tick{width:15px;height:15px;border:1px solid var(--line-strong);flex:none;
+    display:grid;place-items:center;font-size:10px;color:#fff}
+  .vipopt.on .tick{background:var(--brand);border-color:var(--brand)}
+  .vipfree{width:100%;border:1px solid var(--line);background:var(--card);color:var(--ink);
+    font:inherit;font-size:14px;padding:11px 13px;resize:vertical;min-height:74px;margin-bottom:6px}
+  .viplbl{font-size:13px;font-weight:600;margin-bottom:6px}
+  .vipacts{display:flex;align-items:center;gap:10px;margin-top:6px}
+  .vipskip{background:none;border:0;color:var(--soft);font:inherit;font-size:13px;cursor:pointer;
+    text-decoration:underline;padding:0}
+  .vipacts .spacer{flex:1}
   /* the Monday digest: one line per thing worth doing */
   .digest{display:flex;flex-direction:column;gap:9px}
   .digest div{font-size:14px;line-height:1.5;color:var(--ink);padding-left:15px;position:relative}
@@ -1086,6 +1112,10 @@
 
 <!-- drawer -->
 <div class="scrim" id="scrim"></div>
+<!-- The VIP questionnaire: asked once after a store connects, re-openable from Settings. What the
+     merchant answers bounds what Halia may offer on their behalf (see halia/vip.py). -->
+<div class="vipwrap" id="vipwrap" aria-hidden="true"><div class="vipcard" role="dialog"
+  aria-modal="true" aria-labelledby="vipQ"><div id="vipBody"></div></div></div>
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>
 <div id="settings" style="display:none"></div>
 
@@ -2331,6 +2361,87 @@ function renderOverview(){
   renderDigest();
 }
 
+// ── The VIP questionnaire ───────────────────────────────────────────────────────────────────
+// Asked once after a store connects, and re-openable from Settings. Every step can be skipped:
+// the goal is signal, not a completed policy document. Most merchants have never written a VIP
+// policy down, so the free-text box matters as much as the checklists. What they answer bounds
+// what Halia may offer on their behalf; it never decides anything for them.
+let VIPQ = [], VIPA = {}, vipAt = 0;
+function vipOpen(fromSettings){
+  fetch("/v1/vip/questions").then(r=>r.ok?r.json():null).then(d=>{
+    if(!d || !d.questions) return;
+    VIPQ = d.questions; VIPA = Object.assign({}, d.profile || {}); vipAt = 0;
+    document.getElementById("vipwrap").classList.add("show");
+    document.getElementById("vipwrap").setAttribute("aria-hidden","false");
+    vipRender();
+  }).catch(()=>{});
+}
+function vipClose(){
+  const w=document.getElementById("vipwrap");
+  w.classList.remove("show"); w.setAttribute("aria-hidden","true");
+}
+function vipSave(done){
+  // Rides the ordinary settings save, so the profile lives with the merchant's other config.
+  fetch("/v1/settings",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(Object.assign({}, SETTINGS, {vip_profile:VIPA}))})
+    .then(()=>{ SETTINGS.vip_profile = VIPA; if(done) toast("Thank you, that is all Halia needs."); })
+    .catch(()=>{});
+}
+function vipPick(q, v){
+  if(q.type==="one"){ VIPA[q.key] = (VIPA[q.key]===v) ? undefined : v; }
+  else {
+    const cur = VIPA[q.key] || [];
+    VIPA[q.key] = cur.indexOf(v)>=0 ? cur.filter(x=>x!==v) : cur.concat([v]);
+  }
+  vipRender();
+}
+function vipRender(){
+  const q = VIPQ[vipAt]; if(!q) return;
+  const sel = VIPA[q.key], many = q.type==="many";
+  const on = v => many ? ((sel||[]).indexOf(v)>=0) : sel===v;
+  const last = vipAt === VIPQ.length-1;
+  document.getElementById("vipBody").innerHTML = `
+    <div class="vipbar"><i style="width:${Math.round((vipAt)/VIPQ.length*100)}%"></i></div>
+    <div class="vipstep">Step ${vipAt+1} of ${VIPQ.length}</div>
+    <h2 class="vipq" id="vipQ">${esc(q.title)}</h2>
+    <p class="viphint">${esc(q.hint||"")}</p>
+    <div class="vipopts">${q.options.map(o=>`
+      <button class="vipopt${on(o.v)?" on":""}" data-v="${esc(o.v)}">
+        <span class="tick">${on(o.v)?"&#10003;":""}</span>${esc(o.l)}</button>`).join("")}</div>
+    ${q.free?`<div class="viplbl">${esc(q.free_label||"")}</div>
+      <textarea class="vipfree" id="vipFree" placeholder="${esc(q.free_hint||"")}">${esc(VIPA[q.free]||"")}</textarea>`:""}
+    <div class="vipacts">
+      ${vipAt?`<button class="dbtn" id="vipBack">Back</button>`:""}
+      <button class="vipskip" id="vipSkip">I don't know yet</button>
+      <span class="spacer"></span>
+      <button class="dbtn primary" id="vipNext">${last?"Finish":"Continue"}</button>
+    </div>`;
+  const body = document.getElementById("vipBody");
+  body.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>vipPick(q,b.dataset.v));
+  const free = document.getElementById("vipFree");
+  if(free) free.oninput = ()=>{ VIPA[q.free] = free.value; };
+  const step = fwd => {
+    if(free) VIPA[q.free] = free.value;
+    vipAt = Math.max(0, vipAt + fwd);
+    if(vipAt >= VIPQ.length){ vipSave(true); vipClose(); return; }
+    vipSave(false); vipRender();
+  };
+  const nx=document.getElementById("vipNext"); if(nx) nx.onclick=()=>step(1);
+  const bk=document.getElementById("vipBack"); if(bk) bk.onclick=()=>step(-1);
+  const sk=document.getElementById("vipSkip"); if(sk) sk.onclick=()=>{
+    if(q.type==="many") delete VIPA[q.key]; else delete VIPA[q.key];
+    if(q.free) delete VIPA[q.free];
+    step(1);
+  };
+}
+// First run: ask once a store is connected and nothing has been answered yet.
+function vipMaybeAsk(){
+  if(!SETTINGS || (SETTINGS.vip_profile && Object.keys(SETTINGS.vip_profile).length)) return;
+  if(!(SETTINGS.shopify_connected || SETTINGS.klaviyo_connected)) return;
+  try{ if(localStorage.getItem("haliaVipAsked")) return; localStorage.setItem("haliaVipAsked","1"); }catch(e){}
+  vipOpen(false);
+}
+
 // The Monday briefing. Every figure behind it is counted from this same book; a model only
 // phrases them, and only when the server has a key. Silent on a static export or a cold cache.
 let DIGEST_DONE = false;
@@ -3193,6 +3304,7 @@ function loadSettings(){
     SENDER=s.sender_name||"";
     CATALOG_URL=s.catalog_url||"";
     if(s.ai_drafting) showAskBar();   // ask-in-plain-English needs a key on the server
+    vipMaybeAsk();                   // ask what this house offers, once, after connecting
     return SETTINGS;
   }).catch(()=>SETTINGS);
 }
@@ -3386,6 +3498,14 @@ function openSettings(page){
               <div style="font:12.5px/1.6 ${SF};color:var(--soft);margin-top:3px"><b>When:</b> ${r[1]}<br><b>Then:</b> ${r[2]}</div>
             </div>`).join("")}
         </div>`:""}
+
+        <div style="${C}">
+          <div style="${H}">What your house offers</div>
+          <p style="${P}">A short set of questions about what you can do for a top client, even the things you have never written down. Halia keeps to it: it will only ever offer a service you have told it you provide, and it never decides anything on your behalf.</p>
+          <div style="font:600 13px system-ui;color:${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?'#0f7b4f':'#616161'};margin-bottom:10px">${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?("\u25cf Answered \u00b7 "+Object.keys(SETTINGS.vip_profile).length+" of 6"):"\u25cb Not answered yet"}</div>
+          <button id="setVipOpen" style="${BS}">${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?"Review answers":"Answer the questions"}</button>
+          <div style="font:12px system-ui;color:#8a8a8a;margin-top:12px">Two minutes, and every question can be skipped.</div>
+        </div>
 
         <div style="${C}">
           <div style="${H}">Browser extension</div>
@@ -3682,6 +3802,7 @@ function openSettings(page){
     };
     const extGen=document.getElementById("setExtGen"); if(extGen) extGen.onclick=()=>{
       extGen.disabled=true;extGen.textContent="Generating…";
+      const vipBtn=document.getElementById("setVipOpen"); if(vipBtn) vipBtn.onclick=()=>vipOpen(true);
       fetch("/v1/extension/token",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
         if(!ok)throw new Error((d&&d.detail)||"failed");
         SETTINGS.extension_enabled=true;

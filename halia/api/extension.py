@@ -315,6 +315,15 @@ def _draft_context(shop: str, resp: dict, channel: str, thread: list[dict], inst
     sender = (s.get("sender_name") or "").strip()
     brand = (s.get("brand") or "").strip()
     lines: list[str] = []
+    # What this merchant actually offers, and how they sound. Bounds what may be promised: a reply
+    # that offers a service they do not run is a promise the associate has to walk back.
+    from halia import vip
+    house = vip.house_block(s.get("vip_profile"))
+    if house:
+        lines.append(house + "\n")
+    voice = vip.tone_line(s.get("vip_profile"))
+    if voice:
+        lines.append(voice)
     if channel:
         lines.append(f"Channel: {channel}")
     if brand and brand.lower() != "halia":
@@ -845,7 +854,11 @@ def register(app) -> None:
         short = _shortlist(products, bought, aov)
         by_id = {str(p["id"]): p for p in short}
 
-        lines = [f"Client: {resp.get('name') or 'this client'}"]
+        from halia import vip
+        from halia.api.settings import settings_for
+        house = vip.house_block(settings_for(shop).get("vip_profile"))
+        lines = [house + "\n"] if house else []
+        lines.append(f"Client: {resp.get('name') or 'this client'}")
         if resp.get("grade"):
             lines.append(f"Halia grade {resp['grade']}: {_standing(resp)}")
         if aov:
