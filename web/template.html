@@ -408,15 +408,15 @@
      the record opens up, and the extra room becomes a second column instead of a longer scroll. */
   .gd,.evwy{display:none}
   .drawer.wide .gd,.drawer.wide .evwy{display:block}
-  .drawer.wide .dbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);
+  /* Two columns, two children — the evidence and the record each flow independently. Placing
+     the record with grid-row:1/-1 instead looked right until it wasn't: -1 resolves against the
+     EXPLICIT grid, and with no grid-template-rows it collapsed to one row, so the record sat in
+     row 1 and everything else stacked beneath it with a void alongside each. */
+  .drawer.wide .dbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,350px);
     gap:0 32px;align-items:start}
-  .drawer.wide .dbody>*{grid-column:1;min-width:0}
-  .drawer.wide .drecord{grid-column:2;grid-row:1/-1}
+  .drawer.wide .dmain,.drawer.wide .drecord{min-width:0}
   .drawer.wide .drecord .dfold:first-child{border-top:0}
-  @media(max-width:960px){
-    .drawer.wide .dbody{display:block}
-    .drawer.wide .drecord{grid-column:auto}
-  }
+  @media(max-width:960px){ .drawer.wide .dbody{display:block} }
   /* the written one-liner, above the evidence it is drawn from */
   .dsum{background:var(--brand-tint);border-left:3px solid var(--brand);border-radius:0;
     padding:12px 15px;margin-bottom:14px;font-size:14px;line-height:1.55;color:var(--ink)}
@@ -2952,6 +2952,7 @@ function openDrawer(id){
       </div>
     </div>
     <div class="dbody">
+      <div class="dmain">
       <div class="dscore">
         <div class="dcard accent"><div class="k">Halia score</div><div class="v mono">${c.score}<span style="font-size:13px;opacity:.7"> / 100 · ${tierLabel(c.tier)}</span></div>${c.confidence?`<div style="font-size:11px;color:#B9D4CC;margin-top:3px">${c.confidence>=2?("Corroborated · "+c.confidence+" sources"):"Single source"}</div>`:""}</div>
         <div class="dcard"><div class="k">Latent value</div><div class="v">${gbpK(c.latent)}</div></div>
@@ -2977,6 +2978,7 @@ function openDrawer(id){
       <div class="evidence">${evidenceHTML(c.signals)}</div>
 
       ${c.reco?`<div class="reco"><div class="k">Recommended approach</div><p>${esc(c.reco)}</p></div>`:""}
+      </div>
 
       <div class="drecord">
       <details class="dfold"><summary>How the latent value is built<span>${gbp(c.spend)} → ${gbpK(c.latent)}</span></summary>
