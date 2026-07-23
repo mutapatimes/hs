@@ -19,6 +19,7 @@ from typing import Any
 from fastapi import Body, Depends, HTTPException
 
 from halia import config
+from halia import vip
 from halia.api.shopify_auth import require_shop, shop_store
 from halia.cache import cache
 
@@ -321,6 +322,9 @@ def settings_for(shop: str) -> dict:
         "aov": d.get("aov", 0),
         "max_orders": d.get("max_orders", 0),
         "highest_lt": d.get("highest_lt", 0),
+        # What this house actually offers (the VIP questionnaire). Merchant configuration,
+        # not customer data. Bounds what the AI may offer on their behalf: see halia/vip.py.
+        "vip_profile": d.get("vip_profile") or {},
         # The merchant's own account email (captured at onboarding).
         "account_email": d.get("account_email", ""),
         # Desktop + email alerts for new high-grade orders.
@@ -465,6 +469,9 @@ def register(app) -> None:
             "basket_alerts": bool(payload.get("basket_alerts", True)),
             "shopify_auto_push": bool(payload.get("shopify_auto_push", False)),
             "account_email": str(payload.get("account_email", ""))[:200],
+            # Preserve the VIP profile unless this request is the questionnaire itself.
+            "vip_profile": (vip.clean_profile(payload["vip_profile"])
+                            if "vip_profile" in payload else existing.get("vip_profile") or {}),
             # Preserve calibrated weights the settings UI doesn't send; only change if provided.
             "signal_weights": (_clean_signal_weights(payload["signal_weights"])
                                if "signal_weights" in payload else existing.get("signal_weights")),
@@ -477,6 +484,13 @@ def register(app) -> None:
         shop_store().save_settings(shop, json.dumps(data))
         cache.evict(shop)  # a changed threshold must re-score on next load
         return {"ok": True}
+
+    @app.get("/v1/vip/questions")
+    def vip_questions(shop: str = Depends(require_shop)) -> dict:
+        """The VIP questionnaire, served from one definition so the wording, the options and the
+        stored values cannot drift apart. Answers save through POST /v1/settings."""
+        return {"questions": vip.QUESTIONS,
+                "profile": settings_for(shop).get("vip_profile") or {}}
 
     @app.post("/v1/klaviyo/disconnect")
     def klaviyo_disconnect(shop: str = Depends(require_shop)) -> dict:

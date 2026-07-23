@@ -233,3 +233,28 @@ def test_a_bespoke_catalogue_renders_and_stores_nothing(env, monkeypatch):
     assert "Grace" in r.text                        # addressed to them
     assert r.headers.get("Cache-Control") == "no-store"
     assert len(store.list_catalogs(SHOP)) == before  # nothing was written
+
+
+# ── the house profile bounds what may be offered ──────────────────────────────
+def test_the_house_profile_reaches_the_suggest_prompt(env, monkeypatch):
+    """The whole point of the questionnaire: the model is told what this merchant offers, and
+    told not to offer anything else."""
+    from halia import llm
+    from halia.api.settings import settings_for
+    import json as _json
+    seen = {}
+    client, store, tok = env
+    cur = settings_for(SHOP)
+    cur["vip_profile"] = {"services": ["engraving"], "perks": ["early_access"], "tone": "discreet"}
+    store.save_settings(SHOP, _json.dumps(cur))
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(catalog, "_products", lambda shop, force=False: _products(2))
+    monkeypatch.setattr(llm, "structured",
+                        lambda s, u, sc, **k: seen.update(user=u) or {"picks": []})
+    _seed_client()
+    client.post("/v1/extension/suggest", json={"email": "grace@x.com"},
+                headers={"X-Halia-Ext-Token": _ext(client, tok)})
+    assert "Engraving" in seen["user"]
+    assert "Early access to new arrivals" in seen["user"]
+    assert "Offer only what is listed above" in seen["user"]
+    assert "Alterations" not in seen["user"]        # not ticked, so never offered
