@@ -490,6 +490,10 @@ def register(app) -> None:
         """The VIP questionnaire, served from one definition so the wording, the options and the
         stored values cannot drift apart. Answers save through POST /v1/settings."""
         return {"questions": vip.QUESTIONS,
+                # The per-trade option pools travel with the questions, so choosing an industry on
+                # step 1 re-points steps 2 and 3 without another round trip.
+                "products": vip.PRODUCTS, "services": vip.SERVICES,
+                "common_services": vip._COMMON_SERVICES, "terms": vip.TERMS,
                 "profile": settings_for(shop).get("vip_profile") or {}}
 
     @app.post("/v1/klaviyo/disconnect")
