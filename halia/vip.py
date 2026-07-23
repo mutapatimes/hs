@@ -163,13 +163,13 @@ QUESTIONS: list[dict] = [
                  {"v": "relationship", "l": "By relationship or referral"},
                  {"v": "feel", "l": "No formal rule yet, we go by feel"}]},
     {"key": "tone", "type": "one", "title": "How should Halia sound on your behalf?",
+     # No "when should you escalate" question: Halia never sends anything, so it is always a
+     # person. Asking would imply an autonomy the product does not have.
      "hint": "Every message is still yours to approve before it goes.",
      "options": [{"v": "warm", "l": "Warm and personal"},
                  {"v": "formal", "l": "Polished and formal"},
                  {"v": "playful", "l": "Playful and casual"},
-                 {"v": "discreet", "l": "Discreet and exclusive"}],
-     "free": "escalate", "free_label": "When should Halia hand a conversation to a person?",
-     "free_hint": "For example: anything over £2,000, or any complaint."},
+                 {"v": "discreet", "l": "Discreet and exclusive"}]},
 ]
 
 _BY_KEY = {q["key"]: q for q in QUESTIONS}
@@ -293,8 +293,6 @@ def house_block(profile: Any) -> str:
     if p.get("definition") == "feel":
         lines.append("They have no formal VIP rule and judge by feel, so treat a strong buying "
                      "history or a direct request for the owner as the tell.")
-    if p.get("escalate"):
-        lines.append(f'Hand to a person when: {p["escalate"]}')
     lines.append(
         "\nOffer only what is listed above. Never describe a chargeable service as free, and where "
         "something is complimentary only for a top client, offer it as the gesture it is. If a "
