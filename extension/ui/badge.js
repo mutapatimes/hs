@@ -155,6 +155,8 @@
   let threadReader = null;            // surface-supplied () => [{from,text}] of the visible chat
   let draftInstr = "";                // the associate's optional "what to say" note
   let draft = null;                   // { text, source, busy, error, aiAvailable }
+  let suggest = null;                 // { picks:[{...,on}], busy, error, empty }
+  let suggestNote = "";               // optional steer for what the associate is looking for
   let animKey = "";                   // last client key animated (so we fade in only on a new client)
   const folded = new Set();           // collapsed section names, persisted
   const contactHist = {};   // cid -> last outreach {at,by,action,note} | null | "pending"
@@ -667,10 +669,10 @@
     }
     return url;
   }
-  function addToCart(v, ptitle) {
+  function addToCart(v, ptitle, pid) {
     const ex = cart.find((i) => i.id === v.id);
     if (ex) ex.qty += 1;
-    else cart.push({ id: v.id, qty: 1, price: v.price,
+    else cart.push({ id: v.id, qty: 1, price: v.price, product_id: pid || null,
       label: ptitle + (v.title && v.title !== "Default Title" ? " · " + v.title : "") });
     paintCart(); toast("Added to cart");
   }
@@ -700,7 +702,7 @@
       if (b) b.onclick = () => {
         const sel = box.querySelector(`[data-pv="${pi}"]`);
         const v = (p.variants || [])[sel ? +sel.value : 0];
-        if (v) addToCart(v, p.title);
+        if (v) addToCart(v, p.title, p.id);
       };
     });
   }
@@ -717,7 +719,8 @@
         <button class="mini" data-rm="${ci}">✕</button></div>`).join("") +
       `<div class="tot">Total ~ £${total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
        <div class="acts">
-         ${inserter ? `<button class="btn primary" data-a="csend">Send cart</button>` : ""}
+         ${inserter && cart.some((i) => i.id) ? `<button class="btn primary" data-a="csend">Send cart</button>` : ""}
+         <button class="btn" data-a="ccat">Send catalogue</button>
          <button class="btn" data-a="ccopy">Copy cart link</button>
          <button class="mini" data-a="cclear">Clear</button>
        </div>`;
@@ -729,7 +732,25 @@
     const send = box.querySelector('[data-a="csend"]'); if (send) send.onclick = () => place(cartLink());
     const cp = box.querySelector('[data-a="ccopy"]'); if (cp) cp.onclick = () => copy(cartLink(), "Cart link copied");
     const cl = box.querySelector('[data-a="cclear"]'); if (cl) cl.onclick = () => { cart = []; paintCart(); };
+    const cc = box.querySelector('[data-a="ccat"]'); if (cc) cc.onclick = sendCatalogue;
   }
+  // The other ending: the same selection presented as a small catalogue on the merchant's own
+  // domain, addressed to this client. The link carries the products; nothing is saved anywhere.
+  function sendCatalogue() {
+    const ids = cart.map((i) => i.product_id).filter(Boolean);
+    if (!ids.length) { toast("Add something from Suggested first"); return; }
+    try {
+      chrome.runtime.sendMessage({ type: "halia:catalogue",
+        body: { product_ids: ids, name: activeName() } }, (r) => {
+        if (chrome.runtime.lastError || !r || r.error || !r.url) { toast("Couldn't build that"); return; }
+        const camp = ((ctx && ctx.campaigns) || []).find((c) => c.running);
+        const cm = CHAN[channel] || CHAN.email;
+        const url = camp ? appendUtm(r.url, { source: cm[0], medium: cm[1], campaign: camp.utm }) : r.url;
+        if (inserter) { place(url); } else { copy(url, "Catalogue link copied"); }
+      });
+    } catch (e) { toast("Couldn't build that"); }
+  }
+
   function doProductSearch(q) {
     const box = root && root.querySelector('[data-a="presults"]');
     if (box) box.innerHTML = `<div class="muted">Searching…</div>`;
@@ -747,10 +768,68 @@
       });
     } catch (e) { /* ignore */ }
   }
+  // ── SUGGESTIONS ───────────────────────────────────────────────────────────
+  // Halia proposes a handful of pieces for the client on screen, each with a reason the associate
+  // could say out loud. Pre-ticked but never sent unreviewed: ticking only fills the same cart the
+  // manual search fills, so every existing control still applies.
+  function runSuggest() {
+    const d = (client && client.data) || {};
+    suggest = { busy: true, picks: (suggest && suggest.picks) || [], error: "" };
+    renderProducts();
+    const body = { cid: d.cid || "", email: d.email || "", phone: d.phone || "", name: d.name || "",
+      instruction: suggestNote, thread: collectThread() };
+    try {
+      chrome.runtime.sendMessage({ type: "halia:suggest", body }, (r) => {
+        if (chrome.runtime.lastError || !r || r.error) {
+          suggest = { busy: false, picks: [], error: draftErr(r) };
+        } else {
+          const picks = (r.picks || []).map((p) => Object.assign({ on: true }, p));
+          suggest = { busy: false, picks, error: "",
+            empty: !picks.length, aiAvailable: r.ai_available };
+        }
+        renderProducts();
+      });
+    } catch (e) { suggest = { busy: false, picks: [], error: "Couldn't suggest" }; renderProducts(); }
+  }
+  function suggestIntoCart() {
+    const on = ((suggest && suggest.picks) || []).filter((p) => p.on);
+    if (!on.length) { toast("Tick something first"); return; }
+    on.forEach((p) => {
+      if (p.variant_id && !cart.find((i) => i.id === p.variant_id)) {
+        cart.push({ id: p.variant_id, qty: 1, price: p.price, label: p.title, product_id: p.product_id });
+      } else if (!p.variant_id && !cart.find((i) => i.product_id === p.product_id)) {
+        // no buyable variant: still send-able as a catalogue, just not as a cart line
+        cart.push({ id: null, qty: 1, price: p.price, label: p.title, product_id: p.product_id });
+      }
+    });
+    paintCart(); toast(on.length + " added");
+  }
+  function suggestHtml() {
+    const s = suggest || {};
+    const who = activeFirst();
+    const label = s.busy ? "Looking…" : (s.picks && s.picks.length ? "Suggest again"
+      : (who && who !== "there" ? "Suggest for " + esc(who) : "Suggest for this client"));
+    return `<div class="dbox" style="margin-bottom:10px">
+      <div class="sh">Suggested</div>
+      <div class="acts" style="margin-top:0">
+        <button class="btn primary" data-a="sgo"${s.busy ? " disabled" : ""}>${label}</button>
+      </div>
+      ${s.error ? `<div class="muted" style="margin-top:7px">${esc(s.error)}</div>` : ""}
+      ${s.empty ? `<div class="muted" style="margin-top:7px">Nothing in the range stood out for them. Search below.</div>` : ""}
+      ${(s.picks || []).length ? `<div class="blist" style="margin-top:9px">${s.picks.map((p, i) => `
+        <label class="bact" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" data-sp="${i}"${p.on ? " checked" : ""} style="margin-top:3px">
+          <span style="flex:1;min-width:0"><b>${esc(p.title)}${p.price ? " · " + esc(p.currency || "") + esc(p.price) : ""}</b>
+          <i>${esc(p.why || "")}</i></span></label>`).join("")}</div>
+        <div class="acts"><button class="btn" data-a="sadd">Add ticked to cart</button></div>` : ""}
+    </div>`;
+  }
+
   function renderProducts() {
     const el = sec("prod"); if (!el) return;
     if (!ctx || ctx.platform !== "shopify") { el.innerHTML = ""; return; }  // cart permalinks are Shopify
     el.innerHTML = `<div class="sh">Build a cart</div>
+      ${activeCid() ? suggestHtml() : ""}
       <div style="display:flex;gap:6px">
         <input class="psearch" data-a="psearch" placeholder="Search products">
         <button class="btn" data-a="pgo">Search</button>
@@ -761,6 +840,11 @@
     const go = () => doProductSearch((inp && inp.value) || "");
     el.querySelector('[data-a="pgo"]').onclick = go;
     if (inp) inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+    const sgo = el.querySelector('[data-a="sgo"]'); if (sgo) sgo.onclick = runSuggest;
+    const sadd = el.querySelector('[data-a="sadd"]'); if (sadd) sadd.onclick = suggestIntoCart;
+    el.querySelectorAll("[data-sp]").forEach((b) => b.onchange = () => {
+      const p = ((suggest && suggest.picks) || [])[+b.dataset.sp]; if (p) p.on = b.checked;
+    });
     paintResults(); paintCart();
   }
 
@@ -798,8 +882,13 @@
     setClient(state) {
       client = state; // null | {loading,name} | {found,data} | {notfound,name} | {error}
       if (state && state.found) client = { data: state.data };
-      draft = null; draftInstr = "";   // a fresh client means a fresh draft; never carry one over
-      if (root) { renderClient(); renderTemplates(); renderCampaigns(); paintCart(); renderTeam(); paintHandle(); }
+      // A fresh client means a fresh draft and a fresh shortlist; never carry either over.
+      draft = null; draftInstr = "";
+      suggest = null; suggestNote = "";
+      // renderProducts too: the Suggest block is addressed to whoever is on screen, so it has to
+      // be rebuilt when they change, not just when the standing context reloads.
+      if (root) { renderClient(); renderTemplates(); renderCampaigns(); renderProducts();
+        renderTeam(); paintHandle(); }
     },
     setInserter(fn) { inserter = fn; },
     setThreadReader(fn) { threadReader = fn; },   // surface supplies () => [{from,text}] of the chat

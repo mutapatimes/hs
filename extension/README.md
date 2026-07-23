@@ -38,10 +38,18 @@ closed). The panel has four always-ready sections:
 - **Campaigns** — the campaigns running now. With a client on screen, **Add this client** drops them
   into the campaign; each also offers a one-click **tagged catalogue link** (carrying the campaign's
   UTM for the current channel) to insert or copy, plus copy-UTM.
+- **Suggested** (Shopify) — press **Suggest for {first name}** and Halia proposes a handful of
+  pieces for the client on screen, each with a reason you could say out loud ("she asked about this",
+  "pairs with what she already owns"). Picks are pre-ticked and editable; ticking fills the same cart
+  the manual search fills. Halia can only choose from your own products: anything it names that
+  isn't in your store is dropped before you see it.
 - **Build a cart** (Shopify) — search your products, add variants to a cart for the client, then
   **Send cart**: it builds a Shopify cart permalink (`/cart/{variant}:{qty},…`) that pre-loads their
   basket, dropped straight into the reply or copied. If a campaign is running, the link is tagged
-  with its UTM so the purchase attributes.
+  with its UTM so the purchase attributes. **Send catalogue** presents the same selection as a small
+  catalogue on your own domain, addressed to the client, using your active catalogue's styling.
+  Nothing is saved for it: the selection travels in the signed link, as the recipient's name already
+  does.
 - **Catalogue** — your live catalogue link, ready to insert or copy.
 
 ### Inbox triage dots (Gmail + WhatsApp)
