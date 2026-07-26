@@ -32,14 +32,25 @@
 
   // The last few turns of the open chat, so "Draft with Halia" can answer what the client actually
   // said. message-out is the associate, message-in is the client. Read live; nothing is stored.
+  //
+  // WhatsApp churns its class names, so we anchor on the one node that has stayed stable for years:
+  // div.copyable-text[data-pre-plain-text] — the wrapper WhatsApp's own "copy" uses. Its innerText
+  // is just the message body (the timestamp and ticks sit in a sibling, outside it). Direction comes
+  // from the .message-out row ancestor when present. If that anchor ever disappears we fall back to
+  // the older .message-in/.message-out rows, so the reader degrades instead of going silent.
   function readThread() {
     const main = document.querySelector("#main");
     if (!main) return [];
     const out = [];
-    main.querySelectorAll("div.message-in, div.message-out").forEach((r) => {
-      const sp = r.querySelector("span.selectable-text, span.copyable-text, .selectable-text");
-      const text = sp ? (sp.innerText || sp.textContent || "").trim() : "";
-      if (text) out.push({ from: r.classList.contains("message-out") ? "me" : "them", text });
+    let nodes = main.querySelectorAll("div.copyable-text[data-pre-plain-text]");
+    if (!nodes.length) nodes = main.querySelectorAll("div.message-in, div.message-out");
+    nodes.forEach((node) => {
+      const sp = node.querySelector("span.selectable-text, .selectable-text");
+      const text = ((sp ? (sp.innerText || sp.textContent) : (node.innerText || node.textContent)) || "").trim();
+      if (!text) return;
+      const mine = !!(node.closest && node.closest("div.message-out")) ||
+        node.classList.contains("message-out");
+      out.push({ from: mine ? "me" : "them", text: text.slice(0, 1200) });
     });
     return out.slice(-6);
   }

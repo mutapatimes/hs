@@ -18,6 +18,7 @@ import pytest
 
 _JS_DIR = Path(__file__).parent / "js"
 _HARNESS = _JS_DIR / "thread_reader_smoke.js"
+_WA_HARNESS = _JS_DIR / "whatsapp_reader_smoke.js"
 
 
 def _enabled() -> bool:
@@ -30,11 +31,20 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.fixture(scope="module")
-def read() -> dict:
-    out = subprocess.run(["node", str(_HARNESS)], capture_output=True, text=True, timeout=60)
+def _run(harness: Path) -> dict:
+    out = subprocess.run(["node", str(harness)], capture_output=True, text=True, timeout=60)
     assert out.returncode == 0, out.stderr
     return json.loads(out.stdout.strip().splitlines()[-1])
+
+
+@pytest.fixture(scope="module")
+def read() -> dict:
+    return _run(_HARNESS)
+
+
+@pytest.fixture(scope="module")
+def wa() -> dict:
+    return _run(_WA_HARNESS)
 
 
 def test_nested_matches_collapse_to_one_message_each(read):
@@ -61,3 +71,31 @@ def test_empty_nodes_dropped_and_tail_kept(read):
 
 def test_no_matches_is_an_empty_list(read):
     assert read["none"] == []
+
+
+# ── WhatsApp reader: it churns class names, so the brief broke there while Gmail kept working ──────
+def test_whatsapp_reads_bubbles_and_sides(wa):
+    """The stable copyable-text anchor: text and direction both come through, timestamp excluded."""
+    assert wa["stable"] == [
+        {"from": "them", "text": "Is the trench back in a 38?"},
+        {"from": "me", "text": "Let me hold one for you."},
+    ]
+
+
+def test_whatsapp_survives_class_churn(wa):
+    """When the .message-in/-out classes vanish, the reader still reads the text off the anchor
+    (direction degrades to the client, the safe default) instead of going silent — this is the bug."""
+    assert [m["text"] for m in wa["churned"]] == ["Are you open Sunday?"]
+    assert wa["churned"][0]["from"] == "them"
+
+
+def test_whatsapp_legacy_rows_still_work(wa):
+    """No copyable-text anchor at all: fall back to the old .message-in/.message-out rows."""
+    assert wa["legacy"] == [
+        {"from": "them", "text": "Do you deliver to Paris?"},
+        {"from": "me", "text": "We do, next-day."},
+    ]
+
+
+def test_whatsapp_no_open_chat_is_empty(wa):
+    assert wa["empty"] == []
