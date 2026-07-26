@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>">
+<title>Halia · everything it does</title>
+<meta name="description" content="Every Halia feature, in the order a merchant meets it: set up, see who matters, act on it, and what runs quietly in the background.">
+
+<style>
+  :root{
+    --ink:#1B1D22; --soft:#5F636B; --faint:#8A8E96;
+    --bg:#F1EFE9; --card:#FFFFFF; --line:#E4E1D8; --hair:#ECE9E1;
+    --brand:#1F564A; --brand-deep:#143A32; --tint:#E6EFEB; --gold:#A67C34;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --sans:-apple-system,"Segoe UI",Inter,system-ui,Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --ink:#ECEAE3; --soft:#A2A6AD; --faint:#767A82;
+      --bg:#101210; --card:#181A18; --line:#282B27; --hair:#22241F;
+      --brand:#5E9A88; --brand-deep:#8FBCAD; --tint:#16211D; --gold:#C79A55; }
+  }
+  :root[data-theme="dark"]{ --ink:#ECEAE3; --soft:#A2A6AD; --faint:#767A82;
+    --bg:#101210; --card:#181A18; --line:#282B27; --hair:#22241F;
+    --brand:#5E9A88; --brand-deep:#8FBCAD; --tint:#16211D; --gold:#C79A55; }
+  :root[data-theme="light"]{ --ink:#1B1D22; --soft:#5F636B; --faint:#8A8E96;
+    --bg:#F1EFE9; --card:#FFFFFF; --line:#E4E1D8; --hair:#ECE9E1;
+    --brand:#1F564A; --brand-deep:#143A32; --tint:#E6EFEB; --gold:#A67C34; }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:15.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:768px;margin:0 auto;padding:56px 26px 90px}
+
+  header{margin-bottom:14px}
+  .mark{font-size:22px;color:var(--brand);line-height:1}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(30px,5vw,42px);letter-spacing:-.01em;
+    line-height:1.1;margin:16px 0 12px}
+  .lede{color:var(--soft);font-size:16.5px;line-height:1.6;max-width:60ch;margin:0}
+  .lede b{color:var(--ink);font-weight:600}
+  .rule{height:1px;background:var(--line);margin:34px 0 6px}
+
+  .phase{margin-top:46px}
+  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);
+    font-weight:700;margin-bottom:7px}
+  .phase h2{font-family:var(--serif);font-weight:400;font-size:24px;margin:0 0 4px;letter-spacing:-.005em}
+  .phase .note{color:var(--faint);font-size:13.5px;margin:0 0 8px}
+
+  .feat{display:grid;grid-template-columns:38px 1fr;gap:16px;padding:22px 0;border-top:1px solid var(--hair)}
+  .feat:first-of-type{border-top:0}
+  .n{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;font-weight:500;
+    color:var(--brand);background:var(--tint);width:32px;height:32px;border-radius:50%;
+    display:grid;place-items:center;margin-top:2px}
+  .ft{font-family:var(--serif);font-size:19px;line-height:1.25;margin:0 0 3px}
+  .sum{color:var(--brand-deep);font-size:13.5px;font-weight:600;margin:0 0 8px}
+  .desc{color:var(--soft);font-size:14.5px;line-height:1.58;margin:0}
+  .desc b{color:var(--ink);font-weight:600}
+  .tag{display:inline-block;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--gold);border:1px solid var(--line);padding:1px 6px;margin-left:8px;
+    vertical-align:2px;font-weight:600}
+
+  footer{margin-top:52px;padding-top:22px;border-top:1px solid var(--line);color:var(--faint);
+    font-size:13px;line-height:1.6}
+  footer b{color:var(--soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark">&#8258;</div>
+    <h1>Everything Halia does</h1>
+    <p class="lede">In the order you meet it: <b>connect your store</b>, <b>see who quietly
+      matters</b>, <b>act on it where your team already works</b>, and let the rest
+      <b>run in the background</b>. Halia keeps no copy of your customers, it reads your own store
+      live and forgets.</p>
+  </header>
+  <div class="rule"></div>
+
+  <!-- ── PHASE 1 ─────────────────────────────────────────────── -->
+  <section class="phase">
+    <div class="eyebrow">First · Set up</div>
+    <h2>A few minutes, once</h2>
+    <p class="note">Nothing here needs a developer.</p>
+
+    <div class="feat"><div class="n">1</div><div>
+      <p class="ft">Connect your store</p>
+      <p class="sum">One click, read-only, revocable any time</p>
+      <p class="desc">Halia reads your orders and customers to score them. Shopify installs in one
+        click; WooCommerce, BigCommerce, Centra and SCAYLE connect with a key. It can only read,
+        never write or charge, and you can disconnect whenever you like.</p></div></div>
+
+    <div class="feat"><div class="n">2</div><div>
+      <p class="ft">Tell Halia what your house offers</p>
+      <p class="sum">A short questionnaire, in your trade's own words</p>
+      <p class="desc">Seven quick questions that branch on what you sell: a jeweller is asked about
+        polishing, resizing and valuation, a fashion house about alterations and monogramming. You
+        mark each service <b>complimentary, complimentary for a top client, or chargeable</b>, and
+        pick a house voice. This is what lets Halia offer the right things and never promise
+        something you charge for. Every question is skippable, and you can revise it any time in
+        Settings.</p></div></div>
+
+    <div class="feat"><div class="n">3</div><div>
+      <p class="ft">Set your preferences</p>
+      <p class="sum">Threshold, sign-off, benchmarks, message templates</p>
+      <p class="desc">Choose the spend level that separates a known VIP from a hidden one, your
+        sign-off name, your own value benchmarks, and edit the 28 ready-made outreach templates that
+        ship with the account.</p></div></div>
+  </section>
+
+  <!-- ── PHASE 2 ─────────────────────────────────────────────── -->
+  <section class="phase">
+    <div class="eyebrow">Then · See who matters</div>
+    <h2>The dashboard</h2>
+    <p class="note">Halia scores your whole book and surfaces the people worth your attention.</p>
+
+    <div class="feat"><div class="n">4</div><div>
+      <p class="ft">Overview</p>
+      <p class="sum">One screen: what deserves your attention today</p>
+      <p class="desc">The headline numbers, the clients who have gone quiet, the baskets left open
+        right now, how value is spread across grades, where your clients are, and the strongest
+        signals firing across the book. Charts appear only where there is something to show.</p></div></div>
+
+    <div class="feat"><div class="n">5</div><div>
+      <p class="ft">The client list</p>
+      <p class="sum">Every surfaced client, filtered and sorted your way</p>
+      <p class="desc">Filter by grade, city, signal or recency, sort by score, value or last order,
+        and download the lot as a spreadsheet. Each client is one click from their full profile.</p></div></div>
+
+    <div class="feat"><div class="n">6</div><div>
+      <p class="ft">Ask in plain English<span class="tag">AI</span></p>
+      <p class="sum">Describe who you're after, Halia sets the filters</p>
+      <p class="desc">Type <b>"quiet A-tier clients in London who haven't been contacted"</b> and the
+        list filters itself. Halia never invents a client: it only chooses from filters the page
+        already has, so the worst case is a view that finds nothing.</p></div></div>
+
+    <div class="feat"><div class="n">7</div><div>
+      <p class="ft">The client profile</p>
+      <p class="sum">Who they are, why, and what to do next</p>
+      <p class="desc">Their grade and score, and <b>why they surfaced</b> laid out as evidence you can
+        check: a work email at a firm that pays, a prime address, deliveries to notable places. A
+        one-line read of what makes them matter, their order history, and a place to log a "good
+        call" that teaches Halia your book. Enlarge it for the full record.</p></div></div>
+
+    <div class="feat"><div class="n">8</div><div>
+      <p class="ft">Where they are</p>
+      <p class="sum">Your clients on a map</p>
+      <p class="desc">See how your best clients cluster by area, so a trunk show, a pop-up or a
+        private evening lands where the value already is.</p></div></div>
+
+    <div class="feat"><div class="n">9</div><div>
+      <p class="ft">Orders & open baskets</p>
+      <p class="sum">Recent orders, and the checkouts left unpaid</p>
+      <p class="desc">The latest orders at a glance, and the baskets a client reached but did not pay
+        for, so a quiet, timely note can recover them while they are still warm.</p></div></div>
+
+    <div class="feat"><div class="n">10</div><div>
+      <p class="ft">This week<span class="tag">AI</span></p>
+      <p class="sum">A Monday briefing, in a few lines</p>
+      <p class="desc">What deserves attention this week, counted from your own book: top clients who
+        ordered, proven clients gone quiet, the money sitting in open baskets. Every figure is real;
+        the AI only phrases them.</p></div></div>
+  </section>
+
+  <!-- ── PHASE 3 ─────────────────────────────────────────────── -->
+  <section class="phase">
+    <div class="eyebrow">Now · Act on it</div>
+    <h2>Reach the client, everywhere you work</h2>
+    <p class="note">A full clienteling desk, in the dashboard and in a companion that follows your team.</p>
+
+    <div class="feat"><div class="n">11</div><div>
+      <p class="ft">Campaigns</p>
+      <p class="sum">Target a moment, then watch it work</p>
+      <p class="desc">Build a campaign around a grade or a signal, then monitor the sales and the
+        reactivations it drives, with links that attribute the purchases back to it.</p></div></div>
+
+    <div class="feat"><div class="n">12</div><div>
+      <p class="ft">Catalogues</p>
+      <p class="sum">A shareable selection, on your own domain</p>
+      <p class="desc">Curate your products into a catalogue, style it to your brand, and share it as a
+        web page or a print-ready PDF from <b>your own storefront address</b>, personalised to the
+        client it is sent to.</p></div></div>
+
+    <div class="feat"><div class="n">13</div><div>
+      <p class="ft">The Concierge</p>
+      <p class="sum">A quiet companion that follows your team</p>
+      <p class="desc">A slim panel that rides alongside your store admin, WhatsApp, Gmail and more.
+        The moment a client appears on screen it tells your associate who they are, their grade, why,
+        and the next move. No copy of the customer is kept: it reads the person on the page and asks
+        your account live.</p></div></div>
+
+    <div class="feat"><div class="n">14</div><div>
+      <p class="ft">The brief<span class="tag">AI</span></p>
+      <p class="sum">Read this conversation, and know what to do</p>
+      <p class="desc">One press turns the conversation on screen into three things: <b>where the
+        relationship stands</b>, the <b>next moves worth making</b> (each a button that carries them
+        out), and a <b>reply ready to send</b>, written for this person, in your house voice, offering
+        only what you actually provide. If a written brief is ever unavailable, it falls back to your
+        own book and templates, so the button is never dead.</p></div></div>
+
+    <div class="feat"><div class="n">15</div><div>
+      <p class="ft">Suggest, cart & bespoke catalogue<span class="tag">AI</span></p>
+      <p class="sum">Put the right pieces in front of them, in seconds</p>
+      <p class="desc">Halia suggests a handful of pieces for the client, each with a reason your
+        associate can say out loud, drawn from what they have bought and what they just asked for. Add
+        the ones you like, then send them as a <b>ready-to-pay cart</b> or a <b>bespoke catalogue</b>
+        addressed to the client. It only ever suggests products that are genuinely in your store.</p></div></div>
+
+    <div class="feat"><div class="n">16</div><div>
+      <p class="ft">Templates, where you type</p>
+      <p class="sum">The right message, one click into the reply box</p>
+      <p class="desc">Your outreach templates, searchable and filled with the client's name, dropped
+        straight into WhatsApp or Gmail. Cancellations, exchanges, gifting, appointments, win-backs,
+        and more than two dozen scenarios besides.</p></div></div>
+
+    <div class="feat"><div class="n">17</div><div>
+      <p class="ft">Pipeline & outreach log</p>
+      <p class="sum">So the whole team stays in step</p>
+      <p class="desc">Add a client to your outreach list or a running campaign in one click, and log
+        that you contacted them, with a reason, so nobody messages the same client twice. It writes
+        into <b>your own store</b>, never into Halia.</p></div></div>
+
+    <div class="feat"><div class="n">18</div><div>
+      <p class="ft">Team mode</p>
+      <p class="sum">Keep everyone looking after the same clients</p>
+      <p class="desc">Inside Slack or Teams the panel turns to your team: a shared contact log, a
+        to-do list built from your book, and messages ready to paste, so a small team can clientele
+        like a large one.</p></div></div>
+
+    <div class="feat"><div class="n">19</div><div>
+      <p class="ft">Everywhere your team already works</p>
+      <p class="sum">Store admin, WhatsApp, Gmail, Instagram, Calendar, helpdesks</p>
+      <p class="desc">The same intelligence appears in your store admin, WhatsApp Web, Gmail,
+        Instagram DMs and Google Calendar, and in the support and marketing tools your team uses:
+        Gorgias, Zendesk and Klaviyo. Support sees when a ticket is from an A&#42; client; a marketer
+        sees who quietly matters while building a flow.</p></div></div>
+
+    <div class="feat"><div class="n">20</div><div>
+      <p class="ft">Radar & look-up</p>
+      <p class="sum">Halia finds you, not just the other way around</p>
+      <p class="desc">A quiet desktop note the moment a high-grade client places an order, wherever
+        you are in the browser. Grade dots down your Gmail and WhatsApp inbox so the best client is
+        answered first. And a right-click <b>"look up in Halia"</b> on any name, email or number, on
+        any page.</p></div></div>
+  </section>
+
+  <!-- ── PHASE 4 ─────────────────────────────────────────────── -->
+  <section class="phase">
+    <div class="eyebrow">Meanwhile · Runs quietly</div>
+    <h2>Working when you aren't</h2>
+
+    <div class="feat"><div class="n">21</div><div>
+      <p class="ft">Alerts</p>
+      <p class="sum">Know the moment a VIP orders</p>
+      <p class="desc">An email and a desktop notification when a high-grade client places an order, so
+        the personal note goes out while it still feels personal.</p></div></div>
+
+    <div class="feat"><div class="n">22</div><div>
+      <p class="ft">Write back to your store</p>
+      <p class="sum">Halia's intelligence, where the rest of your stack can use it</p>
+      <p class="desc">Grade tags and segments pushed into your own Shopify, ready-made Shopify Flow
+        recipes, and pipeline notes saved onto the customer, so a hidden VIP is visible to your email
+        tool, your POS and your team, not just to Halia.</p></div></div>
+
+    <div class="feat"><div class="n">23</div><div>
+      <p class="ft">Integrations</p>
+      <p class="sum">Sits beside the tools you have</p>
+      <p class="desc">Klaviyo and Mailchimp for email and segments, HubSpot for your CRM, Slack for
+        team alerts. Connect what you use; ignore the rest.</p></div></div>
+
+    <div class="feat"><div class="n">24</div><div>
+      <p class="ft">Zero-retention, always</p>
+      <p class="sum">Halia keeps no copy of your customers</p>
+      <p class="desc">This is the difference, not a footnote. Halia reads your own store in the
+        moment, works out who matters, shows your team, and forgets, in minutes. There is no customer
+        database to breach, and switching Halia off leaves nothing to delete. The only durable record
+        is your own settings and your encrypted store connection.</p></div></div>
+
+    <div class="feat"><div class="n">25</div><div>
+      <p class="ft">Plans &amp; billing</p>
+      <p class="sum">Priced to the value, not the volume</p>
+      <p class="desc">Flat tiers by the size of your book. The recent-window view is open; the full
+        history and the deeper features are the upgrade.</p></div></div>
+  </section>
+
+  <footer>
+    <b>A note on the AI.</b> The features marked <span style="color:var(--gold);font-weight:600">AI</span>
+    write in words: the brief, the drafted reply, product suggestions, the plain-English search and the
+    weekly briefing. They are an optional layer. Without them, every one of those features still works
+    from your scored book and your own templates, so nothing is ever a dead button. And nothing Halia
+    writes is ever sent on its own, an associate confirms every message.
+  </footer>
+</div>
+</body>
+</html>
