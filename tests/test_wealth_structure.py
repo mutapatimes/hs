@@ -1,8 +1,9 @@
 """Wealth-management structure signal (Bucket 2). Origin-neutral, on by default."""
 import pandas as pd
+import pytest
 
 from scoring.combine import REASONS_COL, score_customers
-from scoring.signals.wealth_structure import FLAG_COL, TYPE_COL, flag_wealth_structure
+from scoring.signals.wealth_structure import FLAG_COL, REASON_COL, TYPE_COL, flag_wealth_structure
 
 
 def _row(**addr):
@@ -15,7 +16,13 @@ def test_named_structures_fire_alone():
     for text, typ in [("Rothschild Family Office", "family_office"),
                       ("The XYZ Trust Company", "trust_company"),
                       ("ABC Registered Agent Ltd", "registered_agent"),
-                      ("Fiduciaire de Genève", "fiduciary")]:
+                      ("Fiduciaire de Genève", "fiduciary"),
+                      ("Smith Private Trust Company", "private_trust_company"),
+                      ("Meridian Corporate Trustees Ltd", "corporate_trustee"),
+                      ("Trident Corporate Services", "corporate_services"),
+                      ("The Family Private Office", "private_office"),
+                      ("Familie Müller Stiftung", "foundation"),
+                      ("Vermögens Anstalt", "foundation")]:
         out = flag_wealth_structure(_row(LATEST_BILLING_ADDRESS1=text))
         assert out[FLAG_COL].iloc[0] is True or bool(out[FLAG_COL].iloc[0])
         assert out[TYPE_COL].iloc[0] == typ
@@ -36,6 +43,38 @@ def test_offshore_pobox_needs_offshore_jurisdiction():
                                      LATEST_BILLING_ADDRESS2="Road Town, Tortola",
                                      LATEST_BILLING_ADDRESS4="British Virgin Islands"))
     assert bool(off[FLAG_COL].iloc[0]) and off[TYPE_COL].iloc[0] == "offshore_pobox"
+
+
+@pytest.mark.parametrize("jurisdiction,display", [
+    ("Bahamas", "Bahamas"),
+    ("Nassau, Bahamas", "Bahamas"),
+    ("Providenciales, Turks and Caicos", "Turks and Caicos"),
+    ("Gibraltar", "Gibraltar"),
+    ("Douglas, Isle of Man", "Isle of Man"),
+    ("Charlestown, Nevis", "Nevis"),
+    ("Vaduz, Liechtenstein", "Liechtenstein"),
+])
+def test_expanded_offshore_jurisdictions_fire(jurisdiction, display):
+    out = flag_wealth_structure(_row(LATEST_BILLING_ADDRESS1="PO Box 42",
+                                     LATEST_BILLING_ADDRESS2=jurisdiction))
+    assert bool(out[FLAG_COL].iloc[0]) and out[TYPE_COL].iloc[0] == "offshore_pobox"
+    # Reason names the jurisdiction cleanly (no title-case mangling of multi-word territories).
+    assert out[REASON_COL].iloc[0] == f"Address is an offshore PO box ({display})"
+
+
+def test_new_jersey_po_box_does_not_fire():
+    """A US 'New Jersey' PO box must not be read as the Channel Island of Jersey."""
+    out = flag_wealth_structure(_row(LATEST_BILLING_ADDRESS1="PO Box 12",
+                                     LATEST_BILLING_ADDRESS2="Newark, New Jersey",
+                                     LATEST_BILLING_ADDRESS4="United States"))
+    assert not bool(out[FLAG_COL].iloc[0])
+
+
+def test_channel_island_jersey_po_box_fires():
+    out = flag_wealth_structure(_row(LATEST_BILLING_ADDRESS1="PO Box 500",
+                                     LATEST_BILLING_ADDRESS2="St Helier, Jersey"))
+    assert bool(out[FLAG_COL].iloc[0]) and out[REASON_COL].iloc[0] == \
+        "Address is an offshore PO box (Jersey)"
 
 
 def test_ordinary_address_does_not_fire():

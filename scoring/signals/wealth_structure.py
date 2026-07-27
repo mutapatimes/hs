@@ -29,13 +29,25 @@ FLAG_COL = "wealth_structure"
 TYPE_COL = "wealth_structure_type"
 REASON_COL = "wealth_structure_reason"
 
-# Offshore incorporation jurisdictions that turn a bare "PO Box" into a structural tell.
-# (These are the entries dropped from the Bucket-1 residential list — registered-agent
-# territory, not prime-residential.) Already in _normalize()'s uppercase/space form.
-_OFFSHORE = (
-    "BRITISH VIRGIN ISLANDS", "BVI", "TORTOLA", "ROAD TOWN",
-    "CAYMAN ISLANDS", "CAYMAN", "PANAMA", "SEYCHELLES", "MAURITIUS", "BERMUDA",
-)
+# Offshore incorporation / registered-agent jurisdictions that turn a bare "PO Box" into a
+# structural tell. A PO box in one of these is a company-formation / fiduciary address, not a home
+# — even where the territory is also prime-residential (Cayman, Bermuda, the Crown dependencies sit
+# in the Bucket-1 residential list too; the PO-box qualifier is what makes this the structural read,
+# and the two signals co-fire harmlessly). Tokens are in _normalize()'s uppercase/space form; each
+# maps to the display name used in the reason, so multi-word territories read cleanly.
+_OFFSHORE = {
+    "BRITISH VIRGIN ISLANDS": "British Virgin Islands", "BVI": "British Virgin Islands",
+    "TORTOLA": "British Virgin Islands", "ROAD TOWN": "British Virgin Islands",
+    "CAYMAN ISLANDS": "Cayman Islands", "CAYMAN": "Cayman Islands",
+    "PANAMA": "Panama", "SEYCHELLES": "Seychelles", "MAURITIUS": "Mauritius", "BERMUDA": "Bermuda",
+    "BAHAMAS": "Bahamas", "NASSAU": "Bahamas",
+    "TURKS AND CAICOS": "Turks and Caicos", "ANGUILLA": "Anguilla",
+    "COOK ISLANDS": "Cook Islands", "NEVIS": "Nevis", "ST KITTS AND NEVIS": "Nevis",
+    "BELIZE": "Belize", "MARSHALL ISLANDS": "Marshall Islands", "GIBRALTAR": "Gibraltar",
+    "ISLE OF MAN": "Isle of Man", "GUERNSEY": "Guernsey", "JERSEY": "Jersey",
+    "LIECHTENSTEIN": "Liechtenstein", "VADUZ": "Liechtenstein",
+    "CURACAO": "Curacao", "LABUAN": "Labuan", "VANUATU": "Vanuatu",
+}
 
 
 def _has_pobox(norm: str) -> bool:
@@ -45,9 +57,14 @@ def _has_pobox(norm: str) -> bool:
 
 def _offshore_hit(norm: str) -> str | None:
     padded = f" {norm} "
-    for tok in _OFFSHORE:
-        if f" {tok} " in padded:
-            return tok.title()
+    for tok, display in _OFFSHORE.items():
+        if f" {tok} " not in padded:
+            continue
+        # "JERSEY" is a US state ("New Jersey") far more often than the Channel Island; only the
+        # bare Crown-dependency use is a structural tell.
+        if tok == "JERSEY" and " NEW JERSEY " in padded:
+            continue
+        return display
     return None
 
 

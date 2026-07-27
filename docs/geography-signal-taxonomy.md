@@ -42,9 +42,14 @@ box. That's a wealth fact and it is **origin-neutral** (a family office has no n
 stronger signal than the address itself, and it pairs with the household-linkage work (`shared_phone`).
 On by default, stands alone. Reference:
 [`reference_data/addresses/wealth_structures.csv`](../reference_data/addresses/wealth_structures.csv).
-Named structures fire alone; a bare "PO Box" only fires alongside an offshore incorporation jurisdiction
-(BVI / Cayman / Panama / Seychelles / Mauritius / Bermuda). Reason text: *"Address routed through a
-family office"*, *"Address is an offshore PO box (British Virgin Islands)"*.
+Named structures fire alone — trust company, private trust company, family office, private office,
+registered agent, corporate trustee, corporate services provider, fiduciary, nominee, and
+foreign-language wealth vehicles (Stiftung / Anstalt / Fondation / Fideicomiso). A bare "PO Box" only
+fires alongside an offshore incorporation / registered-agent jurisdiction (BVI, Cayman, Panama,
+Seychelles, Mauritius, Bermuda, Bahamas, Turks and Caicos, Anguilla, Cook Islands, Nevis, Belize,
+Marshall Islands, Gibraltar, Isle of Man, Guernsey, Jersey, Liechtenstein, Curacao, Labuan, Vanuatu);
+"Jersey" is matched only as the Channel Island, never US "New Jersey". Reason text: *"Address routed
+through a family office"*, *"Address is an offshore PO box (British Virgin Islands)"*.
 
 ### Bucket 3 — origin-correlated → gated
 Where the correlation runs to **nationality and origin** rather than property prices.

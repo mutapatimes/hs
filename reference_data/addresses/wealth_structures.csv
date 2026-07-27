@@ -10,8 +10,15 @@ venue,signal_type,aliases
 # false-fire. The "venue" column is the human label used in the reason. Bare "PO Box" is
 # handled separately in code (only fires alongside an offshore jurisdiction).
 #
+# More specific phrases come first: match_address returns the first matching row, and
+# "private trust company" contains "trust company" as a substring.
+private trust company,private_trust_company,PRIVATE TRUST COMPANY
 trust company,trust_company,TRUST COMPANY;TRUST CORPORATION
 family office,family_office,FAMILY OFFICE
 registered agent,registered_agent,REGISTERED AGENT
 fiduciary,fiduciary,FIDUCIARY;FIDUCIAIRE;TREUHAND
 nominee,nominee,NOMINEE SERVICES;NOMINEE DIRECTOR
+corporate trustee,corporate_trustee,CORPORATE TRUSTEE;CORPORATE TRUSTEES
+corporate services provider,corporate_services,CORPORATE SERVICES
+private office,private_office,PRIVATE OFFICE
+foundation,foundation,STIFTUNG;ANSTALT;FONDATION;FIDEICOMISO
