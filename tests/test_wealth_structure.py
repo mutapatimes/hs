@@ -62,19 +62,32 @@ def test_expanded_offshore_jurisdictions_fire(jurisdiction, display):
     assert out[REASON_COL].iloc[0] == f"Address is an offshore PO box ({display})"
 
 
-def test_new_jersey_po_box_does_not_fire():
-    """A US 'New Jersey' PO box must not be read as the Channel Island of Jersey."""
+@pytest.mark.parametrize("addr2,addr3", [
+    ("Newark, New Jersey", "United States"),   # not the Channel Island of Jersey
+    ("Panama City", "FL 32401"),               # Florida resort, not the Republic of Panama
+    ("Panama City Beach", "FL"),
+    ("Garden City, Nassau", "NY 11530"),       # Nassau County, NY, not the Bahamian capital
+    ("Bermuda Dunes", "CA 92203"),             # Riverside County, CA
+])
+def test_us_placename_collisions_do_not_fire(addr2, addr3):
+    """A PO box at an affluent US place that merely shares a name with an offshore territory must
+    not be read as offshore — a false flag there discredits the whole signal."""
     out = flag_wealth_structure(_row(LATEST_BILLING_ADDRESS1="PO Box 12",
-                                     LATEST_BILLING_ADDRESS2="Newark, New Jersey",
-                                     LATEST_BILLING_ADDRESS4="United States"))
+                                     LATEST_BILLING_ADDRESS2=addr2, LATEST_BILLING_ADDRESS3=addr3))
     assert not bool(out[FLAG_COL].iloc[0])
 
 
-def test_channel_island_jersey_po_box_fires():
+@pytest.mark.parametrize("addr2,addr3,display", [
+    ("St Helier", "Jersey", "Jersey"),
+    ("Panama City", "Panama", "Panama"),        # the capital still fires on the trailing country
+    ("Nassau", "Bahamas", "Bahamas"),           # the capital still fires on the country name
+    ("Hamilton", "Bermuda", "Bermuda"),
+])
+def test_real_offshore_still_fires_past_the_collision_guards(addr2, addr3, display):
     out = flag_wealth_structure(_row(LATEST_BILLING_ADDRESS1="PO Box 500",
-                                     LATEST_BILLING_ADDRESS2="St Helier, Jersey"))
+                                     LATEST_BILLING_ADDRESS2=addr2, LATEST_BILLING_ADDRESS3=addr3))
     assert bool(out[FLAG_COL].iloc[0]) and out[REASON_COL].iloc[0] == \
-        "Address is an offshore PO box (Jersey)"
+        f"Address is an offshore PO box ({display})"
 
 
 def test_ordinary_address_does_not_fire():

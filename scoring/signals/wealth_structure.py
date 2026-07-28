@@ -40,13 +40,26 @@ _OFFSHORE = {
     "TORTOLA": "British Virgin Islands", "ROAD TOWN": "British Virgin Islands",
     "CAYMAN ISLANDS": "Cayman Islands", "CAYMAN": "Cayman Islands",
     "PANAMA": "Panama", "SEYCHELLES": "Seychelles", "MAURITIUS": "Mauritius", "BERMUDA": "Bermuda",
-    "BAHAMAS": "Bahamas", "NASSAU": "Bahamas",
+    "BAHAMAS": "Bahamas",
     "TURKS AND CAICOS": "Turks and Caicos", "ANGUILLA": "Anguilla",
     "COOK ISLANDS": "Cook Islands", "NEVIS": "Nevis", "ST KITTS AND NEVIS": "Nevis",
     "BELIZE": "Belize", "MARSHALL ISLANDS": "Marshall Islands", "GIBRALTAR": "Gibraltar",
     "ISLE OF MAN": "Isle of Man", "GUERNSEY": "Guernsey", "JERSEY": "Jersey",
     "LIECHTENSTEIN": "Liechtenstein", "VADUZ": "Liechtenstein",
     "CURACAO": "Curacao", "LABUAN": "Labuan", "VANUATU": "Vanuatu",
+}
+
+# Some single-word tokens collide with well-known (often affluent) US places — a false "offshore"
+# flag on a Long Island or Florida client is exactly the kind of error that discredits the signal.
+# Each collision lists the phrase(s) in which the token does NOT mean the territory. We blank those
+# phrases out, then only fire if the token still stands alone somewhere else — so "Panama City,
+# Panama" fires on the trailing country while "Panama City, FL" does not, and "St Helier, Jersey"
+# fires while "Newark, New Jersey" does not. ("Nassau" is dropped outright: Nassau County, NY is far
+# more common than the Bahamian capital, which anyway carries "Bahamas" in the address.)
+_OFFSHORE_EXCLUDE = {
+    "JERSEY": ("NEW JERSEY",),
+    "PANAMA": ("PANAMA CITY",),       # PANAMA CITY BEACH is caught by the same prefix
+    "BERMUDA": ("BERMUDA DUNES",),
 }
 
 
@@ -58,13 +71,11 @@ def _has_pobox(norm: str) -> bool:
 def _offshore_hit(norm: str) -> str | None:
     padded = f" {norm} "
     for tok, display in _OFFSHORE.items():
-        if f" {tok} " not in padded:
-            continue
-        # "JERSEY" is a US state ("New Jersey") far more often than the Channel Island; only the
-        # bare Crown-dependency use is a structural tell.
-        if tok == "JERSEY" and " NEW JERSEY " in padded:
-            continue
-        return display
+        haystack = padded
+        for phrase in _OFFSHORE_EXCLUDE.get(tok, ()):
+            haystack = haystack.replace(f" {phrase} ", " ")
+        if f" {tok} " in haystack:
+            return display
     return None
 
 
