@@ -47,8 +47,10 @@ registered agent, corporate trustee, corporate services provider, fiduciary, nom
 foreign-language wealth vehicles (Stiftung / Anstalt / Fondation / Fideicomiso). A bare "PO Box" only
 fires alongside an offshore incorporation / registered-agent jurisdiction (BVI, Cayman, Panama,
 Seychelles, Mauritius, Bermuda, Bahamas, Turks and Caicos, Anguilla, Cook Islands, Nevis, Belize,
-Marshall Islands, Gibraltar, Isle of Man, Guernsey, Jersey, Liechtenstein, Curacao, Labuan, Vanuatu);
-"Jersey" is matched only as the Channel Island, never US "New Jersey". Reason text: *"Address routed
+Marshall Islands, Gibraltar, Isle of Man, Guernsey, Jersey, Liechtenstein, Curacao, Labuan, Vanuatu).
+Single-word tokens that collide with affluent US places are guarded so they read as the territory only
+(never "New Jersey", "Panama City, FL" or "Bermuda Dunes, CA"; "Nassau" is left out entirely as Nassau
+County, NY dwarfs the Bahamian capital, which carries "Bahamas" anyway). Reason text: *"Address routed
 through a family office"*, *"Address is an offshore PO box (British Virgin Islands)"*.
 
 ### Bucket 3 — origin-correlated → gated
