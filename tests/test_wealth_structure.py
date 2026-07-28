@@ -3,7 +3,13 @@ import pandas as pd
 import pytest
 
 from scoring.combine import REASONS_COL, score_customers
-from scoring.signals.wealth_structure import FLAG_COL, REASON_COL, TYPE_COL, flag_wealth_structure
+from scoring.signals.wealth_structure import (
+    _OFFSHORE,
+    FLAG_COL,
+    REASON_COL,
+    TYPE_COL,
+    flag_wealth_structure,
+)
 
 
 def _row(**addr):
@@ -88,6 +94,21 @@ def test_real_offshore_still_fires_past_the_collision_guards(addr2, addr3, displ
                                      LATEST_BILLING_ADDRESS2=addr2, LATEST_BILLING_ADDRESS3=addr3))
     assert bool(out[FLAG_COL].iloc[0]) and out[REASON_COL].iloc[0] == \
         f"Address is an offshore PO box ({display})"
+
+
+@pytest.mark.parametrize("token,display", sorted(_OFFSHORE.items()))
+def test_every_offshore_token_fires_with_a_clean_reason(token, display):
+    """Completeness guard: each token in the map must actually match, and its reason must read
+    cleanly (no title-case mangling like 'Isle Of Man'). Catches a future addition that mistypes
+    a token so it never fires, or gives it an ugly display string."""
+    address = token.title()  # "ISLE OF MAN" -> "Isle Of Man", a plausible address fragment
+    out = flag_wealth_structure(_row(LATEST_BILLING_ADDRESS1="PO Box 1",
+                                     LATEST_BILLING_ADDRESS2=address))
+    assert bool(out[FLAG_COL].iloc[0]), f"{token} did not fire"
+    reason = out[REASON_COL].iloc[0]
+    assert reason == f"Address is an offshore PO box ({display})"
+    # A clean display name: no stray title-case artefacts and no doubled spaces.
+    assert "  " not in display and display == _OFFSHORE[token]
 
 
 def test_ordinary_address_does_not_fire():
