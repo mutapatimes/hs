@@ -9,9 +9,10 @@ It works in two layers:
    templates into a shared App Group; the keyboard inserts the one you tap. The house catalogue
    rides along via the `{catalog_link}` template. This layer needs no network and no Full Access.
 2. **The composer, with Full Access.** Copy the client's name or number in the chat, tap "Use copied
-   client", and the keyboard looks them up. Then your templates fill with their real name, and the
-   intent chips draft a personal message for them in your house voice. This layer makes live calls,
-   so it needs Full Access.
+   client", and the keyboard looks them up. Then your templates fill with their real name, the intent
+   chips draft a personal message in your house voice, and **Suggest pieces** recommends products for
+   them (from your own catalogue) that you send as a branded catalogue link. This layer makes live
+   calls, so it needs Full Access.
 
 The keyboard never reads the WhatsApp screen. The client is identified only by what you copy.
 
@@ -24,7 +25,7 @@ Shared/                (add to BOTH targets)
   ClientRef.swift       classify a copied string into email / phone / name
   Template.swift        the template model + name fill
   TemplateStore.swift   read/write templates to the App Group
-  HaliaAPI.swift        /v1/extension/context (templates), /lookup, /draft
+  HaliaAPI.swift        /v1/extension: context (templates), lookup, draft, suggest, catalogue
 HostApp/               (add to the APP target only)
   HaliaTemplatesApp.swift   @main entry
   RootView.swift            connect, sync, guide
@@ -85,6 +86,8 @@ Keyboard/              (add to the KEYBOARD target only)
    - **Personalise:** copy the client's name or number in the chat, tap **Use copied client**. Now
      templates fill with their real name, and the **Draft** chips write a personal message you can
      insert and edit.
+   - **Suggest pieces:** tap it to recommend products for this client, tick the ones you like, then
+     **Send catalogue** to drop a branded catalogue link (on your own domain) into the chat.
 
 ## The name slot
 
@@ -120,5 +123,8 @@ secrecy of the token, a shared Keychain access group is the hardening step over 
   you tap, not from replying to their last message. You review and edit before sending.
 - Copy-to-lookup is one gesture. It is the price of not being able to read the WhatsApp screen.
 - No free-text search (a keyboard cannot host a text field). Category chips cover filtering.
-- Next layer: personalised product suggestions sent as a branded catalogue link, reusing
-  `/v1/extension/suggest` and `/v1/extension/catalogue`.
+- Suggestions and drafts need an AI key configured on the Halia backend. Without one, drafts fall
+  back to your templates and Suggest returns nothing rather than a guess, so the keyboard is never a
+  dead button.
+- Send catalogue inserts the branded link on its own. Pair it with a drafted message first for a
+  complete note.
