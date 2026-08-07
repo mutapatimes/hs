@@ -1,26 +1,35 @@
-# Halia Templates keyboard (iOS)
+# Halia composer keyboard (iOS)
 
-A tiny iOS app plus a custom keyboard that puts your Halia outreach templates one tap away inside
-WhatsApp, Messages, Mail, or any app with a text field. The host app signs in with your Halia
-extension token and syncs your templates; the keyboard reads them from a shared App Group and
-inserts the one you tap. The keyboard makes no network call, so it needs **no Full Access**.
+A small iOS app plus a custom keyboard that helps an associate send a personal, on-voice message to
+a VIP without leaving WhatsApp. There is no grade here by design: the point is the message.
 
-This is templates only. There is no client lookup and no grade, by design.
+It works in two layers:
+
+1. **Templates, offline.** The host app signs in with your Halia extension token and syncs your
+   templates into a shared App Group; the keyboard inserts the one you tap. The house catalogue
+   rides along via the `{catalog_link}` template. This layer needs no network and no Full Access.
+2. **The composer, with Full Access.** Copy the client's name or number in the chat, tap "Use copied
+   client", and the keyboard looks them up. Then your templates fill with their real name, and the
+   intent chips draft a personal message for them in your house voice. This layer makes live calls,
+   so it needs Full Access.
+
+The keyboard never reads the WhatsApp screen. The client is identified only by what you copy.
 
 ## What is here
 
 ```
 Shared/                (add to BOTH targets)
   AppGroup.swift        shared App Group id + keys       <-- set your group id here
-  Template.swift        the template model
+  Credentials.swift     token + address in the App Group (so the keyboard can call live)
+  ClientRef.swift       classify a copied string into email / phone / name
+  Template.swift        the template model + name fill
   TemplateStore.swift   read/write templates to the App Group
+  HaliaAPI.swift        /v1/extension/context (templates), /lookup, /draft
 HostApp/               (add to the APP target only)
   HaliaTemplatesApp.swift   @main entry
-  RootView.swift            connect, sync, set name, guide
-  HaliaAPI.swift            GET /v1/extension/context
-  TokenStore.swift          token in the Keychain
+  RootView.swift            connect, sync, guide
 Keyboard/              (add to the KEYBOARD target only)
-  KeyboardViewController.swift   the keyboard UI + insert
+  KeyboardViewController.swift   the composer UI (client bar, intents, templates, insert)
 ```
 
 ## Requirements
@@ -58,43 +67,58 @@ Keyboard/              (add to the KEYBOARD target only)
 6. **Signing.** On both targets, pick your team. If you use a free personal team, choose your own
    device as the run destination.
 
-7. **Keep Full Access off.** Open the keyboard's `Info.plist`, `NSExtension`,
-   `NSExtensionAttributes`, and confirm `RequestsOpenAccess` is `NO` (the default). The keyboard
-   does not need it.
+7. **Turn Full Access ON in the manifest.** Open the keyboard's `Info.plist`, `NSExtension`,
+   `NSExtensionAttributes`, and set `RequestsOpenAccess` to `YES`. The composer needs it to read the
+   copied client and reach your Halia account. (Templates still work if a user leaves Full Access
+   off in Settings; only the lookup and draft features go quiet.)
 
 ## Run it
 
 1. Select the **HaliaTemplates** app scheme and run on your iPhone (or the simulator).
 2. In the app: paste your token, leave the address as `https://haliascore.com`, tap **Connect and
    sync templates**. You should see the count of templates synced.
-3. Enable the keyboard: **Settings, General, Keyboard, Keyboards, Add New Keyboard, Halia**. You do
-   not need to allow Full Access.
-4. Open WhatsApp (or Notes and Messages to test, since WhatsApp is not on the simulator), tap the
-   🌐 globe until you are on the Halia keyboard, pick a category, and tap a template. It drops into
-   the text field. Switch back to your normal keyboard with the globe to keep typing.
+3. Enable the keyboard: **Settings, General, Keyboard, Keyboards, Add New Keyboard, Halia**, then
+   open Halia in that list and turn on **Allow Full Access** (needed for the composer).
+4. Open WhatsApp (or Notes and Messages to test, since WhatsApp is not on the simulator) and tap the
+   🌐 globe until you are on the Halia keyboard.
+   - **Templates:** pick a category and tap a template. It drops into the text field.
+   - **Personalise:** copy the client's name or number in the chat, tap **Use copied client**. Now
+     templates fill with their real name, and the **Draft** chips write a personal message you can
+     insert and edit.
 
 ## The name slot
 
 Templates use one placeholder, `{first_name}` (the server already fills `{sender}` and
-`{catalog_link}`). The keyboard cannot read who you are messaging, so rather than guess a name and
-risk inserting the wrong one, it drops in a neutral greeting: `{first_name}` becomes "there", for
-example "Dear there,". It reads cleanly and is never tied to a specific client. If you want to
-personalise, overtype "there" with a real name in the chat after inserting.
+`{catalog_link}`). When a client is looked up, it fills with their real first name. When no client
+is set, the placeholder is removed and the small gap tidied, so "Dear {first_name}," reads as "Dear,"
+and "{first_name}, we are open" reads as "We are open". A template that opens with `{catalog_link}`
+is left exactly as-is, so the URL is never mangled.
+
+## Privacy and Full Access
+
+Full Access is what lets the keyboard read the client you copied and reach your Halia account, and it
+is the permission iOS frames as "this keyboard can transmit what you type". Halia acts only on what
+you copy and on the chips you tap. It does not read or send what you type in other fields. The device
+stores only your token and address and your synced templates (in the App Group). Customer records
+stay in your Halia account; the lookup and draft are used in-flight and not stored. For stronger
+secrecy of the token, a shared Keychain access group is the hardening step over the App Group.
 
 ## Notes and gotchas
 
-- **Simulator testing:** the keyboard works in the simulator's Notes and Messages. WhatsApp itself
-  is only on a real device.
+- **Simulator testing:** templates work in the simulator's Notes and Messages. WhatsApp is only on a
+  real device, and copy-to-lookup is easiest to feel there.
 - **Local backend:** if you point the address at `http://localhost:8000`, iOS App Transport Security
   will block the plain-http call. Use the https production address, or add an ATS exception for local
   testing.
-- **Memory:** keyboard extensions have a tight memory budget. Templates are small and read lazily,
-  so this stays well within it.
-- **Zero-retention:** the app stores only your token (Keychain) and your templates and optional name
-  (App Group) on the device. No customer data is involved.
+- **Memory:** keyboard extensions have a tight memory budget. Templates are small and read lazily.
+- **Reading the clipboard** shows the iOS paste banner. That is expected: it only happens when you
+  tap "Use copied client", never silently.
 
-## Known v1 limits and easy next steps
+## Known limits and next steps
 
-- No free-text search (a keyboard cannot host a text field). Category chips cover filtering. A search
-  row built from the keyboard's own key buttons is a later option.
-- Insert only. Sending is left to the user in WhatsApp, which is the safe default.
+- The keyboard cannot read the incoming thread, so a draft is built from the client plus the intent
+  you tap, not from replying to their last message. You review and edit before sending.
+- Copy-to-lookup is one gesture. It is the price of not being able to read the WhatsApp screen.
+- No free-text search (a keyboard cannot host a text field). Category chips cover filtering.
+- Next layer: personalised product suggestions sent as a branded catalogue link, reusing
+  `/v1/extension/suggest` and `/v1/extension/catalogue`.

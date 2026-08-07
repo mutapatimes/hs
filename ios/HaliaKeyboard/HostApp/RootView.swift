@@ -14,8 +14,8 @@ final class RootModel: ObservableObject {
     @Published var busy: Bool = false
 
     init() {
-        token = TokenStore.get() ?? ""
-        baseURL = TemplateStore.baseURL
+        token = Credentials.token
+        baseURL = Credentials.baseURL
         templates = TemplateStore.load()
         if let at = TemplateStore.syncedAt, !templates.isEmpty {
             let f = RelativeDateTimeFormatter()
@@ -29,8 +29,8 @@ final class RootModel: ObservableObject {
             status = "Paste your Halia extension token first."; isError = true; return
         }
         busy = true; isError = false; status = "Syncing…"
-        TokenStore.set(t)
-        TemplateStore.baseURL = baseURL
+        Credentials.token = t
+        Credentials.baseURL = baseURL
 
         do {
             let fetched = try await HaliaAPI(baseURL: baseURL, token: t).fetchTemplates()
@@ -96,15 +96,20 @@ struct RootView: View {
                     }
                 }
 
-                Section("Turn on the Halia keyboard") {
+                Section {
                     Label("Settings, General, Keyboard, Keyboards, Add New Keyboard, choose Halia.",
                           systemImage: "1.circle")
                         .font(.footnote)
-                    Label("You do not need to allow Full Access.", systemImage: "2.circle")
+                    Label("Open Halia in that list and turn on Allow Full Access.",
+                          systemImage: "2.circle")
                         .font(.footnote)
-                    Label("In WhatsApp, tap the globe to switch to Halia, then tap a template to insert it.",
+                    Label("In WhatsApp, tap the globe to switch to Halia. To personalise, copy the client's name or number in the chat, then tap Use copied client.",
                           systemImage: "3.circle")
                         .font(.footnote)
+                } header: {
+                    Text("Turn on the Halia keyboard")
+                } footer: {
+                    Text("Full Access lets the keyboard read what you copy and reach your Halia account, so it can draft a personal message and fill the client's name. Halia acts only on what you copy and tap.")
                 }
             }
             .navigationTitle("Halia Templates")

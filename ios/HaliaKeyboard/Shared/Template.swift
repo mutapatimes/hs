@@ -46,6 +46,14 @@ struct Template: Codable, Identifiable, Hashable {
             .trimmingCharacters(in: .whitespaces)
     }
 
+    /// Ready to drop into a chat for a known client: fill {first_name} with their real name. When
+    /// no name is known, fall back to the neutral, stripped version below.
+    func ready(firstName: String?) -> String {
+        let n = (firstName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !n.isEmpty else { return readyToInsert }
+        return insertBase.replacingOccurrences(of: "{first_name}", with: n)
+    }
+
     /// Ready to drop into a chat. The one placeholder the server leaves, {first_name}, is removed
     /// (never a stored name, so never the wrong one), and the small gap it leaves is tidied so the
     /// line still reads cleanly. You add the name yourself in the chat if you want to.
