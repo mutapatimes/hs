@@ -42,23 +42,49 @@ struct HaliaAPI {
         return decoded.templates ?? []
     }
 
-    // MARK: Lookup (keyboard) — we take only the client's name; the grade is deliberately ignored.
+    // MARK: Lookup (keyboard) — we take the name and cid; the grade is deliberately ignored.
 
-    struct LookupResult: Decodable { let found: Bool?; let name: String? }
+    struct LookupResult: Decodable {
+        let found: Bool?
+        let name: String?
+        let cid: String?
+        private enum K: String, CodingKey { case found, name, cid }
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: K.self)
+            found = (try? c.decodeIfPresent(Bool.self, forKey: .found)) ?? nil
+            name  = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? nil
+            cid   = (try? c.decodeIfPresent(Scalar.self, forKey: .cid))?.text   // cid may be number or string
+        }
+    }
 
     func lookup(_ ref: ClientRef) async throws -> LookupResult {
         try await postJSON("/v1/extension/lookup", body: ref.body)
     }
 
-    // MARK: Draft (keyboard) — a personal message for the client, in the house voice.
+    // MARK: Draft (keyboard) — a personal message for the client, in the house voice. An optional
+    // thread (the client's copied message) makes the reply responsive.
 
     struct DraftResult: Decodable { let draft: String?; let name: String?; let found: Bool? }
 
-    func draft(_ ref: ClientRef, channel: String, instruction: String) async throws -> DraftResult {
-        var body = ref.body
+    func draft(_ ref: ClientRef, channel: String, instruction: String,
+               thread: [[String: String]]? = nil) async throws -> DraftResult {
+        var body: [String: Any] = ref.body
         body["channel"] = channel
         body["instruction"] = instruction
-        return try await postJSON("/v1/extension/draft", body: body)
+        if let thread = thread, !thread.isEmpty { body["thread"] = thread }
+        return try await postAny("/v1/extension/draft", body: body)
+    }
+
+    // MARK: Log contacted (keyboard) — write to the shared pipeline so the team is in the loop.
+
+    private struct ActionResponse: Decodable { let recorded: Bool? }
+
+    @discardableResult
+    func logContacted(cid: String, clientName: String?, reason: String) async throws -> Bool {
+        let body: [String: Any] = ["action": "contacted", "cid": cid,
+                                   "client_name": clientName ?? "", "reason": reason]
+        let resp: ActionResponse = try await postAny("/v1/extension/action", body: body)
+        return resp.recorded ?? true
     }
 
     // MARK: Suggest (keyboard) — pieces to put in front of this client, chosen from your products.

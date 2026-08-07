@@ -9,10 +9,15 @@ It works in two layers:
    templates into a shared App Group; the keyboard inserts the one you tap. The house catalogue
    rides along via the `{catalog_link}` template. This layer needs no network and no Full Access.
 2. **The composer, with Full Access.** Copy the client's name or number in the chat, tap "Use copied
-   client", and the keyboard looks them up. Then your templates fill with their real name, the intent
-   chips draft a personal message in your house voice, and **Suggest pieces** recommends products for
-   them (from your own catalogue) that you send as a branded catalogue link. This layer makes live
-   calls, so it needs Full Access.
+   client", and the keyboard looks them up. Then:
+   - templates fill with their real name;
+   - the intent chips **draft** a personal message in your house voice, which you can **refine**
+     (warmer / shorter / more formal) before it goes in;
+   - **Reply** drafts a response to a message you copied from the client;
+   - **Suggest pieces** recommends products from your catalogue, sent as a branded catalogue link;
+   - **Mark contacted** logs the outreach to your shared team pipeline so nobody double-messages.
+
+   This layer makes live calls, so it needs Full Access.
 
 The keyboard never reads the WhatsApp screen. The client is identified only by what you copy.
 
@@ -88,6 +93,10 @@ Keyboard/              (add to the KEYBOARD target only)
      insert and edit.
    - **Suggest pieces:** tap it to recommend products for this client, tick the ones you like, then
      **Send catalogue** to drop a branded catalogue link (on your own domain) into the chat.
+   - **Reply:** copy the client's last message, tap **Reply**, and it drafts a response to it.
+   - **Refine:** a drafted message shows in the keyboard first. Tap **Warmer**, **Shorter**, or
+     **More formal** to adjust it, then **Insert** to place it in the chat.
+   - **Mark contacted:** logs this outreach to your shared pipeline (Shopify), so the team sees it.
 
 ## The name slot
 
