@@ -27,11 +27,6 @@ enum TemplateStore {
         return all.sorted()
     }
 
-    static var baseURL: String {
-        get { AppGroup.defaults.string(forKey: AppGroup.Key.baseURL) ?? "https://haliascore.com" }
-        set { AppGroup.defaults.set(newValue, forKey: AppGroup.Key.baseURL) }
-    }
-
     static var syncedAt: Date? {
         AppGroup.defaults.object(forKey: AppGroup.Key.syncedAt) as? Date
     }
