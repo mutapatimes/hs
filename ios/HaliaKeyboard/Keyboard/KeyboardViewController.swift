@@ -4,34 +4,30 @@
 // leaving WhatsApp. No grade here on purpose: the point is the message.
 //
 // Layers:
-//   1. Offline (no Full Access): your synced templates, one tap to insert. The house catalogue
-//      rides along via the {catalog_link} template.
-//   2. With Full Access: copy the client's name or number in the chat, tap "Use copied client".
-//      Then templates fill with their real name, the intent chips DRAFT a personal message, and
-//      "Suggest pieces" recommends products for them, sent as a branded catalogue link.
+//   1. Offline (no Full Access): synced templates, one tap to insert. House catalogue via the
+//      {catalog_link} template.
+//   2. With Full Access: copy the client's name or number, tap "Use copied client". Then templates
+//      fill with their real name; the intent chips draft a personal message; "Reply" drafts a reply
+//      to a message you copied; a draft can be refined (warmer / shorter / more formal) before it
+//      goes in; "Suggest pieces" recommends products as a branded catalogue link; and "Mark
+//      contacted" logs the outreach to the shared team pipeline.
 //
-// It never reads the WhatsApp screen. The client is identified only by what you copy.
+// It never reads the WhatsApp screen. The client, and any message being replied to, are only what
+// you copy.
 import UIKit
 
 @MainActor
 final class KeyboardViewController: UIInputViewController, UITableViewDataSource, UITableViewDelegate {
 
-    private enum Mode { case templates, suggestions }
+    private enum Mode { case templates, suggestions, draft }
 
-    private struct SuggestRow {
-        let id: String
-        let title: String
-        let why: String
-        let price: String?
-        var on: Bool
-    }
+    private struct SuggestRow { let id, title, why: String; let price: String?; var on: Bool }
 
     // Halia palette
     private let brand = UIColor(red: 0.12, green: 0.34, blue: 0.29, alpha: 1) // #1F564A
     private let tint  = UIColor(red: 0.90, green: 0.94, blue: 0.92, alpha: 1) // #E6EFEB
     private let paper = UIColor(red: 0.95, green: 0.94, blue: 0.91, alpha: 1) // #F1EFE9
 
-    // Intent chips: (short label, the instruction sent to /v1/extension/draft)
     private let intents: [(String, String)] = [
         ("Hello", "Send a warm, personal hello to reconnect."),
         ("Private preview", "Invite them to a private preview before it opens to everyone."),
@@ -40,14 +36,22 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ("Thank you", "Thank them personally for a recent purchase."),
         ("Win-back", "A gentle, warm message to reconnect after a quiet spell."),
     ]
+    private let refinements: [(String, String)] = [
+        ("Warmer", "Rewrite it warmer and more personal."),
+        ("Shorter", "Rewrite it shorter and tighter."),
+        ("More formal", "Rewrite it a little more formal."),
+    ]
 
     // State
     private var mode: Mode = .templates
     private var currentRef: ClientRef?
     private var clientName: String?
+    private var clientCid: String?
     private var statusText: String?
     private var busy = false
     private var suggestions: [SuggestRow] = []
+    private var draftText = ""
+    private var lastThread: [[String: String]]?
 
     private var templates: [Template] = []
     private var categories: [String] = []
@@ -55,13 +59,14 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     // Views
     private let clientBar = UIStackView()
-    private let actionScroll = UIScrollView()     // draft chips (templates) OR send bar (suggestions)
+    private let actionScroll = UIScrollView()
     private let actionStack = UIStackView()
     private var actionHeight: NSLayoutConstraint!
-    private let chipsScroll = UIScrollView()      // category chips (templates mode only)
+    private let chipsScroll = UIScrollView()
     private let chipsStack = UIStackView()
     private var chipsHeight: NSLayoutConstraint!
     private let table = UITableView(frame: .zero, style: .plain)
+    private let draftView = UITextView()
     private let emptyLabel = UILabel()
     private let cellID = "cell"
 
@@ -69,7 +74,6 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         guard let c = selectedCategory else { return templates }
         return templates.filter { $0.category == c }
     }
-
     private var currentFirstName: String? {
         if let n = clientName?.trimmingCharacters(in: .whitespacesAndNewlines), !n.isEmpty {
             return String(n.split(separator: " ").first ?? "")
@@ -77,7 +81,6 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         let p = currentRef?.provisionalFirstName ?? ""
         return p.isEmpty ? nil : p
     }
-
     private var selectedCount: Int { suggestions.filter { $0.on }.count }
 
     // MARK: - Lifecycle
@@ -92,6 +95,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         buildTable()
         buildEmptyLabel()
         buildControls()
+        buildDraftView()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -105,7 +109,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         c.isActive = true
     }
 
-    // MARK: - Data / refresh
+    // MARK: - Refresh
 
     private func reload() {
         templates = TemplateStore.load()
@@ -114,6 +118,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         rebuildClientBar()
         rebuildActionRow()
         rebuildChips()
+        let showDraft = (mode == .draft)
+        draftView.isHidden = !showDraft
+        draftView.text = draftText
+        table.isHidden = showDraft
         emptyLabel.isHidden = !(mode == .templates && templates.isEmpty)
         table.reloadData()
     }
@@ -161,31 +169,30 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func useCopiedClient() {
         guard hasFullAccess else { flash("Turn on Full Access in Settings"); return }
-        let raw = UIPasteboard.general.string ?? ""
-        guard let ref = ClientClassifier.classify(raw) else {
+        guard let ref = ClientClassifier.classify(UIPasteboard.general.string ?? "") else {
             flash("Copy the client's name or number, then tap again"); return
         }
         currentRef = ref
         clientName = ref.kind == .name ? ref.value : nil
-        mode = .templates
-        suggestions = []
+        clientCid = nil; mode = .templates; suggestions = []; draftText = ""
         setStatus("Looking up…")
         Task {
             do {
                 let res = try await HaliaAPI.current.lookup(ref)
                 if let n = res.name, !n.isEmpty { clientName = n }
+                clientCid = res.cid
             } catch { /* keep the copied ref; personalisation still works by name */ }
-            setStatus(nil)
-            reload()
+            setStatus(nil); reload()
         }
     }
 
     private func clearClient() {
-        currentRef = nil; clientName = nil; mode = .templates; suggestions = []
+        currentRef = nil; clientName = nil; clientCid = nil
+        mode = .templates; suggestions = []; draftText = ""
         setStatus(nil); reload()
     }
 
-    // MARK: - Action row (draft chips in templates mode, send bar in suggestions mode)
+    // MARK: - Action row (varies by mode)
 
     private func buildActionRow() {
         configureScroll(actionScroll, stack: actionStack)
@@ -201,47 +208,78 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func rebuildActionRow() {
         actionStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        if mode == .suggestions {
-            actionHeight.constant = 46
-            actionScroll.isHidden = false
-            actionStack.addArrangedSubview(
-                pillButton("‹ Templates", filled: false) { [weak self] in self?.backToTemplates() })
-            let send = pillButton("Send catalogue (\(selectedCount))", filled: true) { [weak self] in
-                self?.sendCatalogue()
-            }
-            actionStack.addArrangedSubview(send)
-            return
-        }
+        switch mode {
+        case .suggestions:
+            actionHeight.constant = 46; actionScroll.isHidden = false
+            actionStack.addArrangedSubview(pillButton("‹ Templates", filled: false) { [weak self] in self?.backToTemplates() })
+            actionStack.addArrangedSubview(pillButton("Send catalogue (\(selectedCount))", filled: true) { [weak self] in self?.sendCatalogue() })
 
-        let show = (currentRef != nil) && hasFullAccess && (statusText == nil)
-        actionHeight.constant = show ? 46 : 0
-        actionScroll.isHidden = !show
-        guard show else { return }
-        let suggest = pillButton("✦ Suggest pieces", filled: true) { [weak self] in self?.suggestPieces() }
-        actionStack.addArrangedSubview(suggest)
-        let lead = mutedLabel("Draft:")
-        lead.font = .systemFont(ofSize: 12, weight: .semibold)
-        actionStack.addArrangedSubview(lead)
-        for (label, instruction) in intents {
-            actionStack.addArrangedSubview(
-                pillButton(label, filled: false) { [weak self] in self?.draftIntent(instruction) })
+        case .draft:
+            actionHeight.constant = 46; actionScroll.isHidden = false
+            actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
+            actionStack.addArrangedSubview(pillButton("Insert", filled: true) { [weak self] in self?.insertDraft() })
+            for (label, mod) in refinements {
+                actionStack.addArrangedSubview(pillButton(label, filled: false) { [weak self] in self?.refine(mod) })
+            }
+
+        case .templates:
+            let show = (currentRef != nil) && hasFullAccess && (statusText == nil)
+            actionHeight.constant = show ? 46 : 0; actionScroll.isHidden = !show
+            guard show else { return }
+            actionStack.addArrangedSubview(pillButton("✦ Suggest pieces", filled: true) { [weak self] in self?.suggestPieces() })
+            actionStack.addArrangedSubview(pillButton("↩ Reply", filled: false) { [weak self] in self?.replyToCopied() })
+            if clientCid != nil {
+                actionStack.addArrangedSubview(pillButton("Mark contacted", filled: false) { [weak self] in self?.markContacted() })
+            }
+            let lead = mutedLabel("Draft:")
+            lead.font = .systemFont(ofSize: 12, weight: .semibold)
+            actionStack.addArrangedSubview(lead)
+            for (label, instruction) in intents {
+                actionStack.addArrangedSubview(pillButton(label, filled: false) { [weak self] in
+                    self?.startDraft(instruction: instruction, thread: nil)
+                })
+            }
         }
     }
 
-    private func draftIntent(_ instruction: String) {
+    // MARK: - Draft (personal message, previewed before it goes in)
+
+    private func startDraft(instruction: String, thread: [[String: String]]?) {
         guard let ref = currentRef, !busy else { return }
         busy = true; setStatus("Drafting…")
         Task {
             do {
-                let res = try await HaliaAPI.current.draft(ref, channel: "whatsapp", instruction: instruction)
+                let res = try await HaliaAPI.current.draft(ref, channel: "whatsapp",
+                                                           instruction: instruction, thread: thread)
                 if let n = res.name, !n.isEmpty { clientName = n }
-                if let d = res.draft, !d.isEmpty { textDocumentProxy.insertText(d); setStatus(nil) }
-                else { setStatus("No draft came back") }
+                if let d = res.draft, !d.isEmpty {
+                    draftText = d; lastThread = thread; mode = .draft; setStatus(nil)
+                } else { setStatus("No draft came back") }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
             busy = false; reload()
         }
+    }
+
+    private func replyToCopied() {
+        guard hasFullAccess else { flash("Turn on Full Access in Settings"); return }
+        let msg = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !msg.isEmpty else { flash("Copy the client's message, then tap Reply"); return }
+        startDraft(instruction: "Reply warmly and personally to their latest message.",
+                   thread: [["from": "them", "text": msg]])
+    }
+
+    private func refine(_ modifier: String) {
+        guard mode == .draft, !busy, !draftText.isEmpty else { return }
+        startDraft(instruction: modifier + " Keep it in the house voice. Current draft to adjust: " + draftText,
+                   thread: lastThread)
+    }
+
+    private func insertDraft() {
+        guard !draftText.isEmpty else { return }
+        textDocumentProxy.insertText(draftText)
+        mode = .templates; draftText = ""; lastThread = nil; reload()
     }
 
     // MARK: - Suggestions
@@ -254,11 +292,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 let picks = try await HaliaAPI.current.suggest(ref, instruction: "")
                 suggestions = picks.map { SuggestRow(id: $0.productId, title: $0.title,
                                                      why: $0.why, price: $0.priceText, on: true) }
-                if suggestions.isEmpty {
-                    setStatus("No suggestions right now")
-                } else {
-                    mode = .suggestions; setStatus(nil)
-                }
+                if suggestions.isEmpty { setStatus("No suggestions right now") }
+                else { mode = .suggestions; setStatus(nil) }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
@@ -283,8 +318,25 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
-    private func backToTemplates() {
-        mode = .templates; suggestions = []; reload()
+    private func backToTemplates() { mode = .templates; suggestions = []; draftText = ""; reload() }
+
+    // MARK: - Log contacted
+
+    private func markContacted() {
+        guard let cid = clientCid else { flash("Look up the client first"); return }
+        guard !busy else { return }
+        busy = true; setStatus("Logging…")
+        Task {
+            do {
+                _ = try await HaliaAPI.current.logContacted(cid: cid, clientName: clientName,
+                                                            reason: "Messaged via Halia")
+                busy = false; flash("Logged ✓")
+            } catch {
+                busy = false
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not log")
+            }
+            reload()
+        }
     }
 
     // MARK: - Category chips
@@ -335,6 +387,24 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ])
     }
 
+    private func buildDraftView() {
+        draftView.translatesAutoresizingMaskIntoConstraints = false
+        draftView.isEditable = false
+        draftView.isSelectable = true
+        draftView.backgroundColor = .clear
+        draftView.font = .systemFont(ofSize: 15)
+        draftView.textColor = .label
+        draftView.textContainerInset = UIEdgeInsets(top: 12, left: 14, bottom: 12, right: 14)
+        draftView.isHidden = true
+        view.addSubview(draftView)
+        NSLayoutConstraint.activate([
+            draftView.topAnchor.constraint(equalTo: table.topAnchor),
+            draftView.leadingAnchor.constraint(equalTo: table.leadingAnchor),
+            draftView.trailingAnchor.constraint(equalTo: table.trailingAnchor),
+            draftView.bottomAnchor.constraint(equalTo: table.bottomAnchor),
+        ])
+    }
+
     private func buildEmptyLabel() {
         emptyLabel.translatesAutoresizingMaskIntoConstraints = false
         emptyLabel.numberOfLines = 0
@@ -353,7 +423,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        mode == .templates ? filtered.count : suggestions.count
+        mode == .suggestions ? suggestions.count : filtered.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -363,28 +433,28 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         cell.detailTextLabel?.textColor = .secondaryLabel
         cell.detailTextLabel?.numberOfLines = 1
 
-        if mode == .templates {
-            let t = filtered[indexPath.row]
-            cell.textLabel?.text = t.name
-            cell.detailTextLabel?.text = t.preview
-            cell.accessoryType = .none
-        } else {
+        if mode == .suggestions {
             let s = suggestions[indexPath.row]
             cell.textLabel?.text = s.title
             cell.detailTextLabel?.text = [s.price, s.why].compactMap { $0 }.joined(separator: "  ·  ")
             cell.accessoryType = s.on ? .checkmark : .none
+        } else {
+            let t = filtered[indexPath.row]
+            cell.textLabel?.text = t.name
+            cell.detailTextLabel?.text = t.preview
+            cell.accessoryType = .none
         }
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        if mode == .templates {
-            textDocumentProxy.insertText(filtered[indexPath.row].ready(firstName: currentFirstName))
-        } else {
+        if mode == .suggestions {
             suggestions[indexPath.row].on.toggle()
             tableView.reloadRows(at: [indexPath], with: .none)
-            rebuildActionRow()   // update the "Send catalogue (N)" count
+            rebuildActionRow()
+        } else {
+            textDocumentProxy.insertText(filtered[indexPath.row].ready(firstName: currentFirstName))
         }
     }
 
