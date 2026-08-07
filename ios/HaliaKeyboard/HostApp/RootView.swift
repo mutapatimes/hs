@@ -9,6 +9,7 @@ final class RootModel: ObservableObject {
     @Published var token: String
     @Published var baseURL: String
     @Published var templates: [Template]
+    @Published var info: [String: String] = [:]   // store-info snippets, by label
     @Published var status: String = ""
     @Published var isError: Bool = false
     @Published var busy: Bool = false
@@ -17,6 +18,9 @@ final class RootModel: ObservableObject {
         token = Credentials.token
         baseURL = Credentials.baseURL
         templates = TemplateStore.load()
+        var m: [String: String] = [:]
+        for label in StoreInfoStore.labels { m[label] = StoreInfoStore.value(for: label) }
+        info = m
         if let at = TemplateStore.syncedAt, !templates.isEmpty {
             let f = RelativeDateTimeFormatter()
             status = "\(templates.count) templates, synced \(f.localizedString(for: at, relativeTo: Date()))."
@@ -48,6 +52,12 @@ final class RootModel: ObservableObject {
             isError = true
         }
         busy = false
+    }
+
+    func saveInfo() {
+        for label in StoreInfoStore.labels {
+            StoreInfoStore.set(info[label] ?? "", for: label)
+        }
     }
 }
 
@@ -94,6 +104,21 @@ struct RootView: View {
                             .padding(.vertical, 2)
                         }
                     }
+                }
+
+                Section {
+                    ForEach(StoreInfoStore.labels, id: \.self) { label in
+                        TextField(label, text: Binding(
+                            get: { model.info[label] ?? "" },
+                            set: { model.info[label] = $0 }
+                        ))
+                        .onSubmit { model.saveInfo() }
+                    }
+                    Button("Save store info") { model.saveInfo() }
+                } header: {
+                    Text("Store info")
+                } footer: {
+                    Text("The small facts you paste all day. Fill in what applies. They appear in the keyboard under a \u{201C}Store info\u{201D} category, one tap to insert. Leave a field blank to hide it.")
                 }
 
                 Section {
