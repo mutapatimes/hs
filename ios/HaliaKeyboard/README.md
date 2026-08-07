@@ -14,6 +14,8 @@ It works in two layers:
    - the intent chips **draft** a personal message in your house voice, which you can **refine**
      (warmer / shorter / more formal) before it goes in;
    - **Reply** drafts a response to a message you copied from the client;
+   - **Nudge basket** appears when the client left an open basket, and drafts a warm recovery note
+     with the checkout link;
    - **Suggest pieces** recommends products from your catalogue, sent as a branded catalogue link;
    - **Mark contacted** logs the outreach to your shared team pipeline so nobody double-messages.
 
@@ -96,6 +98,8 @@ Keyboard/              (add to the KEYBOARD target only)
    - **Reply:** copy the client's last message, tap **Reply**, and it drafts a response to it.
    - **Refine:** a drafted message shows in the keyboard first. Tap **Warmer**, **Shorter**, or
      **More formal** to adjust it, then **Insert** to place it in the chat.
+   - **Nudge basket:** if the client has an open basket, a 🧺 chip appears. Tap it to draft a warm
+     recovery message; **Insert** places it with the checkout link appended.
    - **Mark contacted:** logs this outreach to your shared pipeline (Shopify), so the team sees it.
 
 ## The name slot

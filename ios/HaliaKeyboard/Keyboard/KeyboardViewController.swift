@@ -52,6 +52,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var suggestions: [SuggestRow] = []
     private var draftText = ""
     private var lastThread: [[String: String]]?
+    private var cartUrl: String?         // the client's open basket (recovery link), if any
+    private var cartCount: Int?
+    private var pendingCartUrl: String?  // append this recovery link when the current draft is inserted
 
     private var templates: [Template] = []
     private var categories: [String] = []
@@ -174,21 +177,23 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
         currentRef = ref
         clientName = ref.kind == .name ? ref.value : nil
-        clientCid = nil; mode = .templates; suggestions = []; draftText = ""
+        clientCid = nil; cartUrl = nil; cartCount = nil
+        mode = .templates; suggestions = []; draftText = ""
         setStatus("Looking up…")
         Task {
             do {
                 let res = try await HaliaAPI.current.lookup(ref)
                 if let n = res.name, !n.isEmpty { clientName = n }
                 clientCid = res.cid
+                if let u = res.cart?.url, !u.isEmpty { cartUrl = u; cartCount = res.cart?.count }
             } catch { /* keep the copied ref; personalisation still works by name */ }
             setStatus(nil); reload()
         }
     }
 
     private func clearClient() {
-        currentRef = nil; clientName = nil; clientCid = nil
-        mode = .templates; suggestions = []; draftText = ""
+        currentRef = nil; clientName = nil; clientCid = nil; cartUrl = nil; cartCount = nil
+        mode = .templates; suggestions = []; draftText = ""; pendingCartUrl = nil
         setStatus(nil); reload()
     }
 
@@ -226,6 +231,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             let show = (currentRef != nil) && hasFullAccess && (statusText == nil)
             actionHeight.constant = show ? 46 : 0; actionScroll.isHidden = !show
             guard show else { return }
+            if cartUrl != nil {
+                let n = (cartCount ?? 0) > 0 ? " (\(cartCount!))" : ""
+                actionStack.addArrangedSubview(pillButton("🧺 Nudge basket\(n)", filled: true) { [weak self] in self?.nudgeBasket() })
+            }
             actionStack.addArrangedSubview(pillButton("✦ Suggest pieces", filled: true) { [weak self] in self?.suggestPieces() })
             actionStack.addArrangedSubview(pillButton("↩ Reply", filled: false) { [weak self] in self?.replyToCopied() })
             if clientCid != nil {
@@ -244,8 +253,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     // MARK: - Draft (personal message, previewed before it goes in)
 
-    private func startDraft(instruction: String, thread: [[String: String]]?) {
+    private func startDraft(instruction: String, thread: [[String: String]]?, cartUrl: String? = nil) {
         guard let ref = currentRef, !busy else { return }
+        pendingCartUrl = cartUrl   // appended to the message only when this draft is inserted
         busy = true; setStatus("Drafting…")
         Task {
             do {
@@ -262,6 +272,14 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
+    private func nudgeBasket() {
+        guard cartUrl != nil else { return }
+        startDraft(instruction: "They started an order but did not finish checking out (an open "
+                   + "basket). Write a warm, personal message offering to help them complete it or "
+                   + "answer any questions, gently and without pressure. Do not mention amounts.",
+                   thread: nil, cartUrl: cartUrl)
+    }
+
     private func replyToCopied() {
         guard hasFullAccess else { flash("Turn on Full Access in Settings"); return }
         let msg = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -273,13 +291,15 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func refine(_ modifier: String) {
         guard mode == .draft, !busy, !draftText.isEmpty else { return }
         startDraft(instruction: modifier + " Keep it in the house voice. Current draft to adjust: " + draftText,
-                   thread: lastThread)
+                   thread: lastThread, cartUrl: pendingCartUrl)   // keep the basket link across refines
     }
 
     private func insertDraft() {
         guard !draftText.isEmpty else { return }
-        textDocumentProxy.insertText(draftText)
-        mode = .templates; draftText = ""; lastThread = nil; reload()
+        var text = draftText
+        if let url = pendingCartUrl, !url.isEmpty { text += "\n\n" + url }   // a basket nudge carries the recovery link
+        textDocumentProxy.insertText(text)
+        mode = .templates; draftText = ""; lastThread = nil; pendingCartUrl = nil; reload()
     }
 
     // MARK: - Suggestions
@@ -318,7 +338,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
-    private func backToTemplates() { mode = .templates; suggestions = []; draftText = ""; reload() }
+    private func backToTemplates() { mode = .templates; suggestions = []; draftText = ""; pendingCartUrl = nil; reload() }
 
     // MARK: - Log contacted
 

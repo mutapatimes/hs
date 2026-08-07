@@ -44,16 +44,32 @@ struct HaliaAPI {
 
     // MARK: Lookup (keyboard) — we take the name and cid; the grade is deliberately ignored.
 
+    /// An open basket (abandoned checkout): how many items and the recovery link.
+    struct Cart: Decodable {
+        let count: Int?
+        let url: String?
+        private enum K: String, CodingKey { case count, url }
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: K.self)
+            url = (try? c.decodeIfPresent(String.self, forKey: .url)) ?? nil
+            if let t = (try? c.decodeIfPresent(Scalar.self, forKey: .count))?.text {
+                count = Int(Double(t) ?? 0)
+            } else { count = nil }
+        }
+    }
+
     struct LookupResult: Decodable {
         let found: Bool?
         let name: String?
         let cid: String?
-        private enum K: String, CodingKey { case found, name, cid }
+        let cart: Cart?
+        private enum K: String, CodingKey { case found, name, cid, cart }
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: K.self)
             found = (try? c.decodeIfPresent(Bool.self, forKey: .found)) ?? nil
             name  = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? nil
             cid   = (try? c.decodeIfPresent(Scalar.self, forKey: .cid))?.text   // cid may be number or string
+            cart  = (try? c.decodeIfPresent(Cart.self, forKey: .cart)) ?? nil
         }
     }
 
