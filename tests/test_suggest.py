@@ -210,6 +210,44 @@ def test_an_unsigned_or_tampered_link_is_refused(env, monkeypatch):
     assert client.get(f"/catalog/for?sh={SHOP}&p=101&s={good}").status_code == 403
 
 
+# ── read-only "pay in chat": a Shopify cart permalink, no write scope ──────────
+def test_cart_link_builds_a_permalink_from_resolved_variants(env, monkeypatch):
+    client, store, tok = env
+    monkeypatch.setattr(catalog, "_products", lambda shop, force=False: _products(3))
+    monkeypatch.setattr(extension, "_variant_of", lambda shop, title: {"id": "v" + title[-1]})
+    monkeypatch.setattr(extension, "_cart_base", lambda shop: "https://shopx.example")
+    d = client.post("/v1/extension/cart_link", json={"product_ids": ["100", "101"]},
+                    headers={"X-Halia-Ext-Token": _ext(client, tok)}).json()
+    assert d["url"] == "https://shopx.example/cart/v0:1,v1:1"
+
+
+def test_cart_link_skips_products_without_a_buyable_variant(env, monkeypatch):
+    client, store, tok = env
+    monkeypatch.setattr(catalog, "_products", lambda shop, force=False: _products(2))
+    monkeypatch.setattr(extension, "_cart_base", lambda shop: "https://shopx.example")
+    monkeypatch.setattr(extension, "_variant_of",
+                        lambda shop, title: {"id": "v0"} if title.endswith("0") else None)
+    d = client.post("/v1/extension/cart_link", json={"product_ids": ["100", "101"]},
+                    headers={"X-Halia-Ext-Token": _ext(client, tok)}).json()
+    assert d["url"] == "https://shopx.example/cart/v0:1"
+
+
+def test_cart_link_422_when_nothing_is_buyable(env, monkeypatch):
+    client, store, tok = env
+    monkeypatch.setattr(catalog, "_products", lambda shop, force=False: _products(2))
+    monkeypatch.setattr(extension, "_variant_of", lambda shop, title: None)
+    r = client.post("/v1/extension/cart_link", json={"product_ids": ["100"]},
+                    headers={"X-Halia-Ext-Token": _ext(client, tok)})
+    assert r.status_code == 422
+
+
+def test_cart_link_needs_products(env):
+    client, store, tok = env
+    r = client.post("/v1/extension/cart_link", json={"product_ids": []},
+                    headers={"X-Halia-Ext-Token": _ext(client, tok)})
+    assert r.status_code == 422
+
+
 def test_a_tenant_row_does_not_break_catalogue_rendering(env, monkeypatch):
     """Regression: the store hands back a sqlite3.Row, which has no .get, so _shop_display and the
     product-fetch dispatch both raised for any tenant that actually had a row. It stayed hidden

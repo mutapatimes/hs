@@ -102,7 +102,10 @@ Keyboard/              (add to the KEYBOARD target only)
      templates fill with their real name, and the **Draft** chips write a personal message you can
      insert and edit.
    - **Suggest pieces:** tap it to recommend products for this client, tick the ones you like, then
-     **Send catalogue** to drop a branded catalogue link (on your own domain) into the chat.
+     **Send catalogue** to drop a branded catalogue link (on your own domain) into the chat, or
+     **Pay in chat** to drop a Shopify cart permalink so they can check out directly. (The cart link
+     preloads a default variant, so the size can be adjusted at checkout; this is read-only, no new
+     store access. The true invoice pay-by-link is the opt-in commerce pack, see docs.)
    - **Reply:** copy the client's last message, tap **Reply**, and it drafts a response to it.
    - **Refine:** a drafted message shows in the keyboard first. Tap **Warmer**, **Shorter**, or
      **More formal** to adjust it, then **Insert** to place it in the chat.

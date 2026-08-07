@@ -247,6 +247,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             actionHeight.constant = 46; actionScroll.isHidden = false
             actionStack.addArrangedSubview(pillButton("‹ Templates", filled: false) { [weak self] in self?.backToTemplates() })
             actionStack.addArrangedSubview(pillButton("Send catalogue (\(selectedCount))", filled: true) { [weak self] in self?.sendCatalogue() })
+            actionStack.addArrangedSubview(pillButton("Pay in chat (\(selectedCount))", filled: false) { [weak self] in self?.sendCartLink() })
 
         case .draft:
             actionHeight.constant = 46; actionScroll.isHidden = false
@@ -395,6 +396,23 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         Task {
             do {
                 let url = try await HaliaAPI.current.catalogue(productIds: ids, name: clientName)
+                textDocumentProxy.insertText(url)
+                mode = .templates; suggestions = []; setStatus(nil)
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
+
+    private func sendCartLink() {
+        let ids = suggestions.filter { $0.on }.map { $0.id }
+        guard !ids.isEmpty else { flash("Pick at least one piece"); return }
+        guard !busy else { return }
+        busy = true; setStatus("Making a pay link…")
+        Task {
+            do {
+                let url = try await HaliaAPI.current.cartLink(productIds: ids)
                 textDocumentProxy.insertText(url)
                 mode = .templates; suggestions = []; setStatus(nil)
             } catch {
