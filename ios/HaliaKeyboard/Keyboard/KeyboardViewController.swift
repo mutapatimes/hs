@@ -20,6 +20,7 @@ import UIKit
 final class KeyboardViewController: UIInputViewController, UITableViewDataSource, UITableViewDelegate {
 
     private enum Mode { case templates, suggestions, draft }
+    private enum Audience { case client, team }   // write to the client, or to the team about them
 
     private struct SuggestRow { let id, title, why: String; let price: String?; var on: Bool }
 
@@ -44,6 +45,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     // State
     private var mode: Mode = .templates
+    private var audience: Audience = .client
+    private var draftIsHandoff = false
     private var currentRef: ClientRef?
     private var clientName: String?
     private var clientCid: String?
@@ -122,10 +125,22 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         rebuildActionRow()
         rebuildChips()
         let showDraft = (mode == .draft)
+        let showTemplateList = (mode == .templates && audience == .client)
         draftView.isHidden = !showDraft
         draftView.text = draftText
-        table.isHidden = showDraft
-        emptyLabel.isHidden = !(mode == .templates && templates.isEmpty)
+        table.isHidden = !(mode == .suggestions || showTemplateList)
+
+        if mode == .templates && audience == .team {
+            emptyLabel.text = currentRef == nil
+                ? "Team mode. Look up a client, then tap Handoff to write a note for a colleague."
+                : "Tap Handoff to write a note about them for a colleague."
+            emptyLabel.isHidden = false
+        } else if mode == .templates && audience == .client && templates.isEmpty {
+            emptyLabel.text = "Open the Halia app and tap Connect to sync your templates."
+            emptyLabel.isHidden = false
+        } else {
+            emptyLabel.isHidden = true
+        }
         table.reloadData()
     }
 
@@ -153,13 +168,17 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             clientBar.addArrangedSubview(mutedLabel("Turn on Full Access in Settings to personalise"))
             return
         }
+        // The Client / Team toggle is always present, so you can switch audience any time.
+        clientBar.addArrangedSubview(audiencePill("Client", active: audience == .client) { [weak self] in self?.setAudience(.client) })
+        clientBar.addArrangedSubview(audiencePill("Team", active: audience == .team) { [weak self] in self?.setAudience(.team) })
+
         if let s = statusText {
             clientBar.addArrangedSubview(mutedLabel(s))
             return
         }
         if currentRef == nil {
             clientBar.addArrangedSubview(
-                pillButton("＋  Use copied client", filled: true) { [weak self] in self?.useCopiedClient() })
+                pillButton("＋ Use copied client", filled: true) { [weak self] in self?.useCopiedClient() })
             return
         }
         let label = mutedLabel("For \(clientName ?? currentRef?.value ?? "client")")
@@ -168,6 +187,13 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         clientBar.addArrangedSubview(label)
         clientBar.addArrangedSubview(iconButton("arrow.clockwise") { [weak self] in self?.useCopiedClient() })
         clientBar.addArrangedSubview(iconButton("xmark") { [weak self] in self?.clearClient() })
+    }
+
+    private func setAudience(_ a: Audience) {
+        guard a != audience else { return }
+        audience = a
+        mode = .templates; suggestions = []; draftText = ""; pendingCartUrl = nil
+        reload()
     }
 
     private func useCopiedClient() {
@@ -231,6 +257,17 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             let show = (currentRef != nil) && hasFullAccess && (statusText == nil)
             actionHeight.constant = show ? 46 : 0; actionScroll.isHidden = !show
             guard show else { return }
+
+            if audience == .team {
+                // Team mode: compose a note ABOUT the client, for a colleague.
+                actionStack.addArrangedSubview(pillButton("↗ Handoff", filled: true) { [weak self] in self?.handoff() })
+                if clientCid != nil {
+                    actionStack.addArrangedSubview(pillButton("Mark contacted", filled: false) { [weak self] in self?.markContacted() })
+                }
+                return
+            }
+
+            // Client mode: compose a message TO the client.
             if cartUrl != nil {
                 let n = (cartCount ?? 0) > 0 ? " (\(cartCount!))" : ""
                 actionStack.addArrangedSubview(pillButton("🧺 Nudge basket\(n)", filled: true) { [weak self] in self?.nudgeBasket() })
@@ -251,19 +288,45 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
+    // MARK: - Team handoff (a note ABOUT the client, for a colleague; never says "hidden VIP")
+
+    private func handoff() {
+        guard currentRef != nil else { flash("Look up a client first"); return }
+        startDraft(instruction:
+            "Write a SHORT internal note for a colleague, not a message to the client. Say who this "
+            + "client is, what they want, and the next step, so a teammate can help. Colleague-to-"
+            + "colleague tone. Do not use the phrase \"hidden VIP\", and do not mention any grade or score.",
+            thread: nil, handoff: true)
+    }
+
+    /// Hard guarantee the internal note never carries Halia's internal grade language, whatever the
+    /// model returns.
+    private func scrubInternal(_ text: String) -> String {
+        var out = text
+        for phrase in ["hidden vip", "hidden vic"] {
+            while let r = out.range(of: phrase, options: .caseInsensitive) {
+                out.replaceSubrange(r, with: "VIP")
+            }
+        }
+        return out
+    }
+
     // MARK: - Draft (personal message, previewed before it goes in)
 
-    private func startDraft(instruction: String, thread: [[String: String]]?, cartUrl: String? = nil) {
+    private func startDraft(instruction: String, thread: [[String: String]]?,
+                            cartUrl: String? = nil, handoff: Bool = false) {
         guard let ref = currentRef, !busy else { return }
         pendingCartUrl = cartUrl   // appended to the message only when this draft is inserted
-        busy = true; setStatus("Drafting…")
+        draftIsHandoff = handoff
+        busy = true; setStatus(handoff ? "Writing note…" : "Drafting…")
         Task {
             do {
-                let res = try await HaliaAPI.current.draft(ref, channel: "whatsapp",
+                let res = try await HaliaAPI.current.draft(ref, channel: handoff ? "internal" : "whatsapp",
                                                            instruction: instruction, thread: thread)
                 if let n = res.name, !n.isEmpty { clientName = n }
                 if let d = res.draft, !d.isEmpty {
-                    draftText = d; lastThread = thread; mode = .draft; setStatus(nil)
+                    draftText = handoff ? scrubInternal(d) : d
+                    lastThread = thread; mode = .draft; setStatus(nil)
                 } else { setStatus("No draft came back") }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
@@ -290,8 +353,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func refine(_ modifier: String) {
         guard mode == .draft, !busy, !draftText.isEmpty else { return }
-        startDraft(instruction: modifier + " Keep it in the house voice. Current draft to adjust: " + draftText,
-                   thread: lastThread, cartUrl: pendingCartUrl)   // keep the basket link across refines
+        startDraft(instruction: modifier + " Current draft to adjust: " + draftText,
+                   thread: lastThread, cartUrl: pendingCartUrl, handoff: draftIsHandoff)   // keep basket link + handoff scrub across refines
     }
 
     private func insertDraft() {
@@ -374,7 +437,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func rebuildChips() {
         chipsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        let show = (mode == .templates)
+        let show = (mode == .templates && audience == .client)   // categories are for client templates
         chipsHeight.constant = show ? 44 : 0
         chipsScroll.isHidden = !show
         guard show else { return }
@@ -558,6 +621,18 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         b.backgroundColor = filled ? brand : tint
         b.layer.cornerRadius = 15
         b.contentEdgeInsets = UIEdgeInsets(top: 7, left: 14, bottom: 7, right: 14)
+        b.addAction(UIAction { _ in action() }, for: .touchUpInside)
+        return b
+    }
+
+    private func audiencePill(_ title: String, active: Bool, action: @escaping () -> Void) -> UIButton {
+        let b = UIButton(type: .system)
+        b.setTitle(title, for: .normal)
+        b.titleLabel?.font = .systemFont(ofSize: 12, weight: .semibold)
+        b.setTitleColor(active ? .white : brand, for: .normal)
+        b.backgroundColor = active ? brand : tint
+        b.layer.cornerRadius = 13
+        b.contentEdgeInsets = UIEdgeInsets(top: 6, left: 11, bottom: 6, right: 11)
         b.addAction(UIAction { _ in action() }, for: .touchUpInside)
         return b
     }
