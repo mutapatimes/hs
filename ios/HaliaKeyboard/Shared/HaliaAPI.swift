@@ -186,6 +186,39 @@ struct HaliaAPI {
         return url
     }
 
+    // MARK: Product search (keyboard) — a live, searchable image library of the store's products.
+
+    struct Product: Decodable {
+        let title: String
+        let handle: String?
+        let image: String?
+        private enum K: String, CodingKey { case title, handle, image }
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: K.self)
+            title  = (try? c.decodeIfPresent(String.self, forKey: .title)) ?? "" ?? ""
+            handle = (try? c.decodeIfPresent(String.self, forKey: .handle)) ?? nil
+            image  = (try? c.decodeIfPresent(String.self, forKey: .image)) ?? nil
+        }
+        var imageURL: URL? { image.flatMap { URL(string: $0) } }
+        /// The shoppable product-page link, given the store's storefront base.
+        func shareLink(cartBase: String?) -> String? {
+            if let base = cartBase, let h = handle, !h.isEmpty {
+                return base.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/products/" + h
+            }
+            return image   // fall back to the raw image URL if we have no handle/domain
+        }
+    }
+
+    private struct ProductSearch: Decodable { let products: [Product]?; let cart_base: String? }
+
+    /// Live search of the merchant's catalogue (query on demand, like a GIF keyboard).
+    func searchProducts(_ q: String, limit: Int = 24) async throws -> (products: [Product], cartBase: String?) {
+        let query = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let (data, _) = try await send("/v1/extension/products?q=\(query)&limit=\(limit)", method: "GET", body: nil)
+        guard let r = try? JSONDecoder().decode(ProductSearch.self, from: data) else { throw HaliaAPIError.decode }
+        return (r.products ?? [], r.cart_base)
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {

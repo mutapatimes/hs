@@ -17,9 +17,10 @@
 import UIKit
 
 @MainActor
-final class KeyboardViewController: UIInputViewController, UITableViewDataSource, UITableViewDelegate {
+final class KeyboardViewController: UIInputViewController, UITableViewDataSource, UITableViewDelegate,
+                                    UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
-    private enum Mode { case templates, suggestions, draft }
+    private enum Mode { case templates, suggestions, draft, products }
     private enum Audience { case client, team }   // write to the client, or to the team about them
 
     private struct SuggestRow { let id, title, why: String; let price: String?; var on: Bool }
@@ -53,6 +54,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var statusText: String?
     private var busy = false
     private var suggestions: [SuggestRow] = []
+    private var products: [HaliaAPI.Product] = []
+    private var productCartBase: String?
+    private let searchTerms = ["New in", "Coats", "Bags", "Knitwear", "Dresses", "Shoes", "Jewellery"]
     private var draftText = ""
     private var lastThread: [[String: String]]?
     private var cartUrl: String?         // the client's open basket (recovery link), if any
@@ -73,6 +77,17 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var chipsHeight: NSLayoutConstraint!
     private let table = UITableView(frame: .zero, style: .plain)
     private let draftView = UITextView()
+    private let grid: UICollectionView = {
+        let l = UICollectionViewFlowLayout()
+        l.minimumInteritemSpacing = 8
+        l.minimumLineSpacing = 12
+        l.sectionInset = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
+        let cv = UICollectionView(frame: .zero, collectionViewLayout: l)
+        cv.backgroundColor = .clear
+        cv.translatesAutoresizingMaskIntoConstraints = false
+        cv.isHidden = true
+        return cv
+    }()
     private let emptyLabel = UILabel()
     private let cellID = "cell"
 
@@ -102,6 +117,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         buildEmptyLabel()
         buildControls()
         buildDraftView()
+        buildGrid()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -129,11 +145,16 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         rebuildChips()
         let showDraft = (mode == .draft)
         let showTemplateList = (mode == .templates && audience == .client)
+        let showGrid = (mode == .products && !products.isEmpty)
         draftView.isHidden = !showDraft
         draftView.text = draftText
+        grid.isHidden = !showGrid
         table.isHidden = !(mode == .suggestions || showTemplateList)
 
-        if mode == .templates && audience == .team {
+        if mode == .products {
+            emptyLabel.text = "Pick a category above, or type what you want and tap “What you typed”."
+            emptyLabel.isHidden = !products.isEmpty
+        } else if mode == .templates && audience == .team {
             emptyLabel.text = currentRef == nil
                 ? "Team mode. Look up a client, then tap Handoff to write a note for a colleague."
                 : "Tap Handoff to write a note about them for a colleague."
@@ -144,6 +165,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         } else {
             emptyLabel.isHidden = true
         }
+        if showGrid { grid.reloadData() }
         table.reloadData()
     }
 
@@ -255,6 +277,14 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             actionStack.addArrangedSubview(pillButton("Insert", filled: true) { [weak self] in self?.insertDraft() })
             for (label, mod) in refinements {
                 actionStack.addArrangedSubview(pillButton(label, filled: false) { [weak self] in self?.refine(mod) })
+            }
+
+        case .products:
+            actionHeight.constant = 46; actionScroll.isHidden = false
+            actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
+            actionStack.addArrangedSubview(pillButton("⌨ What you typed", filled: true) { [weak self] in self?.searchFromTyped() })
+            for term in searchTerms {
+                actionStack.addArrangedSubview(pillButton(term, filled: false) { [weak self] in self?.runProductSearch(term) })
             }
 
         case .templates:
@@ -422,7 +452,37 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
-    private func backToTemplates() { mode = .templates; suggestions = []; draftText = ""; pendingCartUrl = nil; reload() }
+    private func backToTemplates() {
+        mode = .templates; suggestions = []; products = []; draftText = ""; pendingCartUrl = nil; reload()
+    }
+
+    // MARK: - Products (a live, searchable image library of the store's catalogue)
+
+    private func enterProducts() {
+        mode = .products; products = []; setStatus(nil); reload()
+    }
+
+    private func searchFromTyped() {
+        let typed = (textDocumentProxy.documentContextBeforeInput ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typed.isEmpty else { flash("Type what you are looking for, then tap this"); return }
+        runProductSearch(String(typed.suffix(60)))
+    }
+
+    private func runProductSearch(_ q: String) {
+        guard !busy else { return }
+        busy = true; setStatus("Searching…")
+        Task {
+            do {
+                let (items, base) = try await HaliaAPI.current.searchProducts(q)
+                products = items; productCartBase = base
+                setStatus(items.isEmpty ? "No products for “\(q)”" : nil)
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
 
     // MARK: - Log contacted
 
@@ -462,6 +522,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         chipsHeight.constant = show ? 44 : 0
         chipsScroll.isHidden = !show
         guard show else { return }
+        chipsStack.addArrangedSubview(pillButton("🔍 Products", filled: true) { [weak self] in self?.enterProducts() })
         chipsStack.addArrangedSubview(chip(title: "All", value: nil))
         for c in categories { chipsStack.addArrangedSubview(chip(title: c, value: c)) }
     }
@@ -560,6 +621,52 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         } else {
             textDocumentProxy.insertText(filtered[indexPath.row].ready(firstName: currentFirstName))
         }
+    }
+
+    // MARK: - Product grid (collection view)
+
+    private func buildGrid() {
+        grid.dataSource = self
+        grid.delegate = self
+        grid.register(ProductCell.self, forCellWithReuseIdentifier: ProductCell.id)
+        view.addSubview(grid)
+        NSLayoutConstraint.activate([
+            grid.topAnchor.constraint(equalTo: table.topAnchor),
+            grid.leadingAnchor.constraint(equalTo: table.leadingAnchor),
+            grid.trailingAnchor.constraint(equalTo: table.trailingAnchor),
+            grid.bottomAnchor.constraint(equalTo: table.bottomAnchor),
+        ])
+    }
+
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        products.count
+    }
+
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ProductCell.id, for: indexPath) as! ProductCell
+        let p = products[indexPath.item]
+        cell.cap.text = p.title
+        let token = indexPath.item + 1                     // guards against cell reuse
+        cell.img.tag = token
+        if let url = p.imageURL { ThumbnailLoader.shared.load(url, into: cell.img, token: token) }
+        return cell
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard indexPath.item < products.count else { return }
+        if let link = products[indexPath.item].shareLink(cartBase: productCartBase), !link.isEmpty {
+            textDocumentProxy.insertText(link)
+            flash("Shared ✓")
+        } else {
+            flash("No link for that product")
+        }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout,
+                        sizeForItemAt indexPath: IndexPath) -> CGSize {
+        let cols: CGFloat = 3
+        let w = floor((collectionView.bounds.width - 24 - 8 * (cols - 1)) / cols)   // 12+12 insets, 8pt gaps
+        return CGSize(width: max(60, w), height: max(60, w) + 20)
     }
 
     // MARK: - Control row
