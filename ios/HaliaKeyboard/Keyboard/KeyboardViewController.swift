@@ -1,20 +1,30 @@
 // Target membership: KEYBOARD EXTENSION ONLY.
 //
 // The Halia composer. It helps an associate send a personal, on-voice message to a VIP without
-// leaving WhatsApp. There is no grade here on purpose: the point is the message, not a letter.
+// leaving WhatsApp. No grade here on purpose: the point is the message.
 //
-// Two layers of usefulness:
-//   1. Offline, no Full Access needed: your synced templates, inserted with one tap (the house
-//      catalogue rides along via the {catalog_link} template).
-//   2. With Full Access on: copy the client's name or number in the chat, tap "Use copied client",
-//      and the keyboard looks them up. Then templates fill with their real name, and the intent
-//      chips draft a personal message for them in your house voice.
+// Layers:
+//   1. Offline (no Full Access): your synced templates, one tap to insert. The house catalogue
+//      rides along via the {catalog_link} template.
+//   2. With Full Access: copy the client's name or number in the chat, tap "Use copied client".
+//      Then templates fill with their real name, the intent chips DRAFT a personal message, and
+//      "Suggest pieces" recommends products for them, sent as a branded catalogue link.
 //
 // It never reads the WhatsApp screen. The client is identified only by what you copy.
 import UIKit
 
 @MainActor
 final class KeyboardViewController: UIInputViewController, UITableViewDataSource, UITableViewDelegate {
+
+    private enum Mode { case templates, suggestions }
+
+    private struct SuggestRow {
+        let id: String
+        let title: String
+        let why: String
+        let price: String?
+        var on: Bool
+    }
 
     // Halia palette
     private let brand = UIColor(red: 0.12, green: 0.34, blue: 0.29, alpha: 1) // #1F564A
@@ -32,10 +42,12 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     ]
 
     // State
+    private var mode: Mode = .templates
     private var currentRef: ClientRef?
-    private var clientName: String?      // resolved display name from lookup
-    private var statusText: String?      // transient ("Looking up…", an error), shown in the client bar
+    private var clientName: String?
+    private var statusText: String?
     private var busy = false
+    private var suggestions: [SuggestRow] = []
 
     private var templates: [Template] = []
     private var categories: [String] = []
@@ -43,14 +55,15 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     // Views
     private let clientBar = UIStackView()
-    private let intentsScroll = UIScrollView()
-    private let intentsStack = UIStackView()
-    private var intentsHeight: NSLayoutConstraint!
-    private let chipsScroll = UIScrollView()
+    private let actionScroll = UIScrollView()     // draft chips (templates) OR send bar (suggestions)
+    private let actionStack = UIStackView()
+    private var actionHeight: NSLayoutConstraint!
+    private let chipsScroll = UIScrollView()      // category chips (templates mode only)
     private let chipsStack = UIStackView()
+    private var chipsHeight: NSLayoutConstraint!
     private let table = UITableView(frame: .zero, style: .plain)
     private let emptyLabel = UILabel()
-    private let cellID = "tpl"
+    private let cellID = "cell"
 
     private var filtered: [Template] {
         guard let c = selectedCategory else { return templates }
@@ -65,6 +78,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         return p.isEmpty ? nil : p
     }
 
+    private var selectedCount: Int { suggestions.filter { $0.on }.count }
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -72,7 +87,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         view.backgroundColor = paper
         pinHeight(320)
         buildClientBar()
-        buildIntents()
+        buildActionRow()
         buildChips()
         buildTable()
         buildEmptyLabel()
@@ -90,16 +105,16 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         c.isActive = true
     }
 
-    // MARK: - Data
+    // MARK: - Data / refresh
 
     private func reload() {
         templates = TemplateStore.load()
         categories = TemplateStore.categories()
         if let c = selectedCategory, !categories.contains(c) { selectedCategory = nil }
         rebuildClientBar()
-        rebuildIntents()
+        rebuildActionRow()
         rebuildChips()
-        emptyLabel.isHidden = !templates.isEmpty
+        emptyLabel.isHidden = !(mode == .templates && templates.isEmpty)
         table.reloadData()
     }
 
@@ -123,7 +138,6 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func rebuildClientBar() {
         clientBar.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
         if !hasFullAccess {
             clientBar.addArrangedSubview(mutedLabel("Turn on Full Access in Settings to personalise"))
             return
@@ -133,12 +147,11 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             return
         }
         if currentRef == nil {
-            let b = pillButton("＋  Use copied client", filled: true) { [weak self] in self?.useCopiedClient() }
-            clientBar.addArrangedSubview(b)
+            clientBar.addArrangedSubview(
+                pillButton("＋  Use copied client", filled: true) { [weak self] in self?.useCopiedClient() })
             return
         }
-        let name = clientName ?? currentRef?.value ?? "client"
-        let label = mutedLabel("For \(name)")
+        let label = mutedLabel("For \(clientName ?? currentRef?.value ?? "client")")
         label.textColor = brand
         label.font = .systemFont(ofSize: 14, weight: .semibold)
         clientBar.addArrangedSubview(label)
@@ -154,139 +167,165 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
         currentRef = ref
         clientName = ref.kind == .name ? ref.value : nil
+        mode = .templates
+        suggestions = []
         setStatus("Looking up…")
         Task {
             do {
                 let res = try await HaliaAPI.current.lookup(ref)
                 if let n = res.name, !n.isEmpty { clientName = n }
-            } catch {
-                // Keep the client set from what was copied; personalisation still works by name.
-            }
+            } catch { /* keep the copied ref; personalisation still works by name */ }
             setStatus(nil)
             reload()
         }
     }
 
     private func clearClient() {
-        currentRef = nil
-        clientName = nil
-        setStatus(nil)
-        reload()
+        currentRef = nil; clientName = nil; mode = .templates; suggestions = []
+        setStatus(nil); reload()
     }
 
-    // MARK: - Intents (draft a personal message)
+    // MARK: - Action row (draft chips in templates mode, send bar in suggestions mode)
 
-    private func buildIntents() {
-        intentsScroll.translatesAutoresizingMaskIntoConstraints = false
-        intentsScroll.showsHorizontalScrollIndicator = false
-        view.addSubview(intentsScroll)
-        intentsStack.axis = .horizontal
-        intentsStack.spacing = 8
-        intentsStack.alignment = .center
-        intentsStack.translatesAutoresizingMaskIntoConstraints = false
-        intentsStack.isLayoutMarginsRelativeArrangement = true
-        intentsStack.layoutMargins = UIEdgeInsets(top: 5, left: 12, bottom: 5, right: 12)
-        intentsScroll.addSubview(intentsStack)
-
-        intentsHeight = intentsScroll.heightAnchor.constraint(equalToConstant: 0)
+    private func buildActionRow() {
+        configureScroll(actionScroll, stack: actionStack)
+        actionHeight = actionScroll.heightAnchor.constraint(equalToConstant: 0)
         NSLayoutConstraint.activate([
-            intentsScroll.topAnchor.constraint(equalTo: clientBar.bottomAnchor),
-            intentsScroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            intentsScroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            intentsHeight,
-            intentsStack.topAnchor.constraint(equalTo: intentsScroll.contentLayoutGuide.topAnchor),
-            intentsStack.bottomAnchor.constraint(equalTo: intentsScroll.contentLayoutGuide.bottomAnchor),
-            intentsStack.leadingAnchor.constraint(equalTo: intentsScroll.contentLayoutGuide.leadingAnchor),
-            intentsStack.trailingAnchor.constraint(equalTo: intentsScroll.contentLayoutGuide.trailingAnchor),
-            intentsStack.heightAnchor.constraint(equalTo: intentsScroll.frameLayoutGuide.heightAnchor),
+            actionScroll.topAnchor.constraint(equalTo: clientBar.bottomAnchor),
+            actionScroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            actionScroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            actionHeight,
         ])
     }
 
-    private func rebuildIntents() {
-        intentsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+    private func rebuildActionRow() {
+        actionStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+
+        if mode == .suggestions {
+            actionHeight.constant = 46
+            actionScroll.isHidden = false
+            actionStack.addArrangedSubview(
+                pillButton("‹ Templates", filled: false) { [weak self] in self?.backToTemplates() })
+            let send = pillButton("Send catalogue (\(selectedCount))", filled: true) { [weak self] in
+                self?.sendCatalogue()
+            }
+            actionStack.addArrangedSubview(send)
+            return
+        }
+
         let show = (currentRef != nil) && hasFullAccess && (statusText == nil)
-        intentsHeight.constant = show ? 44 : 0
-        intentsScroll.isHidden = !show
+        actionHeight.constant = show ? 46 : 0
+        actionScroll.isHidden = !show
         guard show else { return }
+        let suggest = pillButton("✦ Suggest pieces", filled: true) { [weak self] in self?.suggestPieces() }
+        actionStack.addArrangedSubview(suggest)
         let lead = mutedLabel("Draft:")
         lead.font = .systemFont(ofSize: 12, weight: .semibold)
-        intentsStack.addArrangedSubview(lead)
+        actionStack.addArrangedSubview(lead)
         for (label, instruction) in intents {
-            intentsStack.addArrangedSubview(
+            actionStack.addArrangedSubview(
                 pillButton(label, filled: false) { [weak self] in self?.draftIntent(instruction) })
         }
     }
 
     private func draftIntent(_ instruction: String) {
         guard let ref = currentRef, !busy else { return }
-        busy = true
-        setStatus("Drafting…")
+        busy = true; setStatus("Drafting…")
         Task {
             do {
                 let res = try await HaliaAPI.current.draft(ref, channel: "whatsapp", instruction: instruction)
                 if let n = res.name, !n.isEmpty { clientName = n }
-                if let d = res.draft, !d.isEmpty {
-                    textDocumentProxy.insertText(d)
-                    setStatus(nil)
+                if let d = res.draft, !d.isEmpty { textDocumentProxy.insertText(d); setStatus(nil) }
+                else { setStatus("No draft came back") }
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
+
+    // MARK: - Suggestions
+
+    private func suggestPieces() {
+        guard let ref = currentRef, !busy else { return }
+        busy = true; setStatus("Finding pieces…")
+        Task {
+            do {
+                let picks = try await HaliaAPI.current.suggest(ref, instruction: "")
+                suggestions = picks.map { SuggestRow(id: $0.productId, title: $0.title,
+                                                     why: $0.why, price: $0.priceText, on: true) }
+                if suggestions.isEmpty {
+                    setStatus("No suggestions right now")
                 } else {
-                    setStatus("No draft came back")
+                    mode = .suggestions; setStatus(nil)
                 }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
-            busy = false
-            reload()
+            busy = false; reload()
         }
+    }
+
+    private func sendCatalogue() {
+        let ids = suggestions.filter { $0.on }.map { $0.id }
+        guard !ids.isEmpty else { flash("Pick at least one piece"); return }
+        guard !busy else { return }
+        busy = true; setStatus("Making a catalogue…")
+        Task {
+            do {
+                let url = try await HaliaAPI.current.catalogue(productIds: ids, name: clientName)
+                textDocumentProxy.insertText(url)
+                mode = .templates; suggestions = []; setStatus(nil)
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
+
+    private func backToTemplates() {
+        mode = .templates; suggestions = []; reload()
     }
 
     // MARK: - Category chips
 
     private func buildChips() {
-        chipsScroll.translatesAutoresizingMaskIntoConstraints = false
-        chipsScroll.showsHorizontalScrollIndicator = false
-        view.addSubview(chipsScroll)
-        chipsStack.axis = .horizontal
-        chipsStack.spacing = 8
-        chipsStack.alignment = .center
-        chipsStack.translatesAutoresizingMaskIntoConstraints = false
-        chipsStack.isLayoutMarginsRelativeArrangement = true
-        chipsStack.layoutMargins = UIEdgeInsets(top: 5, left: 12, bottom: 5, right: 12)
-        chipsScroll.addSubview(chipsStack)
+        configureScroll(chipsScroll, stack: chipsStack)
+        chipsHeight = chipsScroll.heightAnchor.constraint(equalToConstant: 44)
         NSLayoutConstraint.activate([
-            chipsScroll.topAnchor.constraint(equalTo: intentsScroll.bottomAnchor),
+            chipsScroll.topAnchor.constraint(equalTo: actionScroll.bottomAnchor),
             chipsScroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             chipsScroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            chipsScroll.heightAnchor.constraint(equalToConstant: 44),
-            chipsStack.topAnchor.constraint(equalTo: chipsScroll.contentLayoutGuide.topAnchor),
-            chipsStack.bottomAnchor.constraint(equalTo: chipsScroll.contentLayoutGuide.bottomAnchor),
-            chipsStack.leadingAnchor.constraint(equalTo: chipsScroll.contentLayoutGuide.leadingAnchor),
-            chipsStack.trailingAnchor.constraint(equalTo: chipsScroll.contentLayoutGuide.trailingAnchor),
-            chipsStack.heightAnchor.constraint(equalTo: chipsScroll.frameLayoutGuide.heightAnchor),
+            chipsHeight,
         ])
     }
 
     private func rebuildChips() {
         chipsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        let show = (mode == .templates)
+        chipsHeight.constant = show ? 44 : 0
+        chipsScroll.isHidden = !show
+        guard show else { return }
         chipsStack.addArrangedSubview(chip(title: "All", value: nil))
         for c in categories { chipsStack.addArrangedSubview(chip(title: c, value: c)) }
     }
 
     private func chip(title: String, value: String?) -> UIButton {
-        let selected = (value == selectedCategory)
-        return pillButton(title, filled: selected) { [weak self] in
+        pillButton(title, filled: value == selectedCategory) { [weak self] in
             self?.selectedCategory = value
             self?.rebuildChips()
             self?.table.reloadData()
         }
     }
 
-    // MARK: - Templates table
+    // MARK: - Table
 
     private func buildTable() {
         table.translatesAutoresizingMaskIntoConstraints = false
         table.dataSource = self
         table.delegate = self
         table.backgroundColor = .clear
+        table.tintColor = brand
         table.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
         view.addSubview(table)
         NSLayoutConstraint.activate([
@@ -313,24 +352,40 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ])
     }
 
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { filtered.count }
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        mode == .templates ? filtered.count : suggestions.count
+    }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = UITableViewCell(style: .subtitle, reuseIdentifier: cellID)
-        let t = filtered[indexPath.row]
         cell.backgroundColor = .clear
-        cell.textLabel?.text = t.name
         cell.textLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        cell.detailTextLabel?.text = t.preview
         cell.detailTextLabel?.textColor = .secondaryLabel
         cell.detailTextLabel?.numberOfLines = 1
+
+        if mode == .templates {
+            let t = filtered[indexPath.row]
+            cell.textLabel?.text = t.name
+            cell.detailTextLabel?.text = t.preview
+            cell.accessoryType = .none
+        } else {
+            let s = suggestions[indexPath.row]
+            cell.textLabel?.text = s.title
+            cell.detailTextLabel?.text = [s.price, s.why].compactMap { $0 }.joined(separator: "  ·  ")
+            cell.accessoryType = s.on ? .checkmark : .none
+        }
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let t = filtered[indexPath.row]
-        textDocumentProxy.insertText(t.ready(firstName: currentFirstName))
+        if mode == .templates {
+            textDocumentProxy.insertText(filtered[indexPath.row].ready(firstName: currentFirstName))
+        } else {
+            suggestions[indexPath.row].on.toggle()
+            tableView.reloadRows(at: [indexPath], with: .none)
+            rebuildActionRow()   // update the "Send catalogue (N)" count
+        }
     }
 
     // MARK: - Control row
@@ -360,12 +415,32 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ])
     }
 
-    // MARK: - Small view helpers
+    // MARK: - Helpers
+
+    private func configureScroll(_ scroll: UIScrollView, stack: UIStackView) {
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        scroll.showsHorizontalScrollIndicator = false
+        view.addSubview(scroll)
+        stack.axis = .horizontal
+        stack.spacing = 8
+        stack.alignment = .center
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.isLayoutMarginsRelativeArrangement = true
+        stack.layoutMargins = UIEdgeInsets(top: 5, left: 12, bottom: 5, right: 12)
+        scroll.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
+            stack.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor),
+            stack.heightAnchor.constraint(equalTo: scroll.frameLayoutGuide.heightAnchor),
+        ])
+    }
 
     private func setStatus(_ s: String?) {
         statusText = s
         rebuildClientBar()
-        rebuildIntents()
+        rebuildActionRow()
     }
 
     private func flash(_ s: String) {

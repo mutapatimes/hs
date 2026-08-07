@@ -61,9 +61,87 @@ struct HaliaAPI {
         return try await postJSON("/v1/extension/draft", body: body)
     }
 
+    // MARK: Suggest (keyboard) — pieces to put in front of this client, chosen from your products.
+
+    /// A number-or-string JSON scalar (Shopify prices arrive either way).
+    private enum Scalar: Decodable {
+        case string(String), number(Double), none
+        init(from decoder: Decoder) throws {
+            let c = try decoder.singleValueContainer()
+            if let s = try? c.decode(String.self) { self = .string(s) }
+            else if let n = try? c.decode(Double.self) { self = .number(n) }
+            else { self = .none }
+        }
+        var text: String? {
+            switch self {
+            case .string(let s): return s.isEmpty ? nil : s
+            case .number(let n): return n.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(n)) : String(n)
+            case .none: return nil
+            }
+        }
+    }
+
+    struct Pick: Decodable {
+        let productId: String
+        let title: String
+        let why: String
+        let priceText: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case productId = "product_id", title, why, price, currency
+        }
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            productId = (try? c.decode(String.self, forKey: .productId)) ?? ""
+            title = (try? c.decodeIfPresent(String.self, forKey: .title)) ?? "" ?? ""
+            why = (try? c.decodeIfPresent(String.self, forKey: .why)) ?? "" ?? ""
+            let price = (try? c.decodeIfPresent(Scalar.self, forKey: .price))?.text
+            let currency = (try? c.decodeIfPresent(String.self, forKey: .currency)) ?? nil
+            if let p = price {
+                priceText = HaliaAPI.symbol(currency).map { $0 + p } ?? p
+            } else {
+                priceText = nil
+            }
+        }
+    }
+
+    private struct SuggestResponse: Decodable { let picks: [Pick]? }
+
+    func suggest(_ ref: ClientRef, instruction: String) async throws -> [Pick] {
+        var body = ref.body
+        if !instruction.isEmpty { body["instruction"] = instruction }
+        let resp: SuggestResponse = try await postJSON("/v1/extension/suggest", body: body)
+        return resp.picks ?? []
+    }
+
+    private static func symbol(_ currency: String?) -> String? {
+        switch (currency ?? "").uppercased() {
+        case "GBP": return "£"
+        case "USD", "CAD", "AUD": return "$"
+        case "EUR": return "€"
+        case "": return nil
+        default: return (currency ?? "") + " "
+        }
+    }
+
+    // MARK: Catalogue (keyboard) — mint a branded link for the chosen pieces.
+
+    private struct CatalogueResponse: Decodable { let url: String? }
+
+    func catalogue(productIds: [String], name: String?) async throws -> String {
+        let body: [String: Any] = ["product_ids": productIds, "name": name ?? ""]
+        let resp: CatalogueResponse = try await postAny("/v1/extension/catalogue", body: body)
+        guard let url = resp.url, !url.isEmpty else { throw HaliaAPIError.decode }
+        return url
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {
+        try await postAny(path, body: body)
+    }
+
+    private func postAny<T: Decodable>(_ path: String, body: [String: Any]) async throws -> T {
         let payload = try JSONSerialization.data(withJSONObject: body)
         let (data, _) = try await send(path, method: "POST", body: payload)
         guard let decoded = try? JSONDecoder().decode(T.self, from: data) else {
