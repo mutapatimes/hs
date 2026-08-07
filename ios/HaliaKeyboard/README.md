@@ -5,9 +5,11 @@ a VIP without leaving WhatsApp. There is no grade here by design: the point is t
 
 It works in two layers:
 
-1. **Templates, offline.** The host app signs in with your Halia extension token and syncs your
-   templates into a shared App Group; the keyboard inserts the one you tap. The house catalogue
-   rides along via the `{catalog_link}` template. This layer needs no network and no Full Access.
+1. **Templates and store info, offline.** The host app signs in with your Halia extension token and
+   syncs your templates into a shared App Group; the keyboard inserts the one you tap. The house
+   catalogue rides along via the `{catalog_link}` template. You can also fill in **store-info
+   snippets** (hours, directions, returns, care, size guide, contact) in the app, and they appear in
+   the keyboard under a "Store info" category. This layer needs no network and no Full Access.
 2. **The composer, with Full Access.** Copy the client's name or number in the chat, tap "Use copied
    client", and the keyboard looks them up. Then:
    - templates fill with their real name;

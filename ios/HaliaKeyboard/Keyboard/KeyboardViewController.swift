@@ -118,8 +118,11 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     // MARK: - Refresh
 
     private func reload() {
-        templates = TemplateStore.load()
-        categories = TemplateStore.categories()
+        // Synced client templates plus the merchant's store-info snippets, which ride along as a
+        // "Store info" category and insert exactly like any template.
+        templates = TemplateStore.load() + StoreInfoStore.asTemplates()
+        var seen = Set<String>()
+        categories = templates.map { $0.category }.filter { seen.insert($0).inserted }.sorted()
         if let c = selectedCategory, !categories.contains(c) { selectedCategory = nil }
         rebuildClientBar()
         rebuildActionRow()

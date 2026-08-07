@@ -18,6 +18,7 @@ enum AppGroup {
 
     enum Key {
         static let templates = "halia.templates.json"
+        static let storeInfo = "halia.storeinfo.json"
         static let baseURL   = "halia.baseURL"
         static let token     = "halia.token"
         static let syncedAt  = "halia.syncedAt"
