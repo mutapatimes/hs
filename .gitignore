@@ -65,3 +65,6 @@ reference_data/companies/us_insiders.local.csv
 # jsdom for the dashboard smoke test (installed via: cd tests/js && npm install)
 tests/js/node_modules/
 tests/js/package-lock.json
+
+# Packaged browser-extension build artifact (produced for uploading, not source).
+extension.zip
