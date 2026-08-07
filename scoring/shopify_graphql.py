@@ -115,7 +115,7 @@ PRODUCT_SEARCH_QUERY = (
     "query ProductSearch($q: String!, $n: Int!) {\n"
     "  products(first: $n, query: $q, sortKey: TITLE) {\n"
     "    nodes {\n"
-    "      id title status\n"
+    "      id title handle status\n"
     "      featuredImage { url }\n"
     "      variants(first: 25) { nodes { id title price availableForSale } }\n"
     "    }\n"
@@ -138,6 +138,7 @@ def product_search_node(node: dict) -> dict:
     return {
         "id": str(node.get("id") or "").rsplit("/", 1)[-1],
         "title": node.get("title") or "",
+        "handle": node.get("handle") or "",          # for a /products/<handle> share link
         "image": (node.get("featuredImage") or {}).get("url"),
         "variants": variants,
     }

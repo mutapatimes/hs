@@ -18,6 +18,9 @@ It works in two layers:
    - **Reply** drafts a response to a message you copied from the client;
    - **Nudge basket** appears when the client left an open basket, and drafts a warm recovery note
      with the checkout link;
+   - **Products** is a live, searchable image library of your catalogue (like a GIF keyboard): tap
+     🔍 Products, pick a category or search what you typed, and a grid of product photos appears. Tap
+     one to drop its shoppable product link into the chat (which previews the image);
    - **Suggest pieces** recommends products from your catalogue, sent as a branded catalogue link;
    - **Mark contacted** logs the outreach to your shared team pipeline so nobody double-messages.
 
@@ -145,6 +148,12 @@ secrecy of the token, a shared Keychain access group is the hardening step over 
 
 - The keyboard cannot read the incoming thread, so a draft is built from the client plus the intent
   you tap, not from replying to their last message. You review and edit before sending.
+- Product search is live (queried per term via /v1/extension/products, like a GIF keyboard fetching
+  a CDN), so it needs Full Access and a Shopify store. Thumbnails are downsampled and cached to stay
+  inside the keyboard's memory budget. Sharing drops the shoppable product link (WhatsApp previews
+  the image); pasting the raw image file would be a later "copy image" option.
+- "What you typed" reads the words already in the message field as the search query, since a keyboard
+  cannot host its own text field. A full in-keyboard search field is a later addition.
 - Copy-to-lookup is one gesture. It is the price of not being able to read the WhatsApp screen.
 - No free-text search (a keyboard cannot host a text field). Category chips cover filtering.
 - Suggestions and drafts need an AI key configured on the Halia backend. Without one, drafts fall
