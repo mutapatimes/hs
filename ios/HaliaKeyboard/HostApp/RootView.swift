@@ -1,7 +1,8 @@
 // Target membership: HOST APP ONLY.
 //
-// One screen: connect with your Halia token, sync templates into the App Group, optionally set a
-// client first name, and a short guide to turning the keyboard on. That is the whole host app.
+// The app you download: a quiet, luxury welcome, then an elevated setup where you connect and enter
+// your store info. Deliberately not the stock iOS Settings look: paper ground, the system serif
+// (New York) for display, one green accent, gold hairlines.
 import SwiftUI
 
 @MainActor
@@ -30,22 +31,19 @@ final class RootModel: ObservableObject {
     func sync() async {
         let t = token.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else {
-            status = "Paste your Halia extension token first."; isError = true; return
+            status = "Paste your Halia token first."; isError = true; return
         }
         busy = true; isError = false; status = "Syncing…"
         Credentials.token = t
         Credentials.baseURL = baseURL
-
         do {
             let fetched = try await HaliaAPI(baseURL: baseURL, token: t).fetchTemplates()
             TemplateStore.save(fetched)
             templates = fetched
             if fetched.isEmpty {
-                status = "Connected, but Halia has no templates yet. Add some in Halia, Settings."
-                isError = true
+                status = "Connected. No templates in Halia yet."; isError = true
             } else {
-                status = "Synced \(fetched.count) templates."
-                isError = false
+                status = "\(fetched.count) templates ✓"; isError = false
             }
         } catch {
             status = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
@@ -55,91 +53,207 @@ final class RootModel: ObservableObject {
     }
 
     func saveInfo() {
-        for label in StoreInfoStore.labels {
-            StoreInfoStore.set(info[label] ?? "", for: label)
+        for label in StoreInfoStore.labels { StoreInfoStore.set(info[label] ?? "", for: label) }
+    }
+}
+
+// MARK: - Palette + shared pieces
+
+private enum Palette {
+    static let ink       = Color(red: 0.106, green: 0.114, blue: 0.133)
+    static let soft      = Color(red: 0.373, green: 0.388, blue: 0.420)
+    static let faint     = Color(red: 0.604, green: 0.576, blue: 0.522)
+    static let brand     = Color(red: 0.122, green: 0.337, blue: 0.290)
+    static let brandDeep = Color(red: 0.078, green: 0.227, blue: 0.196)
+    static let gold      = Color(red: 0.651, green: 0.486, blue: 0.204)
+    static let card      = Color(red: 0.988, green: 0.984, blue: 0.969)
+    static let line      = Color(red: 0.902, green: 0.882, blue: 0.835)
+    static let bgTop     = Color(red: 0.980, green: 0.973, blue: 0.949)
+    static let bg        = Color(red: 0.957, green: 0.945, blue: 0.918)
+    static let bg2       = Color(red: 0.918, green: 0.898, blue: 0.851)
+}
+
+private func serif(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+    .system(size: size, weight: weight, design: .serif)
+}
+
+private let mark = "\u{2042}"   // ⁂ the Halia asterism
+
+private struct PaperBackground: View {
+    var body: some View {
+        LinearGradient(colors: [Palette.bgTop, Palette.bg, Palette.bg2],
+                       startPoint: .top, endPoint: .bottom)
+            .ignoresSafeArea()
+    }
+}
+
+private struct Card<Content: View>: View {
+    let content: Content
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) { content }
+            .padding(20)
+            .background(RoundedRectangle(cornerRadius: 20).fill(Palette.card))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.line, lineWidth: 1))
+            .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 12)
+    }
+}
+
+private func cardLabel(_ text: String) -> some View {
+    Text(text.uppercased()).font(serif(12.5)).foregroundColor(Palette.gold)
+}
+
+private struct LuxeField: View {
+    let label: String
+    @Binding var text: String
+    var secure = false
+    var keyboard: UIKeyboardType = .default
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label.uppercased()).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Palette.faint)
+            Group {
+                if secure { SecureField("", text: $text) } else { TextField("", text: $text) }
+            }
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .keyboardType(keyboard)
+            .font(.system(size: 15))
+            .foregroundColor(Palette.ink)
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.line, lineWidth: 1))
         }
     }
 }
 
+private struct LuxeButton: View {
+    let title: String
+    let action: () -> Void
+    init(_ title: String, action: @escaping () -> Void) { self.title = title; self.action = action }
+    var body: some View {
+        Button(action: action) {
+            Text(title).font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                .padding(.horizontal, 20).padding(.vertical, 13)
+                .background(RoundedRectangle(cornerRadius: 13).fill(Palette.brand))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Root
+
 struct RootView: View {
     @StateObject private var model = RootModel()
-
-    private let brand = Color(red: 0.12, green: 0.34, blue: 0.29) // #1F564A
+    @State private var showSetup = Credentials.hasToken   // returning users skip the welcome
 
     var body: some View {
-        NavigationView {
-            Form {
-                Section("Connect to Halia") {
-                    SecureField("Halia extension token", text: $model.token)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("Halia address", text: $model.baseURL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                    Button {
-                        Task { await model.sync() }
-                    } label: {
-                        HStack {
-                            Text(model.busy ? "Syncing…" : "Connect and sync templates")
-                            if model.busy { Spacer(); ProgressView() }
+        ZStack {
+            PaperBackground()
+            if showSetup {
+                SetupView(model: model)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            } else {
+                WelcomeView { withAnimation(.easeInOut(duration: 0.45)) { showSetup = true } }
+                    .transition(.opacity)
+            }
+        }
+    }
+}
+
+// MARK: - Welcome
+
+private struct WelcomeView: View {
+    let onBegin: () -> Void
+    var body: some View {
+        ZStack {
+            PaperBackground()
+            Text(mark).font(serif(300)).foregroundColor(Palette.gold).opacity(0.05)
+                .offset(x: 120, y: -260)
+            VStack(spacing: 0) {
+                Spacer()
+                Text(mark).font(serif(30)).foregroundColor(Palette.brand)
+                Text("Halia").font(serif(74)).foregroundColor(Palette.ink).padding(.top, 18)
+                RoundedRectangle(cornerRadius: 1).fill(Palette.gold).frame(width: 46, height: 2).padding(.vertical, 26)
+                Text("Private client care, in your pocket.")
+                    .font(serif(22)).foregroundColor(Palette.brandDeep)
+                    .multilineTextAlignment(.center)
+                Text("Your templates, your clients and your house voice, one tap away inside WhatsApp.")
+                    .font(.system(size: 15)).foregroundColor(Palette.soft)
+                    .multilineTextAlignment(.center).padding(.top, 14).padding(.horizontal, 44)
+                Spacer()
+                VStack(spacing: 16) {
+                    Button(action: onBegin) {
+                        Text("Begin").font(.system(size: 17, weight: .semibold)).foregroundColor(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 17)
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Palette.brand))
+                    }
+                    .buttonStyle(.plain)
+                    Button(action: onBegin) {
+                        (Text("Already set up?  ").foregroundColor(Palette.soft)
+                         + Text("Connect").foregroundColor(Palette.brand).bold())
+                            .font(.system(size: 14))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 34).padding(.bottom, 44)
+            }
+        }
+    }
+}
+
+// MARK: - Setup
+
+private struct SetupView: View {
+    @ObservedObject var model: RootModel
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(mark).font(serif(20)).foregroundColor(Palette.brand)
+                    Text("Set up your desk").font(serif(34)).foregroundColor(Palette.ink)
+                    Text("A few quiet minutes, once.").font(.system(size: 14.5)).foregroundColor(Palette.soft)
+                }
+                .padding(.top, 8).padding(.bottom, 2)
+
+                Card {
+                    cardLabel("Connect")
+                    LuxeField(label: "Halia token", text: $model.token, secure: true)
+                    LuxeField(label: "Address", text: $model.baseURL, keyboard: .URL)
+                    HStack(spacing: 12) {
+                        LuxeButton(model.busy ? "Syncing…" : "Connect & sync") { Task { await model.sync() } }
+                            .disabled(model.busy)
+                        if !model.status.isEmpty {
+                            Text(model.status).font(.system(size: 13.5, weight: .semibold))
+                                .foregroundColor(model.isError ? .red : Palette.brand)
                         }
                     }
-                    .disabled(model.busy)
-                    if !model.status.isEmpty {
-                        Text(model.status)
-                            .font(.footnote)
-                            .foregroundStyle(model.isError ? Color.red : brand)
-                    }
+                    .padding(.top, 4)
                 }
 
-                if !model.templates.isEmpty {
-                    Section("Your templates (\(model.templates.count))") {
-                        ForEach(model.templates) { t in
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(t.name).font(.subheadline).bold()
-                                Text(t.category).font(.caption).foregroundStyle(.secondary)
-                                Text(t.preview).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                            }
-                            .padding(.vertical, 2)
-                        }
-                    }
-                }
-
-                Section {
+                Card {
+                    cardLabel("What your house offers")
                     ForEach(StoreInfoStore.labels, id: \.self) { label in
-                        TextField(label, text: Binding(
+                        LuxeField(label: label, text: Binding(
                             get: { model.info[label] ?? "" },
-                            set: { model.info[label] = $0 }
-                        ))
-                        .onSubmit { model.saveInfo() }
+                            set: { model.info[label] = $0 }))
                     }
-                    Button("Save store info") { model.saveInfo() }
-                } header: {
-                    Text("Store info")
-                } footer: {
-                    Text("The small facts you paste all day. Fill in what applies. They appear in the keyboard under a \u{201C}Store info\u{201D} category, one tap to insert. Leave a field blank to hide it.")
+                    LuxeButton("Save") { model.saveInfo() }.padding(.top, 4)
                 }
+                Text("These appear in the keyboard under a “Store info” category, one tap to insert.")
+                    .font(.system(size: 12.5)).foregroundColor(Palette.faint).padding(.horizontal, 4)
 
-                Section {
-                    Label("Settings, General, Keyboard, Keyboards, Add New Keyboard, choose Halia.",
-                          systemImage: "1.circle")
-                        .font(.footnote)
-                    Label("Open Halia in that list and turn on Allow Full Access.",
-                          systemImage: "2.circle")
-                        .font(.footnote)
-                    Label("In WhatsApp, tap the globe to switch to Halia. To personalise, copy the client's name or number in the chat, then tap Use copied client.",
-                          systemImage: "3.circle")
-                        .font(.footnote)
-                } header: {
-                    Text("Turn on the Halia keyboard")
-                } footer: {
-                    Text("Full Access lets the keyboard read what you copy and reach your Halia account, so it can draft a personal message and fill the client's name. Halia acts only on what you copy and tap.")
+                Card {
+                    cardLabel("Turn on the keyboard")
+                    Text("Settings › General › Keyboard › Keyboards › add Halia, then allow Full Access.")
+                        .font(.system(size: 14)).foregroundColor(Palette.soft).lineSpacing(2)
+                    Text("In WhatsApp, tap the globe to switch to Halia. To personalise, copy the client's name in the chat, then tap Use copied client.")
+                        .font(.system(size: 14)).foregroundColor(Palette.soft).lineSpacing(2)
                 }
             }
-            .navigationTitle("Halia Templates")
+            .padding(.horizontal, 22).padding(.bottom, 44)
         }
-        .navigationViewStyle(.stack)
+        .background(PaperBackground())
     }
 }
 
