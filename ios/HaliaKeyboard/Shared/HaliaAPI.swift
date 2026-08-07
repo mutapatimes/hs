@@ -177,6 +177,15 @@ struct HaliaAPI {
         return url
     }
 
+    /// A read-only Shopify cart permalink for the selection, so the client can pay in the chat.
+    /// No write scope: the server just resolves variants and the domain.
+    func cartLink(productIds: [String]) async throws -> String {
+        let resp: CatalogueResponse = try await postAny("/v1/extension/cart_link",
+                                                        body: ["product_ids": productIds])
+        guard let url = resp.url, !url.isEmpty else { throw HaliaAPIError.decode }
+        return url
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {

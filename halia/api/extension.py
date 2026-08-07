@@ -918,6 +918,44 @@ def register(app) -> None:
         data.record_activity(shop, "extension_catalogue")
         return {"url": adhoc_url(shop, ids, first)}
 
+    @app.post("/v1/extension/cart_link")
+    def extension_cart_link(x_halia_ext_token: Optional[str] = Header(None),
+                            payload: Any = Body(default=None)) -> dict:
+        """A Shopify cart permalink for the selected pieces, so the client can pay in the chat.
+
+        READ-ONLY and no new scope: it resolves each product to a buyable variant and builds a
+        /cart/<variant>:<qty> link on the merchant's own domain. It creates nothing on the store
+        (that is the write-scope 'pay-by-link' tier, kept separate on purpose). Products with no
+        buyable variant are skipped. Zero-retention: the selection is used in-flight only."""
+        from halia.api import catalog
+
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        body = payload or {}
+        ids = [str(p).strip() for p in (body.get("product_ids") or []) if str(p).strip()][:20]
+        if not ids:
+            raise HTTPException(422, "product_ids is required")
+        try:
+            products = catalog._products(shop)
+        except Exception:  # noqa: BLE001 — no products, no link; never a broken panel
+            products = []
+        by_id = {str(p.get("id")): p for p in products}
+        parts = []
+        for pid in ids:
+            prod = by_id.get(str(pid))
+            if not prod:
+                continue
+            variant = _variant_of(shop, prod.get("title") or "")
+            vid = (variant or {}).get("id")
+            if vid:
+                parts.append(f"{vid}:1")
+        if not parts:
+            raise HTTPException(422, "No buyable variants for those products")
+        data.record_activity(shop, "extension_cart_link")
+        return {"url": f"{_cart_base(shop)}/cart/{','.join(parts)}"}
+
     @app.get("/v1/extension/events")
     def extension_events(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
         """Recent high-grade order alerts for the proactive radar. Same RAM feed the dashboard's
