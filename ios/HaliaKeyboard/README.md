@@ -21,6 +21,12 @@ It works in two layers:
 
    This layer makes live calls, so it needs Full Access.
 
+A **Client / Team** toggle sits at the top. Client mode (the above) writes a message *to* the client.
+Team mode writes *about* the client, for a colleague: **Handoff** drafts a short internal note (who
+they are, what they want, the next step) to paste into Slack, Teams, or a team chat. The internal note
+never carries Halia's grade language: the phrase "hidden VIP" is both forbidden in the prompt and
+scrubbed from the result, so it can never reach a teammate.
+
 The keyboard never reads the WhatsApp screen. The client is identified only by what you copy.
 
 ## What is here
