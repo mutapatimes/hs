@@ -623,7 +623,24 @@ def register(app) -> None:
     def mint_extension_token(shop: str = Depends(require_shop)) -> dict:
         token = new_token()
         shop_store().set_extension_token(shop, hash_token(token))
-        return {"token": token, "base": (config.HALIA_APP_URL or "").rstrip("/")}
+        base = (config.HALIA_APP_URL or "").rstrip("/")
+        # A deep link the iOS keyboard app understands, rendered as a QR so the merchant can connect
+        # the app by scanning it with their phone (no typing a token). The raw token only exists here
+        # at mint time, so the QR is built now. If the QR library is unavailable, the token still
+        # returns and the manual copy path still works.
+        connect = f"halia://connect?t={token}&b={base}"
+        qr = None
+        try:
+            import base64
+            import io
+
+            import segno
+            buf = io.BytesIO()
+            segno.make(connect, error="m").save(buf, kind="png", scale=6, border=2)
+            qr = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+        except Exception:  # noqa: BLE001 — QR is a convenience; never fail the mint over it
+            qr = None
+        return {"token": token, "base": base, "connect": connect, "qr": qr}
 
     @app.get("/v1/extension/token")
     def extension_token_status(shop: str = Depends(require_shop)) -> dict:

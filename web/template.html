@@ -3552,6 +3552,10 @@ function openSettings(page){
             <div style="${LBL}">Your token, shown once. Copy it now and paste it into the extension.</div>
             <code id="setExtTok" style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);background:var(--rowhover);border-radius:0;padding:11px 13px;word-break:break-all;margin-top:6px"></code>
             <div style="margin-top:10px"><button id="setExtCopy" style="background:none;border:none;color:#1f564a;font:600 13px system-ui;cursor:pointer;padding:0">Copy token</button></div>
+            <div id="setExtQrWrap" style="display:none;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+              <div style="${LBL}">Halia keyboard app (iPhone): scan this with your phone to connect it. No token to type.</div>
+              <img id="setExtQr" alt="Scan to connect the Halia keyboard app" style="width:184px;height:184px;image-rendering:pixelated;margin-top:10px;background:#fff;padding:8px">
+            </div>
           </div>
           <div style="font:12px system-ui;color:#8a8a8a;margin-top:12px">Generating a new token replaces any previous one, and any extension using the old token will need the new one.</div>
         </div>
@@ -3843,6 +3847,8 @@ function openSettings(page){
         SETTINGS.extension_enabled=true;
         const out=document.getElementById("setExtOut"),tok=document.getElementById("setExtTok");
         if(tok)tok.textContent=d.token||"";if(out)out.style.display="";
+        const qr=document.getElementById("setExtQr"),qrw=document.getElementById("setExtQrWrap");
+        if(d.qr&&qr&&qrw){qr.src=d.qr;qrw.style.display="";}
         extGen.disabled=false;extGen.textContent="Generate a new token";
       }).catch(e=>{toast("Could not generate a token: "+e.message);extGen.disabled=false;extGen.textContent="Generate token";});
     };
