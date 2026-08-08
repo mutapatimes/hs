@@ -10,7 +10,7 @@
 client_id = ""   # set by `shopify app config link` (== SHOPIFY_API_KEY)
 
 name = "Halia"
-application_url = "https://halia.onrender.com"   # your HALIA_APP_URL
+application_url = "https://haliascore.com"   # your HALIA_APP_URL
 embedded = true
 
 [access_scopes]
@@ -22,7 +22,7 @@ scopes = "read_orders,read_all_orders,read_customers,write_customers,read_produc
 
 [auth]
 redirect_urls = [
-  "https://halia.onrender.com/connect/shopify/callback",
+  "https://haliascore.com/connect/shopify/callback",
 ]
 
 # Mandatory privacy/compliance webhooks — REQUIRED for public distribution. The backend already
@@ -34,11 +34,11 @@ api_version = "2025-01"   # keep in sync with scoring/shopify_fetch.py DEFAULT_A
 
   [[webhooks.subscriptions]]
   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
-  uri = "https://halia.onrender.com/webhooks/shopify"
+  uri = "https://haliascore.com/webhooks/shopify"
 
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
-  uri = "https://halia.onrender.com/webhooks/shopify"
+  uri = "https://haliascore.com/webhooks/shopify"
 
 [pos]
 embedded = true
