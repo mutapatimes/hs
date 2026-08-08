@@ -56,7 +56,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var suggestions: [SuggestRow] = []
     private var products: [HaliaAPI.Product] = []
     private var productCartBase: String?
-    private let searchTerms = ["New in", "Coats", "Bags", "Knitwear", "Dresses", "Shoes", "Jewellery"]
+    private var searchQuery = ""              // the live product-search text, typed on the in-keyboard keys
+    private var searchWork: DispatchWorkItem? // debounces live search as you type
     private var draftText = ""
     private var lastThread: [[String: String]]?
     private var cartUrl: String?         // the client's open basket (recovery link), if any
@@ -90,6 +91,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }()
     private let emptyLabel = UILabel()
     private let cellID = "cell"
+    private let bottomBar = UIView()          // holds either the control row or the search keyboard
+    private var bottomBarHeight: NSLayoutConstraint!
+    private var bottomBarMode: Mode?          // only rebuild the bottom bar when the mode changes
+    private var kbHeight: NSLayoutConstraint! // the keyboard's overall height (taller while searching)
 
     private var filtered: [Template] {
         guard let c = selectedCategory else { return templates }
@@ -115,7 +120,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         buildChips()
         buildTable()
         buildEmptyLabel()
-        buildControls()
+        buildBottomBar()
         buildDraftView()
         buildGrid()
     }
@@ -126,9 +131,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     private func pinHeight(_ h: CGFloat) {
-        let c = view.heightAnchor.constraint(equalToConstant: h)
-        c.priority = UILayoutPriority(999)
-        c.isActive = true
+        kbHeight = view.heightAnchor.constraint(equalToConstant: h)
+        kbHeight.priority = UILayoutPriority(999)
+        kbHeight.isActive = true
     }
 
     // MARK: - Refresh
@@ -143,6 +148,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         rebuildClientBar()
         rebuildActionRow()
         rebuildChips()
+        rebuildBottomBar()
         let showDraft = (mode == .draft)
         let showTemplateList = (mode == .templates && audience == .client)
         let showGrid = (mode == .products && !products.isEmpty)
@@ -284,10 +290,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         case .products:
             actionHeight.constant = 46; actionScroll.isHidden = false
             actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
-            actionStack.addArrangedSubview(pillButton("⌨ What you typed", filled: true) { [weak self] in self?.searchFromTyped() })
-            for term in searchTerms {
-                actionStack.addArrangedSubview(pillButton(term, filled: false) { [weak self] in self?.runProductSearch(term) })
-            }
+            actionStack.addArrangedSubview(searchFieldView())
 
         case .templates:
             let show = (currentRef != nil) && hasFullAccess && (statusText == nil)
@@ -455,25 +458,33 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     private func backToTemplates() {
-        mode = .templates; suggestions = []; products = []; draftText = ""; pendingCartUrl = nil; reload()
+        mode = .templates; suggestions = []; products = []; draftText = ""; pendingCartUrl = nil
+        searchQuery = ""; searchWork?.cancel(); reload()
     }
 
     // MARK: - Products (a live, searchable image library of the store's catalogue)
 
     private func enterProducts() {
-        mode = .products; products = []; reload()
+        mode = .products; products = []; searchQuery = ""; reload()
         runProductSearch("")   // browse the whole catalogue straight away, like a media library
     }
 
-    private func searchFromTyped() {
-        let typed = (textDocumentProxy.documentContextBeforeInput ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !typed.isEmpty else { flash("Type what you are looking for, then tap this"); return }
-        runProductSearch(String(typed.suffix(60)))
+    /// Debounced live search: fired from the in-keyboard keys as the associate types.
+    private func afterSearchEdit() {
+        rebuildActionRow()      // refresh the search-field display immediately
+        searchWork?.cancel()
+        let q = searchQuery
+        let work = DispatchWorkItem { [weak self] in self?.runProductSearch(q) }
+        searchWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
     }
 
+    private func typeSearch(_ s: String) { searchQuery += s; afterSearchEdit() }
+    private func deleteSearch() { guard !searchQuery.isEmpty else { return }; searchQuery.removeLast(); afterSearchEdit() }
+    private func clearSearch() { searchQuery = ""; afterSearchEdit() }
+
     private func runProductSearch(_ q: String) {
-        guard !busy else { return }
+        guard !busy else { return }   // a fetch is in flight; its completion re-runs for the latest text
         busy = true; setStatus(q.isEmpty ? "Loading products…" : "Searching…")
         Task {
             do {
@@ -485,6 +496,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
             busy = false; reload()
+            if mode == .products && searchQuery != q { runProductSearch(searchQuery) }   // catch up to newer typing
         }
     }
 
@@ -658,11 +670,30 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard indexPath.item < products.count else { return }
-        if let link = products[indexPath.item].shareLink(cartBase: productCartBase), !link.isEmpty {
-            textDocumentProxy.insertText(link)
-            flash("Shared ✓")
+        let p = products[indexPath.item]
+        // Tapping a product copies its actual image to the clipboard so the associate can paste the
+        // photo straight into the chat. A keyboard cannot attach a file itself, so this is the one
+        // extra gesture (paste). If there is no image, fall back to sharing the shoppable link.
+        guard let url = p.imageURL else { shareProductLink(p); return }
+        guard hasFullAccess else { flash("Turn on Full Access to send product images"); return }
+        setStatus("Copying image…")
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let img = UIImage(data: data) {
+                    UIPasteboard.general.image = img
+                    flash("Image copied. Long-press the chat and tap Paste to send it.")
+                } else { shareProductLink(p) }
+            } catch { shareProductLink(p) }
+        }
+    }
+
+    /// Fallback when there is no usable image: drop the shoppable product link in the chat instead.
+    private func shareProductLink(_ p: HaliaAPI.Product) {
+        if let link = p.shareLink(cartBase: productCartBase), !link.isEmpty {
+            textDocumentProxy.insertText(link); flash("Link shared ✓")
         } else {
-            flash("No link for that product")
+            flash("Nothing to send for that product")
         }
     }
 
@@ -673,16 +704,47 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         return CGSize(width: max(60, w), height: max(60, w) + 20)
     }
 
-    // MARK: - Control row
+    // MARK: - Bottom bar (a control row everywhere, a live search keyboard in Products)
 
-    private func buildControls() {
+    private func buildBottomBar() {
+        bottomBar.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(bottomBar)
+        bottomBarHeight = bottomBar.heightAnchor.constraint(equalToConstant: 50)
+        NSLayoutConstraint.activate([
+            bottomBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            bottomBarHeight,
+            table.bottomAnchor.constraint(equalTo: bottomBar.topAnchor),
+        ])
+        rebuildBottomBar()
+    }
+
+    /// In Products the bottom bar becomes a full keyboard that types into the search box, so the
+    /// catalogue filters live, and the whole keyboard grows taller to fit both keys and results.
+    private func rebuildBottomBar() {
+        guard bottomBarMode != mode else { return }   // only rebuild on a real mode change
+        bottomBarMode = mode
+        bottomBar.subviews.forEach { $0.removeFromSuperview() }
+        if mode == .products {
+            bottomBarHeight.constant = 198
+            kbHeight?.constant = 500
+            buildSearchKeyboard(into: bottomBar)
+        } else {
+            bottomBarHeight.constant = 50
+            kbHeight?.constant = 320
+            buildControlRow(into: bottomBar)
+        }
+    }
+
+    private func buildControlRow(into bar: UIView) {
         let row = UIStackView()
         row.axis = .horizontal
         row.spacing = 6
         row.translatesAutoresizingMaskIntoConstraints = false
         row.isLayoutMarginsRelativeArrangement = true
         row.layoutMargins = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
-        view.addSubview(row)
+        bar.addSubview(row)
 
         let globe = key("🌐") { [weak self] in self?.advanceToNextInputMode() }
         let space = key("space") { [weak self] in self?.textDocumentProxy.insertText(" ") }
@@ -692,12 +754,94 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         [globe, space, del, ret].forEach { row.addArrangedSubview($0) }
 
         NSLayoutConstraint.activate([
-            row.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            row.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            row.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            row.heightAnchor.constraint(equalToConstant: 50),
-            table.bottomAnchor.constraint(equalTo: row.topAnchor),
+            row.leadingAnchor.constraint(equalTo: bar.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: bar.trailingAnchor),
+            row.topAnchor.constraint(equalTo: bar.topAnchor),
+            row.bottomAnchor.constraint(equalTo: bar.bottomAnchor),
         ])
+    }
+
+    // A compact lowercase keyboard whose keys type into the product search, not the chat.
+    private func buildSearchKeyboard(into bar: UIView) {
+        let col = UIStackView(arrangedSubviews: [
+            keyRow("qwertyuiop"),
+            keyRow("asdfghjkl"),
+            keyRow("zxcvbnm"),
+            searchFunctionRow(),
+        ])
+        col.axis = .vertical
+        col.spacing = 6
+        col.distribution = .fillEqually
+        col.translatesAutoresizingMaskIntoConstraints = false
+        col.isLayoutMarginsRelativeArrangement = true
+        col.layoutMargins = UIEdgeInsets(top: 5, left: 4, bottom: 5, right: 4)
+        bar.addSubview(col)
+        NSLayoutConstraint.activate([
+            col.leadingAnchor.constraint(equalTo: bar.leadingAnchor),
+            col.trailingAnchor.constraint(equalTo: bar.trailingAnchor),
+            col.topAnchor.constraint(equalTo: bar.topAnchor),
+            col.bottomAnchor.constraint(equalTo: bar.bottomAnchor),
+        ])
+    }
+
+    private func keyRow(_ letters: String) -> UIStackView {
+        let s = UIStackView()
+        s.axis = .horizontal
+        s.spacing = 5
+        s.distribution = .fillEqually
+        for ch in letters {
+            let letter = String(ch)
+            s.addArrangedSubview(key(letter) { [weak self] in self?.typeSearch(letter) })
+        }
+        return s
+    }
+
+    private func searchFunctionRow() -> UIStackView {
+        let s = UIStackView()
+        s.axis = .horizontal
+        s.spacing = 5
+        s.distribution = .fill
+        let globe = key("🌐") { [weak self] in self?.advanceToNextInputMode() }
+        let space = key("space") { [weak self] in self?.typeSearch(" ") }
+        let del   = key("⌫")    { [weak self] in self?.deleteSearch() }
+        globe.widthAnchor.constraint(equalToConstant: 58).isActive = true
+        del.widthAnchor.constraint(equalToConstant: 58).isActive = true
+        [globe, space, del].forEach { s.addArrangedSubview($0) }
+        return s
+    }
+
+    /// The prominent search box shown at the top of Products; reflects what you type, with a clear ✕.
+    private func searchFieldView() -> UIView {
+        let box = UIView()
+        box.backgroundColor = .systemBackground
+        box.layer.cornerRadius = 16
+        box.layer.borderWidth = 1
+        box.layer.borderColor = brand.withAlphaComponent(0.25).cgColor
+        let mag = UILabel(); mag.text = "🔍"; mag.font = .systemFont(ofSize: 13)
+        let q = UILabel()
+        q.text = searchQuery.isEmpty ? "Search products" : searchQuery
+        q.textColor = searchQuery.isEmpty ? .secondaryLabel : .label
+        q.font = .systemFont(ofSize: 14, weight: .medium)
+        let row = UIStackView(arrangedSubviews: [mag, q])
+        row.axis = .horizontal; row.spacing = 6; row.alignment = .center
+        row.translatesAutoresizingMaskIntoConstraints = false
+        box.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: box.leadingAnchor, constant: 12),
+            row.trailingAnchor.constraint(lessThanOrEqualTo: box.trailingAnchor, constant: -12),
+            row.centerYAnchor.constraint(equalTo: box.centerYAnchor),
+            box.widthAnchor.constraint(greaterThanOrEqualToConstant: 210),
+            box.heightAnchor.constraint(equalToConstant: 34),
+        ])
+        if !searchQuery.isEmpty {
+            let clr = UIButton(type: .system)
+            clr.setTitle("✕", for: .normal)
+            clr.setTitleColor(.secondaryLabel, for: .normal)
+            clr.titleLabel?.font = .systemFont(ofSize: 14, weight: .bold)
+            clr.addAction(UIAction { [weak self] _ in self?.clearSearch() }, for: .touchUpInside)
+            row.addArrangedSubview(clr)
+        }
+        return box
     }
 
     // MARK: - Helpers
