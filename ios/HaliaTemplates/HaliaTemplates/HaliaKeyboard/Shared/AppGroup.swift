@@ -8,7 +8,7 @@ import Foundation
 
 enum AppGroup {
     /// CHANGE THIS to your own App Group id and set it on both targets. Must match exactly.
-    static let identifier = "group.com.halia.templates"
+    static let identifier = "group.com.haliascore.haliatemplates"
 
     /// Shared defaults, scoped to the App Group. Falls back to standard defaults if the group
     /// id has not been configured yet (so the app still runs while you are wiring it up).
