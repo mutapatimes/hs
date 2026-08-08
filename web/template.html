@@ -4429,19 +4429,34 @@ function showFirstRun(){
   if(views) views.style.display="none";
   if(stats) stats.style.display="none";
   ["viewOverview","viewClients","viewOrders","viewMap","viewBoard","viewCatalogs"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
+  // Two very different empty states share this screen: a genuine first run (never scored), and a
+  // scored tenant whose clients are all held back by the 30-day paywall. Do not tell someone who
+  // has clients to "run a sync" — send them to unlock instead.
+  const paywalled = !FULL_HISTORY && LOCKED_COUNT>0;
+  const shell=(inner)=>`<div style="max-width:520px;margin:52px auto;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:0;padding:44px 36px;box-shadow:var(--shadow)">
+    <div style="width:56px;height:56px;border-radius:0;margin:0 auto 18px;background:var(--brand-tint);display:grid;place-items:center;color:var(--brand-deep);font:600 26px 'Fraunces',serif">&#8258;</div>${inner}</div>`;
   const box=document.createElement("div");
-  box.innerHTML=`<div style="max-width:520px;margin:52px auto;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:0;padding:44px 36px;box-shadow:var(--shadow)">
-    <div style="width:56px;height:56px;border-radius:0;margin:0 auto 18px;background:var(--brand-tint);display:grid;place-items:center;color:var(--brand-deep);font:600 26px 'Fraunces',serif">&#8258;</div>
-    <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:22px;letter-spacing:-.01em">No potential VICs surfaced yet</h2>
-    <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">Halia hasn't scored your customers yet. Run a sync to pull your orders from Shopify and surface the high-potential clients your spend thresholds miss.</p>
-    <button id="firstRunSync" style="margin-top:22px;padding:11px 22px;border-radius:0;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">Score my customers</button>
-    <p style="color:var(--faint);font-size:12px;margin-top:14px">This usually takes under a minute.</p>
-  </div>`;
-  wrap.appendChild(box);
-  const btn=document.getElementById("firstRunSync");
-  if(btn) btn.onclick=()=>{btn.disabled=true;btn.textContent="Scoring…";
-    fetch("/v1/sync",{method:"POST"}).then(r=>r.json()).then(()=>location.reload())
-      .catch(()=>{btn.textContent="Sync failed — retry";btn.disabled=false;});};
+  if(paywalled){
+    const worth = LOCKED_LATENT ? (' (about <b>'+LOCKED_LATENT+'</b> in latent value)') : '';
+    box.innerHTML=shell(`
+      <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:22px;letter-spacing:-.01em">Your scored clients are outside the last 30 days</h2>
+      <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">Halia has scored your customers. Your current view shows only the last 30 days, and your <b>${LOCKED_COUNT.toLocaleString("en-GB")}</b> potential VIC${LOCKED_COUNT===1?'':'s'}${worth} last shopped earlier. Unlock full history to see them.</p>
+      <button id="firstRunUpgrade" style="margin-top:22px;padding:11px 22px;border-radius:0;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">Unlock full history</button>`);
+    wrap.appendChild(box);
+    const up=document.getElementById("firstRunUpgrade");
+    if(up) up.onclick=upgradePrompt;
+  } else {
+    box.innerHTML=shell(`
+      <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:22px;letter-spacing:-.01em">No potential VICs surfaced yet</h2>
+      <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">Halia hasn't scored your customers yet. Run a sync to pull your orders from Shopify and surface the high-potential clients your spend thresholds miss.</p>
+      <button id="firstRunSync" style="margin-top:22px;padding:11px 22px;border-radius:0;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">Score my customers</button>
+      <p style="color:var(--faint);font-size:12px;margin-top:14px">This usually takes under a minute.</p>`);
+    wrap.appendChild(box);
+    const btn=document.getElementById("firstRunSync");
+    if(btn) btn.onclick=()=>{btn.disabled=true;btn.textContent="Scoring…";
+      fetch("/v1/sync",{method:"POST"}).then(r=>r.json()).then(()=>location.reload())
+        .catch(()=>{btn.textContent="Sync failed — retry";btn.disabled=false;});};
+  }
 }
 
 if(!DATA.length){ showFirstRun(); }
