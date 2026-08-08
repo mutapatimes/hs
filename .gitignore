@@ -68,3 +68,7 @@ tests/js/package-lock.json
 
 # Packaged browser-extension build artifact (produced for uploading, not source).
 extension.zip
+
+# Xcode per-user state (not shared)
+*.xcuserstate
+xcuserdata/

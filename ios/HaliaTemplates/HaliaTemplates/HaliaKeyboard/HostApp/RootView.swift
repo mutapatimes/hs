@@ -157,6 +157,24 @@ struct RootView: View {
                     .transition(.opacity)
             }
         }
+        .onOpenURL { handleConnect($0) }   // scanned the QR from the Halia dashboard
+    }
+
+    /// Handle halia://connect?t=<token>&b=<base> from the dashboard QR: store the credentials and
+    /// sync, so the merchant never types a token.
+    private func handleConnect(_ url: URL) {
+        guard url.scheme == "halia", url.host == "connect",
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
+        else { return }
+        let token = items.first { $0.name == "t" }?.value ?? ""
+        let base = items.first { $0.name == "b" }?.value ?? ""
+        guard !token.isEmpty else { return }
+        model.token = token
+        if !base.isEmpty { model.baseURL = base }
+        Credentials.token = token
+        if !base.isEmpty { Credentials.baseURL = base }
+        withAnimation(.easeInOut(duration: 0.35)) { showSetup = true }
+        Task { await model.sync() }
     }
 }
 
@@ -218,6 +236,8 @@ private struct SetupView: View {
 
                 Card {
                     cardLabel("Connect")
+                    Text("Open Halia on your computer, go to Settings, and scan the QR with your phone. Or paste a token below.")
+                        .font(.system(size: 13)).foregroundColor(Palette.soft).lineSpacing(2)
                     LuxeField(label: "Halia token", text: $model.token, secure: true)
                     LuxeField(label: "Address", text: $model.baseURL, keyboard: .URL)
                     HStack(spacing: 12) {

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A0DFD90330273D2100BB4974 /* HaliaKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A0DFD8FC30273D2100BB4974 /* HaliaKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		A0DFD8B030273BED00BB4974 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,17 +25,79 @@
 			remoteGlobalIDString = A0DFD8A030273BEA00BB4974;
 			remoteInfo = HaliaTemplates;
 		};
+		A0DFD90130273D2100BB4974 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A0DFD89930273BEA00BB4974 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A0DFD8FB30273D2100BB4974;
+			remoteInfo = HaliaKeyboard;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A0DFD90830273D2200BB4974 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A0DFD90330273D2100BB4974 /* HaliaKeyboard.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A0DFD8A130273BEA00BB4974 /* HaliaTemplates.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HaliaTemplates.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0DFD8AF30273BED00BB4974 /* HaliaTemplatesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HaliaTemplatesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0DFD8B930273BED00BB4974 /* HaliaTemplatesUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HaliaTemplatesUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0DFD8FC30273D2100BB4974 /* HaliaKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HaliaKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A0DFD90430273D2100BB4974 /* Exceptions for "HaliaKeyboard" folder in "HaliaKeyboard" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				KeyboardViewController.swift,
+				ProductGrid.swift,
+			);
+			target = A0DFD8FB30273D2100BB4974 /* HaliaKeyboard */;
+		};
+		A0DFD90E30273E4700BB4974 /* Exceptions for "HaliaTemplates" folder in "HaliaKeyboard" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				HaliaKeyboard/Keyboard/KeyboardViewController.swift,
+				HaliaKeyboard/Keyboard/ProductGrid.swift,
+				HaliaKeyboard/Shared/AppGroup.swift,
+				HaliaKeyboard/Shared/ClientRef.swift,
+				HaliaKeyboard/Shared/Credentials.swift,
+				HaliaKeyboard/Shared/HaliaAPI.swift,
+				HaliaKeyboard/Shared/StoreInfo.swift,
+				HaliaKeyboard/Shared/Template.swift,
+				HaliaKeyboard/Shared/TemplateStore.swift,
+			);
+			target = A0DFD8FB30273D2100BB4974 /* HaliaKeyboard */;
+		};
+		A0DFD9163027429F00BB4974 /* Exceptions for "HaliaTemplates" folder in "HaliaTemplates" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				HaliaKeyboard/Keyboard/KeyboardViewController.swift,
+				HaliaKeyboard/Keyboard/ProductGrid.swift,
+				Info.plist,
+			);
+			target = A0DFD8A030273BEA00BB4974 /* HaliaTemplates */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A0DFD8A330273BEA00BB4974 /* HaliaTemplates */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A0DFD9163027429F00BB4974 /* Exceptions for "HaliaTemplates" folder in "HaliaTemplates" target */,
+				A0DFD90E30273E4700BB4974 /* Exceptions for "HaliaTemplates" folder in "HaliaKeyboard" target */,
+			);
 			path = HaliaTemplates;
 			sourceTree = "<group>";
 		};
@@ -43,6 +109,14 @@
 		A0DFD8BC30273BED00BB4974 /* HaliaTemplatesUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = HaliaTemplatesUITests;
+			sourceTree = "<group>";
+		};
+		A0DFD8FD30273D2100BB4974 /* HaliaKeyboard */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A0DFD90430273D2100BB4974 /* Exceptions for "HaliaKeyboard" folder in "HaliaKeyboard" target */,
+			);
+			path = HaliaKeyboard;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -69,6 +143,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A0DFD8F930273D2100BB4974 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -78,6 +159,7 @@
 				A0DFD8A330273BEA00BB4974 /* HaliaTemplates */,
 				A0DFD8B230273BED00BB4974 /* HaliaTemplatesTests */,
 				A0DFD8BC30273BED00BB4974 /* HaliaTemplatesUITests */,
+				A0DFD8FD30273D2100BB4974 /* HaliaKeyboard */,
 				A0DFD8A230273BEA00BB4974 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +170,7 @@
 				A0DFD8A130273BEA00BB4974 /* HaliaTemplates.app */,
 				A0DFD8AF30273BED00BB4974 /* HaliaTemplatesTests.xctest */,
 				A0DFD8B930273BED00BB4974 /* HaliaTemplatesUITests.xctest */,
+				A0DFD8FC30273D2100BB4974 /* HaliaKeyboard.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,10 +185,12 @@
 				A0DFD89D30273BEA00BB4974 /* Sources */,
 				A0DFD89E30273BEA00BB4974 /* Frameworks */,
 				A0DFD89F30273BEA00BB4974 /* Resources */,
+				A0DFD90830273D2200BB4974 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A0DFD90230273D2100BB4974 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A0DFD8A330273BEA00BB4974 /* HaliaTemplates */,
@@ -163,6 +248,28 @@
 			productReference = A0DFD8B930273BED00BB4974 /* HaliaTemplatesUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		A0DFD8FB30273D2100BB4974 /* HaliaKeyboard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A0DFD90530273D2200BB4974 /* Build configuration list for PBXNativeTarget "HaliaKeyboard" */;
+			buildPhases = (
+				A0DFD8F830273D2100BB4974 /* Sources */,
+				A0DFD8F930273D2100BB4974 /* Frameworks */,
+				A0DFD8FA30273D2100BB4974 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A0DFD8FD30273D2100BB4974 /* HaliaKeyboard */,
+			);
+			name = HaliaKeyboard;
+			packageProductDependencies = (
+			);
+			productName = HaliaKeyboard;
+			productReference = A0DFD8FC30273D2100BB4974 /* HaliaKeyboard.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -184,6 +291,10 @@
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = A0DFD8A030273BEA00BB4974;
 					};
+					A0DFD8FB30273D2100BB4974 = {
+						CreatedOnToolsVersion = 16.4;
+						LastSwiftMigration = 1640;
+					};
 				};
 			};
 			buildConfigurationList = A0DFD89C30273BEA00BB4974 /* Build configuration list for PBXProject "HaliaTemplates" */;
@@ -203,6 +314,7 @@
 				A0DFD8A030273BEA00BB4974 /* HaliaTemplates */,
 				A0DFD8AE30273BED00BB4974 /* HaliaTemplatesTests */,
 				A0DFD8B830273BED00BB4974 /* HaliaTemplatesUITests */,
+				A0DFD8FB30273D2100BB4974 /* HaliaKeyboard */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +335,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A0DFD8B730273BED00BB4974 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A0DFD8FA30273D2100BB4974 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +372,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A0DFD8F830273D2100BB4974 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +391,11 @@
 			isa = PBXTargetDependency;
 			target = A0DFD8A030273BEA00BB4974 /* HaliaTemplates */;
 			targetProxy = A0DFD8BA30273BED00BB4974 /* PBXContainerItemProxy */;
+		};
+		A0DFD90230273D2100BB4974 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A0DFD8FB30273D2100BB4974 /* HaliaKeyboard */;
+			targetProxy = A0DFD90130273D2100BB4974 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -391,8 +522,10 @@
 				CODE_SIGN_ENTITLEMENTS = HaliaTemplates/HaliaTemplates.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4PJ32C8P4K;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HaliaTemplates/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -428,8 +561,10 @@
 				CODE_SIGN_ENTITLEMENTS = HaliaTemplates/HaliaTemplates.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4PJ32C8P4K;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HaliaTemplates/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -543,6 +678,66 @@
 			};
 			name = Release;
 		};
+		A0DFD90630273D2200BB4974 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = HaliaKeyboard/HaliaKeyboard.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4PJ32C8P4K;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HaliaKeyboard/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = HaliaKeyboard;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.haliascore.HaliaTemplates.HaliaKeyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A0DFD90730273D2200BB4974 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = HaliaKeyboard/HaliaKeyboard.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4PJ32C8P4K;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HaliaKeyboard/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = HaliaKeyboard;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.haliascore.HaliaTemplates.HaliaKeyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -578,6 +773,15 @@
 			buildConfigurations = (
 				A0DFD8CA30273BED00BB4974 /* Debug */,
 				A0DFD8CB30273BED00BB4974 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A0DFD90530273D2200BB4974 /* Build configuration list for PBXNativeTarget "HaliaKeyboard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A0DFD90630273D2200BB4974 /* Debug */,
+				A0DFD90730273D2200BB4974 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
