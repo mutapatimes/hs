@@ -60,8 +60,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				KeyboardViewController.swift,
-				ProductGrid.swift,
 			);
 			target = A0DFD8FB30273D2100BB4974 /* HaliaKeyboard */;
 		};
