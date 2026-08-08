@@ -1,36 +1,38 @@
-# Shopify CLI app config — lets us deploy app extensions (the POS UI tile) to the
-# SAME Partner app the FastAPI backend already uses. This does not change how the
-# app runs in production (Render still runs `uvicorn halia.api.app:app`); it only
-# tells the Shopify CLI which app to attach extensions to.
+# Shopify app config for the "HALIA" Partner app. Linked via `shopify app config link`; push
+# changes with `shopify app deploy`. client_id is the app's public API key and MUST equal the
+# backend's SHOPIFY_API_KEY.
 #
-# FIRST-TIME SETUP (fills in client_id and links this file to your app):
-#   shopify app config link      # pick the existing "Halia" app; sets client_id below
-#
-# `client_id` MUST match SHOPIFY_API_KEY used by the backend (same app identity).
-client_id = ""   # set by `shopify app config link` (== SHOPIFY_API_KEY)
+# Install model: MANAGED install + token exchange (see halia/api/shopify_auth.py,
+# halia/api/embedded.py), so use_legacy_install_flow = false is correct and the scopes below are
+# what a merchant actually grants at install.
 
-name = "Halia"
-application_url = "https://haliascore.com"   # your HALIA_APP_URL
+client_id = "813658d9fa7652961809f617b47f1c0b"
+application_url = "https://haliascore.com"
 embedded = true
+name = "HALIA"
 
 [access_scopes]
-# Kept in sync with the backend OAuth scopes (halia/api/onboarding.py).
-# read_all_orders: read_orders alone caps order history at the last 60 days, which understates
-# lifetime spend / AOV; read_all_orders lifts that so scoring sees the full history.
-# read_products: powers the catalogue builder (products, images, variants, descriptions).
-scopes = "read_orders,read_all_orders,read_customers,write_customers,read_products"
+# read_orders + read_customers + read_products power scoring and the catalogue builder.
+# write_customers lets Halia tag VICs back into Shopify (the outreach pipeline) — it was missing
+# from the linked config, so adding it prompts a one-time re-approval on next app load.
+# read_all_orders (full order history beyond ~60 days) is a PROTECTED scope: Shopify must approve it
+# before it can be declared here, so it is intentionally omitted for now. Request it in the Partner
+# Dashboard, then add it back and redeploy.
+scopes = "read_customers,read_orders,write_customers,read_products"
+optional_scopes = [ ]
+use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
   "https://haliascore.com/connect/shopify/callback",
+  "https://haliascore.com",
 ]
 
-# Mandatory privacy/compliance webhooks — REQUIRED for public distribution. The backend already
-# handles all of these (HMAC-verified) at POST /webhooks/shopify, dispatching on X-Shopify-Topic
-# (see halia/api/webhooks.py). Because Halia is zero-retention the redacts are near no-ops; only
-# shop/redact + app/uninstalled erase the little we persist (the offline token + integration keys).
+# Mandatory privacy/compliance webhooks — REQUIRED for public distribution. Handled HMAC-verified at
+# POST /webhooks/shopify (halia/api/webhooks.py); Halia is zero-retention so the redacts are near
+# no-ops and only shop/redact + app/uninstalled erase the little we persist.
 [webhooks]
-api_version = "2025-01"   # keep in sync with scoring/shopify_fetch.py DEFAULT_API_VERSION
+api_version = "2026-04"
 
   [[webhooks.subscriptions]]
   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
@@ -40,8 +42,8 @@ api_version = "2025-01"   # keep in sync with scoring/shopify_fetch.py DEFAULT_A
   topics = [ "app/uninstalled" ]
   uri = "https://haliascore.com/webhooks/shopify"
 
-[pos]
-embedded = true
-
-[build]
-include_config_on_deploy = true
+# Branded catalogue links served through Shopify's App Proxy at {store}/a/catalogue.
+[app_proxy]
+url = "https://haliascore.com/proxy/catalogue"
+subpath = "catalogue"
+prefix = "a"
