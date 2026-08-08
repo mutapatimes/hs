@@ -36,7 +36,7 @@ shopify app deploy           # versioned release of the extension to the Partner
 ```
 
 ## Set the backend URL
-`src/api.js` → `BACKEND` must equal your `HALIA_APP_URL` (default `https://halia.onrender.com`).
+`src/api.js` → `BACKEND` must equal your `HALIA_APP_URL` (default `https://haliascore.com`).
 
 ## Caveats
 - Component tags in `Tile.jsx` / `Modal.jsx` follow the 2026 POS UI web-component API and could not
