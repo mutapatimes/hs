@@ -6,7 +6,7 @@
 // if it is RS256/OIDC rather than HS256, add a JWKS branch to verify_session_token.
 //
 // Set BACKEND to your deployed HALIA_APP_URL.
-export const BACKEND = "https://halia.onrender.com";
+export const BACKEND = "https://haliascore.com";
 
 // Ask Halia about the customer currently on the cart.
 // Returns { matched, vic, grade, score, tier, is_priority, hidden_vic,
