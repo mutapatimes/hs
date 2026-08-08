@@ -152,8 +152,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         table.isHidden = !(mode == .suggestions || showTemplateList)
 
         if mode == .products {
-            emptyLabel.text = "Pick a category above, or type what you want and tap “What you typed”."
-            emptyLabel.isHidden = !products.isEmpty
+            emptyLabel.text = hasFullAccess
+                ? "No products to show. Connect in the Halia app, and note product search needs a Shopify store with published, in-stock items."
+                : "Turn on Full Access in Settings to browse and search products."
+            emptyLabel.isHidden = !products.isEmpty || busy
         } else if mode == .templates && audience == .team {
             emptyLabel.text = currentRef == nil
                 ? "Team mode. Look up a client, then tap Handoff to write a note for a colleague."
@@ -459,7 +461,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     // MARK: - Products (a live, searchable image library of the store's catalogue)
 
     private func enterProducts() {
-        mode = .products; products = []; setStatus(nil); reload()
+        mode = .products; products = []; reload()
+        runProductSearch("")   // browse the whole catalogue straight away, like a media library
     }
 
     private func searchFromTyped() {
@@ -471,12 +474,13 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func runProductSearch(_ q: String) {
         guard !busy else { return }
-        busy = true; setStatus("Searching…")
+        busy = true; setStatus(q.isEmpty ? "Loading products…" : "Searching…")
         Task {
             do {
                 let (items, base) = try await HaliaAPI.current.searchProducts(q)
                 products = items; productCartBase = base
-                setStatus(items.isEmpty ? "No products for “\(q)”" : nil)
+                if items.isEmpty { setStatus(q.isEmpty ? nil : "No products for “\(q)”") }
+                else { setStatus(nil) }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
