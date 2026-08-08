@@ -3544,10 +3544,16 @@ function openSettings(page){
 
         <div style="${C}">
           <div style="${H}">Browser extension</div>
-          <p style="${P}">Put a client's grade, the reasons behind it, and the next move right where your team already works: your store admin, WhatsApp Web and Gmail. Install the Halia extension, then paste the token below into it once. It reads the client on the page and asks your Halia account, and stores nothing.</p>
+          <p style="${P}">Put a client's grade, the reasons behind it, and the next move right where your team already works: your store admin, WhatsApp Web and Gmail. Install the Halia extension, then click Connect this browser below, no token to copy. It reads the client on the page and asks your Halia account, and stores nothing.</p>
           <div style="font:600 13px system-ui;color:${SETTINGS.extension_enabled?'#0f7b4f':'#616161'};margin-bottom:6px">${SETTINGS.extension_enabled?"● A token is active":"○ No token yet"}</div>
           <div style="font:12px system-ui;color:#8a8a8a;margin-bottom:12px">${SETTINGS.ai_drafting?"“The brief” reads the conversation on screen and gives your team where the relationship stands, the next moves worth making, and a reply ready to send.":"“The brief” gives your team where the client stands, the next moves worth making, and a reply drawn from your own templates."}</div>
           <button id="setExtGen" style="${BS}">${SETTINGS.extension_enabled?"Generate a new token":"Generate token"}</button>
+          <div id="setExtConnWrap" style="display:none;margin-top:14px;padding:13px 15px;background:var(--brand-tint,#e9f1ee);border-radius:0">
+            <div style="font:600 13px system-ui;color:#1f564a">Halia extension found in this browser</div>
+            <div style="font:12px system-ui;color:#3a5a50;margin:4px 0 11px">Connect it in one click. No token to copy or paste.</div>
+            <button id="setExtConnect" style="${BS}">Connect this browser</button>
+            <span id="setExtConnStatus" style="font:600 12px system-ui;margin-left:11px"></span>
+          </div>
           <div id="setExtOut" style="display:none;margin-top:14px">
             <div style="${LBL}">Your token, shown once. Copy it now and paste it into the extension.</div>
             <code id="setExtTok" style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);background:var(--rowhover);border-radius:0;padding:11px 13px;word-break:break-all;margin-top:6px"></code>
@@ -3856,6 +3862,36 @@ function openSettings(page){
       const t=(document.getElementById("setExtTok")||{}).textContent||"";
       if(t)navigator.clipboard.writeText(t).then(()=>toast("Token copied."),()=>toast("Copy failed."));
     };
+    // One-click extension connect: if Halia's extension is installed in this browser, its content
+    // script (content/connect.js, running only on this origin) announces itself. We then mint a token
+    // and hand it over via an in-page message, so nobody copies anything.
+    (function(){
+      const wrap=document.getElementById("setExtConnWrap");
+      const btn=document.getElementById("setExtConnect");
+      const st=document.getElementById("setExtConnStatus");
+      if(!wrap||!btn) return;
+      window.addEventListener("message",(e)=>{
+        if(e.origin!==location.origin) return;
+        const d=e.data;
+        if(!d||d.source!=="halia-ext") return;
+        if(d.type==="present"){ wrap.style.display=""; }
+        if(d.type==="connected"){
+          btn.disabled=false; btn.textContent="Connect this browser";
+          if(d.ok){ st.style.color="#0f7b4f"; st.textContent="✓ Connected on this browser"; }
+          else { st.style.color="#8e1f0b"; st.textContent="Could not connect"; }
+        }
+      });
+      window.postMessage({source:"halia-dashboard",type:"ping"},location.origin);  // ask it to announce
+      btn.onclick=()=>{
+        btn.disabled=true; btn.textContent="Connecting…"; st.textContent="";
+        fetch("/v1/extension/token",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+          if(!ok||!d.token) throw new Error((d&&d.detail)||"failed");
+          SETTINGS.extension_enabled=true;
+          const g=document.getElementById("setExtGen"); if(g) g.textContent="Generate a new token";
+          window.postMessage({source:"halia-dashboard",type:"connect",token:d.token,base:location.origin},location.origin);
+        }).catch(e=>{ btn.disabled=false; btn.textContent="Connect this browser"; st.style.color="#8e1f0b"; st.textContent="Could not connect: "+e.message; });
+      };
+    })();
     function paintBilling(b){
       const box=document.getElementById("billingBox"); if(!box) return;
       const LBLMAP={active:"Active",trialing:"Trial",comped:"Complimentary",canceled:"Cancelled",

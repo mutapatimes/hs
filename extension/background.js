@@ -401,6 +401,15 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     config().then((c) => sendResponse({ base: c.base, hasToken: !!c.token }));
     return true;
   }
+  if (msg && msg.type === "halia:connect") {
+    // One-click connect from the dashboard (via content/connect.js). Store the handed-over token
+    // exactly like a pasted one, so nobody has to copy anything.
+    const base = String(msg.base || DEFAULT_BASE).replace(/\/+$/, "");
+    const set = { haliaToken: String(msg.token || ""), haliaBase: base };
+    if (msg.name) set.haliaName = String(msg.name).slice(0, 80);
+    chrome.storage.sync.set(set).then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false }));
+    return true;
+  }
   if (msg && msg.type === "halia:woo-sync") {
     syncWooScripts().then(() => sendResponse({ ok: true }));
     return true;
