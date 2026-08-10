@@ -92,6 +92,41 @@ async def _rate_limit_mw(request, call_next):
                                  status_code=429, headers={"Retry-After": "60"})
     return await call_next(request)
 
+# ── Access log on protected-data endpoints ──────────────────────────────────────────
+# Data-protection requirement (Shopify + GDPR): log WHEN protected customer data is accessed, without
+# logging the data itself. One structured line per access to stdout (captured by the host's logs):
+# the path, method, a non-reversible caller reference, and IP — never a name, email, or order.
+import logging as _logging  # noqa: E402
+import hashlib as _hashlib  # noqa: E402
+import sys as _sys  # noqa: E402
+
+_ACCESS_LOG = _logging.getLogger("halia.access")
+_ACCESS_LOG.propagate = False
+if "pytest" not in _sys.modules and not _ACCESS_LOG.handlers:   # quiet during the test suite
+    _h = _logging.StreamHandler()
+    _h.setFormatter(_logging.Formatter("%(asctime)s halia.access %(message)s"))
+    _ACCESS_LOG.addHandler(_h)
+    _ACCESS_LOG.setLevel(_logging.INFO)
+
+_ACCESS_PATHS = ("/v1/extension/", "/v1/sync", "/app")
+
+
+def _access_ref(request) -> str:
+    """A stable, non-reversible reference for the caller (short hash of the extension token or session
+    bearer), so accesses can be correlated without recording any identity."""
+    tok = request.headers.get("X-Halia-Ext-Token") or request.headers.get("Authorization") or ""
+    return _hashlib.sha256(tok.encode()).hexdigest()[:12] if tok else "-"
+
+
+@app.middleware("http")
+async def _access_log_mw(request, call_next):
+    path = request.url.path
+    if request.method != "OPTIONS" and any(path.startswith(p) for p in _ACCESS_PATHS):
+        ip = request.client.host if request.client else "?"
+        _ACCESS_LOG.info("data-access path=%s method=%s ref=%s ip=%s",
+                         path, request.method, _access_ref(request), ip)
+    return await call_next(request)
+
 # Serve the marketing site's imagery (water hero video, editorial photography) at /img.
 from config import ROOT as _ROOT  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
