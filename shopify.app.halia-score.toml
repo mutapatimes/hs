@@ -1,0 +1,44 @@
+# Shopify app config for the PUBLIC "Halia" app (App Store track). This is the CLI's active config
+# (`shopify app deploy` uses it). client_id is the app's public API key and MUST equal the backend's
+# SHOPIFY_API_KEY once you swap the Render env to this app.
+#
+# Install model: managed install + token exchange (halia/api/shopify_auth.py), so
+# use_legacy_install_flow = false and the scopes below are what a merchant grants at install.
+
+client_id = "126bf1c047079028d0b1f8db6aca08d5"
+application_url = "https://haliascore.com"
+embedded = true
+name = "Halia"
+
+[access_scopes]
+# write_customers tags VICs back into Shopify (the outreach pipeline); read_products powers the
+# catalogue builder. read_all_orders is a PROTECTED scope — request it under API access requests,
+# then add it to this line and redeploy.
+scopes = "read_customers,read_orders,write_customers,read_products"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://haliascore.com/connect/shopify/callback",
+  "https://haliascore.com",
+]
+
+# Mandatory privacy/compliance webhooks (required for public distribution). Handled HMAC-verified at
+# POST /webhooks/shopify (halia/api/webhooks.py); zero-retention makes the redacts near no-ops.
+[webhooks]
+api_version = "2026-04"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+  uri = "https://haliascore.com/webhooks/shopify"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "https://haliascore.com/webhooks/shopify"
+
+# Branded catalogue links served through Shopify's App Proxy at {store}/a/catalogue.
+[app_proxy]
+url = "https://haliascore.com/proxy/catalogue"
+subpath = "catalogue"
+prefix = "a"
