@@ -11,10 +11,10 @@ embedded = true
 name = "Halia"
 
 [access_scopes]
-# write_customers tags VICs back into Shopify (the outreach pipeline); read_products powers the
-# catalogue builder. read_all_orders is a PROTECTED scope — request it under API access requests,
-# then add it to this line and redeploy.
-scopes = "read_customers,read_orders,write_customers,read_products"
+# read_all_orders (Shopify-granted 2026-08-10) lifts scoring beyond the 60-day order cap to full
+# lifetime history. write_customers tags VICs back into Shopify (the outreach pipeline); read_products
+# powers the catalogue builder.
+scopes = "read_customers,read_orders,read_all_orders,write_customers,read_products"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
