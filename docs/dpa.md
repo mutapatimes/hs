@@ -1,147 +1,91 @@
-# Data Processing Agreement (template)
+# Data Processing Agreement (DPA) — DRAFT
 
-> **Template only. Review with a solicitor before use.** This document is a starting
-> point for the data-processing terms between a merchant (the client) and Halia. It is
-> not legal advice and has not been reviewed by a qualified data-protection lawyer. Do
-> not present it to a paying client, or rely on it, until it has been adapted and signed
-> off by a solicitor for your jurisdiction.
+**⚠️ DRAFT for lawyer review. Do not send to merchants until counsel has confirmed it for your
+jurisdictions (UK GDPR, EU GDPR, and any others you sell into). This captures how Halia actually
+processes data so a lawyer can finalise it quickly.**
 
-This Agreement governs the processing of personal data by **Halia** ("the Processor") on
-behalf of **the Merchant** ("the Controller") in connection with the Halia clienteling and
-customer-scoring service ("the Service"). It supplements the main service terms; where it
-conflicts with them on data protection, this Agreement prevails.
+This Data Processing Agreement forms part of the agreement between the merchant ("**Controller**") and
+Halia ("**Processor**") for the Controller's use of the Halia application.
 
 ## 1. Roles
 
-- The **Merchant is the Controller**. The Merchant determines the purposes and means of the
-  processing: it owns the customer relationship, decides to use the Service, and acts on the
-  scores Halia surfaces.
-- **Halia is the Processor**. Halia processes the Merchant's customer data only on the
-  Merchant's documented instructions, as set out in this Agreement and the Service
-  configuration.
-- Halia does not sell, rent, or share the Merchant's customer data, and does not use it to
-  train any model.
+The Controller determines the purposes and means of processing its customers' personal data. Halia
+processes that personal data only on the Controller's behalf and documented instructions, as a
+Processor.
 
-## 2. Subject-matter, duration, nature and purpose
+## 2. Subject matter and duration
 
-- **Subject-matter:** scoring a Merchant's customers to surface likely high-value clients
-  ("hidden VICs") for human-led outreach by the Merchant's team.
-- **Duration:** for the term of the service relationship; processing of any given customer
-  record is transient (see §6, zero-retention).
-- **Nature:** read-only ingestion from the Merchant's connected platform, in-memory scoring,
-  presentation of results to the Merchant, and optional write-back of a grade to the
-  Merchant's own systems.
-- **Purpose:** clienteling / customer analytics, to inform human relationship-building. The
-  Service does not take any automated decision that produces a legal or similarly significant
-  effect on a customer (see §10).
+Halia processes personal data for as long as the Controller uses the app. On termination or
+uninstall, Halia deletes the Controller's stored data as described in Section 8.
 
-## 3. Categories of data subject and personal data
+## 3. Nature and purpose of processing
 
-**Data subjects:** the Merchant's customers (and prospects who have transacted with the
-Merchant).
+Halia reads the Controller's customer and order data through the Shopify Admin API to compute a
+private potential-value score ("hidden VIC" grade) and to surface the reasons and recommended next
+action, so the Controller can prioritise personal outreach to high-value clients. Halia does not use
+the data to make decisions producing legal or similarly significant effects on data subjects.
 
-**Categories of personal data processed:**
+## 4. Types of personal data and categories of data subjects
 
-| Category | Examples | Why |
-|---|---|---|
-| Identity | name, email, phone | join orders to a person; outreach |
-| Address | billing / shipping address, postcode, country | wealth-area and prime-residence signals |
-| Commercial | order history, spend, order count, currency | the core wealth facts that drive scoring |
-| Derived | score, grade, signal reasons | the Service's output |
+- **Data subjects:** the Controller's customers, prospective customers, and site visitors.
+- **Personal data:** name, email, phone, billing/shipping address, and order history (including order
+  totals and dates). Halia derives location-based and behavioural signals from this data.
 
-**Special-category data:** the Service is **not** designed to process special-category data
-(Article 9) and the Merchant must not configure it to do so. By default the Service does **not**
-use nationality, ethnicity, name-origin, or similar origin proxies as scoring signals (see
-`docs/dpia-lia-support.md`). These remain off unless the Merchant has documented a lawful basis
-and the operator has explicitly enabled them for that tenant.
+## 5. Controller instructions
 
-## 4. Processor obligations
+Halia processes personal data only per this DPA and the Controller's use of the app. Halia will not
+process the data for its own purposes, and will not sell the data.
 
-Halia shall:
+## 6. Zero retention
 
-1. **Process only on instruction.** Process the personal data only on the Merchant's documented
-   instructions (this Agreement and the Service configuration), unless required by law, in which
-   case Halia will inform the Merchant first where lawful to do so.
-2. **Confidentiality.** Ensure that anyone authorised to process the data is bound by
-   confidentiality.
-3. **Security.** Implement appropriate technical and organisational measures (see §5).
-4. **Zero-retention.** Hold customer personal data in memory only, for the minimum time needed to
-   score and present it, and never write it to disk or database (see §6).
-5. **Subprocessors.** Engage subprocessors only as listed in §7, under written terms no less
-   protective than this Agreement, and give the Merchant notice of intended changes so it can
-   object.
-6. **Data-subject requests.** Assist the Merchant, by appropriate technical and organisational
-   measures and insofar as possible, to respond to requests to exercise data-subject rights
-   (access, rectification, erasure, objection, restriction, portability). Because Halia retains
-   no standing copy of customer data, most requests are satisfied at the Merchant's source
-   system; Halia's redaction endpoints evict any transient cache on demand.
-7. **Assistance.** Assist the Merchant in ensuring compliance with its security, breach-
-   notification, and data-protection-impact-assessment obligations, taking into account the
-   nature of processing and the information available to Halia.
-8. **Breach notice.** Notify the Merchant without undue delay after becoming aware of a personal-
-   data breach, with the information the Merchant reasonably needs to meet its own obligations.
-9. **Deletion on termination.** At the end of the relationship, delete or return all personal
-   data and delete existing copies, unless law requires storage. In practice this is immediate
-   for customer data (none is retained) and means deleting the Merchant's stored platform
-   credentials.
-10. **Audit.** Make available the information necessary to demonstrate compliance and allow for
-    and contribute to audits, including inspections, conducted by the Merchant or an auditor it
-    mandates, subject to reasonable confidentiality and scheduling.
+Halia is designed for data minimisation. It processes customer and order records to compute the score
+and **retains the resulting score and signals, not the underlying customer records**. Halia does not
+build or keep a standalone copy of the Controller's customer database.
 
-## 5. Security measures
+## 7. Confidentiality and security
 
-- Encryption in transit (TLS) for all platform connections and the dashboard.
-- Customer personal data processed **in memory only**, evicted on a short TTL, on restart, and
-  on redaction.
-- The only persisted secrets are the Merchant's platform credentials, stored **encrypted**
-  (Fernet) and deletable on demand.
-- Per-tenant authentication; no cross-tenant access; no staff-browsable database of customer
-  data, because none exists.
-- Principle of least data: only the fields the active signals read are processed.
+- Personnel with access to personal data are bound by confidentiality.
+- Personal data is encrypted in transit (TLS) and secrets/tokens at rest; backups are encrypted.
+- Access to protected-data endpoints is logged.
+- Access is least-privilege. See the Security Incident Response Policy (docs/security-incident-response.md).
 
-See `docs/compliance.md` and `docs/architecture.md` for the concrete implementation.
+## 8. Return and deletion
 
-## 6. Zero-retention
+On uninstall or request, Halia deletes the Controller's stored data. Halia implements Shopify's
+mandatory privacy webhooks: `customers/redact`, `shop/redact`, and `customers/data_request`. Because
+Halia does not retain customer records, redaction requests are satisfied by removing any transient
+cache and the Controller's stored configuration and tokens.
 
-Halia does not maintain a standing copy of the Merchant's customer data. Records are read,
-scored in RAM, presented, and discarded. No customer personal data is written to Halia's
-database or disk. This is the central data-minimisation control of the Service.
+## 9. Sub-processors
 
-## 7. Subprocessors
+Halia uses a limited set of sub-processors to run the service (for example, cloud hosting). Halia
+maintains a current list and will inform the Controller of intended changes, giving the Controller the
+opportunity to object. **List your sub-processors here** (e.g. Render for hosting; Stripe for
+non-Shopify billing; any email/LLM provider).
 
-| Subprocessor | Role | Data it sees |
-|---|---|---|
-| Render | application hosting | data in transit / in memory during processing; stored: only encrypted credentials |
-| Brevo | transactional email (alerts, onboarding) | the Merchant's and its staff's contact details; alert contents the Merchant configures |
-| The Merchant's connected platform(s) (e.g. Shopify, WooCommerce) and the Merchant's own marketing tool (e.g. Klaviyo, Mailchimp) | source of data / optional write-back | the Merchant's own customer data, in the Merchant's own accounts |
+## 10. Assistance to the Controller
 
-The Merchant authorises these subprocessors. Halia will give notice of additions or
-replacements so the Merchant may object on reasonable data-protection grounds.
+Taking into account the nature of processing, Halia assists the Controller in responding to data
+subject requests and in meeting the Controller's security, breach-notification, and data-protection
+obligations.
 
-## 8. International transfers
+## 11. Personal data breaches
 
-Where processing involves a transfer of personal data outside the UK / EEA, Halia will ensure
-an appropriate safeguard is in place (for example, adequacy or the relevant Standard Contractual
-Clauses / UK Addendum) and will document it. The Merchant is responsible for the transfer terms
-of its own connected platforms.
+Halia notifies the Controller without undue delay after becoming aware of a personal data breach
+affecting the Controller's data, with the information the Controller needs to meet its own obligations.
 
-## 9. Liability, term, and changes
+## 12. International transfers
 
-This Agreement runs for the term of the service relationship and survives to the extent needed to
-give effect to deletion and audit obligations. Changes must be agreed in writing. Liability is as
-set out in the main service terms.
+Where personal data is transferred across borders, the parties rely on a lawful transfer mechanism
+(for example, UK/EU Standard Contractual Clauses / the UK Addendum). **Confirm the mechanism with
+counsel based on where you host and operate.**
 
-## 10. Profiling and automated decision-making
+## 13. Audits
 
-The Service produces a **score and grade** to inform a **human** at the Merchant who decides
-whether and how to reach out. It does not make a decision that produces a legal or similarly
-significant effect on a customer, and its effect is to **elevate** attention, never to withhold
-a service. Scoring uses **wealth, work, and address facts**; it does **not** use nationality,
-ethnicity, or name-origin signals by default. The Merchant remains the Controller of any outreach
-decision. See `docs/dpia-lia-support.md` for the supporting assessment and `docs/privacy-notice-profiling.md`
-for the notice wording the Merchant should give its customers.
+Halia makes available information reasonably necessary to demonstrate compliance with this DPA and
+allows for audits, subject to reasonable notice and confidentiality.
 
 ---
 
-*Halia retains no standing copy of customer data; the strongest data-protection control here is
-that there is almost nothing to protect at rest.*
+_Placeholders to finalise with counsel: legal entity name and address for "Halia", governing law,
+the sub-processor list, and the international-transfer mechanism._
