@@ -65,6 +65,14 @@
       background: linear-gradient(90deg, #ece5d6 25%, #f6f2ea 40%, #ece5d6 60%); background-size: 300% 100%;
       animation: shine 1.25s ease-in-out infinite; }
     .sk-row.gr { width: 46px; height: 46px; border-radius: 50%; margin: 0; flex: none; }
+    /* pixel-grid loader (square cells, chevron wavefront) for indeterminate work like a live brief */
+    .loadrow { display: flex; align-items: center; gap: 9px; margin-top: 10px; }
+    .pxgrid { display: inline-grid; grid-template-columns: repeat(3, 5px); gap: 2px; }
+    .pxgrid i { width: 5px; height: 5px; background: #6b6355; opacity: .3; animation: pxon 650ms ease-in-out infinite; }
+    .shimtx { -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 600; font-size: 12.5px;
+      background-image: linear-gradient(90deg, #b3ab97 20%, #3a3428 50%, #b3ab97 80%); background-size: 220% 100%;
+      animation: shimtx 1.1s linear infinite; }
+    .elapsed { margin-left: auto; font: 11px ui-monospace, Menlo, monospace; color: #b3ab97; font-variant-numeric: tabular-nums; }
     /* collapsible sections */
     .sh { cursor: pointer; user-select: none; }
     .sh::after { content: "⌄"; margin-left: auto; color: #b3ab97; font-size: 14px; line-height: 1; transition: transform .2s; }
@@ -74,6 +82,8 @@
       .fadein { animation: hfade .32s cubic-bezier(.2,.7,.2,1) both; }
       @keyframes hfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
       @keyframes shine { 0% { background-position: 130% 0; } 100% { background-position: -30% 0; } }
+      @keyframes pxon { 0%, 100% { opacity: .3; } 45% { opacity: .95; } }
+      @keyframes shimtx { to { background-position: -220% 0; } }
     }
     .who { flex: 1; min-width: 0; }
     .who .nm { font-weight: 600; font-size: 15px; line-height: 1.2; }
@@ -155,6 +165,7 @@
   let threadReader = null;            // surface-supplied () => [{from,text}] of the visible chat
   let draftInstr = "";                // the associate's optional "what to say" note
   let draft = null;                   // { text, source, busy, error, aiAvailable }
+  let draftStart = 0, draftClock = null; // brief-in-progress timer (pixel-grid loader elapsed)
   let suggest = null;                 // { picks:[{...,on}], busy, error, empty }
   let suggestNote = "";               // optional steer for what the associate is looking for
   let animKey = "";                   // last client key animated (so we fade in only on a new client)
@@ -479,6 +490,7 @@
   function runBrief() {
     const d = (client && client.data) || {};
     draft = Object.assign({}, draft, { busy: true, error: "" });
+    draftStart = Date.now();
     renderTemplates();
     const body = { cid: d.cid || "", email: d.email || "", phone: d.phone || "", name: d.name || "",
       channel, instruction: draftInstr, thread: collectThread() };
@@ -545,6 +557,7 @@
       <div class="acts">
         <button class="btn primary" data-a="brief"${busy ? " disabled" : ""}>${label}</button>
       </div>
+      ${busy ? `<div class="loadrow"><span class="pxgrid" aria-hidden="true">${[90,180,270,0,90,180,90,180,270].map((ms) => `<i style="animation-delay:${ms}ms"></i>`).join("")}</span><span class="shimtx">${threadReader ? "Reading this conversation" : "Reading this client"}</span><span class="elapsed" data-a="dclock">0.0s</span></div>` : ""}
       ${draft && draft.error ? `<div class="muted" style="margin-top:7px">${esc(draft.error)}</div>` : ""}
       ${draft && draft.summary ? `<div class="bsum">${esc(draft.summary)}</div>` : ""}
       ${acts.length ? `<div class="blist">${acts.map((a, i) => canDo(a)
@@ -571,6 +584,16 @@
     const dc = el.querySelector('[data-a="dcopy"]'); if (dc) dc.onclick = () => copy(draft.text, "Reply copied");
     const dl = el.querySelector('[data-a="dlog"]');
     if (dl) dl.onclick = () => logContact(activeCid(), activeName(), briefLogReason());
+    // Live elapsed timer for the pixel-grid loader; self-clears when the brief resolves and the node goes away.
+    if (draftClock) { clearInterval(draftClock); draftClock = null; }
+    if (el.querySelector('[data-a="dclock"]')) {
+      draftClock = setInterval(() => {
+        const cur = el.querySelector('[data-a="dclock"]');
+        if (!cur) { clearInterval(draftClock); draftClock = null; return; }
+        const s = (Date.now() - draftStart) / 1000;
+        cur.textContent = s < 60 ? s.toFixed(1) + "s" : Math.floor(s / 60) + "m " + (s % 60).toFixed(1) + "s";
+      }, 100);
+    }
   }
 
   function renderTemplates() {
