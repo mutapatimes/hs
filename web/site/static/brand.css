@@ -25,7 +25,7 @@ header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;t
    places". Uses each page's own --gold accent so it sits in the palette. */
 .ast-list{list-style:none;padding:0;margin:0}
 .ast-list > li{position:relative;padding-left:1.7em;margin:0 0 .55em}
-.ast-list > li::before{content:"\2042";position:absolute;left:0;top:0;color:var(--gold,#8a8377);font-size:.92em;line-height:1.5}
+.ast-list > li::before{content:"\2042";position:absolute;left:0;top:0;color:var(--gold,#5E6B74);font-size:.92em;line-height:1.5}
 
 /* ── Shared site footer, mirrored on every page ─────────────────────────────
    Self-contained (own width, inputs and button) so it renders correctly even
@@ -70,7 +70,7 @@ header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;t
 .nav-drop:hover .nav-menu,.nav-drop:focus-within .nav-menu{opacity:1;visibility:visible;transform:translateX(-50%) translateY(8px)}
 .nav-menu a{font:500 13.5px var(--sans,'Inter',system-ui,sans-serif);color:var(--mute,#615b50);padding:9px 12px;border-radius:0;white-space:nowrap}
 .nav-menu a:hover{background:var(--bg-2,#efeadd);color:var(--ink,#1a1712)}
-.nav-menu a.all{color:var(--gold,#7a7363);border-top:1px solid var(--line-2,rgba(20,18,12,.07));border-radius:0;margin-top:4px;padding-top:11px}
+.nav-menu a.all{color:var(--gold,#5E6B74);border-top:1px solid var(--line-2,rgba(20,18,12,.07));border-radius:0;margin-top:4px;padding-top:11px}
 
 /* ── Statement break — a single full-height line to breathe between dense sections.
    Use: <section class="stmt-sec [dark] [center]"><div class="wrap">
@@ -83,7 +83,7 @@ header .brand > span:first-child{display:inline-block;transform-origin:50% 54%;t
 .stmt-sec .eyebrow{margin-bottom:24px}
 .stmt{font-family:var(--serif,'Cormorant Garamond',Georgia,serif);font-weight:300;letter-spacing:-.01em;
   font-size:clamp(34px,6vw,78px);line-height:1.03;max-width:20ch;margin:0;color:var(--ink,#1a1712)}
-.stmt em{font-style:italic;color:var(--gold,#7a7363)}
+.stmt em{font-style:italic;color:var(--gold,#5E6B74)}
 .stmt .sub{display:block;font-family:var(--sans,'Inter',system-ui,sans-serif);font-weight:400;
   font-size:clamp(15px,1.5vw,18px);color:var(--mute,#615b50);max-width:54ch;margin-top:24px;line-height:1.55}
 .stmt-sec.center .stmt .sub{margin-left:auto;margin-right:auto}
