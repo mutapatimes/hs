@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>&#8258;</text></svg>">
+<head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%235E6B74'>&#8258;</text></svg>">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="canonical" href="https://haliascore.com/">
@@ -24,7 +24,7 @@
 <style>
   :root{
     --bg:#0a0a0b; --bg-2:#0e0e10; --ink:#f4f1ea; --mute:#8c887f; --faint:#56534d;
-    --gold:#d8d2c6; --line:rgba(255,255,255,.12); --line-2:rgba(255,255,255,.07);
+    --gold:#D7DADE; --line:rgba(255,255,255,.12); --line-2:rgba(255,255,255,.07);
     --serif:'Cormorant Garamond',Georgia,serif;
     --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   }
@@ -33,7 +33,7 @@
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
     font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
   a{color:inherit;text-decoration:none}
-  ::selection{background:var(--gold);color:#1a1408}
+  ::selection{background:var(--gold);color:#14161A}
   .wrap{max-width:1240px;margin:0 auto;padding:0 40px}
   .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
   h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.02}
@@ -84,7 +84,7 @@
   .intg{display:flex;flex-direction:column;gap:clamp(22px,3.4vh,34px)}
   .intg-group{display:flex;flex-direction:column;gap:13px}
   .intg-lbl{font:600 11px var(--sans,'Inter',system-ui,sans-serif);letter-spacing:.2em;text-transform:uppercase;color:var(--faint,#9a9385)}
-  .intg-lbl em{font-style:normal;color:#7a7363;margin-left:4px}
+  .intg-lbl em{font-style:normal;color:#5E6B74;margin-left:4px}
   .intg-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px 38px}
   .ilogo{font:700 clamp(18px,2.1vw,24px)/1 var(--sans,'Inter',system-ui,sans-serif);letter-spacing:-.015em;color:var(--ink,#1a1712);opacity:.66;transition:opacity .2s}
   .ilogo:hover{opacity:1}
@@ -380,8 +380,8 @@
   }
   /* light (cream) sections */
   .light{background:#f4f1ea;color:#13110c;
-    --ink:#13110c;--mute:#6b6557;--faint:#9a9385;--gold:#8a8377;--line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.08);--bg:#f4f1ea;--bg-2:#ece7dc}
-  .light .eyebrow{color:#7a7363}
+    --ink:#13110c;--mute:#6b6557;--faint:#9a9385;--gold:#5E6B74;--line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.08);--bg:#f4f1ea;--bg-2:#ece7dc}
+  .light .eyebrow{color:#5E6B74}
   .light em{color:#13110c}
   .light .btn{background:#13110c;color:#f4f1ea;border-color:#13110c}
   .light .btn:hover{background:transparent;color:#13110c}
@@ -410,7 +410,7 @@
 <!-- NAV -->
 <header id="hdr"><div class="wrap nav">
  <a class="brand" href="/">
- <span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span>
+ <span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#D7DADE">&#8258;</span>
  Halia </a>
  <nav class="nav-links">
  <a href="#how">How it works</a>
@@ -449,8 +449,7 @@
  <div class="veil"></div>
  <div class="wrap">
  <div class="hero-top">
- <div class="eyebrow reveal in"><!--cms:home.hero.eyebrow-->Private client intelligence<!--/cms--></div>
- <h1 class="display reveal in d1"><!--cms:home.hero.title-->Your most valuable clients are already in your <em>database.</em><!--/cms--></h1>
+  <h1 class="display reveal in d1"><!--cms:home.hero.title-->Your most valuable clients are already in your <em>database.</em><!--/cms--></h1>
  </div>
  <div class="hero-bot">
  <p class="lede reveal in d2"><!--cms:home.hero.sub-->A sea of records, and a handful worth the world. Halia reads the wealth signals in your own order data and grades every customer, A&#42; to C.<!--/cms--></p>
@@ -498,25 +497,24 @@
 <!-- REAL-TIME ALERTS -->
 <section class="pad" style="background:var(--bg-2)"><div class="wrap split" style="align-items:center">
  <div class="copy reveal">
- <div class="eyebrow">Real-time alerts</div>
- <h2 class="h2" style="margin:22px 0 24px">The moment they order,<br>your team <em>knows.</em></h2>
+  <h2 class="h2" style="margin:22px 0 24px">The moment they order,<br>your team <em>knows.</em></h2>
  <p>When an A&#42; or A client checks out, in store at the till or online, Halia alerts your team the
  instant it happens: a desktop notification, an email, and a live feed in the dashboard. The
  recognition, the appointment, the personal note all land while the order is still warm.</p>
  </div>
  <div class="alerts-mock reveal d1" aria-hidden="true">
  <div class="atoast" style="--d:0s">
- <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span></div>
+ <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#D7DADE">&#8258;</span></div>
  <div class="ab"><div class="at"><b>New <span class="g">A&#42;</span> order · Sir James Whitfield</b><span class="atm">now</span></div>
  <div class="as">Work email · Mayfair postcode · Premium card</div></div>
  </div>
  <div class="atoast" style="--d:1.8s">
- <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span></div>
+ <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#D7DADE">&#8258;</span></div>
  <div class="ab"><div class="at"><b>New <span class="g">A</span> order · Mei Tanaka</b><span class="atm">now</span></div>
  <div class="as">Premium card · HNW neighbourhood</div></div>
  </div>
  <div class="atoast" style="--d:3.6s">
- <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#d8d2c6">&#8258;</span></div>
+ <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#D7DADE">&#8258;</span></div>
  <div class="ab"><div class="at"><b>New <span class="g">A&#42;</span> order · Omar Al-Rashid</b><span class="atm">now</span></div>
  <div class="as">Family office · Concierge delivery</div></div>
  </div>
@@ -555,8 +553,7 @@
 
 <!-- PARETO 80/20 -->
 <section class="pad" style="background:var(--bg-2)"><div class="wrap">
- <div class="eyebrow reveal" style="margin-bottom:18px">The eighty-twenty of luxury</div>
- <h2 class="h2 reveal" style="margin-bottom:14px;max-width:20ch">Twenty percent of clients. Eighty percent of revenue.</h2>
+  <h2 class="h2 reveal" style="margin-bottom:14px;max-width:20ch">Twenty percent of clients. Eighty percent of revenue.</h2>
  <div class="chartwrap">
  <div class="pareto reveal d1" id="pareto"></div>
  <div class="chart-side reveal d2">
@@ -584,8 +581,7 @@
 <!-- FOR TEAMS / DEPARTMENTS -->
 <section id="teams" class="pad light"><div class="wrap">
  <div class="sig-head reveal">
- <div class="eyebrow" style="margin-bottom:20px">For your teams</div>
- <h2 class="h2">One score, every team<br>that touches a client.</h2>
+  <h2 class="h2">One score, every team<br>that touches a client.</h2>
  </div>
  <div class="dept-grid">
  <div class="dept reveal"><div class="di">01</div><h3>Clienteling &amp; VIP</h3>
@@ -627,8 +623,7 @@
 <!-- HOW IT WORKS / ARCHITECTURE -->
 <section id="how" class="pad" style="background:var(--bg-2)"><div class="wrap">
  <div class="sig-head reveal" style="max-width:none">
- <div class="eyebrow" style="margin-bottom:20px">How it works</div>
- <h2 class="h2">Connected to your stack.<br>Acting in real time.</h2>
+  <h2 class="h2">Connected to your stack.<br>Acting in real time.</h2>
  </div>
  <div class="flow reveal d1">
  <div class="fnode">
@@ -686,8 +681,7 @@
 <section id="engine" class="pad"><div class="wrap">
  <div class="split">
  <div class="copy reveal">
- <div class="eyebrow">The engine</div>
- <h2 class="h2">Forty signals.<br>One quiet score.</h2>
+  <h2 class="h2">Forty signals.<br>One quiet score.</h2>
  <p>Built by people who ran clienteling inside luxury retail. More than forty wealth and intent
  signals, checked against a reference library curated by hand over years, and resolved by powerful,
  intelligent analysis into one score and a grade from A&#42; to C for every customer you have. A client surfaces when
@@ -715,8 +709,7 @@
 <!-- SIGNALS -->
 <section id="signals" class="pad light"><div class="wrap">
  <div class="sig-head reveal">
- <div class="eyebrow" style="margin-bottom:20px">What Halia sees</div>
- <h2 class="h2">The tells of quiet wealth.</h2>
+  <h2 class="h2">The tells of quiet wealth.</h2>
  <p class="lede" style="margin-top:20px;max-width:60ch">The quiet markers of real wealth, read across six dimensions and weighed together into one defensible score.</p>
  </div>
  <div class="sgrid">
@@ -739,8 +732,7 @@
 <section id="security" class="pad" style="background:var(--bg-2)"><div class="wrap">
  <div class="split" style="margin-bottom:64px">
  <div class="copy reveal">
- <div class="eyebrow">Security &amp; data</div>
- <h2 class="h2" style="margin:22px 0 24px">Your customer list<br>stays yours.</h2>
+  <h2 class="h2" style="margin:22px 0 24px">Your customer list<br>stays yours.</h2>
  <p>Most tools copy your whole customer list onto their servers and keep it there. Halia works the
  other way: it reads your customers for the moment it takes to score them, then releases the
  data. The access it needs is read-only, and yours to switch off whenever you like.</p>
@@ -785,7 +777,7 @@
   </form>
  </div>
  <div class="hf-brand">
-  <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:var(--gold,#8a8377)">&#8258;</span>Halia</a>
+  <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:var(--gold,#5E6B74)">&#8258;</span>Halia</a>
   <p class="hf-bio">Halia is private client intelligence for luxury retail. Its powerful, intelligent analysis reads the undetected signs of wealth in your own database, grades every customer from A&#42; to C, and surfaces the high-value clients hiding behind modest spend, so your team drives revenue from the list you already own. Scoring runs in memory and finishes there. Zero retention, by architecture.</p>
  
   <a class="hf-social" href="https://www.linkedin.com/company/haliascore" target="_blank" rel="noopener" aria-label="Halia on LinkedIn"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.76-2.05 4.02 0 4.76 2.65 4.76 6.1V21h-4v-5.3c0-1.26-.02-2.9-1.77-2.9-1.77 0-2.04 1.38-2.04 2.8V21H9z"/></svg><span>Follow on LinkedIn</span></a>
