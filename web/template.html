@@ -15,7 +15,6 @@
     --brand-deep:#143A32;
     --brand:#1F564A;
     --brand-tint:#E8F0ED;
-    --gold:#A67C34;
     --bg:#F2F1ED;
     --shell:#E7E6E0;
     --shell-ink:#3C4148;
@@ -46,7 +45,6 @@
     --brand-deep:#1B4A3F;
     --brand:#2E7263;
     --brand-tint:#1C2B27;
-    --gold:#C29A55;
     --bg:#1B1A17;
     --shell:#141311;
     --shell-ink:#C7C3B8;
@@ -131,6 +129,22 @@
     background-size:220% 100%;animation:skelsheen 1.25s linear infinite;border-radius:0}
   .skcard{height:72px;margin-bottom:10px;border-radius:0}
   .sktile{height:0;padding-bottom:120%;border-radius:0}
+
+  /* ---------- Pixel-grid loader (square cells, chevron wavefront) — long-running work ----------
+     Squared-off to match the brand; the 650ms cycle is shorter than the sweep so two fronts are
+     always in flight. Reduced-motion (global rule below) freezes it dim; the JS timer still ticks. */
+  .loadrow{display:inline-flex;align-items:center;gap:10px}
+  .pxgrid{display:inline-grid;grid-template-columns:repeat(3,5px);gap:2px;vertical-align:middle}
+  .pxgrid i{width:5px;height:5px;background:var(--brand);opacity:.15;animation:pxon 650ms ease-in-out infinite}
+  @keyframes pxon{0%,100%{opacity:.15}45%{opacity:.9}}
+  /* chevron wavefront via nth-child, so reusable placeholders need no inline delays */
+  .pxgrid.wave i:nth-child(1){animation-delay:90ms}  .pxgrid.wave i:nth-child(2){animation-delay:180ms}
+  .pxgrid.wave i:nth-child(3){animation-delay:270ms} .pxgrid.wave i:nth-child(4){animation-delay:0ms}
+  .pxgrid.wave i:nth-child(5){animation-delay:90ms}  .pxgrid.wave i:nth-child(6){animation-delay:180ms}
+  .pxgrid.wave i:nth-child(7){animation-delay:90ms}  .pxgrid.wave i:nth-child(8){animation-delay:180ms}
+  .pxgrid.wave i:nth-child(9){animation-delay:270ms}
+  .hload{display:flex;align-items:center;justify-content:center;gap:10px;padding:28px 0}
+  .elapsed{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--faint);font-variant-numeric:tabular-nums}
 
   /* ---------- Shopify admin chrome ---------- */
   .admin{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
@@ -283,6 +297,31 @@
 
   .rank{font-family:'Spline Sans Mono',monospace;font-size:13px;color:var(--faint);font-weight:500}
 
+  /* ---------- Records-grid grammar (Clients + Orders) ----------
+     Faint vertical column separators on the sticky header (box-shadow, so no column reflow), and
+     an aligned ledger footer with count / average-with-dot / totals. Data rows keep their existing
+     horizontal-rule ledger look; the header defines the columns and the footer sums them. */
+  #viewClients .thead>*:not(:first-child),
+  #viewOrders .othead>*:not(:first-child){box-shadow:-1px 0 0 var(--line)}
+  .tfoot{display:grid;gap:14px;padding:15px 18px;border-top:2px solid var(--line-strong);
+    align-items:center;background:var(--card);font-size:11px;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--faint);font-weight:700}
+  .tfoot:empty{display:none}
+  .tfoot.ctfoot{grid-template-columns:34px 56px 1fr 132px 120px 92px 96px}
+  .tfoot.otfoot{grid-template-columns:38px 92px minmax(140px,1fr) 84px 110px 90px 250px}
+  .tfoot .tnum{font-family:'Spline Sans Mono',monospace;font-weight:600;color:var(--ink);
+    font-size:14px;text-transform:none;letter-spacing:0}
+  .tfoot .f-count{display:inline-flex;align-items:center;gap:7px}
+  .tfoot .f-avg,.tfoot .f-total{display:inline-flex;align-items:center;gap:7px}
+  .tfoot .gd{width:9px;height:9px;flex:none}
+  .tfoot.ctfoot .f-count{grid-column:3 / 4}
+  .tfoot.ctfoot .f-avg{grid-column:4 / 5}
+  .tfoot.ctfoot .f-total{grid-column:5 / 6}
+  .tfoot.otfoot .f-count{grid-column:3 / 4}
+  .tfoot.otfoot .f-total{grid-column:6 / 7;justify-self:end}
+  .tfoot.otfoot .f-avg{grid-column:7 / 8;justify-self:end}
+  @media(max-width:820px){.tfoot{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between}}
+
   .client{display:flex;gap:13px;align-items:center;min-width:0}
   .ava{width:38px;height:38px;border-radius:0;flex:none;display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:500;font-size:15px;color:#fff;background:var(--tierB)}
   .ava.A1{background:linear-gradient(140deg,#1d4d42,#143a32)}
@@ -305,7 +344,7 @@
   .meter svg{transform:rotate(-90deg)}
   .meter .num{position:absolute;inset:0;display:grid;place-items:center;font-family:'Spline Sans Mono',monospace;font-weight:600;font-size:13px}
   .tier{font-size:11px;font-weight:700;letter-spacing:.04em}
-  .tier.A1{color:var(--gold)}
+  .tier.A1{color:var(--ink)}
   .tier.A{color:var(--brand)}
   .tier.B{color:var(--tierB)}
   .tier.C{color:var(--faint)}
@@ -582,6 +621,23 @@
   .cm-chart .cm-line{fill:none;stroke:var(--brand);stroke-width:2.5}.cm-chart .cm-dot{fill:var(--brand)}
   .cm-chart .cm-yt{fill:var(--faint);font:10px 'Hanken Grotesk',sans-serif;text-anchor:end}
   .cm-chart .cm-xt{fill:var(--faint);font:10px 'Hanken Grotesk',sans-serif;text-anchor:middle}
+  .cm-chartwrap{position:relative}
+
+  /* ---------- Insight-card interaction: hover crosshair + tooltip on the time-series charts ----------
+     (Overview "Recent activity" spark + campaign "Sales over time".) Uses the SVG's own coordinate
+     transform so it aligns under any preserveAspectRatio; reduced-motion just drops the fades. */
+  .xh-line{stroke:var(--line-strong);stroke-width:1;stroke-dasharray:3 3;pointer-events:none;opacity:0;transition:opacity .12s}
+  .xh-dot{fill:var(--card);stroke:var(--brand);stroke-width:2;pointer-events:none;opacity:0;transition:opacity .12s}
+  .xh-on .xh-line,.xh-on .xh-dot{opacity:1}
+  .xh-tip{position:absolute;top:6px;transform:translateX(-50%);pointer-events:none;z-index:9;background:var(--card);
+    border:1px solid var(--line);box-shadow:var(--shadow);padding:7px 10px;font-size:11.5px;color:var(--soft);white-space:nowrap;opacity:0;transition:opacity .12s}
+  .xh-tip.on{opacity:1}
+  .xh-tip .t{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+  .xh-tip .r{display:flex;align-items:center;gap:14px;justify-content:space-between;line-height:1.55}
+  .xh-tip .r .k{display:inline-flex;align-items:center;gap:6px}
+  .xh-tip .r .d{width:8px;height:8px;flex:none}
+  .xh-tip .r b{color:var(--ink);font-family:'Spline Sans Mono',monospace;font-weight:600;font-variant-numeric:tabular-nums}
+  .hovpill{font:600 9.5px 'Hanken Grotesk',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);padding:2px 8px;margin-left:8px;vertical-align:middle}
   .cm-bars{display:flex;flex-direction:column;gap:10px}
   .cm-bar{display:grid;grid-template-columns:130px 1fr 62px;align-items:center;gap:10px;font-size:13px}
   .cm-bl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -599,8 +655,8 @@
   .pl-card{background:var(--card);border:1px solid var(--line);padding:24px 22px;display:flex;flex-direction:column}
   .pl-card.feat{background:var(--brand-deep);border-color:var(--brand-deep);color:#fff}
   .pl-card.cur{outline:2px solid var(--brand);outline-offset:-2px}
-  .pl-badge{align-self:flex-start;font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-deep);background:var(--gold);padding:3px 9px;margin-bottom:12px}
-  .pl-card.feat .pl-badge{background:var(--gold);color:var(--brand-deep)}
+  .pl-badge{align-self:flex-start;font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--brand-deep);padding:3px 9px;margin-bottom:12px}
+  .pl-card.feat .pl-badge{background:#fff;color:var(--brand-deep)}
   .pl-name{font:700 18px 'Fraunces',serif;letter-spacing:-.01em}
   .pl-price{font:700 clamp(28px,3.4vw,36px)/1 'Fraunces',serif;letter-spacing:-.02em;margin:6px 0 2px}
   .pl-price span{font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
@@ -618,7 +674,7 @@
   .pl-cta{border:1px solid var(--brand);background:var(--brand);color:#fff;font:600 13px 'Hanken Grotesk',sans-serif;padding:11px 16px;cursor:pointer;text-align:center;text-decoration:none;display:block}
   .pl-cta:hover{background:var(--brand-deep);border-color:var(--brand-deep)}
   .pl-cta.ghost{background:transparent;color:var(--brand)}.pl-cta.ghost:hover{background:var(--brand-tint);color:var(--brand-deep)}
-  .pl-card.feat .pl-cta{background:#fff;color:var(--brand-deep);border-color:#fff}.pl-card.feat .pl-cta:hover{background:var(--gold);border-color:var(--gold)}
+  .pl-card.feat .pl-cta{background:#fff;color:var(--brand-deep);border-color:#fff}.pl-card.feat .pl-cta:hover{background:var(--brand-tint);border-color:var(--brand-tint)}
   .pl-cta.cur{background:var(--bg,#f2f1ed);color:var(--soft);border-color:var(--line);cursor:default}
   .pl-card.feat .pl-cta.cur{background:rgba(255,255,255,.14);color:rgba(255,255,255,.7);border-color:transparent}
   .pl-note{font-size:12px;color:var(--faint);margin:16px 2px 0}
@@ -649,7 +705,7 @@
   .oid{color:var(--soft);font-variant-numeric:tabular-nums}
   .oamt{text-align:right;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
   .gchip{flex:none;font:700 10.5px system-ui;padding:2px 7px;border-radius:0;color:#fff;letter-spacing:.02em}
-  .gchip.A1{background:#1f564a}.gchip.A{background:#26695b}.gchip.B{background:#8a7b53}.gchip.none{background:#cfd3cf}
+  .gchip.A1{background:#1A1C22}.gchip.A{background:#26695b}.gchip.B{background:#5E6B74}.gchip.none{background:#cfd3cf}
   .sb{font:600 11px system-ui;padding:3px 9px;border-radius:0;display:inline-block;white-space:nowrap}
   .sb.new{background:#fff3e0;color:#9a5b12}.sb.fulfilled{background:#e6f4ea;color:#1f7a40}.sb.refunded{background:#fdecea;color:#a23b2a}.sb.cancelled{background:#eef0ee;color:#6b675e}
   .oact{display:flex;gap:8px;justify-content:flex-end;align-items:center}
@@ -713,7 +769,7 @@
   .bar .tk{height:9px;border-radius:0;background:var(--brand-tint);overflow:hidden}
   .bar .tk i{display:block;height:100%;border-radius:0;background:linear-gradient(90deg,var(--brand),var(--brand-deep));min-width:3px}
   .bar .vl{text-align:right;font-family:'Spline Sans Mono',monospace;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
-  .bar.g .tk i{background:linear-gradient(90deg,#c9a24a,var(--gold))}
+  .bar.g .tk i{background:linear-gradient(90deg,#3C4148,var(--ink))}
 
   /* activity sparkline/area */
   .spark{width:100%;height:132px;display:block}
@@ -752,8 +808,8 @@
   .mapzoom button:hover{background:var(--card)}
   .bub{fill:rgba(31,86,74,.55);stroke:#fff;stroke-width:1.2;cursor:pointer;transition:fill var(--dur) var(--ease);vector-effect:non-scaling-stroke}
   .bub:hover{fill:rgba(20,58,50,.85)}
-  .bub.g{fill:rgba(166,124,52,.62)}
-  .bub.g:hover{fill:rgba(166,124,52,.9)}
+  .bub.g{fill:rgba(26,28,34,.62)}
+  .bub.g:hover{fill:rgba(26,28,34,.9)}
   .maptip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;padding:7px 10px;border-radius:0;opacity:0;transform:translate(-50%,-124%);transition:opacity var(--dur) var(--ease);white-space:nowrap;z-index:5;box-shadow:0 8px 22px -8px rgba(0,0,0,.4)}
   .maptip b{font-family:'Spline Sans Mono',monospace}
   .maplgd{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:12px 2px 0;font-size:12px;color:var(--soft)}
@@ -1021,6 +1077,7 @@
           <div style="text-align:right">Action</div>
         </div>
         <div id="rows"></div>
+        <div class="tfoot ctfoot" id="cfoot"></div>
       </div>
       <div class="pager" id="pager"></div>
       </div><!-- /viewClients -->
@@ -1049,9 +1106,9 @@
             <div class="h-rank">#</div><div>Date</div><div>Client</div><div>Order</div><div>Status</div><div style="text-align:right">Amount</div><div style="text-align:right">Action</div>
           </div>
           <div id="orows"></div>
+          <div class="tfoot otfoot" id="ofoot"></div>
         </div>
         <div class="pager" id="opager"></div>
-        <div class="ofoot" id="ofoot"></div>
       </div>
 
       <!-- MAP: geographic concentration of potential VICs -->
@@ -1063,7 +1120,7 @@
               <div class="mapwrap" id="mapWrap"></div>
               <div class="maplgd">
                 <span class="bd"><span class="dt" style="width:9px;height:9px"></span><span class="dt" style="width:15px;height:15px"></span><span class="dt" style="width:22px;height:22px"></span> more clients</span>
-                <span class="bd"><span class="dt" style="width:13px;height:13px;background:rgba(166,124,52,.6)"></span> mostly A-grade</span>
+                <span class="bd"><span class="dt" style="width:13px;height:13px;background:rgba(26,28,34,.6)"></span> mostly A-grade</span>
                 <span style="color:var(--faint)">Bubble size = potential VICs in that area · drag to move, scroll to zoom, click to see them</span>
               </div>
             </div>
@@ -1077,17 +1134,17 @@
 
       <!-- PIPELINE: kanban board of VIC clients across outreach stages (Shopify-backed) -->
       <div id="viewBoard" style="display:none">
-        <div id="boardRoot"><div style="padding:40px;text-align:center;color:var(--faint)">Loading…</div></div>
+        <div id="boardRoot"><div class="hload"><span class="pxgrid wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="shim" style="font:600 13px system-ui">Loading</span></div></div>
       </div><!-- /viewBoard -->
 
       <!-- CATALOGUES: build print-ready PDF + shareable enquiry-form catalogues from products -->
       <div id="viewCatalogs" style="display:none">
-        <div id="catalogsRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
+        <div id="catalogsRoot" style="min-height:80px"><div class="hload"><span class="pxgrid wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="shim" style="font:600 13px system-ui">Loading</span></div></div>
       </div><!-- /viewCatalogs -->
 
       <!-- CAMPAIGNS: name a window, target grades/signals, monitor sales + reactivations live -->
       <div id="viewCampaigns" style="display:none">
-        <div id="campaignsRoot" style="min-height:80px"><div style="color:var(--soft);font-size:13.5px">Loading…</div></div>
+        <div id="campaignsRoot" style="min-height:80px"><div class="hload"><span class="pxgrid wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="shim" style="font:600 13px system-ui">Loading</span></div></div>
       </div><!-- /viewCampaigns -->
 
 
@@ -1167,6 +1224,54 @@
 </div>
 
 <script>
+// Shared loading placeholder: the pixel-grid loader + shimmer label used across tab panels.
+// Function declaration (hoisted) so it is callable from any render function below.
+function haliaLoader(label){
+  return `<div class="hload"><span class="pxgrid wave" aria-hidden="true">`+
+    "<i></i>".repeat(9)+`</span><span class="shim" style="font:600 13px system-ui">${label||"Loading"}</span></div>`;
+}
+
+// Insight-card hover layer for an area/line SVG chart. spec: {xs,ys (viewBox coords per point),
+// top,bottom (crosshair y-extent in viewBox), tips:[{label, rows:[{label,value,color}]}]}. Draws a
+// dashed crosshair + focus dot inside the SVG and an HTML tooltip in the SVG's (relative) parent.
+function attachCrosshair(svg, spec){
+  if(!svg || !spec || !spec.xs || spec.xs.length<2) return;
+  const wrap = svg.parentNode; if(!wrap) return;
+  if(getComputedStyle(wrap).position === "static") wrap.style.position = "relative";
+  const NS = "http://www.w3.org/2000/svg";
+  const line = document.createElementNS(NS,"line");
+  line.setAttribute("class","xh-line"); line.setAttribute("y1",spec.top); line.setAttribute("y2",spec.bottom);
+  const dot = document.createElementNS(NS,"circle");
+  dot.setAttribute("class","xh-dot"); dot.setAttribute("r","4");
+  svg.appendChild(line); svg.appendChild(dot);
+  let tip = wrap.querySelector(":scope > .xh-tip");
+  if(!tip){ tip = document.createElement("div"); tip.className = "xh-tip"; wrap.appendChild(tip); }
+  const toView = (cx,cy)=>{ const m = svg.getScreenCTM(); if(!m) return null;
+    const p = svg.createSVGPoint(); p.x = cx; p.y = cy; return p.matrixTransform(m.inverse()); };
+  const nearest = vx=>{ let bi=0, bd=Infinity;
+    for(let i=0;i<spec.xs.length;i++){ const d=Math.abs(spec.xs[i]-vx); if(d<bd){bd=d;bi=i;} } return bi; };
+  const move = e=>{
+    const v = toView(e.clientX,e.clientY); if(!v) return;
+    const i = nearest(v.x), x = spec.xs[i];
+    line.setAttribute("x1",x); line.setAttribute("x2",x);
+    dot.setAttribute("cx",x); dot.setAttribute("cy",spec.ys[i]);
+    svg.classList.add("xh-on");
+    const t = spec.tips[i];
+    tip.innerHTML = `<div class="t">${esc(t.label)}</div>` + t.rows.map(r=>
+      `<div class="r"><span class="k">${r.color?`<span class="d" style="background:${r.color}"></span>`:""}${esc(r.label)}</span><b>${esc(r.value)}</b></div>`).join("");
+    const m = svg.getScreenCTM(), wr = wrap.getBoundingClientRect();
+    let left = x*m.a + m.e - wr.left;                 // viewBox x → screen x → wrap-relative
+    left = Math.max(46, Math.min(wr.width-46, left));
+    tip.style.left = left+"px"; tip.classList.add("on");
+  };
+  const leave = ()=>{ svg.classList.remove("xh-on"); tip.classList.remove("on"); };
+  svg.style.cursor = "crosshair";
+  svg.addEventListener("pointermove", move);
+  svg.addEventListener("pointerdown", move);
+  svg.addEventListener("pointerleave", leave);
+  svg.addEventListener("pointercancel", leave);
+}
+
 const SEGMENTS = __SEGMENTS__;
 
 const DATA = __DATA__;
@@ -1420,7 +1525,7 @@ function wireRescore(){ const b=document.getElementById("rescore"); if(b) b.oncl
 
 function meterSvg(score,tier,reveal,delay){
   const r=20,c=2*Math.PI*r,off=c*(1-score/100);
-  const col = tier==="A1"?"var(--gold)":tier==="A"?"var(--brand)":tier==="B"?"var(--tierB)":"var(--faint)";
+  const col = tier==="A1"?"var(--ink)":tier==="A"?"var(--brand)":tier==="B"?"var(--tierB)":"var(--faint)";
   const sweep = reveal ? ` style="animation:ringdraw var(--dur-slow) var(--ease) ${delay||0}ms both"` : "";
   const numAnim = reveal ? ` style="animation:settle var(--dur) var(--ease) ${(delay||0)+70}ms both"` : "";
   return `<div class="meter"><svg width="46" height="46" viewBox="0 0 46 46">
@@ -1553,7 +1658,7 @@ function updateStats(list){
   document.getElementById("statTopTier").textContent = topTier.toLocaleString("en-GB");
 }
 
-const GRADE_SW = {"A*":"var(--gold)","A":"var(--brand)","B":"var(--tierB)","C":"var(--faint)"};
+const GRADE_SW = {"A*":"var(--ink)","A":"var(--brand)","B":"var(--tierB)","C":"var(--faint)"};
 function renderClientSum(full){
   const el = document.getElementById("clientSum"); if(!el) return;
   if(!full.length){ el.innerHTML=""; return; }
@@ -1581,6 +1686,7 @@ function renderRows(){
   const list = full.slice(start, start+PAGE_SIZE);
   if(!full.length){
     rowsEl.innerHTML = `<div style="padding:48px;text-align:center;color:var(--faint)">No clients match this filter. <b style="color:var(--soft)">Try another signal.</b></div>`;
+    const ef=document.getElementById("cfoot"); if(ef) ef.innerHTML="";
     renderPager("pager", 0, 0, 0, ()=>{});
     return;
   }
@@ -1612,6 +1718,17 @@ function renderRows(){
   rowsEl.querySelectorAll("[data-cbx]").forEach(b=>{
     b.onclick=e=>{e.stopPropagation();toggleSel(b.dataset.cbx);};
   });
+  const foot=document.getElementById("cfoot");
+  if(foot){
+    const n=full.length;
+    const avg=n?Math.round(full.reduce((s,c)=>s+(c.score||0),0)/n):0;
+    const sumLat=full.reduce((s,c)=>s+(c.latent||0),0);
+    // average-score dot echoes the grade ramp used elsewhere in the app
+    const dot=avg>=90?"var(--tierA1)":avg>=75?"var(--tierA)":avg>=55?"var(--tierB)":"var(--faint)";
+    foot.innerHTML=`<span class="f-count"><span class="tnum">${n.toLocaleString()}</span> ${n===1?"client":"clients"}</span>`+
+      `<span class="f-avg"><span class="gd" style="background:${dot}"></span><span class="tnum">${avg}</span> avg score</span>`+
+      `<span class="f-total"><span class="tnum">${gbpK(sumLat)}</span> latent</span>`;
+  }
   renderPager("pager", full.length, start, list.length, p=>{
     page = p; renderRows();
     const panel = rowsEl.closest(".panel");
@@ -2112,7 +2229,13 @@ function renderOrders(){
   const ostart = (opage-1)*OPAGE_SIZE;
   const oview = list.slice(ostart, ostart+OPAGE_SIZE);
   document.getElementById("orows").innerHTML = oview.length?oview.map(oRow).join(""):'<div class="oempty">No orders to show. Try Show every grade, or a different status.</div>';
-  document.getElementById("ofoot").textContent = list.length+" order"+(list.length===1?"":"s")+(onlyTop?" from clients graded above C":"")+" · newest first";
+  const oTotal=list.reduce((s,o)=>s+(o.amount||0),0);
+  const oAov=list.length?Math.round(oTotal/list.length):0;
+  document.getElementById("ofoot").innerHTML = list.length
+    ? `<span class="f-count"><span class="tnum">${list.length.toLocaleString()}</span> ${list.length===1?"order":"orders"}${onlyTop?" · graded above C":""}</span>`+
+      `<span class="f-total"><span class="tnum">£${oTotal.toLocaleString()}</span> total</span>`+
+      `<span class="f-avg"><span class="tnum">£${oAov.toLocaleString()}</span> avg order</span>`
+    : "";
   document.querySelector(".stats").innerHTML = orderStatsHTML(list);
   renderPager("opager", list.length, ostart, oview.length, p=>{
     opage = p; renderOrders();
@@ -2126,7 +2249,7 @@ document.addEventListener("click",()=>document.querySelectorAll(".omenu.show").f
 ["oAllGrades","oStatus","oq"].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener(e.type==="text"?"input":"change",()=>{opage=1;renderOrders();});});
 wireDate("o", ODATE, ()=>{opage=1;renderOrders();});
 /* ======================= Overview + Map (birds-eye pages) ======================= */
-const GRADE_COL={"A*":"#A67C34","A":"#1F564A","B":"#5E6B74","C":"#B5B9BE"};
+const GRADE_COL={"A*":"#1A1C22","A":"#1F564A","B":"#5E6B74","C":"#B5B9BE"};
 const GRADE_ORDER=["A*","A","B","C"];
 
 function gradeCounts(list){const m={"A*":0,"A":0,"B":0,"C":0};list.forEach(c=>{if(m[c.grade]!=null)m[c.grade]++;});return m;}
@@ -2183,6 +2306,11 @@ function renderSpark(svg,list){
     <path d="${area}" fill="url(#sg)"/>
     <path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     <circle cx="${end[0].toFixed(1)}" cy="${end[1].toFixed(1)}" r="3.5" fill="var(--brand-deep)"/>${ticks}`;
+  attachCrosshair(svg,{
+    xs:pts.map(p=>p[0]), ys:pts.map(p=>p[1]), top:pt, bottom:pt+ih,
+    tips:keys.map(k=>{const pr=k.split("-");
+      return {label:MON[+pr[1]-1]+" "+pr[0], rows:[{label:"Potential VICs", value:String(months[k]), color:"var(--brand)"}]};})
+  });
 }
 
 // Highest-potential rail
@@ -2265,8 +2393,8 @@ function buildMap(wrap,onClick,fitMode){
   const view={x:fx,y:fy,w:fw,h:fh};
   // Bubble radii are sized against the FIT view (1.2%–4.6% of its width) and rescaled on every
   // zoom so they hold a constant on-screen size, like pins on any map you can zoom.
-  const bubbles=areas.map(a=>{const c=proj(a.ll[0],a.ll[1]);const r0=fw*(0.012+0.034*Math.sqrt(a.n/maxN));const gold=a.top/a.n>=0.5;
-    return `<circle class="bub ${gold?'g':''}" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${r0.toFixed(2)}" data-r0="${r0.toFixed(2)}" data-area="${a.area}" data-n="${a.n}" data-latent="${a.latent}" data-city="${esc(a.topCity)}"/>`;
+  const bubbles=areas.map(a=>{const c=proj(a.ll[0],a.ll[1]);const r0=fw*(0.012+0.034*Math.sqrt(a.n/maxN));const dense=a.top/a.n>=0.5;
+    return `<circle class="bub ${dense?'g':''}" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="${r0.toFixed(2)}" data-r0="${r0.toFixed(2)}" data-area="${a.area}" data-n="${a.n}" data-latent="${a.latent}" data-city="${esc(a.topCity)}"/>`;
   }).join("");
   wrap.innerHTML=`<svg viewBox="${fx.toFixed(1)} ${fy.toFixed(1)} ${fw.toFixed(1)} ${fh.toFixed(1)}" preserveAspectRatio="xMidYMid meet"><path class="land" d="${LAND_PATH}"/>${bubbles}</svg>
     <div class="mapzoom"><button data-z="in" title="Zoom in" aria-label="Zoom in">+</button><button data-z="out" title="Zoom out" aria-label="Zoom out">&minus;</button><button data-z="fit" title="Reset view" aria-label="Reset view">&#8962;</button></div>
@@ -2545,7 +2673,7 @@ function renderOpenBaskets(){
     <div class="ava ${c.tier}">${esc(c.init)}</div>
     <div style="min-width:0"><div class="nm">${esc(c.name)}</div>
       <div class="mt">${c.cart.count} item${c.cart.count===1?"":"s"} · started ${cartAge(c.cart.started)} · ${tierLabel(c.tier)}</div></div>
-    <div class="sc"><b>${gbpK(c.cart.value)}</b><div class="g" style="color:var(--gold)">in basket</div></div>
+    <div class="sc"><b>${gbpK(c.cart.value)}</b><div class="g" style="color:var(--brand)">in basket</div></div>
   </div>`).join("");
   el.querySelectorAll(".tl").forEach(r=>r.onclick=()=>openDrawer(r.dataset.id));
 }
@@ -2561,7 +2689,7 @@ let PLANS_CACHE=null;
 function loadPlanCards(container, force){
   if(!container) return;
   if(PLANS_CACHE && !force){ container.innerHTML=planCardsHTML(PLANS_CACHE); return; }
-  container.innerHTML='<div style="color:var(--soft);font-size:13.5px">Loading plans…</div>';
+  container.innerHTML=haliaLoader("Loading plans");
   fetch("/v1/billing/plans").then(r=>r.json()).then(d=>{ PLANS_CACHE=d; container.innerHTML=planCardsHTML(d); })
     .catch(()=>{ container.innerHTML='<div style="color:var(--soft);font-size:13.5px">Couldn\'t load plans.</div>'; });
 }
@@ -2610,7 +2738,7 @@ function campInit(force){
   const root=document.getElementById("campaignsRoot");
   // Always render the create form (and a slot for the list) so a campaign can be created even
   // before/without the list loading. The list then fills in when the API answers.
-  root.innerHTML=`<div id="campList" class="camplist"><div style="color:var(--faint);font-size:13px;padding:6px 0">Loading campaigns…</div></div>
+  root.innerHTML=`<div id="campList" class="camplist">${haliaLoader("Loading campaigns")}</div>
     <div class="campnew"><div class="clbl" style="margin-bottom:10px">New campaign</div>${campForm()}</div>`;
   campWireForm();
   fetch("/v1/campaigns").then(r=>r.json()).then(d=>{
@@ -2656,7 +2784,7 @@ function cmArea(series){
   let grid="";[0,vmax/2,vmax].forEach(gv=>{const gy=Y(gv);grid+=`<line x1="${pl}" y1="${gy.toFixed(1)}" x2="${w-14}" y2="${gy.toFixed(1)}" class="cm-grid"/><text x="${pl-8}" y="${(gy+3).toFixed(1)}" class="cm-yt">${cmMoney(gv)}</text>`;});
   const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" class="cm-dot"/>`).join("");
   let xl="";[0,Math.floor(n/2),n-1].forEach(i=>{xl+=`<text x="${X(i).toFixed(1)}" y="${h-8}" class="cm-xt">${esc(String(series[i].week).slice(5))}</text>`;});
-  return `<svg viewBox="0 0 ${w} ${h}" class="cm-chart" preserveAspectRatio="xMidYMid meet">${grid}<path d="${area}" class="cm-area"/><path d="${line}" class="cm-line"/>${dots}${xl}</svg>`;
+  return `<div class="cm-chartwrap"><svg viewBox="0 0 ${w} ${h}" class="cm-chart" preserveAspectRatio="xMidYMid meet">${grid}<path d="${area}" class="cm-area"/><path d="${line}" class="cm-line"/>${dots}${xl}</svg></div>`;
 }
 function cmBars(items,key){
   if(!items||!items.length)return '<div class="cm-empty">Nothing yet.</div>';
@@ -2710,8 +2838,8 @@ function renderMonitor(m){
     <div id="campaignMonitor">
       <div class="cm-kpis">${kpis}</div>
       <div class="cm-winback"><div class="cm-wn">${(k.reactivated||0).toLocaleString()}</div><div class="cm-wt">clients came back from gone quiet<span>reactivated during the campaign, worth <b>${cmMoney(k.reactivated_revenue)}</b> recovered</span></div></div>
-      ${(k.attributed_revenue>0||k.attributed_orders>0)?`<div class="cm-winback" style="background:#f4f0e6;border-color:#e7d9bd"><div class="cm-wn">${cmMoney(k.attributed_revenue)}</div><div class="cm-wt">attributed to your campaign links<span><b>${(k.attributed_orders||0).toLocaleString()}</b> order${k.attributed_orders===1?'':'s'} from <b>${(k.attributed_buyers||0).toLocaleString()}</b> client${k.attributed_buyers===1?'':'s'} arrived through this campaign's tagged links (UTM)</span></div></div>`:''}
-      <div class="cm-panel"><h3>Sales over time</h3>${cmArea(m.series)}</div>
+      ${(k.attributed_revenue>0||k.attributed_orders>0)?`<div class="cm-winback" style="background:var(--brand-tint);border-color:#CBD8D1"><div class="cm-wn">${cmMoney(k.attributed_revenue)}</div><div class="cm-wt">attributed to your campaign links<span><b>${(k.attributed_orders||0).toLocaleString()}</b> order${k.attributed_orders===1?'':'s'} from <b>${(k.attributed_buyers||0).toLocaleString()}</b> client${k.attributed_buyers===1?'':'s'} arrived through this campaign's tagged links (UTM)</span></div></div>`:''}
+      <div class="cm-panel"><h3>Sales over time<span class="hovpill">hover to inspect</span></h3>${cmArea(m.series)}</div>
       <div class="cm-cols">
         <div class="cm-panel"><h3>Revenue by signal</h3>${cmBars(m.by_signal,"label")}</div>
         <div class="cm-panel"><h3>Revenue by grade</h3>${cmBars(m.by_tier,"tier")}</div>
@@ -2720,6 +2848,19 @@ function renderMonitor(m){
     </div>`;
   document.getElementById("cmBack").onclick=()=>campInit(true);
   document.getElementById("cmPdf").onclick=()=>window.print();
+  // insight-card hover layer on "Sales over time" (recompute the same geometry cmArea used)
+  if(m.series && m.series.length>1){
+    const chart=root.querySelector(".cm-chart");
+    if(chart){
+      const w=760,h=240,pl=46,pb=26,pt=14,iw=w-pl-14,ih=h-pb-pt,n=m.series.length;
+      const vmax=Math.max(1,...m.series.map(p=>p.value));
+      const X=i=>pl+(n>1?iw*i/(n-1):iw/2), Y=v=>pt+ih-ih*v/vmax;
+      attachCrosshair(chart,{
+        xs:m.series.map((p,i)=>X(i)), ys:m.series.map(p=>Y(p.value)), top:pt, bottom:pt+ih,
+        tips:m.series.map(p=>({label:String(p.week), rows:[{label:"Sales", value:cmMoney(p.value), color:"var(--brand)"}]}))
+      });
+    }
+  }
   const CAMP=(m.utm||{}).campaign||"";
   const utmObj=()=>{const c=(document.getElementById("utmChan")||{}).value||"klaviyo";
     const cm=UTM_CHAN[c]||["halia","referral"];return {source:cm[0],medium:cm[1],campaign:CAMP};};
@@ -2739,7 +2880,7 @@ function renderMonitor(m){
 }
 function openMonitor(id){
   const root=document.getElementById("campaignsRoot"); if(!root)return;
-  root.innerHTML='<div style="color:var(--soft);font-size:13.5px;padding:8px 0">Loading monitor…</div>';
+  root.innerHTML=haliaLoader("Loading monitor");
   fetch("/v1/campaigns/"+encodeURIComponent(id)+"/metrics")
     .then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
     .then(m=>renderMonitor(m))
@@ -2835,7 +2976,7 @@ document.querySelectorAll(".vtab").forEach(t=>t.onclick=()=>showView(t.dataset.v
 // ── Outreach pipeline (kanban). State lives in the merchant's Shopify store; Halia persists
 //    nothing. Cards hydrate name/grade from DATA; stage/assignee/activity come from /v1/board. ──
 const PIPE_STAGES=["To reach out","Contacted","In conversation","Actioned","Parked"];
-const STAGE_BG={"To reach out":"#8a7b53","Contacted":"#26695b","In conversation":"#1f564a","Actioned":"#143a32","Parked":"#8C9098"};
+const STAGE_BG={"To reach out":"#5E6B74","Contacted":"#26695b","In conversation":"#1f564a","Actioned":"#143a32","Parked":"#8C9098"};
 const BOARD={loaded:false,available:false,stages:PIPE_STAGES,cards:{}};
 function actorName(){let n="";try{n=localStorage.getItem("halia_actor")||"";}catch(e){}
   if(!n){n=(prompt("Your name (shown on pipeline actions):")||"").trim();if(n){try{localStorage.setItem("halia_actor",n);}catch(e){}}}
@@ -2955,7 +3096,7 @@ const _ICON={
   other:'<circle cx="12" cy="12" r="3"/>'};
 const CATS={
   home:{t:"Home & address",c:"var(--brand)",d:"Where they live and ship to. Several tells about the same place are weighed as one."},
-  work:{t:"Work & wealth",c:"var(--gold)",d:"Their employer, profession or company."},
+  work:{t:"Work & wealth",c:"var(--ink)",d:"Their employer, profession or company."},
   payment:{t:"Payment",c:"#5E6B74",d:"How they pay."},
   name:{t:"Name & title",c:"var(--brand-deep)",d:"Titles and recognisable names. Weaker alone; used to corroborate."},
   contact:{t:"Contact",c:"#7A8089",d:"Phone and identity consistency checks."},
@@ -3107,7 +3248,7 @@ function openDrawer(id){
 
       ${c.cart?`
       <div class="dlabel">Open basket</div>
-      <div style="background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:0;padding:14px 16px;margin-bottom:22px">
+      <div style="background:var(--card);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:0;padding:14px 16px;margin-bottom:22px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
           <div style="font-family:'Fraunces',serif;font-size:21px">${gbp(c.cart.value)}</div>
           <div style="font-size:12px;color:var(--soft)">${c.cart.count} item${c.cart.count===1?'':'s'} · started ${cartAge(c.cart.started)}</div>
@@ -3696,7 +3837,7 @@ function openSettings(page){
         <div class="spage" data-page="billing" style="display:${spage==='billing'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Billing</div>
-          <div id="billingBox"><div style="${P};margin:0">Loading&hellip;</div></div>
+          <div id="billingBox">${haliaLoader("Loading")}</div>
         </div>
         </div><!-- /billing -->
 
@@ -4489,9 +4630,22 @@ function showFirstRun(){
       <p style="color:var(--faint);font-size:12px;margin-top:14px">This usually takes under a minute.</p>`);
     wrap.appendChild(box);
     const btn=document.getElementById("firstRunSync");
-    if(btn) btn.onclick=()=>{btn.disabled=true;btn.textContent="Scoring…";
+    if(btn) btn.onclick=()=>{
+      const t0=Date.now();
+      btn.style.display="none";
+      // chevron wavefront: delay = (col + |row-1|) * 90ms across a 3x3 grid
+      const cells=[90,180,270,0,90,180,90,180,270].map(d=>`<i style="animation-delay:${d}ms"></i>`).join("");
+      const load=document.createElement("div");
+      load.className="loadrow";load.style.cssText="margin-top:22px";
+      load.innerHTML=`<span class="pxgrid" aria-hidden="true">${cells}</span>`+
+        `<span class="shim" style="font:600 14px system-ui">Scoring your customers</span>`+
+        `<span class="elapsed" id="scoreClock">0.0s</span>`;
+      btn.parentNode.insertBefore(load,btn.nextSibling);
+      const clk=load.querySelector("#scoreClock");
+      const iv=setInterval(()=>{const s=(Date.now()-t0)/1000;
+        clk.textContent=s<60?s.toFixed(1)+"s":Math.floor(s/60)+"m "+(s%60).toFixed(1)+"s";},100);
       fetch("/v1/sync",{method:"POST"}).then(r=>r.json()).then(()=>location.reload())
-        .catch(()=>{btn.textContent="Sync failed — retry";btn.disabled=false;});};
+        .catch(()=>{clearInterval(iv);load.remove();btn.style.display="";btn.textContent="Sync failed, retry";});};
   }
 }
 
