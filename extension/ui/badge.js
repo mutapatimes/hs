@@ -48,7 +48,7 @@
     .head { display: flex; align-items: flex-start; gap: 10px; }
     .grade { flex: none; min-width: 44px; height: 44px; padding: 0 8px; display: flex; align-items: center;
       justify-content: center; font-weight: 700; font-size: 19px; color: #fff; background: #6b6355; }
-    .grade.g-a { background: #9a7b3f; } .grade.g-b { background: #55606b; } .grade.g-c { background: #8a8271; }
+    .grade.g-a { background: #1F564A; } .grade.g-b { background: #55606b; } .grade.g-c { background: #8a8271; }
     /* initials avatar with a grade badge */
     .idw { position: relative; flex: none; }
     .ava2 { width: 46px; height: 46px; border-radius: 50%; background: #efe7d4; color: #7a6a3f;
@@ -56,7 +56,7 @@
     .gbadge { position: absolute; right: -4px; bottom: -4px; min-width: 20px; height: 18px; padding: 0 4px;
       border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700;
       font-size: 10px; color: #fff; background: #6b6355; border: 2px solid #fbfaf7; }
-    .gbadge.g-a { background: #9a7b3f; } .gbadge.g-b { background: #55606b; } .gbadge.g-c { background: #8a8271; }
+    .gbadge.g-a { background: #1F564A; } .gbadge.g-b { background: #55606b; } .gbadge.g-c { background: #8a8271; }
     /* handle grade chip (shown collapsed when a client is recognised) */
     .handle .hg { writing-mode: horizontal-tb; color: #fff; font-size: 10px; font-weight: 700;
       padding: 2px 5px; margin-bottom: 3px; letter-spacing: .02em; }
@@ -98,7 +98,7 @@
     .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #6b6355; margin: 11px 0 5px; }
     .reasons { list-style: none; margin: 0; padding: 0; }
     .reasons li { padding: 3px 0 3px 13px; position: relative; line-height: 1.35; font-size: 12.5px; }
-    .reasons li:before { content: "·"; position: absolute; left: 3px; color: #9a7b3f; font-weight: 700; }
+    .reasons li:before { content: "·"; position: absolute; left: 3px; color: #1F564A; font-weight: 700; }
     .reco { line-height: 1.4; color: #33302a; font-size: 12.5px; }
     .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
     .btn { border: 1px solid #d8cfbc; background: #fff; color: #1a1a1a; padding: 6px 10px; cursor: pointer;
@@ -120,7 +120,7 @@
     .titem { display: block; width: 100%; text-align: left; border: 0; background: transparent;
       padding: 6px 8px; font-size: 12.5px; color: #1a1a1a; cursor: pointer; border-left: 2px solid transparent; }
     .titem:hover { background: #f4f1ea; }
-    .titem.sel { background: #f2efe6; border-left-color: #9a7b3f; font-weight: 600; }
+    .titem.sel { background: #f2efe6; border-left-color: #1F564A; font-weight: 600; }
     select { width: 100%; padding: 6px; border: 1px solid #d8cfbc; background: #fff; font-size: 12px; }
     textarea { width: 100%; padding: 7px 9px; border: 1px solid #d8cfbc; background: #fff; font-size: 12.5px;
       font-family: inherit; resize: vertical; color: #1a1a1a; }
@@ -149,7 +149,7 @@
     .warn { margin-top: 9px; padding: 7px 10px; background: #f7ede0; border: 1px solid #e6ceac;
       color: #86602a; font-size: 12px; line-height: 1.35; }
     .warn b { color: #6b481c; }
-    .link { color: #9a7b3f; text-decoration: underline; cursor: pointer; font-size: 12px; }
+    .link { color: #1F564A; text-decoration: underline; cursor: pointer; font-size: 12px; }
     .foot { flex: none; padding: 9px 14px; border-top: 1px solid #eee7da; font-size: 11px; color: #9a9280;
       display: flex; align-items: center; gap: 6px; }
     .toast { position: fixed; right: 356px; bottom: 22px; background: #1a1a1a; color: #fff; font-size: 11px;
@@ -183,7 +183,7 @@
   }
   function gradeBg(g) {
     g = String(g || "").trim().toUpperCase();
-    return g[0] === "A" ? "#9a7b3f" : g[0] === "B" ? "#55606b" : g[0] === "C" ? "#8a8271" : "#6b6355";
+    return g[0] === "A" ? "#1F564A" : g[0] === "B" ? "#55606b" : g[0] === "C" ? "#8a8271" : "#6b6355";
   }
   function initials(s) {
     s = String(s || "").trim();
