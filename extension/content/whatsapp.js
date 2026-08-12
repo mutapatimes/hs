@@ -68,7 +68,7 @@
 
   function dotColor(g) {
     const t = String(g.grade || "").toUpperCase();
-    return t[0] === "A" ? "#9a7b3f" : t[0] === "B" ? "#55606b" : "#8a8271";
+    return t[0] === "A" ? "#1F564A" : t[0] === "B" ? "#55606b" : "#8a8271";
   }
   function listRows() { return document.querySelectorAll('#pane-side div[role="listitem"]'); }
   function rowName(row) {
