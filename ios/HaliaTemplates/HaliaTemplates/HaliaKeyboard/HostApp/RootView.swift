@@ -40,6 +40,7 @@ final class RootModel: ObservableObject {
             let fetched = try await HaliaAPI(baseURL: baseURL, token: t).fetchTemplates()
             TemplateStore.save(fetched)
             templates = fetched
+            await CallDirectory.refresh()   // also refresh the VIP caller-ID list for the Call Directory ext
             if fetched.isEmpty {
                 status = "Connected. No templates in Halia yet."; isError = true
             } else {
@@ -157,7 +158,22 @@ struct RootView: View {
                     .transition(.opacity)
             }
         }
-        .onOpenURL { handleConnect($0) }   // scanned the QR from the Halia dashboard
+        .onOpenURL { handleURL($0) }
+    }
+
+    /// Route halia:// deep links: connect = the dashboard QR, today = the widget's tap.
+    private func handleURL(_ url: URL) {
+        guard url.scheme == "halia" else { return }
+        switch url.host {
+        case "connect":
+            handleConnect(url)
+        case "today":
+            // The Reach-today widget opened us. There is no in-app client browser yet, so just come
+            // forward to the connected view; the queue lives in the widget and the dashboard for now.
+            withAnimation(.easeInOut(duration: 0.35)) { showSetup = true }
+        default:
+            break
+        }
     }
 
     /// Handle halia://connect?t=<token>&b=<base> from the dashboard QR: store the credentials and
