@@ -210,6 +210,23 @@ def _digits(v: str) -> str:
     return d[-9:] if len(d) >= 9 else d
 
 
+def _e164(v) -> str:
+    """Full international digits (country code, no plus) for iOS Call Directory, which matches
+    incoming calls in E.164 and needs the whole number. Only numbers stored with an international
+    prefix (+ or 00) are trustworthy here; a bare local number cannot be matched against an
+    incoming E.164 call, so it is skipped rather than guessed. Returns '' when not usable."""
+    s = str(v or "").strip()
+    if not s:
+        return ""
+    intl = s.startswith("+") or s.startswith("00")
+    digits = "".join(ch for ch in s if ch.isdigit())
+    if s.startswith("00"):
+        digits = digits[2:]
+    if not intl or len(digits) < 8:
+        return ""
+    return digits
+
+
 def _best(rows: list, pred) -> Optional[dict]:
     best = None
     for r in rows:
@@ -1167,3 +1184,49 @@ def register(app) -> None:
             return {"ok": True, "count": len(cfg["members"])}
 
         raise HTTPException(422, "Unknown action")
+
+    @app.get("/v1/extension/today")
+    def extension_today(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
+        """The proactive 'who to reach today' queue for the iOS widget, App Intents and Siri:
+        new orders from top clients to acknowledge and proven clients gone quiet to win back.
+        The same warm-cache to-dos the toolbar uses (RAM only; nothing is stored)."""
+        from datetime import datetime, timezone
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        todos = _todos(shop)
+        tenant = dict(shop_store().get_tenant(shop) or {})
+        return {
+            "label": tenant.get("label") or shop,
+            "count": len(todos),
+            "todos": todos,
+            "dashboard": _dashboard_link(),
+            "generated": datetime.now(timezone.utc).isoformat(),
+        }
+
+    @app.get("/v1/extension/directory")
+    def extension_directory(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
+        """VIP caller-ID for the iOS Call Directory extension: graded clients as phone -> label, so
+        a boutique reads 'Amelia Hart · A*' when a top client rings. Built from the warm scored
+        book; once loaded the numbers live only on the merchant's device. Nothing is stored here.
+        Entries are de-duplicated and sorted ascending by phone number, as CallKit requires."""
+        from halia.cache import cache
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        rows = ((cache.get(shop) or {}).get("payload") or {}).get("data") or []
+        seen: set[str] = set()
+        entries = []
+        for r in rows:
+            e164 = _e164(r.get("phone"))
+            name = (r.get("name") or "").strip()
+            if not e164 or e164 in seen or not name:
+                continue
+            seen.add(e164)
+            grade = str(r.get("grade") or "").strip()
+            label = f"{name} · {grade}" if grade else name
+            entries.append({"phone": e164, "label": label[:60], "grade": grade})
+        entries.sort(key=lambda x: int(x["phone"]))          # CallKit needs ascending numeric order
+        return {"count": len(entries), "entries": entries}
