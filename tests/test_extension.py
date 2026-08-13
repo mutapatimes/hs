@@ -598,3 +598,55 @@ def test_play_of_rules():
 def test_digits_takes_trailing_national_part():
     assert extension._digits("+44 7700 900123") == extension._digits("07700900123")
     assert extension._digits("123") == "123"  # too short to compare, returned as-is
+
+
+def test_e164_only_trusts_international_numbers():
+    assert extension._e164("+44 7700 900123") == "447700900123"
+    assert extension._e164("0044 7700 900123") == "447700900123"    # 00 international prefix
+    assert extension._e164("07700 900123") == ""                    # bare local: can't match E.164
+    assert extension._e164("") == "" and extension._e164(None) == ""
+
+
+# ── today (iOS widget / App Intents queue) ───────────────────────────────────
+def test_today_requires_token(env):
+    client, store, tok = env
+    assert client.get("/v1/extension/today").status_code == 401
+
+
+def test_today_returns_reach_queue(env):
+    import time
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row(cid="c1", name="Amelia Hart", tier="A1", grade="A*", band="active",
+                lastSort=time.time())])
+    r = client.get("/v1/extension/today", headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["count"] >= 1 and j["label"] == "Shop X"
+    todo = j["todos"][0]
+    assert todo["name"] == "Amelia Hart" and todo["cid"] == "c1"
+    assert todo["kind"] in ("new_order", "gone_quiet")
+
+
+# ── directory (iOS CallKit VIP caller-ID) ────────────────────────────────────
+def test_directory_requires_token(env):
+    client, store, tok = env
+    assert client.get("/v1/extension/directory").status_code == 401
+
+
+def test_directory_labels_sorts_and_skips_local(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([
+        _row(cid="c1", name="Amelia Hart", grade="A*", phone="+44 7700 900500"),
+        _row(cid="c2", name="James Fenn", grade="A", phone="+1 (212) 555-0100"),
+        _row(cid="c3", name="Local Only", grade="B", phone="07700 900999"),   # no country code
+    ])
+    r = client.get("/v1/extension/directory", headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 200
+    entries = r.json()["entries"]
+    labels = [e["label"] for e in entries]
+    assert "Amelia Hart · A*" in labels and "James Fenn · A" in labels
+    assert all("Local Only" not in lbl for lbl in labels)             # local number skipped
+    phones = [int(e["phone"]) for e in entries]
+    assert phones == sorted(phones)                                   # ascending, CallKit order
