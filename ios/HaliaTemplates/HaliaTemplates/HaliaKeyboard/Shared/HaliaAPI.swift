@@ -63,13 +63,23 @@ struct HaliaAPI {
         let name: String?
         let cid: String?
         let cart: Cart?
-        private enum K: String, CodingKey { case found, name, cid, cart }
+        // Richer fields the Share extension shows (the keyboard ignores them; hence all optional).
+        let grade: String?
+        let reasons: [String]?
+        let latent: String?
+        let action: String?
+        private enum K: String, CodingKey { case found, name, cid, cart, grade, reasons, latent, action, reco }
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: K.self)
             found = (try? c.decodeIfPresent(Bool.self, forKey: .found)) ?? nil
             name  = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? nil
             cid   = (try? c.decodeIfPresent(Scalar.self, forKey: .cid))?.text   // cid may be number or string
             cart  = (try? c.decodeIfPresent(Cart.self, forKey: .cart)) ?? nil
+            grade   = (try? c.decodeIfPresent(String.self, forKey: .grade)) ?? nil
+            reasons = (try? c.decodeIfPresent([String].self, forKey: .reasons)) ?? nil
+            latent  = (try? c.decodeIfPresent(Scalar.self, forKey: .latent))?.text
+            action  = ((try? c.decodeIfPresent(String.self, forKey: .action)) ?? nil)
+                        ?? ((try? c.decodeIfPresent(String.self, forKey: .reco)) ?? nil)
         }
     }
 
