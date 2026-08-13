@@ -219,6 +219,57 @@ struct HaliaAPI {
         return (r.products ?? [], r.cart_base)
     }
 
+    // MARK: Today (widget + App Intents / Siri) — the proactive "who to reach today" queue.
+
+    struct TodayItem: Decodable, Identifiable {
+        let kind: String       // "new_order" | "gone_quiet"
+        let name: String
+        let grade: String
+        let text: String
+        let cid: String?
+        private enum K: String, CodingKey { case kind, name, grade, text, cid }
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: K.self)
+            kind  = (try? c.decodeIfPresent(String.self, forKey: .kind)) ?? "" ?? ""
+            name  = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? "" ?? ""
+            grade = (try? c.decodeIfPresent(String.self, forKey: .grade)) ?? "" ?? ""
+            text  = (try? c.decodeIfPresent(String.self, forKey: .text)) ?? "" ?? ""
+            cid   = (try? c.decodeIfPresent(Scalar.self, forKey: .cid))?.text
+        }
+        var id: String { (cid ?? "") + kind + name }
+        var isNewOrder: Bool { kind == "new_order" }
+
+        /// Memberwise init for widget placeholders / previews (the Decodable init is used at runtime).
+        init(kind: String, name: String, grade: String, text: String, cid: String?) {
+            self.kind = kind; self.name = name; self.grade = grade; self.text = text; self.cid = cid
+        }
+    }
+
+    private struct TodayResponse: Decodable { let label: String?; let count: Int?; let todos: [TodayItem]? }
+
+    func today() async throws -> (label: String, items: [TodayItem]) {
+        let (data, _) = try await send("/v1/extension/today", method: "GET", body: nil)
+        guard let r = try? JSONDecoder().decode(TodayResponse.self, from: data) else { throw HaliaAPIError.decode }
+        return (r.label ?? "Halia", r.todos ?? [])
+    }
+
+    // MARK: Directory (CallKit) — graded clients as full-international phone -> label for VIP caller ID.
+
+    struct DirectoryEntry: Decodable {
+        let phone: String        // E.164 digits, no plus (matches an incoming CXCallDirectoryPhoneNumber)
+        let label: String
+        let grade: String?
+        var number: Int64? { Int64(phone) }
+    }
+
+    private struct DirectoryResponse: Decodable { let count: Int?; let entries: [DirectoryEntry]? }
+
+    func directory() async throws -> [DirectoryEntry] {
+        let (data, _) = try await send("/v1/extension/directory", method: "GET", body: nil)
+        guard let r = try? JSONDecoder().decode(DirectoryResponse.self, from: data) else { throw HaliaAPIError.decode }
+        return r.entries ?? []
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {
