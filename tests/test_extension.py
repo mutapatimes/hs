@@ -688,3 +688,18 @@ def test_catalogue_from_urls_builds_link(env, monkeypatch):
     assert r.status_code == 200
     j = r.json()
     assert j["resolved"] == 2 and j["requested"] == 2 and "/for?" in j["url"]
+
+
+def test_products_from_urls_requires_token(env):
+    client, store, tok = env
+    assert client.post("/v1/extension/products_from_urls",
+                       json={"urls": ["x"]}).status_code == 401
+
+
+def test_products_from_urls_empty_for_non_shopify(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)                       # env tenant is woocommerce (no Shopify token)
+    r = client.post("/v1/extension/products_from_urls",
+                    json={"urls": ["https://s.com/products/a"]},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 200 and r.json()["products"] == []

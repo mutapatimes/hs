@@ -1298,3 +1298,41 @@ def register(app) -> None:
         first = ((str(body.get("name") or "").strip().split(" ") or [""])[0])[:80]
         data.record_activity(shop, "extension_catalogue_urls")
         return {"url": adhoc_url(shop, ids, first), "resolved": len(ids), "requested": len(handles)}
+
+    @app.post("/v1/extension/products_from_urls")
+    def extension_products_from_urls(x_halia_ext_token: Optional[str] = Header(None),
+                                     payload: Any = Body(default=None)) -> dict:
+        """Resolve saved storefront product URLs to product cards (title, image, handle, variants) so
+        the keyboard's Saved view can show them as a visual grid. Preserves the saved order.
+        Shopify-only; the merchant's own catalogue, nothing customer-related, nothing stored."""
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        token = shop_store().get_token(shop)
+        if not token:                                    # non-Shopify / read-only: no product cards
+            return {"products": [], "cart_base": None}
+        body = payload or {}
+        urls = [str(u) for u in (body.get("urls") or []) if str(u).strip()][:40]
+        handles, seen = [], set()
+        for u in urls:
+            h = _handle_from_url(u)
+            if h and h not in seen:
+                seen.add(h)
+                handles.append(h)
+        if not handles:
+            return {"products": [], "cart_base": _cart_base(shop)}
+        from scoring.shopify_fetch import _run, http_transport
+        from scoring.shopify_graphql import PRODUCT_SEARCH_QUERY, product_search_node
+        q = " OR ".join("handle:" + h for h in handles[:40])
+        try:
+            data_ = _run(http_transport(shop, token), PRODUCT_SEARCH_QUERY, {"q": q, "n": min(len(handles), 40)}, 2)
+        except Exception:
+            return {"products": [], "cart_base": _cart_base(shop)}
+        by_handle = {}
+        for node in (((data_ or {}).get("products") or {}).get("nodes")) or []:
+            p = product_search_node(node)
+            if p.get("handle"):
+                by_handle[p["handle"].lower()] = p
+        products = [by_handle[h] for h in handles if h in by_handle]   # saved order
+        return {"products": products, "cart_base": _cart_base(shop)}

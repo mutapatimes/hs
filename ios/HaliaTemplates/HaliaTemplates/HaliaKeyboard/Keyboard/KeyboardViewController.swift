@@ -152,11 +152,11 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         rebuildBottomBar()
         let showDraft = (mode == .draft)
         let showTemplateList = (mode == .templates && audience == .client)
-        let showGrid = (mode == .products && !products.isEmpty)
+        let showGrid = ((mode == .products || mode == .saved) && !products.isEmpty)
         draftView.isHidden = !showDraft
         draftView.text = draftText
         grid.isHidden = !showGrid
-        table.isHidden = !(mode == .suggestions || mode == .saved || showTemplateList)
+        table.isHidden = !(mode == .suggestions || (mode == .saved && products.isEmpty) || showTemplateList)
 
         if mode == .products {
             emptyLabel.text = hasFullAccess
@@ -481,8 +481,19 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func enterSaved() {
         savedItems = SavedItemsStore.load()
+        products = []; productCartBase = nil
         mode = .saved
-        reload()
+        reload()                                       // show the text list at once…
+        guard hasFullAccess, !savedItems.isEmpty else { return }
+        let urls = savedItems.map { $0.url }
+        Task {
+            do {
+                let (prods, base) = try await HaliaAPI.current.productsFromUrls(urls)
+                guard mode == .saved else { return }   // …then the image grid takes over
+                products = prods; productCartBase = base
+                reload()
+            } catch { /* keep the text list on a resolve failure */ }
+        }
     }
 
     /// Turn the saved shortlist into one catalogue link and drop it in the chat.

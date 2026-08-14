@@ -229,6 +229,14 @@ struct HaliaAPI {
         return (r.products ?? [], r.cart_base)
     }
 
+    /// Resolve saved storefront URLs to product cards (with images) for the keyboard's Saved grid.
+    func productsFromUrls(_ urls: [String]) async throws -> (products: [Product], cartBase: String?) {
+        let (data, _) = try await send("/v1/extension/products_from_urls", method: "POST",
+                                       body: try JSONSerialization.data(withJSONObject: ["urls": urls]))
+        guard let r = try? JSONDecoder().decode(ProductSearch.self, from: data) else { throw HaliaAPIError.decode }
+        return (r.products ?? [], r.cart_base)
+    }
+
     // MARK: Today (widget + App Intents / Siri) — the proactive "who to reach today" queue.
 
     struct TodayItem: Decodable, Identifiable {
