@@ -305,6 +305,16 @@ struct HaliaAPI {
         return UrlCatalogueResult(url: r.url ?? "", resolved: r.resolved ?? 0, requested: r.requested ?? 0)
     }
 
+    /// A Shopify /cart pay-in-chat link from the saved storefront URLs (empty if nothing is buyable).
+    func cartLinkFromUrls(urls: [String]) async throws -> String {
+        let (data, _) = try await send("/v1/extension/cart_link_from_urls", method: "POST",
+                                       body: try JSONSerialization.data(withJSONObject: ["urls": urls]))
+        guard let r = try? JSONDecoder().decode(UrlCatalogueResponse.self, from: data) else {
+            throw HaliaAPIError.decode
+        }
+        return r.url ?? ""
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {

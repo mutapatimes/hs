@@ -244,9 +244,11 @@ def _handle_from_url(u) -> str:
     return ""
 
 
-def _ids_for_handles(shop: str, handles: list[str]) -> list[str]:
-    """Resolve storefront handles to product ids, preserving order, via one Shopify product search.
-    Shopify-only; returns [] for a read-only/non-Shopify tenant or on any fetch hiccup."""
+def _products_for_handles(shop: str, handles: list[str]) -> list[dict]:
+    """Resolve storefront handles to product cards (product_search_node dicts, with variants),
+    preserving order, via one Shopify product search. Shopify-only; returns [] for a read-only /
+    non-Shopify tenant or on any fetch hiccup. Shared by the catalogue, product-grid and cart-link
+    'from URLs' endpoints."""
     token = shop_store().get_token(shop)
     if not token or not handles:
         return []
@@ -260,9 +262,14 @@ def _ids_for_handles(shop: str, handles: list[str]) -> list[str]:
     by_handle = {}
     for node in (((data_ or {}).get("products") or {}).get("nodes")) or []:
         p = product_search_node(node)
-        if p.get("handle") and p.get("id"):
-            by_handle[p["handle"].lower()] = str(p["id"])
+        if p.get("handle"):
+            by_handle[p["handle"].lower()] = p
     return [by_handle[h] for h in handles if h in by_handle]
+
+
+def _ids_for_handles(shop: str, handles: list[str]) -> list[str]:
+    """Product ids for storefront handles, preserving order (a thin wrapper over _products_for_handles)."""
+    return [str(p["id"]) for p in _products_for_handles(shop, handles) if p.get("id")]
 
 
 def _best(rows: list, pred) -> Optional[dict]:
@@ -1322,17 +1329,37 @@ def register(app) -> None:
                 handles.append(h)
         if not handles:
             return {"products": [], "cart_base": _cart_base(shop)}
-        from scoring.shopify_fetch import _run, http_transport
-        from scoring.shopify_graphql import PRODUCT_SEARCH_QUERY, product_search_node
-        q = " OR ".join("handle:" + h for h in handles[:40])
-        try:
-            data_ = _run(http_transport(shop, token), PRODUCT_SEARCH_QUERY, {"q": q, "n": min(len(handles), 40)}, 2)
-        except Exception:
-            return {"products": [], "cart_base": _cart_base(shop)}
-        by_handle = {}
-        for node in (((data_ or {}).get("products") or {}).get("nodes")) or []:
-            p = product_search_node(node)
-            if p.get("handle"):
-                by_handle[p["handle"].lower()] = p
-        products = [by_handle[h] for h in handles if h in by_handle]   # saved order
-        return {"products": products, "cart_base": _cart_base(shop)}
+        return {"products": _products_for_handles(shop, handles), "cart_base": _cart_base(shop)}
+
+    @app.post("/v1/extension/cart_link_from_urls")
+    def extension_cart_link_from_urls(x_halia_ext_token: Optional[str] = Header(None),
+                                      payload: Any = Body(default=None)) -> dict:
+        """A Shopify /cart pay-in-chat link from saved storefront URLs: resolves each product's first
+        buyable variant and builds /cart/<variant>:1 on the merchant's own domain. READ-ONLY and no
+        new scope, it creates nothing on the store. Products with no buyable variant are skipped;
+        nothing is stored (the selection lives in the link)."""
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        body = payload or {}
+        urls = [str(u) for u in (body.get("urls") or []) if str(u).strip()][:40]
+        handles, seen = [], set()
+        for u in urls:
+            h = _handle_from_url(u)
+            if h and h not in seen:
+                seen.add(h)
+                handles.append(h)
+        if not handles:
+            raise HTTPException(422, "No product URLs recognised")
+        vids = []
+        for p in _products_for_handles(shop, handles):
+            variants = p.get("variants") or []
+            if variants and variants[0].get("id"):
+                vids.append(str(variants[0]["id"]))
+        if not vids:
+            return {"url": "", "resolved": 0, "requested": len(handles)}
+        base = _cart_base(shop).rstrip("/")
+        url = base + "/cart/" + ",".join(v + ":1" for v in vids[:40])
+        data.record_activity(shop, "extension_cart_link_urls")
+        return {"url": url, "resolved": len(vids), "requested": len(handles)}

@@ -297,6 +297,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             actionHeight.constant = 46; actionScroll.isHidden = false
             actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
             actionStack.addArrangedSubview(pillButton("Build catalogue (\(savedItems.count))", filled: true) { [weak self] in self?.buildCatalogueFromSaved() })
+            actionStack.addArrangedSubview(pillButton("💳 Pay in chat", filled: false) { [weak self] in self?.buildCartLinkFromSaved() })
             actionStack.addArrangedSubview(pillButton("Clear", filled: false) { [weak self] in self?.clearSaved() })
 
         case .templates:
@@ -515,6 +516,29 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 } else {
                     textDocumentProxy.insertText(r.url)
                     mode = .templates; setStatus(nil); flash("Catalogue inserted ✓")
+                }
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
+
+    /// Turn the saved shortlist into a Shopify /cart link so the client can pay in the chat.
+    private func buildCartLinkFromSaved() {
+        let urls = savedItems.map { $0.url }
+        guard !urls.isEmpty else { flash("Nothing saved yet"); return }
+        guard hasFullAccess else { flash("Turn on Full Access to make a pay link"); return }
+        guard !busy else { return }
+        busy = true; setStatus("Making a pay link…")
+        Task {
+            do {
+                let url = try await HaliaAPI.current.cartLinkFromUrls(urls: urls)
+                if url.isEmpty {
+                    setStatus("None of your saved items can be bought right now")
+                } else {
+                    textDocumentProxy.insertText(url)
+                    mode = .templates; setStatus(nil); flash("Pay link inserted ✓")
                 }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
