@@ -104,7 +104,20 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private var filtered: [Template] {
         guard let c = selectedCategory else { return templates }
+        if c == Self.recentCat { return recentTemplates }
         return templates.filter { $0.category == c }
+    }
+
+    // Recent templates: the associate's go-to messages, one tap away (on-device recency, App Group).
+    private static let recentCat = "\u{2605} Recent"
+    private var recentTemplates: [Template] {
+        (AppGroup.defaults.stringArray(forKey: "halia.recentTemplateIds") ?? [])
+            .compactMap { id in templates.first { $0.id == id } }
+    }
+    private func recordRecentTemplate(_ id: String) {
+        var list = (AppGroup.defaults.stringArray(forKey: "halia.recentTemplateIds") ?? []).filter { $0 != id }
+        list.insert(id, at: 0)
+        AppGroup.defaults.set(Array(list.prefix(6)), forKey: "halia.recentTemplateIds")
     }
     private var currentFirstName: String? {
         if let n = clientName?.trimmingCharacters(in: .whitespacesAndNewlines), !n.isEmpty {
@@ -150,7 +163,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         templates = TemplateStore.load() + StoreInfoStore.asTemplates()
         var seen = Set<String>()
         categories = templates.map { $0.category }.filter { seen.insert($0).inserted }.sorted()
-        if let c = selectedCategory, !categories.contains(c) { selectedCategory = nil }
+        if let c = selectedCategory, c != Self.recentCat, !categories.contains(c) { selectedCategory = nil }
         rebuildClientBar()
         rebuildActionRow()
         rebuildChips()
@@ -672,6 +685,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         chipsScroll.isHidden = !show
         guard show else { return }
         chipsStack.addArrangedSubview(pillButton("🔍 Products", filled: true) { [weak self] in self?.enterProducts() })
+        if !recentTemplates.isEmpty {
+            chipsStack.addArrangedSubview(chip(title: Self.recentCat, value: Self.recentCat))
+        }
         chipsStack.addArrangedSubview(chip(title: "All", value: nil))
         for c in categories { chipsStack.addArrangedSubview(chip(title: c, value: c)) }
     }
@@ -776,7 +792,11 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             textDocumentProxy.insertText(savedItems[indexPath.row].url)
             flash("Link inserted ✓")
         } else {
-            textDocumentProxy.insertText(filtered[indexPath.row].ready(firstName: currentFirstName))
+            let t = filtered[indexPath.row]
+            textDocumentProxy.insertText(t.ready(firstName: currentFirstName))
+            recordRecentTemplate(t.id)
+            rebuildChips()                                     // a "Recent" chip may now exist
+            if selectedCategory == Self.recentCat { table.reloadData() }
         }
     }
 
