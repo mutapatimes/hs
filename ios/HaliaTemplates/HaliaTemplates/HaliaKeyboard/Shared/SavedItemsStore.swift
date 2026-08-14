@@ -37,6 +37,26 @@ enum SavedItemsStore {
 
     static func clear() { AppGroup.defaults.removeObject(forKey: AppGroup.Key.saved) }
 
+    /// Drop one saved product by its exact URL (used by the keyboard's swipe-to-remove list).
+    static func remove(url: String) {
+        save(load().filter { $0.url != url })
+    }
+
+    /// Drop the saved product with this storefront handle (used by the keyboard's grid long-press).
+    static func remove(handle: String) {
+        let h = handle.lowercased()
+        guard !h.isEmpty else { return }
+        save(load().filter { Self.handle(of: $0.url) != h })
+    }
+
+    /// The `/products/<handle>` slug of a storefront URL, lowercased (empty if not a product URL).
+    static func handle(of url: String) -> String {
+        let s = url.split(separator: "?").first.map(String.init) ?? url
+        guard let r = s.range(of: "/products/") else { return "" }
+        let after = s[r.upperBound...]
+        return (after.split(separator: "/").first.map(String.init) ?? String(after)).lowercased()
+    }
+
     private static func save(_ items: [Item]) {
         if let data = try? JSONEncoder().encode(Array(items.suffix(60))) {   // cap the shortlist
             AppGroup.defaults.set(data, forKey: AppGroup.Key.saved)
