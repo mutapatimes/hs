@@ -130,7 +130,8 @@ anywhere iOS passes one. Two zero-code ways to reach it while browsing:
 
 **The keyboard is the hub.** Whatever App Intents save lands in `SavedItemsStore` (App Group), and the
 **keyboard reads it back**: a `🛍 Saved (N)` pill appears in the keyboard's action row, opening a Saved
-view where the associate taps a product to insert its link, or **Build catalogue** to drop one
-catalogue link into the chat, right where they're composing. So the flow is: save while browsing →
+view. The saved URLs are resolved (via `POST /v1/extension/products_from_urls`) into a **visual
+product grid with images** — tap one to copy its photo into the chat, or **Build catalogue** to drop
+one catalogue link. (If the store can't be read, it falls back to a plain link list.) So the flow is: save while browsing →
 open WhatsApp → Halia keyboard → Saved → Build catalogue. Add `SavedItemsStore.swift` to the
 **HaliaKeyboard** target as well (it's already used by the host app and the intents).
