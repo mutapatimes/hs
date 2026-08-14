@@ -703,3 +703,33 @@ def test_products_from_urls_empty_for_non_shopify(env):
                     json={"urls": ["https://s.com/products/a"]},
                     headers={"X-Halia-Ext-Token": ext})
     assert r.status_code == 200 and r.json()["products"] == []
+
+
+def test_cart_link_from_urls_requires_token(env):
+    client, store, tok = env
+    assert client.post("/v1/extension/cart_link_from_urls",
+                       json={"urls": ["x"]}).status_code == 401
+
+
+def test_cart_link_from_urls_needs_recognisable_urls(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    r = client.post("/v1/extension/cart_link_from_urls",
+                    json={"urls": ["https://shop.com/about"]},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 422
+
+
+def test_cart_link_from_urls_builds_permalink(env, monkeypatch):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    monkeypatch.setattr(extension, "_products_for_handles", lambda shop, handles: [
+        {"id": "1", "handle": "a", "variants": [{"id": "111"}]},
+        {"id": "2", "handle": "b", "variants": [{"id": "222"}]},
+    ])
+    r = client.post("/v1/extension/cart_link_from_urls",
+                    json={"urls": ["https://s.com/products/a", "https://s.com/products/b"]},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["resolved"] == 2 and "/cart/111:1,222:1" in j["url"]
