@@ -54,6 +54,11 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var clientCid: String?
     private var statusText: String?
     private var busy = false
+    private var statusLoading = false
+    private var loadStart: Date?
+    private var elapsedTimer: Timer?
+    private weak var elapsedLabel: UILabel?
+    private var draftShownAnimated = false
     private var suggestions: [SuggestRow] = []
     private var products: [HaliaAPI.Product] = []
     private var productCartBase: String?
@@ -155,6 +160,19 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         let showGrid = ((mode == .products || mode == .saved) && !products.isEmpty)
         draftView.isHidden = !showDraft
         draftView.text = draftText
+        if showDraft && !draftShownAnimated {
+            draftShownAnimated = true
+            if !UIAccessibility.isReduceMotionEnabled {
+                draftView.alpha = 0
+                draftView.transform = CGAffineTransform(translationX: 0, y: 10)
+                UIView.animate(withDuration: 0.4, delay: 0, options: [.curveEaseOut]) {
+                    self.draftView.alpha = 1; self.draftView.transform = .identity
+                }
+            }
+        } else if !showDraft {
+            draftShownAnimated = false
+            draftView.alpha = 1; draftView.transform = .identity
+        }
         grid.isHidden = !showGrid
         table.isHidden = !(mode == .suggestions || (mode == .saved && products.isEmpty) || showTemplateList)
 
@@ -207,7 +225,21 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         clientBar.addArrangedSubview(audiencePill("Team", active: audience == .team) { [weak self] in self?.setAudience(.team) })
 
         if let s = statusText {
-            clientBar.addArrangedSubview(mutedLabel(s))
+            if statusLoading {
+                clientBar.addArrangedSubview(PixelLoader())
+                let sh = ShimmerLabel()
+                sh.text = s
+                sh.font = .systemFont(ofSize: 13.5, weight: .medium)
+                sh.textColor = .label
+                clientBar.addArrangedSubview(sh)
+                let el = mutedLabel("0.0s")
+                el.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+                el.textColor = .tertiaryLabel
+                elapsedLabel = el
+                clientBar.addArrangedSubview(el)
+            } else {
+                clientBar.addArrangedSubview(mutedLabel(s))
+            }
             return
         }
         if currentRef == nil {
@@ -239,7 +271,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         clientName = ref.kind == .name ? ref.value : nil
         clientCid = nil; cartUrl = nil; cartCount = nil
         mode = .templates; suggestions = []; draftText = ""
-        setStatus("Looking up…")
+        setStatus("Looking up…", loading: true)
         Task {
             do {
                 let res = try await HaliaAPI.current.lookup(ref)
@@ -373,7 +405,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         guard let ref = currentRef, !busy else { return }
         pendingCartUrl = cartUrl   // appended to the message only when this draft is inserted
         draftIsHandoff = handoff
-        busy = true; setStatus(handoff ? "Writing note…" : "Drafting…")
+        busy = true; setStatus(handoff ? "Writing note…" : "Drafting…", loading: true)
         Task {
             do {
                 let res = try await HaliaAPI.current.draft(ref, channel: handoff ? "internal" : "whatsapp",
@@ -424,7 +456,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func suggestPieces() {
         guard let ref = currentRef, !busy else { return }
-        busy = true; setStatus("Finding pieces…")
+        busy = true; setStatus("Finding pieces…", loading: true)
         Task {
             do {
                 let picks = try await HaliaAPI.current.suggest(ref, instruction: "")
@@ -443,7 +475,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         let ids = suggestions.filter { $0.on }.map { $0.id }
         guard !ids.isEmpty else { flash("Pick at least one piece"); return }
         guard !busy else { return }
-        busy = true; setStatus("Making a catalogue…")
+        busy = true; setStatus("Making a catalogue…", loading: true)
         Task {
             do {
                 let url = try await HaliaAPI.current.catalogue(productIds: ids, name: clientName)
@@ -460,7 +492,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         let ids = suggestions.filter { $0.on }.map { $0.id }
         guard !ids.isEmpty else { flash("Pick at least one piece"); return }
         guard !busy else { return }
-        busy = true; setStatus("Making a pay link…")
+        busy = true; setStatus("Making a pay link…", loading: true)
         Task {
             do {
                 let url = try await HaliaAPI.current.cartLink(productIds: ids)
@@ -507,7 +539,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         guard !urls.isEmpty else { flash("Nothing saved yet"); return }
         guard hasFullAccess else { flash("Turn on Full Access to build a catalogue"); return }
         guard !busy else { return }
-        busy = true; setStatus("Building a catalogue…")
+        busy = true; setStatus("Building a catalogue…", loading: true)
         Task {
             do {
                 let r = try await HaliaAPI.current.catalogueFromUrls(urls: urls, name: clientName ?? "")
@@ -530,7 +562,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         guard !urls.isEmpty else { flash("Nothing saved yet"); return }
         guard hasFullAccess else { flash("Turn on Full Access to make a pay link"); return }
         guard !busy else { return }
-        busy = true; setStatus("Making a pay link…")
+        busy = true; setStatus("Making a pay link…", loading: true)
         Task {
             do {
                 let url = try await HaliaAPI.current.cartLinkFromUrls(urls: urls)
@@ -586,7 +618,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func runProductSearch(_ q: String) {
         guard !busy else { return }   // a fetch is in flight; its completion re-runs for the latest text
-        busy = true; setStatus(q.isEmpty ? "Loading products…" : "Searching…")
+        busy = true; setStatus(q.isEmpty ? "Loading products…" : "Searching…", loading: true)
         Task {
             do {
                 let (items, base) = try await HaliaAPI.current.searchProducts(q)
@@ -606,7 +638,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func markContacted() {
         guard let cid = clientCid else { flash("Look up the client first"); return }
         guard !busy else { return }
-        busy = true; setStatus("Logging…")
+        busy = true; setStatus("Logging…", loading: true)
         Task {
             do {
                 _ = try await HaliaAPI.current.logContacted(cid: cid, clientName: clientName,
@@ -815,7 +847,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         // extra gesture (paste). If there is no image, fall back to sharing the shoppable link.
         guard let url = p.imageURL else { shareProductLink(p); return }
         guard hasFullAccess else { flash("Turn on Full Access to send product images"); return }
-        setStatus("Copying image…")
+        setStatus("Copying image…", loading: true)
         Task {
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
@@ -1005,10 +1037,31 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ])
     }
 
-    private func setStatus(_ s: String?) {
+    private func setStatus(_ s: String?, loading: Bool = false) {
         statusText = s
+        statusLoading = loading && (s != nil)
+        if statusLoading {
+            if loadStart == nil { loadStart = Date() }
+            startElapsedTimer()
+        } else {
+            loadStart = nil
+            stopElapsedTimer()
+        }
         rebuildClientBar()
         rebuildActionRow()
+    }
+
+    private func startElapsedTimer() {
+        guard elapsedTimer == nil else { return }
+        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self, let start = self.loadStart else { return }
+            let t = Date().timeIntervalSince(start)
+            self.elapsedLabel?.text = t < 60 ? String(format: "%.1fs", t)
+                : String(format: "%dm %.0fs", Int(t) / 60, t.truncatingRemainder(dividingBy: 60))
+        }
+    }
+    private func stopElapsedTimer() {
+        elapsedTimer?.invalidate(); elapsedTimer = nil
     }
 
     private func flash(_ s: String) {
