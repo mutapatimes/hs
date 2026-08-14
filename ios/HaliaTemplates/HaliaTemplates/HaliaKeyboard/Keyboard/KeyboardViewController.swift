@@ -484,6 +484,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         products = []; productCartBase = nil
         mode = .saved
         reload()                                       // show the text list at once…
+        if !AppGroup.defaults.bool(forKey: "halia.savedHint") {   // one-time discoverability hint
+            AppGroup.defaults.set(true, forKey: "halia.savedHint")
+            flash("Tap to send · long-press to remove")
+        }
         guard hasFullAccess, !savedItems.isEmpty else { return }
         let urls = savedItems.map { $0.url }
         Task {
@@ -720,6 +724,21 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
+    /// Swipe-to-remove on the Saved link list (the fallback when a store's images can't be read).
+    func tableView(_ tableView: UITableView,
+                   trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        guard mode == .saved, indexPath.row < savedItems.count else { return nil }
+        let remove = UIContextualAction(style: .destructive, title: "Remove") { [weak self] _, _, done in
+            guard let self = self, indexPath.row < self.savedItems.count else { done(false); return }
+            SavedItemsStore.remove(url: self.savedItems[indexPath.row].url)
+            self.savedItems = SavedItemsStore.load()
+            if self.savedItems.isEmpty { self.mode = .templates }
+            self.reload()
+            done(true)
+        }
+        return UISwipeActionsConfiguration(actions: [remove])
+    }
+
     // MARK: - Product grid (collection view)
 
     private func buildGrid() {
@@ -733,6 +752,21 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             grid.trailingAnchor.constraint(equalTo: table.trailingAnchor),
             grid.bottomAnchor.constraint(equalTo: table.bottomAnchor),
         ])
+        let lp = UILongPressGestureRecognizer(target: self, action: #selector(handleGridLongPress(_:)))
+        lp.minimumPressDuration = 0.45                 // long-press a Saved card to remove it
+        grid.addGestureRecognizer(lp)
+    }
+
+    /// Long-press a card in the Saved grid to prune it from the shortlist (no effect in search mode).
+    @objc private func handleGridLongPress(_ g: UILongPressGestureRecognizer) {
+        guard g.state == .began, mode == .saved else { return }
+        guard let ip = grid.indexPathForItem(at: g.location(in: grid)), ip.item < products.count else { return }
+        SavedItemsStore.remove(handle: products[ip.item].handle ?? "")
+        products.remove(at: ip.item)
+        savedItems = SavedItemsStore.load()
+        if products.isEmpty && savedItems.isEmpty { mode = .templates }
+        reload()
+        flash("Removed ✓")
     }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
