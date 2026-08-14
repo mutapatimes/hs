@@ -1,1059 +1,475 @@
 <!doctype html>
 <html lang="en">
-<head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%235E6B74'>&#8258;</text></svg>">
+<head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%231F564A'>&#8258;</text></svg>">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="canonical" href="https://haliascore.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Halia">
 <meta property="og:url" content="https://haliascore.com/">
+<meta property="og:image" content="https://haliascore.com/img/three_clients.jpg">
 <meta property="og:image:alt" content="Halia, private client intelligence for luxury retail">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Halia · Private client intelligence for luxury retail">
-<meta name="twitter:description" content="Halia is private client intelligence for luxury retail. Its powerful, intelligent analysis reads the undetected signs of wealth in your own database to find your next top client and drive revenue, far beyond the usual recency-and-spend segmentation (RFM). We keep nothing.">
+<meta name="twitter:description" content="Halia finds the wealthy clients hiding in your customer list, and grades every one. Your data, read live and never stored.">
 <meta name="twitter:image" content="https://haliascore.com/img/three_clients.jpg">
 <title>Halia · Private client intelligence for luxury retail</title>
-<meta name="description" content="Halia is private client intelligence for luxury retail. Its powerful, intelligent analysis reads the undetected signs of wealth in your own database to find your next top client and drive revenue, far beyond the usual recency-and-spend segmentation (RFM). We keep nothing.">
+<meta name="description" content="Halia finds the wealthy clients hiding in your customer list, and grades every one, A* to C. Your data, read live and never stored.">
 <meta property="og:title" content="Halia · Private client intelligence for luxury retail">
-<meta property="og:description" content="Powerful, intelligent analysis of the undetected signs of wealth in your own database. Halia finds your next top client and drives revenue, far beyond RFM.">
-<meta property="og:image" content="https://haliascore.com/img/three_clients.jpg">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Halia","applicationCategory":"BusinessApplication","operatingSystem":"Web","url":"https://haliascore.com/","description":"Private client intelligence for luxury retail. Halia reads the wealth signals already in your customer data to surface your highest-value clients, grade every customer from A* to C, and act on them where your team already works. We keep nothing.","offers":{"@type":"Offer","price":"150","priceCurrency":"GBP","description":"From £150/month"},"publisher":{"@id":"https://haliascore.com/#organization"}}</script>
+<meta property="og:description" content="Halia finds the wealthy clients hiding in your customer list, and grades every one. Your data, read live and never stored.">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Halia","applicationCategory":"BusinessApplication","operatingSystem":"Web","url":"https://haliascore.com/","description":"Halia finds the wealthy clients hiding in your customer list and grades every one, A* to C. Read live, never stored.","offers":{"@type":"Offer","price":"150","priceCurrency":"GBP","description":"From £150/month"},"publisher":{"@id":"https://haliascore.com/#organization"}}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0a0a0b; --bg-2:#0e0e10; --ink:#f4f1ea; --mute:#8c887f; --faint:#56534d;
-    --gold:#D7DADE; --line:rgba(255,255,255,.12); --line-2:rgba(255,255,255,.07);
-    --serif:'Cormorant Garamond',Georgia,serif;
-    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --paper:#FFFFFF; --ink:#0E0F11; --mute:#6C6F74; --faint:#9C9FA4;
+    --line:#E7E7E9; --line-2:#F1F1F2; --inset:#F7F7F6;
+    --green:#1F564A; --slate:#5E6B74;
+    --sans:'Archivo',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    --mono:'Spline Sans Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
-    font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
   a{color:inherit;text-decoration:none}
-  ::selection{background:var(--gold);color:#14161A}
-  .wrap{max-width:1240px;margin:0 auto;padding:0 40px}
-  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
-  h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.02}
-  .display{font-size:clamp(44px,7vw,100px)}
-  .h2{font-size:clamp(34px,5vw,66px)}
-  em{font-style:italic;color:var(--gold)}
-  .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);font-weight:400;line-height:1.6}
+  ::selection{background:var(--ink);color:var(--paper)}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 40px}
+  @media(max-width:640px){.wrap{padding:0 22px}}
 
-  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);
-    letter-spacing:.02em;padding:14px 26px;border-radius:0;border:1px solid var(--ink);
-    color:#0a0a0b;background:var(--ink);transition:.25s;cursor:pointer}
+  h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.025em;line-height:1}
+  .display{font-size:clamp(46px,8.4vw,116px);font-weight:800;letter-spacing:-.04em;line-height:.94}
+  .h2{font-size:clamp(30px,4.6vw,58px);letter-spacing:-.03em;line-height:1.0}
+  .lead{font-size:clamp(18px,2vw,22px);line-height:1.5;color:var(--mute);font-weight:400}
+  .mono{font-family:var(--mono)}
+  .label{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--faint)}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  p{margin:0;color:var(--mute);max-width:60ch}
+  b,strong{color:var(--ink);font-weight:600}
+
+  /* nav */
+  header{position:fixed;inset:0 0 auto;z-index:40;transition:.25s}
+  header.solid{background:rgba(255,255,255,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:70px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:20px;letter-spacing:-.02em}
+  .brand .m{color:var(--green);font-family:Georgia,serif;font-size:20px}
+  .nav-links{display:flex;gap:28px}
+  .nav-links a{font-size:14px;color:var(--mute);transition:.15s}
+  .nav-links a:hover{color:var(--ink)}
+  .nav .right{display:flex;align-items:center;gap:20px}
+  .nav .right .si{font-size:14px;color:var(--mute)}.nav .right .si:hover{color:var(--ink)}
+  .btn{display:inline-flex;align-items:center;gap:8px;font:600 14px var(--sans);
+    padding:11px 18px;border:1px solid var(--ink);color:var(--paper);background:var(--ink);
+    transition:.2s;cursor:pointer}
   .btn:hover{background:transparent;color:var(--ink)}
   .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
   .btn.ghost:hover{border-color:var(--ink)}
-  .arrow{font-size:16px;transition:transform .25s}
-  .btn:hover .arrow{transform:translateX(4px)}
-
-  /* nav */
-  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}
-  header.solid{background:rgba(10,10,11,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
-  .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
-  .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px;font-weight:400;letter-spacing:.02em}
-  .brand svg{width:22px;height:22px}
-  .nav-links{display:flex;gap:34px}
-  .nav-links a{font:500 14px var(--sans);color:var(--mute);transition:.2s}
-  .nav-links a:hover{color:var(--ink)}
-  .nav .right{display:flex;align-items:center;gap:22px}
-  .nav .right .si{font:500 14px var(--sans);color:var(--mute)}.nav .right .si:hover{color:var(--ink)}
-  .burger{display:none;align-items:center;justify-content:center;width:42px;height:42px;border-radius:0;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;margin-left:6px;flex:none}
+  .btn .arrow{transition:transform .2s}.btn:hover .arrow{transform:translateX(3px)}
+  .burger{display:none;align-items:center;justify-content:center;width:40px;height:40px;
+    border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;flex:none}
   .burger svg{width:20px;height:20px}
-  .mscrim{position:fixed;inset:0;background:rgba(8,8,9,.55);opacity:0;visibility:hidden;transition:.25s;z-index:50}
+  .mscrim{position:fixed;inset:0;background:rgba(14,15,17,.4);opacity:0;visibility:hidden;transition:.22s;z-index:50}
   .mscrim.show{opacity:1;visibility:visible}
-  .mdrawer{position:fixed;top:0;right:0;bottom:0;width:min(84vw,330px);background:#0e0e10;border-left:1px solid var(--line);z-index:60;transform:translateX(100%);transition:transform .32s cubic-bezier(.2,.7,.2,1);display:flex;flex-direction:column;padding:22px 26px 30px;overflow-y:auto}
+  .mdrawer{position:fixed;top:0;right:0;bottom:0;width:min(84vw,320px);background:var(--paper);
+    border-left:1px solid var(--line);z-index:60;transform:translateX(100%);
+    transition:transform .3s cubic-bezier(.2,.7,.2,1);display:flex;flex-direction:column;padding:20px 24px 28px;overflow-y:auto}
   .mdrawer.show{transform:none}
-  .mdrawer .mclose{align-self:flex-end;background:none;border:none;color:var(--mute);font-size:28px;line-height:1;cursor:pointer;padding:2px 4px;margin-bottom:6px}
-  .mdrawer a{font:500 17px var(--sans);color:var(--ink);padding:14px 0;border-bottom:1px solid var(--line-2)}
-  .mdrawer a.msi{color:var(--mute);font-size:15px}
-  .mdrawer a.mcta{margin-top:20px;border:none;background:var(--ink);color:#0a0a0b;text-align:center;border-radius:0;padding:15px;font-weight:600}
-  @media(max-width:900px){
-    .nav-links{display:none}
-    .nav .right .si{display:none}
-    .nav .right .btn{padding:10px 18px;font-size:13px;letter-spacing:.01em}
-    .nav .right .btn .arrow{display:none}
-    .burger{display:inline-flex}
-  }
+  .mdrawer .mclose{align-self:flex-end;background:none;border:none;color:var(--mute);font-size:26px;cursor:pointer;padding:2px 4px;margin-bottom:8px}
+  .mdrawer a{font-size:16px;font-weight:500;padding:13px 0;border-bottom:1px solid var(--line-2)}
+  .mdrawer a.msi{color:var(--mute);font-size:14px}
+  .mdrawer a.mcta{margin-top:18px;border:none;background:var(--ink);color:var(--paper);text-align:center;padding:14px;font-weight:600}
+  @media(max-width:900px){.nav-links,.nav .right .si{display:none}.burger{display:inline-flex}}
 
-  /* integrations — boxless, monochrome wordmarks grouped by kind */
-  .intg{display:flex;flex-direction:column;gap:clamp(22px,3.4vh,34px)}
-  .intg-group{display:flex;flex-direction:column;gap:13px}
-  .intg-lbl{font:600 11px var(--sans,'Inter',system-ui,sans-serif);letter-spacing:.2em;text-transform:uppercase;color:var(--faint,#9a9385)}
-  .intg-lbl em{font-style:normal;color:#5E6B74;margin-left:4px}
-  .intg-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px 38px}
-  .ilogo{font:700 clamp(18px,2.1vw,24px)/1 var(--sans,'Inter',system-ui,sans-serif);letter-spacing:-.015em;color:var(--ink,#1a1712);opacity:.66;transition:opacity .2s}
+  /* section rhythm — hairlines, not backgrounds */
+  section{border-top:1px solid var(--line)}
+  .pad{padding:clamp(84px,12vh,140px) 0}
+  .hgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(30px,6vw,90px);align-items:start}
+  @media(max-width:820px){.hgrid{grid-template-columns:1fr;gap:34px}}
+  .stack{display:flex;flex-direction:column;gap:22px;align-items:flex-start}
+
+  /* hero */
+  .hero{border-top:0;padding:clamp(130px,22vh,220px) 0 clamp(70px,10vh,120px)}
+  .hero .display{max-width:15ch}
+  .hero .u{border-bottom:3px solid var(--green);padding-bottom:2px}
+  .hero-sub{max-width:44ch;font-size:clamp(18px,1.9vw,21px);color:var(--mute);margin-top:8px}
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+  /* the grade rail — data as a small precise mark */
+  .rail{display:flex;flex-direction:column;gap:0;border:1px solid var(--line)}
+  .rail .r{display:grid;grid-template-columns:30px 1fr auto auto;gap:14px;align-items:center;
+    padding:13px 16px;border-top:1px solid var(--line-2)}
+  .rail .r:first-child{border-top:0}
+  .rail .r .g{font-family:var(--mono);font-size:12px;font-weight:500;color:#fff;
+    width:24px;height:20px;display:grid;place-items:center}
+  .rail .nm{font-weight:500;font-size:15px}
+  .rail .v{font-family:var(--mono);font-size:13px;color:var(--mute);text-align:right}
+  .rail .head{background:var(--inset);border-top:0}
+  .rail .head span{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .gA1{background:var(--ink)}.gA{background:var(--green)}.gB{background:var(--slate)}.gC{background:#B7BABF}
+
+  /* big statement line */
+  .say{font-size:clamp(28px,4.4vw,54px);font-weight:700;letter-spacing:-.03em;line-height:1.05;max-width:20ch}
+  .say .hl{color:var(--green)}
+
+  /* generic head + intro */
+  .shead{max-width:24ch;margin-bottom:clamp(34px,5vh,58px)}
+  .shead .h2{margin-bottom:16px}
+
+  /* numbered list rows (moments, teams, security) */
+  .rows{display:grid;grid-template-columns:1fr 1fr;gap:0 clamp(36px,5vw,72px)}
+  @media(max-width:760px){.rows{grid-template-columns:1fr}}
+  .row{display:grid;grid-template-columns:34px 1fr;gap:14px;padding:24px 0;border-top:1px solid var(--line)}
+  .row .rn{font-family:var(--mono);font-size:12px;color:var(--faint);padding-top:3px}
+  .row h3{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:7px}
+  .row p{font-size:15px;line-height:1.5}
+
+  /* table */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line)}
+  table.vic{width:100%;border-collapse:collapse;min-width:640px}
+  .vic th{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--faint);text-align:left;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--inset)}
+  .vic th.r,.vic td.r{text-align:right}
+  .vic td{padding:14px 16px;border-top:1px solid var(--line-2);font-size:14.5px}
+  .vic td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--mute)}
+  .vic .cell-g{display:inline-flex;align-items:center;gap:8px;font-weight:500}
+  .vic .gd{width:9px;height:9px;flex:none}
+  .vic .sig{color:var(--mute);font-size:13px}
+  .tbl-note{font-family:var(--mono);font-size:11px;color:var(--faint);padding:12px 16px;border-top:1px solid var(--line-2)}
+
+  /* two big data marks (80/20) */
+  .marks{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,5vw,80px);align-items:end}
+  @media(max-width:640px){.marks{grid-template-columns:1fr;gap:34px}}
+  .mark .big{font-family:var(--mono);font-weight:500;font-size:clamp(64px,12vw,150px);letter-spacing:-.04em;line-height:.9;font-variant-numeric:tabular-nums}
+  .mark .cap{margin-top:12px;font-size:15px;color:var(--mute);max-width:26ch}
+  .mark.accent .big{color:var(--green)}
+
+  /* plain link list (solutions, signals) */
+  .list{border-top:1px solid var(--line)}
+  .list a,.list .li{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:baseline;
+    padding:20px 0;border-bottom:1px solid var(--line);transition:.15s}
+  .list a:hover{padding-left:8px}
+  .list .n{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .list .t{font-size:clamp(19px,2.4vw,28px);font-weight:600;letter-spacing:-.02em}
+  .list .d{color:var(--mute);font-size:15px;justify-self:start;grid-column:2}
+  .list .go{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .list a:hover .go{color:var(--ink)}
+  @media(max-width:640px){.list a,.list .li{grid-template-columns:auto 1fr}.list .go{display:none}.list .d{grid-column:1/-1}}
+
+  /* integrations */
+  .intg{display:flex;flex-direction:column;gap:26px}
+  .intg-group{display:flex;flex-direction:column;gap:12px}
+  .intg-lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+  .intg-lbl em{font-style:normal;color:var(--green);margin-left:6px}
+  .intg-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px 34px}
+  .ilogo{font-size:clamp(17px,2vw,22px);font-weight:600;letter-spacing:-.02em;color:var(--ink);opacity:.55;transition:.2s}
   .ilogo:hover{opacity:1}
-  .intg-row.soon .ilogo{opacity:.34}
-  @media(max-width:600px){.intg-row{gap:12px 24px}}
+  .intg-row.soon .ilogo{opacity:.3}
 
-  /* hero (content to the right) */
-  .hero{position:relative;height:100vh;min-height:680px;display:flex;overflow:hidden}
-  .hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
-  .hero .hero-fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;display:none}
-  .hero.use-gif video{display:none}
-  .hero.use-gif .hero-fallback{display:block}
-  .hero .veil{position:absolute;inset:0;background:
-    radial-gradient(120% 80% at 65% 35%,transparent 0%,rgba(10,10,11,.5) 68%,var(--bg) 100%),
-    linear-gradient(180deg,rgba(10,10,11,.45),rgba(10,10,11,.15) 40%,var(--bg))}
-  #fish{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-  .hero .wrap{position:relative;z-index:2;width:100%;display:flex;flex-direction:column;
-    justify-content:space-between;padding-top:clamp(116px,19vh,210px);padding-bottom:104px}
-  .hero .hero-top{max-width:760px}
-  .hero .hero-bot{max-width:600px}
-  .hero h1{margin-top:22px}
-  .hero .lede{max-width:46ch;margin:0 0 26px}
-  .hero .cta{display:flex;gap:16px;flex-wrap:wrap}
-  .scroll-cue{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:2;
-    font:500 11px var(--sans);letter-spacing:.28em;text-transform:uppercase;color:var(--faint);
-    display:flex;flex-direction:column;align-items:center;gap:10px}
-  .scroll-cue .ln{width:1px;height:46px;background:linear-gradient(var(--faint),transparent);
-    animation:drop 2.4s ease-in-out infinite}
-  @keyframes drop{0%,100%{opacity:.3;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}}
+  /* engine stat marks */
+  .stats3{display:flex;gap:clamp(30px,6vw,80px);flex-wrap:wrap;margin-top:36px}
+  .stat3 b{display:block;font-family:var(--mono);font-weight:500;font-size:clamp(30px,4vw,46px);letter-spacing:-.02em}
+  .stat3 span{font-size:13.5px;color:var(--mute)}
 
-  /* reveal */
-  .reveal{opacity:0;transform:translateY(26px);transition:opacity 1s cubic-bezier(.2,.6,.2,1),transform 1s cubic-bezier(.2,.6,.2,1)}
-  .reveal.in{opacity:1;transform:none}
-  .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
+  /* inverted section (demo) */
+  .invert{background:var(--ink);color:var(--paper);border-top:1px solid var(--ink)}
+  .invert .h2{color:var(--paper)}
+  .invert p{color:#A6A9AE}
+  .invert .display{color:var(--paper)}
+  .demo-form{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px;max-width:520px}
+  .demo-form input{flex:1;min-width:240px;background:transparent;border:1px solid rgba(255,255,255,.2);
+    padding:14px 16px;color:var(--paper);font:500 15px var(--sans);outline:none}
+  .demo-form input:focus{border-color:rgba(255,255,255,.5)}
+  .demo-form .btn{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+  .demo-form .btn:hover{background:transparent;color:var(--paper)}
+  .demo-alt{margin-top:16px;font-size:14px}.demo-alt a{color:#A6A9AE;border-bottom:1px solid rgba(255,255,255,.2)}
+  .demo-err{display:none;color:#E7A79F;font-size:13.5px;margin-top:12px}
 
-  section{position:relative}
-  .pad{padding:clamp(130px,18vh,250px) 0}
-  .sig-head{margin-bottom:clamp(44px,6vh,76px)}
+  /* footer */
+  .foot{border-top:1px solid var(--line);padding:clamp(60px,8vh,90px) 0 40px}
+  .foot-top{display:grid;grid-template-columns:1.3fr 2fr;gap:clamp(30px,5vw,80px);padding-bottom:48px;border-bottom:1px solid var(--line)}
+  @media(max-width:820px){.foot-top{grid-template-columns:1fr;gap:40px}}
+  .foot-news h3{font-size:22px;font-weight:600;letter-spacing:-.02em;max-width:16ch;margin-bottom:16px}
+  .foot-news form{display:flex;gap:8px;max-width:400px}
+  .foot-news input{flex:1;min-width:0;border:1px solid var(--line);padding:12px 14px;font:500 14px var(--sans);outline:none;color:var(--ink)}
+  .foot-news input:focus{border-color:var(--ink)}
+  .foot-news button{border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:0 18px;font:600 14px var(--sans);cursor:pointer}
+  .foot-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+  @media(max-width:640px){.foot-cols{grid-template-columns:1fr 1fr}}
+  .foot-col h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 14px;font-weight:500}
+  .foot-col a{display:block;font-size:14px;color:var(--mute);padding:5px 0}
+  .foot-col a:hover{color:var(--ink)}
+  .foot-bot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:36px;
+    font-family:var(--mono);font-size:11px;color:var(--faint)}
 
-  /* statement */
-  .statement{text-align:center}
-  .statement p{font-family:var(--serif);font-weight:300;font-size:clamp(30px,4.4vw,58px);
-    line-height:1.12;max-width:18ch;margin:0 auto}
-  .statement p span{color:var(--faint)}
-
-  /* split */
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,7vw,100px);align-items:center}
-  .split.rev .media{order:2}
-  .media{position:relative;border-radius:0;overflow:hidden}
-  .media img{width:100%;height:auto;display:block;transition:transform 1.4s cubic-bezier(.2,.6,.2,1)}
-  .media:hover img{transform:scale(1.04)}
-  .pxmedia{position:relative;aspect-ratio:4/5;overflow:hidden;border-radius:0}
-  .pxmedia img{position:absolute;left:0;top:-10%;width:100%;height:120%;object-fit:cover;will-change:transform}
-  .copy .eyebrow{margin-bottom:22px}
-  .copy h2{margin-bottom:24px}
-  .copy p{color:var(--mute);max-width:44ch;font-size:17px}
-  .meta{margin-top:34px;display:flex;gap:42px;flex-wrap:wrap}
-  .meta b{font-family:var(--serif);font-size:40px;font-weight:400;color:var(--ink);display:block;line-height:1}
-  .meta span{font:500 12px var(--sans);letter-spacing:.04em;color:var(--mute)}
-
-  /* scoring-engine visualiser (transparent) */
-  .graph{position:relative;aspect-ratio:1/1;overflow:visible}
-  .graph canvas{position:absolute;inset:0;width:100%;height:100%}
-  .score-node{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    text-align:center;z-index:3;pointer-events:none}
-  .score-node .sv{font-family:var(--serif);font-weight:400;font-size:clamp(54px,8vw,76px);
-    line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
-  .score-node .sg{font:500 10.5px var(--sans);letter-spacing:.2em;text-transform:uppercase;
-    color:var(--mute);margin-top:9px}
-  .score-node .sg b{color:var(--ink);font-weight:600}
-  .snode{position:absolute;transform:translate(-50%,-50%);z-index:2;display:flex;align-items:center;
-    gap:7px;font:500 12px var(--sans);color:var(--faint);white-space:nowrap;
-    transition:color .35s,opacity .35s;opacity:.55;pointer-events:none}
-  .snode.lft{flex-direction:row-reverse}
-  .snode .dot{width:7px;height:7px;border-radius:0;background:var(--faint);
-    transition:background .35s,box-shadow .35s;flex:none}
-  .snode.on{color:var(--ink);opacity:1}
-  .snode.on .dot{background:var(--ink);box-shadow:0 0 12px rgba(244,241,234,.75)}
-
-  /* bleed (left-aligned) */
-  .bleed{height:94vh;min-height:600px;display:flex;align-items:center;justify-content:flex-start;
-    text-align:left;position:relative;overflow:hidden}
-  .bleed img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .bleed .veil2{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,10,18,.62),rgba(8,10,18,.25) 60%,transparent)}
-  .bleed .wrap{position:relative;z-index:2;width:100%}
-  .bleed .inner{color:#fff;max-width:560px}
-  .bleed h2{font-size:clamp(40px,6.6vw,90px)}
-  .bleed p{color:rgba(255,255,255,.8);max-width:42ch;margin:24px 0 0;font-size:18px}
-
-  /* architecture / flow */
-  .flow{display:grid;grid-template-columns:1fr auto 1.1fr auto 1fr;align-items:stretch;gap:0;margin-top:8px}
-  .fnode{border:1px solid var(--line);border-radius:0;padding:26px 24px;background:var(--bg);
-    display:flex;flex-direction:column;gap:12px;min-height:158px}
-  .fnode.hub{background:linear-gradient(180deg,#14140f,#0c0c0d);border-color:rgba(217,213,203,.34)}
-  .fnode .fh{font-family:var(--sans);font-weight:500;font-size:16px}
-  .fnode .fs{color:var(--mute);font-size:13.5px;margin-top:-4px}
-  .fnode .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto}
-  .fnode .chips span{font:500 12px var(--sans);color:var(--ink);border:1px solid var(--line);
-    padding:5px 11px;border-radius:0;background:rgba(255,255,255,.02)}
-  .fnode .fl{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
-  .conn{position:relative;min-width:64px;align-self:center;height:1px;background:var(--line)}
-  .conn .dot{position:absolute;top:-2.5px;width:6px;height:6px;border-radius:0;background:var(--gold);
-    box-shadow:0 0 10px var(--gold);animation:flow 2.6s linear infinite}
-  .conn.d2 .dot{animation-delay:1.3s}
-  @keyframes flow{0%{left:-3%;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:103%;opacity:0}}
-  .actions{margin-top:30px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  .actions .lbl{font:500 12px var(--sans);letter-spacing:.04em;color:var(--mute);margin-right:6px}
-  .actions .act{font:500 13px var(--sans);color:var(--ink);border:1px solid var(--line);
-    border-radius:0;padding:8px 14px;background:rgba(255,255,255,.02)}
-  @media(max-width:900px){
-    .flow{grid-template-columns:1fr;gap:14px}
-    .conn{min-width:0;width:1px;height:30px;justify-self:center;background:var(--line)}
-    .conn .dot{animation:flowv 2.6s linear infinite;left:-2.5px;top:auto}
-    @keyframes flowv{0%{top:-3%;opacity:0}12%{opacity:1}88%{opacity:1}100%{top:103%;opacity:0}}
-  }
-
-  /* data: sortable table + charts */
-  .browser{position:relative;border:1px solid rgba(255,255,255,.14);border-radius:0;overflow:hidden;
-    background:#0c0d0e;box-shadow:0 60px 130px -50px rgba(0,0,0,.65),0 8px 24px -12px rgba(0,0,0,.5);margin-bottom:84px}
-  .browser .bbar{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08);
-    background:linear-gradient(180deg,#1a1c1e,#141618)}
-  .browser .dots{display:flex;gap:8px;flex:none}
-  .browser .dots i{width:12px;height:12px;border-radius:0;background:#3a3d40}
-  .browser .dots i:nth-child(1){background:#ff5f57}.browser .dots i:nth-child(2){background:#febc2e}.browser .dots i:nth-child(3){background:#28c840}
-  .browser .url{flex:1;max-width:360px;margin:0 auto;text-align:center;font:500 12px var(--sans);
-    color:#9a978d;background:#0d0e10;border-radius:0;padding:7px 14px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .browser .bbody{padding:26px 30px 30px}
-  /* animated fake cursor over a screenshot */
-  .cursor{position:absolute;z-index:6;left:62%;top:24%;pointer-events:none;animation:curs 10s ease-in-out infinite}
-  .cursor svg{display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,.45))}
-  .cursor .ring{position:absolute;left:-9px;top:-9px;width:34px;height:34px;border-radius:0;
-    border:2px solid rgba(31,86,74,.75);opacity:0;transform:scale(.4);animation:click 10s ease-in-out infinite}
-  @keyframes curs{0%{left:62%;top:24%}16%,23%{left:24%;top:48%}44%,51%{left:71%;top:42%}70%,77%{left:42%;top:66%}100%{left:62%;top:24%}}
-  @keyframes click{0%,15%{opacity:0;transform:scale(.4)}18%{opacity:.85;transform:scale(.5)}26%{opacity:0;transform:scale(1.25)}
-    43%{opacity:0;transform:scale(.4)}46%{opacity:.85;transform:scale(.5)}54%{opacity:0;transform:scale(1.25)}
-    69%{opacity:0;transform:scale(.4)}72%{opacity:.85;transform:scale(.5)}80%{opacity:0;transform:scale(1.25)}100%{opacity:0}}
-  @media(prefers-reduced-motion:reduce){.cursor{display:none}}
-  /* laptop device frame */
-  .laptop{max-width:960px;margin:0 auto;position:relative}
-  .laptop .screen{position:relative;background:#0b0c0d;border:12px solid #16181a;border-bottom-width:13px;
-    border-radius:0;overflow:hidden;box-shadow:0 60px 130px -45px rgba(0,0,0,.6),0 6px 20px -10px rgba(0,0,0,.5)}
-  .laptop .screen img{width:100%;display:block}
-  .laptop .cam{position:absolute;left:50%;top:4px;transform:translateX(-50%);width:5px;height:5px;border-radius:0;background:#26282a;z-index:4}
-  .laptop .deck{position:relative;height:13px;margin:0 -5.2%;background:linear-gradient(180deg,#2c2e31,#16191b);
-    border-radius:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
-  .laptop .deck:before{content:"";position:absolute;left:50%;top:0;transform:translateX(-50%);width:100px;height:7px;background:#0d0e10;border-radius:0}
-  .tbl{overflow-x:auto}
-  table#vicTable{width:100%;border-collapse:collapse;min-width:720px}
-  #vicTable th{font:500 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
-    text-align:left;padding:0 18px 16px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none;transition:color .2s}
-  #vicTable th.num{text-align:right}#vicTable th:hover{color:var(--ink)}
-  #vicTable th .ar{font-size:9px;margin-left:6px;color:var(--ink)}
-  #vicTable td{padding:18px;border-bottom:1px solid var(--line-2);font-size:14px;color:var(--mute);vertical-align:middle}
-  #vicTable td.num{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
-  #vicTable td.cl{color:var(--ink);font-weight:500}
-  #vicTable tbody tr{transition:background .2s}#vicTable tbody tr:hover{background:rgba(255,255,255,.025)}
-  .gchip{display:inline-block;font:600 11px var(--sans);padding:3px 9px;border-radius:0}
-  .g-as{background:#f4f1ea;color:#0a0a0b}.g-a{background:rgba(244,241,234,.18);color:var(--ink)}
-  .g-b{background:rgba(255,255,255,.07);color:var(--mute)}.g-c{color:var(--faint)}
-  .stags{display:flex;gap:6px;flex-wrap:wrap}
-  .stag{font:500 11.5px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:0;padding:3px 9px}
-  .tbl-hint{font-size:12px;color:var(--faint);margin-top:16px}
-  .charts{display:grid;grid-template-columns:1fr 1fr;gap:clamp(44px,7vw,96px)}
-  .chart h3{font:500 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 28px}
-  .stack{display:flex;height:14px;border-radius:0;overflow:hidden;margin-bottom:26px}
-  .stack .seg{transition:filter .25s}.stack .seg:hover{filter:brightness(1.3)}
-  .glegend{display:flex;flex-direction:column;gap:14px}
-  .glegend .gi{display:flex;align-items:center;justify-content:space-between;font-size:14px}
-  .glegend .gi .lab{display:flex;align-items:center;gap:11px;color:var(--mute)}
-  .glegend .gi .sw{width:10px;height:10px;border-radius:0;flex:none}
-  .glegend .gi .val{color:var(--ink);font-variant-numeric:tabular-nums}
-  .hbar{margin-bottom:20px}
-  .hbar .hl{display:flex;justify-content:space-between;font-size:13.5px;color:var(--mute);margin-bottom:8px}
-  .hbar .hl b{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
-  .hbar .tr{height:5px;background:rgba(255,255,255,.07);border-radius:0;overflow:hidden}
-  .hbar .tr i{display:block;height:100%;width:0;background:var(--ink);border-radius:0;transition:width 1.2s cubic-bezier(.2,.7,.2,1)}
-  @media(max-width:900px){.charts{grid-template-columns:1fr;gap:60px}}
-
-  /* pareto chart */
-  .chartwrap{display:grid;grid-template-columns:1.25fr 1fr;gap:clamp(40px,6vw,80px);align-items:center;margin-top:20px}
-  .pareto{position:relative;width:100%}.pareto svg{width:100%;height:auto;display:block;overflow:visible}
-  .pbar{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);transition:transform .9s cubic-bezier(.2,.7,.2,1)}
-  .pareto.in .pbar{transform:scaleY(1)}
-  .pline{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-dasharray:1;stroke-dashoffset:1}
-  .pareto.in .pline{transition:stroke-dashoffset 1.7s ease .35s;stroke-dashoffset:0}
-  .pdash{stroke:var(--faint);stroke-width:1;stroke-dasharray:3 4;opacity:0}.pareto.in .pdash{opacity:1;transition:opacity .6s ease .9s}
-  .plabel{font:500 10px var(--sans);fill:var(--faint);letter-spacing:.08em}
-  .pdot{fill:var(--ink);opacity:0}.pareto.in .pdot{opacity:1;transition:opacity .4s ease 1.5s}
-  .chart-side .eyebrow{margin-bottom:18px}.chart-side p{color:var(--mute);font-size:16px;max-width:38ch}
-  @media(max-width:900px){.chartwrap{grid-template-columns:1fr}}
-
-  /* knowledge base / under the hood */
-  .kb-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:0;overflow:hidden;margin:0 0 18px}
-  .kb-stat{background:var(--bg);padding:32px 28px}
-  .kb-stat .n{font-family:var(--serif);font-weight:300;font-size:clamp(38px,4.6vw,58px);line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
-  .kb-stat .n.word{font-size:clamp(22px,2.5vw,30px);padding-top:10px}
-  .kb-stat .l{font:500 12.5px var(--sans);color:var(--mute);margin-top:12px;max-width:20ch}
-  .kb-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:0;overflow:hidden}
-  .kb{background:var(--bg);padding:26px 30px;display:flex;gap:18px}
-  .kb .ki{font-family:var(--serif);font-size:15px;color:var(--faint);flex:none;width:26px}
-  .kb h3{font-family:var(--sans);font-weight:500;font-size:16px;margin:0 0 6px}
-  .kb p{color:var(--mute);font-size:14.5px;margin:0}
-  @media(max-width:900px){.kb-stats{grid-template-columns:1fr 1fr}.kb-grid{grid-template-columns:1fr}}
-
-  /* real-time alert toasts (animated mockup) */
-  .alerts-mock{position:relative;min-height:280px;display:flex;flex-direction:column;justify-content:center}
-  .atoast{display:flex;gap:13px;align-items:flex-start;background:rgba(255,255,255,.97);color:#1c1b18;
-    border-radius:0;padding:14px 16px;box-shadow:0 26px 64px -26px rgba(0,0,0,.7);margin-bottom:14px;
-    opacity:0;animation:atoast 5.4s var(--d,0s) infinite}
-  .atoast .ai{width:36px;height:36px;border-radius:0;background:#101512;display:flex;align-items:center;justify-content:center;flex:none}
-  .atoast .ai svg{width:18px;height:18px}
-  .atoast .ab{flex:1;min-width:0}
-  .atoast .at{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
-  .atoast .at b{font:600 13.5px system-ui;color:#1c1b18}
-  .atoast .at .g{color:#1f564a;font-weight:700}
-  .atoast .at .atm{font-size:11px;color:#9a958a;flex:none}
-  .atoast .as{font-size:12px;color:#6b675e;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  @keyframes atoast{0%{opacity:0;transform:translateX(34px) scale(.97)}7%{opacity:1;transform:none}74%{opacity:1;transform:none}86%,100%{opacity:0;transform:translateX(34px) scale(.97)}}
-  @media(prefers-reduced-motion:reduce){.atoast{opacity:1;animation:none}}
-
-  /* signals */
-  .sig-head{max-width:46ch;margin-bottom:60px}
-  .sgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);
-    border:1px solid var(--line);border-radius:0;overflow:hidden}
-  .scell{background:var(--bg);padding:36px 38px}
-  .scell .k{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
-  .scell h3{font-family:var(--sans);font-weight:500;font-size:15px;letter-spacing:.02em}
-  .scell .num{font-family:var(--serif);font-size:15px;color:var(--faint)}
-  .tags{display:flex;flex-wrap:wrap;gap:9px}
-  .tag{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);
-    padding:7px 13px;border-radius:0;transition:.2s}
-  .scell:hover .tag{border-color:rgba(217,213,203,.4);color:var(--ink)}
-  .scell .sdesc{color:var(--mute);font-size:14.5px;line-height:1.55;margin:0}
-
-  /* departments */
-  .dept-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-  .dept{border:1px solid var(--line);border-radius:0;padding:28px;transition:.25s;background:var(--bg)}
-  .dept:hover{border-color:rgba(217,213,203,.4);transform:translateY(-3px)}
-  .dept .di{font-family:var(--serif);font-size:15px;color:var(--gold)}
-  .dept h3{font-family:var(--sans);font-weight:500;font-size:17px;margin:12px 0 8px}
-  .dept p{color:var(--mute);font-size:14.5px;margin:0}
-
-  /* solutions */
-  .sol-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:52px;gap:30px;flex-wrap:wrap}
-  .sol-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
-  .sol-carousel{overflow:hidden}
-  .sol-track{display:flex;gap:18px;will-change:transform}
-  .sol{flex:0 0 clamp(232px,26vw,300px);position:relative;border-radius:0;overflow:hidden;aspect-ratio:4/5;display:block;text-decoration:none}
-  .sol img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s cubic-bezier(.2,.6,.2,1);filter:saturate(.92)}
-  .sol:hover img{transform:scale(1.06)}
-  .sol .lab{position:absolute;inset:auto 0 0;padding:22px;background:linear-gradient(transparent,rgba(8,8,9,.85));z-index:2}
-  .sol .lab h3{font-family:var(--sans);font-weight:500;font-size:16px;color:#fff}
-  .sol .lab p{font-size:12.5px;color:rgba(255,255,255,.7);margin-top:4px}
-  .sol .lab .go{margin-top:8px;font:500 12px var(--sans);color:var(--gold);opacity:0;transform:translateY(4px);transition:.25s}
-  .sol:hover .lab .go{opacity:1;transform:none}
-  @media(max-width:760px){
-    .sol-track{overflow-x:auto;transform:none!important;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-    .sol-track::-webkit-scrollbar{display:none}
-    .sol{flex-basis:74vw;scroll-snap-align:start}
-  }
-  @media(prefers-reduced-motion:reduce){
-    .sol-track{overflow-x:auto;transform:none!important;scrollbar-width:none}
-    .sol-track::-webkit-scrollbar{display:none}
-  }
-
-  /* security */
-  .sec-points{display:grid;grid-template-columns:repeat(4,1fr);gap:30px;margin-top:8px}
-  .spt h3{font-family:var(--sans);font-weight:500;font-size:16px;margin:0 0 8px}
-  .spt h3 .b{color:var(--gold);margin-right:8px}
-  .spt p{color:var(--mute);font-size:14px;margin:0}
-
-  /* final */
-  .final{text-align:center}
-  .final h2{font-size:clamp(40px,6.4vw,94px);margin-bottom:20px}
-  .final .lede{margin:0 auto 38px;max-width:34ch}
-
-  /* footer styling is shared across every page via /static/brand.css (.hfoot / .brandmark) */
-
-  @media(max-width:900px){
-    .wrap{padding:0 24px}
-    .split,.sol-grid,.dept-grid,.sec-points{grid-template-columns:1fr}
-    .split.rev .media{order:0}.sgrid,.sol-grid{grid-template-columns:1fr}
-    .dept-grid,.sol-grid{grid-template-columns:1fr 1fr}
-    /* flow the hero from the top instead of splitting top/bottom, so the buttons
-       sit under the copy and never collide with the scroll cue or chat bubble */
-    .hero{height:auto;min-height:0}
-    .hero .wrap{justify-content:flex-start;gap:clamp(28px,6vh,56px);
-      padding-top:132px;padding-bottom:clamp(96px,16vh,140px)}
-    .hero .cta{gap:12px}
-    .hero .cta .btn{flex:1 1 auto;justify-content:center}
-    .scroll-cue{display:none}   /* decorative, and it overlapped the CTAs on small screens */
-  }
-  /* light (cream) sections */
-  .light{background:#f4f1ea;color:#13110c;
-    --ink:#13110c;--mute:#6b6557;--faint:#9a9385;--gold:#5E6B74;--line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.08);--bg:#f4f1ea;--bg-2:#ece7dc}
-  .light .eyebrow{color:#5E6B74}
-  .light em{color:#13110c}
-  .light .btn{background:#13110c;color:#f4f1ea;border-color:#13110c}
-  .light .btn:hover{background:transparent;color:#13110c}
-  .light .btn.ghost{background:transparent;color:#13110c;border-color:rgba(20,18,12,.22)}
-  .light .btn.ghost:hover{border-color:#13110c}
-  /* message mock + moments */
-  .msgcard{background:#fff;border:1px solid rgba(20,18,12,.12);border-radius:0;padding:26px 28px;box-shadow:0 30px 70px -42px rgba(20,18,12,.3)}
-  .msgcard .mm{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#9a9385;border-bottom:1px solid rgba(20,18,12,.1);padding-bottom:14px;margin-bottom:18px}
-  .msgcard .mb{font-family:var(--serif);font-weight:300;font-size:19px;line-height:1.5;color:#2a2722;transition:opacity .22s}
-  .msgcard .mt{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(20,18,12,.1)}
-  .msgcard .mt .chip{font:500 12.5px var(--sans);color:#6b6557;border:1px solid rgba(20,18,12,.16);border-radius:0;padding:6px 12px;cursor:pointer;transition:.18s;user-select:none}
-  .msgcard .mt .chip:hover{border-color:rgba(20,18,12,.4);color:#13110c}
-  .msgcard .mt .chip.on{background:#13110c;color:#f4f1ea;border-color:#13110c}
-  .moment{padding:24px 0;border-top:1px solid rgba(20,18,12,.12)}.moment:first-child{border-top:0;padding-top:0}
-  .moment .mi{font-family:var(--serif);font-size:15px;color:#9a9385}
-  .moment h3{font-family:var(--sans);font-weight:600;font-size:17px;margin:6px 0;color:#13110c}
-  .moment p{color:#6b6557;font-size:15px;margin:0;max-width:44ch}
-
-  @media(prefers-reduced-motion:reduce){
-    .reveal{opacity:1;transform:none;transition:none}.scroll-cue .ln,.conn .dot{animation:none}
-  }
+  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 </style>
 </head>
 <body>
 
 <!-- NAV -->
 <header id="hdr"><div class="wrap nav">
- <a class="brand" href="/">
- <span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#D7DADE">&#8258;</span>
- Halia </a>
- <nav class="nav-links">
- <a href="#how">How it works</a>
- <a href="/clienteling">Clienteling</a>
- <a href="/solutions">Solutions</a>
- <a href="/pricing">Pricing</a><a href="/blog">Blog</a>
- </nav>
- <div class="right">
- <a class="si" href="#demo">See a demo</a>
- <a class="si" href="/app">Sign in</a>
- <a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a>
- <button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
- </div>
+  <a class="brand" href="/"><span class="m" aria-hidden="true">&#8258;</span> Halia</a>
+  <nav class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="/clienteling">Clienteling</a>
+    <a href="/solutions">Solutions</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/blog">Blog</a>
+  </nav>
+  <div class="right">
+    <a class="si" href="#demo">See a demo</a>
+    <a class="si" href="/app">Sign in</a>
+    <a class="btn" href="/connect">Connect your store <span class="arrow">&rarr;</span></a>
+    <button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  </div>
 </div></header>
 
 <div class="mscrim" id="mscrim"></div>
 <aside class="mdrawer" id="mdrawer" aria-hidden="true">
- <button class="mclose" id="mclose" aria-label="Close menu">&times;</button>
- <a href="#how">How it works</a>
- <a href="/clienteling">Clienteling</a>
- <a href="/solutions">Solutions</a>
- <a href="/pricing">Pricing</a><a href="/blog">Blog</a>
- <a class="msi" href="#demo">See a demo</a>
- <a class="msi" href="/app">Sign in</a>
- <a class="mcta" href="/connect">Connect your store</a>
+  <button class="mclose" id="mclose" aria-label="Close menu">&times;</button>
+  <a href="#how">How it works</a>
+  <a href="/clienteling">Clienteling</a>
+  <a href="/solutions">Solutions</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/blog">Blog</a>
+  <a class="msi" href="#demo">See a demo</a>
+  <a class="msi" href="/app">Sign in</a>
+  <a class="mcta" href="/connect">Connect your store</a>
 </aside>
 
-<!-- HERO (right) -->
-<section class="hero">
- <video id="heroVid" autoplay muted loop playsinline poster="img/three_clients.jpg">
- <source src="img/hero.mp4" type="video/mp4">
- </video>
- <img id="heroGif" class="hero-fallback" data-src="img/hero.gif" alt="" aria-hidden="true">
+<!-- HERO -->
+<section class="hero"><div class="wrap">
+  <div class="hgrid">
+    <div class="stack">
+      <h1 class="display">Your best clients are already in your <span class="u">data.</span></h1>
+      <p class="hero-sub">Halia reads the wealth signals in your order data and grades every customer, A&#42; to C.</p>
+      <div class="hero-cta">
+        <a class="btn" href="/connect">Connect your store <span class="arrow">&rarr;</span></a>
+        <a class="btn ghost" href="#demo">See a demo</a>
+      </div>
+    </div>
+    <div class="rail" aria-hidden="true">
+      <div class="r head"><span></span><span>Client</span><span>Grade</span><span>Latent</span></div>
+      <div class="r"><span class="g gA1">A&#42;</span><span class="nm">Amelia Hart</span><span class="v">A&#42;</span><span class="v">£11.8k</span></div>
+      <div class="r"><span class="g gA">A</span><span class="nm">James Fenn</span><span class="v">A</span><span class="v">£7.4k</span></div>
+      <div class="r"><span class="g gA">A</span><span class="nm">Sofia Duarte</span><span class="v">A</span><span class="v">£6.9k</span></div>
+      <div class="r"><span class="g gB">B</span><span class="nm">Noor Rahman</span><span class="v">B</span><span class="v">£3.1k</span></div>
+      <div class="r"><span class="g gC">C</span><span class="nm">Tom Ellery</span><span class="v">C</span><span class="v">£0.6k</span></div>
+    </div>
+  </div>
+</div></section>
 
- <canvas id="fish"></canvas>
- <div class="veil"></div>
- <div class="wrap">
- <div class="hero-top">
-  <h1 class="display reveal in d1"><!--cms:home.hero.title-->Your most valuable clients are already in your <em>database.</em><!--/cms--></h1>
- </div>
- <div class="hero-bot">
- <p class="lede reveal in d2"><!--cms:home.hero.sub-->A sea of records, and a handful worth the world. Halia reads the wealth signals in your own order data and grades every customer, A&#42; to C.<!--/cms--></p>
- <div class="cta reveal in d3">
- <a class="btn" href="/connect">Find them <span class="arrow">→</span></a>
- <a class="btn ghost" href="#how">How it works</a>
- </div>
- </div>
- </div>
- <div class="scroll-cue"><span>Scroll</span><span class="ln"></span></div>
-</section>
+<!-- HOOK -->
+<section class="pad"><div class="wrap">
+  <p class="say">A customer who spends <span class="hl">£200</span> with you may spend <span class="hl">£10,000</span> elsewhere. Halia tells you which.</p>
+</div></section>
 
-<!-- WHITE: the competitor-spend hook — a full-screen fear pitch -->
-<section class="pad" style="background:#f4f1ea;color:#13110c;text-align:center;min-height:86vh;display:flex;align-items:center">
- <div class="wrap reveal">
- <p style="font-family:var(--serif);font-weight:300;font-size:clamp(34px,5.6vw,72px);line-height:1.06;max-width:17ch;margin:0 auto;color:#13110c">
- A client who has spent <em style="color:#13110c">£200</em> with you may be spending
- <em style="color:#13110c">£10,000</em> with your competitors. Halia tells you which ones.</p>
- <p style="color:#6b6557;font-size:15px;line-height:1.7;max-width:54ch;margin:34px auto 0">Halia is private client intelligence for luxury retail. Its powerful, intelligent analysis reads the undetected signs of wealth in your own database to find your next top client and drive revenue, far beyond the usual recency-and-spend segmentation (RFM).</p>
- </div>
-</section>
-
-<!-- INSIDE THE DASHBOARD: interactive table -->
+<!-- TABLE -->
 <section id="dashboard" class="pad"><div class="wrap">
- <div class="sig-head reveal" style="max-width:50ch">
- <div class="eyebrow" style="margin-bottom:20px">Inside the dashboard</div>
- <h2 class="h2">A clear read on<br>every customer.</h2>
- </div>
- <div class="browser reveal d1">
- <div class="bbar"><div class="dots"><i></i><i></i><i></i></div><div class="url">app.haliascore.com · Hidden VICs</div></div>
- <div class="bbody"><div class="tbl">
- <table id="vicTable"><thead><tr>
- <th data-k="client">Client</th>
- <th data-k="grade">Grade</th>
- <th data-k="score" class="num">Score</th>
- <th data-k="spend" class="num">Spend</th>
- <th data-k="latent" class="num">Latent value</th>
- <th data-k="signals">Signals</th>
- </tr></thead><tbody></tbody></table>
- <div class="tbl-hint">Sample data. Click a column to sort.</div>
- </div></div>
- </div>
+  <div class="shead"><h2 class="h2">A clear read on every customer.</h2></div>
+  <div class="tbl-wrap">
+    <table class="vic">
+      <thead><tr><th>Client</th><th>Grade</th><th class="r">Score</th><th class="r">Spend</th><th class="r">Latent value</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Amelia Hart</td><td><span class="cell-g"><i class="gd gA1"></i>A&#42;</span></td><td class="num r">99</td><td class="num r">£4,200</td><td class="num r">£11,800</td><td class="sig">Mayfair · work email · premium card</td></tr>
+        <tr><td>James Fenn</td><td><span class="cell-g"><i class="gd gA"></i>A</span></td><td class="num r">92</td><td class="num r">£1,850</td><td class="num r">£7,400</td><td class="sig">HNW postcode · concierge delivery</td></tr>
+        <tr><td>Sofia Duarte</td><td><span class="cell-g"><i class="gd gA"></i>A</span></td><td class="num r">88</td><td class="num r">£980</td><td class="num r">£6,900</td><td class="sig">Family office · repeat gifting</td></tr>
+        <tr><td>Noor Rahman</td><td><span class="cell-g"><i class="gd gB"></i>B</span></td><td class="num r">71</td><td class="num r">£2,300</td><td class="num r">£3,100</td><td class="sig">Premium card · trade address</td></tr>
+        <tr><td>Tom Ellery</td><td><span class="cell-g"><i class="gd gC"></i>C</span></td><td class="num r">38</td><td class="num r">£140</td><td class="num r">£600</td><td class="sig">No strong signals yet</td></tr>
+      </tbody>
+    </table>
+    <div class="tbl-note">Sample data. Grades run A&#42; to C, each with the reasons behind it.</div>
+  </div>
 </div></section>
 
-<!-- REAL-TIME ALERTS -->
-<section class="pad" style="background:var(--bg-2)"><div class="wrap split" style="align-items:center">
- <div class="copy reveal">
-  <h2 class="h2" style="margin:22px 0 24px">The moment they order,<br>your team <em>knows.</em></h2>
- <p>When an A&#42; or A client checks out, in store at the till or online, Halia alerts your team the
- instant it happens: a desktop notification, an email, and a live feed in the dashboard. The
- recognition, the appointment, the personal note all land while the order is still warm.</p>
- </div>
- <div class="alerts-mock reveal d1" aria-hidden="true">
- <div class="atoast" style="--d:0s">
- <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#D7DADE">&#8258;</span></div>
- <div class="ab"><div class="at"><b>New <span class="g">A&#42;</span> order · Sir James Whitfield</b><span class="atm">now</span></div>
- <div class="as">Work email · Mayfair postcode · Premium card</div></div>
- </div>
- <div class="atoast" style="--d:1.8s">
- <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#D7DADE">&#8258;</span></div>
- <div class="ab"><div class="at"><b>New <span class="g">A</span> order · Mei Tanaka</b><span class="atm">now</span></div>
- <div class="as">Premium card · HNW neighbourhood</div></div>
- </div>
- <div class="atoast" style="--d:3.6s">
- <div class="ai"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#D7DADE">&#8258;</span></div>
- <div class="ab"><div class="at"><b>New <span class="g">A&#42;</span> order · Omar Al-Rashid</b><span class="atm">now</span></div>
- <div class="as">Family office · Concierge delivery</div></div>
- </div>
- </div>
+<!-- ALERTS -->
+<section class="pad"><div class="wrap hgrid">
+  <div class="stack">
+    <h2 class="h2">The moment they order, your team knows.</h2>
+    <p style="font-size:16px">When an A&#42; or A client checks out, in store or online, Halia tells your team the instant it happens.</p>
+  </div>
+  <div class="rail" aria-hidden="true">
+    <div class="r head"><span></span><span>New order</span><span></span><span>now</span></div>
+    <div class="r"><span class="g gA1">A&#42;</span><span class="nm">Sir James Whitfield</span><span></span><span class="v">Mayfair · work email</span></div>
+    <div class="r"><span class="g gA">A</span><span class="nm">Mei Tanaka</span><span></span><span class="v">Premium card · HNW area</span></div>
+    <div class="r"><span class="g gA1">A&#42;</span><span class="nm">Omar Al-Rashid</span><span></span><span class="v">Family office · concierge</span></div>
+  </div>
 </div></section>
 
-<!-- WHITE: from insight to action -->
-<section class="pad light"><div class="wrap">
- <div class="sig-head reveal" style="max-width:38ch">
- <div class="eyebrow" style="margin-bottom:20px">From insight to action</div>
- <h2 class="h2">Finding them is half of it.<br>Halia does the other half.</h2>
- </div>
- <div class="split" style="align-items:start">
- <div class="msgcard reveal">
- <div class="mm" id="msgMeta">To a new VIC · Personal welcome</div>
- <div class="mb" id="msgBody">Dear Amara,<br><br>Thank you for being one of our valued clients. I wanted to
- reach out personally; if there is ever a piece you are looking for, it would be my pleasure to
- help you find it.<br><br>Warmly,<br>The Aubin London team</div>
- <div class="mt" id="msgPills">
- <span class="chip on" data-t="0">Personal welcome</span>
- <span class="chip" data-t="1">New arrival</span>
- <span class="chip" data-t="2">Concierge check-in</span>
- <span class="chip" data-t="3">Win-back</span>
- </div>
- </div>
- <div class="reveal d1">
- <p style="color:#6b6557;font-size:17px;max-width:42ch;margin:0 0 30px">Halia hands your team the next
- move: editable templates built for the moment, so the right client gets the right note in your
- own voice.</p>
- <div class="moment"><div class="mi">01</div><h3>At the point of sale</h3><p>A grade on the customer in front of you, so the right people get recognition while they are still at the counter.</p></div>
- <div class="moment"><div class="mi">02</div><h3>The first reach-out</h3><p>A personal welcome the instant a hidden VIC appears, ready to send. Recognition that feels personal and earned.</p></div>
- <div class="moment"><div class="mi">03</div><h3>Lapsed and at risk</h3><p>Ready-to-shoot win-back notes for the high-value clients who have quietly gone quiet, before they are gone for good.</p></div>
- </div>
- </div>
+<!-- ACTION -->
+<section class="pad"><div class="wrap">
+  <div class="shead"><h2 class="h2">Finding them is half the job.</h2><p>Halia hands your team the next move, ready to send in your own voice.</p></div>
+  <div class="rows">
+    <div class="row"><span class="rn">01</span><div><h3>At the till</h3><p>A grade on the customer in front of you, so the right people get recognised in the moment.</p></div></div>
+    <div class="row"><span class="rn">02</span><div><h3>The first hello</h3><p>A personal welcome the instant a hidden VIC appears, written and ready to send.</p></div></div>
+    <div class="row"><span class="rn">03</span><div><h3>Before they lapse</h3><p>Win-back notes for high-value clients who have gone quiet, while there is still time.</p></div></div>
+    <div class="row"><span class="rn">04</span><div><h3>In your own tools</h3><p>Grades and segments pushed to Klaviyo, Mailchimp or HubSpot, so the right flow fires itself.</p></div></div>
+  </div>
 </div></section>
 
-<!-- PARETO 80/20 -->
-<section class="pad" style="background:var(--bg-2)"><div class="wrap">
-  <h2 class="h2 reveal" style="margin-bottom:14px;max-width:20ch">Twenty percent of clients. Eighty percent of revenue.</h2>
- <div class="chartwrap">
- <div class="pareto reveal d1" id="pareto"></div>
- <div class="chart-side reveal d2">
- <div class="eyebrow">Why a few matter so much</div>
- <p>A small tier of clients carries most of the revenue, and the very top of it carries most of
- that. Some of tomorrow&#39;s top tier are spending &pound;180 with you today. The whole game is
- finding them first.</p>
- <a class="btn ghost" href="/clienteling" style="margin-top:24px">The case for clienteling <span class="arrow">→</span></a>
- </div>
- </div>
+<!-- 80/20 -->
+<section class="pad"><div class="wrap">
+  <div class="marks">
+    <div class="mark"><div class="big">20%</div><div class="cap">of your clients</div></div>
+    <div class="mark accent"><div class="big">80%</div><div class="cap">of your revenue. Some of tomorrow's top tier spend £180 with you today. The whole game is finding them first.</div></div>
+  </div>
+  <div style="margin-top:44px"><a class="btn ghost" href="/clienteling">The case for clienteling <span class="arrow">&rarr;</span></a></div>
 </div></section>
 
-<!-- A HANDFUL OF CLIENTS (light, image right) -->
-<section class="pad light"><div class="wrap split">
- <div class="copy reveal">
- <h2 class="h2" style="margin-bottom:26px">A handful of clients are worth more than the rest combined.</h2>
- <p class="lede">Halia makes sure you know exactly who they are.</p>
- </div>
- <div class="reveal d1">
- <img src="img/luxury_client_pic_also_client_with_wine.jpg" alt="A client worth knowing" loading="lazy"
- style="width:100%;height:auto;display:block;border-radius:0">
- </div>
-</div></section>
-
-<!-- FOR TEAMS / DEPARTMENTS -->
-<section id="teams" class="pad light"><div class="wrap">
- <div class="sig-head reveal">
-  <h2 class="h2">One score, every team<br>that touches a client.</h2>
- </div>
- <div class="dept-grid">
- <div class="dept reveal"><div class="di">01</div><h3>Clienteling &amp; VIP</h3>
- <p>Know exactly who deserves a private appointment, an invite, or a handwritten note, before they ask.</p></div>
- <div class="dept reveal d1"><div class="di">02</div><h3>Retail &amp; store teams</h3>
- <p>A grade on the customer in front of you at the till, so the right people get the white-glove treatment in the moment.</p></div>
- <div class="dept reveal d2"><div class="di">03</div><h3>CRM &amp; lifecycle</h3>
- <p>Build segments on real wealth evidence as well as past spend, and route each grade into the right journey.</p></div>
- <div class="dept reveal"><div class="di">04</div><h3>Marketing &amp; automation</h3>
- <p>Trigger the right flow to the right customer automatically, the instant Halia surfaces them.</p></div>
- <div class="dept reveal d1"><div class="di">05</div><h3>Ecommerce &amp; growth</h3>
- <p>Build acquisition lookalikes from your true VICs, and prioritise the spend that compounds.</p></div>
- <div class="dept reveal d2"><div class="di">06</div><h3>Founders &amp; leadership</h3>
- <p>See the latent value sitting quietly in your customer base, and the revenue you are leaving on the table.</p></div>
- </div>
+<!-- TEAMS -->
+<section id="teams" class="pad"><div class="wrap">
+  <div class="shead"><h2 class="h2">One grade, every team that touches a client.</h2></div>
+  <div class="rows">
+    <div class="row"><span class="rn">01</span><div><h3>Clienteling &amp; VIP</h3><p>Who deserves a private appointment or a handwritten note, before they ask.</p></div></div>
+    <div class="row"><span class="rn">02</span><div><h3>Retail &amp; store teams</h3><p>A grade at the till, so the right people get the white-glove treatment.</p></div></div>
+    <div class="row"><span class="rn">03</span><div><h3>CRM &amp; lifecycle</h3><p>Segment on real wealth, not just past spend, and route each grade to its journey.</p></div></div>
+    <div class="row"><span class="rn">04</span><div><h3>Marketing</h3><p>Trigger the right flow the instant Halia surfaces a client.</p></div></div>
+    <div class="row"><span class="rn">05</span><div><h3>Ecommerce &amp; growth</h3><p>Build lookalikes from your true VICs, and prioritise the spend that compounds.</p></div></div>
+    <div class="row"><span class="rn">06</span><div><h3>Founders</h3><p>See the latent value sitting in your customer base, and the revenue left on the table.</p></div></div>
+  </div>
 </div></section>
 
 <!-- SOLUTIONS -->
-<section id="solutions" class="pad light"><div class="wrap">
- <div class="sol-head">
- <h2 class="h2 reveal">Built for considered<br>purchases.</h2>
- <p class="lede reveal d1" style="max-width:34ch">Wherever a single, well-treated client is worth more than a thousand one-time buyers.</p>
- </div>
- <div class="sol-carousel reveal" id="solCarousel">
- <div class="sol-track" id="solTrack">
- <a class="sol" href="/solutions/fashion"><img src="img/fashion.jpg" alt="Fashion &amp; apparel" loading="lazy"><div class="lab"><h3>Fashion &amp; Apparel</h3><p>Buyers worth a private appointment.</p><span class="go">Explore →</span></div></a>
- <a class="sol" href="/solutions/jewellery"><img src="img/jewellery.jpg" alt="Jewellery &amp; watches" loading="lazy"><div class="lab"><h3>Jewellery &amp; Watches</h3><p>Hidden wealth behind a modest order.</p><span class="go">Explore →</span></div></a>
- <a class="sol" href="/solutions/wine"><img src="img/luxury_client_pic_also_client_with_wine.jpg" alt="Wine &amp; spirits" loading="lazy"><div class="lab"><h3>Wine &amp; Spirits</h3><p>A modest monthly order, a serious cellar behind it.</p><span class="go">Explore →</span></div></a>
- <a class="sol" href="/solutions/beauty"><img src="img/beauty.jpg" alt="Beauty &amp; fragrance" loading="lazy"><div class="lab"><h3>Beauty &amp; Fragrance</h3><p>One-time gifters into house clients.</p><span class="go">Explore →</span></div></a>
- <a class="sol" href="/solutions/home"><img src="img/homeware.jpg" alt="Home, furniture &amp; interiors" loading="lazy"><div class="lab"><h3>Home &amp; Lifestyle</h3><p>The trade and trophy-address clients.</p><span class="go">Explore →</span></div></a>
- <a class="sol" href="/solutions/gifting"><img src="img/flowers.jpg" alt="Flowers, food &amp; gifting" loading="lazy"><div class="lab"><h3>Flowers &amp; Gifting</h3><p>A standing bouquet, a house account behind it.</p><span class="go">Explore →</span></div></a>
- <a class="sol" href="/solutions/collectibles"><img src="img/nice_books_with_mug.jpg" alt="Rare books &amp; collectibles" loading="lazy"><div class="lab"><h3>Rare Books &amp; Collectibles</h3><p>Reading copies beside first-edition collectors.</p><span class="go">Explore →</span></div></a>
- <a class="sol" href="/solutions/electronics"><img src="img/head_phones.jpg" alt="Electronics &amp; big-box" loading="lazy"><div class="lab"><h3>Electronics &amp; Big-Box</h3><p>A trade account hiding in retail volume.</p><span class="go">Explore →</span></div></a>
- </div>
- </div>
- <div class="reveal d1" style="margin-top:46px"><a class="btn ghost" href="/solutions">Explore all solutions in depth <span class="arrow">→</span></a></div>
+<section id="solutions" class="pad"><div class="wrap">
+  <div class="shead"><h2 class="h2">Built for considered purchases.</h2><p>Wherever one well-treated client is worth more than a thousand one-time buyers.</p></div>
+  <div class="list">
+    <a href="/solutions/fashion"><span class="n">01</span><span class="t">Fashion &amp; Apparel</span><span class="d">Buyers worth a private appointment.</span><span class="go">&rarr;</span></a>
+    <a href="/solutions/jewellery"><span class="n">02</span><span class="t">Jewellery &amp; Watches</span><span class="d">Hidden wealth behind a modest order.</span><span class="go">&rarr;</span></a>
+    <a href="/solutions/wine"><span class="n">03</span><span class="t">Wine &amp; Spirits</span><span class="d">A modest order, a serious cellar behind it.</span><span class="go">&rarr;</span></a>
+    <a href="/solutions/beauty"><span class="n">04</span><span class="t">Beauty &amp; Fragrance</span><span class="d">One-time gifters into house clients.</span><span class="go">&rarr;</span></a>
+    <a href="/solutions/home"><span class="n">05</span><span class="t">Home &amp; Lifestyle</span><span class="d">The trade and trophy-address clients.</span><span class="go">&rarr;</span></a>
+    <a href="/solutions/gifting"><span class="n">06</span><span class="t">Flowers &amp; Gifting</span><span class="d">A standing order, a house account behind it.</span><span class="go">&rarr;</span></a>
+    <a href="/solutions/collectibles"><span class="n">07</span><span class="t">Rare Books &amp; Collectibles</span><span class="d">Reading copies beside first-edition buyers.</span><span class="go">&rarr;</span></a>
+    <a href="/solutions/electronics"><span class="n">08</span><span class="t">Electronics &amp; Big-Box</span><span class="d">A trade account hiding in retail volume.</span><span class="go">&rarr;</span></a>
+  </div>
 </div></section>
 
-<!-- HOW IT WORKS / ARCHITECTURE -->
-<section id="how" class="pad" style="background:var(--bg-2)"><div class="wrap">
- <div class="sig-head reveal" style="max-width:none">
-  <h2 class="h2">Connected to your stack.<br>Acting in real time.</h2>
- </div>
- <div class="flow reveal d1">
- <div class="fnode">
- <div class="fh">Your store</div>
- <div class="fs">Where your customers already are.</div>
- <div class="chips"><span>Shopify</span><span>BigCommerce</span><span>WooCommerce</span><span>Centra</span><span>SCAYLE</span></div>
- <div class="fl">Read-only</div>
- </div>
- <div class="conn"><span class="dot"></span></div>
- <div class="fnode hub">
- <div class="fh">Halia</div>
- <div class="fs">Scores every customer on the spot.</div>
- <div class="chips"><span>40+ signals</span><span>A&#42; to C</span><span>Latent value</span></div>
- <div class="fl">Scored in seconds</div>
- </div>
- <div class="conn d2"><span class="dot"></span></div>
- <div class="fnode">
- <div class="fh">Your tools</div>
- <div class="fs">Grades and segments, where you work.</div>
- <div class="chips"><span>Klaviyo</span><span>Mailchimp</span><span>HubSpot</span><span>Your team</span></div>
- <div class="fl">Acts instantly</div>
- </div>
- </div>
- <div class="actions reveal d2">
- <span class="lbl">The moment a VIC appears, Halia can:</span>
- <span class="act">Build a grade segment</span>
- <span class="act">Tag the profile</span>
- <span class="act">Create a list from a selection</span>
- <span class="act">Trigger a Klaviyo, Mailchimp or HubSpot flow</span>
- <span class="act">Brief your store team</span>
- </div>
- <div class="intg reveal d2" style="margin-top:clamp(48px,7vh,80px)">
- <div class="intg-group">
- <span class="intg-lbl">Commerce platforms</span>
- <div class="intg-row">
- <span class="ilogo">Shopify</span><span class="ilogo">BigCommerce</span><span class="ilogo">WooCommerce</span><span class="ilogo">Centra</span><span class="ilogo">SCAYLE</span>
- </div>
- </div>
- <div class="intg-group">
- <span class="intg-lbl">Email, CRM &amp; messaging</span>
- <div class="intg-row">
- <span class="ilogo">Klaviyo</span><span class="ilogo">Mailchimp</span><span class="ilogo">HubSpot</span><span class="ilogo">Slack</span>
- </div>
- </div>
- <div class="intg-group">
- <span class="intg-lbl">Enterprise <em>coming soon</em></span>
- <div class="intg-row soon">
- <span class="ilogo">Salesforce Marketing Cloud</span><span class="ilogo">Salesforce Commerce Cloud</span>
- </div>
- </div>
- </div>
+<!-- HOW / INTEGRATIONS -->
+<section id="how" class="pad"><div class="wrap">
+  <div class="shead"><h2 class="h2">Reads your store. Acts in your tools.</h2><p>Halia reads your customers, scores them in seconds, and pushes grades where your team already works.</p></div>
+  <div class="intg">
+    <div class="intg-group">
+      <span class="intg-lbl">Commerce platforms</span>
+      <div class="intg-row"><span class="ilogo">Shopify</span><span class="ilogo">BigCommerce</span><span class="ilogo">WooCommerce</span><span class="ilogo">Centra</span><span class="ilogo">SCAYLE</span></div>
+    </div>
+    <div class="intg-group">
+      <span class="intg-lbl">Email, CRM &amp; messaging</span>
+      <div class="intg-row"><span class="ilogo">Klaviyo</span><span class="ilogo">Mailchimp</span><span class="ilogo">HubSpot</span><span class="ilogo">Slack</span></div>
+    </div>
+    <div class="intg-group">
+      <span class="intg-lbl">Enterprise <em>soon</em></span>
+      <div class="intg-row soon"><span class="ilogo">Salesforce Marketing Cloud</span><span class="ilogo">Salesforce Commerce Cloud</span></div>
+    </div>
+  </div>
 </div></section>
 
-<!-- ENGINE (copy left, node graph right; library stats below) -->
+<!-- ENGINE -->
 <section id="engine" class="pad"><div class="wrap">
- <div class="split">
- <div class="copy reveal">
-  <h2 class="h2">Forty signals.<br>One clear score.</h2>
- <p>Built by people who ran clienteling inside luxury retail. More than forty wealth and intent
- signals, checked against a reference library curated by hand over years, and resolved by powerful,
- intelligent analysis into one score and a grade from A&#42; to C for every customer you have. A client surfaces when
- independent signals agree, and every grade carries its reasons.</p>
- <div class="meta">
- <div><b>40+</b><span>Signals read</span></div>
- <div><b>A&#42; to C</b><span>Every customer graded</span></div>
- <div><b>~1hr</b><span>To first results</span></div>
- </div>
- </div>
- <div class="graph reveal d1" id="graph">
- <canvas id="nodelines"></canvas>
- <div class="score-node"><div class="sv" id="scoreVal">0</div><div class="sg"><b id="scoreGrade">C</b> &middot; Halia score</div></div>
- </div>
- </div>
- <div class="kb-stats reveal d1" id="kbstats" style="margin-top:clamp(64px,9vh,110px)">
- <div class="kb-stat"><div class="n" data-to="40" data-suffix="+">0</div><div class="l">Signals weighed together</div></div>
- <div class="kb-stat"><div class="n" data-to="1500" data-suffix="+">0</div><div class="l">Curated reference points</div></div>
- <div class="kb-stat"><div class="n word">Every</div><div class="l">Private-jet terminal &amp; superyacht marina</div></div>
- <div class="kb-stat"><div class="n word">Milliseconds</div><div class="l">Per customer, scored continuously</div></div>
- </div>
- <div class="reveal d2" style="margin-top:40px"><a class="btn ghost" href="/faq#data">Explore the full data model <span class="arrow">→</span></a></div>
+  <div class="shead" style="max-width:30ch"><h2 class="h2">Forty signals. One score.</h2>
+    <p>Built by people who ran clienteling inside luxury retail. Forty-plus wealth and intent signals, checked against a reference library built by hand over years, resolved into one score and a grade for every customer. A client surfaces when independent signals agree, and every grade shows its reasons.</p></div>
+  <div class="stats3">
+    <div class="stat3"><b>40+</b><span>Signals weighed together</span></div>
+    <div class="stat3"><b>A&#42;&ndash;C</b><span>Every customer graded</span></div>
+    <div class="stat3"><b>~1hr</b><span>To first results</span></div>
+  </div>
+  <div style="margin-top:40px"><a class="btn ghost" href="/faq#data">The full data model <span class="arrow">&rarr;</span></a></div>
 </div></section>
 
 <!-- SIGNALS -->
-<section id="signals" class="pad light"><div class="wrap">
- <div class="sig-head reveal">
-  <h2 class="h2">The tells of real wealth.</h2>
- <p class="lede" style="margin-top:20px;max-width:60ch">The markers of real wealth, read across six dimensions and weighed together into one defensible score.</p>
- </div>
- <div class="sgrid">
- <div class="scell reveal"><div class="k"><h3>Geography</h3><span class="num">01</span></div>
- <p class="sdesc">Where a customer lives and takes delivery, read against curated maps of genuine wealth rather than guessed from spend.</p></div>
- <div class="scell reveal d1"><div class="k"><h3>Delivery destinations</h3><span class="num">02</span></div>
- <p class="sdesc">The nature of the places a customer has orders sent, and what that quietly says about them.</p></div>
- <div class="scell reveal"><div class="k"><h3>Email &amp; domain</h3><span class="num">03</span></div>
- <p class="sdesc">What a customer's email address reveals about the world they work in.</p></div>
- <div class="scell reveal d1"><div class="k"><h3>Identity</h3><span class="num">04</span></div>
- <p class="sdesc">The small, telling markers of standing that a name and profile can carry.</p></div>
- <div class="scell reveal"><div class="k"><h3>Behaviour</h3><span class="num">05</span></div>
- <p class="sdesc">Ordering patterns that reveal a household or an office buying on someone's behalf.</p></div>
- <div class="scell reveal d1"><div class="k"><h3>Payment</h3><span class="num">06</span></div>
- <p class="sdesc">What the payment itself signals about real spending power.</p></div>
- </div>
+<section id="signals" class="pad"><div class="wrap">
+  <div class="shead"><h2 class="h2">The tells of real wealth.</h2><p>Read across six dimensions, weighed together, never guessed from spend.</p></div>
+  <div class="list">
+    <div class="li"><span class="n">01</span><span class="t">Geography</span><span class="d">Where a customer lives and takes delivery, against curated maps of real wealth.</span></div>
+    <div class="li"><span class="n">02</span><span class="t">Delivery</span><span class="d">The nature of the places they have orders sent.</span></div>
+    <div class="li"><span class="n">03</span><span class="t">Email &amp; domain</span><span class="d">What their address says about the world they work in.</span></div>
+    <div class="li"><span class="n">04</span><span class="t">Identity</span><span class="d">The small markers of standing a name and profile carry.</span></div>
+    <div class="li"><span class="n">05</span><span class="t">Behaviour</span><span class="d">Ordering that reveals a household or an office buying on someone's behalf.</span></div>
+    <div class="li"><span class="n">06</span><span class="t">Payment</span><span class="d">What the payment itself signals about spending power.</span></div>
+  </div>
 </div></section>
 
-<!-- SECURITY (deep) -->
-<section id="security" class="pad" style="background:var(--bg-2)"><div class="wrap">
- <div class="split" style="margin-bottom:64px">
- <div class="copy reveal">
-  <h2 class="h2" style="margin:22px 0 24px">Your customer list<br>stays yours.</h2>
- <p>Most tools copy your whole customer list onto their servers and keep it there. Halia works the
- other way: it reads your customers for the moment it takes to score them, then releases the
- data. The access it needs is read-only, and yours to switch off whenever you like.</p>
- <a class="btn ghost" href="/security" style="margin-top:30px">Read our security overview <span class="arrow">→</span></a>
- </div>
- <div class="media pxmedia reveal d1"><img src="img/we_keep_nothing.jpg" alt="We keep nothing" loading="lazy" data-parallax></div>
- </div>
- <div class="sec-points reveal d2">
- <div class="spt"><h3><span class="b">01</span>Read-only</h3><p>Halia can read your store to score it. It can never change, delete, or place an order.</p></div>
- <div class="spt"><h3><span class="b">02</span>Nothing stored</h3><p>Your customers are scored in memory and discarded within minutes. There is no database of them on our side to breach.</p></div>
- <div class="spt"><h3><span class="b">03</span>You control access</h3><p>The one permission Halia holds is to look, and you can revoke it in a click. Access ends at once.</p></div>
- <div class="spt"><h3><span class="b">04</span>Encrypted in transit</h3><p>Every connection to your store and your tools is encrypted, so nothing can be read along the way.</p></div>
- </div>
+<!-- SECURITY -->
+<section id="security" class="pad"><div class="wrap">
+  <div class="shead" style="max-width:30ch"><h2 class="h2">Your customer list stays yours.</h2>
+    <p>Most tools copy your customer list onto their servers and keep it. Halia reads your customers for the moment it takes to score them, then lets go.</p></div>
+  <div class="rows">
+    <div class="row"><span class="rn">01</span><div><h3>Read-only</h3><p>Halia can read your store to score it. It can never change, delete, or place an order.</p></div></div>
+    <div class="row"><span class="rn">02</span><div><h3>Nothing stored</h3><p>Customers are scored in memory and discarded within minutes. There is no copy of them to breach.</p></div></div>
+    <div class="row"><span class="rn">03</span><div><h3>You control access</h3><p>The one permission Halia holds is to look, and you can revoke it in a click.</p></div></div>
+    <div class="row"><span class="rn">04</span><div><h3>Encrypted in transit</h3><p>Every connection to your store and tools is encrypted, so nothing is readable along the way.</p></div></div>
+  </div>
+  <div style="margin-top:40px"><a class="btn ghost" href="/security">Security overview <span class="arrow">&rarr;</span></a></div>
 </div></section>
 
-<!-- FINAL / DEMO -->
-<section id="demo" class="pad final" style="overflow:hidden">
- <img src="img/three_clients.jpg" alt="" loading="lazy"
- style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.20">
- <div style="position:absolute;inset:0;background:radial-gradient(75% 80% at 50% 45%,transparent,var(--bg) 88%)"></div>
- <div class="wrap reveal" style="position:relative;z-index:2">
- <div class="eyebrow" style="margin-bottom:26px">See it now</div>
- <h2>Step inside a<br>live Halia dashboard.</h2>
- <p class="lede" style="margin-bottom:30px">Enter your email and walk straight into a working dashboard, hidden VICs and all. Ready in seconds.</p>
- <form id="demoForm" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
- <input id="demoEmail" type="email" placeholder="Your work email" required
- style="background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:0;padding:14px 22px;color:var(--ink);font:500 15px var(--sans);min-width:280px;outline:none">
- <button class="btn" type="submit">See demo now <span class="arrow">→</span></button>
- </form>
- <div id="demoErr" style="display:none;color:#d9a79f;font-size:13.5px;margin-top:14px"></div>
- <div style="margin-top:16px"><a href="/connect" style="color:var(--mute);font-size:14px">Or connect your store →</a></div>
- </div>
-</section>
+<!-- DEMO (inverted) -->
+<section id="demo" class="invert pad"><div class="wrap">
+  <div style="max-width:40ch">
+    <h2 class="h2">Step into a live dashboard.</h2>
+    <p style="margin-top:18px;font-size:18px">Enter your work email and walk straight into a working dashboard, hidden VICs and all.</p>
+  </div>
+  <form id="demoForm" class="demo-form">
+    <input id="demoEmail" type="email" placeholder="Your work email" required>
+    <button class="btn" type="submit">See the demo <span class="arrow">&rarr;</span></button>
+  </form>
+  <div id="demoErr" class="demo-err"></div>
+  <div class="demo-alt"><a href="/connect">Or connect your store &rarr;</a></div>
+</div></section>
 
 <!-- FOOTER -->
-<footer class="hfoot"><div class="hf-inner">
- <div class="hf-news">
-  <h3>The edge in luxury retail, in your inbox.</h3>
-  <form id="newsForm" novalidate>
-   <input id="newsEmail" type="email" placeholder="Your work email" required>
-   <button type="submit">Subscribe &rarr;</button>
-  </form>
- </div>
- <div class="hf-brand">
-  <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:var(--gold,#5E6B74)">&#8258;</span>Halia</a>
-  <p class="hf-bio">Halia is private client intelligence for luxury retail. Its powerful, intelligent analysis reads the undetected signs of wealth in your own database, grades every customer from A&#42; to C, and surfaces the high-value clients hiding behind modest spend, so your team drives revenue from the list you already own. Scoring runs in memory and finishes there.</p>
- 
-  <a class="hf-social" href="https://www.linkedin.com/company/haliascore" target="_blank" rel="noopener" aria-label="Halia on LinkedIn"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5zM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-1 1.83-2.05 3.76-2.05 4.02 0 4.76 2.65 4.76 6.1V21h-4v-5.3c0-1.26-.02-2.9-1.77-2.9-1.77 0-2.04 1.38-2.04 2.8V21H9z"/></svg><span>Follow on LinkedIn</span></a>
- </div>
- <div class="hf-cols">
-  <div class="hf-col"><h4>Product</h4><a href="/#engine">The engine</a><a href="/#how">How it works</a><a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/connect">Connect a store</a><a href="/docs">Docs</a></div>
-  <div class="hf-col"><h4>Solutions</h4><a href="/solutions/fashion">Fashion &amp; apparel</a><a href="/solutions/wine">Wine &amp; spirits</a><a href="/solutions/beauty">Beauty &amp; fragrance</a><a href="/solutions/jewellery">Jewellery &amp; watches</a><a href="/solutions/home">Home &amp; interiors</a><a href="/solutions">All solutions &rarr;</a></div>
-  <div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/pricing">Pricing</a><a href="/blog">Blog</a><a href="/brand">Brand</a><a href="mailto:hello@haliascore.com">Contact</a></div>
-  <div class="hf-col"><h4>Trust &amp; legal</h4><a href="/security">Security</a><a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/faq">FAQ</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
- </div>
- <div class="hf-bot">
-  <span>&copy; 2026 Halia. All rights reserved.</span>
-  <span>We keep none of your customer data &middot; Shopify &middot; BigCommerce &middot; WooCommerce &middot; Centra &middot; SCAYLE &middot; Klaviyo &middot; Mailchimp &middot; HubSpot</span>
- </div>
-</div>
-<div class="brandmark" aria-hidden="true"><span>Halia</span></div>
-</footer>
+<footer class="foot"><div class="wrap">
+  <div class="foot-top">
+    <div class="foot-news">
+      <h3>The edge in luxury retail, in your inbox.</h3>
+      <form id="newsForm" novalidate>
+        <input id="newsEmail" type="email" placeholder="Your work email" required>
+        <button type="submit">Subscribe &rarr;</button>
+      </form>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col"><h4>Product</h4><a href="/#engine">The engine</a><a href="/#how">How it works</a><a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/connect">Connect a store</a><a href="/docs">Docs</a></div>
+      <div class="foot-col"><h4>Solutions</h4><a href="/solutions/fashion">Fashion</a><a href="/solutions/wine">Wine &amp; spirits</a><a href="/solutions/beauty">Beauty</a><a href="/solutions/jewellery">Jewellery</a><a href="/solutions">All solutions &rarr;</a></div>
+      <div class="foot-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/pricing">Pricing</a><a href="/blog">Blog</a><a href="/brand">Brand</a><a href="mailto:hello@haliascore.com">Contact</a></div>
+      <div class="foot-col"><h4>Trust</h4><a href="/security">Security</a><a href="/responsible">Responsible profiling</a><a href="/status">Status</a><a href="/faq">FAQ</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+    </div>
+  </div>
+  <div class="foot-bot">
+    <span>&copy; 2026 Halia</span>
+    <span>We keep none of your customer data</span>
+    <a href="https://www.linkedin.com/company/haliascore" target="_blank" rel="noopener" style="color:var(--faint)">LinkedIn</a>
+  </div>
+</div></footer>
 
 <script>
   var hdr=document.getElementById('hdr');
-  addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>40)},{passive:true});
+  addEventListener('scroll',function(){hdr.classList.toggle('solid',scrollY>30)},{passive:true});
+  if(scrollY>30)hdr.classList.add('solid');
 
-  // mobile menu drawer
   (function(){
     var b=document.getElementById('burger'),d=document.getElementById('mdrawer'),s=document.getElementById('mscrim'),c=document.getElementById('mclose');
-    if(!d) return;
+    if(!d)return;
     function open(){d.classList.add('show');s.classList.add('show');d.setAttribute('aria-hidden','false');}
     function close(){d.classList.remove('show');s.classList.remove('show');d.setAttribute('aria-hidden','true');}
-    if(b) b.onclick=open; if(c) c.onclick=close; if(s) s.onclick=close;
+    if(b)b.onclick=open;if(c)c.onclick=close;if(s)s.onclick=close;
     d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',close);});
   })();
 
-  // demo: work emails only, then walk straight into the live sample dashboard
-  var FREE_EMAIL=new Set(['gmail.com','googlemail.com','yahoo.com','yahoo.co.uk','yahoo.fr','yahoo.de',
-    'yahoo.es','yahoo.it','yahoo.ca','yahoo.com.au','yahoo.co.in','ymail.com','rocketmail.com',
-    'hotmail.com','hotmail.co.uk','hotmail.fr','hotmail.it','hotmail.es','hotmail.de','outlook.com',
-    'outlook.fr','outlook.de','live.com','live.co.uk','msn.com','icloud.com','me.com','mac.com',
-    'aol.com','protonmail.com','proton.me','pm.me','gmx.com','gmx.net','gmx.de','mail.com','mail.ru',
-    'zoho.com','yandex.com','yandex.ru','qq.com','163.com','126.com','sina.com','foxmail.com',
-    'naver.com','daum.net','hey.com','fastmail.com','tutanota.com','hushmail.com','web.de','t-online.de',
-    'orange.fr','free.fr','wanadoo.fr','laposte.net','sky.com','btinternet.com','virginmedia.com',
-    'comcast.net','verizon.net','att.net','sbcglobal.net','ntlworld.com','aim.com','msn.co.uk']);
-  var df=document.getElementById('demoForm'), de=document.getElementById('demoErr');
+  // demo: work emails only, then walk into the live sample dashboard
+  var FREE_EMAIL=new Set(['gmail.com','googlemail.com','yahoo.com','yahoo.co.uk','yahoo.fr','yahoo.de','yahoo.es','yahoo.it','yahoo.ca','yahoo.com.au','yahoo.co.in','ymail.com','rocketmail.com','hotmail.com','hotmail.co.uk','hotmail.fr','hotmail.it','hotmail.es','hotmail.de','outlook.com','outlook.fr','outlook.de','live.com','live.co.uk','msn.com','icloud.com','me.com','mac.com','aol.com','protonmail.com','proton.me','pm.me','gmx.com','gmx.net','gmx.de','mail.com','mail.ru','zoho.com','yandex.com','yandex.ru','qq.com','163.com','126.com','sina.com','foxmail.com','naver.com','daum.net','hey.com','fastmail.com','tutanota.com','hushmail.com','web.de','t-online.de','orange.fr','free.fr','wanadoo.fr','laposte.net','sky.com','btinternet.com','virginmedia.com','comcast.net','verizon.net','att.net','sbcglobal.net','ntlworld.com','aim.com','msn.co.uk']);
+  var df=document.getElementById('demoForm'),de=document.getElementById('demoErr');
   function showErr(m){if(de){de.textContent=m;de.style.display='block';}}
   if(df)df.addEventListener('submit',function(e){e.preventDefault();
     var em=(document.getElementById('demoEmail').value||'').trim().toLowerCase();
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){showErr('Please enter a valid email address.');document.getElementById('demoEmail').focus();return;}
-    if(FREE_EMAIL.has(em.split('@')[1])){showErr('Please use your work email. Personal addresses (Gmail, Yahoo, iCloud, etc.) are not accepted.');document.getElementById('demoEmail').focus();return;}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){showErr('Please enter a valid email address.');return;}
+    if(FREE_EMAIL.has(em.split('@')[1])){showErr('Please use your work email, not a personal address.');return;}
     if(de)de.style.display='none';
     var b=df.querySelector('button');b.disabled=true;b.textContent='Loading…';
-    fetch('/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:em,source:'demo'})})
-      .finally(function(){window.location.href='/demo';});
+    fetch('/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:em,source:'demo'})}).finally(function(){window.location.href='/demo';});
   });
-
-  // newsletter subscribe — handled by the shared /static/brand.js on every page
-
-  var io=new IntersectionObserver(function(es){
-    es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
-  },{threshold:.16,rootMargin:'0px 0px -8% 0px'});
-  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el);});
-
-  // template pills: click to switch the message
-  (function(){
-    var meta=document.getElementById('msgMeta'),body=document.getElementById('msgBody'),pills=document.getElementById('msgPills');
-    if(!pills) return;
-    var T=[
-      {m:'To a new VIC · Personal welcome',b:'Dear Amara,<br><br>Thank you for being one of our valued clients. I wanted to reach out personally; if there is ever a piece you are looking for, it would be my pleasure to help you find it.<br><br>Warmly,<br>The Aubin London team'},
-      {m:'To a returning client · New arrival',b:'Dear Amara,<br><br>A new arrival came in that reminded me of your taste, and I have set one aside in case you would like to see it. No obligation at all, it would simply be a pleasure to look after you.<br><br>Warmly,<br>The Aubin London team'},
-      {m:'To a VIC · Concierge check-in',b:'Dear Amara,<br><br>Just a note to say we are here whenever you need us, for a gift, a particular piece, or simply a recommendation. It is always a pleasure to look after you.<br><br>Warmly,<br>The Aubin London team'},
-      {m:'To a lapsed VIC · Win-back',b:'Dear Amara,<br><br>It has been a little while, and I wanted to reach out personally. A few pieces have come in that I think you would love, and I would be glad to set them aside for you.<br><br>Warmly,<br>The Aubin London team'}
-    ];
-    pills.querySelectorAll('.chip').forEach(function(c){
-      c.addEventListener('click',function(){
-        var i=+c.dataset.t;
-        pills.querySelectorAll('.chip').forEach(function(x){x.classList.remove('on');}); c.classList.add('on');
-        meta.textContent=T[i].m; body.style.opacity=0;
-        setTimeout(function(){body.innerHTML=T[i].b; body.style.opacity=1;},160);
-      });
-    });
-  })();
 
   document.querySelectorAll('a[href^="#"]').forEach(function(a){
-    a.addEventListener('click',function(e){var t=document.querySelector(a.getAttribute('href'));
-      if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}});
+    a.addEventListener('click',function(e){var t=document.querySelector(a.getAttribute('href'));if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}});
   });
-
-  var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
-
-  // parallax on full-bleed images
-  (function(){
-    if(reduce)return;
-    var els=[].slice.call(document.querySelectorAll('[data-parallax]')); if(!els.length)return;
-    var ticking=false;
-    function update(){
-      var vh=innerHeight;
-      els.forEach(function(el){
-        var c=el.parentElement.getBoundingClientRect();
-        if(c.bottom<-80||c.top>vh+80)return;
-        var prog=((c.top+c.height/2)-vh/2)/vh;     // ~ -0.7..0.7 across the viewport
-        el.style.transform='translate3d(0,'+(prog*-56).toFixed(1)+'px,0)';
-      });
-      ticking=false;
-    }
-    addEventListener('scroll',function(){if(!ticking){requestAnimationFrame(update);ticking=true;}},{passive:true});
-    addEventListener('resize',update,{passive:true});
-    update();
-  })();
-
-  // solutions: the industry carousel drifts sideways as the section scrolls through view
-  (function(){
-    var car=document.getElementById('solCarousel'),track=document.getElementById('solTrack');
-    if(!car||!track||reduce)return;
-    var ticking=false;
-    function update(){
-      ticking=false;
-      if(innerWidth<=760){track.style.transform='';return;}   // mobile: native swipe
-      var over=track.scrollWidth-car.clientWidth;
-      if(over<=0){track.style.transform='';return;}
-      var r=car.getBoundingClientRect();
-      var p=(innerHeight-r.top)/(innerHeight+r.height);        // 0 entering, 1 leaving
-      p=p<0?0:p>1?1:p;
-      track.style.transform='translate3d('+(-over*p).toFixed(1)+'px,0,0)';
-    }
-    addEventListener('scroll',function(){if(!ticking){requestAnimationFrame(update);ticking=true;}},{passive:true});
-    addEventListener('resize',update,{passive:true});
-    update();
-  })();
-
-  // hero: clients drifting in the database sea; a glowing few are the VICs
-  (function(){
-    if(reduce) return;
-    var c=document.getElementById('fish'); if(!c) return; var x=c.getContext('2d'),W,H,P=[],m={x:-999,y:-999};
-    function size(){var r=c.parentElement.getBoundingClientRect();W=c.width=r.width;H=c.height=r.height;}
-    size(); addEventListener('resize',size,{passive:true});
-    var N=Math.min(120,Math.floor(W*H/14000));
-    for(var i=0;i<N;i++){var v=Math.random()<.12;
-      P.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.32,vy:(Math.random()-.5)*.32,
-        r:v?Math.random()*1.6+1.6:Math.random()*1.1+.5,vic:v,ph:Math.random()*6.28});}
-    c.addEventListener('mousemove',function(e){var r=c.getBoundingClientRect();m.x=e.clientX-r.left;m.y=e.clientY-r.top;});
-    c.parentElement.addEventListener('mouseleave',function(){m.x=m.y=-999;});
-    function tick(t){x.clearRect(0,0,W,H);
-      for(var i=0;i<P.length;i++){var p=P[i];p.x+=p.vx+Math.sin(t/2600+p.ph)*.12;p.y+=p.vy;
-        var dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy;
-        if(d2<9000){var f=(9000-d2)/9000*1.4,d=Math.sqrt(d2)||1;p.x+=dx/d*f;p.y+=dy/d*f;}
-        if(p.x<-10)p.x=W+10;if(p.x>W+10)p.x=-10;if(p.y<-10)p.y=H+10;if(p.y>H+10)p.y=-10;
-        var tw=p.vic?(.6+.4*Math.sin(t/700+p.ph)):.5;x.beginPath();x.arc(p.x,p.y,p.r,0,6.2832);
-        x.fillStyle=p.vic?'rgba(217,213,203,'+tw+')':'rgba(244,241,234,'+(.16*tw+.05)+')';
-        x.shadowColor=p.vic?'rgba(217,213,203,.9)':'transparent';x.shadowBlur=p.vic?12:0;x.fill();}
-      x.shadowBlur=0;requestAnimationFrame(tick);}
-    requestAnimationFrame(tick);
-  })();
-
-  // engine: a live scoring-engine visualiser; labelled signals fire, feed a centre score
-  (function(){
-    var g=document.getElementById('graph'); if(!g) return;
-    var cv=document.getElementById('nodelines'), x=cv.getContext('2d');
-    var sv=document.getElementById('scoreVal'), sg=document.getElementById('scoreGrade');
-    var DPR=Math.max(1,Math.min(2,window.devicePixelRatio||1));
-    var SIG=[
-      {l:'HNWI postcode',w:16},{l:'Work email',w:15},{l:'Family office',w:14},
-      {l:'Premium card',w:13},{l:'Prime residence',w:13},{l:'Fashion stylist',w:11},
-      {l:'Honorific',w:9},{l:'Company billing',w:9},{l:'Premium email',w:8},
-      {l:'Concierge delivery',w:8},{l:'Assistant order',w:7},{l:'Elite alumni',w:6}
-    ];
-    var nodes=SIG.map(function(s,i){
-      var d=document.createElement('div'); d.className='snode';
-      d.innerHTML='<span class="dot"></span><span>'+s.l+'</span>'; g.appendChild(d);
-      return {l:s.l,w:s.w,a:(i/SIG.length)*6.2832-1.57,el:d,act:0,pulse:Math.random(),px:0,py:0};
-    });
-    var W,H,cx,cy,R,m={x:-999,y:-999,on:false};
-    function layout(){
-      var r=g.getBoundingClientRect(); W=r.width;H=r.height; cv.width=W*DPR;cv.height=H*DPR;
-      x.setTransform(DPR,0,0,DPR,0,0); cx=W/2;cy=H/2; R=Math.min(W,H)*0.37;
-      nodes.forEach(function(n){ n.px=cx+Math.cos(n.a)*R; n.py=cy+Math.sin(n.a)*R;
-        n.el.style.left=n.px+'px'; n.el.style.top=n.py+'px';
-        n.el.classList.toggle('lft',Math.cos(n.a)<-0.25); });
-    }
-    layout(); addEventListener('resize',layout,{passive:true});
-    g.addEventListener('mousemove',function(e){var r=g.getBoundingClientRect();m.x=e.clientX-r.left;m.y=e.clientY-r.top;m.on=true;});
-    g.addEventListener('mouseleave',function(){m.on=false;});
-    var shown=0, reduce2=matchMedia('(prefers-reduced-motion:reduce)').matches;
-    function grade(s){return s>=90?'A*':s>=75?'A':s>=55?'B':'C';}
-    function frame(t){
-      x.clearRect(0,0,W,H); var sum=0;
-      for(var i=0;i<nodes.length;i++){var n=nodes[i];
-        var near=m.on && Math.hypot(n.px-m.x,n.py-m.y)<76;
-        var amb=!reduce2 && Math.sin(t/1500 + n.a*2.3) > 0.45;   // signals ambiently firing
-        var want=(near||amb)?1:0;
-        n.act += (want-n.act)*0.09; if(n.act<0.001)n.act=0;
-        n.el.classList.toggle('on', n.act>0.5);
-        sum += n.w*n.act;
-        if(n.act>0.04){
-          x.globalAlpha=n.act*0.55; x.strokeStyle='rgba(217,213,203,.8)'; x.lineWidth=1;
-          x.beginPath(); x.moveTo(n.px,n.py); x.lineTo(cx,cy); x.stroke();
-          n.pulse=(n.pulse+0.012)%1;                             // data travelling to the score
-          var px=n.px+(cx-n.px)*n.pulse, py=n.py+(cy-n.py)*n.pulse;
-          x.globalAlpha=n.act; x.fillStyle='rgba(244,241,234,.95)';
-          x.beginPath(); x.arc(px,py,1.9,0,6.2832); x.fill();
-        }
-      }
-      x.globalAlpha=1;
-      var target=Math.min(99,Math.round(sum));
-      shown += (target-shown)*0.1;
-      sv.textContent=Math.round(shown); sg.textContent=grade(Math.round(shown));
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
-  })();
-
-  // dashboard: sortable VIC table
-  (function(){
-    var tb=document.querySelector('#vicTable tbody'); if(!tb) return;
-    var VIC=[
-      {client:'A. Okonkwo',grade:'A*',score:96,spend:420,latent:48000,sig:['Work email','Mayfair postcode','Premium card']},
-      {client:'S. Volkov',grade:'A*',score:93,spend:260,latent:50000,sig:['Family office','Honorific','Concierge delivery']},
-      {client:'C. Dubois',grade:'A*',score:91,spend:330,latent:44000,sig:['Wealth domain','Honorific']},
-      {client:'R. Carter',grade:'A',score:82,spend:680,latent:36000,sig:['Fashion stylist','Company billing']},
-      {client:'H. Nakamura',grade:'A',score:78,spend:910,latent:30000,sig:['Premium card','HNW area']},
-      {client:'L. Marchetti',grade:'B',score:64,spend:140,latent:18000,sig:['Premium email','Prime residence']},
-      {client:'P. Karlsson',grade:'B',score:61,spend:200,latent:16000,sig:['Premium email','Foreign currency']},
-      {client:'M. Adeyemi',grade:'B',score:57,spend:75,latent:14000,sig:['Company billing']}
-    ];
-    var ORD={'A*':4,'A':3,'B':2,'C':1};
-    function chip(g){var c=g==='A*'?'g-as':g==='A'?'g-a':g==='B'?'g-b':'g-c';return '<span class="gchip '+c+'">'+g+'</span>';}
-    function money(n){return '£'+(n>=1000?(n/1000).toFixed(n>=10000?0:1)+'k':n);}
-    function render(rows){tb.innerHTML=rows.map(function(r){return '<tr><td class="cl">'+r.client+
-      '</td><td>'+chip(r.grade)+'</td><td class="num">'+r.score+'</td><td class="num">'+money(r.spend)+
-      '</td><td class="num">'+money(r.latent)+'</td><td><div class="stags">'+
-      r.sig.map(function(s){return '<span class="stag">'+s+'</span>';}).join('')+'</div></td></tr>';}).join('');}
-    render(VIC);
-    var dir={};
-    document.querySelectorAll('#vicTable th').forEach(function(th){
-      th.addEventListener('click',function(){
-        var k=th.dataset.k; dir[k]=!dir[k]; var d=dir[k]?1:-1;
-        var rows=VIC.slice().sort(function(a,b){
-          var av=k==='grade'?ORD[a.grade]:a[k], bv=k==='grade'?ORD[b.grade]:b[k];
-          if(k==='signals'){av=a.sig.length;bv=b.sig.length;}
-          return typeof av==='string'?av.localeCompare(bv)*d:(av-bv)*d;});
-        render(rows);
-        document.querySelectorAll('#vicTable th .ar').forEach(function(a){a.remove();});
-        th.insertAdjacentHTML('beforeend','<span class="ar">'+(dir[k]?'▲':'▼')+'</span>');
-      });
-    });
-  })();
-
-  // Pareto chart (80/20): decile revenue bars + cumulative line, top 20% highlighted.
-  (function(){
-    var host=document.getElementById('pareto'); if(!host) return;
-    var share=[55,25,8,5,3,2,1,0.6,0.3,0.1],cum=[],run=0; share.forEach(function(s){run+=s;cum.push(run);});
-    var W=560,H=300,padL=14,padR=14,padT=16,padB=34,pw=W-padL-padR,ph=H-padT-padB,n=share.length,base=H-padB,max=55*1.06,bw=pw/n*0.6;
-    var bars="",dots="",pts=[];
-    for(var i=0;i<n;i++){var cx=padL+(i+0.5)*pw/n,bh=share[i]/max*ph,top=base-bh,hot=i<2;
-      bars+='<rect class="pbar" x="'+(cx-bw/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="2" fill="'+(hot?'#f4f1ea':'rgba(255,255,255,.14)')+'" style="transition-delay:'+(i*0.05).toFixed(2)+'s"><title>Decile '+(i+1)+': '+share[i]+'% of revenue</title></rect>';
-      var ly=base-cum[i]/100*ph; dots+='<circle class="pdot" cx="'+cx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="2.4"/>'; pts.push(cx.toFixed(1)+','+ly.toFixed(1));}
-    var y80=base-0.8*ph;
-    host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Pareto chart: 20% of clients drive 80% of revenue">'
-      +'<line class="pdash" x1="'+padL+'" y1="'+y80.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y80.toFixed(1)+'"/>'
-      +'<text class="plabel" x="'+(W-padR)+'" y="'+(y80-7).toFixed(1)+'" text-anchor="end">80% of revenue</text>'
-      +bars+'<polyline class="pline" points="'+pts.join(' ')+'" pathLength="1"/>'+dots
-      +'<text class="plabel" x="'+(padL+pw*0.1).toFixed(0)+'" y="'+(base+22)+'" text-anchor="middle" style="fill:var(--mute)">Top 20%</text>'
-      +'<text class="plabel" x="'+(padL+pw*0.6).toFixed(0)+'" y="'+(base+22)+'" text-anchor="middle">Everyone else, ranked by value →</text></svg>';
-  })();
-
-  // count-up the knowledge-base stats on scroll
-  (function(){
-    var box=document.getElementById('kbstats'); if(!box) return;
-    function run(){box.querySelectorAll('[data-to]').forEach(function(el){
-      var to=+el.dataset.to,suf=el.dataset.suffix||'',t0=null,dur=1500;
-      function step(ts){if(!t0)t0=ts;var p=Math.min(1,(ts-t0)/dur),e=1-Math.pow(1-p,3);
-        el.textContent=Math.round(to*e).toLocaleString()+(p>=1?suf:'');if(p<1)requestAnimationFrame(step);}
-      requestAnimationFrame(step);});}
-    if(matchMedia('(prefers-reduced-motion:reduce)').matches){
-      box.querySelectorAll('[data-to]').forEach(function(el){el.textContent=(+el.dataset.to).toLocaleString()+(el.dataset.suffix||'');});return;}
-    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){run();io.disconnect();}});},{threshold:.4});
-    io.observe(box);
-  })();
 </script>
 </body>
 </html>
