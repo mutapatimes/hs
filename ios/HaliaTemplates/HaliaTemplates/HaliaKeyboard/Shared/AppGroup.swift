@@ -23,5 +23,6 @@ enum AppGroup {
         static let token     = "halia.token"
         static let syncedAt  = "halia.syncedAt"
         static let directory = "halia.directory.json"   // VIP caller-ID list for the Call Directory ext
+        static let saved     = "halia.saved.json"        // shortlist of products saved while browsing
     }
 }

@@ -650,3 +650,41 @@ def test_directory_labels_sorts_and_skips_local(env):
     assert all("Local Only" not in lbl for lbl in labels)             # local number skipped
     phones = [int(e["phone"]) for e in entries]
     assert phones == sorted(phones)                                   # ascending, CallKit order
+
+
+# ── catalogue from storefront URLs (iOS save-while-browsing) ──────────────────
+def test_handle_from_url_parsing():
+    f = extension._handle_from_url
+    assert f("https://shop.com/products/silk-scarf?variant=42") == "silk-scarf"
+    assert f("https://shop.myshopify.com/en/products/Cashmere-Coat/") == "cashmere-coat"
+    assert f("cashmere-coat") == "cashmere-coat"                      # bare handle
+    assert f("https://shop.com/collections/new") == ""               # not a product url
+    assert f("https://shop.com/") == "" and f("") == "" and f(None) == ""
+
+
+def test_catalogue_from_urls_requires_token(env):
+    client, store, tok = env
+    assert client.post("/v1/extension/catalogue_from_urls",
+                       json={"urls": ["x"]}).status_code == 401
+
+
+def test_catalogue_from_urls_needs_recognisable_urls(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    r = client.post("/v1/extension/catalogue_from_urls",
+                    json={"urls": ["https://shop.com/about", "https://shop.com/collections/x"]},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 422
+
+
+def test_catalogue_from_urls_builds_link(env, monkeypatch):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    monkeypatch.setattr(extension, "_ids_for_handles", lambda shop, handles: ["111", "222"])
+    r = client.post("/v1/extension/catalogue_from_urls",
+                    json={"urls": ["https://s.com/products/a", "https://s.com/products/b?variant=9"],
+                          "name": "Amelia Hart"},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["resolved"] == 2 and j["requested"] == 2 and "/for?" in j["url"]

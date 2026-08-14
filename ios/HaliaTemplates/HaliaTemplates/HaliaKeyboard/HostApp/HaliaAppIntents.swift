@@ -40,5 +40,26 @@ struct HaliaShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Reach today",
             systemImageName: "person.2.wave.2.fill")
+        AppShortcut(
+            intent: BuildCatalogueIntent(),
+            phrases: [
+                "Build a catalogue with \(.applicationName)",
+                "\(.applicationName) build a catalogue",
+            ],
+            shortTitle: "Build catalogue",
+            systemImageName: "square.grid.2x2")
+        AppShortcut(
+            intent: SavedCountIntent(),
+            phrases: [
+                "What's saved in \(.applicationName)",
+                "\(.applicationName) saved products",
+            ],
+            shortTitle: "Saved products",
+            systemImageName: "bookmark")
+        AppShortcut(
+            intent: ClearSavedIntent(),
+            phrases: [ "Clear my \(.applicationName) list" ],
+            shortTitle: "Clear list",
+            systemImageName: "trash")
     }
 }

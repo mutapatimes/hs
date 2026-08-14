@@ -227,6 +227,44 @@ def _e164(v) -> str:
     return digits
 
 
+_HANDLE_RE = re.compile(r"/products/([A-Za-z0-9][A-Za-z0-9\-_]*)")
+
+
+def _handle_from_url(u) -> str:
+    """The product handle from a storefront URL (…/products/<handle>?variant=…), or a bare handle.
+    Powers the iOS 'save a product while browsing' flow: the app stores the URL, this reads it."""
+    s = str(u or "").split("?", 1)[0].split("#", 1)[0].strip().rstrip("/")
+    if not s:
+        return ""
+    m = _HANDLE_RE.search(s)
+    if m:
+        return m.group(1).lower()
+    if "/" not in s and re.match(r"^[A-Za-z0-9][A-Za-z0-9\-_]*$", s):
+        return s.lower()                             # a bare handle passed directly
+    return ""
+
+
+def _ids_for_handles(shop: str, handles: list[str]) -> list[str]:
+    """Resolve storefront handles to product ids, preserving order, via one Shopify product search.
+    Shopify-only; returns [] for a read-only/non-Shopify tenant or on any fetch hiccup."""
+    token = shop_store().get_token(shop)
+    if not token or not handles:
+        return []
+    from scoring.shopify_fetch import _run, http_transport
+    from scoring.shopify_graphql import PRODUCT_SEARCH_QUERY, product_search_node
+    q = " OR ".join("handle:" + h for h in handles[:40])
+    try:
+        data_ = _run(http_transport(shop, token), PRODUCT_SEARCH_QUERY, {"q": q, "n": min(len(handles), 40)}, 2)
+    except Exception:
+        return []
+    by_handle = {}
+    for node in (((data_ or {}).get("products") or {}).get("nodes")) or []:
+        p = product_search_node(node)
+        if p.get("handle") and p.get("id"):
+            by_handle[p["handle"].lower()] = str(p["id"])
+    return [by_handle[h] for h in handles if h in by_handle]
+
+
 def _best(rows: list, pred) -> Optional[dict]:
     best = None
     for r in rows:
@@ -1230,3 +1268,33 @@ def register(app) -> None:
             entries.append({"phone": e164, "label": label[:60], "grade": grade})
         entries.sort(key=lambda x: int(x["phone"]))          # CallKit needs ascending numeric order
         return {"count": len(entries), "entries": entries}
+
+    @app.post("/v1/extension/catalogue_from_urls")
+    def extension_catalogue_from_urls(x_halia_ext_token: Optional[str] = Header(None),
+                                      payload: Any = Body(default=None)) -> dict:
+        """Build a catalogue link from storefront product URLs the associate saved while browsing
+        (the iOS 'save while you browse' flow). Each …/products/<handle> is resolved to a product in
+        the merchant's own store, then the same signed catalogue link the toolbar builds is minted.
+        Shopify-only; nothing is stored (the selection travels in the signed link)."""
+        from halia.api.catalog import adhoc_url
+
+        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
+        if not shop:
+            raise HTTPException(401, "Invalid or missing extension token")
+        body = payload or {}
+        urls = [str(u) for u in (body.get("urls") or []) if str(u).strip()][:40]
+        handles, seen = [], set()
+        for u in urls:
+            h = _handle_from_url(u)
+            if h and h not in seen:
+                seen.add(h)
+                handles.append(h)
+        if not handles:
+            raise HTTPException(422, "No product URLs recognised")
+        ids = _ids_for_handles(shop, handles)
+        if not ids:
+            return {"url": "", "resolved": 0, "requested": len(handles)}
+        first = ((str(body.get("name") or "").strip().split(" ") or [""])[0])[:80]
+        data.record_activity(shop, "extension_catalogue_urls")
+        return {"url": adhoc_url(shop, ids, first), "resolved": len(ids), "requested": len(handles)}
