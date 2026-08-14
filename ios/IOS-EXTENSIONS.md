@@ -127,3 +127,10 @@ anywhere iOS passes one. Two zero-code ways to reach it while browsing:
   runs *Save a product to Halia*; it then appears under Share ▸ your shortcut on any product page.
 - **Send / build** are spoken: "Build a catalogue with Halia", then the returned link chains into
   Messages/WhatsApp. Nothing is stored server-side; the list is on-device and cleared on sign-out.
+
+**The keyboard is the hub.** Whatever App Intents save lands in `SavedItemsStore` (App Group), and the
+**keyboard reads it back**: a `🛍 Saved (N)` pill appears in the keyboard's action row, opening a Saved
+view where the associate taps a product to insert its link, or **Build catalogue** to drop one
+catalogue link into the chat, right where they're composing. So the flow is: save while browsing →
+open WhatsApp → Halia keyboard → Saved → Build catalogue. Add `SavedItemsStore.swift` to the
+**HaliaKeyboard** target as well (it's already used by the host app and the intents).

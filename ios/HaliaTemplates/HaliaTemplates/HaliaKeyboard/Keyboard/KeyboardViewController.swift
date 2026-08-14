@@ -20,7 +20,7 @@ import UIKit
 final class KeyboardViewController: UIInputViewController, UITableViewDataSource, UITableViewDelegate,
                                     UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
-    private enum Mode { case templates, suggestions, draft, products }
+    private enum Mode { case templates, suggestions, draft, products, saved }
     private enum Audience { case client, team }   // write to the client, or to the team about them
 
     private struct SuggestRow { let id, title, why: String; let price: String?; var on: Bool }
@@ -46,6 +46,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     // State
     private var mode: Mode = .templates
+    private var savedItems: [SavedItemsStore.Item] = []   // products saved while browsing (via App Intents)
     private var audience: Audience = .client
     private var draftIsHandoff = false
     private var currentRef: ClientRef?
@@ -155,7 +156,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         draftView.isHidden = !showDraft
         draftView.text = draftText
         grid.isHidden = !showGrid
-        table.isHidden = !(mode == .suggestions || showTemplateList)
+        table.isHidden = !(mode == .suggestions || mode == .saved || showTemplateList)
 
         if mode == .products {
             emptyLabel.text = hasFullAccess
@@ -292,10 +293,24 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
             actionStack.addArrangedSubview(searchFieldView())
 
+        case .saved:
+            actionHeight.constant = 46; actionScroll.isHidden = false
+            actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
+            actionStack.addArrangedSubview(pillButton("Build catalogue (\(savedItems.count))", filled: true) { [weak self] in self?.buildCatalogueFromSaved() })
+            actionStack.addArrangedSubview(pillButton("Clear", filled: false) { [weak self] in self?.clearSaved() })
+
         case .templates:
-            let show = (currentRef != nil) && hasFullAccess && (statusText == nil)
+            let base = hasFullAccess && (statusText == nil)
+            let clientShow = (currentRef != nil) && base
+            let savedN = SavedItemsStore.count
+            let show = clientShow || (savedN > 0 && base)
             actionHeight.constant = show ? 46 : 0; actionScroll.isHidden = !show
             guard show else { return }
+            // The keyboard is the hub: products saved while browsing (via App Intents) land here.
+            if savedN > 0 && hasFullAccess {
+                actionStack.addArrangedSubview(pillButton("🛍 Saved (\(savedN))", filled: false) { [weak self] in self?.enterSaved() })
+            }
+            guard clientShow else { return }
 
             if audience == .team {
                 // Team mode: compose a note ABOUT the client, for a colleague.
@@ -462,6 +477,53 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         searchQuery = ""; searchWork?.cancel(); reload()
     }
 
+    // MARK: - Saved products (the hub) — what App Intents saved while browsing, shown in the keyboard.
+
+    private func enterSaved() {
+        savedItems = SavedItemsStore.load()
+        mode = .saved
+        reload()
+    }
+
+    /// Turn the saved shortlist into one catalogue link and drop it in the chat.
+    private func buildCatalogueFromSaved() {
+        let urls = savedItems.map { $0.url }
+        guard !urls.isEmpty else { flash("Nothing saved yet"); return }
+        guard hasFullAccess else { flash("Turn on Full Access to build a catalogue"); return }
+        guard !busy else { return }
+        busy = true; setStatus("Building a catalogue…")
+        Task {
+            do {
+                let r = try await HaliaAPI.current.catalogueFromUrls(urls: urls, name: clientName ?? "")
+                if r.url.isEmpty {
+                    setStatus("None of your saved items are in this store")
+                } else {
+                    textDocumentProxy.insertText(r.url)
+                    mode = .templates; setStatus(nil); flash("Catalogue inserted ✓")
+                }
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
+
+    private func clearSaved() {
+        SavedItemsStore.clear()
+        savedItems = []
+        mode = .templates
+        reload()
+    }
+
+    /// A readable name for a saved product: its page title if we have one, else the handle.
+    private func savedDisplayName(_ it: SavedItemsStore.Item) -> String {
+        if let t = it.title, !t.trimmingCharacters(in: .whitespaces).isEmpty { return t }
+        let path = it.url.split(separator: "?").first.map(String.init) ?? it.url
+        let tail = path.split(separator: "/").last.map(String.init) ?? it.url
+        let name = tail.replacingOccurrences(of: "-", with: " ").replacingOccurrences(of: "_", with: " ")
+        return name.isEmpty ? it.url : name.capitalized
+    }
+
     // MARK: - Products (a live, searchable image library of the store's catalogue)
 
     private func enterProducts() {
@@ -604,7 +666,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        mode == .suggestions ? suggestions.count : filtered.count
+        mode == .suggestions ? suggestions.count : (mode == .saved ? savedItems.count : filtered.count)
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -619,6 +681,11 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             cell.textLabel?.text = s.title
             cell.detailTextLabel?.text = [s.price, s.why].compactMap { $0 }.joined(separator: "  ·  ")
             cell.accessoryType = s.on ? .checkmark : .none
+        } else if mode == .saved {
+            let it = savedItems[indexPath.row]
+            cell.textLabel?.text = savedDisplayName(it)
+            cell.detailTextLabel?.text = it.url
+            cell.accessoryType = .none
         } else {
             let t = filtered[indexPath.row]
             cell.textLabel?.text = t.name
@@ -634,6 +701,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             suggestions[indexPath.row].on.toggle()
             tableView.reloadRows(at: [indexPath], with: .none)
             rebuildActionRow()
+        } else if mode == .saved {
+            textDocumentProxy.insertText(savedItems[indexPath.row].url)
+            flash("Link inserted ✓")
         } else {
             textDocumentProxy.insertText(filtered[indexPath.row].ready(firstName: currentFirstName))
         }
