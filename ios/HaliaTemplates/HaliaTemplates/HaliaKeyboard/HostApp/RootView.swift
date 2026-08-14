@@ -257,9 +257,12 @@ private struct SetupView: View {
                     LuxeField(label: "Halia token", text: $model.token, secure: true)
                     LuxeField(label: "Address", text: $model.baseURL, keyboard: .URL)
                     HStack(spacing: 12) {
-                        LuxeButton(model.busy ? "Syncing…" : "Connect & sync") { Task { await model.sync() } }
+                        LuxeButton("Connect & sync") { Task { await model.sync() } }
                             .disabled(model.busy)
-                        if !model.status.isEmpty {
+                            .opacity(model.busy ? 0.5 : 1)
+                        if model.busy {
+                            HaliaLoadingRow(label: "Syncing")
+                        } else if !model.status.isEmpty {
                             Text(model.status).font(.system(size: 13.5, weight: .semibold))
                                 .foregroundColor(model.isError ? .red : Palette.brand)
                         }
