@@ -1,4 +1,5 @@
-// Target membership: HaliaTemplates (host app) AND any extension that saves/reads the shortlist.
+// Target membership: HaliaTemplates (host app), the HaliaKeyboard extension (which reads the
+// shortlist and builds the catalogue), and any other extension that saves/reads it.
 //
 // The "save while you browse" shortlist, shared through the App Group: products the associate saves
 // from Safari / the share sheet accumulate here (URL + optional title), and Build-a-catalogue turns
