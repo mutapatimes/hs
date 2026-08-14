@@ -98,3 +98,32 @@ merchant's device** (App Group), wiped on sign-out — the service still stores 
    ```
 7. Call `await CallDirectory.refresh()` after each sync (and on sign-out) from the host app. The user
    must enable it once in **Settings ▸ Phone ▸ Call Blocking & Identification ▸ Halia**.
+
+## 4. Build catalogues by browsing — App Intents  ← written, no app to open
+
+Browse the store in Safari, **save products** from the share sheet / Action button, then **build a
+catalogue** or **send one to a client** by Siri or Shortcut — the Halia app never opens.
+
+**Backend (shipped + tested):** `POST /v1/extension/catalogue_from_urls` — resolves saved
+`…/products/<handle>` URLs to the merchant's own products and mints the same signed catalogue link
+the toolbar builds. In [halia/api/extension.py]; tests in [tests/test_extension.py].
+
+**Files** (host app target)
+- `…/HostApp/HaliaCatalogueIntents.swift` — the intents: **Save a product**, **Build a catalogue**,
+  **Send a product**, **Saved products**, **Clear the list**.
+- `…/HostApp/HaliaAppIntents.swift` — the four spoken App Shortcuts (Reach today, Build catalogue,
+  Saved products, Clear list).
+- `Shared/SavedItemsStore.swift` — the on-device shortlist (App Group). Add to the host-app target.
+- `Shared/HaliaAPI.swift` already has `catalogueFromUrls(urls:name:)`.
+
+**Xcode steps:** these need **no new target** — they live in the host app. Just add
+`HaliaCatalogueIntents.swift` and `SavedItemsStore.swift` to the `HaliaTemplates` target and build.
+App Shortcuts register automatically; find them in Shortcuts, Spotlight and Siri.
+
+**The share-sheet / Action-button "Save to Halia"**: the `SaveItemIntent` takes a URL, so it works
+anywhere iOS passes one. Two zero-code ways to reach it while browsing:
+- **Action button** (iPhone 15 Pro+): Settings ▸ Action Button ▸ Shortcut ▸ *Save a product to Halia*.
+- **Share sheet**: in Shortcuts, make a one-tap shortcut that *Receives URLs from the share sheet* and
+  runs *Save a product to Halia*; it then appears under Share ▸ your shortcut on any product page.
+- **Send / build** are spoken: "Build a catalogue with Halia", then the returned link chains into
+  Messages/WhatsApp. Nothing is stored server-side; the list is on-device and cleared on sign-out.

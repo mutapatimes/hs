@@ -280,6 +280,23 @@ struct HaliaAPI {
         return r.entries ?? []
     }
 
+    // MARK: Catalogue from saved storefront URLs (App Intents "save while browsing").
+
+    struct UrlCatalogueResult { let url: String; let resolved: Int; let requested: Int }
+    private struct UrlCatalogueResponse: Decodable { let url: String?; let resolved: Int?; let requested: Int? }
+
+    /// Resolve the saved storefront product URLs to a shareable catalogue link.
+    func catalogueFromUrls(urls: [String], name: String = "") async throws -> UrlCatalogueResult {
+        var body: [String: Any] = ["urls": urls]
+        if !name.isEmpty { body["name"] = name }
+        let (data, _) = try await send("/v1/extension/catalogue_from_urls", method: "POST",
+                                       body: try JSONSerialization.data(withJSONObject: body))
+        guard let r = try? JSONDecoder().decode(UrlCatalogueResponse.self, from: data) else {
+            throw HaliaAPIError.decode
+        }
+        return UrlCatalogueResult(url: r.url ?? "", resolved: r.resolved ?? 0, requested: r.requested ?? 0)
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {
