@@ -105,8 +105,9 @@ struct SavedCountIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let n = SavedItemsStore.count
-        return .result(dialog: n == 0 ? "Your Halia list is empty."
-            : "You have \(n) product\(n == 1 ? "" : "s") saved.")
+        let message = n == 0 ? "Your Halia list is empty."
+            : "You have \(n) product\(n == 1 ? "" : "s") saved."
+        return .result(dialog: IntentDialog(stringLiteral: message))
     }
 }
 
