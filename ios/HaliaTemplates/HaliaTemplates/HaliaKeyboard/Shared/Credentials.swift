@@ -17,5 +17,18 @@ enum Credentials {
         set { AppGroup.defaults.set(newValue, forKey: AppGroup.Key.baseURL) }
     }
 
+    /// The signed-in seat's name (empty on the legacy shared token). Shown as "Signed in as …".
+    static var name: String {
+        get { AppGroup.defaults.string(forKey: AppGroup.Key.name) ?? "" }
+        set { AppGroup.defaults.set(newValue, forKey: AppGroup.Key.name) }
+    }
+
     static var hasToken: Bool { !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    /// Clear all credentials on sign-out.
+    static func clear() {
+        for k in [AppGroup.Key.token, AppGroup.Key.baseURL, AppGroup.Key.name] {
+            AppGroup.defaults.removeObject(forKey: k)
+        }
+    }
 }
