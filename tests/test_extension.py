@@ -733,3 +733,51 @@ def test_cart_link_from_urls_builds_permalink(env, monkeypatch):
     assert r.status_code == 200
     j = r.json()
     assert j["resolved"] == 2 and "/cart/111:1,222:1" in j["url"]
+
+
+# ── Team seats (per-employee sign-in / sign-out) ─────────────────────────────
+def test_seat_token_resolves_with_name(env):
+    client, store, tok = env
+    r = client.post("/v1/seats", json={"name": "Sarah"}, cookies={COOKIE: tok})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["name"] == "Sarah" and j["seat_id"] and "halia://connect?t=" in j["connect"]
+    ctx = client.get("/v1/extension/context", headers={"X-Halia-Ext-Token": j["token"]})
+    assert ctx.status_code == 200 and ctx.json()["seat"] == "Sarah"
+
+
+def test_seat_revoke_disables_its_token(env):
+    client, store, tok = env
+    seat = client.post("/v1/seats", json={"name": "Mo"}, cookies={COOKIE: tok}).json()
+    hdr = {"X-Halia-Ext-Token": seat["token"]}
+    assert client.get("/v1/extension/context", headers=hdr).status_code == 200
+    assert client.post(f"/v1/seats/{seat['seat_id']}/revoke", cookies={COOKIE: tok}).status_code == 200
+    assert client.get("/v1/extension/context", headers=hdr).status_code == 401
+
+
+def test_legacy_shop_token_still_works_seatless(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)                         # the legacy shared per-shop token
+    ctx = client.get("/v1/extension/context", headers={"X-Halia-Ext-Token": ext})
+    assert ctx.status_code == 200 and ctx.json()["seat"] is None
+
+
+def test_seats_list_and_active_count(env):
+    client, store, tok = env
+    ana = client.post("/v1/seats", json={"name": "Ana"}, cookies={COOKIE: tok}).json()
+    client.post("/v1/seats", json={"name": "Bea"}, cookies={COOKIE: tok})
+    client.get("/v1/extension/context", headers={"X-Halia-Ext-Token": ana["token"]})   # Ana signs in
+    lst = client.get("/v1/seats", cookies={COOKIE: tok}).json()
+    active = {s["name"]: s["active"] for s in lst["seats"]}
+    assert {"Ana", "Bea"} <= set(active) and active["Ana"] is True and active["Bea"] is False
+    assert lst["count"] == 1                              # only Ana active
+
+
+def test_signout_makes_seat_inactive(env):
+    client, store, tok = env
+    ivy = client.post("/v1/seats", json={"name": "Ivy"}, cookies={COOKIE: tok}).json()
+    client.get("/v1/extension/context", headers={"X-Halia-Ext-Token": ivy["token"]})
+    assert client.get("/v1/seats", cookies={COOKIE: tok}).json()["count"] == 1
+    assert client.post("/v1/extension/signout",
+                       headers={"X-Halia-Ext-Token": ivy["token"]}).status_code == 200
+    assert client.get("/v1/seats", cookies={COOKIE: tok}).json()["count"] == 0
