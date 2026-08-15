@@ -9,6 +9,19 @@ async function config() {
   return { base: (haliaBase || DEFAULT_BASE).replace(/\/+$/, ""), token: haliaToken || "" };
 }
 
+// Sign out: tell Halia this seat's device is going inactive (best effort), then clear the local token.
+async function signout() {
+  const { base, token } = await config();
+  if (token) {
+    try {
+      await hfetch(base + "/v1/extension/signout",
+        { method: "POST", headers: { "X-Halia-Ext-Token": token } }, 6000);
+    } catch (e) { /* best effort — clear locally regardless */ }
+  }
+  await chrome.storage.sync.remove(["haliaToken", "haliaName"]);
+  return { ok: true };
+}
+
 // fetch with a hard timeout, so a slow or unreachable Halia fails fast instead of hanging forever.
 async function hfetch(url, init, ms) {
   const c = new AbortController();
@@ -399,6 +412,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg && msg.type === "halia:config") {
     config().then((c) => sendResponse({ base: c.base, hasToken: !!c.token }));
+    return true;
+  }
+  if (msg && msg.type === "halia:signout") {
+    signout().then(sendResponse);
     return true;
   }
   if (msg && msg.type === "halia:connect") {

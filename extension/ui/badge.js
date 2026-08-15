@@ -295,7 +295,7 @@
           <section class="sec" data-s="prod"></section>
           <section class="sec" data-s="cat"></section>
         </div>
-        <div class="foot"><span class="m" style="color:#8a7a4f">⁂</span> Read live from your book. Nothing stored.</div>
+        <div class="foot" data-a="foot"><span class="m" style="color:#8a7a4f">⁂</span> Read live from your book. Nothing stored.</div>
       </aside>
       <div class="toast">Copied</div>`;
     root.appendChild(dock);
@@ -345,6 +345,23 @@
   function sec(name) { return root && root.querySelector(`[data-s="${name}"]`); }
 
   // ── CLIENT ────────────────────────────────────────────────────────────────
+  // The footer shows who is signed in (the seat) with a one-click sign out, else the zero-retention note.
+  function renderFoot() {
+    const el = root && root.querySelector('[data-a="foot"]'); if (!el) return;
+    const mark = '<span class="m" style="color:#8a7a4f">⁂</span> ';
+    if (ctx && ctx.seat) {
+      el.innerHTML = mark + "Signed in as " + esc(ctx.seat)
+        + ' · <span data-a="signout" style="cursor:pointer;text-decoration:underline">Sign out</span>';
+      const so = el.querySelector('[data-a="signout"]');
+      if (so) so.onclick = () => chrome.runtime.sendMessage({ type: "halia:signout" }, () => {
+        ctx = null; renderFoot();
+        try { window.dispatchEvent(new CustomEvent("halia:refresh")); } catch (e) { /* ignore */ }
+      });
+    } else {
+      el.innerHTML = mark + "Read live from your book. Nothing stored.";
+    }
+  }
+
   function renderClient() {
     const el = sec("client"); if (!el) return;
     if (!client) { el.innerHTML = `<div class="sh">Client</div>
@@ -900,7 +917,7 @@
     },
     setContext(c) {
       ctx = c && !c.error ? c : null;
-      if (root) { renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue(); renderTeam(); }
+      if (root) { renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue(); renderTeam(); renderFoot(); }
     },
     setClient(state) {
       client = state; // null | {loading,name} | {found,data} | {notfound,name} | {error}
