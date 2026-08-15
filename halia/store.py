@@ -13,7 +13,8 @@ local SQLite file (dev/tests). On startup any legacy PII tables from earlier ver
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+import secrets
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from halia import crypto
@@ -91,6 +92,18 @@ _TABLES = [
         shop       TEXT PRIMARY KEY,
         token_hash TEXT,
         created_at TEXT
+    )""",
+    # Per-employee "seats": one sign-in credential per staff member under a tenant (the token_hash is
+    # sha256 like extension_tokens). The manager provisions these in the dashboard; the seat count is
+    # the meter for per-head billing. revoked_at kills a seat; last_seen_at tracks activity.
+    """CREATE TABLE IF NOT EXISTS seats (
+        id           TEXT PRIMARY KEY,
+        shop         TEXT NOT NULL,
+        name         TEXT NOT NULL,
+        token_hash   TEXT UNIQUE,
+        created_at   TEXT,
+        last_seen_at TEXT,
+        revoked_at   TEXT
     )""",
     # Web Push subscriptions (browser endpoints + keys). Not customer data.
     """CREATE TABLE IF NOT EXISTS push_subs (
@@ -491,6 +504,56 @@ class ShopStore(_DB):
         row = self._run("SELECT shop FROM extension_tokens WHERE token_hash = :th",
                         {"th": token_hash}, fetch="one")
         return row["shop"] if row else None
+
+    # ── Seats (per-employee sign-in credentials) ────────────────────────────────
+    def create_seat(self, shop: str, name: str, token_hash: str) -> str:
+        """Provision one seat under a shop with its (already hashed) sign-in token. Returns the seat id."""
+        seat_id = secrets.token_hex(8)
+        self._run(
+            """INSERT INTO seats (id, shop, name, token_hash, created_at)
+               VALUES (:id, :shop, :name, :th, :at)""",
+            {"id": seat_id, "shop": shop, "name": (name or "Teammate")[:80],
+             "th": token_hash, "at": _now()})
+        return seat_id
+
+    def seat_for_token(self, token_hash: str) -> dict | None:
+        """Resolve a seat token to {shop, seat_id, name}, excluding revoked seats."""
+        row = self._run(
+            "SELECT id, shop, name FROM seats WHERE token_hash = :th AND revoked_at IS NULL",
+            {"th": token_hash}, fetch="one")
+        return {"shop": row["shop"], "seat_id": row["id"], "name": row["name"]} if row else None
+
+    def list_seats(self, shop: str) -> list[dict]:
+        rows = self._run(
+            "SELECT id, name, created_at, last_seen_at, revoked_at FROM seats "
+            "WHERE shop = :shop AND revoked_at IS NULL ORDER BY created_at",
+            {"shop": shop}, fetch="all") or []
+        return [dict(r) for r in rows]
+
+    def revoke_seat(self, shop: str, seat_id: str) -> None:
+        self._run("UPDATE seats SET revoked_at = :at WHERE id = :id AND shop = :shop",
+                  {"at": _now(), "id": seat_id, "shop": shop})
+
+    def touch_seat(self, seat_id: str) -> None:
+        """Bump last_seen_at, but only if it is stale (>5 min), so it is a near no-op per request."""
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat(timespec="seconds")
+        self._run(
+            "UPDATE seats SET last_seen_at = :at WHERE id = :id "
+            "AND (last_seen_at IS NULL OR last_seen_at < :cut)",
+            {"at": _now(), "id": seat_id, "cut": cutoff})
+
+    def signout_seat(self, seat_id: str) -> None:
+        """Device-side sign-out: age the seat so it reads inactive (the manager's revoke is the hard kill)."""
+        self._run("UPDATE seats SET last_seen_at = NULL WHERE id = :id", {"id": seat_id})
+
+    def active_seat_count(self, shop: str, days: int = 30) -> int:
+        """Non-revoked seats seen within the window — the meter for per-head billing (used later)."""
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+        row = self._run(
+            "SELECT COUNT(*) AS n FROM seats WHERE shop = :shop AND revoked_at IS NULL "
+            "AND last_seen_at IS NOT NULL AND last_seen_at >= :cut",
+            {"shop": shop, "cut": cutoff}, fetch="one")
+        return int(row["n"]) if row else 0
 
     # ── Web Push subscriptions ──────────────────────────────────────────────────
     def add_push_sub(self, shop: str, endpoint: str, p256dh: str, auth: str) -> None:

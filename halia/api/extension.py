@@ -16,6 +16,7 @@ Only the sha256 hash of the token is persisted, exactly like the self-service te
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from fastapi import Body, Depends, Header, HTTPException, Query
@@ -270,6 +271,30 @@ def _products_for_handles(shop: str, handles: list[str]) -> list[dict]:
 def _ids_for_handles(shop: str, handles: list[str]) -> list[str]:
     """Product ids for storefront handles, preserving order (a thin wrapper over _products_for_handles)."""
     return [str(p["id"]) for p in _products_for_handles(shop, handles) if p.get("id")]
+
+
+@dataclass
+class ExtAuth:
+    """Who is calling an extension/keyboard endpoint: always a shop, and a seat when the caller signed
+    in with a per-employee seat token (None for the legacy shared per-shop token)."""
+    shop: str
+    seat_id: Optional[str] = None
+    seat_name: Optional[str] = None
+
+
+def _resolve_ext(x_halia_ext_token: Optional[str]) -> ExtAuth:
+    """Authenticate an extension/keyboard request. Prefers a per-employee seat token (refreshing its
+    last-seen), then falls back to the legacy shared per-shop token (seat stays None). Raises 401."""
+    token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+    if token_hash:
+        seat = shop_store().seat_for_token(token_hash)
+        if seat:
+            shop_store().touch_seat(seat["seat_id"])
+            return ExtAuth(shop=seat["shop"], seat_id=seat["seat_id"], seat_name=seat["name"])
+        shop = shop_store().shop_for_extension_token(token_hash)
+        if shop:
+            return ExtAuth(shop=shop)
+    raise HTTPException(401, "Invalid or missing extension token")
 
 
 def _best(rows: list, pred) -> Optional[dict]:
@@ -709,6 +734,15 @@ def register(app) -> None:
         return {"enabled": bool(shop_store().get_extension_token_hash(shop)),
                 "base": (config.HALIA_APP_URL or "").rstrip("/")}
 
+    @app.post("/v1/extension/signout")
+    def extension_signout(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
+        """Device-side sign-out for a seat: mark the seat inactive so it stops counting as an active
+        head. The device also clears its stored token locally. A manager 'revoke' is the hard kill."""
+        auth = _resolve_ext(x_halia_ext_token)
+        if auth.seat_id:
+            shop_store().signout_seat(auth.seat_id)
+        return {"ok": True}
+
     @app.get("/v1/extension/context")
     def extension_context(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
         """The toolbar's standing context, independent of any one client: the merchant's templates,
@@ -720,10 +754,8 @@ def register(app) -> None:
         from halia.api.campaigns import _utm_slug
         from halia.api.settings import settings_for
 
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         s = settings_for(shop)
         catalog = _catalog_link(shop)
         today = datetime.now(timezone.utc).date().isoformat()
@@ -751,16 +783,15 @@ def register(app) -> None:
             "templates": _templates(shop, None, catalog),
             "campaigns": campaigns,
             "todos": _todos(shop),
+            "seat": auth.seat_name,                       # who is signed in (None on the legacy token)
             "slack": bool(shop_store().get_slack(shop)),   # team broadcasts available?
         }
 
     @app.post("/v1/extension/lookup")
     def extension_lookup(x_halia_ext_token: Optional[str] = Header(None),
                          payload: Any = Body(default=None)) -> dict:
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         body = payload or {}
         email = (str(body.get("email") or "").strip()) or None
         cid = (str(body.get("cid") or body.get("customer_id") or "").strip()) or None
@@ -782,10 +813,8 @@ def register(app) -> None:
         context and thread are used in-flight and discarded; nothing about the customer is stored."""
         from halia import llm
 
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         body = payload or {}
         email = (str(body.get("email") or "").strip()) or None
         cid = (str(body.get("cid") or body.get("customer_id") or "").strip()) or None
@@ -828,10 +857,8 @@ def register(app) -> None:
         thread are used in-flight and discarded; nothing about the customer is stored."""
         from halia import llm
 
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         body = payload or {}
         email = (str(body.get("email") or "").strip()) or None
         cid = (str(body.get("cid") or body.get("customer_id") or "").strip()) or None
@@ -900,10 +927,8 @@ def register(app) -> None:
         from halia.api.data import bought_titles
         from halia.cache import cache
 
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         body = payload or {}
         email = (str(body.get("email") or "").strip()) or None
         cid = (str(body.get("cid") or "").strip()) or None
@@ -985,10 +1010,8 @@ def register(app) -> None:
         it too, exactly as every other personalised catalogue link already works."""
         from halia.api.catalog import adhoc_url
 
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         body = payload or {}
         ids = [str(p).strip() for p in (body.get("product_ids") or []) if str(p).strip()][:40]
         if not ids:
@@ -1008,10 +1031,8 @@ def register(app) -> None:
         buyable variant are skipped. Zero-retention: the selection is used in-flight only."""
         from halia.api import catalog
 
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         body = payload or {}
         ids = [str(p).strip() for p in (body.get("product_ids") or []) if str(p).strip()][:20]
         if not ids:
@@ -1041,10 +1062,8 @@ def register(app) -> None:
         live alerts use (populated by the order webhook when a VIC orders). Nothing is stored;
         the extension polls this and fires a desktop notification for events it hasn't seen."""
         from halia.cache import cache
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         events = [{"order_id": a.get("order_id"), "name": a.get("name"), "grade": a.get("grade"),
                    "spend": a.get("spend"), "signals": a.get("signals") or [], "when": a.get("when")}
                   for a in (cache.get_alerts(shop) or [])][-50:]
@@ -1056,10 +1075,8 @@ def register(app) -> None:
         """The client's last outreach from the shared pipeline log, so the toolbar can flag
         'already contacted' before anyone messages again. Shopify only (the log lives in the
         merchant's own customer metafield). Reads live; stores nothing."""
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         cid = (cid or "").strip()
         if not cid:
             return {"last_contact": None}
@@ -1077,10 +1094,8 @@ def register(app) -> None:
         """Search the merchant's Shopify products (with buyable variant ids) so the toolbar can build
         a cart permalink for a client. Shopify-only; returns the storefront base for the /cart link.
         Products are the merchant's own catalogue, not customer data."""
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         token = shop_store().get_token(shop)
         if not token:                                # non-Shopify or read-only: no cart builder
             return {"products": [], "cart_base": None}
@@ -1104,10 +1119,8 @@ def register(app) -> None:
         Returns only grade/tier/play per found email. No customer data is stored."""
         from halia.cache import cache
 
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         body = payload or {}
         emails = [str(e).strip().lower() for e in (body.get("emails") or []) if str(e).strip()][:100]
         names = [str(n).strip().lower() for n in (body.get("names") or []) if str(n).strip()][:100]
@@ -1146,17 +1159,16 @@ def register(app) -> None:
         'campaign_add' stores an opaque customer id in the campaign config (as the dashboard does)."""
         import json as _json
 
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         body = payload or {}
         action = str(body.get("action") or "").strip()
         cid = str(body.get("cid") or "").strip()
         if not cid:
             raise HTTPException(422, "cid is required")
 
-        who = str(body.get("actor") or "").strip()[:80] or "A team member"
+        # The signed-in seat is the authenticated actor; fall back to the client-passed name (legacy).
+        who = auth.seat_name or str(body.get("actor") or "").strip()[:80] or "A team member"
 
         if action == "contacted":
             # Log that this client was reached out to, so the team is in the loop and nobody
@@ -1236,10 +1248,8 @@ def register(app) -> None:
         new orders from top clients to acknowledge and proven clients gone quiet to win back.
         The same warm-cache to-dos the toolbar uses (RAM only; nothing is stored)."""
         from datetime import datetime, timezone
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         todos = _todos(shop)
         tenant = dict(shop_store().get_tenant(shop) or {})
         return {
@@ -1257,10 +1267,8 @@ def register(app) -> None:
         book; once loaded the numbers live only on the merchant's device. Nothing is stored here.
         Entries are de-duplicated and sorted ascending by phone number, as CallKit requires."""
         from halia.cache import cache
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         rows = ((cache.get(shop) or {}).get("payload") or {}).get("data") or []
         seen: set[str] = set()
         entries = []
@@ -1285,10 +1293,8 @@ def register(app) -> None:
         Shopify-only; nothing is stored (the selection travels in the signed link)."""
         from halia.api.catalog import adhoc_url
 
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         body = payload or {}
         urls = [str(u) for u in (body.get("urls") or []) if str(u).strip()][:40]
         handles, seen = [], set()
@@ -1312,10 +1318,8 @@ def register(app) -> None:
         """Resolve saved storefront product URLs to product cards (title, image, handle, variants) so
         the keyboard's Saved view can show them as a visual grid. Preserves the saved order.
         Shopify-only; the merchant's own catalogue, nothing customer-related, nothing stored."""
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         token = shop_store().get_token(shop)
         if not token:                                    # non-Shopify / read-only: no product cards
             return {"products": [], "cart_base": None}
@@ -1338,10 +1342,8 @@ def register(app) -> None:
         buyable variant and builds /cart/<variant>:1 on the merchant's own domain. READ-ONLY and no
         new scope, it creates nothing on the store. Products with no buyable variant are skipped;
         nothing is stored (the selection lives in the link)."""
-        token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
-        shop = shop_store().shop_for_extension_token(token_hash) if token_hash else None
-        if not shop:
-            raise HTTPException(401, "Invalid or missing extension token")
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
         body = payload or {}
         urls = [str(u) for u in (body.get("urls") or []) if str(u).strip()][:40]
         handles, seen = [], set()

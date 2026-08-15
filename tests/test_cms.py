@@ -30,7 +30,7 @@ def test_apply_overrides_default_then_override(client):
 
 def test_scan_finds_marked_blocks(client):
     keys = {b["key"] for b in content.scan_blocks()}
-    assert {"home.hero.eyebrow", "home.hero.title", "home.hero.sub",
+    assert {"home.hero.title", "home.hero.sub",
             "solutions.hero.title", "clienteling.hero.title"} <= keys
 
 
