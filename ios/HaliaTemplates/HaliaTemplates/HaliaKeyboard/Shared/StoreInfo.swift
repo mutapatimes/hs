@@ -17,7 +17,7 @@ struct InfoSnippet: Codable, Identifiable {
 
 enum StoreInfoStore {
     /// The snippet slots the host app offers. Fixed for v1; covers the common ones.
-    static let labels = ["Opening hours", "Address & directions", "Returns policy",
+    static let labels = ["My sign-off", "Opening hours", "Address & directions", "Returns policy",
                          "Product care", "Size guide", "Contact"]
 
     static let category = "Store info"
