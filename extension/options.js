@@ -101,7 +101,15 @@ async function removeStore(origin) {
   renderStores();
 }
 
+async function signOut() {
+  await new Promise((res) => chrome.runtime.sendMessage({ type: "halia:signout" }, () => res()));
+  $("token").value = "";
+  $("name").value = "";
+  setStatus($("status"), "Signed out", true);
+}
+
 $("save").onclick = save;
 $("test").onclick = test;
+$("signout").onclick = signOut;
 $("addwoo").onclick = addStore;
 load();
