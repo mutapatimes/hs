@@ -59,6 +59,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var elapsedTimer: Timer?
     private weak var elapsedLabel: UILabel?
     private var draftShownAnimated = false
+    private var lastInserted: String?
+    private var undoClearTask: Task<Void, Never>?
     private var suggestions: [SuggestRow] = []
     private var products: [HaliaAPI.Product] = []
     private var productCartBase: String?
@@ -236,6 +238,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         // The Client / Team toggle is always present, so you can switch audience any time.
         clientBar.addArrangedSubview(audiencePill("Client", active: audience == .client) { [weak self] in self?.setAudience(.client) })
         clientBar.addArrangedSubview(audiencePill("Team", active: audience == .team) { [weak self] in self?.setAudience(.team) })
+        if lastInserted != nil {
+            clientBar.addArrangedSubview(pillButton("⤺ Undo", filled: false) { [weak self] in self?.undoInsert() })
+        }
 
         if let s = statusText {
             if statusLoading {
@@ -461,7 +466,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         guard !draftText.isEmpty else { return }
         var text = draftText
         if let url = pendingCartUrl, !url.isEmpty { text += "\n\n" + url }   // a basket nudge carries the recovery link
-        textDocumentProxy.insertText(text)
+        insertUndoable(text)
         mode = .templates; draftText = ""; lastThread = nil; pendingCartUrl = nil; reload()
     }
 
@@ -492,7 +497,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         Task {
             do {
                 let url = try await HaliaAPI.current.catalogue(productIds: ids, name: clientName)
-                textDocumentProxy.insertText(url)
+                insertUndoable(url)
                 mode = .templates; suggestions = []; setStatus(nil)
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
@@ -509,7 +514,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         Task {
             do {
                 let url = try await HaliaAPI.current.cartLink(productIds: ids)
-                textDocumentProxy.insertText(url)
+                insertUndoable(url)
                 mode = .templates; suggestions = []; setStatus(nil)
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
@@ -559,7 +564,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 if r.url.isEmpty {
                     setStatus("None of your saved items are in this store")
                 } else {
-                    textDocumentProxy.insertText(r.url)
+                    insertUndoable(r.url)
                     mode = .templates; setStatus(nil); flash("Catalogue inserted ✓")
                 }
             } catch {
@@ -582,7 +587,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 if url.isEmpty {
                     setStatus("None of your saved items can be bought right now")
                 } else {
-                    textDocumentProxy.insertText(url)
+                    insertUndoable(url)
                     mode = .templates; setStatus(nil); flash("Pay link inserted ✓")
                 }
             } catch {
@@ -715,6 +720,22 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             table.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             table.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
+        let lp = UILongPressGestureRecognizer(target: self, action: #selector(handleTableLongPress(_:)))
+        lp.minimumPressDuration = 0.45                 // long-press a template to copy it instead of insert
+        table.addGestureRecognizer(lp)
+    }
+
+    /// Long-press a template row to copy it to the clipboard (to paste elsewhere) rather than insert.
+    @objc private func handleTableLongPress(_ g: UILongPressGestureRecognizer) {
+        guard g.state == .began else { return }
+        guard let ip = table.indexPathForRow(at: g.location(in: table)) else { return }
+        if mode == .templates, ip.row < filtered.count {
+            UIPasteboard.general.string = filtered[ip.row].ready(firstName: currentFirstName)
+            flash("Copied ✓")
+        } else if mode == .saved, ip.row < savedItems.count {
+            UIPasteboard.general.string = savedItems[ip.row].url
+            flash("Copied ✓")
+        }
     }
 
     private func buildDraftView() {
@@ -789,11 +810,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             tableView.reloadRows(at: [indexPath], with: .none)
             rebuildActionRow()
         } else if mode == .saved {
-            textDocumentProxy.insertText(savedItems[indexPath.row].url)
-            flash("Link inserted ✓")
+            insertUndoable(savedItems[indexPath.row].url); flash("Link inserted ✓")
         } else {
             let t = filtered[indexPath.row]
-            textDocumentProxy.insertText(t.ready(firstName: currentFirstName))
+            insertUndoable(t.ready(firstName: currentFirstName))
             recordRecentTemplate(t.id)
             rebuildChips()                                     // a "Recent" chip may now exist
             if selectedCategory == Self.recentCat { table.reloadData() }
@@ -882,7 +902,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     /// Fallback when there is no usable image: drop the shoppable product link in the chat instead.
     private func shareProductLink(_ p: HaliaAPI.Product) {
         if let link = p.shareLink(cartBase: productCartBase), !link.isEmpty {
-            textDocumentProxy.insertText(link); flash("Link shared ✓")
+            insertUndoable(link); flash("Link shared ✓")
         } else {
             flash("Nothing to send for that product")
         }
@@ -1090,6 +1110,29 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             try? await Task.sleep(nanoseconds: 1_800_000_000)
             if statusText == s { setStatus(nil) }
         }
+    }
+
+    /// Insert content into the chat and offer a brief Undo, in case the wrong thing went in.
+    private func insertUndoable(_ text: String) {
+        guard !text.isEmpty else { return }
+        textDocumentProxy.insertText(text)
+        lastInserted = text
+        rebuildClientBar()
+        undoClearTask?.cancel()
+        undoClearTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard let self = self, !Task.isCancelled else { return }
+            self.lastInserted = nil
+            self.rebuildClientBar()
+        }
+    }
+
+    private func undoInsert() {
+        guard let t = lastInserted else { return }
+        for _ in 0..<t.count { textDocumentProxy.deleteBackward() }
+        lastInserted = nil
+        undoClearTask?.cancel()
+        flash("Removed")
     }
 
     private func mutedLabel(_ text: String) -> UILabel {
