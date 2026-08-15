@@ -3684,8 +3684,31 @@ function openSettings(page){
         </div>
 
         <div style="${C}">
-          <div style="${H}">Browser extension</div>
-          <p style="${P}">Put a client's grade, the reasons behind it, and the next move right where your team already works: your store admin, WhatsApp Web and Gmail. Install the Halia extension, then click Connect this browser below, no token to copy. It reads the client on the page and asks your Halia account, and stores nothing.</p>
+          <div style="${H}">Team</div>
+          <p style="${P}">Give each person their own sign-in for the extension and the Halia keyboard. Add a teammate to get their personal join code and QR; usage is attributed to them, and you can revoke anyone in a click.</p>
+          <div id="seatList" style="margin:6px 0 14px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input id="seatName" placeholder="Teammate's name" style="flex:1;min-width:180px;border:1px solid var(--line-strong);border-radius:0;padding:9px 11px;font:14px system-ui;color:var(--ink);background:var(--card)">
+            <button id="seatAdd" style="${BS}">Add teammate</button>
+          </div>
+          <div id="seatOut" style="display:none;margin-top:16px;padding:14px 15px;background:var(--brand-tint,#e9f1ee);border-radius:0">
+            <div style="${LBL}">Sign-in for <b id="seatOutName"></b>, shown once. Send it to them, or set up their device now.</div>
+            <div style="margin-top:10px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+              <button id="seatConnect" style="${BS}">Sign this browser in</button>
+              <button id="seatCopy" style="background:none;border:none;color:#1f564a;font:600 13px system-ui;cursor:pointer;padding:0">Copy sign-in token</button>
+              <span id="seatConnStatus" style="font:600 12px system-ui"></span>
+            </div>
+            <code id="seatTok" style="display:none"></code>
+            <div id="seatQrWrap" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+              <div style="${LBL}">Halia keyboard app (iPhone): they scan this to sign in. No token to type.</div>
+              <img id="seatQr" alt="Scan to sign in" style="width:184px;height:184px;image-rendering:pixelated;margin-top:10px;background:#fff;padding:8px">
+            </div>
+          </div>
+        </div>
+
+        <div style="${C}">
+          <div style="${H}">Shared token <span style="font:500 12px system-ui;color:#8a8a8a">(legacy, one for the whole shop)</span></div>
+          <p style="${P}">One token everyone shares. Prefer adding teammates above so usage is attributed and revocable per person. This still works for a single-person shop or an existing install.</p>
           <div style="font:600 13px system-ui;color:${SETTINGS.extension_enabled?'#0f7b4f':'#616161'};margin-bottom:6px">${SETTINGS.extension_enabled?"● A token is active":"○ No token yet"}</div>
           <div style="font:12px system-ui;color:#8a8a8a;margin-bottom:12px">${SETTINGS.ai_drafting?"“The brief” reads the conversation on screen and gives your team where the relationship stands, the next moves worth making, and a reply ready to send.":"“The brief” gives your team where the client stands, the next moves worth making, and a reply drawn from your own templates."}</div>
           <button id="setExtGen" style="${BS}">${SETTINGS.extension_enabled?"Generate a new token":"Generate token"}</button>
@@ -4033,6 +4056,54 @@ function openSettings(page){
         }).catch(e=>{ btn.disabled=false; btn.textContent="Connect this browser"; st.style.color="#8e1f0b"; st.textContent="Could not connect: "+e.message; });
       };
     })();
+    // Team seats: list, add (with a per-seat token + QR), revoke.
+    function renderSeats(){
+      const list=document.getElementById("seatList"); if(!list) return;
+      fetch("/v1/seats").then(r=>r.json()).then(d=>{
+        const seats=(d&&d.seats)||[];
+        if(!seats.length){ list.innerHTML='<div style="font:13px system-ui;color:#8a8a8a">No teammates yet. Add one below.</div>'; return; }
+        list.innerHTML=seats.map(s=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)">
+          <span style="width:8px;height:8px;border-radius:50%;background:${s.active?'#1f564a':'#c9cdcf'};flex:none"></span>
+          <span style="font:600 14px system-ui;color:var(--ink)">${esc(s.name)}</span>
+          <span style="font:12px system-ui;color:#8a8a8a">${s.active?'active':(s.lastSeen?'idle':'not signed in yet')}</span>
+          <button data-revoke="${s.id}" style="margin-left:auto;background:none;border:none;color:#9a3838;font:600 13px system-ui;cursor:pointer;padding:0">Revoke</button>
+        </div>`).join("");
+        list.querySelectorAll("[data-revoke]").forEach(b=>b.onclick=()=>{
+          if(!confirm("Revoke this teammate's access? Their extension and keyboard will stop working."))return;
+          fetch("/v1/seats/"+b.dataset.revoke+"/revoke",{method:"POST"}).then(()=>renderSeats());
+        });
+      }).catch(()=>{});
+    }
+    renderSeats();
+    const seatAdd=document.getElementById("seatAdd"); if(seatAdd) seatAdd.onclick=()=>{
+      const nm=((document.getElementById("seatName")||{}).value||"").trim();
+      if(!nm){toast("Enter a name");return;}
+      seatAdd.disabled=true;seatAdd.textContent="Adding…";
+      fetch("/v1/seats",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:nm})})
+        .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+          seatAdd.disabled=false;seatAdd.textContent="Add teammate";
+          if(!ok)throw new Error((d&&d.detail)||"failed");
+          document.getElementById("seatName").value="";
+          const out=document.getElementById("seatOut");
+          document.getElementById("seatOutName").textContent=d.name;
+          document.getElementById("seatTok").textContent=d.token;
+          out.dataset.token=d.token; out.dataset.name=d.name;
+          const qr=document.getElementById("seatQr"),qrw=document.getElementById("seatQrWrap");
+          if(d.qr&&qr&&qrw){qr.src=d.qr;qrw.style.display="";}
+          out.style.display="";
+          renderSeats();
+        }).catch(e=>{seatAdd.disabled=false;seatAdd.textContent="Add teammate";toast("Could not add teammate: "+e.message);});
+    };
+    const seatCopy=document.getElementById("seatCopy"); if(seatCopy) seatCopy.onclick=()=>{
+      const t=(document.getElementById("seatTok")||{}).textContent||"";
+      if(t)navigator.clipboard.writeText(t).then(()=>toast("Sign-in token copied."),()=>toast("Copy failed."));
+    };
+    const seatConnect=document.getElementById("seatConnect"); if(seatConnect) seatConnect.onclick=()=>{
+      const out=document.getElementById("seatOut"); const token=out&&out.dataset.token; if(!token)return;
+      const st=document.getElementById("seatConnStatus");
+      window.postMessage({source:"halia-dashboard",type:"connect",token:token,base:location.origin,name:out.dataset.name},location.origin);
+      if(st){st.style.color="#0f7b4f";st.textContent="✓ Sent to this browser";}
+    };
     function paintBilling(b){
       const box=document.getElementById("billingBox"); if(!box) return;
       const LBLMAP={active:"Active",trialing:"Trial",comped:"Complimentary",canceled:"Cancelled",
