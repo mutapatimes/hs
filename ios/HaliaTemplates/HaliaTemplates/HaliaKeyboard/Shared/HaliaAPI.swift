@@ -32,14 +32,22 @@ struct HaliaAPI {
 
     // MARK: Templates (host app, on sync)
 
-    private struct ContextResponse: Decodable { let templates: [Template]? }
+    private struct ContextResponse: Decodable { let templates: [Template]?; let seat: String? }
 
-    func fetchTemplates() async throws -> [Template] {
+    /// Templates plus the signed-in seat name (nil on the legacy shared token).
+    func fetchContext() async throws -> (templates: [Template], seat: String?) {
         let (data, _) = try await send("/v1/extension/context", method: "GET", body: nil)
         guard let decoded = try? JSONDecoder().decode(ContextResponse.self, from: data) else {
             throw HaliaAPIError.decode
         }
-        return decoded.templates ?? []
+        return (decoded.templates ?? [], decoded.seat)
+    }
+
+    func fetchTemplates() async throws -> [Template] { try await fetchContext().templates }
+
+    /// Sign this device out (best effort): tells Halia the seat is going inactive.
+    func signout() async {
+        _ = try? await send("/v1/extension/signout", method: "POST", body: nil)
     }
 
     // MARK: Lookup (keyboard) — we take the name and cid; the grade is deliberately ignored.

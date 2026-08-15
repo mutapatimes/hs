@@ -14,6 +14,8 @@ final class RootModel: ObservableObject {
     @Published var status: String = ""
     @Published var isError: Bool = false
     @Published var busy: Bool = false
+    @Published var signedIn: Bool = Credentials.hasToken
+    @Published var seatName: String = Credentials.name
 
     init() {
         token = Credentials.token
@@ -37,9 +39,12 @@ final class RootModel: ObservableObject {
         Credentials.token = t
         Credentials.baseURL = baseURL
         do {
-            let fetched = try await HaliaAPI(baseURL: baseURL, token: t).fetchTemplates()
+            let (fetched, seat) = try await HaliaAPI(baseURL: baseURL, token: t).fetchContext()
             TemplateStore.save(fetched)
             templates = fetched
+            Credentials.name = seat ?? ""
+            seatName = Credentials.name
+            signedIn = true
             await CallDirectory.refresh()   // also refresh the VIP caller-ID list for the Call Directory ext
             if fetched.isEmpty {
                 status = "Connected. No templates in Halia yet."; isError = true
@@ -55,6 +60,25 @@ final class RootModel: ObservableObject {
 
     func saveInfo() {
         for label in StoreInfoStore.labels { StoreInfoStore.set(info[label] ?? "", for: label) }
+    }
+
+    /// Sign this device out: tell Halia the seat is inactive, then wipe every on-device credential
+    /// and cache. The keyboard reads these, so it falls back to its "connect in the app" state.
+    func signOut() async {
+        await HaliaAPI.current.signout()
+        Credentials.clear()
+        TemplateStore.save([])
+        SavedItemsStore.clear()
+        DirectoryStore.clear()
+        AppGroup.defaults.removeObject(forKey: "halia.recentTemplateIds")
+        await CallDirectory.refresh()          // no token now → clears the caller-ID list too
+        token = ""
+        baseURL = Credentials.baseURL
+        templates = []
+        seatName = ""
+        signedIn = false
+        status = "Signed out."
+        isError = false
     }
 }
 
@@ -268,6 +292,16 @@ private struct SetupView: View {
                         }
                     }
                     .padding(.top, 4)
+                    if model.signedIn {
+                        HStack {
+                            Text(model.seatName.isEmpty ? "Signed in" : "Signed in as \(model.seatName)")
+                                .font(.system(size: 13)).foregroundColor(Palette.soft)
+                            Spacer()
+                            Button("Sign out") { Task { await model.signOut() } }
+                                .font(.system(size: 13, weight: .semibold)).foregroundColor(.red)
+                        }
+                        .padding(.top, 2)
+                    }
                 }
 
                 Card {
