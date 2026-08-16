@@ -20,7 +20,7 @@ from fastapi import Body, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from halia import config, plans
-from halia.api.shopify_auth import require_shop, shop_store
+from halia.api.shopify_auth import get_valid_token, require_shop, shop_store
 
 _CREATE = """
 mutation CreateSub($name:String!,$returnUrl:URL!,$test:Boolean,$lineItems:[AppSubscriptionLineItemInput!]!){
@@ -41,7 +41,7 @@ _ACTIVE_SUBS = "{ currentAppInstallation { activeSubscriptions { id name status 
 
 def _token(shop: str) -> str | None:
     """The shop's offline Admin token — present only for a Shopify tenant (None for Woo etc.)."""
-    return shop_store().get_token(shop)
+    return get_valid_token(shop)
 
 
 def _transport(shop: str):

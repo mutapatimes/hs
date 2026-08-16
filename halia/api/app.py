@@ -21,7 +21,7 @@ from typing import Any, Optional
 from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 
 from halia.api import data
-from halia.api.shopify_auth import require_shop, shop_store
+from halia.api.shopify_auth import get_valid_token, require_shop, shop_store
 from halia.engine import engine
 from halia.reference_bundle import unpack as _unpack_reference_bundle
 
@@ -586,7 +586,7 @@ def _pos_live(shop: str, customer_id, email):
     from scoring.shopify import orders_to_customers
     from scoring.shopify_fetch import fetch_customer_orders, http_transport
 
-    token = shop_store().get_token(shop)
+    token = get_valid_token(shop)
     if not token:
         return None
     by, ident = ("id", customer_id) if customer_id else ("email", email)

@@ -21,7 +21,7 @@ from typing import Any
 
 from fastapi import Body, Depends, HTTPException, Request
 
-from halia.api.shopify_auth import current_staff_id, require_shop, shop_store
+from halia.api.shopify_auth import current_staff_id, get_valid_token, require_shop, shop_store
 from scoring.shopify_pipeline import STAGES, stage_tag
 
 
@@ -60,7 +60,7 @@ def append_activity(pipe: dict, action: str, actor_id: str | None, actor_name: s
 def _sink(shop: str):
     """A ShopifySink for this shop, or a 400 if it isn't a write-back-capable Shopify tenant."""
     tenant = shop_store().get_tenant(shop)
-    token = shop_store().get_token(shop)
+    token = get_valid_token(shop)
     if not token or (tenant and tenant["kind"] in ("woocommerce", "bigcommerce", "centra", "scayle")):
         raise HTTPException(400, "The pipeline is available for Shopify stores with write-back enabled.")
     from halia.adapters.shopify_sink import ShopifySink

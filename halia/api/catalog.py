@@ -21,7 +21,7 @@ from fastapi import Body, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
 from halia import config
-from halia.api.shopify_auth import require_shop, shop_store, verify_app_proxy
+from halia.api.shopify_auth import get_valid_token, require_shop, shop_store, verify_app_proxy
 
 _PRODUCT_CACHE: dict = {}     # shop -> {"at": monotonic, "products": [...]}
 _TTL = 600.0                  # 10 min — products change rarely; keep the picker snappy
@@ -151,7 +151,7 @@ def _fetch_products_for(shop: str) -> list[dict]:
         from scoring.woocommerce_fetch import fetch_products, http_transport
         return fetch_products(http_transport(creds["store_url"], creds["consumer_key"],
                                              creds["consumer_secret"]), max_pages=config.WOO_MAX_PAGES)
-    token = shop_store().get_token(shop)
+    token = get_valid_token(shop)
     if token:                                     # Shopify
         from scoring.shopify_fetch import fetch_products, http_transport
         return fetch_products(http_transport(shop, token), max_pages=config.SHOPIFY_PRODUCTS_MAX_PAGES)
@@ -239,7 +239,7 @@ def _primary_domain(shop: str) -> str:
     if ent and (time.monotonic() - ent["at"] < 3600):
         return ent["host"]
     host = ""
-    token = shop_store().get_token(shop)
+    token = get_valid_token(shop)
     if token:
         try:
             from scoring.shopify_fetch import _run, http_transport

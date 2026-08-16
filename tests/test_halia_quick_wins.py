@@ -42,6 +42,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
     store = ShopStore(db_path=tmp_path / "q.db")
     monkeypatch.setattr("halia.api.shopify_push.shop_store", lambda: store)
+    monkeypatch.setattr("halia.api.shopify_auth._shop_store", store)   # get_valid_token reads this
     yield TestClient(app), store
     cache.evict(SHOP)
 

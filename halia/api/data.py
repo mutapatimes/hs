@@ -9,7 +9,7 @@ entry or does a live sync; nothing customer-related is ever persisted. The cache
 """
 from __future__ import annotations
 
-from halia.api.shopify_auth import shop_store
+from halia.api.shopify_auth import get_valid_token, shop_store
 from halia.cache import cache
 
 _RANK = {"A1": 0, "A": 0, "B": 1, "C": 2}
@@ -368,7 +368,7 @@ def scored_frame_for(shop: str):
         return score_centra(shop)[0]
     if tenant and tenant["kind"] == "scayle":
         return score_scayle(shop)[0]
-    token = shop_store().get_token(shop)
+    token = get_valid_token(shop)
     return score_shop(shop, token)[0] if token else None
 
 
@@ -383,7 +383,7 @@ def sync_tenant(shop: str) -> dict | None:
         return sync_centra(shop)
     if tenant and tenant["kind"] == "scayle":
         return sync_scayle(shop)
-    token = shop_store().get_token(shop)
+    token = get_valid_token(shop)
     return sync_shop(shop, token) if token else None
 
 
