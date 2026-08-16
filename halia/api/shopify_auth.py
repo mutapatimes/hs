@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import time
 
 import jwt
 from fastapi import HTTPException, Request
@@ -118,8 +119,12 @@ def token_for_request(request: Request) -> str:
     return token
 
 
-def token_exchange(shop: str, session_token: str, transport=None) -> str:
-    """Exchange a session token for an offline Admin API access token for `shop`."""
+def token_exchange(shop: str, session_token: str, transport=None) -> dict:
+    """Exchange a session token for an EXPIRING offline Admin API token for `shop`.
+
+    Returns the raw payload: ``access_token`` plus ``expires_in`` / ``refresh_token`` /
+    ``refresh_token_expires_in`` (the expiring-token fields). Callers persist it via ``_persist_token``.
+    """
     body = {
         "client_id": config.SHOPIFY_API_KEY,
         "client_secret": config.SHOPIFY_API_SECRET,
@@ -137,7 +142,23 @@ def token_exchange(shop: str, session_token: str, transport=None) -> str:
     status, payload = (transport or _http_post)(url, body)
     if not (200 <= status < 300) or "access_token" not in payload:
         raise HTTPException(401, f"Token exchange failed (HTTP {status}): {str(payload)[:200]}")
-    return payload["access_token"]
+    return payload
+
+
+def refresh_offline_token(shop: str, refresh_token: str, transport=None) -> dict:
+    """Renew an expiring offline token with its refresh token. Needs NO App Bridge session, so any
+    code path (background syncs, extension lookups, the catalogue proxy) can self-renew."""
+    body = {
+        "client_id": config.SHOPIFY_API_KEY,
+        "client_secret": config.SHOPIFY_API_SECRET,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+    }
+    url = f"https://{shop}/admin/oauth/access_token"
+    status, payload = (transport or _http_post)(url, body)
+    if not (200 <= status < 300) or "access_token" not in payload:
+        raise HTTPException(401, f"Token refresh failed (HTTP {status}): {str(payload)[:200]}")
+    return payload
 
 
 def _http_post(url: str, body: dict) -> tuple[int, dict]:
@@ -161,19 +182,55 @@ def shop_store() -> ShopStore:
     return _shop_store
 
 
-def ensure_offline_token(shop: str, session_token: str, force: bool = False) -> str:
-    """Return the shop's offline token, exchanging + persisting it on first sight.
+def _persist_token(shop: str, payload: dict) -> str:
+    """Store an offline-token payload (from exchange or refresh) with its expiries, return the token."""
+    now = int(time.time())
+    ein = payload.get("expires_in")
+    rein = payload.get("refresh_token_expires_in")
+    shop_store().save_shop(
+        shop, payload["access_token"],
+        access_expires_at=(now + int(ein)) if ein else None,
+        refresh_token=payload.get("refresh_token"),
+        refresh_expires_at=(now + int(rein)) if rein else None)
+    return payload["access_token"]
 
-    ``force`` re-exchanges even when a token is already stored, overwriting it — used to
-    self-heal a revoked/stale token (app reinstalled, scopes changed) that the Admin API has
-    started rejecting, instead of returning the bad token forever.
+
+def get_valid_token(shop: str) -> str | None:
+    """The shop's offline token, refreshed if it has expired (or is about to).
+
+    Uses the stored refresh token when needed, so this works with NO App Bridge session and is
+    safe for background jobs and the extension/catalogue surfaces. Returns None if the shop has no
+    token at all. A legacy non-expiring token (no expiry recorded) is handed back as-is: the Admin
+    API will 403 it, and the embedded path's force re-exchange then swaps in an expiring one.
     """
-    store = shop_store()
-    token = None if force else store.get_token(shop)
-    if not token:
-        token = token_exchange(shop, session_token)
-        store.save_shop(shop, token)
-    return token
+    auth = shop_store().get_shop_auth(shop)
+    if not auth:
+        return None
+    now, skew = int(time.time()), 120
+    aexp = auth["access_expires_at"]
+    if not aexp or now < aexp - skew:
+        return auth["access_token"]                       # still valid, or legacy (no expiry)
+    rtok, rexp = auth["refresh_token"], auth["refresh_expires_at"]
+    if rtok and (not rexp or now < rexp - skew):
+        try:
+            return _persist_token(shop, refresh_offline_token(shop, rtok))
+        except Exception:  # noqa: BLE001 — fall through to the stale token; the caller self-heals
+            pass
+    return auth["access_token"]
+
+
+def ensure_offline_token(shop: str, session_token: str, force: bool = False) -> str:
+    """Return the shop's offline token, exchanging (or refreshing) + persisting as needed.
+
+    Normal path uses ``get_valid_token`` (which auto-refreshes an expiring token). ``force``
+    re-exchanges from the session token even when one is stored — used to self-heal a token the
+    Admin API has started rejecting (app reinstalled, scopes changed, or a legacy non-expiring token).
+    """
+    if not force:
+        token = get_valid_token(shop)
+        if token:
+            return token
+    return _persist_token(shop, token_exchange(shop, session_token))
 
 
 def require_shop(request: Request) -> str:

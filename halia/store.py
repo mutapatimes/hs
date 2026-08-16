@@ -21,10 +21,16 @@ from halia import crypto
 from halia.config import DATABASE_URL, DB_PATH
 
 _TABLES = [
+    # Shopify now issues EXPIRING offline tokens: access_expires_at (epoch secs) + an encrypted
+    # refresh_token (with its own refresh_expires_at) let any code path renew the token without a
+    # live App Bridge session (grant_type=refresh_token). See halia/api/shopify_auth.py.
     """CREATE TABLE IF NOT EXISTS shops (
-        shop         TEXT PRIMARY KEY,
-        access_token TEXT,
-        installed_at TEXT
+        shop               TEXT PRIMARY KEY,
+        access_token       TEXT,
+        installed_at       TEXT,
+        access_expires_at  TEXT,
+        refresh_token      TEXT,
+        refresh_expires_at TEXT
     )""",
     """CREATE TABLE IF NOT EXISTS klaviyo (
         shop         TEXT PRIMARY KEY,
@@ -310,6 +316,19 @@ class _DB:
             self.conn.row_factory = sqlite3.Row
         for stmt in (*_DROP_LEGACY, *_TABLES):
             self._run(stmt)
+        # Additive migrations for tables that already exist from an earlier version (CREATE TABLE
+        # IF NOT EXISTS won't add new columns to them).
+        for col in ("access_expires_at", "refresh_token", "refresh_expires_at"):
+            self._add_column("shops", col, "TEXT")
+
+    def _add_column(self, table: str, col: str, decl: str) -> None:
+        """Add a column if it isn't already there (idempotent, both backends)."""
+        if self.pg:
+            self._run(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {decl}")
+            return
+        existing = {r["name"] for r in (self._run(f"PRAGMA table_info({table})", fetch="all") or [])}
+        if col not in existing:
+            self._run(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
 
     def _q(self, sql: str) -> str:
         if not self.pg:
@@ -335,17 +354,40 @@ class ShopStore(_DB):
     """Encrypted, per-shop merchant secrets. Nothing here identifies a customer."""
 
     # ── Shopify offline token (from token exchange) ─────────────────────────────
-    def save_shop(self, shop: str, access_token: str) -> None:
+    def save_shop(self, shop: str, access_token: str, *, access_expires_at: int | None = None,
+                  refresh_token: str | None = None, refresh_expires_at: int | None = None) -> None:
         self._run(
-            """INSERT INTO shops (shop, access_token, installed_at)
-               VALUES (:shop, :token, :at)
-               ON CONFLICT(shop) DO UPDATE SET access_token=excluded.access_token""",
-            {"shop": shop, "token": crypto.encrypt(access_token), "at": _now()})
+            """INSERT INTO shops (shop, access_token, installed_at,
+                                  access_expires_at, refresh_token, refresh_expires_at)
+               VALUES (:shop, :token, :at, :aexp, :rtok, :rexp)
+               ON CONFLICT(shop) DO UPDATE SET access_token=excluded.access_token,
+                 access_expires_at=excluded.access_expires_at,
+                 refresh_token=excluded.refresh_token,
+                 refresh_expires_at=excluded.refresh_expires_at""",
+            {"shop": shop, "token": crypto.encrypt(access_token), "at": _now(),
+             "aexp": str(access_expires_at) if access_expires_at else None,
+             "rtok": crypto.encrypt(refresh_token) if refresh_token else None,
+             "rexp": str(refresh_expires_at) if refresh_expires_at else None})
 
     def get_token(self, shop: str) -> str | None:
         row = self._run("SELECT access_token FROM shops WHERE shop = :shop",
                         {"shop": shop}, fetch="one")
         return crypto.decrypt(row["access_token"]) if row else None
+
+    def get_shop_auth(self, shop: str) -> dict | None:
+        """Full offline-token record: {access_token, access_expires_at, refresh_token,
+        refresh_expires_at} (secrets decrypted, expiries as epoch ints), or None."""
+        row = self._run(
+            "SELECT access_token, access_expires_at, refresh_token, refresh_expires_at "
+            "FROM shops WHERE shop = :shop", {"shop": shop}, fetch="one")
+        if not row or not row["access_token"]:
+            return None
+        return {
+            "access_token": crypto.decrypt(row["access_token"]),
+            "access_expires_at": int(row["access_expires_at"]) if row["access_expires_at"] else None,
+            "refresh_token": crypto.decrypt(row["refresh_token"]) if row["refresh_token"] else None,
+            "refresh_expires_at": int(row["refresh_expires_at"]) if row["refresh_expires_at"] else None,
+        }
 
     # ── per-shop Klaviyo key (each merchant brings their own) ───────────────────
     def save_klaviyo(self, shop: str, api_key: str) -> None:

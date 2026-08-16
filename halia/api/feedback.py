@@ -21,7 +21,7 @@ from typing import Any
 from fastapi import Body, Depends, HTTPException
 
 from halia.api import data
-from halia.api.shopify_auth import require_shop, shop_store
+from halia.api.shopify_auth import get_valid_token, require_shop, shop_store
 
 _TAG = {"fit": "Halia: strong lead", "nofit": "Halia: not a fit"}
 
@@ -51,7 +51,7 @@ def register(app) -> None:
         # 2) Best-effort merchant-side tag (Shopify only; the label lives in THEIR system).
         tagged = False
         tenant = shop_store().get_tenant(shop)
-        token = shop_store().get_token(shop)
+        token = get_valid_token(shop)
         if result.customer_id and token and not (
                 tenant and tenant["kind"] in ("woocommerce", "bigcommerce")):
             try:

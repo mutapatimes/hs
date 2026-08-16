@@ -49,7 +49,7 @@ def test_token_exchange_builds_correct_body(monkeypatch):
         return 200, {"access_token": "shpat_offline_abc"}
 
     token = shopify_auth.token_exchange(SHOP, "sess.tok.en", transport=fake_post)
-    assert token == "shpat_offline_abc"
+    assert token["access_token"] == "shpat_offline_abc"
     assert captured["url"] == f"https://{SHOP}/admin/oauth/access_token"
     b = captured["body"]
     assert b["grant_type"] == "urn:ietf:params:oauth:grant-type:token-exchange"
@@ -65,6 +65,61 @@ def test_token_exchange_raises_on_failure():
         shopify_auth.token_exchange(SHOP, "x", transport=lambda u, b: (401, {"error": "bad"}))
 
 
+# ── expiring offline tokens (Phase 2): persist expiry + refresh, renew without a session ──
+
+def _temp_store(tmp_path, monkeypatch):
+    from halia.store import ShopStore
+    st = ShopStore(db_path=str(tmp_path / "shops.db"), database_url=None)
+    monkeypatch.setattr(shopify_auth, "_shop_store", st)
+    return st
+
+
+def test_exchange_persists_expiry_and_refresh_token(tmp_path, monkeypatch):
+    monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", KEY)
+    monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
+    st = _temp_store(tmp_path, monkeypatch)
+
+    def fake_post(url, body):
+        assert body["expiring"] == 1
+        return 200, {"access_token": "at1", "expires_in": 3600,
+                     "refresh_token": "rt1", "refresh_token_expires_in": 7776000}
+    monkeypatch.setattr(shopify_auth, "_http_post", fake_post)
+
+    assert shopify_auth.ensure_offline_token(SHOP, "sess", force=True) == "at1"
+    auth = st.get_shop_auth(SHOP)
+    assert auth["access_token"] == "at1" and auth["refresh_token"] == "rt1"
+    assert auth["access_expires_at"] and auth["refresh_expires_at"]
+    # still fresh -> returned with no network call
+    assert shopify_auth.get_valid_token(SHOP) == "at1"
+
+
+def test_get_valid_token_refreshes_when_expired(tmp_path, monkeypatch):
+    monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", KEY)
+    monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
+    st = _temp_store(tmp_path, monkeypatch)
+
+    def fake_post(url, body):
+        assert body.get("grant_type") == "refresh_token" and body["refresh_token"] == "rt1"
+        return 200, {"access_token": "at2", "expires_in": 3600,
+                     "refresh_token": "rt2", "refresh_token_expires_in": 7776000}
+    monkeypatch.setattr(shopify_auth, "_http_post", fake_post)
+
+    now = int(time.time())
+    st.save_shop(SHOP, "at1", access_expires_at=now - 10,   # already expired
+                 refresh_token="rt1", refresh_expires_at=now + 9999)
+    # refresh token renews it with NO App Bridge session token
+    assert shopify_auth.get_valid_token(SHOP) == "at2"
+    auth = st.get_shop_auth(SHOP)
+    assert auth["access_token"] == "at2" and auth["refresh_token"] == "rt2"
+
+
+def test_get_valid_token_legacy_and_missing(tmp_path, monkeypatch):
+    st = _temp_store(tmp_path, monkeypatch)
+    st.save_shop(SHOP, "legacy-permanent")          # no expiry, no refresh token
+    assert shopify_auth.get_valid_token(SHOP) == "legacy-permanent"
+    assert shopify_auth.get_valid_token("nobody.myshopify.com") is None
+
+
 # ── offline-token caching + self-heal ────────────────────────────────────────
 class _FakeStore:
     def __init__(self, token=None):
@@ -74,7 +129,14 @@ class _FakeStore:
     def get_token(self, shop):
         return self.token
 
-    def save_shop(self, shop, tok):
+    def get_shop_auth(self, shop):
+        if not self.token:
+            return None
+        return {"access_token": self.token, "access_expires_at": None,
+                "refresh_token": None, "refresh_expires_at": None}
+
+    def save_shop(self, shop, tok, *, access_expires_at=None, refresh_token=None,
+                  refresh_expires_at=None):
         self.saved.append(tok)
         self.token = tok
 
@@ -92,7 +154,7 @@ def test_ensure_offline_token_uses_stored_token(monkeypatch):
 def test_ensure_offline_token_exchanges_when_missing(monkeypatch):
     store = _FakeStore(token=None)
     monkeypatch.setattr(shopify_auth, "shop_store", lambda: store)
-    monkeypatch.setattr(shopify_auth, "token_exchange", lambda s, t: "fresh")
+    monkeypatch.setattr(shopify_auth, "token_exchange", lambda s, t: {"access_token": "fresh"})
     assert shopify_auth.ensure_offline_token(SHOP, "sess") == "fresh"
     assert store.saved == ["fresh"]
 
@@ -100,7 +162,7 @@ def test_ensure_offline_token_exchanges_when_missing(monkeypatch):
 def test_ensure_offline_token_force_re_exchanges_over_a_stale_token(monkeypatch):
     store = _FakeStore(token="stale")
     monkeypatch.setattr(shopify_auth, "shop_store", lambda: store)
-    monkeypatch.setattr(shopify_auth, "token_exchange", lambda s, t: "fresh")
+    monkeypatch.setattr(shopify_auth, "token_exchange", lambda s, t: {"access_token": "fresh"})
     assert shopify_auth.ensure_offline_token(SHOP, "sess", force=True) == "fresh"
     assert store.saved == ["fresh"]        # the stale token was overwritten
 

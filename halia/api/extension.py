@@ -23,7 +23,7 @@ from fastapi import Body, Depends, Header, HTTPException, Query
 
 from halia import config
 from halia.api import data
-from halia.api.shopify_auth import require_shop, shop_store
+from halia.api.shopify_auth import get_valid_token, require_shop, shop_store
 from halia.api.tenant_auth import hash_token, new_token
 
 
@@ -250,7 +250,7 @@ def _products_for_handles(shop: str, handles: list[str]) -> list[dict]:
     preserving order, via one Shopify product search. Shopify-only; returns [] for a read-only /
     non-Shopify tenant or on any fetch hiccup. Shared by the catalogue, product-grid and cart-link
     'from URLs' endpoints."""
-    token = shop_store().get_token(shop)
+    token = get_valid_token(shop)
     if not token or not handles:
         return []
     from scoring.shopify_fetch import _run, http_transport
@@ -687,7 +687,7 @@ def _variant_of(shop: str, title: str) -> Optional[dict]:
     Only ever called for the handful the associate is actually being shown: the catalogue-wide
     product query deliberately omits variant ids, and paying for them across the whole store to
     make six of them buyable would be the wrong trade."""
-    token = shop_store().get_token(shop)
+    token = get_valid_token(shop)
     if not token or not title:
         return None
     from scoring.shopify_fetch import _run, http_transport
@@ -1096,7 +1096,7 @@ def register(app) -> None:
         Products are the merchant's own catalogue, not customer data."""
         auth = _resolve_ext(x_halia_ext_token)
         shop = auth.shop
-        token = shop_store().get_token(shop)
+        token = get_valid_token(shop)
         if not token:                                # non-Shopify or read-only: no cart builder
             return {"products": [], "cart_base": None}
         from scoring.shopify_fetch import _run, http_transport
@@ -1320,7 +1320,7 @@ def register(app) -> None:
         Shopify-only; the merchant's own catalogue, nothing customer-related, nothing stored."""
         auth = _resolve_ext(x_halia_ext_token)
         shop = auth.shop
-        token = shop_store().get_token(shop)
+        token = get_valid_token(shop)
         if not token:                                    # non-Shopify / read-only: no product cards
             return {"products": [], "cart_base": None}
         body = payload or {}

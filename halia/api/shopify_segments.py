@@ -13,7 +13,7 @@ from typing import Any
 from fastapi import Body, Depends, HTTPException
 
 from halia.api import data
-from halia.api.shopify_auth import require_shop, shop_store
+from halia.api.shopify_auth import get_valid_token, require_shop, shop_store
 
 
 def _slug(name: str) -> str:
@@ -29,7 +29,7 @@ def register(app) -> None:
         tenant = store.get_tenant(shop)
         if tenant and tenant["kind"] in ("woocommerce", "bigcommerce"):
             raise HTTPException(400, "Creating segments is a Shopify feature — this store is not on Shopify.")
-        token = store.get_token(shop)
+        token = get_valid_token(shop)
         if not token:
             raise HTTPException(400, "No Shopify connection for this store.")
         entry = data.results_for(shop)
