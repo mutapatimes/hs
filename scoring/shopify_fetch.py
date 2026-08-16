@@ -115,8 +115,16 @@ def http_transport(
         )
         # A revoked/invalid token gets a hard 401/403 here (before any GraphQL parsing). Surface
         # it as ShopifyAuthError so the caller can re-exchange, not a generic requests HTTPError.
+        # Include Shopify's own explanation from the body (an error string, never customer data):
+        # a 401 means the token is bad (re-exchange helps), a 403 means the call is refused for a
+        # permission reason a fresh token can't fix — e.g. missing Protected Customer Data access.
         if resp.status_code in (401, 403):
-            raise ShopifyAuthError(f"Admin API rejected the token (HTTP {resp.status_code})")
+            try:
+                detail = (resp.text or "").strip().replace("\n", " ")[:300]
+            except Exception:  # noqa: BLE001
+                detail = ""
+            raise ShopifyAuthError(
+                f"Admin API refused the request (HTTP {resp.status_code}): {detail}")
         resp.raise_for_status()
         return resp.json()
 
