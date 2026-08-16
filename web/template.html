@@ -2688,12 +2688,44 @@ function renderMap(){
 let PLANS_CACHE=null;
 function loadPlanCards(container, force){
   if(!container) return;
-  if(PLANS_CACHE && !force){ container.innerHTML=planCardsHTML(PLANS_CACHE); return; }
+  if(PLANS_CACHE && !force){ container.innerHTML=planCardsHTML(PLANS_CACHE); wireShopifyCtas(container,PLANS_CACHE); return; }
   container.innerHTML=haliaLoader("Loading plans");
-  fetch("/v1/billing/plans").then(r=>r.json()).then(d=>{ PLANS_CACHE=d; container.innerHTML=planCardsHTML(d); })
+  // Shopify merchants must be charged through Shopify's Billing API; every other platform uses Stripe.
+  const url = PLATFORM==="shopify" ? "/v1/plans/status" : "/v1/billing/plans";
+  fetch(url).then(r=>r.json()).then(d=>{ if(PLATFORM==="shopify") d.shopify=true; PLANS_CACHE=d; container.innerHTML=planCardsHTML(d); wireShopifyCtas(container,d); })
     .catch(()=>{ container.innerHTML='<div style="color:var(--soft);font-size:13.5px">Couldn\'t load plans.</div>'; });
 }
+// Shopify Billing: the plan CTAs are buttons (not Stripe anchors); wire them after each render.
+function wireShopifyCtas(container,d){
+  if(!container||!d||!d.shopify) return;
+  container.querySelectorAll('[data-splan]').forEach(b=>{ b.onclick=()=>{
+    const k=b.dataset.splan; if(k==='free') shopifyCancelPlan(); else shopifySubscribe(k,b); }; });
+}
+function shopifySubscribe(key,btn){
+  if(btn){ btn.disabled=true; btn.textContent='One moment…'; }
+  fetch("/v1/plans/subscribe",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({plan:key})})
+    .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+      if(!ok||!d.confirmationUrl) throw new Error((d&&d.detail)||"Couldn't start checkout.");
+      // Shopify's approval page can't be framed in the admin iframe: navigate the TOP window to it.
+      window.open(d.confirmationUrl,"_top");
+    }).catch(e=>{ toast("Billing error: "+e.message); if(btn){ btn.disabled=false; btn.textContent="Choose plan →"; } });
+}
+function shopifyCancelPlan(){
+  if(!confirm("Cancel your plan and move to Free?")) return;
+  fetch("/v1/plans/cancel",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+    if(!ok) throw new Error((d&&d.detail)||"failed");
+    toast("Plan cancelled."); PLANS_CACHE=null; SETTINGS.billing=null; loadBilling();
+  }).catch(e=>toast("Billing error: "+e.message));
+}
 function planCardCta(p,d){
+  if(d.shopify){
+    // Shopify tenant: subscribe through the Shopify Billing API (a button, wired by wireShopifyCtas).
+    const cur=d.current||"free";
+    if(p.key===cur) return `<span class="pl-cta cur">Current plan</span>`;
+    if(p.custom) return `<a class="pl-cta ghost" href="mailto:hello@haliascore.com?subject=Halia%20Maison%20plan">Talk to us →</a>`;
+    if(p.key==="free") return `<button class="pl-cta ghost" data-splan="free">Switch to Free →</button>`;
+    return `<button class="pl-cta" data-splan="${esc(p.key)}">Choose ${esc(p.name)} →</button>`;
+  }
   // Stripe Checkout can't be framed inside Shopify admin, so every paid CTA is an anchor that
   // opens the Stripe Payment Link in a NEW TAB. Free is the default plan; Maison is a conversation.
   if(p.custom) return `<a class="pl-cta ghost" href="mailto:hello@haliascore.com?subject=Halia%20Maison%20plan">Talk to us →</a>`;
@@ -2716,7 +2748,9 @@ function planCardsHTML(d){
     </div>`;
   }).join("");
   return `<div class="pl-grid">${cards}</div>`
-    +`<p class="pl-note">Secure checkout via Stripe, opens in a new tab. Prices in GBP, excluding VAT. Change or cancel anytime from Manage billing.</p>`;
+    +`<p class="pl-note">${d.shopify
+        ? "Billing is handled securely by Shopify. Approval and payment happen in your Shopify admin; change or cancel anytime."
+        : "Secure checkout via Stripe, opens in a new tab. Prices in GBP, excluding VAT. Change or cancel anytime from Manage billing."}</p>`;
 }
 
 /* ---- campaigns: create/target/monitor ---- */
@@ -4087,8 +4121,25 @@ function openSettings(page){
       window.postMessage({source:"halia-dashboard",type:"connect",token:token,base:location.origin,name:out.dataset.name},location.origin);
       if(st){st.style.color="#0f7b4f";st.textContent="✓ Sent to this browser";}
     };
+    // Shopify tenants bill through Shopify's Billing API (App Store requirement), not Stripe.
+    function paintBillingShopify(box){
+      const P2="color:var(--soft);font-size:13.5px;line-height:1.55;margin:0 0 12px";
+      box.innerHTML=haliaLoader("Loading plans");
+      fetch("/v1/plans/status").then(r=>r.json()).then(d=>{
+        d.shopify=true; PLANS_CACHE=d;
+        const cur=d.current||"free";
+        const curPlan=(d.plans||[]).find(p=>p.key===cur)||{name:"Free"};
+        let h=`<div style="font:600 13px system-ui;color:${cur!=="free"?'#0f7b4f':'var(--soft)'};margin-bottom:12px">● Plan: ${esc(curPlan.name||"Free")}</div>`;
+        h+=`<p style="${P2}">Billing is handled securely by Shopify. Choose a plan below; approval and payment happen in your Shopify admin.</p>`;
+        h+=`<div id="billPlans" style="margin-top:16px"></div>`;
+        if(d.test) h+=`<div style="${P2};color:var(--faint);font-size:12px;margin-top:6px">Test mode: approvals run without a charge.</div>`;
+        box.innerHTML=h;
+        const pc=document.getElementById("billPlans"); pc.innerHTML=planCardsHTML(d); wireShopifyCtas(pc,d);
+      }).catch(()=>{ box.innerHTML='<div style="color:var(--soft);font-size:13.5px">Couldn\'t load billing.</div>'; });
+    }
     function paintBilling(b){
       const box=document.getElementById("billingBox"); if(!box) return;
+      if(PLATFORM==="shopify") return paintBillingShopify(box);
       const LBLMAP={active:"Active",trialing:"Trial",comped:"Complimentary",canceled:"Cancelled",
                     past_due:"Past due",incomplete:"Incomplete",free:"Not subscribed"};
       if(!b.enabled){box.innerHTML=`<div style="${P};margin:0">You have full access — no billing is required at the moment.</div>`;return;}
@@ -4174,6 +4225,7 @@ function openSettings(page){
       step1();
     }
     function loadBilling(){
+      if(PLATFORM==="shopify"){ paintBilling({}); return; }   // Shopify: Plans come from /v1/plans/status
       if(SETTINGS.billing){paintBilling(SETTINGS.billing);return;}
       fetch("/v1/billing/status").then(r=>r.json()).then(b=>{SETTINGS.billing=b;paintBilling(b);}).catch(()=>{});
     }
