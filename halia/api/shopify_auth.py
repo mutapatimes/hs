@@ -127,6 +127,11 @@ def token_exchange(shop: str, session_token: str, transport=None) -> str:
         "subject_token": session_token,
         "subject_token_type": _SUBJECT_TOKEN_TYPE,
         "requested_token_type": _OFFLINE_TOKEN_TYPE,
+        # Shopify no longer accepts non-expiring (permanent) offline tokens on the Admin API:
+        # such tokens now 403 with "Non-expiring access tokens are no longer accepted". `expiring=1`
+        # asks for an EXPIRING offline token (carries expires_in + a refresh_token) which Shopify
+        # accepts. https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/offline-access-tokens
+        "expiring": 1,
     }
     url = f"https://{shop}/admin/oauth/access_token"
     status, payload = (transport or _http_post)(url, body)
