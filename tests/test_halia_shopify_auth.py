@@ -56,6 +56,7 @@ def test_token_exchange_builds_correct_body(monkeypatch):
     assert b["subject_token"] == "sess.tok.en"
     assert b["subject_token_type"] == "urn:ietf:params:oauth:token-type:id_token"
     assert b["requested_token_type"] == "urn:shopify:params:oauth:token-type:offline-access-token"
+    assert b["expiring"] == 1  # ask for an EXPIRING offline token (non-expiring ones are refused)
     assert b["client_id"] == KEY and b["client_secret"] == SECRET
 
 
