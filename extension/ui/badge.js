@@ -286,6 +286,17 @@
     navigator.clipboard.writeText(text).then(() => toast(msg || "Copied"), () => toast("Copy failed"));
   }
   function place(text) { const ok = inserter && inserter(text); toast(ok ? "Inserted" : "Open a reply first"); }
+  // Load a thumbnail via the background (returns a data: URL) so it renders even where the host
+  // page's CSP blocks a direct cross-origin <img src>. `w` requests a smaller Shopify render.
+  function loadThumb(imgEl, url, w) {
+    if (!imgEl || !url) return;
+    try {
+      chrome.runtime.sendMessage({ type: "halia:image", url, w: w || 0 }, (r) => {
+        if (chrome.runtime.lastError || !r || !r.dataUrl) { imgEl.style.display = "none"; return; }
+        imgEl.src = r.dataUrl;
+      });
+    } catch (e) { imgEl.style.display = "none"; }
+  }
   function ago(iso) {
     const t = Date.parse(iso); if (!t) return "";
     const s = (Date.now() - t) / 1000;
@@ -813,7 +824,7 @@
       const single = vs.length === 1;
       const opts = vs.map((v, vi) => `<option value="${vi}">${esc(v.title || "Default")}${v.price ? " · £" + esc(v.price) : ""}</option>`).join("");
       return `<div class="row" style="display:flex;gap:8px;align-items:center">
-        ${p.image ? `<img class="pth" data-pi="${pi}" src="${esc(p.image)}" referrerpolicy="no-referrer" alt="">` : ""}
+        ${p.image ? `<img class="pth" data-pi="${pi}" alt="">` : ""}
         <div style="flex:1;min-width:0">
           <div class="rn">${esc(p.title)}</div>
           <div style="display:flex;gap:6px;margin-top:4px;align-items:center">
@@ -825,8 +836,8 @@
     }).join("");
     // Attach onerror in JS (inline handlers are blocked by strict page CSPs): a blocked or missing
     // image just hides itself rather than showing a broken icon.
-    box.querySelectorAll("img.pth").forEach((im) => { im.onerror = () => { im.style.display = "none"; }; });
     prodResults.forEach((p, pi) => {
+      loadThumb(box.querySelector(`img.pth[data-pi="${pi}"]`), p.image, 120);
       const b = box.querySelector(`[data-padd="${pi}"]`);
       if (b) b.onclick = () => {
         const sel = box.querySelector(`[data-pv="${pi}"]`);
@@ -1035,7 +1046,7 @@
     box.innerHTML = `<div class="mgrid">` + mediaResults.slice(0, 12).map((p, i) => {
       const price = (p.variants && p.variants[0] && p.variants[0].price) ? " · £" + esc(p.variants[0].price) : "";
       return `<div class="mcard">
-        <img class="mimg" data-mi="${i}" src="${esc(p.image)}" referrerpolicy="no-referrer" alt="">
+        <img class="mimg" data-mi="${i}" alt="">
         <div class="mtt">${esc(p.title)}${price}</div>
         <div class="macts">
           <button class="btn primary" data-mcopy="${i}">Send image</button>
@@ -1043,8 +1054,8 @@
             : `<button class="btn" data-mlinkc="${i}">Copy link</button>`}
         </div></div>`;
     }).join("") + `</div>`;
-    box.querySelectorAll("img.mimg").forEach((im) => { im.onerror = () => { im.style.display = "none"; }; });
     mediaResults.forEach((p, i) => {
+      loadThumb(box.querySelector(`img.mimg[data-mi="${i}"]`), p.image, 300);
       const cp = box.querySelector(`[data-mcopy="${i}"]`); if (cp) cp.onclick = () => copyImage(p.image);
       const lk = box.querySelector(`[data-mlink="${i}"]`); if (lk) lk.onclick = () => place(p.image);
       const lc = box.querySelector(`[data-mlinkc="${i}"]`); if (lc) lc.onclick = () => copy(p.image, "Image link copied");
@@ -1055,23 +1066,26 @@
   function copyImage(url) {
     if (!url) return;
     try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        try {
-          const c = document.createElement("canvas");
-          c.width = img.naturalWidth || 800; c.height = img.naturalHeight || 800;
-          c.getContext("2d").drawImage(img, 0, 0);
-          c.toBlob((blob) => {
-            if (!blob || !navigator.clipboard || !window.ClipboardItem) { copy(url, "Image link copied"); return; }
-            navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])
-              .then(() => toast("Image copied — paste to send"))
-              .catch(() => copy(url, "Image link copied"));
-          }, "image/png");
-        } catch (e) { copy(url, "Image link copied"); }
-      };
-      img.onerror = () => copy(url, "Image link copied");
-      img.src = url;
+      chrome.runtime.sendMessage({ type: "halia:image", url }, (r) => {
+        const dataUrl = r && r.dataUrl;
+        if (chrome.runtime.lastError || !dataUrl) { copy(url, "Image link copied"); return; }
+        const img = new Image();   // a data: URL isn't page-CSP-blocked and keeps the canvas untainted
+        img.onload = () => {
+          try {
+            const c = document.createElement("canvas");
+            c.width = img.naturalWidth || 800; c.height = img.naturalHeight || 800;
+            c.getContext("2d").drawImage(img, 0, 0);
+            c.toBlob((blob) => {
+              if (!blob || !navigator.clipboard || !window.ClipboardItem) { copy(url, "Image link copied"); return; }
+              navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])
+                .then(() => toast("Image copied — paste to send"))
+                .catch(() => copy(url, "Image link copied"));
+            }, "image/png");
+          } catch (e) { copy(url, "Image link copied"); }
+        };
+        img.onerror = () => copy(url, "Image link copied");
+        img.src = dataUrl;
+      });
     } catch (e) { copy(url, "Image link copied"); }
   }
 

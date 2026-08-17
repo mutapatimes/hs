@@ -249,6 +249,28 @@ async function products(q) {
   }
 }
 
+// Fetch a product image and return it as a data: URL. The service worker isn't bound by the host
+// page's CSP, so this lets the panel show thumbnails on strict pages (WhatsApp Web, Gmail) where a
+// direct <img src=cdn…> is blocked. `w` optionally asks Shopify's CDN for a smaller render.
+async function imageData(url, w) {
+  if (!url) return { error: "no-url" };
+  let u = String(url);
+  try {
+    if (w && /cdn\.shopify\.com/.test(u) && !/[?&]width=/.test(u)) {
+      u += (u.indexOf("?") >= 0 ? "&" : "?") + "width=" + w;
+    }
+    const res = await fetch(u);
+    if (!res.ok) return { error: "http-" + res.status };
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    let bin = ""; const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    const type = res.headers.get("content-type") || "image/jpeg";
+    return { dataUrl: "data:" + type + ";base64," + btoa(bin) };
+  } catch (e) {
+    return { error: "network" };
+  }
+}
+
 async function batch(body) {
   const { base, token } = await config();
   if (!token) return { error: "no-token" };
@@ -388,6 +410,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg && msg.type === "halia:products") {
     products(msg.q).then(sendResponse);
+    return true;
+  }
+  if (msg && msg.type === "halia:image") {
+    imageData(msg.url, msg.w).then(sendResponse);
     return true;
   }
   if (msg && msg.type === "halia:history") {
