@@ -402,7 +402,9 @@ def test_shopify_oauth_flow_end_to_end(client, monkeypatch):
     monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", "key")
     monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", "secret")
     monkeypatch.setattr("halia.config.HALIA_APP_URL", "https://halia.test")
-    monkeypatch.setattr(onboarding, "_shopify_exchange", lambda shop, code: "shpat_oauth")
+    monkeypatch.setattr(onboarding, "_shopify_exchange", lambda shop, code: {
+        "access_token": "shpat_oauth", "expires_in": 3600,
+        "refresh_token": "rt_oauth", "refresh_token_expires_in": 7776000})
     monkeypatch.setattr(onboarding, "_validate_shopify", lambda *a, **k: (True, ""))
     # 1. start install
     a = c.post("/v1/shopify/authorize", json={"shop_domain": "acme.myshopify.com"}).json()
@@ -421,6 +423,8 @@ def test_shopify_oauth_flow_end_to_end(client, monkeypatch):
     assert r.status_code == 200
     assert store.get_tenant("acme.myshopify.com")["kind"] == "shopify"
     assert store.get_token("acme.myshopify.com") == "shpat_oauth"
+    # the expiring OAuth token is stored with its refresh token (renewable without a session)
+    assert store.get_shop_auth("acme.myshopify.com")["refresh_token"] == "rt_oauth"
 
 
 def test_shopify_callback_rejects_bad_hmac(client, monkeypatch):
