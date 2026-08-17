@@ -20,6 +20,7 @@ struct ShareRootView: View {
     @State private var status = ""
     @State private var copied = false
     @State private var contacted = false
+    @State private var pickingTemplate = false
 
     enum Phase { case loading, found, notfound, signedOut, error(String) }
 
@@ -53,6 +54,11 @@ struct ShareRootView: View {
             }
         }
         .task { await run() }
+        .sheet(isPresented: $pickingTemplate) {
+            TemplatePicker(firstName: result?.name) { text in
+                draft = text; copied = false; pickingTemplate = false
+            }
+        }
     }
 
     // MARK: states
@@ -139,6 +145,7 @@ struct ShareRootView: View {
             actionButton(busyKind == "look" ? "Curating…" : "Send a lookbook", filled: false) {
                 Task { await makeLookbook() }
             }
+            actionButton("Choose a template", filled: false) { pickingTemplate = true }
         }
         .disabled(busy)
         .opacity(busy ? 0.6 : 1)
@@ -281,6 +288,57 @@ struct ShareRootView: View {
         case "A":  return green
         case "B":  return Color(red: 0.37, green: 0.42, blue: 0.45)
         default:   return Color(red: 0.55, green: 0.56, blue: 0.59)
+        }
+    }
+}
+
+/// The synced templates, grouped by category, for the share card. Tapping one fills {first_name}
+/// with the looked-up client's name and hands the ready text back as the draft to copy or send.
+private struct TemplatePicker: View {
+    let firstName: String?
+    let onPick: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var templates: [Template] = TemplateStore.load()
+
+    private var grouped: [(String, [Template])] {
+        let cats = Array(Set(templates.map { $0.category })).sorted()
+        return cats.map { cat in (cat, templates.filter { $0.category == cat }) }
+    }
+
+    var body: some View {
+        NavigationView {
+            Group {
+                if templates.isEmpty {
+                    VStack(spacing: 8) {
+                        Text("No templates yet").font(.system(size: 17, weight: .semibold))
+                        Text("Open Halia and connect your store to sync your templates.")
+                            .font(.system(size: 14)).foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(40).frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(grouped, id: \.0) { cat, items in
+                            Section(header: Text(cat)) {
+                                ForEach(items) { t in
+                                    Button { onPick(t.ready(firstName: firstName)) } label: {
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(t.name).font(.system(size: 15, weight: .semibold)).foregroundColor(.primary)
+                                            Text(t.preview).font(.system(size: 12.5)).foregroundColor(.secondary).lineLimit(2)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Templates")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+            }
         }
     }
 }
