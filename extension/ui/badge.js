@@ -40,6 +40,15 @@
     .todo .tt { flex: 1; font-size: 12.5px; line-height: 1.35; }
     .ic { border: 0; background: transparent; cursor: pointer; color: #8a8271; font-size: 15px; padding: 2px 5px; }
     .ic:hover { color: #1a1a1a; }
+    /* crossbar: switch between Client / Reply / Sell so only one view shows at a time */
+    .tabs { display: flex; padding: 0 8px; background: #f4f1ea; border-bottom: 1px solid #eee7da; flex: none; }
+    .tabs.hide { display: none; }
+    .tab { flex: 1; border: 0; background: transparent; color: #8a8271; font-size: 11px; text-transform: uppercase;
+      letter-spacing: .06em; padding: 9px 4px; cursor: pointer; border-bottom: 2px solid transparent; }
+    .tab:hover { color: #1a1a1a; }
+    .tab.on { color: #1a1a1a; border-bottom-color: #1F564A; font-weight: 600; }
+    .lnkbtn { background: none; border: 0; color: #1F564A; font-size: 11.5px; cursor: pointer; padding: 6px 0 0; }
+    .lnkbtn:hover { text-decoration: underline; }
     .scroll { overflow-y: auto; flex: 1; }
     .sec { border-bottom: 1px solid #efe9dc; padding: 13px 14px; }
     .sh { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: #8a8271; margin: 0 0 9px;
@@ -161,6 +170,9 @@
   let ctx = null, client = null; // ctx = standing context; client = active client state
   let cart = [], prodResults = [], cartBase = ""; // the working cart + last product search
   let mode = "clienteling"; // "clienteling" (client-facing) | "internal" (team coordination)
+  let view = "client";      // clienteling crossbar tab: "client" | "reply" | "sell"
+  let whyAll = false, noteOpen = false;   // per-client: expand the reasons list / reveal the note box
+  const VIEW_SECS = { client: ["client"], reply: ["tpl"], sell: ["camp", "prod", "cat"] };
   let tplQuery = "", tplSel = null;   // template search text + selected index
   let threadReader = null;            // surface-supplied () => [{from,text}] of the visible chat
   let draftInstr = "";                // the associate's optional "what to say" note
@@ -287,6 +299,11 @@
           <button class="modebtn" data-a="mode" title="Switch between client and team mode">Clienteling</button>
           <button class="ic" data-a="refresh" title="Refresh">⟳</button>
           <button class="ic" data-a="close" title="Collapse">›</button></div>
+        <div class="tabs" data-a="tabs">
+          <button class="tab" data-v="client">Client</button>
+          <button class="tab" data-v="reply">Reply</button>
+          <button class="tab" data-v="sell">Sell</button>
+        </div>
         <div class="scroll">
           <section class="sec" data-s="client"></section>
           <section class="sec" data-s="team"></section>
@@ -308,6 +325,9 @@
       const sh = e.target.closest(".sh"); if (!sh) return;
       const s = sh.closest(".sec"); if (s && s.dataset.s) toggleFold(s.dataset.s);
     });
+    dock.querySelector('[data-a="tabs"]').addEventListener("click", (e) => {
+      const b = e.target.closest(".tab"); if (b && b.dataset.v) setView(b.dataset.v);
+    });
     renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue();
     applyMode(); applyFolds(); paintHandle();
   }
@@ -317,11 +337,27 @@
     if (persist !== false) { try { chrome.storage.local.set({ haliaMode: mode }); } catch (e) { /* ignore */ } }
     if (root) applyMode();
   }
+  function setView(v) {
+    view = (v in VIEW_SECS) ? v : "client";
+    try { chrome.storage.local.set({ haliaView: view }); } catch (e) { /* ignore */ }
+    if (root) applyMode();
+  }
   function applyMode() {
     const internal = mode === "internal";
     const show = (name, on) => { const el = sec(name); if (el) el.style.display = on ? "" : "none"; };
-    show("team", internal);
-    show("tpl", !internal); show("camp", !internal); show("prod", !internal); show("cat", !internal);
+    const tabs = root && root.querySelector('[data-a="tabs"]');
+    if (tabs) tabs.classList.toggle("hide", internal);   // the crossbar is a clienteling concept
+    if (internal) {
+      // Internal mode is only two blocks (client + team brief) — no crossbar needed.
+      show("client", true); show("team", true);
+      ["tpl", "camp", "prod", "cat"].forEach((n) => show(n, false));
+    } else {
+      // Clienteling: show ONLY the active tab's section(s), so it reads as one calm view.
+      show("team", false);
+      const active = VIEW_SECS[view] || VIEW_SECS.client;
+      ["client", "tpl", "camp", "prod", "cat"].forEach((n) => show(n, active.indexOf(n) >= 0));
+      if (tabs) tabs.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b.dataset.v === view));
+    }
     const tg = root && root.querySelector('[data-a="mode"]');
     if (tg) { tg.textContent = internal ? "Internal" : "Clienteling"; tg.classList.toggle("int", internal); }
     renderClient(); renderTeam();
@@ -384,7 +420,8 @@
     const sub = [d.email, d.ordersCount != null ? d.ordersCount + " orders" : null,
       d.spend != null ? money(d.spend) + " spent" : null, d.last ? "last " + d.last : null]
       .filter(Boolean).join(" · ");
-    const reasons = (d.reasons || []).slice(0, 5);
+    const allReasons = (d.reasons || []).slice(0, 6);
+    const reasons = whyAll ? allReasons : allReasons.slice(0, 3);
     const h = d.cid ? contactHist[d.cid] : null;
     let cue = "";
     if (h && typeof h === "object" && h.at) {
@@ -418,11 +455,12 @@
         <div class="v">${money(cart.value)}${cart.count ? ` <span style="font-weight:400;font-size:11px;color:#6b6355">${esc(cart.count)} item${cart.count === 1 ? "" : "s"}</span>` : ""}</div>
         ${cart.url ? `<a class="link" href="${esc(cart.url)}" target="_blank" rel="noopener">Open checkout</a>` : ""}</div>` : ""}
       ${d.action ? `<div class="lbl">Next move</div><div class="reco">${esc(d.action)}</div>` : ""}
-      ${reasons.length ? `<div class="lbl">Why</div><ul class="reasons">${reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>` : ""}
+      ${allReasons.length ? `<div class="lbl">Why</div><ul class="reasons">${reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>${allReasons.length > 3 && !whyAll ? `<button class="lnkbtn" data-a="whymore">＋${allReasons.length - 3} more</button>` : ""}` : ""}
       <div class="acts">${acts.join("")}</div>
-      ${d.cid && ctx && ctx.platform === "shopify" ? `<div class="lbl">Note</div>
+      ${d.cid && ctx && ctx.platform === "shopify" ? (noteOpen ? `<div class="lbl">Note</div>
         <textarea data-a="note" rows="2" placeholder="Jot a note — saved to this customer in your Shopify"></textarea>
-        <div class="acts"><button class="btn" data-a="notesave">Save note</button></div>` : ""}`;
+        <div class="acts"><button class="btn" data-a="notesave">Save note</button></div>`
+        : `<button class="lnkbtn" data-a="noteopen">＋ Add note</button>`) : ""}`;
     if (d.cid && ctx && ctx.platform === "shopify" && !(d.cid in contactHist)) {
       contactHist[d.cid] = "pending"; fetchHistory(d.cid);   // load the shared contact log once
     }
@@ -436,6 +474,10 @@
       act({ action: "note", cid: d.cid, note: v }, "Note saved");
       if (ta) ta.value = "";
     };
+    const wm = el.querySelector('[data-a="whymore"]');
+    if (wm) wm.onclick = () => { whyAll = true; renderClient(); };
+    const no = el.querySelector('[data-a="noteopen"]');
+    if (no) no.onclick = () => { noteOpen = true; renderClient(); };
   }
 
   // ── TEAM (internal mode) ──────────────────────────────────────────────────
@@ -908,9 +950,10 @@
     mount() {
       ensure();
       try {
-        chrome.storage.local.get(["panelOpen", "haliaMode", "folded"], (r) => {
+        chrome.storage.local.get(["panelOpen", "haliaMode", "haliaView", "folded"], (r) => {
           if (r && typeof r.panelOpen === "boolean") setOpen(r.panelOpen);
           if (r && r.haliaMode) setMode(r.haliaMode);
+          if (r && r.haliaView) setView(r.haliaView);
           if (r && Array.isArray(r.folded)) { r.folded.forEach((n) => folded.add(n)); applyFolds(); }
         });
       } catch (e) { /* ignore */ }
@@ -925,6 +968,7 @@
       // A fresh client means a fresh draft and a fresh shortlist; never carry either over.
       draft = null; draftInstr = "";
       suggest = null; suggestNote = "";
+      whyAll = false; noteOpen = false;   // reset the card's expanders for the new client
       // renderProducts too: the Suggest block is addressed to whoever is on screen, so it has to
       // be rebuilt when they change, not just when the standing context reloads.
       if (root) { renderClient(); renderTemplates(); renderCampaigns(); renderProducts();
