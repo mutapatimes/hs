@@ -54,6 +54,43 @@ struct Template: Codable, Identifiable, Hashable {
         return insertBase.replacingOccurrences(of: "{first_name}", with: n)
     }
 
+    /// The same, but with the greeting ("Dear …,") and/or the sign-off ("Warm regards, …") dropped.
+    /// Mid-conversation you rarely want either, so the keyboard lets the associate switch them off.
+    func ready(firstName: String?, greeting: Bool, signoff: Bool) -> String {
+        var s = ready(firstName: firstName)
+        if !greeting { s = Template.stripGreeting(s) }
+        if !signoff  { s = Template.stripSignoff(s) }
+        return s
+    }
+
+    private static let salutations = ["dear", "hi", "hello", "hey",
+                                      "good morning", "good afternoon", "good evening"]
+    private static let closings = ["warm regards", "warmly", "kind regards", "best regards",
+                                   "best wishes", "warm wishes", "all the best", "many thanks",
+                                   "sincerely", "yours sincerely", "yours", "regards", "with love"]
+
+    /// Drop a leading salutation paragraph ("Dear Amelia,") if there is one; leave everything else.
+    static func stripGreeting(_ s: String) -> String {
+        var parts = s.components(separatedBy: "\n\n")
+        let head = (parts.first ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if salutations.contains(where: { head == $0 || head.hasPrefix($0 + " ") || head.hasPrefix($0 + ",") }) {
+            parts.removeFirst()
+        }
+        return parts.joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Drop a trailing sign-off paragraph ("Warm regards,\nJane") if the closing line matches one.
+    static func stripSignoff(_ s: String) -> String {
+        var parts = s.components(separatedBy: "\n\n")
+        let lastFirstLine = (parts.last ?? "").components(separatedBy: "\n").first?
+            .trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            .trimmingCharacters(in: CharacterSet(charactersIn: ",.!")) ?? ""
+        if closings.contains(where: { lastFirstLine == $0 || lastFirstLine.hasPrefix($0) }) {
+            parts.removeLast()
+        }
+        return parts.joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Ready to drop into a chat. The one placeholder the server leaves, {first_name}, is removed
     /// (never a stored name, so never the wrong one), and the small gap it leaves is tidied so the
     /// line still reads cleanly. You add the name yourself in the chat if you want to.

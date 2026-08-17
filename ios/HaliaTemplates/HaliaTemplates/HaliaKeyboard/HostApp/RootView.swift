@@ -406,11 +406,10 @@ private struct ConnectStep: View {
     @State private var showToken = false
 
     var body: some View {
-        StepScaffold("Connect Halia", "Scan the code shown in your Halia dashboard.") {
+        StepScaffold("Connect Halia", "One scan and you are in.") {
             Card {
-                cardLabel("Connect")
-                Text("Open Halia on your computer and go to Settings. Point your camera at the connect code there, and this signs you in.")
-                    .font(.system(size: 13)).foregroundColor(Palette.soft).lineSpacing(2)
+                Text("Open Settings in Halia on your computer, then scan the code shown there.")
+                    .font(.system(size: 13.5)).foregroundColor(Palette.soft).lineSpacing(2)
 
                 Button { showScanner = true } label: {
                     HStack(spacing: 10) {
@@ -467,9 +466,8 @@ private struct KeyboardStep: View {
         "To personalise, copy the client's name in the chat, then tap Use copied client.",
     ]
     var body: some View {
-        StepScaffold("Turn on the keyboard", "Three short steps, and Halia lives inside every chat.") {
+        StepScaffold("Turn on the keyboard", "Three steps, once.") {
             Card {
-                cardLabel("Turn on the keyboard")
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(Array(steps.enumerated()), id: \.offset) { i, s in
                         HStack(alignment: .top, spacing: 12) {
