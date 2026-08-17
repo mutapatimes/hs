@@ -1,20 +1,25 @@
 // Target membership: HaliaShare (the Share extension) ONLY.
 //
 // The card shown when you share a client into Halia: who they are, their grade, why they surfaced,
-// any open basket, and one tap to draft a message in the house voice that you can copy back to the
-// chat. Reuses HaliaAPI.lookup + draft. Nothing is stored.
+// their open basket, and the next actions that matter. Draft a reply, write a basket nudge, or send
+// a lookbook; then copy it or send it straight to WhatsApp or Messages, and log it to the pipeline.
+// Reuses the keyboard's HaliaAPI. Nothing is stored.
 import SwiftUI
 import UIKit
 
 struct ShareRootView: View {
     let query: String
+    let onOpen: (URL) -> Void        // open a wa.me / sms: link (best effort from an extension)
     let onClose: () -> Void
 
     @State private var phase: Phase = .loading
     @State private var result: HaliaAPI.LookupResult?
     @State private var draft = ""
-    @State private var drafting = false
+    @State private var busy = false
+    @State private var busyKind = ""      // which action is running: reply / nudge / look
+    @State private var status = ""
     @State private var copied = false
+    @State private var contacted = false
 
     enum Phase { case loading, found, notfound, signedOut, error(String) }
 
@@ -67,7 +72,6 @@ struct ShareRootView: View {
     private var found: some View {
         let r = result
         return VStack(alignment: .leading, spacing: 16) {
-            // name + grade
             HStack(spacing: 10) {
                 if let g = r?.grade, !g.isEmpty {
                     Text(g)
@@ -82,12 +86,14 @@ struct ShareRootView: View {
             if let latent = r?.latent, !latent.isEmpty {
                 Text("\(latent) latent value").font(.system(size: 13)).foregroundColor(.secondary)
             }
-            // open basket
+            if let action = r?.action, !action.isEmpty {
+                Text(action).font(.system(size: 14, weight: .medium)).foregroundColor(green)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let cart = r?.cart, let count = cart.count, count > 0 {
                 Text("Open basket · \(count) item\(count == 1 ? "" : "s")")
                     .font(.system(size: 13, weight: .medium)).foregroundColor(green)
             }
-            // reasons
             if let reasons = r?.reasons, !reasons.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("WHY THIS CLIENT SURFACED")
@@ -100,31 +106,112 @@ struct ShareRootView: View {
                     }
                 }
             }
+
             Divider()
-            // draft
-            if draft.isEmpty {
-                Button(action: { Task { await makeDraft() } }) {
-                    HStack {
-                        if drafting { ProgressView().tint(.white) }
-                        Text(drafting ? "Drafting…" : "Draft a message")
-                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
-                    }
-                    .frame(maxWidth: .infinity).padding(.vertical, 12).background(green)
+            if draft.isEmpty { composeButtons } else { draftBlock }
+            if !status.isEmpty {
+                Text(status).font(.system(size: 12.5)).foregroundColor(.secondary)
+            }
+
+            if let cid = r?.cid, !cid.isEmpty {
+                Button(action: { Task { await markContacted() } }) {
+                    Text(contacted ? "Logged to pipeline ✓" : "Mark contacted")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(contacted ? .secondary : green)
                 }
-                .disabled(drafting)
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(draft).font(.system(size: 14)).foregroundColor(.primary)
-                        .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(.secondarySystemBackground))
-                    Button(action: copyDraft) {
-                        Text(copied ? "Copied ✓" : "Copy reply")
-                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
-                            .frame(maxWidth: .infinity).padding(.vertical, 12).background(green)
-                    }
-                }
+                .disabled(contacted)
             }
         }
+    }
+
+    // MARK: compose
+
+    private var composeButtons: some View {
+        VStack(spacing: 10) {
+            actionButton(busyKind == "reply" ? "Drafting…" : "Draft a reply", filled: true) {
+                Task { await makeDraft() }
+            }
+            if let cart = result?.cart, (cart.count ?? 0) > 0, !(cart.url ?? "").isEmpty {
+                actionButton(busyKind == "nudge" ? "Writing…" : "Nudge basket", filled: false) {
+                    Task { await makeNudge() }
+                }
+            }
+            actionButton(busyKind == "look" ? "Curating…" : "Send a lookbook", filled: false) {
+                Task { await makeLookbook() }
+            }
+        }
+        .disabled(busy)
+        .opacity(busy ? 0.6 : 1)
+    }
+
+    private var draftBlock: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(draft).font(.system(size: 14)).foregroundColor(.primary)
+                .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.secondarySystemBackground))
+            HStack(spacing: 10) {
+                sendButton(copied ? "Copied ✓" : "Copy", system: "doc.on.doc") { copyDraft() }
+                if rawNumber != nil {
+                    sendButton("WhatsApp", system: "message.fill") { send(.whatsapp) }
+                    sendButton("Messages", system: "bubble.left.fill") { send(.messages) }
+                }
+            }
+            Button("Rewrite") { draft = ""; copied = false }
+                .font(.system(size: 13)).foregroundColor(.secondary)
+        }
+    }
+
+    private func actionButton(_ title: String, filled: Bool, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(filled ? .white : green)
+                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(filled ? green : .clear)
+                        .overlay(RoundedRectangle(cornerRadius: 12)
+                            .stroke(green.opacity(filled ? 0 : 0.4), lineWidth: 1))
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func sendButton(_ title: String, system: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: system).font(.system(size: 13, weight: .semibold))
+                Text(title).font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundColor(green)
+            .frame(maxWidth: .infinity).padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 10).fill(green.opacity(0.10)))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: send
+
+    private enum Channel { case whatsapp, messages }
+
+    /// The shared query as a phone number, when that is what was shared (from Contacts, a tel: link…).
+    private var rawNumber: String? {
+        guard let ref = ClientClassifier.classify(query), ref.kind == .phone else { return nil }
+        return ref.value
+    }
+
+    private func send(_ ch: Channel) {
+        UIPasteboard.general.string = draft            // always leave the text, in case open is blocked
+        guard let raw = rawNumber else { return }
+        let text = draft.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let url: URL? = {
+            switch ch {
+            case .whatsapp: return URL(string: "https://wa.me/\(raw.filter { $0.isNumber })?text=\(text)")
+            case .messages: return URL(string: "sms:\(raw)&body=\(text)")
+            }
+        }()
+        if let url { onOpen(url) }
+        Task { await markContacted() }                 // a send is a real contact
     }
 
     // MARK: actions
@@ -144,16 +231,47 @@ struct ShareRootView: View {
 
     private func makeDraft() async {
         guard let ref = ClientClassifier.classify(query) else { return }
-        drafting = true
-        defer { drafting = false }
-        if let d = try? await HaliaAPI.current.draft(ref, channel: "message", instruction: "") {
+        busy = true; busyKind = "reply"; status = ""
+        defer { busy = false; busyKind = "" }
+        if let d = try? await HaliaAPI.current.draft(ref, channel: "message", instruction: "Reply warmly and personally.") {
             draft = d.draft ?? ""
+        } else { status = "Could not draft a message." }
+    }
+
+    private func makeNudge() async {
+        guard let ref = ClientClassifier.classify(query), let url = result?.cart?.url, !url.isEmpty else { return }
+        busy = true; busyKind = "nudge"; status = ""
+        defer { busy = false; busyKind = "" }
+        if let d = try? await HaliaAPI.current.draft(ref, channel: "message",
+            instruction: "They have items in their basket they have not checked out. Write a warm, personal note offering to help them complete it or answer any questions.") {
+            draft = (d.draft ?? "") + "\n\n" + url
+        } else { status = "Could not write a basket nudge." }
+    }
+
+    private func makeLookbook() async {
+        guard let ref = ClientClassifier.classify(query) else { return }
+        busy = true; busyKind = "look"; status = ""
+        defer { busy = false; busyKind = "" }
+        do {
+            let picks = try await HaliaAPI.current.suggest(ref, instruction: "")
+            let ids = picks.map { $0.productId }
+            guard !ids.isEmpty else { status = "No pieces to suggest just now."; return }
+            let link = try await HaliaAPI.current.catalogue(productIds: ids, name: result?.name ?? "")
+            draft = "I set aside a few pieces I thought you would love. You can see them here:\n\(link)"
+        } catch {
+            status = "Could not build a lookbook."
         }
     }
 
     private func copyDraft() {
         UIPasteboard.general.string = draft
         copied = true
+    }
+
+    private func markContacted() async {
+        guard let cid = result?.cid, !cid.isEmpty, !contacted else { return }
+        _ = try? await HaliaAPI.current.logContacted(cid: cid, clientName: result?.name, reason: "Contacted from Share")
+        contacted = true
     }
 
     // Brand grade colours (no gold): A* charcoal, A green, B slate, else grey.
