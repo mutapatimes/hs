@@ -115,6 +115,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var bottomBarHeight: NSLayoutConstraint!
     private var bottomBarMode: Mode?          // only rebuild the bottom bar when the mode changes
     private var kbHeight: NSLayoutConstraint! // the keyboard's overall height (taller while searching)
+    private static let baseHeight: CGFloat = 384   // resting height; more room for the template list
+    private static let searchHeight: CGFloat = 540 // Products mode: keys plus results
 
     private var filtered: [Template] {
         guard let c = selectedCategory else { return templates }
@@ -147,7 +149,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = paper
-        pinHeight(320)
+        pinHeight(Self.baseHeight)
         buildClientBar()
         buildActionRow()
         buildChips()
@@ -219,7 +221,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         } else {
             emptyLabel.isHidden = true
         }
-        if showGrid { grid.reloadData() }
+        grid.reloadData()   // always, so the collection view's item count never lags behind products
         table.reloadData()
     }
 
@@ -893,9 +895,11 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ProductCell.id, for: indexPath) as! ProductCell
+        guard indexPath.item < products.count else { return cell }   // stale layout mid data-change
         let p = products[indexPath.item]
         cell.cap.text = p.title
         let token = indexPath.item + 1                     // guards against cell reuse
+        cell.img.image = nil                               // avoid a recycled cell flashing the old photo
         cell.img.tag = token
         if let url = p.imageURL { ThumbnailLoader.shared.load(url, into: cell.img, token: token) }
         return cell
@@ -961,11 +965,11 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         bottomBar.subviews.forEach { $0.removeFromSuperview() }
         if mode == .products {
             bottomBarHeight.constant = 198
-            kbHeight?.constant = 500
+            kbHeight?.constant = Self.searchHeight
             buildSearchKeyboard(into: bottomBar)
         } else {
             bottomBarHeight.constant = 50
-            kbHeight?.constant = 320
+            kbHeight?.constant = Self.baseHeight
             buildControlRow(into: bottomBar)
         }
     }
