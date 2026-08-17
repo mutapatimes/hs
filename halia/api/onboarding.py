@@ -115,11 +115,17 @@ def _shop_pending_new(shop_domain: str) -> str:
     return tok
 
 
-def _shop_pending_set(tok: str, token: str, shop_domain: str | None = None) -> None:
+def _shop_pending_set(tok: str, payload, shop_domain: str | None = None) -> None:
+    """Store the OAuth result for a pending install. `payload` is the full token payload (dict) so
+    the finalizer can persist the expiry + refresh token; a bare string is still accepted."""
     with _SHOP_LOCK:
         p = _PENDING_SHOP.get(tok)
         if p:
-            p["token"] = token
+            if isinstance(payload, dict):
+                p["payload"] = payload
+                p["token"] = payload.get("access_token")
+            else:
+                p["token"] = payload
             if shop_domain:
                 p["shop_domain"] = shop_domain
 
@@ -147,10 +153,12 @@ def _verify_shopify_hmac(params: dict, secret: str) -> bool:
     return hmac.compare_digest(digest, sig)
 
 
-def _shopify_exchange(shop_domain: str, code: str, post=None) -> str:
-    """Exchange an OAuth code for a permanent Admin API access token. `post` is injectable."""
+def _shopify_exchange(shop_domain: str, code: str, post=None) -> dict:
+    """Exchange an OAuth code for an EXPIRING offline Admin API token. Returns the full payload
+    (access_token + expires_in / refresh_token): Shopify no longer accepts non-expiring tokens on
+    the Admin API. `post` is injectable."""
     body = {"client_id": config.SHOPIFY_API_KEY, "client_secret": config.SHOPIFY_API_SECRET,
-            "code": code}
+            "code": code, "expiring": 1}
     if post is None:
         import requests
         r = requests.post(f"https://{shop_domain}/admin/oauth/access_token", json=body, timeout=20)
@@ -158,10 +166,9 @@ def _shopify_exchange(shop_domain: str, code: str, post=None) -> str:
         data = r.json()
     else:
         data = post(shop_domain, body)
-    token = (data or {}).get("access_token")
-    if not token:
+    if not (data or {}).get("access_token"):
         raise RuntimeError("Shopify did not return an access token")
-    return token
+    return data
 
 _CSS = (
     "body{margin:0;background:#f1f1f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',"
@@ -1566,7 +1573,12 @@ def register(app) -> None:
             shop = domain
             label = label or domain.replace(".myshopify.com", "")
             store.create_tenant(shop, "shopify", label, hash_token(link_token))
-            store.save_shop(shop, admin_token)
+            if pend and pend.get("payload"):
+                # OAuth install: persist the EXPIRING token with its expiry + refresh token.
+                from halia.api.shopify_auth import _persist_token
+                _persist_token(shop, pend["payload"])
+            else:
+                store.save_shop(shop, admin_token)   # a manually-pasted (custom-app) token
             if shop_token:
                 _shop_pending_pop(shop_token)
         elif source == "bigcommerce":
@@ -1752,12 +1764,12 @@ def register(app) -> None:
             return HTMLResponse(_page("Halia", "<h1>Could not verify</h1><p class=sub>Please try "
                                       "the Halia setup again.</p>"), 400)
         try:
-            token = _shopify_exchange(shop, code)
+            payload = _shopify_exchange(shop, code)
         except Exception:  # noqa: BLE001
             traceback.print_exc()
             return HTMLResponse(_page("Halia", "<h1>Could not connect</h1><p class=sub>Please try "
                                       "again from the Halia setup.</p>"), 502)
-        _shop_pending_set(state, token, shop)
+        _shop_pending_set(state, payload, shop)
         return HTMLResponse(_page("Connected · Halia",
                                   "<h1 class=ok>&#10003; Connected</h1><p class=sub>Halia is connected "
                                   "to your Shopify store. You can close this tab and return to the "
