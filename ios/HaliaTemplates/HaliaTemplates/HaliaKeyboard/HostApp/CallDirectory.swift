@@ -5,9 +5,9 @@ import Foundation
 import CallKit
 
 enum CallDirectory {
-    /// The Call Directory extension's bundle identifier. Set this to the ext target's bundle id
-    /// (host app id + ".HaliaCallDirectory") once you create the target in Xcode.
-    static let extensionIdentifier = "com.haliascore.haliatemplates.HaliaCallDirectory"
+    /// The Call Directory extension's bundle identifier. Must match the HaliaCallDirectory target's
+    /// bundle id exactly (case-sensitive) — the app is com.haliascore.HaliaTemplates.
+    static let extensionIdentifier = "com.haliascore.HaliaTemplates.HaliaCallDirectory"
 
     /// Pull the VIP list from Halia, store it in the App Group, and ask iOS to reload the extension.
     /// Signed out clears the list so no client numbers linger on the device.

@@ -1,0 +1,4 @@
+# Xcode build output (produced by xcodebuild / Xcode, not source)
+build/
+DerivedData/
+*.xcuserstate
