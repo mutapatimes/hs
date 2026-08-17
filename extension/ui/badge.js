@@ -141,6 +141,13 @@
     .tot { margin-top: 7px; font-weight: 600; font-size: 13px; }
     .pth { width: 38px; height: 38px; object-fit: cover; border: 1px solid #ece5d6; flex: none;
       background: #f2efe6; }
+    /* Media panel: a photo grid for sending product imagery into the chat */
+    .mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .mcard { border: 1px solid #ece5d6; background: #fff; padding: 6px; display: flex; flex-direction: column; }
+    .mimg { width: 100%; height: 104px; object-fit: cover; background: #f2efe6; display: block; }
+    .mtt { font-size: 11.5px; color: #33302a; margin: 6px 0; line-height: 1.3; max-height: 2.6em; overflow: hidden; }
+    .macts { display: flex; gap: 5px; flex-wrap: wrap; margin-top: auto; }
+    .macts .btn { font-size: 11px; padding: 4px 8px; }
     .tlist { border: 1px solid #ece5d6; max-height: 196px; overflow-y: auto; margin-bottom: 8px; background: #fff; }
     .tcat { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #8a8271;
       padding: 8px 8px 3px; background: #faf7f0; position: sticky; top: 0; }
@@ -190,7 +197,8 @@
   let mode = "clienteling"; // "clienteling" (client-facing) | "internal" (team coordination)
   let view = "client";      // clienteling crossbar tab: "client" | "reply" | "sell"
   let whyAll = false, noteOpen = false;   // per-client: expand the reasons list / reveal the note box
-  const VIEW_SECS = { client: ["client"], reply: ["tpl"], sell: ["camp", "prod", "cat"] };
+  const VIEW_SECS = { client: ["client"], reply: ["tpl"], sell: ["camp", "prod", "media", "cat"] };
+  let mediaResults = [], mediaQuery = "";   // the Media panel's own product search (send product photos)
   let tplQuery = "", tplSel = null;   // template search text + selected index
   let threadReader = null;            // surface-supplied () => [{from,text}] of the visible chat
   let draftInstr = "";                // the associate's optional "what to say" note
@@ -344,6 +352,7 @@
           <section class="sec" data-s="tpl"></section>
           <section class="sec" data-s="camp"></section>
           <section class="sec" data-s="prod"></section>
+          <section class="sec" data-s="media"></section>
           <section class="sec" data-s="cat"></section>
         </div>
         <div class="foot" data-a="foot"><span class="m live" style="color:#8a7a4f">⁂</span> Read live from your book. Nothing stored.</div>
@@ -362,7 +371,7 @@
     dock.querySelector('[data-a="tabs"]').addEventListener("click", (e) => {
       const b = e.target.closest(".tab"); if (b && b.dataset.v) setView(b.dataset.v);
     });
-    renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue();
+    renderTemplates(); renderCampaigns(); renderProducts(); renderMedia(); renderCatalogue();
     applyMode(); applyFolds(); paintHandle();
   }
 
@@ -384,12 +393,12 @@
     if (internal) {
       // Internal mode is only two blocks (client + team brief) — no crossbar needed.
       show("client", true); show("team", true);
-      ["tpl", "camp", "prod", "cat"].forEach((n) => show(n, false));
+      ["tpl", "camp", "prod", "media", "cat"].forEach((n) => show(n, false));
     } else {
       // Clienteling: show ONLY the active tab's section(s), so it reads as one calm view.
       show("team", false);
       const active = VIEW_SECS[view] || VIEW_SECS.client;
-      ["client", "tpl", "camp", "prod", "cat"].forEach((n) => {
+      ["client", "tpl", "camp", "prod", "media", "cat"].forEach((n) => {
         const on = active.indexOf(n) >= 0; show(n, on);
         if (on) { const s2 = sec(n); if (s2) { s2.classList.remove("vin"); void s2.offsetWidth; s2.classList.add("vin"); } }
       });
@@ -984,6 +993,88 @@
     el.querySelector('[data-a="catcopy"]').onclick = () => copy(url, "Catalogue link copied");
   }
 
+  // ── MEDIA ─────────────────────────────────────────────────────────────────
+  // Search products and send their PHOTO into the chat: "Send image" copies the picture to the
+  // clipboard so the associate pastes it straight into WhatsApp / Gmail (both accept a pasted image).
+  function renderMedia() {
+    const el = sec("media"); if (!el) return;
+    if (!ctx || ctx.platform !== "shopify") { el.innerHTML = ""; return; }   // product photos come from Shopify
+    el.innerHTML = `<div class="sh">Media</div>
+      <div class="muted" style="margin:-3px 0 8px">Find a product and send its photo into the chat.</div>
+      <div style="display:flex;gap:6px">
+        <input class="psearch" data-a="msearch" placeholder="Search products" value="${esc(mediaQuery)}">
+        <button class="btn" data-a="mgo">Search</button>
+      </div>
+      <div data-a="mresults" style="margin-top:8px"></div>`;
+    const inp = el.querySelector('[data-a="msearch"]');
+    const go = () => doMediaSearch((inp && inp.value) || "");
+    el.querySelector('[data-a="mgo"]').onclick = go;
+    if (inp) inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+    paintMedia();
+  }
+  function doMediaSearch(q) {
+    mediaQuery = q;
+    const box = root && root.querySelector('[data-a="mresults"]');
+    if (box) box.innerHTML = `<div class="muted">Searching…</div>`;
+    try {
+      chrome.runtime.sendMessage({ type: "halia:products", q }, (r) => {
+        if (chrome.runtime.lastError || !r || r.error) {
+          mediaResults = [];
+          if (box) box.innerHTML = `<div class="muted">Couldn't load products.</div>`;
+          return;
+        }
+        mediaResults = (r.products || []).filter((p) => p.image);   // media = products that HAVE a photo
+        if (!mediaResults.length && box) box.innerHTML = `<div class="muted">No product photos found.</div>`;
+        else paintMedia();
+      });
+    } catch (e) { /* ignore */ }
+  }
+  function paintMedia() {
+    const box = root && root.querySelector('[data-a="mresults"]'); if (!box) return;
+    if (!mediaResults.length) { box.innerHTML = ""; return; }
+    box.innerHTML = `<div class="mgrid">` + mediaResults.slice(0, 12).map((p, i) => {
+      const price = (p.variants && p.variants[0] && p.variants[0].price) ? " · £" + esc(p.variants[0].price) : "";
+      return `<div class="mcard">
+        <img class="mimg" data-mi="${i}" src="${esc(p.image)}" referrerpolicy="no-referrer" alt="">
+        <div class="mtt">${esc(p.title)}${price}</div>
+        <div class="macts">
+          <button class="btn primary" data-mcopy="${i}">Send image</button>
+          ${inserter ? `<button class="btn" data-mlink="${i}">Insert link</button>`
+            : `<button class="btn" data-mlinkc="${i}">Copy link</button>`}
+        </div></div>`;
+    }).join("") + `</div>`;
+    box.querySelectorAll("img.mimg").forEach((im) => { im.onerror = () => { im.style.display = "none"; }; });
+    mediaResults.forEach((p, i) => {
+      const cp = box.querySelector(`[data-mcopy="${i}"]`); if (cp) cp.onclick = () => copyImage(p.image);
+      const lk = box.querySelector(`[data-mlink="${i}"]`); if (lk) lk.onclick = () => place(p.image);
+      const lc = box.querySelector(`[data-mlinkc="${i}"]`); if (lc) lc.onclick = () => copy(p.image, "Image link copied");
+    });
+  }
+  // Put the product photo on the clipboard as a PNG so it can be pasted into the chat. Draws through a
+  // canvas (Shopify's CDN sends CORS headers, so it isn't tainted); falls back to copying the URL.
+  function copyImage(url) {
+    if (!url) return;
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = img.naturalWidth || 800; c.height = img.naturalHeight || 800;
+          c.getContext("2d").drawImage(img, 0, 0);
+          c.toBlob((blob) => {
+            if (!blob || !navigator.clipboard || !window.ClipboardItem) { copy(url, "Image link copied"); return; }
+            navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])
+              .then(() => toast("Image copied — paste to send"))
+              .catch(() => copy(url, "Image link copied"));
+          }, "image/png");
+        } catch (e) { copy(url, "Image link copied"); }
+      };
+      img.onerror = () => copy(url, "Image link copied");
+      img.src = url;
+    } catch (e) { copy(url, "Image link copied"); }
+  }
+
   const API = {
     mount() {
       ensure();
@@ -998,7 +1089,7 @@
     },
     setContext(c) {
       ctx = c && !c.error ? c : null;
-      if (root) { renderTemplates(); renderCampaigns(); renderProducts(); renderCatalogue(); renderTeam(); renderFoot(); }
+      if (root) { renderTemplates(); renderCampaigns(); renderProducts(); renderMedia(); renderCatalogue(); renderTeam(); renderFoot(); }
     },
     setClient(state) {
       client = state; // null | {loading,name} | {found,data} | {notfound,name} | {error}
