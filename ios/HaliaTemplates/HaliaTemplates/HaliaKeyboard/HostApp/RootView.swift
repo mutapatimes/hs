@@ -63,6 +63,22 @@ final class RootModel: ObservableObject {
         for label in StoreInfoStore.labels { StoreInfoStore.set(info[label] ?? "", for: label) }
     }
 
+    /// Connect from a scanned code (a halia://connect?t=…&b=… payload) or a pasted token, then sync.
+    /// The address is fixed to the default unless the code carries its own, so nobody types a URL.
+    func connect(scanned raw: String) {
+        var t = "", b = ""
+        if let comps = URLComponents(string: raw), comps.scheme == "halia" {
+            t = comps.queryItems?.first { $0.name == "t" }?.value ?? ""
+            b = comps.queryItems?.first { $0.name == "b" }?.value ?? ""
+        } else {
+            t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        guard !t.isEmpty else { status = "That code did not contain a Halia token."; isError = true; return }
+        token = t
+        if !b.isEmpty { baseURL = b }
+        Task { await sync() }
+    }
+
     /// Sign this device out: tell Halia the seat is inactive, then wipe every on-device credential
     /// and cache. The keyboard reads these, so it falls back to its "connect in the app" state.
     func signOut() async {
@@ -173,7 +189,6 @@ private enum Phase { case splash, wizard, home }
 struct RootView: View {
     @StateObject private var model = RootModel()
     @State private var phase: Phase = Credentials.hasToken ? .home : .splash
-    @State private var startStep = 0
 
     var body: some View {
         ZStack {
@@ -183,12 +198,10 @@ struct RootView: View {
                 WelcomeView { go(.wizard) }
                     .transition(.opacity)
             case .wizard:
-                WizardView(model: model, startStep: startStep) { withAnimation(.easeInOut(duration: 0.4)) { phase = .home } }
+                WizardView(model: model) { withAnimation(.easeInOut(duration: 0.4)) { phase = .home } }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             case .home:
-                HomeView(model: model,
-                         onEditInfo: { startStep = 1; go(.wizard) },
-                         onReconnect: { startStep = 0; go(.wizard) })
+                HomeView(model: model, onReconnect: { go(.wizard) })
                     .transition(.opacity)
             }
         }
@@ -209,22 +222,12 @@ struct RootView: View {
         }
     }
 
-    /// Handle halia://connect?t=<token>&b=<base> from the dashboard QR: store the credentials and
-    /// sync, so the merchant never types a token.
+    /// Handle halia://connect?t=<token>&b=<base> from the dashboard QR opened in the system camera:
+    /// route to the wizard and connect, so the merchant never types a token.
     private func handleConnect(_ url: URL) {
-        guard url.scheme == "halia", url.host == "connect",
-              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
-        else { return }
-        let token = items.first { $0.name == "t" }?.value ?? ""
-        let base = items.first { $0.name == "b" }?.value ?? ""
-        guard !token.isEmpty else { return }
-        model.token = token
-        if !base.isEmpty { model.baseURL = base }
-        Credentials.token = token
-        if !base.isEmpty { Credentials.baseURL = base }
-        startStep = 0
+        guard url.host == "connect" else { return }
         go(.wizard)
-        Task { await model.sync() }
+        model.connect(scanned: url.absoluteString)
     }
 }
 
@@ -299,26 +302,17 @@ private struct WelcomeView: View {
 
 private struct WizardView: View {
     @ObservedObject var model: RootModel
-    let startStep: Int
     let onFinish: () -> Void
 
-    @State private var step: Int
-    private let total = 3
-
-    init(model: RootModel, startStep: Int, onFinish: @escaping () -> Void) {
-        self.model = model
-        self.startStep = startStep
-        self.onFinish = onFinish
-        _step = State(initialValue: startStep)
-    }
+    @State private var step = 0
+    private let total = 2
 
     var body: some View {
         VStack(spacing: 0) {
             header
             TabView(selection: $step) {
                 ConnectStep(model: model).tag(0)
-                StoreInfoStep(model: model).tag(1)
-                KeyboardStep().tag(2)
+                KeyboardStep().tag(1)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeInOut(duration: 0.35), value: step)
@@ -377,7 +371,6 @@ private struct WizardView: View {
     }
 
     private func next() {
-        if step == 1 { model.saveInfo() }          // persist store info as you leave that step
         if step == total - 1 { onFinish(); return }
         withAnimation(.easeInOut(duration: 0.35)) { step = min(total - 1, step + 1) }
     }
@@ -409,26 +402,34 @@ private struct StepScaffold<Content: View>: View {
 
 private struct ConnectStep: View {
     @ObservedObject var model: RootModel
+    @State private var showScanner = false
+    @State private var showToken = false
+
     var body: some View {
-        StepScaffold("Connect Halia", "Scan the code from your dashboard, or paste a token.") {
+        StepScaffold("Connect Halia", "Scan the code shown in your Halia dashboard.") {
             Card {
                 cardLabel("Connect")
-                Text("Open Halia on your computer, go to Settings, and scan the QR with your phone. Or paste a token below.")
+                Text("Open Halia on your computer and go to Settings. Point your camera at the connect code there, and this signs you in.")
                     .font(.system(size: 13)).foregroundColor(Palette.soft).lineSpacing(2)
-                LuxeField(label: "Halia token", text: $model.token, secure: true)
-                LuxeField(label: "Address", text: $model.baseURL, keyboard: .URL)
-                HStack(spacing: 12) {
-                    LuxeButton("Connect & sync") { Task { await model.sync() } }
-                        .disabled(model.busy)
-                        .opacity(model.busy ? 0.5 : 1)
-                    if model.busy {
-                        HaliaLoadingRow(label: "Syncing")
-                    } else if !model.status.isEmpty {
-                        Text(model.status).font(.system(size: 13.5, weight: .semibold))
-                            .foregroundColor(model.isError ? .red : Palette.brand)
+
+                Button { showScanner = true } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "qrcode.viewfinder").font(.system(size: 18, weight: .semibold))
+                        Text("Scan QR code").font(.system(size: 15, weight: .semibold))
                     }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Palette.brand))
                 }
-                .padding(.top, 4)
+                .buttonStyle(.plain).padding(.top, 2)
+
+                if model.busy {
+                    HaliaLoadingRow(label: "Syncing").padding(.top, 2)
+                } else if !model.status.isEmpty {
+                    Text(model.status).font(.system(size: 13.5, weight: .semibold))
+                        .foregroundColor(model.isError ? .red : Palette.brand).padding(.top, 2)
+                }
+
                 if model.signedIn {
                     HStack {
                         Text(model.seatName.isEmpty ? "Signed in" : "Signed in as \(model.seatName)")
@@ -439,25 +440,22 @@ private struct ConnectStep: View {
                     }
                     .padding(.top, 2)
                 }
-            }
-        }
-    }
-}
 
-private struct StoreInfoStep: View {
-    @ObservedObject var model: RootModel
-    var body: some View {
-        StepScaffold("What your house offers", "These appear in the keyboard under Store info, one tap to insert.") {
-            Card {
-                cardLabel("Your house")
-                ForEach(StoreInfoStore.labels, id: \.self) { label in
-                    LuxeField(label: label, text: Binding(
-                        get: { model.info[label] ?? "" },
-                        set: { model.info[label] = $0 }))
+                Divider().overlay(Palette.line).padding(.vertical, 2)
+                if showToken {
+                    LuxeField(label: "Halia token", text: $model.token, secure: true)
+                    LuxeButton("Connect & sync") { model.connect(scanned: model.token) }
+                        .disabled(model.busy).opacity(model.busy ? 0.5 : 1)
+                } else {
+                    Button("Paste a token instead") { withAnimation { showToken = true } }
+                        .font(.system(size: 13, weight: .semibold)).foregroundColor(Palette.sage)
                 }
             }
-            Text("You can change these any time from your desk.")
-                .font(.system(size: 12.5)).foregroundColor(Palette.faint).padding(.horizontal, 4)
+        }
+        .fullScreenCover(isPresented: $showScanner) {
+            QRScanner(
+                onCode: { code in showScanner = false; model.connect(scanned: code) },
+                onCancel: { showScanner = false })
         }
     }
 }
@@ -493,7 +491,6 @@ private struct KeyboardStep: View {
 
 private struct HomeView: View {
     @ObservedObject var model: RootModel
-    let onEditInfo: () -> Void
     let onReconnect: () -> Void
 
     var body: some View {
@@ -528,8 +525,6 @@ private struct HomeView: View {
 
                 Card {
                     cardLabel("Manage")
-                    homeRow("Store info", "What your house offers", action: onEditInfo)
-                    Divider().overlay(Palette.line)
                     homeRow("Reconnect", "Scan a new code or paste a token", action: onReconnect)
                     Divider().overlay(Palette.line)
                     Button(action: { Task { await model.signOut() } }) {
