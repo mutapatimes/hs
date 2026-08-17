@@ -64,7 +64,7 @@
       display: grid; place-items: center; font-weight: 600; font-size: 15px; letter-spacing: .02em; }
     .gbadge { position: absolute; right: -4px; bottom: -4px; min-width: 20px; height: 18px; padding: 0 4px;
       border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700;
-      font-size: 10px; color: #fff; background: #6b6355; border: 2px solid #fbfaf7; }
+      font-size: 10px; color: #fff; background: #6b6355; border: 2px solid #fbfaf7; overflow: hidden; }
     .gbadge.g-a { background: #1F564A; } .gbadge.g-b { background: #55606b; } .gbadge.g-c { background: #8a8271; }
     /* handle grade chip (shown collapsed when a client is recognised) */
     .handle .hg { writing-mode: horizontal-tb; color: #fff; font-size: 10px; font-weight: 700;
@@ -93,6 +93,23 @@
       @keyframes shine { 0% { background-position: 130% 0; } 100% { background-position: -30% 0; } }
       @keyframes pxon { 0%, 100% { opacity: .3; } 45% { opacity: .95; } }
       @keyframes shimtx { to { background-position: -220% 0; } }
+      /* alive: a switched tab rises in; the client's reasons + actions cascade */
+      .vin { animation: hfade .34s cubic-bezier(.2,.7,.2,1) both; }
+      .reasons li { animation: hfade .3s cubic-bezier(.2,.7,.2,1) both; }
+      .reasons li:nth-child(2) { animation-delay: .05s; }
+      .reasons li:nth-child(3) { animation-delay: .10s; }
+      .reasons li:nth-child(4) { animation-delay: .15s; }
+      .reasons li:nth-child(5) { animation-delay: .20s; }
+      .reasons li:nth-child(6) { animation-delay: .25s; }
+      .acts .btn { animation: hfade .3s cubic-bezier(.2,.7,.2,1) both; }
+      /* a light sheen sweeps the grade badge when a new client lands */
+      .head.fadein .gbadge::after { content: ""; position: absolute; inset: 0; border-radius: 9px;
+        background: linear-gradient(115deg, transparent 32%, rgba(255,255,255,.55) 50%, transparent 68%);
+        transform: translateX(-130%); animation: sheen .8s ease .18s 1 both; }
+      @keyframes sheen { to { transform: translateX(130%); } }
+      /* the ⁂ mark gently breathes — the panel is reading live */
+      .foot .m.live { animation: breathe 2.6s ease-in-out infinite; }
+      @keyframes breathe { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
     }
     .who { flex: 1; min-width: 0; }
     .who .nm { font-weight: 600; font-size: 15px; line-height: 1.2; }
@@ -111,8 +128,9 @@
     .reco { line-height: 1.4; color: #33302a; font-size: 12.5px; }
     .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
     .btn { border: 1px solid #d8cfbc; background: #fff; color: #1a1a1a; padding: 6px 10px; cursor: pointer;
-      font-size: 12px; text-decoration: none; display: inline-block; }
+      font-size: 12px; text-decoration: none; display: inline-block; transition: background .15s ease, transform .06s ease; }
     .btn:hover { background: #f4f1ea; }
+    .btn:active { transform: translateY(1px); }
     .btn.primary { background: #1a1a1a; color: #fbfaf7; border-color: #1a1a1a; }
     .btn.primary:hover { background: #333; }
     .mini { border: 1px solid #d8cfbc; background: #fff; color: #1a1a1a; cursor: pointer; font-size: 12px;
@@ -189,6 +207,22 @@
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
   function money(v) { return "£" + Number(v || 0).toLocaleString(); }
+  // Ease a number up from 0 to its value on a fresh client — a small "alive" flourish. Preserves a
+  // leading £ and re-formats with thousands separators; leaves non-numeric values (e.g. "High") alone.
+  function countUp(el) {
+    try { if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; } catch (e) { /* ignore */ }
+    const raw = (el.textContent || "").trim();
+    const cur = raw[0] === "£";
+    const target = parseFloat(raw.replace(/[^0-9.]/g, ""));
+    if (!isFinite(target) || target <= 0) return;
+    const fmt = (v) => (cur ? "£" : "") + Math.round(v).toLocaleString("en-GB");
+    const dur = 700, t0 = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    (function step(now) {
+      const p = Math.min(1, ((now || Date.now()) - t0) / dur);
+      el.textContent = fmt(target * (1 - Math.pow(1 - p, 3)));   // easeOutCubic
+      if (p < 1) requestAnimationFrame(step); else el.textContent = fmt(target);
+    })(t0);
+  }
   function gradeClass(g) {
     g = String(g || "").trim().toUpperCase();
     return g[0] === "A" ? "g-a" : g[0] === "B" ? "g-b" : g[0] === "C" ? "g-c" : "";
@@ -312,7 +346,7 @@
           <section class="sec" data-s="prod"></section>
           <section class="sec" data-s="cat"></section>
         </div>
-        <div class="foot" data-a="foot"><span class="m" style="color:#8a7a4f">⁂</span> Read live from your book. Nothing stored.</div>
+        <div class="foot" data-a="foot"><span class="m live" style="color:#8a7a4f">⁂</span> Read live from your book. Nothing stored.</div>
       </aside>
       <div class="toast">Copied</div>`;
     root.appendChild(dock);
@@ -355,7 +389,10 @@
       // Clienteling: show ONLY the active tab's section(s), so it reads as one calm view.
       show("team", false);
       const active = VIEW_SECS[view] || VIEW_SECS.client;
-      ["client", "tpl", "camp", "prod", "cat"].forEach((n) => show(n, active.indexOf(n) >= 0));
+      ["client", "tpl", "camp", "prod", "cat"].forEach((n) => {
+        const on = active.indexOf(n) >= 0; show(n, on);
+        if (on) { const s2 = sec(n); if (s2) { s2.classList.remove("vin"); void s2.offsetWidth; s2.classList.add("vin"); } }
+      });
       if (tabs) tabs.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b.dataset.v === view));
     }
     const tg = root && root.querySelector('[data-a="mode"]');
@@ -384,7 +421,7 @@
   // The footer shows who is signed in (the seat) with a one-click sign out, else the zero-retention note.
   function renderFoot() {
     const el = root && root.querySelector('[data-a="foot"]'); if (!el) return;
-    const mark = '<span class="m" style="color:#8a7a4f">⁂</span> ';
+    const mark = '<span class="m live" style="color:#8a7a4f">⁂</span> ';
     if (ctx && ctx.seat) {
       el.innerHTML = mark + "Signed in as " + esc(ctx.seat)
         + ' · <span data-a="signout" style="cursor:pointer;text-decoration:underline">Sign out</span>';
@@ -450,7 +487,7 @@
         </div>
       </div>
       ${cue}
-      ${d.latent ? `<div class="box"><div class="k">Latent value</div><div class="v">${esc(d.latent)}</div></div>` : ""}
+      ${d.latent ? `<div class="box"><div class="k">Latent value</div><div class="v" data-a="latentv">${esc(d.latent)}</div></div>` : ""}
       ${cart ? `<div class="box basket"><div class="k">Open basket</div>
         <div class="v">${money(cart.value)}${cart.count ? ` <span style="font-weight:400;font-size:11px;color:#6b6355">${esc(cart.count)} item${cart.count === 1 ? "" : "s"}</span>` : ""}</div>
         ${cart.url ? `<a class="link" href="${esc(cart.url)}" target="_blank" rel="noopener">Open checkout</a>` : ""}</div>` : ""}
@@ -478,6 +515,7 @@
     if (wm) wm.onclick = () => { whyAll = true; renderClient(); };
     const no = el.querySelector('[data-a="noteopen"]');
     if (no) no.onclick = () => { noteOpen = true; renderClient(); };
+    if (anim) { const lv = el.querySelector('[data-a="latentv"]'); if (lv) countUp(lv); }  // a new client → the number counts up
   }
 
   // ── TEAM (internal mode) ──────────────────────────────────────────────────
