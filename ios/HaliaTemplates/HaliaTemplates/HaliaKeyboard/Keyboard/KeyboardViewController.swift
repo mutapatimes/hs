@@ -61,6 +61,18 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var draftShownAnimated = false
     private var lastInserted: String?
     private var undoClearTask: Task<Void, Never>?
+
+    // Whether an inserted template carries its greeting ("Dear …,") and sign-off ("Warm regards, …").
+    // Mid-conversation you usually want neither, so these are toggles in the action row. Persisted in
+    // the App Group so the choice sticks between chats. Default on.
+    private var includeGreeting: Bool {
+        get { (AppGroup.defaults.object(forKey: "halia.kb.greeting") as? Bool) ?? true }
+        set { AppGroup.defaults.set(newValue, forKey: "halia.kb.greeting") }
+    }
+    private var includeSignoff: Bool {
+        get { (AppGroup.defaults.object(forKey: "halia.kb.signoff") as? Bool) ?? true }
+        set { AppGroup.defaults.set(newValue, forKey: "halia.kb.signoff") }
+    }
     private var suggestions: [SuggestRow] = []
     private var products: [HaliaAPI.Product] = []
     private var productCartBase: String?
@@ -354,9 +366,19 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             let base = hasFullAccess && (statusText == nil)
             let clientShow = (currentRef != nil) && base
             let savedN = SavedItemsStore.count
-            let show = clientShow || (savedN > 0 && base)
+            let showToggles = base && audience == .client && !templates.isEmpty
+            let show = showToggles || clientShow || (savedN > 0 && base)
             actionHeight.constant = show ? 46 : 0; actionScroll.isHidden = !show
             guard show else { return }
+            // Greeting / sign-off switches: once you are mid-chat you rarely want either.
+            if showToggles {
+                actionStack.addArrangedSubview(togglePill("Dear", on: includeGreeting) { [weak self] in
+                    guard let self else { return }; self.includeGreeting.toggle(); self.rebuildActionRow()
+                })
+                actionStack.addArrangedSubview(togglePill("Sign-off", on: includeSignoff) { [weak self] in
+                    guard let self else { return }; self.includeSignoff.toggle(); self.rebuildActionRow()
+                })
+            }
             // The keyboard is the hub: products saved while browsing (via App Intents) land here.
             if savedN > 0 && hasFullAccess {
                 actionStack.addArrangedSubview(pillButton("🛍 Saved (\(savedN))", filled: false) { [weak self] in self?.enterSaved() })
@@ -730,7 +752,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         guard g.state == .began else { return }
         guard let ip = table.indexPathForRow(at: g.location(in: table)) else { return }
         if mode == .templates, ip.row < filtered.count {
-            UIPasteboard.general.string = filtered[ip.row].ready(firstName: currentFirstName)
+            UIPasteboard.general.string = filtered[ip.row].ready(firstName: currentFirstName, greeting: includeGreeting, signoff: includeSignoff)
             flash("Copied ✓")
         } else if mode == .saved, ip.row < savedItems.count {
             UIPasteboard.general.string = savedItems[ip.row].url
@@ -813,7 +835,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             insertUndoable(savedItems[indexPath.row].url); flash("Link inserted ✓")
         } else {
             let t = filtered[indexPath.row]
-            insertUndoable(t.ready(firstName: currentFirstName))
+            insertUndoable(t.ready(firstName: currentFirstName, greeting: includeGreeting, signoff: includeSignoff))
             recordRecentTemplate(t.id)
             rebuildChips()                                     // a "Recent" chip may now exist
             if selectedCategory == Self.recentCat { table.reloadData() }
@@ -1153,6 +1175,13 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         b.layer.cornerRadius = 15
         b.contentEdgeInsets = UIEdgeInsets(top: 7, left: 14, bottom: 7, right: 14)
         b.addAction(UIAction { _ in action() }, for: .touchUpInside)
+        return b
+    }
+
+    /// A pill that reads as on/off: filled with a check when on, a dimmed outline when off.
+    private func togglePill(_ title: String, on: Bool, action: @escaping () -> Void) -> UIButton {
+        let b = pillButton(on ? "\(title) ✓" : title, filled: on, action: action)
+        if !on { b.alpha = 0.65 }
         return b
     }
 
