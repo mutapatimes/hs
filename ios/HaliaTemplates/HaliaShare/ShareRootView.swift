@@ -29,21 +29,9 @@ struct ShareRootView: View {
     @State private var chosen: HaliaAPI.Client?
     @State private var productLink = ""
     @State private var activeOpener = ""
+    @State private var openers: [Opener] = OpenersStore.load()   // editable in the host app
 
     enum Mode { case client, product }
-
-    /// The angles an associate reaches for when sending one piece to a client. Each is a short,
-    /// warm note the catalogue link follows; the draft stays editable.
-    private struct Opener { let label: String; let body: String }
-    private static let openers: [Opener] = [
-        .init(label: "Set aside",      body: "I have set this aside for you, if you would like it."),
-        .init(label: "Just in",        body: "This just arrived and I thought of you straight away."),
-        .init(label: "Your taste",     body: "This reminded me of your taste the moment it came in."),
-        .init(label: "What do you think", body: "I would love to know what you think of this."),
-        .init(label: "Limited",        body: "We have very few of these, and I wanted you to have first look."),
-        .init(label: "First look",     body: "An early look for you, before this goes out more widely."),
-        .init(label: "Back in stock",  body: "Good news, this piece is back. I can hold one for you."),
-    ]
     enum Phase { case loading, found, notfound, signedOut, error(String) }
 
     private let green = Color(red: 0.12, green: 0.34, blue: 0.29)
@@ -312,7 +300,8 @@ struct ShareRootView: View {
         do {
             let r = try await HaliaAPI.current.catalogueFromUrls(urls: [query], name: c.name)
             if r.url.isEmpty { status = "Could not build a link for this product." }
-            else { productLink = r.url; applyOpener(Self.openers[0]) }
+            else if let first = openers.first { productLink = r.url; applyOpener(first) }
+            else { productLink = r.url; draft = productLink }
         } catch {
             status = "Could not build a link for this product."
         }
@@ -439,7 +428,7 @@ struct ShareRootView: View {
     private var openerChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(Array(Self.openers.enumerated()), id: \.offset) { _, o in
+                ForEach(openers) { o in
                     Button { applyOpener(o) } label: {
                         Text(o.label)
                             .font(.system(size: 13, weight: .medium))
