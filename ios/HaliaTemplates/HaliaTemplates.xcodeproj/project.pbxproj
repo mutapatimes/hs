@@ -125,6 +125,7 @@
 				HaliaKeyboard/Shared/HaliaAPI.swift,
 				HaliaKeyboard/Shared/Template.swift,
 				HaliaKeyboard/Shared/TemplateStore.swift,
+				HaliaKeyboard/Shared/Openers.swift,
 			);
 			target = A0F5A0010000000000000101 /* HaliaShare */;
 		};

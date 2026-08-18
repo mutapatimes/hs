@@ -490,6 +490,7 @@ private struct KeyboardStep: View {
 private struct HomeView: View {
     @ObservedObject var model: RootModel
     let onReconnect: () -> Void
+    @State private var showOpeners = false
 
     var body: some View {
         ScrollView {
@@ -523,6 +524,8 @@ private struct HomeView: View {
 
                 Card {
                     cardLabel("Manage")
+                    homeRow("Message openers", "Angles for sending a product from Share", action: { showOpeners = true })
+                    Divider().overlay(Palette.line)
                     homeRow("Reconnect", "Scan a new code or paste a token", action: onReconnect)
                     Divider().overlay(Palette.line)
                     Button(action: { Task { await model.signOut() } }) {
@@ -540,6 +543,7 @@ private struct HomeView: View {
             .padding(.horizontal, 22).padding(.bottom, 44)
         }
         .background(PaperBackground())
+        .sheet(isPresented: $showOpeners) { OpenersEditor() }
     }
 
     private func homeRow(_ title: String, _ sub: String, action: @escaping () -> Void) -> some View {
@@ -554,6 +558,52 @@ private struct HomeView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Openers editor
+
+/// Edit the reverse-flow message openers the Share extension offers when you send a product to a
+/// client. Saved to the App Group; the Share extension reads them straight away.
+private struct OpenersEditor: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var openers: [Opener] = OpenersStore.load()
+
+    var body: some View {
+        NavigationView {
+            List {
+                Section(footer: Text("These appear as chips when you share a product into Halia and pick a client. The client's name and the product link are added for you.")) {
+                    ForEach($openers) { $o in
+                        VStack(alignment: .leading, spacing: 6) {
+                            TextField("Name", text: $o.label)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Palette.brand)
+                            TextField("Message", text: $o.body, axis: .vertical)
+                                .font(.system(size: 15))
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .onDelete { openers.remove(atOffsets: $0) }
+                    Button {
+                        openers.append(Opener(label: "New opener", body: ""))
+                    } label: {
+                        Label("Add opener", systemImage: "plus.circle")
+                    }
+                    .tint(Palette.brand)
+                }
+            }
+            .navigationTitle("Message openers")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Reset") { openers = OpenersStore.defaults }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { OpenersStore.save(openers); dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
     }
 }
 
