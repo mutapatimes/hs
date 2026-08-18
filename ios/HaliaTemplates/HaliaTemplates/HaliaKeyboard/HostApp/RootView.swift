@@ -492,70 +492,84 @@ private struct HomeView: View {
     let onReconnect: () -> Void
     @State private var showOpeners = false
 
+    private var syncLine: String {
+        if model.busy { return "Syncing your templates…" }
+        if model.isError, !model.status.isEmpty { return model.status }
+        let n = model.templates.count
+        return n == 0 ? "No templates yet" : "\(n) template\(n == 1 ? "" : "s") ready"
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(mark).font(serif(22)).foregroundColor(Palette.brand)
-                    Text("Your desk is ready").font(serif(34)).foregroundColor(Palette.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(model.seatName.isEmpty ? "Signed in." : "Signed in as \(model.seatName).")
-                        .font(.system(size: 14.5)).foregroundColor(Palette.soft)
-                }
-                .padding(.top, 12)
-
-                Card {
-                    cardLabel("Synced")
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("\(model.templates.count)").font(serif(40)).foregroundColor(Palette.brand)
-                        Text(model.templates.count == 1 ? "template" : "templates")
-                            .font(.system(size: 15)).foregroundColor(Palette.soft)
-                    }
-                    if !model.status.isEmpty {
-                        Text(model.status).font(.system(size: 13)).foregroundColor(model.isError ? .red : Palette.faint)
-                    }
-                    HStack(spacing: 12) {
-                        LuxeButton(model.busy ? "Syncing…" : "Resync") { Task { await model.sync() } }
-                            .disabled(model.busy).opacity(model.busy ? 0.5 : 1)
-                        if model.busy { HaliaLoadingRow(label: "Syncing") }
-                    }
-                    .padding(.top, 4)
-                }
-
-                Card {
-                    cardLabel("Manage")
-                    homeRow("Message openers", "Angles for sending a product from Share", action: { showOpeners = true })
-                    Divider().overlay(Palette.line)
-                    homeRow("Reconnect", "Scan a new code or paste a token", action: onReconnect)
-                    Divider().overlay(Palette.line)
-                    Button(action: { Task { await model.signOut() } }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Sign out").font(.system(size: 15, weight: .semibold)).foregroundColor(.red)
-                                Text("Clears this device").font(.system(size: 12.5)).foregroundColor(Palette.faint)
-                            }
-                            Spacer()
-                        }
-                    }
-                    .buttonStyle(.plain)
+        VStack(alignment: .leading, spacing: 0) {
+            masthead
+            VStack(spacing: 0) {
+                row("Message openers", "The angles you send from Share") { showOpeners = true }
+                hairline
+                row("Reconnect", "Scan a new code or paste a token", action: onReconnect)
+                hairline
+                row(model.busy ? "Syncing…" : "Sync now", "Refresh your templates and clients") {
+                    Task { await model.sync() }
                 }
             }
-            .padding(.horizontal, 22).padding(.bottom, 44)
+            .padding(.horizontal, 24).padding(.top, 6)
+
+            Spacer(minLength: 24)
+            Button(action: { Task { await model.signOut() } }) {
+                Text("Sign out").font(.system(size: 14, weight: .semibold)).foregroundColor(Palette.soft)
+            }
+            .buttonStyle(.plain).padding(.horizontal, 24).padding(.bottom, 24)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(PaperBackground())
+        .ignoresSafeArea(edges: .top)
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
     }
 
-    private func homeRow(_ title: String, _ sub: String, action: @escaping () -> Void) -> some View {
+    // A deep-green masthead that anchors the screen and reads like a private-client desk, not a
+    // settings pane. The asterism stays small and letterspaced here, where it reads as a mark.
+    private var masthead: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("\(mark)  HALIA")
+                .font(.system(size: 12.5, weight: .semibold)).kerning(3)
+                .foregroundColor(.white.opacity(0.65))
+            Text("Your desk").font(serif(44)).foregroundColor(.white)
+            HStack(spacing: 8) {
+                Circle().fill(model.isError ? Color(red: 0.90, green: 0.68, blue: 0.42)
+                                             : Color(red: 0.56, green: 0.80, blue: 0.63))
+                    .frame(width: 7, height: 7)
+                Text(syncLine).font(.system(size: 14)).foregroundColor(.white.opacity(0.85))
+                if model.busy { ProgressView().tint(.white).scaleEffect(0.7) }
+            }
+            .padding(.top, 2)
+            if !model.seatName.isEmpty {
+                Text("Signed in as \(model.seatName)")
+                    .font(.system(size: 13)).foregroundColor(.white.opacity(0.5))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.top, 76)
+        .padding(.bottom, 32)
+        .background(
+            LinearGradient(colors: [Palette.brandDeep, Palette.brand],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
+    }
+
+    private var hairline: some View { Rectangle().fill(Palette.line).frame(height: 1) }
+
+    private func row(_ title: String, _ sub: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(size: 15, weight: .semibold)).foregroundColor(Palette.ink)
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(.system(size: 16, weight: .medium)).foregroundColor(Palette.ink)
                     Text(sub).font(.system(size: 12.5)).foregroundColor(Palette.faint)
                 }
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundColor(Palette.faint)
             }
+            .padding(.vertical, 16)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
