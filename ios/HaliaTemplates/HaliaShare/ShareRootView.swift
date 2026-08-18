@@ -32,9 +32,9 @@ struct ShareRootView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     switch phase {
                     case .loading:    loading
-                    case .signedOut:  message("Open Halia and connect your store first.")
-                    case .notfound:   message("No Halia signal for “\(query)”. Not a flagged client in your book.")
-                    case .error(let e): message(e)
+                    case .signedOut:  stateView("link", "Connect Halia first", "Open Halia and connect your store, then try again.")
+                    case .notfound:   stateView("magnifyingglass", "No Halia signal", "“\(query)” is not a flagged client in your book yet.")
+                    case .error(let e): stateView("exclamationmark.triangle", "Something went wrong", e)
                     case .found:      found
                     }
                 }
@@ -64,15 +64,22 @@ struct ShareRootView: View {
     // MARK: states
 
     private var loading: some View {
-        HStack(spacing: 10) {
+        VStack(spacing: 12) {
             ProgressView()
-            Text("Looking up \(query)…").foregroundColor(.secondary)
+            Text("Looking up \(query)…").font(.system(size: 14)).foregroundColor(.secondary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity).padding(.vertical, 30)
     }
 
-    private func message(_ s: String) -> some View {
-        Text(s).foregroundColor(.secondary).frame(maxWidth: .infinity, alignment: .leading)
+    private func stateView(_ symbol: String, _ title: String, _ subtitle: String? = nil) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: symbol).font(.system(size: 30)).foregroundColor(green.opacity(0.7))
+            Text(title).font(.system(size: 18, weight: .semibold)).multilineTextAlignment(.center)
+            if let subtitle {
+                Text(subtitle).font(.system(size: 14)).foregroundColor(.secondary).multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 30)
     }
 
     private var found: some View {
@@ -153,9 +160,17 @@ struct ShareRootView: View {
 
     private var draftBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(draft).font(.system(size: 14)).foregroundColor(.primary)
-                .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.secondarySystemBackground))
+            TextEditor(text: $draft)
+                .font(.system(size: 14))
+                .foregroundColor(.primary)
+                .scrollContentBackground(.hidden)
+                .frame(minHeight: 120, maxHeight: 260)
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator), lineWidth: 0.5))
+                .onChange(of: draft) { _, _ in copied = false }   // edited text is no longer the copied text
+            Text("Tap to edit before you send.")
+                .font(.system(size: 11.5)).foregroundColor(.secondary)
             HStack(spacing: 10) {
                 sendButton(copied ? "Copied ✓" : "Copy", system: "doc.on.doc") { copyDraft() }
                 if rawNumber != nil {
@@ -163,7 +178,7 @@ struct ShareRootView: View {
                     sendButton("Messages", system: "bubble.left.fill") { send(.messages) }
                 }
             }
-            Button("Rewrite") { draft = ""; copied = false }
+            Button("Start over") { draft = ""; copied = false }
                 .font(.system(size: 13)).foregroundColor(.secondary)
         }
     }
@@ -305,6 +320,11 @@ private struct TemplatePicker: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var templates: [Template] = TemplateStore.load()
+    // Shares the keyboard's stored preference, so "Dear"/"Sign-off" stay consistent across surfaces.
+    @State private var greeting = (AppGroup.defaults.object(forKey: "halia.kb.greeting") as? Bool) ?? true
+    @State private var signoff  = (AppGroup.defaults.object(forKey: "halia.kb.signoff") as? Bool) ?? true
+
+    private let green = Color(red: 0.12, green: 0.34, blue: 0.29)
 
     private var grouped: [(String, [Template])] {
         let cats = Array(Set(templates.map { $0.category })).sorted()
@@ -324,10 +344,15 @@ private struct TemplatePicker: View {
                     .padding(40).frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List {
+                        Section {
+                            Toggle("Include greeting", isOn: $greeting)
+                            Toggle("Include sign-off", isOn: $signoff)
+                        }
+                        .tint(green)
                         ForEach(grouped, id: \.0) { cat, items in
                             Section(header: Text(cat)) {
                                 ForEach(items) { t in
-                                    Button { onPick(t.ready(firstName: firstName)) } label: {
+                                    Button { onPick(t.ready(firstName: firstName, greeting: greeting, signoff: signoff)) } label: {
                                         VStack(alignment: .leading, spacing: 3) {
                                             Text(t.name).font(.system(size: 15, weight: .semibold)).foregroundColor(.primary)
                                             Text(t.preview).font(.system(size: 12.5)).foregroundColor(.secondary).lineLimit(2)
@@ -345,5 +370,7 @@ private struct TemplatePicker: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
         }
+        .onChange(of: greeting) { _, v in AppGroup.defaults.set(v, forKey: "halia.kb.greeting") }
+        .onChange(of: signoff)  { _, v in AppGroup.defaults.set(v, forKey: "halia.kb.signoff") }
     }
 }
