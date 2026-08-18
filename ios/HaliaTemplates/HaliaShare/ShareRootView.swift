@@ -201,10 +201,15 @@ struct ShareRootView: View {
 
     private enum Channel { case whatsapp, messages }
 
-    /// The shared query as a phone number, when that is what was shared (from Contacts, a tel: link…).
+    /// A number to send to: the matched client's phone from the lookup first (so highlighting a name
+    /// still lets you send), else the shared value when a phone was what you shared.
     private var rawNumber: String? {
-        guard let ref = ClientClassifier.classify(query), ref.kind == .phone else { return nil }
-        return ref.value
+        if let p = result?.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !p.isEmpty {
+            let cleaned = p.filter { $0.isNumber || $0 == "+" }
+            if cleaned.filter(\.isNumber).count >= 6 { return cleaned }
+        }
+        if let ref = ClientClassifier.classify(query), ref.kind == .phone { return ref.value }
+        return nil
     }
 
     private func send(_ ch: Channel) {

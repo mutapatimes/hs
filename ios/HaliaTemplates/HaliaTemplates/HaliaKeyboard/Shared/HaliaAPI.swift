@@ -76,13 +76,17 @@ struct HaliaAPI {
         let reasons: [String]?
         let latent: String?
         let action: String?
-        private enum K: String, CodingKey { case found, name, cid, cart, grade, reasons, latent, action, reco }
+        let phone: String?           // the matched client's number, so a name lookup can still send
+        let email: String?
+        private enum K: String, CodingKey { case found, name, cid, cart, grade, reasons, latent, action, reco, phone, email }
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: K.self)
             found = (try? c.decodeIfPresent(Bool.self, forKey: .found)) ?? nil
             name  = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? nil
             cid   = (try? c.decodeIfPresent(Scalar.self, forKey: .cid))?.text   // cid may be number or string
             cart  = (try? c.decodeIfPresent(Cart.self, forKey: .cart)) ?? nil
+            phone = (try? c.decodeIfPresent(String.self, forKey: .phone)) ?? nil
+            email = (try? c.decodeIfPresent(String.self, forKey: .email)) ?? nil
             grade   = (try? c.decodeIfPresent(String.self, forKey: .grade)) ?? nil
             reasons = (try? c.decodeIfPresent([String].self, forKey: .reasons)) ?? nil
             latent  = (try? c.decodeIfPresent(Scalar.self, forKey: .latent))?.text
