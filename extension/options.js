@@ -7,13 +7,35 @@ function setStatus(el, msg, ok) {
 }
 
 async function load() {
-  const { haliaBase, haliaToken, haliaName, radarOff } = await chrome.storage.sync.get(
-    ["haliaBase", "haliaToken", "haliaName", "radarOff"]);
+  const { haliaBase, haliaToken, haliaName, radarOff, lookupEverywhere } = await chrome.storage.sync.get(
+    ["haliaBase", "haliaToken", "haliaName", "radarOff", "lookupEverywhere"]);
   $("token").value = haliaToken || "";
   $("base").value = haliaBase || DEFAULT_BASE;
   $("name").value = haliaName || "";
   $("radar").checked = !radarOff;
+  $("everywhere").checked = !!lookupEverywhere;
   renderStores();
+}
+
+// Look up a highlighted name on any page: needs a broad host grant, so it is a deliberate opt-in.
+async function toggleEverywhere() {
+  const on = $("everywhere").checked;
+  if (on) {
+    let granted = false;
+    try { granted = await chrome.permissions.request({ origins: ["*://*/*"] }); } catch (e) { granted = false; }
+    if (!granted) {
+      $("everywhere").checked = false;
+      return setStatus($("everywherestatus"), "Access not granted", false);
+    }
+    await chrome.storage.sync.set({ lookupEverywhere: true });
+    chrome.runtime.sendMessage({ type: "halia:select-sync" });
+    setStatus($("everywherestatus"), "On for every page", true);
+  } else {
+    await chrome.storage.sync.set({ lookupEverywhere: false });
+    chrome.runtime.sendMessage({ type: "halia:select-sync" });
+    try { await chrome.permissions.remove({ origins: ["*://*/*"] }); } catch (e) { /* keep going */ }
+    setStatus($("everywherestatus"), "Off", true);
+  }
 }
 
 async function save() {
@@ -112,4 +134,5 @@ $("save").onclick = save;
 $("test").onclick = test;
 $("signout").onclick = signOut;
 $("addwoo").onclick = addStore;
+$("everywhere").onchange = toggleEverywhere;
 load();

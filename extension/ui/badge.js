@@ -189,6 +189,34 @@
     .toast { position: fixed; right: 356px; bottom: 22px; background: #1a1a1a; color: #fff; font-size: 11px;
       padding: 5px 10px; opacity: 0; transition: opacity .15s; pointer-events: none; z-index: 2147483647; }
     .toast.on { opacity: 1; }
+    /* reverse share: the page you are on, sent to a client you pick */
+    .shpage { padding: 9px 10px; background: #f2efe6; border: 1px solid #ece5d6; margin-bottom: 11px; }
+    .shpage .k { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #8a8271; }
+    .shpage .t { font-size: 13px; font-weight: 600; margin-top: 2px; line-height: 1.3; word-break: break-word; }
+    .ochips { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 4px; }
+    .ochip { border: 1px solid #d8cfbc; background: #fff; color: #33302a; cursor: pointer; font-size: 11px;
+      padding: 4px 9px; line-height: 1.3; }
+    .ochip:hover { background: #f4f1ea; }
+    .ochip.on { background: #1F564A; color: #fbfaf7; border-color: #1F564A; }
+    .clist { border: 1px solid #ece5d6; max-height: 188px; overflow-y: auto; background: #fff; margin-top: 8px; }
+    .cli { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; border: 0;
+      background: transparent; border-bottom: 1px solid #f2ede2; padding: 7px 9px; cursor: pointer; }
+    .cli:last-child { border-bottom: 0; }
+    .cli:hover { background: #f4f1ea; }
+    .cli.sel { background: #f2efe6; }
+    .cg { flex: none; min-width: 22px; height: 20px; padding: 0 5px; display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 10px; color: #fff; background: #6b6355; border-radius: 3px; }
+    .cg.g-a { background: #1F564A; } .cg.g-b { background: #55606b; } .cg.g-c { background: #8a8271; }
+    .cli .cn { flex: 1; min-width: 0; font-size: 12.5px; color: #1a1a1a; white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; }
+    .cli .cx { flex: none; font-size: 10.5px; color: #8a8271; }
+    .chosen { display: flex; align-items: center; gap: 9px; padding: 8px 10px; background: #eef3f0;
+      border: 1px solid #cfe0d8; margin-top: 8px; }
+    .chosen .cn { flex: 1; font-size: 13px; font-weight: 600; color: #1a1a1a; }
+    .chosen .clr { border: 0; background: transparent; color: #6b6355; cursor: pointer; font-size: 15px; padding: 0 2px; }
+    .tgl { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #33302a; cursor: pointer;
+      margin-top: 9px; user-select: none; }
+    .tgl input { width: 15px; height: 15px; }
   `;
 
   let host = null, root = null, open = true, inserter = null, channel = "email";
@@ -197,9 +225,10 @@
   let mode = "clienteling"; // "clienteling" (client-facing) | "internal" (team coordination)
   let view = "client";      // clienteling crossbar tab: "client" | "reply" | "sell"
   let whyAll = false, noteOpen = false;   // per-client: expand the reasons list / reveal the note box
-  const VIEW_SECS = { client: ["client"], reply: ["tpl"], sell: ["camp", "prod", "media", "cat"] };
+  const VIEW_SECS = { share: ["share"], client: ["client"], reply: ["tpl"], sell: ["camp", "prod", "media", "cat"] };
   let mediaResults = [], mediaQuery = "";   // the Media panel's own product search (send product photos)
   let tplQuery = "", tplSel = null;   // template search text + selected index
+  let tplGreeting = true, tplSignoff = true;   // include the salutation / the closing when inserting
   let threadReader = null;            // surface-supplied () => [{from,text}] of the visible chat
   let draftInstr = "";                // the associate's optional "what to say" note
   let draft = null;                   // { text, source, busy, error, aiAvailable }
@@ -209,12 +238,55 @@
   let animKey = "";                   // last client key animated (so we fade in only on a new client)
   const folded = new Set();           // collapsed section names, persisted
   const contactHist = {};   // cid -> last outreach {at,by,action,note} | null | "pending"
+  // Reverse share (storefront surface): the page being shared, the client picked for it, and the
+  // draft. Mirrors the iOS HaliaShare card — a page kind picks the openers, a client picks the number.
+  let share = null;                   // { url, title, kind } | null (null everywhere but the storefront)
+  let shareClient = null;             // the chosen client {cid,name,grade,phone}
+  let shareOpener = 0;                // index into the current kind's openers
+  let shareGreeting = true;           // prepend "Dear <first>,"
+  let shareDraft = null;              // the editable message; null until built from opener + link
+  let clientResults = null;           // last client search: [] | null (not searched) | "busy" | "err"
+  let clientQuery = "";
+  let sharePinned = false;            // have we landed the panel on the Share view yet
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
   function money(v) { return "£" + Number(v || 0).toLocaleString(); }
+  // Greeting / sign-off toggles: strip the salutation or the closing from a template when the
+  // associate is already mid-conversation. Shared with the on-any-page composer via the same keys.
+  const GREET_RE = /^(dear|dearest|hi|hello|hey|good\s+(morning|afternoon|evening)|greetings)\b/i;
+  const SIGN_LINE = /^(warm(est)?\s+(regards|wishes)|kind(est)?\s+regards|best(\s+(regards|wishes))?|very\s+best|all\s+the\s+best|with\s+(love|thanks|gratitude|appreciation|warm\s+wishes|warmth)|many\s+thanks|thank\s+you|thanks|yours(\s+(sincerely|truly|faithfully))?|sincerely|warmly|speak\s+soon|see\s+you\s+soon|regards|cheers|love|xx)[.,!]*(\s+[A-Z][\w'’.-]*(\s+[A-Z][\w'’.-]*)?)?$/i;
+  function stripGreeting(text) {
+    let t = String(text || "").replace(/^\s+/, "");
+    if (!GREET_RE.test(t)) return String(text || "");
+    const comma = t.indexOf(","), nl = t.indexOf("\n");
+    if (comma >= 0 && (nl < 0 || comma < nl)) {
+      return t.slice(comma + 1).replace(/^[ \t]*\n+/, "").replace(/^[ \t]+/, "");
+    }
+    if (nl >= 0 && nl <= 24) return t.slice(nl + 1).replace(/^\s+/, "");
+    return String(text || "");
+  }
+  function stripSignoff(text) {
+    const lines = String(text || "").split("\n");
+    const nonEmpty = [];
+    for (let k = 0; k < lines.length; k++) if (lines[k].trim()) nonEmpty.push(k);
+    if (!nonEmpty.length) return String(text || "");
+    const tail = nonEmpty.slice(-4);
+    let cut = -1;
+    for (let j = 0; j < tail.length; j++) if (SIGN_LINE.test(lines[tail[j]].trim())) { cut = tail[j]; break; }
+    if (cut < 0) return String(text || "");
+    let out = lines.slice(0, cut);
+    while (out.length && !out[out.length - 1].trim()) out.pop();
+    return out.join("\n");
+  }
+  function withToggles(text) {
+    let t = String(text || "");
+    if (!tplGreeting) t = stripGreeting(t);
+    if (!tplSignoff) t = stripSignoff(t);
+    return t;
+  }
   // Ease a number up from 0 to its value on a fresh client — a small "alive" flourish. Preserves a
   // leading £ and re-formats with thousands separators; leaves non-numeric values (e.g. "High") alone.
   function countUp(el) {
@@ -333,6 +405,62 @@
   const _TEAM_MSGS = ["I'm looking after {client}", "I've just contacted {client}",
     "{client} needs a follow-up", "Taking {client} from here"];
 
+  // ── Reverse share openers ──────────────────────────────────────────────────
+  // One heading + a set of openers per page kind, so the note fits what the associate is sharing.
+  // The same sets ship on iOS; the manager can override any set from the dashboard (ctx.openers),
+  // and each kind falls back to these defaults. The link follows the chosen opener.
+  const SHARE_KIND = {
+    product:    { title: "Product",              action: "Send this piece" },
+    collection: { title: "Collection",           action: "Send this edit" },
+    care:       { title: "Care",                 action: "Send this to a client" },
+    returns:    { title: "Returns",              action: "Send this to a client" },
+    size:       { title: "Size guide",           action: "Send this to a client" },
+    about:      { title: "About the house",      action: "Send this to a client" },
+    contact:    { title: "Visit and appointments", action: "Invite a client" },
+    press:      { title: "A link",               action: "Send this to a client" }
+  };
+  const SHARE_OPENERS = {
+    product: [
+      { label: "Set aside",        body: "I have set this aside for you, if you would like it." },
+      { label: "Just in",          body: "This just arrived and I thought of you straight away." },
+      { label: "Your taste",       body: "This reminded me of your taste the moment it came in." },
+      { label: "What do you think", body: "I would love to know what you think of this." },
+      { label: "Limited",          body: "We have very few of these, and I wanted you to have first look." },
+      { label: "First look",       body: "An early look for you, before this goes out more widely." },
+      { label: "Back in stock",    body: "Good news, this piece is back. I can hold one for you." }
+    ],
+    collection: [
+      { label: "An edit for you",  body: "I put together a few pieces I thought you would love." },
+      { label: "New season",       body: "The new season is in. Here is a first look, chosen with you in mind." }
+    ],
+    care: [
+      { label: "Care guide",       body: "Here is how to care for your piece, so it lasts beautifully." }
+    ],
+    returns: [
+      { label: "Returns",          body: "Here is everything on our returns and exchanges, in case it helps." },
+      { label: "Happy to help",    body: "Of course. Here are the details, and I am here if you need anything." }
+    ],
+    size: [
+      { label: "Size guide",       body: "Our size guide, so you find the perfect fit. Tell me if you would like me to check." }
+    ],
+    about: [
+      { label: "About us",         body: "A little about the house, and how we like to look after you." }
+    ],
+    contact: [
+      { label: "Come see us",      body: "Come and see us whenever suits. Here are the details." },
+      { label: "Book a visit",     body: "I would love to set aside some time for you. Shall we arrange a private appointment?" }
+    ],
+    press: [
+      { label: "Thought of you",   body: "Saw this and immediately thought of you." }
+    ]
+  };
+  function shareKind() { return (share && SHARE_KIND[share.kind]) ? share.kind : "press"; }
+  function shareOpeners() {
+    const k = shareKind();
+    const over = ctx && ctx.openers && Array.isArray(ctx.openers[k]) && ctx.openers[k].length ? ctx.openers[k] : null;
+    return over || SHARE_OPENERS[k] || SHARE_OPENERS.press;
+  }
+
   function ensure() {
     if (root) return;
     host = document.createElement("div");
@@ -353,11 +481,13 @@
           <button class="ic" data-a="refresh" title="Refresh">⟳</button>
           <button class="ic" data-a="close" title="Collapse">›</button></div>
         <div class="tabs" data-a="tabs">
+          <button class="tab" data-v="share" style="display:none">Share</button>
           <button class="tab" data-v="client">Client</button>
           <button class="tab" data-v="reply">Reply</button>
           <button class="tab" data-v="sell">Sell</button>
         </div>
         <div class="scroll">
+          <section class="sec" data-s="share"></section>
           <section class="sec" data-s="client"></section>
           <section class="sec" data-s="team"></section>
           <section class="sec" data-s="tpl"></section>
@@ -382,7 +512,7 @@
     dock.querySelector('[data-a="tabs"]').addEventListener("click", (e) => {
       const b = e.target.closest(".tab"); if (b && b.dataset.v) setView(b.dataset.v);
     });
-    renderTemplates(); renderCampaigns(); renderProducts(); renderMedia(); renderCatalogue();
+    renderShare(); renderTemplates(); renderCampaigns(); renderProducts(); renderMedia(); renderCatalogue();
     applyMode(); applyFolds(); paintHandle();
   }
 
@@ -393,7 +523,9 @@
   }
   function setView(v) {
     view = (v in VIEW_SECS) ? v : "client";
-    try { chrome.storage.local.set({ haliaView: view }); } catch (e) { /* ignore */ }
+    // "share" is a per-page surface, not a lasting preference — don't let it become the view other
+    // surfaces (WhatsApp, Gmail) restore to, where there is nothing to share.
+    if (view !== "share") { try { chrome.storage.local.set({ haliaView: view }); } catch (e) { /* ignore */ } }
     if (root) applyMode();
   }
   function applyMode() {
@@ -401,19 +533,24 @@
     const show = (name, on) => { const el = sec(name); if (el) el.style.display = on ? "" : "none"; };
     const tabs = root && root.querySelector('[data-a="tabs"]');
     if (tabs) tabs.classList.toggle("hide", internal);   // the crossbar is a clienteling concept
+    // The Share tab only exists on a page there is something to share (the storefront surface).
+    const shareTab = tabs && tabs.querySelector('.tab[data-v="share"]');
+    if (shareTab) shareTab.style.display = share ? "" : "none";
     if (internal) {
       // Internal mode is only two blocks (client + team brief) — no crossbar needed.
       show("client", true); show("team", true);
-      ["tpl", "camp", "prod", "media", "cat"].forEach((n) => show(n, false));
+      ["share", "tpl", "camp", "prod", "media", "cat"].forEach((n) => show(n, false));
     } else {
-      // Clienteling: show ONLY the active tab's section(s), so it reads as one calm view.
+      // Clienteling: show ONLY the active tab's section(s), so it reads as one calm view. If "share"
+      // is the view but this page has nothing to share, fall back to the client view.
       show("team", false);
-      const active = VIEW_SECS[view] || VIEW_SECS.client;
-      ["client", "tpl", "camp", "prod", "media", "cat"].forEach((n) => {
+      const effView = (view === "share" && !share) ? "client" : view;
+      const active = VIEW_SECS[effView] || VIEW_SECS.client;
+      ["share", "client", "tpl", "camp", "prod", "media", "cat"].forEach((n) => {
         const on = active.indexOf(n) >= 0; show(n, on);
         if (on) { const s2 = sec(n); if (s2) { s2.classList.remove("vin"); void s2.offsetWidth; s2.classList.add("vin"); } }
       });
-      if (tabs) tabs.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b.dataset.v === view));
+      if (tabs) tabs.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b.dataset.v === effView));
     }
     const tg = root && root.querySelector('[data-a="mode"]');
     if (tg) { tg.textContent = internal ? "Internal" : "Clienteling"; tg.classList.toggle("int", internal); }
@@ -437,7 +574,146 @@
 
   function sec(name) { return root && root.querySelector(`[data-s="${name}"]`); }
 
-  // ── CLIENT ────────────────────────────────────────────────────────────────
+  // ── REVERSE SHARE ─────────────────────────────────────────────────────────
+  // The page the associate is on, sent to a client they choose. Pick an opener that fits the page,
+  // pick who from the book, and message them the link. Nothing is stored; the link is the page's own.
+  function shareFirst() {
+    const n = shareClient && shareClient.name;
+    return n ? String(n).trim().split(/\s+/)[0] : "";
+  }
+  function shareLink() {
+    if (!share || !share.url) return "";
+    const camp = ((ctx && ctx.campaigns) || []).find((c) => c.running);   // attribute to a live campaign
+    if (!camp) return share.url;
+    const cm = CHAN[channel] || CHAN.email;
+    return appendUtm(share.url, { source: cm[0], medium: cm[1], campaign: camp.utm });
+  }
+  function buildShareDraft() {
+    const ops = shareOpeners();
+    const op = ops[shareOpener] || ops[0];
+    const first = shareFirst();
+    const parts = [];
+    if (shareGreeting && first) parts.push("Dear " + first + ",");
+    if (op && op.body) parts.push(op.body);
+    const link = shareLink();
+    if (link) parts.push(link);
+    shareDraft = parts.join("\n\n");
+    const ta = root && root.querySelector('[data-a="shdraft"]');
+    if (ta) ta.value = shareDraft;
+  }
+  function paintClientList() {
+    const box = root && root.querySelector('[data-a="shclients"]'); if (!box) return;
+    if (clientResults === "busy") { box.innerHTML = `<div class="muted" style="padding:8px 9px">Reading your book…</div>`; return; }
+    if (clientResults === "err") { box.innerHTML = `<div class="muted" style="padding:8px 9px">Couldn't reach your book.</div>`; return; }
+    if (!Array.isArray(clientResults)) { box.innerHTML = ""; return; }
+    if (!clientResults.length) { box.innerHTML = `<div class="muted" style="padding:8px 9px">No one by that name in your book.</div>`; return; }
+    box.innerHTML = clientResults.slice(0, 60).map((c, i) => `
+      <button class="cli" data-ci="${i}">
+        <span class="cg ${gradeClass(c.grade)}">${esc(c.grade || "·")}</span>
+        <span class="cn">${esc(c.name)}</span>
+        ${c.phone ? "" : `<span class="cx">no number</span>`}
+      </button>`).join("");
+    box.querySelectorAll("[data-ci]").forEach((b) => b.onclick = () => {
+      const c = clientResults[+b.dataset.ci]; if (c) pickClient(c);
+    });
+  }
+  function doClientSearch(q) {
+    clientQuery = q; clientResults = "busy"; paintClientList();
+    try {
+      chrome.runtime.sendMessage({ type: "halia:clients", q }, (r) => {
+        if (chrome.runtime.lastError || !r || r.error) { clientResults = "err"; }
+        else { clientResults = r.clients || []; }
+        paintClientList();
+      });
+    } catch (e) { clientResults = "err"; paintClientList(); }
+  }
+  function pickClient(c) {
+    shareClient = c;
+    shareDraft = null;              // rebuilt fresh for the newly chosen client
+    renderShare();
+    buildShareDraft();
+  }
+  function currentShareText() {
+    const ta = root && root.querySelector('[data-a="shdraft"]');
+    return (ta && ta.value) || shareDraft || "";
+  }
+  function digits(s) { return String(s || "").replace(/[^\d]/g, ""); }
+  function sendShareWhatsApp() {
+    const text = currentShareText(); if (!text) { toast("Pick an opener first"); return; }
+    const d = digits(shareClient && shareClient.phone);
+    const url = d ? "https://wa.me/" + d + "?text=" + encodeURIComponent(text)
+                  : "https://api.whatsapp.com/send?text=" + encodeURIComponent(text);
+    try { window.open(url, "_blank", "noopener"); } catch (e) { copy(text, "Copied — paste into WhatsApp"); }
+    logShareContact();
+  }
+  function logShareContact() {
+    if (!shareClient) return;
+    const kind = SHARE_KIND[shareKind()];
+    act({ action: "contacted", cid: shareClient.cid || "", client_name: shareClient.name,
+      reason: "Shared: " + (share && share.title ? share.title : (kind ? kind.title : "a page")) },
+      "Logged" + (ctx && ctx.slack ? " and told the team" : ""));
+  }
+  function renderShare() {
+    const el = sec("share"); if (!el) return;
+    if (!share) { el.innerHTML = ""; return; }
+    const meta = SHARE_KIND[shareKind()];
+    const ops = shareOpeners();
+    el.innerHTML = `
+      <div class="sh">Send this to a client</div>
+      <div class="shpage">
+        <div class="k">${esc(meta.title)}</div>
+        <div class="t">${esc(share.title || share.url)}</div>
+      </div>
+      <div class="lbl">${esc(meta.action)}</div>
+      <div class="ochips">
+        ${ops.map((o, i) => `<button class="ochip${i === shareOpener ? " on" : ""}" data-op="${i}">${esc(o.label)}</button>`).join("")}
+      </div>
+      ${shareClient ? `
+        <div class="chosen">
+          <span class="cg ${gradeClass(shareClient.grade)}">${esc(shareClient.grade || "·")}</span>
+          <span class="cn">${esc(shareClient.name)}</span>
+          <button class="clr" data-a="shclear" title="Choose someone else">✕</button>
+        </div>
+        <textarea data-a="shdraft" rows="6" style="margin-top:9px">${esc(shareDraft || "")}</textarea>
+        <label class="tgl"><input type="checkbox" data-a="shgreet"${shareGreeting ? " checked" : ""}>
+          Open with “Dear ${esc(shareFirst() || "name")},”</label>
+        ${digits(shareClient.phone) ? "" : `<div class="muted" style="margin-top:8px">No number on file for them — copy the message and send it your way.</div>`}
+        <div class="acts">
+          <button class="btn primary" data-a="shwa">${digits(shareClient.phone) ? "Message on WhatsApp" : "Open WhatsApp"}</button>
+          <button class="btn" data-a="shcopy">Copy message</button>
+        </div>
+        <button class="lnkbtn" data-a="shlog">Log as contacted</button>
+      ` : `
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input class="psearch" data-a="shsearch" placeholder="Search your book" value="${esc(clientQuery)}">
+          <button class="btn" data-a="shgo">Find</button>
+        </div>
+        <div class="clist" data-a="shclients"></div>
+      `}`;
+    el.querySelectorAll("[data-op]").forEach((b) => b.onclick = () => {
+      shareOpener = +b.dataset.op;
+      el.querySelectorAll(".ochip").forEach((c) => c.classList.toggle("on", c === b));
+      buildShareDraft();
+    });
+    if (shareClient) {
+      const clr = el.querySelector('[data-a="shclear"]');
+      if (clr) clr.onclick = () => { shareClient = null; renderShare(); };
+      const gr = el.querySelector('[data-a="shgreet"]');
+      if (gr) gr.onchange = () => { shareGreeting = gr.checked; buildShareDraft(); };
+      const wa = el.querySelector('[data-a="shwa"]'); if (wa) wa.onclick = sendShareWhatsApp;
+      const cp = el.querySelector('[data-a="shcopy"]');
+      if (cp) cp.onclick = () => { const t = currentShareText(); if (t) { copy(t, "Message copied"); logShareContact(); } };
+      const lg = el.querySelector('[data-a="shlog"]'); if (lg) lg.onclick = logShareContact;
+    } else {
+      const inp = el.querySelector('[data-a="shsearch"]');
+      const go = () => doClientSearch((inp && inp.value) || "");
+      const gb = el.querySelector('[data-a="shgo"]'); if (gb) gb.onclick = go;
+      if (inp) inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+      paintClientList();
+      if (clientResults === null) doClientSearch("");   // show the best of the book straight away
+    }
+  }
+
   // The footer shows who is signed in (the seat) with a one-click sign out, else the zero-retention note.
   function renderFoot() {
     const el = root && root.querySelector('[data-a="foot"]'); if (!el) return;
@@ -740,7 +1016,11 @@
         ? groups.map((g) => `<div class="tcat">${esc(g.cat)}</div>` +
             g.items.map(({ t, i }) => `<button class="titem${i === tplSel ? " sel" : ""}" data-ti="${i}">${esc(t.name || ("Template " + (i + 1)))}</button>`).join("")).join("")
         : `<div class="muted" style="padding:10px">No templates match.</div>`}</div>
-      ${sel ? `<div class="prev">${esc(fill(sel.body))}</div>
+      <div style="display:flex;gap:16px;margin-top:2px">
+        <label class="tgl"><input type="checkbox" data-a="tg"${tplGreeting ? " checked" : ""}>Greeting</label>
+        <label class="tgl"><input type="checkbox" data-a="tso"${tplSignoff ? " checked" : ""}>Sign-off</label>
+      </div>
+      ${sel ? `<div class="prev">${esc(withToggles(fill(sel.body)))}</div>
         <div class="acts">
           ${inserter ? `<button class="btn primary" data-a="tins">Insert</button>` : ""}
           <button class="btn" data-a="tcopy">Copy</button>
@@ -753,7 +1033,10 @@
       if (s2) { s2.focus(); s2.setSelectionRange(s2.value.length, s2.value.length); }
     };
     el.querySelectorAll("[data-ti]").forEach((b) => b.onclick = () => { tplSel = +b.dataset.ti; renderTemplates(); });
-    const body = () => fill((list[tplSel] || {}).body);
+    const saveTog = () => { try { chrome.storage.sync.set({ tplGreeting, tplSignoff }); } catch (e) { /* ignore */ } };
+    const tg = el.querySelector('[data-a="tg"]'); if (tg) tg.onchange = () => { tplGreeting = tg.checked; saveTog(); renderTemplates(); };
+    const tso = el.querySelector('[data-a="tso"]'); if (tso) tso.onchange = () => { tplSignoff = tso.checked; saveTog(); renderTemplates(); };
+    const body = () => withToggles(fill((list[tplSel] || {}).body));
     const ins = el.querySelector('[data-a="tins"]'); if (ins) ins.onclick = () => place(body());
     const cp = el.querySelector('[data-a="tcopy"]'); if (cp) cp.onclick = () => copy(body(), "Message copied");
     const cs = el.querySelector('[data-a="tcopys"]'); if (cs) cs.onclick = () => copy(fill((list[tplSel] || {}).subject), "Subject copied");
@@ -1096,14 +1379,31 @@
         chrome.storage.local.get(["panelOpen", "haliaMode", "haliaView", "folded"], (r) => {
           if (r && typeof r.panelOpen === "boolean") setOpen(r.panelOpen);
           if (r && r.haliaMode) setMode(r.haliaMode);
-          if (r && r.haliaView) setView(r.haliaView);
+          if (r && r.haliaView && !sharePinned) setView(r.haliaView);   // don't knock a storefront off Share
           if (r && Array.isArray(r.folded)) { r.folded.forEach((n) => folded.add(n)); applyFolds(); }
+        });
+        chrome.storage.sync.get(["tplGreeting", "tplSignoff"], (r) => {
+          if (r && typeof r.tplGreeting === "boolean") tplGreeting = r.tplGreeting;
+          if (r && typeof r.tplSignoff === "boolean") tplSignoff = r.tplSignoff;
+          if (root) renderTemplates();
         });
       } catch (e) { /* ignore */ }
     },
     setContext(c) {
       ctx = c && !c.error ? c : null;
-      if (root) { renderTemplates(); renderCampaigns(); renderProducts(); renderMedia(); renderCatalogue(); renderTeam(); renderFoot(); }
+      if (root) { renderShare(); renderTemplates(); renderCampaigns(); renderProducts(); renderMedia(); renderCatalogue(); renderTeam(); renderFoot(); }
+    },
+    // The storefront surface hands the toolbar the page to share (url + title + kind). The Share tab
+    // appears and, the first time, becomes the active view. Passing null clears it.
+    setShare(info) {
+      const prevKind = share && share.kind;
+      share = (info && info.url) ? { url: info.url, title: info.title || "", kind: info.kind || "press" } : null;
+      if (share && share.kind !== prevKind) { shareOpener = 0; shareDraft = null; }
+      if (!root) return;
+      if (share && !sharePinned) { sharePinned = true; setView("share"); }   // land on Share once
+      renderShare();
+      if (share && shareClient) buildShareDraft();
+      applyMode();
     },
     setClient(state) {
       client = state; // null | {loading,name} | {found,data} | {notfound,name} | {error}

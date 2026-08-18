@@ -78,10 +78,12 @@
     </div>
 
     <div class="card">
-      <h2>WooCommerce store</h2>
-      <p class="hint" style="margin-top:0">Shopify, BigCommerce, WhatsApp Web and Gmail work out of
-        the box. For WooCommerce, add your store's address so the badge can run inside your own
-        wp-admin. You'll be asked to grant access to that one site.</p>
+      <h2>Your store website</h2>
+      <p class="hint" style="margin-top:0">Add your store's address to unlock two things on your own
+        site: <strong>share to a client</strong> while you browse it (open any product, collection,
+        care or returns page and send it to the right client with a note that fits the page), and, for
+        WooCommerce, the full badge inside your <strong>wp-admin</strong>. You'll be asked to grant
+        access to that one site. Shopify, BigCommerce, WhatsApp Web and Gmail already work out of the box.</p>
       <div class="row" style="margin-top:12px">
         <label for="woo">Your store address</label>
         <input id="woo" type="url" placeholder="https://yourstore.com" autocomplete="off" />
@@ -92,11 +94,29 @@
     </div>
 
     <div class="card">
+      <h2>Halia on any page</h2>
+      <p class="hint" style="margin-top:0">Turn this on and Halia rides along everywhere: highlight a
+        name, email or phone number on <strong>any</strong> page for a one-tap look-up, and drop one of
+        your <strong>house templates</strong> into any message box, filled for the client you pick with
+        the greeting and sign-off on or off. To do this the extension needs to read the pages you use it
+        on, so it stays off until you turn it on here.</p>
+      <div class="row" style="margin-top:12px">
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;color:#33302a">
+          <input id="everywhere" type="checkbox" style="width:16px;height:16px">
+          Look up names and insert templates on any page
+        </label>
+        <span id="everywherestatus" class="status" style="margin-left:25px"></span>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>How to use it</h2>
       <ol class="steps">
         <li>Open a customer or order in your store admin, a chat in WhatsApp Web, or an email in Gmail.</li>
         <li>The Halia card appears in the corner with their grade, why, and the next move.</li>
         <li>Pick a message template and copy it, or jump to the client in Halia.</li>
+        <li>Browsing your own store? Open the <strong>Share</strong> tab, choose a client from your book,
+          pick an opener that fits the page, and message them the link.</li>
       </ol>
     </div>
   </div>
