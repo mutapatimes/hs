@@ -27,8 +27,23 @@ struct ShareRootView: View {
     @State private var clients: [HaliaAPI.Client] = []
     @State private var search = ""
     @State private var chosen: HaliaAPI.Client?
+    @State private var productLink = ""
+    @State private var activeOpener = ""
 
     enum Mode { case client, product }
+
+    /// The angles an associate reaches for when sending one piece to a client. Each is a short,
+    /// warm note the catalogue link follows; the draft stays editable.
+    private struct Opener { let label: String; let body: String }
+    private static let openers: [Opener] = [
+        .init(label: "Set aside",      body: "I have set this aside for you, if you would like it."),
+        .init(label: "Just in",        body: "This just arrived and I thought of you straight away."),
+        .init(label: "Your taste",     body: "This reminded me of your taste the moment it came in."),
+        .init(label: "What do you think", body: "I would love to know what you think of this."),
+        .init(label: "Limited",        body: "We have very few of these, and I wanted you to have first look."),
+        .init(label: "First look",     body: "An early look for you, before this goes out more widely."),
+        .init(label: "Back in stock",  body: "Good news, this piece is back. I can hold one for you."),
+    ]
     enum Phase { case loading, found, notfound, signedOut, error(String) }
 
     private let green = Color(red: 0.12, green: 0.34, blue: 0.29)
@@ -292,15 +307,23 @@ struct ShareRootView: View {
     /// A client was chosen for the shared product: turn the product URL into a catalogue link and
     /// pre-write a note. The draft is editable and the send buttons use the client's number.
     private func choose(_ c: HaliaAPI.Client) async {
-        chosen = c; copied = false; status = ""
+        chosen = c; copied = false; status = ""; productLink = ""
         busy = true; defer { busy = false }
         do {
             let r = try await HaliaAPI.current.catalogueFromUrls(urls: [query], name: c.name)
             if r.url.isEmpty { status = "Could not build a link for this product." }
-            else { draft = "I set this piece aside for you. You can see it here:\n\(r.url)" }
+            else { productLink = r.url; applyOpener(Self.openers[0]) }
         } catch {
             status = "Could not build a link for this product."
         }
+    }
+
+    private func applyOpener(_ o: Opener) {
+        activeOpener = o.label
+        let first = chosen?.name.split(separator: " ").first.map(String.init) ?? ""
+        var msg = first.isEmpty ? o.body : "\(first),\n\n\(o.body)"
+        if !productLink.isEmpty { msg += "\n\n" + productLink }
+        draft = msg; copied = false
     }
 
     private func makeDraft() async {
@@ -372,7 +395,9 @@ struct ShareRootView: View {
                         ProgressView()
                         Text("Preparing the link…").font(.system(size: 14)).foregroundColor(.secondary)
                     }
-                } else if !draft.isEmpty {
+                } else if !productLink.isEmpty {
+                    Text("OPENER").font(.system(size: 10, weight: .semibold)).foregroundColor(.secondary).kerning(0.5)
+                    openerChips
                     draftBlock
                 }
                 if !status.isEmpty { Text(status).font(.system(size: 12.5)).foregroundColor(.secondary) }
@@ -408,6 +433,24 @@ struct ShareRootView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var openerChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Array(Self.openers.enumerated()), id: \.offset) { _, o in
+                    Button { applyOpener(o) } label: {
+                        Text(o.label)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(o.label == activeOpener ? .white : green)
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .background(Capsule().fill(o.label == activeOpener ? green : green.opacity(0.10)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 1)
         }
     }
 
