@@ -563,47 +563,63 @@ private struct HomeView: View {
 
 // MARK: - Openers editor
 
-/// Edit the reverse-flow message openers the Share extension offers when you send a product to a
-/// client. Saved to the App Group; the Share extension reads them straight away.
+/// Edit the message openers the Share extension offers when you share a page and pick a client. One
+/// set per page kind (product, collection, care, returns…). Saved to the App Group; Share reads them
+/// straight away.
 private struct OpenersEditor: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var openers: [Opener] = OpenersStore.load()
+    @State private var sets: [PageKind: [Opener]] = OpenersEditor.initialSets()
+
+    private static func initialSets() -> [PageKind: [Opener]] {
+        Dictionary(uniqueKeysWithValues: PageKind.allCases.map { ($0, OpenersStore.load($0)) })
+    }
 
     var body: some View {
         NavigationView {
             List {
-                Section(footer: Text("These appear as chips when you share a product into Halia and pick a client. The client's name and the product link are added for you.")) {
-                    ForEach($openers) { $o in
-                        VStack(alignment: .leading, spacing: 6) {
-                            TextField("Name", text: $o.label)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Palette.brand)
-                            TextField("Message", text: $o.body, axis: .vertical)
-                                .font(.system(size: 15))
+                Text("These appear as chips when you share a page into Halia and pick a client. The client's name and the link are added for you.")
+                    .font(.system(size: 12.5)).foregroundColor(Palette.faint)
+                    .listRowBackground(Color.clear)
+                ForEach(PageKind.allCases) { kind in
+                    Section(header: Text(kind.title)) {
+                        ForEach(binding(for: kind)) { $o in
+                            VStack(alignment: .leading, spacing: 6) {
+                                TextField("Name", text: $o.label)
+                                    .font(.system(size: 13, weight: .semibold)).foregroundColor(Palette.brand)
+                                TextField("Message", text: $o.body, axis: .vertical)
+                                    .font(.system(size: 15))
+                            }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
+                        .onDelete { sets[kind]?.remove(atOffsets: $0) }
+                        Button {
+                            sets[kind, default: []].append(Opener(label: "New opener", body: ""))
+                        } label: {
+                            Label("Add opener", systemImage: "plus.circle")
+                        }
+                        .tint(Palette.brand)
                     }
-                    .onDelete { openers.remove(atOffsets: $0) }
-                    Button {
-                        openers.append(Opener(label: "New opener", body: ""))
-                    } label: {
-                        Label("Add opener", systemImage: "plus.circle")
-                    }
-                    .tint(Palette.brand)
                 }
             }
             .navigationTitle("Message openers")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Reset") { openers = OpenersStore.defaults }
+                    Button("Reset all") { for k in PageKind.allCases { sets[k] = OpenersStore.defaults[k] ?? [] } }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { OpenersStore.save(openers); dismiss() }
-                        .fontWeight(.semibold)
+                    Button("Done") {
+                        for k in PageKind.allCases { OpenersStore.save(sets[k] ?? [], for: k) }
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
                 }
             }
         }
+    }
+
+    private func binding(for kind: PageKind) -> Binding<[Opener]> {
+        Binding(get: { sets[kind] ?? [] }, set: { sets[kind] = $0 })
     }
 }
 
