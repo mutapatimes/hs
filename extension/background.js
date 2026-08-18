@@ -56,37 +56,75 @@ async function lookup(query) {
   }
 }
 
-// WooCommerce admin lives on the merchant's own domain, unknown at build time. The options page
-// grants access to that one site and stores it; here we register the badge inside its wp-admin.
+// The merchant's own store lives on a domain unknown at build time. The options page grants access
+// to that one site and stores it. Here we register two things inside it: the full toolbar in its
+// wp-admin (WooCommerce), and the reverse-share launcher across its storefront (any page the
+// associate browses — a product, a collection, a care or returns page — becomes shareable to a
+// client). The storefront script excludes the admin paths so the two never both drive one page.
 async function syncWooScripts() {
   const { wooOrigins = [] } = await chrome.storage.sync.get("wooOrigins");
-  try {
-    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: ["halia-woo"] });
-    if (existing.length) await chrome.scripting.unregisterContentScripts({ ids: ["halia-woo"] });
-  } catch (e) { /* nothing registered yet */ }
-  const matches = [];
-  for (const o of wooOrigins) {
-    const origin = o.replace(/\/+$/, "") + "/*";
+  for (const id of ["halia-woo", "halia-store"]) {
     try {
-      if (await chrome.permissions.contains({ origins: [origin] })) {
-        matches.push(o.replace(/\/+$/, "") + "/wp-admin/*");
-      }
+      const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [id] });
+      if (existing.length) await chrome.scripting.unregisterContentScripts({ ids: [id] });
+    } catch (e) { /* nothing registered yet */ }
+  }
+  const granted = [];
+  for (const o of wooOrigins) {
+    const clean = o.replace(/\/+$/, "");
+    try {
+      if (await chrome.permissions.contains({ origins: [clean + "/*"] })) granted.push(clean);
     } catch (e) { /* skip */ }
   }
-  if (!matches.length) return;
+  if (!granted.length) return;
+  const regs = [{
+    id: "halia-woo",
+    matches: granted.map((o) => o + "/wp-admin/*"),
+    js: ["ui/badge.js", "content/core.js", "content/admin.js"],
+    runAt: "document_idle",
+    persistAcrossSessions: true
+  }, {
+    id: "halia-store",
+    matches: granted.map((o) => o + "/*"),
+    excludeMatches: granted.flatMap((o) => [o + "/wp-admin/*", o + "/admin/*"]),
+    js: ["ui/badge.js", "content/core.js", "content/storefront.js"],
+    runAt: "document_idle",
+    persistAcrossSessions: true
+  }];
   try {
-    await chrome.scripting.registerContentScripts([{
-      id: "halia-woo",
-      matches,
-      js: ["ui/badge.js", "content/core.js", "content/admin.js"],
-      runAt: "document_idle",
-      persistAcrossSessions: true
-    }]);
+    await chrome.scripting.registerContentScripts(regs);
   } catch (e) { /* ignore */ }
 }
 
 chrome.runtime.onInstalled.addListener(syncWooScripts);
 chrome.runtime.onStartup.addListener(syncWooScripts);
+
+// Halia on ANY page: look up a highlighted name, and drop a template into any message box. Off by
+// default and gated on a broad host grant the associate opts into from the options page — so the
+// extension stays quiet on every other site until they ask for it. When on, register the two
+// lightweight overlays (selection look-up + template insert) across all pages.
+async function syncSelectScript() {
+  try {
+    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: ["halia-select"] });
+    if (existing.length) await chrome.scripting.unregisterContentScripts({ ids: ["halia-select"] });
+  } catch (e) { /* nothing registered yet */ }
+  const { lookupEverywhere } = await chrome.storage.sync.get("lookupEverywhere");
+  if (!lookupEverywhere) return;
+  try {
+    if (!(await chrome.permissions.contains({ origins: ["*://*/*"] }))) return;
+  } catch (e) { return; }
+  try {
+    await chrome.scripting.registerContentScripts([{
+      id: "halia-select",
+      matches: ["*://*/*"],
+      js: ["content/select.js", "content/compose.js"],
+      runAt: "document_idle",
+      persistAcrossSessions: true
+    }]);
+  } catch (e) { /* ignore */ }
+}
+chrome.runtime.onInstalled.addListener(syncSelectScript);
+chrome.runtime.onStartup.addListener(syncSelectScript);
 
 // ── Right-click "Look up in Halia" — works on any page, on selected text ──────
 function ensureMenu() {
@@ -234,6 +272,27 @@ async function products(q) {
   const { base, token } = await config();
   if (!token) return { error: "no-token" };
   const url = base + "/v1/extension/products?limit=20&q=" + encodeURIComponent(q || "");
+  let res;
+  try {
+    res = await hfetch(url, { headers: { "X-Halia-Ext-Token": token } });
+  } catch (e) {
+    return { error: "network" };
+  }
+  if (res.status === 401) return { error: "unauthorized" };
+  if (!res.ok) return { error: "http-" + res.status };
+  try {
+    return await res.json();
+  } catch (e) {
+    return { error: "parse" };
+  }
+}
+
+// The associate's client book, best clients first, for the reverse share flow: on a product or
+// page, pick who to send it to. Names, grades and a number to reach them on. RAM only server-side.
+async function clients(q) {
+  const { base, token } = await config();
+  if (!token) return { error: "no-token" };
+  const url = base + "/v1/extension/clients" + (q ? "?q=" + encodeURIComponent(q) : "");
   let res;
   try {
     res = await hfetch(url, { headers: { "X-Halia-Ext-Token": token } });
@@ -412,6 +471,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     products(msg.q).then(sendResponse);
     return true;
   }
+  if (msg && msg.type === "halia:clients") {
+    clients(msg.q).then(sendResponse);
+    return true;
+  }
   if (msg && msg.type === "halia:image") {
     imageData(msg.url, msg.w).then(sendResponse);
     return true;
@@ -455,6 +518,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg && msg.type === "halia:woo-sync") {
     syncWooScripts().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  if (msg && msg.type === "halia:select-sync") {
+    syncSelectScript().then(() => sendResponse({ ok: true }));
     return true;
   }
 });
