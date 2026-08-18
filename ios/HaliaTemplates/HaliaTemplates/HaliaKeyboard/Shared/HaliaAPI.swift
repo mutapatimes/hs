@@ -300,6 +300,36 @@ struct HaliaAPI {
         return r.entries ?? []
     }
 
+    // MARK: Client book (Share reverse flow) — pick who to send a shared product to.
+
+    struct Client: Decodable, Identifiable {
+        let cid: String?
+        let name: String
+        let grade: String
+        let phone: String?
+        let latent: String?
+        var id: String { (cid ?? "") + "|" + name }
+        private enum K: String, CodingKey { case cid, name, grade, phone, latent }
+        init(from d: Decoder) throws {
+            let c = try d.container(keyedBy: K.self)
+            cid    = (try? c.decodeIfPresent(Scalar.self, forKey: .cid))?.text
+            name   = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? ""
+            grade  = (try? c.decodeIfPresent(String.self, forKey: .grade)) ?? ""
+            phone  = (try? c.decodeIfPresent(String.self, forKey: .phone)) ?? nil
+            latent = (try? c.decodeIfPresent(Scalar.self, forKey: .latent))?.text
+        }
+    }
+
+    private struct ClientsResponse: Decodable { let clients: [Client]? }
+
+    /// The associate's client book, best clients first. Optional name search.
+    func clients(q: String = "") async throws -> [Client] {
+        let qs = q.isEmpty ? "" : "?q=" + (q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")
+        let (data, _) = try await send("/v1/extension/clients" + qs, method: "GET", body: nil)
+        guard let r = try? JSONDecoder().decode(ClientsResponse.self, from: data) else { throw HaliaAPIError.decode }
+        return r.clients ?? []
+    }
+
     // MARK: Catalogue from saved storefront URLs (App Intents "save while browsing").
 
     struct UrlCatalogueResult { let url: String; let resolved: Int; let requested: Int }

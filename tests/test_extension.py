@@ -652,6 +652,31 @@ def test_directory_labels_sorts_and_skips_local(env):
     assert phones == sorted(phones)                                   # ascending, CallKit order
 
 
+# ── client book (Share reverse flow) ─────────────────────────────────────────
+def test_clients_requires_token(env):
+    client, store, tok = env
+    assert client.get("/v1/extension/clients").status_code == 401
+
+
+def test_clients_returns_book_best_first_and_searches(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([
+        _row(cid="c1", name="Bella Rossi", grade="B", phone="+44 7700 900001"),
+        _row(cid="c2", name="Amelia Hart", grade="A*", phone="+44 7700 900002"),
+        _row(cid="c3", name="", grade="A"),                            # nameless row skipped
+    ])
+    r = client.get("/v1/extension/clients", headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 200
+    body = r.json()
+    names = [c["name"] for c in body["clients"]]
+    assert names == ["Amelia Hart", "Bella Rossi"]                     # A* before B, nameless dropped
+    assert body["clients"][0]["phone"] == "+44 7700 900002"           # a number to send to
+    # name search
+    r2 = client.get("/v1/extension/clients?q=bella", headers={"X-Halia-Ext-Token": ext})
+    assert [c["name"] for c in r2.json()["clients"]] == ["Bella Rossi"]
+
+
 # ── catalogue from storefront URLs (iOS save-while-browsing) ──────────────────
 def test_handle_from_url_parsing():
     f = extension._handle_from_url

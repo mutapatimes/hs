@@ -1286,6 +1286,33 @@ def register(app) -> None:
         entries.sort(key=lambda x: int(x["phone"]))          # CallKit needs ascending numeric order
         return {"count": len(entries), "entries": entries}
 
+    @app.get("/v1/extension/clients")
+    def extension_clients(x_halia_ext_token: Optional[str] = Header(None),
+                          q: Optional[str] = None) -> dict:
+        """The associate's client book, for the Share extension's reverse flow: share a product, then
+        pick who to send it to. Names, grades and a number to send to, from the warm scored book,
+        best clients first. Optional name search via ?q=. RAM only; nothing is stored."""
+        from halia.cache import cache
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
+        rows = ((cache.get(shop) or {}).get("payload") or {}).get("data") or []
+        ql = (q or "").strip().lower()
+        rank = {"A*": 5, "A": 4, "B": 3, "C": 2, "D": 1}
+        out = []
+        for r in rows:
+            name = (r.get("name") or "").strip()
+            if not name or (ql and ql not in name.lower()):
+                continue
+            out.append({
+                "cid": r.get("cid"),
+                "name": name,
+                "grade": str(r.get("grade") or "").strip(),
+                "phone": r.get("phone"),
+                "latent": r.get("latent"),
+            })
+        out.sort(key=lambda c: (-rank.get(c["grade"], 0), c["name"].lower()))
+        return {"count": len(out), "clients": out[:500]}
+
     @app.post("/v1/extension/catalogue_from_urls")
     def extension_catalogue_from_urls(x_halia_ext_token: Optional[str] = Header(None),
                                       payload: Any = Body(default=None)) -> dict:
