@@ -29,7 +29,8 @@ struct ShareRootView: View {
     @State private var chosen: HaliaAPI.Client?
     @State private var productLink = ""
     @State private var activeOpener = ""
-    @State private var openers: [Opener] = OpenersStore.load()   // editable in the host app
+    @State private var openers: [Opener] = []          // loaded per page kind, editable in the host app
+    @State private var pageKind: PageKind = .product
 
     enum Mode { case client, product }
     enum Phase { case loading, found, notfound, signedOut, error(String) }
@@ -262,8 +263,10 @@ struct ShareRootView: View {
 
     private func run() async {
         guard Credentials.hasToken else { phase = .signedOut; return }
-        if Self.isProductURL(query) {          // shared a product -> reverse flow: pick a client
+        if let kind = PageKind.from(url: query) {   // shared a page -> reverse flow: pick a client
             mode = .product
+            pageKind = kind
+            openers = OpenersStore.load(kind)
             await loadClients()
             return
         }
@@ -276,10 +279,6 @@ struct ShareRootView: View {
         } catch {
             phase = .error((error as? HaliaAPIError)?.errorDescription ?? "Could not reach Halia.")
         }
-    }
-
-    private static func isProductURL(_ s: String) -> Bool {
-        s.contains("://") && s.contains("/products/")
     }
 
     private func loadClients() async {
@@ -297,14 +296,16 @@ struct ShareRootView: View {
     private func choose(_ c: HaliaAPI.Client) async {
         chosen = c; copied = false; status = ""; productLink = ""
         busy = true; defer { busy = false }
-        do {
-            let r = try await HaliaAPI.current.catalogueFromUrls(urls: [query], name: c.name)
-            if r.url.isEmpty { status = "Could not build a link for this product." }
-            else if let first = openers.first { productLink = r.url; applyOpener(first) }
-            else { productLink = r.url; draft = productLink }
-        } catch {
-            status = "Could not build a link for this product."
+        var link = query                       // most pages send the shared link as-is
+        if pageKind.buildsCatalogue {          // a product becomes a signed catalogue link
+            do {
+                let r = try await HaliaAPI.current.catalogueFromUrls(urls: [query], name: c.name)
+                if r.url.isEmpty { status = "Could not build a link for this product."; return }
+                link = r.url
+            } catch { status = "Could not build a link for this product."; return }
         }
+        productLink = link
+        if let first = openers.first { applyOpener(first) } else { draft = link }
     }
 
     private func applyOpener(_ o: Opener) {
@@ -400,7 +401,7 @@ struct ShareRootView: View {
             }
         } else {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Send this piece").font(.system(size: 22, weight: .semibold))
+                Text(pageKind.actionTitle).font(.system(size: 22, weight: .semibold))
                 Text("Pick a client from your book.").font(.system(size: 14)).foregroundColor(.secondary)
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass").foregroundColor(.secondary).font(.system(size: 14))
