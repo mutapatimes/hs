@@ -22,6 +22,13 @@ struct ShareRootView: View {
     @State private var contacted = false
     @State private var pickingTemplate = false
 
+    // Reverse flow: when a product URL is shared, pick which client to send it to.
+    @State private var mode: Mode = .client
+    @State private var clients: [HaliaAPI.Client] = []
+    @State private var search = ""
+    @State private var chosen: HaliaAPI.Client?
+
+    enum Mode { case client, product }
     enum Phase { case loading, found, notfound, signedOut, error(String) }
 
     private let green = Color(red: 0.12, green: 0.34, blue: 0.29)
@@ -35,7 +42,7 @@ struct ShareRootView: View {
                     case .signedOut:  stateView("link", "Connect Halia first", "Open Halia and connect your store, then try again.")
                     case .notfound:   stateView("magnifyingglass", "No Halia signal", "“\(query)” is not a flagged client in your book yet.")
                     case .error(let e): stateView("exclamationmark.triangle", "Something went wrong", e)
-                    case .found:      found
+                    case .found:      foundView
                     }
                 }
                 .padding(18)
@@ -66,9 +73,14 @@ struct ShareRootView: View {
     private var loading: some View {
         VStack(spacing: 12) {
             ProgressView()
-            Text("Looking up \(query)…").font(.system(size: 14)).foregroundColor(.secondary)
+            Text(mode == .product ? "Opening your client book…" : "Looking up \(query)…")
+                .font(.system(size: 14)).foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 30)
+    }
+
+    @ViewBuilder private var foundView: some View {
+        if mode == .product { productView } else { found }
     }
 
     private func stateView(_ symbol: String, _ title: String, _ subtitle: String? = nil) -> some View {
@@ -216,14 +228,16 @@ struct ShareRootView: View {
 
     private enum Channel { case whatsapp, messages }
 
-    /// A number to send to: the matched client's phone from the lookup first (so highlighting a name
-    /// still lets you send), else the shared value when a phone was what you shared.
+    /// A number to send to: the chosen client (reverse flow) or the matched client's phone from the
+    /// lookup, else the shared value when a phone was what you shared.
     private var rawNumber: String? {
-        if let p = result?.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !p.isEmpty {
+        let candidate = (mode == .product ? chosen?.phone : result?.phone)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let p = candidate, !p.isEmpty {
             let cleaned = p.filter { $0.isNumber || $0 == "+" }
             if cleaned.filter(\.isNumber).count >= 6 { return cleaned }
         }
-        if let ref = ClientClassifier.classify(query), ref.kind == .phone { return ref.value }
+        if mode == .client, let ref = ClientClassifier.classify(query), ref.kind == .phone { return ref.value }
         return nil
     }
 
@@ -245,6 +259,11 @@ struct ShareRootView: View {
 
     private func run() async {
         guard Credentials.hasToken else { phase = .signedOut; return }
+        if Self.isProductURL(query) {          // shared a product -> reverse flow: pick a client
+            mode = .product
+            await loadClients()
+            return
+        }
         guard let ref = ClientClassifier.classify(query) else { phase = .notfound; return }
         phase = .loading
         do {
@@ -253,6 +272,34 @@ struct ShareRootView: View {
             phase = (r.found == true) ? .found : .notfound
         } catch {
             phase = .error((error as? HaliaAPIError)?.errorDescription ?? "Could not reach Halia.")
+        }
+    }
+
+    private static func isProductURL(_ s: String) -> Bool {
+        s.contains("://") && s.contains("/products/")
+    }
+
+    private func loadClients() async {
+        phase = .loading
+        do {
+            clients = try await HaliaAPI.current.clients()
+            phase = .found
+        } catch {
+            phase = .error((error as? HaliaAPIError)?.errorDescription ?? "Could not reach Halia.")
+        }
+    }
+
+    /// A client was chosen for the shared product: turn the product URL into a catalogue link and
+    /// pre-write a note. The draft is editable and the send buttons use the client's number.
+    private func choose(_ c: HaliaAPI.Client) async {
+        chosen = c; copied = false; status = ""
+        busy = true; defer { busy = false }
+        do {
+            let r = try await HaliaAPI.current.catalogueFromUrls(urls: [query], name: c.name)
+            if r.url.isEmpty { status = "Could not build a link for this product." }
+            else { draft = "I set this piece aside for you. You can see it here:\n\(r.url)" }
+        } catch {
+            status = "Could not build a link for this product."
         }
     }
 
@@ -296,9 +343,96 @@ struct ShareRootView: View {
     }
 
     private func markContacted() async {
-        guard let cid = result?.cid, !cid.isEmpty, !contacted else { return }
-        _ = try? await HaliaAPI.current.logContacted(cid: cid, clientName: result?.name, reason: "Contacted from Share")
+        let cid = (mode == .product ? chosen?.cid : result?.cid)
+        let name = (mode == .product ? chosen?.name : result?.name)
+        guard let cid, !cid.isEmpty, !contacted else { return }
+        _ = try? await HaliaAPI.current.logContacted(cid: cid, clientName: name, reason: "Contacted from Share")
         contacted = true
+    }
+
+    // MARK: product (reverse) flow
+
+    private var filteredClients: [HaliaAPI.Client] {
+        let q = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return q.isEmpty ? clients : clients.filter { $0.name.lowercased().contains(q) }
+    }
+
+    @ViewBuilder private var productView: some View {
+        if let c = chosen {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 10) {
+                    gradeBadge(c.grade)
+                    Text(c.name).font(.system(size: 20, weight: .semibold))
+                    Spacer()
+                    Button("Change") { chosen = nil; draft = ""; copied = false }
+                        .font(.system(size: 14, weight: .medium)).foregroundColor(green)
+                }
+                if busy {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Preparing the link…").font(.system(size: 14)).foregroundColor(.secondary)
+                    }
+                } else if !draft.isEmpty {
+                    draftBlock
+                }
+                if !status.isEmpty { Text(status).font(.system(size: 12.5)).foregroundColor(.secondary) }
+                if let cid = c.cid, !cid.isEmpty {
+                    Button(action: { Task { await markContacted() } }) {
+                        Text(contacted ? "Logged to pipeline ✓" : "Mark contacted")
+                            .font(.system(size: 14, weight: .medium)).foregroundColor(contacted ? .secondary : green)
+                    }
+                    .disabled(contacted)
+                }
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Send this piece").font(.system(size: 22, weight: .semibold))
+                Text("Pick a client from your book.").font(.system(size: 14)).foregroundColor(.secondary)
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundColor(.secondary).font(.system(size: 14))
+                    TextField("Search clients", text: $search).textInputAutocapitalization(.words)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+
+                if clients.isEmpty {
+                    Text("No clients in your book yet. Sync in the Halia app.")
+                        .font(.system(size: 14)).foregroundColor(.secondary).padding(.top, 8)
+                } else {
+                    LazyVStack(spacing: 0) {
+                        ForEach(filteredClients) { c in
+                            Button { Task { await choose(c) } } label: { clientRow(c) }
+                                .buttonStyle(.plain)
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func clientRow(_ c: HaliaAPI.Client) -> some View {
+        HStack(spacing: 10) {
+            gradeBadge(c.grade)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(c.name).font(.system(size: 15, weight: .semibold)).foregroundColor(.primary)
+                if let l = c.latent, !l.isEmpty {
+                    Text("\(l) latent value").font(.system(size: 12)).foregroundColor(.secondary)
+                }
+            }
+            Spacer()
+            Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundColor(.secondary)
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, 10)
+    }
+
+    @ViewBuilder private func gradeBadge(_ g: String) -> some View {
+        if !g.isEmpty {
+            Text(g).font(.system(size: 12, weight: .bold)).foregroundColor(.white)
+                .padding(.horizontal, 7).padding(.vertical, 3)
+                .background(gradeColor(g))
+        }
     }
 
     // Brand grade colours (no gold): A* charcoal, A green, B slate, else grey.
