@@ -55,6 +55,7 @@ from scoring.signals import (
     shared_phone,
     us_foundation,
     us_insider,
+    ae_property,
     fr_property,
     us_property,
     us_zip,
@@ -73,6 +74,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "us_hnwi_zip": 3,
     "us_property": 2,     # US high-value home ZIP: base; the tier overrides (US_PROPERTY_AREA_WEIGHTS)
     "fr_property": 2,     # France high-value code postal (DVF): base; tier overrides (FR_PROPERTY_AREA_WEIGHTS)
+    "ae_property": 2,     # UAE high-value community (DLD): base; tier overrides (AE_PROPERTY_AREA_WEIGHTS)
     "intl_postcode": 3,
     "hnw_area": 3,
     "named_house": 2,  # street line is a NAMED property ("The Old Rectory") — quiet-wealth address fact
@@ -207,6 +209,13 @@ FR_PROPERTY_AREA_WEIGHTS = {
     "high": 1,
 }
 
+# UAE high-value community tiers (DLD open data, AED/sqm medians). Name-matched, country-gated.
+AE_PROPERTY_AREA_WEIGHTS = {
+    "ultra": 3,
+    "prime": 2,
+    "high": 1,
+}
+
 # "Supporting" signals are too weak/sensitive to ever flag a customer on their
 # own: they contribute to the score and count ONLY when at least one stronger
 # (non-supporting) signal has also fired. This enforces "never a sole basis".
@@ -274,6 +283,7 @@ SIGNAL_GROUP: dict[str, str] = {
     "property_area": "geo",   # district value echoes the same location too
     "us_property": "geo",     # US home-value ZIP echoes the same location too
     "fr_property": "geo",     # France home-value code postal, same geography family
+    "ae_property": "geo",     # UAE home-value community, same geography family
     "prime_residence": "geo",
     "gcc_billing": "geo",
     "wealth_jurisdiction": "geo",  # high-value residential jurisdiction (was tax_haven)
@@ -369,6 +379,8 @@ SIGNALS = [
      us_property.FLAG_COL, lambda r: r[us_property.REASON_COL]),
     ("fr_property", "High-value home area", fr_property.flag_fr_property,
      fr_property.FLAG_COL, lambda r: r[fr_property.REASON_COL]),
+    ("ae_property", "High-value home area", ae_property.flag_ae_property,
+     ae_property.FLAG_COL, lambda r: r[ae_property.REASON_COL]),
     ("wealth_office", "Wealth office", wealth_office.flag_wealth_office,
      wealth_office.MATCH_COL, lambda r: r[wealth_office.OFFICE_COL]),
     ("wealth_structure", "Wealth structure", wealth_structure.flag_wealth_structure,
@@ -623,6 +635,8 @@ def score_customers(
                 type_spec = (us_property.TIER_COL, US_PROPERTY_AREA_WEIGHTS)
             elif key == "fr_property":
                 type_spec = (fr_property.TIER_COL, FR_PROPERTY_AREA_WEIGHTS)
+            elif key == "ae_property":
+                type_spec = (ae_property.TIER_COL, AE_PROPERTY_AREA_WEIGHTS)
             elif key == "companies_house":
                 type_spec = (companies_house.TYPE_COL, COMPANIES_HOUSE_TIER_WEIGHTS)
             elif key == "us_insider":
