@@ -420,6 +420,9 @@ def register(app) -> None:
         s["hubspot_connected"] = bool(store.get_hubspot(shop))
         # Shopify tag write-back is only offered to Shopify tenants (they hold an admin token).
         s["shopify_connected"] = bool(store.get_token(shop))
+        # The tenant key, so per-shop client state (e.g. the ask-once questionnaire flag) can be
+        # scoped to THIS store rather than the whole browser.
+        s["shop"] = shop
         # Whether a browser-extension token has been generated (the raw token is shown once, at mint).
         s["extension_enabled"] = bool(store.get_extension_token_hash(shop))
         # Whether AI drafting ("Draft with Halia") is live: an LLM key is configured on the server.

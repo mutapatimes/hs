@@ -421,7 +421,7 @@
 
   .dlabel{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:4px 0 12px}
   /* VIP questionnaire */
-  .vipwrap{position:fixed;inset:0;z-index:120;background:rgba(26,28,34,.42);display:none;
+  .vipwrap{position:fixed;inset:0;z-index:400;background:rgba(26,28,34,.42);display:none;
     align-items:center;justify-content:center;padding:24px}
   .vipwrap.show{display:flex}
   .vipcard{background:var(--card);border:1px solid var(--line);border-radius:0;width:100%;
@@ -2603,7 +2603,8 @@ function vipRender(){
 function vipMaybeAsk(){
   if(!SETTINGS || (SETTINGS.vip_profile && Object.keys(SETTINGS.vip_profile).length)) return;
   if(!(SETTINGS.shopify_connected || SETTINGS.klaviyo_connected)) return;
-  try{ if(localStorage.getItem("haliaVipAsked")) return; localStorage.setItem("haliaVipAsked","1"); }catch(e){}
+  var vk="haliaVipAsked:"+(SETTINGS.shop||"");
+  try{ if(localStorage.getItem(vk)) return; localStorage.setItem(vk,"1"); }catch(e){}
   vipOpen(false);
 }
 
@@ -3519,7 +3520,7 @@ function loadSettings(){
     SENDER=s.sender_name||"";
     CATALOG_URL=s.catalog_url||"";
     if(s.ai_drafting) showAskBar();   // ask-in-plain-English needs a key on the server
-    vipMaybeAsk();                   // ask what this house offers, once, after connecting
+    vipMaybeAsk();                   // ask about their client services, once, after connecting
     return SETTINGS;
   }).catch(()=>SETTINGS);
 }
@@ -3704,7 +3705,7 @@ function openSettings(page){
         </div>`:""}
 
         <div style="${C}">
-          <div style="${H}">What your house offers</div>
+          <div style="${H}">Client services</div>
           <p style="${P}">A short set of questions about what you can do for a top client, even the things you have never written down. Halia keeps to it: it will only ever offer a service you have told it you provide, and it never decides anything on your behalf.</p>
           <div style="margin-bottom:12px"><span style="${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?ST_ON:ST_OFF}">${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?("Answered \u00b7 "+Object.keys(SETTINGS.vip_profile).length+" of 6"):"Not answered yet"}</span></div>
           <button id="setVipOpen" style="${BS}">${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?"Review answers":"Answer the questions"}</button>
