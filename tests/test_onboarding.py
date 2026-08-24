@@ -440,6 +440,31 @@ def test_shopify_callback_rejects_bad_hmac(client, monkeypatch):
     assert r.status_code == 400
 
 
+def test_shopify_request_access(client, monkeypatch):
+    """Review-window flow: a merchant leaves store + email; we mail hello@ (or hand back a mailto)."""
+    c, _ = client
+    sent = {}
+    monkeypatch.setattr("halia.notify.email_configured", lambda: True)
+    def fake_send(to, subject, html, text=None, shop=None, reply_to=None):
+        sent.update(to=to, subject=subject, reply_to=reply_to)
+        return True
+    monkeypatch.setattr("halia.notify.send_email", fake_send)
+    r = c.post("/v1/shopify/request-access",
+               json={"shop_domain": "https://glen-norah.myshopify.com/", "email": "owner@glen.com"})
+    assert r.status_code == 200
+    d = r.json()
+    assert d["sent"] is True and sent["to"] == "hello@haliascore.com"
+    assert "glen-norah.myshopify.com" in sent["subject"] and sent["reply_to"] == "owner@glen.com"
+    # no mail provider configured -> still ok, with a mailto fallback
+    monkeypatch.setattr("halia.notify.email_configured", lambda: False)
+    d2 = c.post("/v1/shopify/request-access",
+                json={"shop_domain": "glen-norah.myshopify.com", "email": "owner@glen.com"}).json()
+    assert d2["sent"] is False and d2["mailto"].startswith("mailto:hello@haliascore.com")
+    # both fields required
+    assert c.post("/v1/shopify/request-access", json={"shop_domain": "", "email": "a@b.c"}).status_code == 400
+    assert c.post("/v1/shopify/request-access", json={"shop_domain": "x.myshopify.com", "email": "nope"}).status_code == 400
+
+
 def test_shopify_authorize_blocked_while_under_review(client, monkeypatch):
     """Public app configured but not yet approved: one-click must refuse (Shopify would block it)."""
     c, _ = client
