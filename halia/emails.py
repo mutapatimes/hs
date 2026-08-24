@@ -20,7 +20,6 @@ _MUT = "#6b675e"
 _FAINT = "#9a9488"
 _ACCENT = "#1f564a"     # brand green
 _ACCENT_DK = "#143a32"
-_GOLD = "#a67c34"       # secondary accent, used with restraint
 _LINE = "#e7e1d4"
 _SERIF = "Georgia, 'Times New Roman', serif"
 _SANS = "Helvetica, Arial, sans-serif"
@@ -61,12 +60,12 @@ def _hero(eyebrow: str) -> str:
     """
     return (
         f"<tr><td align=center style='padding:8px 0 30px'>"
-        # the asterism mark, in gold — the quiet brand tell
-        f"<div style='font:400 30px {_SERIF};color:{_GOLD};line-height:1'>&#8258;</div>"
+        # the asterism mark, in brand green
+        f"<div style='font:400 30px {_SERIF};color:{_ACCENT};line-height:1'>&#8258;</div>"
         # wordmark
         f"<div style='font:300 32px {_SERIF};color:{_INK};letter-spacing:.05em;margin-top:9px'>Halia</div>"
-        # gold hairline
-        f"<div style='width:34px;height:2px;background:{_GOLD};margin:18px auto 2px'></div>"
+        # hairline
+        f"<div style='width:34px;height:2px;background:{_ACCENT};margin:18px auto 2px'></div>"
         f"</td></tr>")
 
 
@@ -87,9 +86,6 @@ def _layout(subject: str, greeting: str, body_html: str, unsub_url: str, eyebrow
         f"style='max-width:568px;width:100%'>"
         # masthead hero
         f"{_hero(eyebrow)}"
-        # card — a fine gold top rule, then the white body
-        f"<tr><td style='height:3px;background:{_GOLD};border-radius:0;"
-        f"line-height:3px;font-size:0'>&nbsp;</td></tr>"
         f"<tr><td style='background:{_PAPER};border:1px solid {_LINE};border-top:none;"
         f"border-radius:0;padding:36px 38px 30px'>"
         f"<p style='margin:0 0 20px;font:600 17px/1.5 {_SERIF};color:{_INK}'>{greeting}</p>"
@@ -100,7 +96,7 @@ def _layout(subject: str, greeting: str, body_html: str, unsub_url: str, eyebrow
         f"</td></tr>"
         # footer
         f"<tr><td align=center style='padding:26px 8px 4px'>"
-        f"<div style='font:400 15px {_SERIF};color:{_GOLD}'>&#8258;</div>"
+        f"<div style='font:400 15px {_SERIF};color:{_ACCENT}'>&#8258;</div>"
         f"<p style='margin:8px 0 0;font:11px/1.7 {_SANS};letter-spacing:.02em;color:{_MUT}'>"
         f"Private client intelligence for luxury retail<br>"
         f"<a href='{base_url()}' style='color:{_ACCENT};text-decoration:none'>haliascore.com</a></p>"

@@ -490,7 +490,7 @@
   .drawer.wide .drecord .dfold:first-child{border-top:0}
   @media(max-width:960px){ .drawer.wide .dbody{display:block} }
   /* the written one-liner, above the evidence it is drawn from */
-  .dsum{background:var(--brand-tint);border-left:3px solid var(--brand);border-radius:0;
+  .dsum{background:var(--brand-tint);border-radius:0;
     padding:12px 15px;margin-bottom:14px;font-size:14px;line-height:1.55;color:var(--ink)}
   .evidence{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
   .ev{background:var(--card);border:1px solid var(--line);border-radius:0;padding:13px 14px;display:flex;gap:12px;align-items:flex-start}
@@ -515,7 +515,7 @@
   @keyframes barfill{from{width:0}}
   @keyframes evrow{from{opacity:0;transform:translateX(7px)}}
 
-  .reco{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:0;padding:14px 16px;margin-bottom:22px}
+  .reco{background:var(--card);border:1px solid var(--line);border-radius:0;padding:14px 16px;margin-bottom:22px}
   .reco .k{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);font-weight:700;margin-bottom:6px}
   .reco p{font-size:13.5px;color:var(--ink);line-height:1.5}
 
@@ -969,7 +969,7 @@
           </div>
           <div id="ovResults" class="ovres" style="display:none"></div>
         </div>
-        <div id="ovDigestCard" class="card" style="display:none;margin-bottom:16px;border-color:#b9cfc6">
+        <div id="ovDigestCard" class="card" style="display:none;margin-bottom:16px">
           <div class="ch"><h3>This week</h3><span class="hint">what deserves your attention, counted from your own book</span></div>
           <div class="cb"><div id="ovDigest" class="digest"></div></div>
         </div>
@@ -3288,7 +3288,7 @@ function openDrawer(id){
 
       ${c.cart?`
       <div class="dlabel">Open basket</div>
-      <div style="background:var(--card);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:0;padding:14px 16px;margin-bottom:22px">
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:0;padding:14px 16px;margin-bottom:22px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
           <div style="font-family:'Fraunces',serif;font-size:21px">${gbp(c.cart.value)}</div>
           <div style="font-size:12px;color:var(--soft)">${c.cart.count} item${c.cart.count===1?'':'s'} · started ${cartAge(c.cart.started)}</div>
@@ -3903,7 +3903,7 @@ function openSettings(page){
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px"><div style="font:650 13px system-ui;color:var(--ink)">${p.h}</div><button data-copy="${i}" style="${BS};padding:5px 12px">Copy</button></div>
             <div style="font:13px/1.55 system-ui;color:var(--soft)">${esc(p.body)}</div></div>`).join("")}
         </div>
-        <div style="${C};border-color:#e7c9c9">
+        <div style="${C}">
           <div style="${H};color:var(--danger)">Delete your Halia account</div>
           <p style="${P}">This permanently erases everything Halia holds for you: your store connection and API keys, settings, email templates, connected integrations, and billing record. Any active subscription is cancelled. Your own store and its customer data are untouched. This cannot be undone.</p>
           <label style="font:13px ${SF};color:var(--soft)">Type <b>DELETE</b> to confirm</label>
