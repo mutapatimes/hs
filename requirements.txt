@@ -13,3 +13,4 @@ pywebpush>=1.14   # Web Push desktop alerts for high-grade orders (optional; no-
 weasyprint>=62    # catalog-PDF generator (HTML->PDF). Needs cairo/pango system libs — see Dockerfile.
 anthropic>=0.69   # "Draft with Halia" / the conversation brief (halia/llm.py). Idle without a key.
 segno>=1.6
+sentry-sdk>=2.0   # error tracking; idle without SENTRY_DSN

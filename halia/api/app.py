@@ -33,6 +33,16 @@ if _restored:
     print(f"reference bundle: restored {len(_restored)} private table(s): {', '.join(_restored)}")
 
 # Swagger UI is relocated off /docs so the marketing documentation page can own that path.
+# Error tracking, on only when a DSN is set. First to know beats first to be told.
+import os as _senv  # noqa: E402
+if _senv.environ.get("SENTRY_DSN"):
+    try:
+        import sentry_sdk
+        sentry_sdk.init(dsn=_senv.environ["SENTRY_DSN"], traces_sample_rate=0.0,
+                        send_default_pii=False)   # errors only; never request bodies/PII
+    except Exception:  # noqa: BLE001 — observability must never take the app down
+        pass
+
 app = FastAPI(title="Halia", version="1.0", summary="Hidden-VIC scoring — embedded Shopify app",
               docs_url="/api/docs", openapi_url="/api/openapi.json")
 

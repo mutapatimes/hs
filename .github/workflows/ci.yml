@@ -1,0 +1,30 @@
+# Every push and PR runs the full backend suite plus the jsdom dashboard smoke, so a red
+# main is caught before it deploys (Render deploys from this branch).
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # WeasyPrint needs cairo/pango at import time (mirrors the Dockerfile).
+      - name: System libraries
+        run: sudo apt-get update && sudo apt-get install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0
+      - name: Python dependencies
+        run: pip install -r requirements.txt
+      - name: JS test dependencies (jsdom smoke)
+        run: cd tests/js && npm install --no-audit --no-fund
+      - name: Tests
+        run: OMP_NUM_THREADS=1 python -m pytest tests/ -q
