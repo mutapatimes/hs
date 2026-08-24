@@ -48,7 +48,7 @@ final class ProductCell: UICollectionViewCell {
         img.contentMode = .scaleAspectFill
         img.clipsToBounds = true
         img.backgroundColor = UIColor(white: 0.92, alpha: 1)
-        img.layer.cornerRadius = 10
+        img.layer.cornerRadius = 8
         img.translatesAutoresizingMaskIntoConstraints = false
         cap.font = .systemFont(ofSize: 11, weight: .medium)
         cap.textColor = .secondaryLabel

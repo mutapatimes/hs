@@ -32,40 +32,6 @@
     --dur:160ms;
     --dur-slow:280ms;
   }
-  /* Dark mode: the same warm, quiet palette on charcoal. Toggled by the ☾ button in the hosted
-     top bar (html.dark + localStorage); every component reads the tokens, so this block is the
-     whole theme. */
-  html.dark{
-    --ink:#E9E7E1;
-    --soft:#A6A49C;
-    --faint:#807E77;
-    --brand-deep:#1B4A3F;
-    --brand:#2E7263;
-    --brand-tint:#1C2B27;
-    --bg:#1B1A17;
-    --shell:#141311;
-    --shell-ink:#C7C3B8;
-    --card:#232220;
-    --line:#33312C;
-    --line-strong:#413E37;
-    --rowhover:#282723;
-    --tierB:#8B98A1;
-    --danger:#C96A5B;
-    --shadow:0 1px 2px rgba(0,0,0,.28),0 8px 24px rgba(0,0,0,.30);
-    --shadow-sm:0 1px 2px rgba(0,0,0,.30);
-    --shadow-hover:0 2px 4px rgba(0,0,0,.30),0 12px 30px rgba(0,0,0,.40);
-    --shadow-lg:0 24px 64px rgba(0,0,0,.55);
-  }
-  html.dark .mapwrap{background:linear-gradient(180deg,#201f1b,#1b1a16)}
-  html.dark .land{fill:#2b2925;stroke:#3b382f}
-  html.dark .mapzoom button{background:rgba(35,34,32,.92);color:var(--ink);border-color:var(--line-strong)}
-  html.dark .bandpill.active{background:#1c2b27;color:#9fc6ba}
-  html.dark .bandpill.cooling{background:#2e2617;color:#d9b56a}
-  html.dark .bandpill.lapsed{background:#272134;color:#b7a3d1}
-  html.dark .bandpill.new{background:#282723;color:var(--soft)}
-  html.dark .chip:hover{border-color:#57544c}
-  html.dark .histbar{background:linear-gradient(180deg,#2b2618,#241f13);border-color:#4a4128}
-  html.dark img,html.dark video{filter:brightness(.92)}
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
@@ -3727,6 +3693,15 @@ function openSettings(page){
         <div style="${C}">
           <div style="${H}">Team</div>
           <p style="${P}">Each person gets their own sign-in for the extension and the Halia keyboard, so actions carry their name and you can revoke one person without touching the rest.</p>
+          <div id="setExtConnWrap" style="display:none;margin:0 0 14px;padding:13px 15px;background:var(--brand-tint,#e9f1ee);border-radius:8px">
+            <div style="font:600 13px system-ui;color:#1f564a">Halia extension found in this browser</div>
+            <div style="font:12px system-ui;color:#3a5a50;margin:4px 0 10px">Sign it in as a teammate. Everything they do will carry their name, and you can revoke just them.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <input id="extConnName" placeholder="Their name" style="flex:1;min-width:150px;border:1px solid var(--line-strong);border-radius:8px;padding:8px 11px;font:14px system-ui;color:var(--ink);background:var(--card)">
+              <button id="setExtConnect" style="${BS}">Sign this browser in</button>
+            </div>
+            <span id="setExtConnStatus" style="display:block;font:600 12px system-ui;margin-top:8px"></span>
+          </div>
           <div id="seatList" style="margin:6px 0 14px"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input id="seatName" placeholder="Teammate's name" style="flex:1;min-width:180px;border:1px solid var(--line-strong);border-radius:8px;padding:9px 11px;font:14px system-ui;color:var(--ink);background:var(--card)">
@@ -3753,12 +3728,6 @@ function openSettings(page){
           <div style="margin-bottom:10px"><span style="${SETTINGS.extension_enabled?ST_ON:ST_OFF}">${SETTINGS.extension_enabled?"A token is active":"No token yet"}</span></div>
           <div style="font:12px system-ui;color:#8a8a8a;margin-bottom:12px">${SETTINGS.ai_drafting?"“The brief” reads the conversation on screen and gives your team where the relationship stands, the next moves worth making, and a reply ready to send.":"“The brief” gives your team where the client stands, the next moves worth making, and a reply drawn from your own templates."}</div>
           <button id="setExtGen" style="${BS}">${SETTINGS.extension_enabled?"Generate a new token":"Generate token"}</button>
-          <div id="setExtConnWrap" style="display:none;margin-top:14px;padding:13px 15px;background:var(--brand-tint,#e9f1ee);border-radius:8px">
-            <div style="font:600 13px system-ui;color:#1f564a">Halia extension found in this browser</div>
-            <div style="font:12px system-ui;color:#3a5a50;margin:4px 0 11px">Connect it in one click.</div>
-            <button id="setExtConnect" style="${BS}">Connect this browser</button>
-            <span id="setExtConnStatus" style="font:600 12px system-ui;margin-left:11px"></span>
-          </div>
           <div id="setExtOut" style="display:none;margin-top:14px">
             <div style="${LBL}">Your token, shown once. Copy it now and paste it into the extension.</div>
             <code id="setExtTok" style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);background:var(--rowhover);border-radius:8px;padding:11px 13px;word-break:break-all;margin-top:6px"></code>
@@ -4083,20 +4052,23 @@ function openSettings(page){
         if(!d||d.source!=="halia-ext") return;
         if(d.type==="present"){ wrap.style.display=""; }
         if(d.type==="connected"){
-          btn.disabled=false; btn.textContent="Connect this browser";
-          if(d.ok){ st.style.color="#0f7b4f"; st.textContent="✓ Connected on this browser"; }
+          btn.disabled=false; btn.textContent="Sign this browser in";
+          if(d.ok){ st.style.color="#0f7b4f"; st.textContent="✓ Signed in on this browser"; renderSeats(); }
           else { st.style.color="#8e1f0b"; st.textContent="Could not connect"; }
         }
       });
       window.postMessage({source:"halia-dashboard",type:"ping"},location.origin);  // ask it to announce
+      // Team-first: the one-click mints a personal seat, so the sign-in carries a name, can be
+      // revoked on its own, and counts as a seat. The shared shop token stays as the legacy panel.
       btn.onclick=()=>{
-        btn.disabled=true; btn.textContent="Connecting…"; st.textContent="";
-        fetch("/v1/extension/token",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
+        const nm=((document.getElementById("extConnName")||{}).value||"").trim();
+        if(!nm){ st.style.color="#8e1f0b"; st.textContent="Enter their name first."; return; }
+        btn.disabled=true; btn.textContent="Signing in…"; st.textContent="";
+        fetch("/v1/seats",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:nm})})
+          .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
           if(!ok||!d.token) throw new Error((d&&d.detail)||"failed");
-          SETTINGS.extension_enabled=true;
-          const g=document.getElementById("setExtGen"); if(g) g.textContent="Generate a new token";
-          window.postMessage({source:"halia-dashboard",type:"connect",token:d.token,base:location.origin},location.origin);
-        }).catch(e=>{ btn.disabled=false; btn.textContent="Connect this browser"; st.style.color="#8e1f0b"; st.textContent="Could not connect: "+e.message; });
+          window.postMessage({source:"halia-dashboard",type:"connect",token:d.token,base:location.origin,name:d.name},location.origin);
+        }).catch(e=>{ btn.disabled=false; btn.textContent="Sign this browser in"; st.style.color="#8e1f0b"; st.textContent="Could not connect: "+e.message; });
       };
     })();
     // Team seats: list, add (with a per-seat token + QR), revoke.

@@ -28,7 +28,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     // Halia palette
     private let brand = UIColor(red: 0.12, green: 0.34, blue: 0.29, alpha: 1) // #1F564A
     private let tint  = UIColor(red: 0.90, green: 0.94, blue: 0.92, alpha: 1) // #E6EFEB
-    private let paper = UIColor(red: 0.95, green: 0.94, blue: 0.91, alpha: 1) // #F1EFE9
+    private let paper = UIColor(red: 0.945, green: 0.945, blue: 0.945, alpha: 1) // #F1F1F1, the admin grey
 
     private let intents: [(String, String)] = [
         ("Hello", "Send a warm, personal hello to reconnect."),
@@ -1051,7 +1051,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func searchFieldView() -> UIView {
         let box = UIView()
         box.backgroundColor = .systemBackground
-        box.layer.cornerRadius = 16
+        box.layer.cornerRadius = 12
         box.layer.borderWidth = 1
         box.layer.borderColor = brand.withAlphaComponent(0.25).cgColor
         let mag = UILabel(); mag.text = "🔍"; mag.font = .systemFont(ofSize: 13)
@@ -1176,7 +1176,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         b.titleLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
         b.setTitleColor(filled ? .white : brand, for: .normal)
         b.backgroundColor = filled ? brand : tint
-        b.layer.cornerRadius = 15
+        b.layer.cornerRadius = 12
         b.contentEdgeInsets = UIEdgeInsets(top: 7, left: 14, bottom: 7, right: 14)
         b.addAction(UIAction { _ in action() }, for: .touchUpInside)
         return b
@@ -1195,7 +1195,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         b.titleLabel?.font = .systemFont(ofSize: 12, weight: .semibold)
         b.setTitleColor(active ? .white : brand, for: .normal)
         b.backgroundColor = active ? brand : tint
-        b.layer.cornerRadius = 13
+        b.layer.cornerRadius = 12
         b.contentEdgeInsets = UIEdgeInsets(top: 6, left: 11, bottom: 6, right: 11)
         b.addAction(UIAction { _ in action() }, for: .touchUpInside)
         return b
