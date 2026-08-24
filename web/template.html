@@ -1267,9 +1267,28 @@ const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce
 const EMBEDDED = !!document.querySelector('meta[name="shopify-api-key"]');
 const SEG2VIEW = {clients:"clients",catalogues:"catalogs",pipeline:"board",orders:"orders",map:"map",campaigns:"campaigns"};
 const VIEW2SEG = {clients:"clients",catalogs:"catalogues",board:"pipeline",orders:"orders",map:"map",campaigns:"campaigns"};
+
+// ── Adaptive landing: which view greets this user on "home". ──────────────────────────
+// Early on, Clients — learn your book, no pressure to act. Once they are working the app (they
+// have taken an action, or opened it enough), Orders — live actions and suggestions. A choice
+// pinned in Settings always wins. State is per store, in this browser only: no server call and
+// no customer data, consistent with the zero-retention model.
+const HOME_ACTIVE_AT = 5;                 // opens before Orders becomes home on its own
+const VALID_HOME = {overview:1,clients:1,catalogs:1,board:1,orders:1,map:1,campaigns:1};
+function _hk(p){ try{ return p+((SETTINGS&&SETTINGS.shop)||""); }catch(_){ return p; } }
+function lsG(k){ try{ return localStorage.getItem(k); }catch(_){ return null; } }
+function lsS(k,v){ try{ localStorage.setItem(k,v); }catch(_){ } }
+function markActed(){ if(lsG(_hk("haliaActed:"))!=="1") lsS(_hk("haliaActed:"),"1"); }
+function bumpOpens(){ lsS(_hk("haliaOpens:"), String((parseInt(lsG(_hk("haliaOpens:"))||"0",10)||0)+1)); }
+function homeView(){
+  const pin = lsG(_hk("haliaHome:"));
+  if(pin && pin!=="adaptive" && VALID_HOME[pin]) return pin;   // explicit choice always wins
+  const opens = parseInt(lsG(_hk("haliaOpens:"))||"0",10)||0;
+  return (lsG(_hk("haliaActed:"))==="1" || opens>=HOME_ACTIVE_AT) ? "orders" : "clients";
+}
 function routeFromUrl(){
   const m = location.pathname.match(/\/view\/([a-z]+)/);
-  if(!m) return {view:"overview"};
+  if(!m) return {view: homeView()};       // "home" (app name / root): resolve the adaptive landing
   if(m[1]==="settings") return {settings:true};
   return {view: SEG2VIEW[m[1]] || "overview"};
 }
@@ -3051,6 +3070,7 @@ function kbCard(c){
 }
 // board mutations: POST, then merge the returned pipeline back into BOARD + refresh open surfaces
 function bPost(path,body,cb){
+  markActed();   // a pipeline action means this user is working the app -> Orders becomes home
   return fetch("/v1/board/"+path,{method:"POST",headers:{"content-type":"application/json"},
       body:JSON.stringify(Object.assign({actor:actorName()},body))})
     .then(r=>r.text().then(t=>{let d={};try{d=t?JSON.parse(t):{};}catch(_){d={detail:(t||"").replace(/<[^>]*>/g,"").trim().slice(0,140)||("Error "+r.status)};}return {ok:r.ok,d};}))
@@ -3783,6 +3803,11 @@ function openSettings(page){
 
         <div class="spage" data-page="alerts" style="display:${spage==='alerts'?'':'none'}">
         <div style="${C}">
+          <div style="${H}">Home view</div>
+          <p style="${P}">The view Halia opens on. <b>Adaptive</b> starts you on Clients while you get to know your book, then moves to Orders once you're working the app day to day. Choose a fixed view to always open there instead.</p>
+          <select id="setHomeView" style="${I};width:260px">${(()=>{const cur=lsG(_hk("haliaHome:"))||"adaptive";return [["adaptive","Adaptive"],["overview","Overview"],["clients","Clients"],["orders","Orders"],["board","Pipeline"],["campaigns","Campaigns"],["catalogs","Catalogues"],["map","Map"]].map(([v,l])=>`<option value="${v}"${v===cur?" selected":""}>${l}</option>`).join("");})()}</select>
+        </div>
+        <div style="${C}">
           <div style="${H}">Order alerts</div>
           <p style="${P}">Get notified the moment a high-grade client places an order, so your team can recognise them in the moment, at the till or online.</p>
           <label style="display:flex;align-items:center;gap:10px;font:500 14px system-ui;color:var(--ink);cursor:pointer">
@@ -3930,6 +3955,9 @@ function openSettings(page){
       </div>
      </div>`;
     document.getElementById("sback").onclick=closeSettings;
+    const hv=document.getElementById("setHomeView");   // home-view pin: browser-local, saves on change
+    if(hv) hv.onchange=()=>{ lsS(_hk("haliaHome:"), hv.value);
+      toast(hv.value==="adaptive"?"Home will adapt as you go.":"Home view saved."); };
     // top page-tabs: show one settings page at a time (all stay in the DOM so every handler keeps working)
     settingsEl.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>{
       spage=b.dataset.goto;
@@ -4763,6 +4791,7 @@ function showFirstRun(){
 
 if(!DATA.length){ showFirstRun(); }
 else { renderChips();renderRows();wireRescore();
+  bumpOpens();                                       // once per app load: feeds the adaptive landing
   const r0=routeFromUrl();
   showView(r0.view||"overview");
   if(r0.settings) openSettings();                    // deep-linked to /app/settings
