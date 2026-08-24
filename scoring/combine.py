@@ -58,6 +58,7 @@ from scoring.signals import (
     ae_property,
     au_income,
     au_property,
+    can_income,
     fr_property,
     us_property,
     us_zip,
@@ -79,6 +80,7 @@ SIGNAL_WEIGHTS: dict[str, int] = {
     "ae_property": 2,     # UAE high-value community (DLD): base; tier overrides (AE_PROPERTY_AREA_WEIGHTS)
     "au_property": 2,     # Australia high-value postcode (NSW VG): base; tier overrides (AU_PROPERTY_AREA_WEIGHTS)
     "au_income": 2,       # Australia high-income postcode (ATO): base; tier overrides (AU_INCOME_AREA_WEIGHTS)
+    "can_income": 2,      # Canada high-income FSA (CRA): base; tier overrides (CAN_INCOME_AREA_WEIGHTS)
     "intl_postcode": 3,
     "hnw_area": 3,
     "named_house": 2,  # street line is a NAMED property ("The Old Rectory") — quiet-wealth address fact
@@ -234,6 +236,13 @@ AU_INCOME_AREA_WEIGHTS = {
     "high": 1,
 }
 
+# Canada FSA income tiers (CRA taxation statistics, average total income).
+CAN_INCOME_AREA_WEIGHTS = {
+    "ultra": 3,
+    "prime": 2,
+    "high": 1,
+}
+
 # "Supporting" signals are too weak/sensitive to ever flag a customer on their
 # own: they contribute to the score and count ONLY when at least one stronger
 # (non-supporting) signal has also fired. This enforces "never a sole basis".
@@ -304,6 +313,7 @@ SIGNAL_GROUP: dict[str, str] = {
     "ae_property": "geo",     # UAE home-value community, same geography family
     "au_property": "geo",     # Australia home-value postcode, same geography family
     "au_income": "geo",       # Australia income postcode, same geography family
+    "can_income": "geo",      # Canada income FSA, same geography family
     "prime_residence": "geo",
     "gcc_billing": "geo",
     "wealth_jurisdiction": "geo",  # high-value residential jurisdiction (was tax_haven)
@@ -405,6 +415,8 @@ SIGNALS = [
      au_property.FLAG_COL, lambda r: r[au_property.REASON_COL]),
     ("au_income", "High-income area", au_income.flag_au_income,
      au_income.FLAG_COL, lambda r: r[au_income.REASON_COL]),
+    ("can_income", "High-income area", can_income.flag_can_income,
+     can_income.FLAG_COL, lambda r: r[can_income.REASON_COL]),
     ("wealth_office", "Wealth office", wealth_office.flag_wealth_office,
      wealth_office.MATCH_COL, lambda r: r[wealth_office.OFFICE_COL]),
     ("wealth_structure", "Wealth structure", wealth_structure.flag_wealth_structure,
@@ -665,6 +677,8 @@ def score_customers(
                 type_spec = (au_property.TIER_COL, AU_PROPERTY_AREA_WEIGHTS)
             elif key == "au_income":
                 type_spec = (au_income.TIER_COL, AU_INCOME_AREA_WEIGHTS)
+            elif key == "can_income":
+                type_spec = (can_income.TIER_COL, CAN_INCOME_AREA_WEIGHTS)
             elif key == "companies_house":
                 type_spec = (companies_house.TYPE_COL, COMPANIES_HOUSE_TIER_WEIGHTS)
             elif key == "us_insider":
