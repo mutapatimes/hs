@@ -966,6 +966,7 @@
           </div>
           <div id="ovResults" class="ovres" style="display:none"></div>
         </div>
+        <div id="setupGuide" class="card" style="display:none;margin-bottom:16px"></div>
         <div id="ovDigestCard" class="card" style="display:none;margin-bottom:16px">
           <div class="ch"><h3>This week</h3><span class="hint">what deserves your attention, counted from your own book</span></div>
           <div class="cb"><div id="ovDigest" class="digest"></div></div>
@@ -974,7 +975,7 @@
           <div class="ch"><h3>Open baskets</h3><span class="hint">clients with an unpaid checkout, act while it's warm</span></div>
           <div class="cb"><div id="ovBaskets" class="toplist"></div></div>
         </div>
-        <div id="ovQuietCard" class="card" style="display:none;margin-bottom:16px;border-color:#b9cfc6">
+        <div id="ovQuietCard" class="card" style="display:none;margin-bottom:16px">
           <div class="ch"><h3>Gone quiet</h3><span class="hint">proven clients with strong wealth signals whose orders stopped. A quiet note brings them back</span></div>
           <div class="cb"><div id="ovQuiet" class="toplist"></div></div>
         </div>
@@ -2520,7 +2521,7 @@ function vipSave(done){
   // Rides the ordinary settings save, so the profile lives with the merchant's other config.
   fetch("/v1/settings",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify(Object.assign({}, SETTINGS, {vip_profile:VIPA}))})
-    .then(()=>{ SETTINGS.vip_profile = VIPA; if(done) toast("Thank you, that is all Halia needs."); })
+    .then(()=>{ SETTINGS.vip_profile = VIPA; if(done) toast("Thank you, that is all Halia needs."); renderSetupGuide(); })
     .catch(()=>{});
 }
 function vipPick(q, v){
@@ -4802,7 +4803,73 @@ else { renderChips();renderRows();wireRescore();
     history[m]=function(){ const ret=orig.apply(this,arguments);
       try{ applyRoute(routeFromUrl()); }catch(_){} return ret; };
   } }
-loadSettings().then(s=>{ initAlerts(s); refreshIntegrationUI(); });
+loadSettings().then(s=>{ initAlerts(s); refreshIntegrationUI(); renderSetupGuide(); });
+
+// ── Setup guide (Shopify's setup-guide composition): an interactive checklist on Overview. ──
+// Completion is derived from real state, never self-reported; it hides itself when every step is
+// done or the merchant dismisses it.
+let sgOpen=true, sgStep=-1;
+function sgKey(k){ return "haliaSetup"+k+":"+(SETTINGS.shop||""); }
+function setupSteps(){
+  return [
+    { t:"Describe your client services", done:!!(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length),
+      d:"A two-minute questionnaire on the services you offer a top client. Halia only ever suggests what you have said you provide.",
+      a:"Answer the questions", go:()=>vipOpen(true) },
+    { t:"Set your store's benchmarks", done:!!(+SETTINGS.aov||+SETTINGS.max_orders||+SETTINGS.highest_lt),
+      d:"Three numbers that anchor what a nurtured client could be worth in your store. Leave any blank and Halia estimates them.",
+      a:"Open scoring settings", go:()=>openSettings("scoring") },
+    { t:"Connect your marketing platform", done:!!(SETTINGS.klaviyo_connected||SETTINGS.mailchimp_connected||SETTINGS.hubspot_connected),
+      d:"Klaviyo, Mailchimp or HubSpot. Halia writes each client's grade across so you can segment and email where you already work.",
+      a:"Connect a platform", go:()=>openSettings("integrations") },
+    { t:"Put Halia where your team works", done:!!SETTINGS.extension_enabled,
+      d:"The browser extension shows the client on screen in WhatsApp Web, Gmail and your store admin. Add teammates for personal sign-ins.",
+      a:"Set up the team", go:()=>openSettings("integrations") },
+    { t:"Turn on order alerts", done:!!(SETTINGS.notify_enabled||(SETTINGS.notify_emails&&SETTINGS.notify_emails.length)||SETTINGS.slack_connected),
+      d:"Know the moment a high-grade client places an order, at the till or online.",
+      a:"Open alert settings", go:()=>openSettings("alerts") },
+  ];
+}
+function renderSetupGuide(){
+  const el=document.getElementById("setupGuide"); if(!el) return;
+  let dismissed=false; try{ dismissed=!!localStorage.getItem(sgKey("Dismissed")); }catch(e){}
+  const steps=setupSteps(), doneN=steps.filter(x=>x.done).length;
+  if(dismissed||doneN===steps.length){ el.style.display="none"; return; }
+  if(sgStep<0) sgStep=steps.findIndex(x=>!x.done);
+  try{ if(localStorage.getItem(sgKey("Folded"))) sgOpen=false; }catch(e){}
+  const SB="border:none;background:none;cursor:pointer;color:#616161;font-size:14px;padding:4px 6px;border-radius:8px";
+  const check=(on)=> on
+    ? `<span style="flex:none;width:20px;height:20px;border-radius:50%;background:var(--brand);display:grid;place-items:center"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4"><path d="M4 12.5l5 5L20 6.5"/></svg></span>`
+    : `<span style="flex:none;width:20px;height:20px;border-radius:50%;border:2px dashed #b5b5b5"></span>`;
+  el.style.display="";
+  el.innerHTML=`<div class="cb" style="padding:16px 18px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <h3 style="flex:1;margin:0;font-size:14px;font-weight:650">Setup guide</h3>
+      <button data-sg="dismiss" title="Dismiss" aria-label="Dismiss setup guide" style="${SB}">✕</button>
+      <button data-sg="fold" title="${sgOpen?"Collapse":"Expand"}" aria-label="Toggle setup guide" style="${SB}">${sgOpen?"⌃":"⌄"}</button>
+    </div>
+    <div style="font-size:13px;color:var(--soft);margin-top:2px">Get Halia working for your store.</div>
+    <div style="font-size:12.5px;color:var(--faint);margin-top:4px">${doneN} of ${steps.length} steps completed</div>
+    ${sgOpen?`<div style="border:1px solid var(--line);border-radius:8px;margin-top:12px;overflow:hidden">
+      ${steps.map((st,i)=>`
+        <div style="${i?"border-top:1px solid var(--line);":""}${i===sgStep?"background:var(--rowhover);":""}">
+          <button data-sgstep="${i}" style="display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:none;background:none;cursor:pointer;padding:12px 14px;font:600 13.5px inherit;color:var(--ink)">
+            ${check(st.done)}<span style="flex:1;${st.done?"color:var(--soft)":""}">${st.t}</span>
+            <span style="color:var(--faint);font-size:11px">${i===sgStep?"⌃":"⌄"}</span>
+          </button>
+          ${i===sgStep?`<div style="padding:0 14px 14px 45px">
+            <div style="font-size:13px;color:var(--soft);line-height:1.5;margin-bottom:10px">${st.d}</div>
+            ${st.done?"":`<button data-sggo="${i}" style="background:var(--brand-deep);color:#fff;border:none;border-radius:8px;padding:8px 14px;font:600 12.5px inherit;cursor:pointer">${st.a}</button>`}
+          </div>`:""}
+        </div>`).join("")}
+    </div>`:""}
+  </div>`;
+  el.querySelectorAll("[data-sgstep]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.sgstep; sgStep=(i===sgStep)?-2:i; renderSetupGuide(); });
+  el.querySelectorAll("[data-sggo]").forEach(b=>b.onclick=()=>setupSteps()[+b.dataset.sggo].go());
+  const dm=el.querySelector('[data-sg="dismiss"]');
+  if(dm) dm.onclick=()=>{ try{ localStorage.setItem(sgKey("Dismissed"),"1"); }catch(e){} el.style.display="none"; };
+  const fd=el.querySelector('[data-sg="fold"]');
+  if(fd) fd.onclick=()=>{ sgOpen=!sgOpen; try{ sgOpen?localStorage.removeItem(sgKey("Folded")):localStorage.setItem(sgKey("Folded"),"1"); }catch(e){} renderSetupGuide(); };
+}
 
 // Live high-grade order alerts (in-dashboard feed + desktop notifications).
 function initAlerts(s){
