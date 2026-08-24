@@ -31,6 +31,10 @@
       display: inline-flex; align-items: center; gap: 7px; letter-spacing: .01em; }
     .pill:hover { background: #333; }
     .pill .m { color: #6FBFA0; font-size: 13px; }
+    @media (prefers-reduced-motion: no-preference) {
+      .pill .m, .card .top .m { animation: hbreathe 3.4s ease-in-out infinite; }
+      @keyframes hbreathe { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+    }
     .card { position: fixed; z-index: 2147483647; width: 264px; max-width: 88vw; background: #fbfaf7;
       color: #1a1a1a; border: 1px solid #e3ded3; box-shadow: 0 12px 40px rgba(0,0,0,.24); }
     .card .top { display: flex; align-items: center; gap: 9px; padding: 11px 12px; background: #f4f1ea;
@@ -44,7 +48,7 @@
     .body { padding: 10px 12px; }
     .pill-tag { display: inline-block; font-size: 10px; padding: 1px 7px; border: 1px solid #d8cfbc; color: #6b6355;
       letter-spacing: .04em; text-transform: uppercase; margin-bottom: 7px; }
-    .pill-tag.hid { background: #efe7d4; border-color: #d8cfbc; color: #7a6a3f; }
+    .pill-tag.hid { background: #e7efeb; border-color: #cfe0d8; color: #1F564A; }
     .kv { font-size: 12px; color: #33302a; line-height: 1.45; margin: 3px 0; }
     .kv b { font-weight: 600; }
     .reason { font-size: 12px; color: #33302a; line-height: 1.4; margin: 6px 0 0; padding-left: 12px; position: relative; }
