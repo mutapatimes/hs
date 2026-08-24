@@ -135,6 +135,21 @@ def test_prime_district_fires_but_high_band_district_does_not():
     assert prime[SCORE_COL] > high[SCORE_COL]
 
 
+def test_scottish_prime_areas_fire_from_the_curated_table():
+    # Scotland is not in HM Land Registry PPD; scripts/build_scotland_property.py merges curated
+    # prime outcodes (grounded in statistics.gov.scot medians) so a real Edinburgh New Town
+    # address scores instead of falling through the London-calibrated 'high' suppression.
+    for zip_code, where in [("EH3 6SS", "Edinburgh New Town"),      # Royal Circus
+                            ("EH10 5LH", "Morningside"),
+                            ("KY16 9AJ", "St Andrews"),
+                            ("G61 3DP", "Bearsden")]:
+        row = score_customers(_row(zip_code)).iloc[0]
+        assert row[COUNT_COL] == 1, f"{zip_code} did not fire"
+        assert where.split()[0] in str(row[REASONS_COL])
+    # A mixed outcode deliberately left off the list (Wester Hailes) must stay silent.
+    assert score_customers(_row("EH14 2SW")).iloc[0][COUNT_COL] == 0
+
+
 def test_high_band_counts_at_the_exact_house_but_not_at_the_district():
     # The high band still carries signal at the EXACT full postcode (the actual house), where
     # weight scales with the real price; it is only dropped for the broad DISTRICT tell.
