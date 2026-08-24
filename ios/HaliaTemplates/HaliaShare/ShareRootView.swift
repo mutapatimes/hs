@@ -2,14 +2,17 @@
 //
 // The card shown when you share a client into Halia: who they are, their grade, why they surfaced,
 // their open basket, and the next actions that matter. Draft a reply, write a basket nudge, or send
-// a lookbook; then copy it or send it straight to WhatsApp or Messages, and log it to the pipeline.
+// a lookbook; then copy it or send it straight to WhatsApp, Messages or email, and log it to the pipeline.
 // Reuses the keyboard's HaliaAPI. Nothing is stored.
 import SwiftUI
 import UIKit
 
 struct ShareRootView: View {
     let query: String
-    let onOpen: (URL) -> Void        // open a wa.me / sms: link (best effort from an extension)
+    // Hand a wa.me / sms: / mailto: link to the host app via NSExtensionContext.open — the only way an
+    // extension can open another app. Calls back true/false so the card can say what actually happened,
+    // rather than tapping a button and finding out nothing (or everything) occurred.
+    let onOpen: (URL, @escaping (Bool) -> Void) -> Void
     let onClose: () -> Void
 
     @State private var phase: Phase = .loading
@@ -19,6 +22,7 @@ struct ShareRootView: View {
     @State private var busyKind = ""      // which action is running: reply / nudge / look
     @State private var status = ""
     @State private var copied = false
+    @State private var sendResult = ""    // what actually happened when a send button was tapped
     @State private var contacted = false
     @State private var pickingTemplate = false
 
@@ -184,17 +188,27 @@ struct ShareRootView: View {
                 .padding(8)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator), lineWidth: 0.5))
-                .onChange(of: draft) { _, _ in copied = false }   // edited text is no longer the copied text
+                .onChange(of: draft) { _, _ in copied = false; sendResult = "" }   // edited text is stale
             Text("Tap to edit before you send.")
                 .font(.system(size: 11.5)).foregroundColor(.secondary)
-            HStack(spacing: 10) {
-                sendButton(copied ? "Copied ✓" : "Copy", system: "doc.on.doc") { copyDraft() }
-                if rawNumber != nil {
-                    sendButton("WhatsApp", system: "message.fill") { send(.whatsapp) }
-                    sendButton("Messages", system: "bubble.left.fill") { send(.messages) }
+            if rawNumber != nil || rawEmail != nil {
+                HStack(spacing: 10) {
+                    if rawNumber != nil {
+                        sendButton("WhatsApp", system: "message.fill") { send(.whatsapp) }
+                        sendButton("Messages", system: "bubble.left.fill") { send(.messages) }
+                    }
+                    if rawEmail != nil {
+                        sendButton("Email", system: "envelope.fill") { send(.email) }
+                    }
                 }
             }
-            Button("Start over") { draft = ""; copied = false }
+            HStack(spacing: 10) {
+                sendButton(copied ? "Copied ✓" : "Copy", system: "doc.on.doc") { copyDraft() }
+            }
+            if !sendResult.isEmpty {
+                Text(sendResult).font(.system(size: 12.5, weight: .semibold)).foregroundColor(.secondary)
+            }
+            Button("Start over") { draft = ""; copied = false; sendResult = "" }
                 .font(.system(size: 13)).foregroundColor(.secondary)
         }
     }
@@ -230,7 +244,7 @@ struct ShareRootView: View {
 
     // MARK: send
 
-    private enum Channel { case whatsapp, messages }
+    private enum Channel { case whatsapp, messages, email }
 
     /// A number to send to: the chosen client (reverse flow) or the matched client's phone from the
     /// lookup, else the shared value when a phone was what you shared.
@@ -245,17 +259,66 @@ struct ShareRootView: View {
         return nil
     }
 
+    /// An address to write to: the chosen client (reverse flow) or the matched client's email from the
+    /// lookup, else the shared value when an email was what you shared.
+    private var rawEmail: String? {
+        let candidate = (mode == .product ? chosen?.email : result?.email)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let e = candidate, e.contains("@") { return e }
+        if mode == .client, let ref = ClientClassifier.classify(query), ref.kind == .email { return ref.value }
+        return nil
+    }
+
+    /// A short, warm subject line for an emailed share, chosen to fit what is being sent.
+    private var emailSubject: String {
+        if mode == .product {
+            switch pageKind {
+            case .product, .collection: return "I thought of you"
+            case .care:    return "Caring for your piece"
+            case .returns: return "Your returns, made easy"
+            case .size:    return "Finding your perfect fit"
+            case .contact: return "Come and see us"
+            default:       return "A note for you"
+            }
+        }
+        return "A quick note"
+    }
+
+    private func channelName(_ ch: Channel) -> String {
+        switch ch {
+        case .whatsapp: return "WhatsApp"
+        case .messages: return "Messages"
+        case .email:    return "Mail"
+        }
+    }
+
     private func send(_ ch: Channel) {
         UIPasteboard.general.string = draft            // always leave the text, in case open is blocked
-        guard let raw = rawNumber else { return }
-        let text = draft.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let body = draft.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let url: URL? = {
             switch ch {
-            case .whatsapp: return URL(string: "https://wa.me/\(raw.filter { $0.isNumber })?text=\(text)")
-            case .messages: return URL(string: "sms:\(raw)&body=\(text)")
+            case .whatsapp:
+                guard let raw = rawNumber else { return nil }
+                return URL(string: "https://wa.me/\(raw.filter { $0.isNumber })?text=\(body)")
+            case .messages:
+                guard let raw = rawNumber else { return nil }
+                return URL(string: "sms:\(raw)&body=\(body)")
+            case .email:
+                guard let em = rawEmail else { return nil }
+                let subj = emailSubject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+                return URL(string: "mailto:\(em)?subject=\(subj)&body=\(body)")
             }
         }()
-        if let url { onOpen(url) }
+        guard let url else { return }
+        let name = channelName(ch)
+        sendResult = "Opening \(name)…"
+        onOpen(url) { ok in
+            DispatchQueue.main.async {
+                // The system call succeeded or failed; either way the text is already on the
+                // clipboard above, so a failure is a "paste it yourself" fallback, not a dead end.
+                sendResult = ok ? "Opened \(name) ✓" : "Couldn't open \(name) — copied instead, paste it in."
+            }
+        }
         Task { await markContacted() }                 // a send is a real contact
     }
 
@@ -353,6 +416,7 @@ struct ShareRootView: View {
     private func copyDraft() {
         UIPasteboard.general.string = draft
         copied = true
+        Task { await markContacted() }   // copying is the fallback send when there's no number or email on file
     }
 
     private func markContacted() async {
