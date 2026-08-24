@@ -95,13 +95,13 @@
     :host { all: initial; }
     * { box-sizing: border-box; font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
     .chip { position: fixed; z-index: 2147483646; width: 26px; height: 26px; border-radius: 50%;
-      background: #1a1a1a; color: #6FBFA0; border: 0; cursor: pointer; font-size: 14px; line-height: 1;
+      background: #303030; color: #6FBFA0; border: 0; cursor: pointer; font-size: 14px; line-height: 1;
       display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(0,0,0,.28); }
     .chip:hover { background: #333; }
-    .panel { position: fixed; z-index: 2147483647; width: 300px; max-width: 90vw; background: #fbfaf7;
-      color: #1a1a1a; border: 1px solid #e3ded3; box-shadow: 0 14px 44px rgba(0,0,0,.26); }
-    .ph { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f4f1ea;
-      border-bottom: 1px solid #eee7da; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #6b6355; }
+    .panel { position: fixed; z-index: 2147483647; width: 300px; max-width: 90vw; background: #ffffff;
+      color: #303030; border: 1px solid #e3e3e3; box-shadow: 0 14px 44px rgba(0,0,0,.26); }
+    .ph { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f7f7f7;
+      border-bottom: 1px solid #e3e3e3; font-size: 11px;   color: #616161; }
     .ph .m { color: #1F564A; font-size: 13px; }
     @media (prefers-reduced-motion: no-preference) {
       .ph .m { animation: hbreathe 3.4s ease-in-out infinite; }
@@ -111,36 +111,39 @@
         50% { box-shadow: 0 3px 12px rgba(0,0,0,.28), 0 0 0 4px rgba(111,191,160,.22); } }
     }
     .ph .sp { flex: 1; }
-    .x { border: 0; background: transparent; color: #8a8271; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; }
+    .x { border: 0; background: transparent; color: #8a8a8a; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; }
     .body { padding: 10px 12px; }
-    .row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #33302a; }
-    .who { border: 1px solid #d8cfbc; background: #fff; color: #33302a; cursor: pointer; font-size: 12px;
+    .row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #303030; }
+    .who { border: 1px solid #cccccc; background: #fff; color: #303030; cursor: pointer; font-size: 12px;
       padding: 3px 9px; display: inline-flex; align-items: center; gap: 6px; }
-    .who .clr { color: #8a8271; font-size: 13px; }
+    .who .clr { color: #8a8a8a; font-size: 13px; }
     .tgls { display: flex; gap: 14px; margin: 10px 0 2px; }
-    .tgl { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #33302a; cursor: pointer; user-select: none; }
+    .tgl { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #303030; cursor: pointer; user-select: none; }
     .tgl input { width: 15px; height: 15px; }
-    input.s { width: 100%; padding: 7px 9px; border: 1px solid #d8cfbc; background: #fff; font-size: 12.5px;
-      font-family: inherit; color: #1a1a1a; margin-top: 10px; }
+    input.s { width: 100%; padding: 7px 9px; border: 1px solid #cccccc; background: #fff; font-size: 12.5px;
+      font-family: inherit; color: #303030; margin-top: 10px; }
     input.s:focus { outline: 2px solid #1F564A; outline-offset: -1px; }
-    .tlist { border: 1px solid #ece5d6; max-height: 210px; overflow-y: auto; background: #fff; margin-top: 8px; }
-    .tcat { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #8a8271; padding: 7px 9px 3px; background: #faf7f0; position: sticky; top: 0; }
+    .tlist { border: 1px solid #e3e3e3; max-height: 210px; overflow-y: auto; background: #fff; margin-top: 8px; }
+    .tcat { font-size: 10px;   color: #8a8a8a; padding: 7px 9px 3px; background: #f7f7f7; position: sticky; top: 0; }
     .titem { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 7px 9px;
-      font-size: 12.5px; color: #1a1a1a; cursor: pointer; border-bottom: 1px solid #f4efe4; }
+      font-size: 12.5px; color: #303030; cursor: pointer; border-bottom: 1px solid #f4efe4; }
     .titem:last-child { border-bottom: 0; }
-    .titem:hover { background: #f4f1ea; }
-    .clist { border: 1px solid #ece5d6; max-height: 150px; overflow-y: auto; background: #fff; margin-top: 6px; }
+    .titem:hover { background: #f7f7f7; }
+    .clist { border: 1px solid #e3e3e3; max-height: 150px; overflow-y: auto; background: #fff; margin-top: 6px; }
     .cli { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 0; background: transparent;
       padding: 6px 9px; cursor: pointer; border-bottom: 1px solid #f4efe4; }
-    .cli:hover { background: #f4f1ea; }
+    .cli:hover { background: #f7f7f7; }
     .cg { flex: none; min-width: 20px; height: 18px; padding: 0 4px; display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 9.5px; color: #fff; background: #6b6355; border-radius: 3px; }
-    .cg.g-a { background: #1F564A; } .cg.g-b { background: #55606b; } .cg.g-c { background: #8a8271; }
+      font-weight: 700; font-size: 9.5px; color: #fff; background: #616161; border-radius: 3px; }
+    .cg.g-a { background: #1F564A; } .cg.g-b { background: #55606b; } .cg.g-c { background: #8a8a8a; }
     .cn { flex: 1; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .muted { color: #6b6355; font-size: 12px; line-height: 1.45; padding: 8px 9px; }
-    .toast { position: fixed; z-index: 2147483647; background: #1a1a1a; color: #fff; font-size: 11px; padding: 5px 10px;
+    .muted { color: #616161; font-size: 12px; line-height: 1.45; padding: 8px 9px; }
+    .toast { position: fixed; z-index: 2147483647; background: #303030; color: #fff; font-size: 11px; padding: 5px 10px;
       opacity: 0; transition: opacity .15s; pointer-events: none; }
     .toast.on { opacity: 1; }
+
+    .who, input.s, .titem { border-radius: 8px; }
+    .panel, .tlist { border-radius: 12px; overflow: hidden; }
   `;
 
   let host, root, chip, panel, toastEl;

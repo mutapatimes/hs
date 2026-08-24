@@ -5,13 +5,13 @@
   <style>
     * { box-sizing: border-box; }
     body { width: 272px; margin: 0; font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: #fbfaf7; color: #1a1a1a; }
+      background: #ffffff; color: #303030; }
     .head { display: flex; align-items: center; gap: 9px; padding: 14px 16px 12px;
-      background: #f4f1ea; border-bottom: 1px solid #eee7da; position: relative; }
+      background: #f7f7f7; border-bottom: 1px solid #e3e3e3; position: relative; }
     .mark { color: #1F564A; font-size: 17px; line-height: 1; }
-    h1 { font-size: 13px; margin: 0; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; }
+    h1 { font-size: 13px; margin: 0; font-weight: 600;   }
     .sp { flex: 1; }
-    .dot { width: 7px; height: 7px; border-radius: 50%; background: #b9b2a2; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #8a8a8a; }
     .dot.ok { background: #2e7d5b; }
     .head::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
       background: linear-gradient(90deg, transparent 15%, #1F564A 40%, #6FBFA0 50%, #1F564A 60%, transparent 85%);
@@ -24,13 +24,13 @@
       @keyframes scan { from { background-position: 130% 0; } to { background-position: -130% 0; } }
     }
     .body { padding: 14px 16px 16px; }
-    p.lede { font-size: 12px; color: #6b6355; line-height: 1.5; margin: 0 0 12px; }
-    .state { font-size: 12px; line-height: 1.45; padding: 8px 10px; border: 1px solid #e3ded3;
+    p.lede { font-size: 12px; color: #616161; line-height: 1.5; margin: 0 0 12px; }
+    .state { font-size: 12px; line-height: 1.45; padding: 8px 10px; border: 1px solid #e3e3e3; border-radius: 8px;
       background: #fff; margin-bottom: 12px; }
     .state.ok { border-color: #cfe0d8; color: #1F564A; }
     .state.bad { border-color: #e6cfc9; color: #a2453b; }
-    button { width: 100%; font-family: inherit; font-size: 12.5px; font-weight: 600; padding: 9px;
-      border: 1px solid #1a1a1a; background: #1a1a1a; color: #fbfaf7; cursor: pointer; }
+    button { width: 100%; font-family: inherit; font-size: 12.5px; font-weight: 600; padding: 9px; border-radius: 8px;
+      border: 1px solid #303030; background: #303030; color: #ffffff; cursor: pointer; }
     button:hover { background: #333; }
     button:focus-visible { outline: 2px solid #1F564A; outline-offset: 1px; }
   </style>

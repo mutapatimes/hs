@@ -101,22 +101,24 @@ final class RootModel: ObservableObject {
 
 // MARK: - Palette + shared pieces
 
+// Matches the dashboard's Shopify-admin look: grey ground, white cards, admin greys, green accent.
 private enum Palette {
-    static let ink       = Color(red: 0.106, green: 0.114, blue: 0.133)
-    static let soft      = Color(red: 0.373, green: 0.388, blue: 0.420)
-    static let faint     = Color(red: 0.560, green: 0.575, blue: 0.560)
+    static let ink       = Color(red: 0.188, green: 0.188, blue: 0.188)   // #303030
+    static let soft      = Color(red: 0.380, green: 0.380, blue: 0.380)   // #616161
+    static let faint     = Color(red: 0.541, green: 0.541, blue: 0.541)   // #8A8A8A
     static let brand     = Color(red: 0.122, green: 0.337, blue: 0.290)
     static let brandDeep = Color(red: 0.055, green: 0.180, blue: 0.153)
-    static let sage      = Color(red: 0.365, green: 0.475, blue: 0.435)   // muted green for labels (replaces gold)
-    static let card      = Color(red: 0.988, green: 0.984, blue: 0.969)
-    static let line      = Color(red: 0.894, green: 0.886, blue: 0.859)
-    static let bgTop     = Color(red: 0.980, green: 0.973, blue: 0.949)
-    static let bg        = Color(red: 0.957, green: 0.945, blue: 0.918)
-    static let bg2       = Color(red: 0.918, green: 0.902, blue: 0.867)
+    static let sage      = Color(red: 0.365, green: 0.475, blue: 0.435)   // muted green for labels
+    static let card      = Color.white
+    static let line      = Color(red: 0.890, green: 0.890, blue: 0.890)   // #E3E3E3
+    static let bgTop     = Color(red: 0.945, green: 0.945, blue: 0.945)   // #F1F1F1
+    static let bg        = Color(red: 0.945, green: 0.945, blue: 0.945)
+    static let bg2       = Color(red: 0.945, green: 0.945, blue: 0.945)
 }
 
+// Display text follows the dashboard: the system sans, a step heavier than body.
 private func serif(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
-    .system(size: size, weight: weight, design: .serif)
+    .system(size: size, weight: weight == .regular ? .semibold : weight, design: .default)
 }
 
 private let mark = "\u{2042}"   // ⁂ the Halia asterism
@@ -135,8 +137,8 @@ private struct Card<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) { content }
             .padding(20)
-            .background(RoundedRectangle(cornerRadius: 20).fill(Palette.card))
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Palette.line, lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: 12).fill(Palette.card))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.line, lineWidth: 1))
             .shadow(color: Color.black.opacity(0.07), radius: 20, x: 0, y: 12)
     }
 }
@@ -176,7 +178,7 @@ private struct LuxeButton: View {
         Button(action: action) {
             Text(title).font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                 .padding(.horizontal, 20).padding(.vertical, 13)
-                .background(RoundedRectangle(cornerRadius: 13).fill(Palette.brand))
+                .background(RoundedRectangle(cornerRadius: 12).fill(Palette.brand))
         }
         .buttonStyle(.plain)
     }
@@ -271,7 +273,7 @@ private struct WelcomeView: View {
                     Button(action: onBegin) {
                         Text("Begin").font(.system(size: 17, weight: .semibold)).foregroundColor(Palette.brandDeep)
                             .frame(maxWidth: .infinity).padding(.vertical, 17)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(.white))
+                            .background(RoundedRectangle(cornerRadius: 12).fill(.white))
                     }
                     .buttonStyle(.plain).padding(.top, 30)
 
@@ -353,7 +355,7 @@ private struct WizardView: View {
                 Text(step == total - 1 ? "Enter your desk" : "Continue")
                     .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                     .padding(.horizontal, 24).padding(.vertical, 14)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(Palette.brand))
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Palette.brand))
             }
             .buttonStyle(.plain)
         }
@@ -433,7 +435,7 @@ private struct ConnectStep: View {
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(Palette.brand))
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Palette.brand))
                 }
                 .buttonStyle(.plain).padding(.top, 2)
 
@@ -488,7 +490,7 @@ private struct KeyboardStep: View {
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(Palette.brand))
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Palette.brand))
                 }
                 .buttonStyle(.plain).padding(.top, 2)
 
@@ -541,7 +543,7 @@ private struct ExtensionsStep: View {
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity).padding(.vertical, 14)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Palette.brand))
+                .background(RoundedRectangle(cornerRadius: 12).fill(Palette.brand))
             }
             .buttonStyle(.plain)
             Text("Settings › Phone › Call Blocking & Identification.")
