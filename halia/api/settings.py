@@ -313,7 +313,7 @@ def settings_for(shop: str) -> dict:
         "brand": (d.get("brand") or "halia"),
         "vic_threshold": d.get("vic_threshold", default_threshold),
         "sender_name": d.get("sender_name", ""),
-        "email_templates": d.get("email_templates") or DEFAULT_TEMPLATES,
+        "email_templates": d.get("email_templates") or (DEFAULT_TEMPLATES + vip.visit_templates(d.get("vip_profile"))),
         "order_templates": d.get("order_templates") or DEFAULT_ORDER_TEMPLATES,
         "catalog_message": d.get("catalog_message") or DEFAULT_CATALOG_MESSAGE,   # "Send catalogue" body
         "catalog_logo": d.get("catalog_logo", ""),   # store-wide default logo new catalogues inherit

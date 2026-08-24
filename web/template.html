@@ -3718,8 +3718,8 @@ function openSettings(page){
 
         <div style="${C}">
           <div style="${H}">Client services</div>
-          <p style="${P}">A short set of questions about what you can do for a top client, even the things you have never written down. Halia keeps to it: it will only ever offer a service you have told it you provide, and it never decides anything on your behalf.</p>
-          <div style="margin-bottom:12px"><span style="${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?ST_ON:ST_OFF}">${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?("Answered \u00b7 "+Object.keys(SETTINGS.vip_profile).length+" of 6"):"Not answered yet"}</span></div>
+          <p style="${P}">A short set of questions about what you can do for a top client, even the things you have never written down. Your answers shape your message templates and bound what Halia may offer on your behalf, and you can change them here any time.</p>
+          <div style="margin-bottom:12px"><span style="${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?ST_ON:ST_OFF}">${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?("Answered \u00b7 "+Object.keys(SETTINGS.vip_profile).length+" areas"):"Not answered yet"}</span></div>
           <button id="setVipOpen" style="${BS}">${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?"Review answers":"Answer the questions"}</button>
           <div style="font:12px system-ui;color:#8a8a8a;margin-top:12px">Two minutes, and every question can be skipped.</div>
         </div>
@@ -4813,7 +4813,7 @@ function sgKey(k){ return "haliaSetup"+k+":"+(SETTINGS.shop||""); }
 function setupSteps(){
   return [
     { t:"Describe your client services", done:!!(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length),
-      d:"A two-minute questionnaire on the services you offer a top client. Halia only ever suggests what you have said you provide.",
+      d:"A two-minute questionnaire on your services, appointments and store. It shapes your message templates and bounds what Halia may offer, and you can change it any time.",
       a:"Answer the questions", go:()=>vipOpen(true) },
     { t:"Set your store's benchmarks", done:!!(+SETTINGS.aov||+SETTINGS.max_orders||+SETTINGS.highest_lt),
       d:"Three numbers that anchor what a nurtured client could be worth in your store. Leave any blank and Halia estimates them.",

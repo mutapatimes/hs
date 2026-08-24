@@ -110,7 +110,7 @@ def test_each_tone_becomes_an_instruction(tone, word):
 # ── the definition is one source of truth ─────────────────────────────────────
 def test_every_question_is_well_formed():
     keys = [q["key"] for q in vip.QUESTIONS]
-    assert len(keys) == len(set(keys)) == 7
+    assert len(keys) == len(set(keys)) == 8
     for q in vip.QUESTIONS:
         assert q["type"] in ("one", "many", "terms") and q["title"]
         if q["type"] == "terms":
@@ -188,7 +188,7 @@ def test_answered_counts_what_was_filled_in():
 def test_questions_are_served_with_any_existing_answers(client):
     c, _ = client
     d = c.get("/v1/vip/questions", headers=_auth()).json()
-    assert len(d["questions"]) == 7 and d["profile"] == {}
+    assert len(d["questions"]) == 8 and d["profile"] == {}
     assert d["questions"][0]["key"] == "industry"
     # the per-trade pools travel with the questions, so step 1 can re-point steps 2 and 3
     assert "jewellery" in d["services"] and "jewellery" in d["products"]
@@ -216,3 +216,29 @@ def test_a_junk_profile_is_cleaned_on_save(client):
     c.post("/v1/settings", headers=_auth(),
            json={"vic_threshold": 5000, "vip_profile": {"services": ["styling", "made_up"]}})
     assert c.get("/v1/settings", headers=_auth()).json()["vip_profile"] == {"services": ["styling"]}
+
+
+def test_visits_shape_profile_prompt_and_templates():
+    from halia import vip
+    p = {"visits": ["in_store_appt", "virtual_appt", "size_guide"],
+         "store_address": "12 Mount Street, Mayfair"}
+    clean = vip.clean_profile(p)
+    assert clean["visits"] == ["in_store_appt", "virtual_appt", "size_guide"]
+    assert clean["store_address"] == "12 Mount Street, Mayfair"
+    block = vip.house_block(p)
+    assert "in-store appointment" in block and "virtual" in block
+    assert '12 Mount Street, Mayfair' in block
+    # earned templates: appointment carries the address; sizing guide gets its own
+    tpls = vip.visit_templates(p)
+    names = [t["name"] for t in tpls]
+    assert "Private appointment" in names and "Virtual appointment" in names
+    assert "Finding your size" in names
+    appt = next(t for t in tpls if t["name"] == "Private appointment")
+    assert "12 Mount Street, Mayfair" in appt["body"]
+
+
+def test_no_store_means_no_visit_invitations():
+    from halia import vip
+    block = vip.house_block({"visits": ["virtual_appt"]})
+    assert "Never invite a client to visit" in block and "virtual appointment instead" in block
+    assert vip.visit_templates({}) == []

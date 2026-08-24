@@ -150,6 +150,18 @@ QUESTIONS: list[dict] = [
     {"key": "terms", "type": "terms", "title": "Which of those are complimentary?",
      "hint": "So Halia never offers something free that you charge for, and never misses "
              "something you would happily waive."},
+    {"key": "visits", "type": "many", "title": "Can clients come to you?",
+     "hint": "These answers shape your message templates, so invitations, appointments and sizing "
+             "help match what you actually offer. You can change them any time in Settings.",
+     "options": [
+         {"v": "shop_in_store", "l": "We have a store clients can shop in"},
+         {"v": "in_store_appt", "l": "Clients can book an in-store appointment"},
+         {"v": "virtual_appt", "l": "We offer virtual appointments"},
+         {"v": "size_guide", "l": "Our website has a sizing guide"}],
+     "free": "store_address",
+     "free_label": "Your store address, if clients can visit",
+     "free_hint": "Written as you would tell a client, e.g. 12 Mount Street, Mayfair. It is used in "
+                  "invitations and appointment notes."},
     {"key": "perks", "type": "many",
      "title": "If your best client walked in tomorrow, what else would you want to offer?",
      "hint": "Even if it is not written down anywhere yet. This is the one that matters most.",
@@ -290,6 +302,24 @@ def house_block(profile: Any) -> str:
         lines.append("Willing to extend to a top client: " + ", ".join(_labels("perks", p["perks"])))
     if p.get("vip_offer"):
         lines.append(f'In their own words: "{p["vip_offer"]}"')
+    visits = set(p.get("visits") or [])
+    if visits or p.get("store_address"):
+        bits = []
+        if "shop_in_store" in visits:
+            bits.append("clients can shop in the store")
+        if "in_store_appt" in visits:
+            bits.append("clients can book an in-store appointment")
+        if "virtual_appt" in visits:
+            bits.append("virtual appointments are offered")
+        if "size_guide" in visits:
+            bits.append("the website has a sizing guide worth pointing to for fit questions")
+        if bits:
+            lines.append("Visits: " + "; ".join(bits) + ".")
+        if p.get("store_address"):
+            lines.append(f'Store address, exactly as written: "{p["store_address"]}"')
+        if "in_store_appt" not in visits and "shop_in_store" not in visits:
+            lines.append("Never invite a client to visit or come in: there is no store to visit."
+                         + (" Offer a virtual appointment instead." if "virtual_appt" in visits else ""))
     if p.get("definition") == "feel":
         lines.append("They have no formal VIP rule and judge by feel, so treat a strong buying "
                      "history or a direct request for the owner as the tell.")
@@ -305,3 +335,41 @@ def tone_line(profile: Any) -> str:
     """The house voice, as one instruction. Empty when they have not said."""
     tone = clean_profile(profile).get("tone")
     return f"Write {_TONE_WORDS[tone]}." if tone in _TONE_WORDS else ""
+
+
+# Client templates earned by the visits answers, appended to the defaults at serve time (only
+# when the merchant has no custom templates; their own set is never touched). The wording keeps
+# each template safely inside what the profile says the house offers.
+def visit_templates(profile: Any) -> list[dict]:
+    p = clean_profile(profile)
+    visits = set(p.get("visits") or [])
+    addr = p.get("store_address") or ""
+    where = f" You will find us at {addr}." if addr else ""
+    out: list[dict] = []
+    if "in_store_appt" in visits:
+        out.append({"name": "Private appointment", "category": "Appointments",
+                    "subject": "Time set aside for you",
+                    "body": "Dear {first_name},\n\nI would love to set aside some time for you in "
+                            "the store, entirely at your pace. Tell me a day that suits and I will "
+                            "arrange everything." + where + "\n\nWarmly,\n{sender}"})
+    if "virtual_appt" in visits:
+        out.append({"name": "Virtual appointment", "category": "Appointments",
+                    "subject": "A private appointment, wherever you are",
+                    "body": "Dear {first_name},\n\nIf it is easier, we can do this over a video "
+                            "call: a private appointment from wherever you are, with everything "
+                            "brought to the screen for you. Tell me a time that suits.\n\n"
+                            "Warmly,\n{sender}"})
+    if "shop_in_store" in visits and "in_store_appt" not in visits:
+        out.append({"name": "Come and see us", "category": "Appointments",
+                    "subject": "You are always welcome",
+                    "body": "Dear {first_name},\n\nIf you are nearby, do come and see us: it would "
+                            "be a pleasure to look after you in person." + where + "\n\n"
+                            "Warmly,\n{sender}"})
+    if "size_guide" in visits:
+        out.append({"name": "Finding your size", "category": "Care & feedback",
+                    "subject": "A hand with sizing",
+                    "body": "Dear {first_name},\n\nIf you are unsure on fit, our sizing guide on "
+                            "the website is a good place to start, and I am always happy to check a "
+                            "specific piece against your measurements. Just ask.\n\n"
+                            "Warmly,\n{sender}"})
+    return out
