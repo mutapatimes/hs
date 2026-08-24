@@ -149,6 +149,50 @@ def test_other_shop_sees_nothing(client):
     assert r.status_code == 404
 
 
+def _vic_for(cid, email, grade="A*"):
+    return ScoreResult(matched=True, flagged=True, tier="A1", grade=grade, score=99,
+                       is_priority=True, signal_count=2, signals=["Work email"],
+                       reasons="Work email", gesture="coffee", spend=400.0,
+                       hidden_vic=True, customer_id=cid, email=email, phone=None)
+
+
+def test_two_populated_shops_never_bleed(monkeypatch):
+    """The airlock: two tenants BOTH holding a full book see ONLY their own customers, and a
+    ?shop= query param cannot override the shop the credential authenticates."""
+    monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", KEY)
+    monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
+    cache.clear()
+    cache.set("acme.myshopify.com",
+              results=[_vic_for("acme-c1", "buyer@acme.com")], payload={},
+              orders=[{"order_id": "ao1", "created_at": "2026-06-01",
+                       "customer_id": "acme-c1", "email": "buyer@acme.com"}])
+    cache.set("rival.myshopify.com",
+              results=[_vic_for("rival-c9", "client@rival.com")], payload={},
+              orders=[{"order_id": "ro9", "created_at": "2026-06-01",
+                       "customer_id": "rival-c9", "email": "client@rival.com"}])
+
+    def sess(dest):
+        tok = jwt.encode({"iss": f"https://{dest}/admin", "dest": f"https://{dest}",
+                          "aud": KEY, "sub": "1", "exp": int(time.time()) + 3600},
+                         SECRET, algorithm="HS256")
+        return {"Authorization": f"Bearer {tok}"}
+
+    acme, rival = TestClient(app), TestClient(app)
+    a = acme.get("/v1/hidden-vics", headers=sess("acme.myshopify.com")).json()
+    r = rival.get("/v1/hidden-vics", headers=sess("rival.myshopify.com")).json()
+    assert [x["customer_id"] for x in a] == ["acme-c1"]
+    assert [x["customer_id"] for x in r] == ["rival-c9"]
+
+    # Acme's authenticated request cannot be steered to Rival's book with a spoofed query param.
+    spoofed = acme.get("/v1/hidden-vics", params={"shop": "rival.myshopify.com"},
+                       headers=sess("acme.myshopify.com")).json()
+    assert [x["customer_id"] for x in spoofed] == ["acme-c1"]
+    # And one customer's own score lookup only resolves within the caller's own shop.
+    assert acme.get("/v1/score", params={"email": "client@rival.com"},
+                    headers=sess("acme.myshopify.com")).json().get("customer_id") is None
+    cache.clear()
+
+
 def test_fulfilment_view_renders(client):
     html = client.get("/fulfilment").text
     assert "Fulfilment pick list" in html and "coffee" in html
