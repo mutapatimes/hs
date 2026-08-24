@@ -102,12 +102,19 @@ def register(app) -> None:
     def plans_status(shop: str = Depends(require_shop)) -> dict:
         """The plan catalogue plus this shop's current plan and whether it can self-serve billing."""
         shopify = bool(_token(shop))
+        current = _current_plan_key(shop) if shopify else "free"
+        in_use = shop_store().active_seat_count(shop) if shopify else 0
         return {
             "plans": plans.public_catalogue(),
-            "current": _current_plan_key(shop) if shopify else "free",
+            "current": current,
             "shopify": shopify,          # Shopify Billing only applies to a Shopify tenant
             "test": bool(config.SHOPIFY_BILLING_TEST),
             "currency": plans.CURRENCY,
+            "seatPrice": plans.SEAT_PRICE,
+            "seatsInUse": in_use,
+            "seatsIncluded": plans.included_seats(current),
+            "extraSeats": plans.extra_seats(current, in_use),
+            "seatOverage": plans.seat_overage(current, in_use),
         }
 
     @app.post("/v1/plans/subscribe")
