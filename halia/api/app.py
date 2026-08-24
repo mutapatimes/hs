@@ -137,6 +137,30 @@ async def _access_log_mw(request, call_next):
                          path, request.method, _access_ref(request), ip)
     return await call_next(request)
 
+
+# ── Security response headers on every response ─────────────────────────────────────
+# Defence-in-depth that costs nothing and breaks nothing: block MIME-sniffing, trim the
+# Referer, deny framing (clickjacking) everywhere EXCEPT the embedded Shopify app (which
+# sets its own frame-ancestors CSP to be framed by admin.shopify.com), and pin HTTPS once
+# a browser has arrived over TLS. No script-src CSP: the dashboard runs inline scripts, so a
+# strict policy would need nonces — a separate, riskier change; this is the safe subset.
+@app.middleware("http")
+async def _security_headers_mw(request, call_next):
+    resp = await call_next(request)
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    resp.headers.setdefault("Permissions-Policy",
+                            "geolocation=(), microphone=(), camera=(), payment=()")
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    if proto == "https":
+        resp.headers.setdefault("Strict-Transport-Security",
+                                "max-age=31536000; includeSubDomains")
+    # A route that set its own CSP (the embedded app) chose its framing; leave it alone.
+    if not any(k.lower() == "content-security-policy" for k in resp.headers):
+        resp.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
+        resp.headers.setdefault("X-Frame-Options", "DENY")
+    return resp
+
 # Serve the marketing site's imagery (water hero video, editorial photography) at /img.
 from config import ROOT as _ROOT  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
