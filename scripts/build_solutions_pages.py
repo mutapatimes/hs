@@ -414,17 +414,17 @@ _NAV_MENU = "".join(
 ) + '<a class="all" href="/solutions">All solutions &rarr;</a>'
 
 _CSS = """
-  :root{--bg:#f5f2ea;--bg-2:#efeadd;--ink:#1a1712;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;
+  :root{--bg:#f5f2ea;--bg-2:#efeadd;--ink:#1a1712;--mute:#615b50;--faint:#9a9385;--accent:#5E6B74;
     --line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.07);
-    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Hanken Grotesk',-apple-system,system-ui,sans-serif}
   *{box-sizing:border-box}html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
   a{color:inherit;text-decoration:none}::selection{background:#1a1712;color:#f5f2ea}
   .wrap{max-width:1120px;margin:0 auto;padding:0 40px}.narrow{max-width:820px}
-  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--accent)}
   h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.05}
   .display{font-size:clamp(42px,6.4vw,80px)}.h2{font-size:clamp(28px,4vw,46px)}
-  em{font-style:italic;color:var(--gold)}
+  em{font-style:italic;color:var(--accent)}
   .lede{font-size:clamp(18px,2vw,21px);color:var(--mute);line-height:1.5}
   .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:0;border:1px solid var(--ink);color:#f5f2ea;background:var(--ink);transition:.25s;cursor:pointer}
   .btn:hover{background:transparent;color:var(--ink)}.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
@@ -450,7 +450,7 @@ _CSS = """
   @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
   .ip-hero{padding:150px 0 20px}.ip-hero h1{margin:16px 0 22px;max-width:19ch}.ip-hero .lede{max-width:56ch}
   .sec{padding:clamp(46px,7vh,84px) 0;border-top:1px solid var(--line-2)}
-  .sec .k{font:500 12px var(--sans);letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+  .sec .k{font:500 12px var(--sans);letter-spacing:.3em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
   .sec h2{margin-bottom:14px;max-width:22ch}.sec .p{color:var(--mute);font-size:17px;max-width:60ch}
   .pc{display:flex;flex-wrap:wrap;margin-top:30px;border:1px solid var(--line);border-radius:0;overflow:hidden;max-width:640px}
   .pc>div{flex:1 1 220px;padding:22px 24px}.pc .hi{background:var(--ink);color:var(--bg)}
@@ -467,7 +467,7 @@ _CSS = """
   .chips{display:flex;flex-wrap:wrap;gap:7px}.chip{font:500 12px var(--sans);color:var(--mute);border:1px solid var(--line);padding:5px 11px;border-radius:0}
   .ltv .l{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
   .bar{height:38px;border-radius:0;display:flex;align-items:center;padding:0 14px;color:#fff;font:600 14px var(--sans);white-space:nowrap;margin-bottom:10px;min-width:70px;transition:width 1s cubic-bezier(.2,.6,.2,1)}
-  .bar.now{background:var(--faint)}.bar.pot{background:var(--gold)}
+  .bar.now{background:var(--faint)}.bar.pot{background:var(--accent)}
   /* the "now" bar is tiny, so its label sits outside the fill in dark text (readable on the page) */
   .barrow{display:flex;align-items:center;gap:11px;margin-bottom:10px}
   .barrow .bar{margin-bottom:0;flex:0 0 auto}
@@ -479,7 +479,7 @@ _CSS = """
   table.lt th.r,table.lt td.r{text-align:right}
   table.lt td{padding:13px 16px;border-top:1px solid var(--line-2);color:var(--mute)}
   table.lt td.who{color:var(--ink)}
-  table.lt tr.hot td{background:rgba(122,115,99,.09)}
+  table.lt tr.hot td{background:rgba(94,107,116,.09)}
   table.lt .g{font-weight:700;color:var(--ink)}table.lt .lat{font-family:var(--serif);font-size:18px;color:var(--ink)}
   .surfaces .sl{font:500 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:6px 0 14px}
   .tags{display:flex;flex-wrap:wrap;gap:9px}.tag{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);padding:7px 13px;border-radius:0}
@@ -505,7 +505,7 @@ _CSS = """
   .tl::before{content:"";position:absolute;left:9px;top:8px;bottom:14px;width:2px;background:var(--line)}
   .tstep{position:relative;padding:0 0 26px 40px}
   .tdot{position:absolute;left:2px;top:3px;width:18px;height:18px;border-radius:0;background:var(--bg);border:2px solid var(--faint);transition:.45s}
-  .tstep.in .tdot{border-color:var(--gold);background:var(--gold);box-shadow:0 0 0 5px rgba(122,115,99,.14)}
+  .tstep.in .tdot{border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 5px rgba(94,107,116,.14)}
   .twhen{font:500 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:11px}
   .tcard{border:1px solid var(--line);border-radius:0;padding:16px 18px;background:var(--bg-2)}
   .oc-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -513,7 +513,7 @@ _CSS = """
   .oc-grade{background:var(--ink);color:var(--bg);border-radius:0;padding:3px 12px;font:600 13px var(--sans);flex:none}
   .oc-item{color:var(--ink);font-size:14px;margin-top:5px;font-weight:500}
   .oc-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
-  .act{font:500 12px var(--sans);color:var(--gold);border:1px solid var(--line);border-radius:0;padding:4px 10px;background:var(--bg);opacity:0;transform:translateY(6px);transition:opacity .45s,transform .45s}
+  .act{font:500 12px var(--sans);color:var(--accent);border:1px solid var(--line);border-radius:0;padding:4px 10px;background:var(--bg);opacity:0;transform:translateY(6px);transition:opacity .45s,transform .45s}
   .act::before{content:"\\2713  ";font-weight:700}
   .tstep.in .act{opacity:1;transform:none}
   .tstep.in .act:nth-child(2){transition-delay:.12s}.tstep.in .act:nth-child(3){transition-delay:.24s}.tstep.in .act:nth-child(4){transition-delay:.36s}
@@ -521,15 +521,15 @@ _CSS = """
   .tnote .bell{font-size:15px;flex:none}
   .tnote b{color:var(--ink);font-weight:600}
   /* ROI card */
-  .roi{border-color:rgba(122,115,99,.5);background:linear-gradient(180deg,rgba(122,115,99,.09),var(--bg-2))}
-  .roi .roi-lead{font:600 10.5px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+  .roi{border-color:rgba(94,107,116,.5);background:linear-gradient(180deg,rgba(94,107,116,.09),var(--bg-2))}
+  .roi .roi-lead{font:600 10.5px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
   .roi .roi-big{font-family:var(--serif);font-size:clamp(34px,5vw,48px);line-height:1;color:var(--ink)}
   .roi .roi-big span{display:block;font-family:var(--sans);font-weight:500;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:8px}
   .metrics{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-  .mtr{border:1px solid rgba(122,115,99,.4);border-radius:0;padding:8px 12px;background:var(--bg);opacity:0;transform:translateY(6px);transition:.45s}
+  .mtr{border:1px solid rgba(94,107,116,.4);border-radius:0;padding:8px 12px;background:var(--bg);opacity:0;transform:translateY(6px);transition:.45s}
   .tstep.in .mtr{opacity:1;transform:none}
   .tstep.in .mtr:nth-child(2){transition-delay:.1s}.tstep.in .mtr:nth-child(3){transition-delay:.2s}
-  .mtr .mv{font-family:var(--serif);font-size:19px;color:var(--gold);line-height:1;display:block}
+  .mtr .mv{font-family:var(--serif);font-size:19px;color:var(--accent);line-height:1;display:block}
   .mtr .ml{font:500 9.5px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:5px;display:block}
   .roi-foot{color:var(--mute);font-size:13.5px;margin-top:14px;line-height:1.5}
   .composer{border:1px solid var(--line);border-radius:0;padding:20px 22px;background:var(--bg);position:relative;overflow:hidden}
@@ -537,15 +537,15 @@ _CSS = """
   .tpls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
   .tpl{font:500 12.5px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:0;padding:6px 13px;background:var(--bg);cursor:pointer;transition:.2s}
   .tpl:hover{border-color:var(--ink);color:var(--ink)}
-  .tpl.sel{color:var(--bg);background:var(--gold);border-color:var(--gold)}
+  .tpl.sel{color:var(--bg);background:var(--accent);border-color:var(--accent)}
   .mail{border:1px solid var(--line-2);border-radius:0;padding:16px 18px;background:var(--bg-2);transition:opacity .4s}
   .mail-subj{font-family:var(--serif);font-size:19px;color:var(--ink);margin-bottom:8px;line-height:1.22}
   .mail-body{color:var(--mute);font-size:14.5px;line-height:1.55;font-style:italic}
   .cmp-foot{display:flex;align-items:center;gap:14px;margin-top:16px;min-height:42px}
   .sendbtn{display:inline-flex;align-items:center;gap:9px;font:600 13px var(--sans);color:var(--bg);background:var(--ink);border:none;border-radius:0;padding:11px 22px;cursor:pointer;transition:background .25s}
-  .sendbtn:hover{background:var(--gold)}
+  .sendbtn:hover{background:var(--accent)}
   .sendbtn .plane{width:16px;height:16px;transition:transform .2s}
-  .sent-msg{font:600 13px var(--sans);color:var(--gold);opacity:0;transform:translateX(-6px);transition:opacity .4s,transform .4s}
+  .sent-msg{font:600 13px var(--sans);color:var(--accent);opacity:0;transform:translateX(-6px);transition:opacity .4s,transform .4s}
   .sent-msg::before{content:"\\2713  "}
   .composer.sending .plane{animation:planeFly .72s cubic-bezier(.4,.1,.3,1) forwards}
   @keyframes planeFly{35%{transform:translate(5px,-4px)}100%{transform:translate(160px,-120px) rotate(20deg) scale(.6);opacity:0}}
@@ -796,7 +796,7 @@ def render(ind: dict) -> str:
     return (
         "<!doctype html><html lang=\"en\"><head>"
         "<link rel=\"stylesheet\" href=\"/static/brand.css\"><script src=\"/static/brand.js\" defer></script>"
-        f"<link rel=\"icon\" href=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>{_ASTER}</text></svg>\">"
+        f"<link rel=\"icon\" href=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%235E6B74'>{_ASTER}</text></svg>\">"
         "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"<title>{e(title)}</title>"
         f"<meta name=\"description\" content=\"{e(desc)}\">"
@@ -812,7 +812,7 @@ def render(ind: dict) -> str:
         f"<meta name=\"twitter:description\" content=\"{e(desc)}\">"
         f"<meta name=\"twitter:image\" content=\"{img}\">"
         "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>"
-        "<link href=\"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500&display=swap\" rel=\"stylesheet\">"
+        "<link href=\"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500;600&display=swap\" rel=\"stylesheet\">"
         f"<style>{_CSS}</style></head><body>"
         f"{_nav()}{body}{_footer()}{_SCRIPT}</body></html>"
     )
