@@ -175,6 +175,36 @@ def create_checkout(shop: str) -> str:
     return _stripe("POST", "checkout/sessions", data)["url"]
 
 
+def create_plan_checkout(shop: str, plan_key: str) -> str:
+    """A Stripe Checkout Session for one specific plan, priced inline from the plan catalogue.
+
+    This is the bridge-tenant path when no Payment Link is configured for the plan: with just
+    STRIPE_SECRET_KEY set, choosing a plan still lands on real Stripe Checkout. A configured
+    STRIPE_PLAN_LINKS link is preferred by the frontend and never reaches here."""
+    from halia import plans as plancat
+    if not config.STRIPE_SECRET_KEY:
+        raise HTTPException(400, "Stripe is not configured yet.")
+    if not plancat.billable(plan_key):
+        raise HTTPException(400, "That plan can't be subscribed to here.")
+    p = plancat.plan(plan_key)
+    base = config.HALIA_APP_URL or ""
+    data = {
+        "mode": "subscription",
+        "line_items[0][price_data][currency]": plancat.CURRENCY.lower(),
+        "line_items[0][price_data][unit_amount]": str(int(round(plancat.amount(plan_key) * 100))),
+        "line_items[0][price_data][recurring][interval]": "month",
+        "line_items[0][price_data][product_data][name]": f"Halia {p['name']}",
+        "line_items[0][quantity]": "1",
+        "client_reference_id": shop,
+        "metadata[shop]": shop,
+        "subscription_data[metadata][shop]": shop,
+        "success_url": f"{base}/app?session_id={{CHECKOUT_SESSION_ID}}",
+        "cancel_url": f"{base}/app",
+        "allow_promotion_codes": "true",
+    }
+    return _stripe("POST", "checkout/sessions", data)["url"]
+
+
 def create_portal(shop: str) -> str:
     """Create a Stripe Billing Portal session so the tenant can manage their subscription
     (update card, view invoices, cancel). Requires an existing Stripe customer."""
@@ -310,7 +340,8 @@ def stripe_plans_payload(shop: str) -> dict:
     from halia import plans as plancat
     links = plan_links()
     state = billing_state(shop)
-    common = {"stripe": True, "enabled": state["enabled"], "paid": state["paid"],
+    common = {"stripe": True, "checkout": bool(config.STRIPE_SECRET_KEY),
+              "enabled": state["enabled"], "paid": state["paid"],
               "comped": state["comped"], "status": state["status"],
               "manageable": state["manageable"]}
     # Store Concierge is its own brand and one flat plan — never the Halia wealth-engine tiers.
@@ -362,6 +393,13 @@ def register(app) -> None:
         """The plan catalogue for the in-app Plans cards, each with its Stripe Payment Link, plus
         the tenant's billing state and the tier recommended for their book size."""
         return stripe_plans_payload(shop)
+
+    @app.post("/v1/billing/checkout-plan")
+    def billing_checkout_plan(shop: str = Depends(require_shop),
+                              payload: dict = Body(default={})) -> dict:
+        """Stripe Checkout for one named plan (bridge tenants without Payment Links)."""
+        key = str((payload or {}).get("plan", "")).strip().lower()
+        return {"url": create_plan_checkout(shop, key)}
 
     @app.post("/v1/billing/portal")
     def billing_portal(shop: str = Depends(require_shop)) -> dict:

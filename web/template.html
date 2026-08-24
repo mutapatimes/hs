@@ -2698,9 +2698,21 @@ function loadPlanCards(container, force){
 }
 // Shopify Billing: the plan CTAs are buttons (not Stripe anchors); wire them after each render.
 function wireShopifyCtas(container,d){
-  if(!container||!d||!d.shopify) return;
-  container.querySelectorAll('[data-splan]').forEach(b=>{ b.onclick=()=>{
+  if(!container||!d) return;
+  if(d.shopify) container.querySelectorAll('[data-splan]').forEach(b=>{ b.onclick=()=>{
     const k=b.dataset.splan; if(k==='free') shopifyCancelPlan(); else shopifySubscribe(k,b); }; });
+  // Stripe checkout buttons (bridge tenants without Payment Links). Stripe can't be framed
+  // inside the admin, so the session opens in a new tab.
+  container.querySelectorAll('[data-scheck]').forEach(b=>{ b.onclick=()=>{
+    const w=window.open("about:blank","_blank");
+    b.disabled=true; b.textContent="One moment…";
+    fetch("/v1/billing/checkout-plan",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({plan:b.dataset.scheck})})
+      .then(r=>r.json().then(x=>({ok:r.ok,x}))).then(({ok,x})=>{
+        if(!ok||!x.url) throw new Error((x&&x.detail)||"Couldn't start checkout.");
+        if(w) w.location=x.url; else window.open(x.url,"_blank");
+        b.disabled=false; b.textContent="Choose plan →";
+      }).catch(e=>{ if(w)w.close(); toast("Billing error: "+e.message); b.disabled=false; b.textContent="Choose plan →"; });
+  }; });
 }
 function shopifySubscribe(key,btn){
   if(btn){ btn.disabled=true; btn.textContent='One moment…'; }
@@ -2731,7 +2743,9 @@ function planCardCta(p,d){
   // opens the Stripe Payment Link in a NEW TAB. Free is the default plan; Maison is a conversation.
   if(p.custom) return `<a class="pl-cta ghost" href="mailto:hello@haliascore.com?subject=Halia%20Maison%20plan">Talk to us →</a>`;
   if(p.key==="free") return `<span class="pl-cta cur">${d.paid?"Included":"Current plan"}</span>`;
+  if(d.comped) return `<span class="pl-cta cur">Complimentary</span>`;
   if(p.link) return `<a class="pl-cta" href="${esc(p.link)}" target="_blank" rel="noopener">Choose ${esc(p.name)} →</a>`;
+  if(d.checkout) return `<button class="pl-cta" data-scheck="${esc(p.key)}">Choose ${esc(p.name)} →</button>`;
   return `<a class="pl-cta ghost" href="mailto:hello@haliascore.com?subject=Halia%20${encodeURIComponent(p.name)}%20plan">Get ${esc(p.name)} →</a>`;
 }
 function planCardsHTML(d){

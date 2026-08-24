@@ -161,6 +161,50 @@ def test_checkout_creates_session(client, monkeypatch):
     assert c.post("/v1/checkout").json() == {"url": "https://checkout.stripe/shopx"}
 
 
+def test_checkout_plan_builds_inline_price(client, monkeypatch):
+    """A bridge tenant with only STRIPE_SECRET_KEY set still reaches real Stripe Checkout:
+    the session carries the plan's price inline, plus the shop as client_reference_id."""
+    c, store = client
+    monkeypatch.setattr("halia.config.STRIPE_SECRET_KEY", "sk_test")
+    monkeypatch.setattr("halia.config.HALIA_APP_URL", "https://halia.test")
+    captured = {}
+    monkeypatch.setattr(billing, "_stripe",
+                        lambda m, p, d=None: (captured.update(d or {}), {"url": "https://checkout.stripe/x"})[1])
+    c.cookies.set(COOKIE, _tenant(store))
+    r = c.post("/v1/billing/checkout-plan", json={"plan": "signal"})
+    assert r.status_code == 200 and r.json()["url"] == "https://checkout.stripe/x"
+    assert captured["client_reference_id"] == "shopx"
+    assert captured["line_items[0][price_data][currency]"] == "gbp"
+    assert captured["line_items[0][price_data][recurring][interval]"] == "month"
+    assert int(captured["line_items[0][price_data][unit_amount]"]) > 0
+    assert "Halia" in captured["line_items[0][price_data][product_data][name]"]
+    # free and unknown plans are refused; unset Stripe is refused
+    assert c.post("/v1/billing/checkout-plan", json={"plan": "free"}).status_code == 400
+    assert c.post("/v1/billing/checkout-plan", json={"plan": "nope"}).status_code == 400
+    monkeypatch.setattr("halia.config.STRIPE_SECRET_KEY", None)
+    assert c.post("/v1/billing/checkout-plan", json={"plan": "signal"}).status_code == 400
+
+
+def test_stripe_payload_checkout_flag_and_comp(client, monkeypatch):
+    """The plans payload advertises checkout only when Stripe is configured, and a comped
+    shop stays comped (is_paid True) regardless of Stripe state."""
+    c, store = client
+    tok = _tenant(store, "shopx")
+    _enable(monkeypatch)
+    from halia.api.tenant_auth import COOKIE as CK
+    j = c.get("/v1/billing/plans", cookies={CK: tok}).json()
+    assert j["stripe"] is True and j["checkout"] is True
+    monkeypatch.setattr("halia.config.STRIPE_SECRET_KEY", None)
+    j2 = c.get("/v1/billing/plans", cookies={CK: tok}).json()
+    assert j2["checkout"] is False
+    # comp: shop listed in free_shops is paid + comped even with billing enabled
+    _enable(monkeypatch)
+    monkeypatch.setattr("halia.config.HALIA_FREE_SHOPS", {"shopx"})
+    assert billing.is_paid("shopx") is True
+    j3 = c.get("/v1/billing/plans", cookies={CK: tok}).json()
+    assert j3["comped"] is True and j3["paid"] is True
+
+
 def test_billing_status_free_then_active(client, monkeypatch):
     c, store = client
     _enable(monkeypatch)
@@ -298,7 +342,7 @@ def test_app_shows_teaser_when_unpaid(client, monkeypatch):
         c.cookies.set(COOKIE, tok)
         r = c.get("/app")
         assert r.status_code == 200
-        assert "Unlock this hidden revenue" in r.text
+        assert "See who they are" in r.text
         assert "£42,000" in r.text and "7" in r.text
     finally:
         cache.evict("shopx")
