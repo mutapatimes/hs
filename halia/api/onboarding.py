@@ -925,7 +925,6 @@ a{color:inherit;text-decoration:none}
 .top{max-width:960px;margin:0 auto;padding:22px 28px}
 .brand{font-family:var(--serif);font-size:24px;display:flex;align-items:center;gap:9px}.brand svg{width:20px;height:20px}
 .stage{max-width:680px;margin:0 auto;padding:clamp(20px,6vh,70px) 28px 90px;text-align:center}
-.eyebrow{font:500 12px var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
 h1{font-family:var(--serif);font-weight:300;font-size:clamp(34px,6vw,58px);line-height:1.05;letter-spacing:-.01em;margin:0 0 18px}
 h1 em{font-style:normal;color:inherit}
 .lede{font-size:18px;color:var(--mute);line-height:1.55;max-width:54ch;margin:0 auto 30px}
@@ -941,7 +940,6 @@ h1 em{font-style:normal;color:inherit}
 </style></head><body>
 <header class="top"><a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Halia</a></header>
 <main class="stage">
-  <div class="eyebrow">__LABEL__ &middot; the result is in</div>
   <h1>You have <em>__COUNT__</em> hidden VICs,<br>worth an estimated <em>__LATENT__</em>.</h1>
   <p class="lede">Halia read your store and found high-value clients you are not treating like VIPs yet, and estimated the revenue waiting inside them. Their names, scores, the signals behind each one, and one-tap outreach are a single step away.</p>
   <div class="stats">
@@ -1063,7 +1061,6 @@ a{color:inherit;text-decoration:none}
 .step{display:none}
 .step.active{display:block;animation:in .55s cubic-bezier(.2,.6,.2,1)}
 @keyframes in{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-.eyebrow{font:500 12px var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
 h1{font-family:var(--serif);font-weight:300;font-size:clamp(33px,5.4vw,50px);line-height:1.06;letter-spacing:-.01em;margin:0 0 16px}
 h1 em{font-style:normal;color:inherit}
 .lede{font-size:18px;color:var(--mute);line-height:1.55;max-width:48ch;margin:0 0 26px}
@@ -1107,14 +1104,12 @@ summary::-webkit-details-marker{display:none}
 <main class="stage" id="stage">
 
   <section class="step active" data-step="0">
-    <div class="eyebrow">Welcome to Halia</div>
     <h1>Your best clients are <em>already here.</em></h1>
     <p class="lede">Hidden in your store is a small handful of people worth more than all the rest combined. In the next two minutes we will connect Halia and start bringing them into the light. Let us go and meet them.</p>
     <div class="row"><button class="btn" data-next>Let us begin <span>&rarr;</span></button></div>
   </section>
 
   <section class="step" data-step="1">
-    <div class="eyebrow">Your store</div>
     <h1>First, your store.</h1>
     <p class="lede">Tell us who you are and where to find your shop. This is the store whose customers Halia will quietly read and grade.</p>
     <label>Store name</label>
@@ -1127,7 +1122,6 @@ summary::-webkit-details-marker{display:none}
   </section>
 
   <section class="step" data-step="2">
-    <div class="eyebrow" id="srceye">Your store data</div>
     <h1 id="srctitle">Connect your orders, <em>safely.</em></h1>
     <p class="lede" id="srclede">Halia reads your past orders to learn who your customers really are. It connects read-only, so it can look but never touch.</p>
     <div id="srcbody"></div>
@@ -1141,7 +1135,6 @@ summary::-webkit-details-marker{display:none}
   </section>
 
   <section class="step" data-step="3">
-    <div class="eyebrow">Your marketing platform</div>
     <h1>Where do you <em>email</em> from?</h1>
     <p class="lede">Once Halia finds your top clients, it sends them straight to the tool you already use, with their grade attached and ready to action. Which one is yours?</p>
     <div class="cards">
@@ -1153,7 +1146,6 @@ summary::-webkit-details-marker{display:none}
   </section>
 
   <section class="step" data-step="4">
-    <div class="eyebrow" id="p4eye">Connect</div>
     <h1 id="p4title">Connect it.</h1>
     <p class="lede" id="p4lede"></p>
     <ol class="slist" id="p4steps"></ol>
@@ -1165,7 +1157,6 @@ summary::-webkit-details-marker{display:none}
   </section>
 
   <section class="step" data-step="5">
-    <div class="eyebrow">Your top clients</div>
     <h1>What makes a client a <em>VIC?</em></h1>
     <p class="lede">Halia grades everyone, but you set the bar for a true top client. A good place to start is the yearly spend that already feels special to you. You can fine-tune this any time.</p>
     <label>A VIC spends at least, per year</label>
@@ -1187,7 +1178,6 @@ summary::-webkit-details-marker{display:none}
   </section>
 
   <section class="step" data-step="6">
-    <div class="eyebrow">Stay in the loop</div>
     <h1>Never miss a <em>big moment.</em></h1>
     <p class="lede">When a top client places an order, in person at the till or online, Halia can alert your team in real time so you can look after them right away. Where should those alerts go?</p>
     <label>Your email</label>
@@ -1202,7 +1192,6 @@ summary::-webkit-details-marker{display:none}
   </section>
 
   <section class="step" data-step="7">
-    <div class="eyebrow">Almost there</div>
     <h1 id="donetitle">Scoring your store&hellip;</h1>
     <p class="lede" id="donelede">Halia is reading your orders and grading every customer. The first run takes a minute. Keep this tab open, your hidden VICs are on their way.</p>
     <div style="display:flex;gap:12px;align-items:center;margin-top:8px" id="spinrow"><div class="spin" id="spin"></div><span id="donesub" style="color:var(--mute);font-size:14px">Connecting&hellip;</span></div>
@@ -1227,10 +1216,9 @@ function emailRow(val){var d=document.createElement('div');d.className='emrow';
 function initEmails(){var l=document.getElementById('emaillist');if(l&&!l.children.length)l.appendChild(emailRow(''));}
 function collectEmails(){return [].map.call(document.querySelectorAll('#emaillist input'),function(i){return i.value.trim();}).filter(Boolean);}
 function renderSource(){
-  var eye=document.getElementById('srceye'),ti=document.getElementById('srctitle'),le=document.getElementById('srclede'),b=document.getElementById('srcbody');
+  var ti=document.getElementById('srctitle'),le=document.getElementById('srclede'),b=document.getElementById('srcbody');
   var nx0=document.querySelector('.step[data-step="2"] [data-next]');if(nx0)nx0.style.display='';
   if(state.source==='woocommerce'){
-    eye.textContent='Your store data · WooCommerce';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
     le.textContent='Choose how to connect. Either way Halia gets read-only access: it can read your past orders and nothing else.';
     b.innerHTML='<div class="cards">'
@@ -1242,7 +1230,6 @@ function renderSource(){
       c.classList.add('sel');state.woo_method=c.dataset.wm;renderWooMethod();};});
     if(state.woo_method){var sw=b.querySelector('.pcard[data-wm="'+state.woo_method+'"]');if(sw)sw.classList.add('sel');renderWooMethod();}
   } else if(state.source==='shopify'){
-    eye.textContent='Your store data · Shopify';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
     if(SHOP_LIVE||state.oneclick){
       le.textContent=(state.oneclick&&!SHOP_LIVE)
@@ -1263,28 +1250,24 @@ function renderSource(){
     }
     if(state.shop_method==='request'&&nx0)nx0.style.display='none';
   } else if(state.source==='bigcommerce'){
-    eye.textContent='Your store data · BigCommerce';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
     le.textContent='Create a read-only API account in BigCommerce and paste the two values. Halia can read your past orders and nothing else.';
     b.innerHTML='<ol class="slist"><li>In your BigCommerce control panel, open <b>Settings &rarr; API accounts &rarr; Create API account</b>.</li><li>Name it "Halia" and grant <b>Orders</b> and <b>Customers</b> the <b>read-only</b> scope.</li><li>Save, then copy the <b>Access Token</b> and your <b>store hash</b> (the code in the API path, e.g. stores/<b>abc12def</b>/).</li></ol>'
       +'<label>Store hash</label><input id="store_hash" placeholder="abc12def" autocomplete="off">'
       +'<label>API access token</label><input id="access_token" type="password" placeholder="Access token" autocomplete="off">';
   } else if(state.source==='centra'){
-    eye.textContent='Your store data · Centra';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
     le.textContent='Create an Integration API token in Centra restricted to reading orders, and paste it with your instance address. Halia can read your past orders and nothing else.';
     b.innerHTML='<ol class="slist"><li>In your Centra admin, open <b>System &rarr; API Tokens</b> and click <b>+ Integration API token</b>.</li><li>Name it "Halia" and grant only the <b>Order:read</b> permission.</li><li>Save, then copy the token and your instance address (e.g. https://<b>yourbrand</b>.centra.com).</li></ol>'
       +'<label>Centra instance URL</label><input id="centra_url" placeholder="https://yourbrand.centra.com" autocomplete="off">'
       +'<label>Integration API token</label><input id="centra_token" type="password" placeholder="API token" autocomplete="off">';
   } else if(state.source==='scayle'){
-    eye.textContent='Your store data · SCAYLE';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
     le.textContent='Create an Admin API token in the SCAYLE Panel and paste it with your API base URL. Halia can read your past orders and nothing else.';
     b.innerHTML='<ol class="slist"><li>In the <b>SCAYLE Panel</b>, create an <b>Admin API</b> access token.</li><li>Give it read access to orders and customers.</li><li>Copy the token and your API base URL (your SCAYLE host, e.g. https://<b>yourbrand</b>.scayle.cloud).</li></ol>'
       +'<label>SCAYLE API base URL</label><input id="scayle_url" placeholder="https://yourbrand.scayle.cloud" autocomplete="off">'
       +'<label>Admin API access token</label><input id="scayle_token" type="password" placeholder="Access token" autocomplete="off">';
   } else {
-    eye.textContent='Your store';
     ti.innerHTML='Which platform powers your <em>store?</em>';
     le.textContent='We could not tell automatically, no problem at all. Pick yours and we will show you exactly what to do.';
     b.innerHTML='<div class="cards"><div class="pcard" data-src="shopify"><div class="pi">S</div><div><h3>Shopify</h3><p>One-click install, set up for you.</p></div></div><div class="pcard" data-src="woocommerce"><div class="pi">W</div><div><h3>WooCommerce</h3><p>Connect with a read-only REST API key.</p></div></div><div class="pcard" data-src="bigcommerce"><div class="pi">B</div><div><h3>BigCommerce</h3><p>Connect with a store hash and API token.</p></div></div><div class="pcard" data-src="centra"><div class="pi">C</div><div><h3>Centra</h3><p>Connect with an Order:read Integration API token.</p></div></div><div class="pcard" data-src="scayle"><div class="pi">S</div><div><h3>SCAYLE</h3><p>Connect with an Admin API access token.</p></div></div></div>';
@@ -1413,7 +1396,6 @@ function show(n){
 }
 function fillPlatform(){
   var k=state.platform==='klaviyo';
-  document.getElementById('p4eye').textContent=k?'Connect Klaviyo':'Connect Mailchimp';
   document.getElementById('p4title').innerHTML=k?'Connect <em>Klaviyo.</em>':'Connect <em>Mailchimp.</em>';
   document.getElementById('p4lede').textContent=k
     ?'Create a private key so Halia can add grades to your profiles and build segments for you.'
