@@ -165,9 +165,9 @@
     .tcat { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #8a8271;
       padding: 8px 8px 3px; background: #faf7f0; position: sticky; top: 0; }
     .titem { display: block; width: 100%; text-align: left; border: 0; background: transparent;
-      padding: 6px 8px; font-size: 12.5px; color: #1a1a1a; cursor: pointer; border-left: 2px solid transparent; }
+      padding: 6px 8px; font-size: 12.5px; color: #1a1a1a; cursor: pointer; }
     .titem:hover { background: #f4f1ea; }
-    .titem.sel { background: #f2efe6; border-left-color: #1F564A; font-weight: 600; }
+    .titem.sel { background: #f2efe6; font-weight: 600; }
     select { width: 100%; padding: 6px; border: 1px solid #d8cfbc; background: #fff; font-size: 12px; }
     textarea { width: 100%; padding: 7px 9px; border: 1px solid #d8cfbc; background: #fff; font-size: 12.5px;
       font-family: inherit; resize: vertical; color: #1a1a1a; }
