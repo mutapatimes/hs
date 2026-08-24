@@ -379,16 +379,16 @@ def _signin_sent_page(email: str) -> str:
 _PRIVACY_INSERTS = [
     ("Understanding our customers",
      "To give our best customers a more personal level of service, we use a tool that reviews "
-     "information we already hold — such as your order history and the area your orders are "
-     "delivered to — to recognise clients who may value a more personal service, such as a "
+     "information we already hold, such as your order history and the area your orders are "
+     "delivered to, to recognise clients who may value a more personal service, such as a "
      "dedicated contact or an invitation to a preview."),
-    ("What it looks at",
-     "It draws on commercial and address facts — what and how often you have bought from us, and "
+    ("The information it uses",
+     "It draws on commercial and address facts: what and how often you have bought from us, and "
      "publicly recognisable signs of an area or a professional email domain. It does not use your "
      "nationality, your ethnicity, or the origin of your name."),
     ("A person always decides",
      "The tool only highlights customers for our team to consider. It never makes an automatic "
-     "decision about you and never withholds a product, price or service — a member of our team "
+     "decision about you and never withholds a product, price or service. A member of our team "
      "always decides whether to get in touch. You can ask us to stop at any time."),
 ]
 
