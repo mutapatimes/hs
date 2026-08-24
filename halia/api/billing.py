@@ -302,6 +302,30 @@ def confirm_session(shop: str, session_id: str) -> bool:
     return is_paid(shop)
 
 
+def stripe_plans_payload(shop: str) -> dict:
+    """The plan catalogue with each tier's Stripe Payment Link, plus the tenant's billing state.
+    Served to hosted (non-Shopify) tenants at /v1/billing/plans, and to Shopify tenants on a
+    custom-distribution bridge app (which cannot use Shopify's Billing API) via /v1/plans/status.
+    ``stripe: True`` tells the dashboard to render Stripe link CTAs instead of Shopify buttons."""
+    from halia import plans as plancat
+    links = plan_links()
+    state = billing_state(shop)
+    common = {"stripe": True, "enabled": state["enabled"], "paid": state["paid"],
+              "comped": state["comped"], "status": state["status"],
+              "manageable": state["manageable"]}
+    # Store Concierge is its own brand and one flat plan — never the Halia wealth-engine tiers.
+    if _is_storeconcierge(shop):
+        card = plancat.storeconcierge_card()
+        card["link"] = link_with_ref(links.get("storeconcierge", ""), shop)
+        return {"plans": [card], "recommended": "Store Concierge", **common}
+    cards = []
+    for p in plancat.public_catalogue():
+        p = dict(p)
+        p["link"] = link_with_ref(links.get(p["key"], ""), shop)
+        cards.append(p)
+    return {"plans": cards, "recommended": (plan_for_shop(shop) or {}).get("name"), **common}
+
+
 def _verify_sig(body: bytes, sig_header: str, secret: str, tolerance: int = 300) -> bool:
     """Verify a Stripe webhook signature (HMAC-SHA256 over `t.payload`), rejecting stale events.
 
@@ -337,22 +361,7 @@ def register(app) -> None:
     def billing_plans(shop: str = Depends(require_shop)) -> dict:
         """The plan catalogue for the in-app Plans cards, each with its Stripe Payment Link, plus
         the tenant's billing state and the tier recommended for their book size."""
-        from halia import plans as plancat
-        links = plan_links()
-        state = billing_state(shop)
-        common = {"enabled": state["enabled"], "paid": state["paid"], "comped": state["comped"],
-                  "status": state["status"], "manageable": state["manageable"]}
-        # Store Concierge is its own brand and one flat plan — never the Halia wealth-engine tiers.
-        if _is_storeconcierge(shop):
-            card = plancat.storeconcierge_card()
-            card["link"] = link_with_ref(links.get("storeconcierge", ""), shop)
-            return {"plans": [card], "recommended": "Store Concierge", **common}
-        cards = []
-        for p in plancat.public_catalogue():
-            p = dict(p)
-            p["link"] = link_with_ref(links.get(p["key"], ""), shop)
-            cards.append(p)
-        return {"plans": cards, "recommended": (plan_for_shop(shop) or {}).get("name"), **common}
+        return stripe_plans_payload(shop)
 
     @app.post("/v1/billing/portal")
     def billing_portal(shop: str = Depends(require_shop)) -> dict:

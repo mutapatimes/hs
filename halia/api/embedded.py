@@ -94,8 +94,12 @@ def _csp(shop: str) -> str:
     return f"frame-ancestors https://{shop} https://admin.shopify.com;"
 
 
-def _head() -> str:
-    return _HEAD.format(key=config.SHOPIFY_API_KEY or "")
+def _head(shop: str = "") -> str:
+    """App Bridge boot HTML. The apiKey must match the app the admin is loading — a custom-
+    distribution bridge tenant's own app, else the public Halia app."""
+    from halia.api.shopify_auth import credentials_for_shop
+    key = credentials_for_shop(shop)[0] if shop else config.SHOPIFY_API_KEY
+    return _HEAD.format(key=key or "")
 
 
 def _error_page(head: str) -> str:
@@ -125,7 +129,7 @@ def register(app) -> None:
             # public visitor → the marketing site for whichever brand this host serves
             return HTMLResponse(_marketing(request.headers.get("host", "")))
 
-        head = _head()
+        head = _head(shop)
         try:
             entry = cache.get(shop) or data.sync_shop_authed(shop, session_token)
             body = render_payload(entry["payload"], head_extra=head, body_extra=_NAV_MENU)

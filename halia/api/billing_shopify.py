@@ -96,11 +96,20 @@ def _admin_app_url(shop: str) -> str:
     return (config.HALIA_APP_URL or "") + "/app"
 
 
+def _stripe_billed(shop: str) -> bool:
+    """True for a tenant on a custom-distribution bridge app: Shopify forbids such apps the
+    Billing API, so these shops subscribe through Stripe instead (payment links / checkout)."""
+    return shop in config.SHOPIFY_CUSTOM_APPS
+
+
 def register(app) -> None:
 
     @app.get("/v1/plans/status")
     def plans_status(shop: str = Depends(require_shop)) -> dict:
         """The plan catalogue plus this shop's current plan and whether it can self-serve billing."""
+        if _stripe_billed(shop):
+            from halia.api.billing import stripe_plans_payload
+            return stripe_plans_payload(shop)
         shopify = bool(_token(shop))
         current = _current_plan_key(shop) if shopify else "free"
         in_use = shop_store().active_seat_count(shop) if shopify else 0
@@ -125,6 +134,9 @@ def register(app) -> None:
             raise HTTPException(400, "Unknown plan.")
         if not plans.billable(key):
             raise HTTPException(400, "That plan can't be subscribed to here.")
+        if _stripe_billed(shop):
+            raise HTTPException(400, "This store is billed through Stripe — choose a plan "
+                                     "from the plan cards instead.")
         if not _token(shop):
             raise HTTPException(400, "Shopify billing is only available inside the Shopify app.")
         base = config.HALIA_APP_URL or ""
@@ -161,6 +173,9 @@ def register(app) -> None:
     @app.post("/v1/plans/cancel")
     def plans_cancel(shop: str = Depends(require_shop)) -> dict:
         """Cancel the active Shopify subscription (a downgrade to the Free plan)."""
+        if _stripe_billed(shop):
+            raise HTTPException(400, "This store is billed through Stripe — manage or cancel "
+                                     "from the Billing panel in Settings.")
         if not _token(shop):
             raise HTTPException(400, "Shopify billing is only available inside the Shopify app.")
         sub = active_subscription(shop)

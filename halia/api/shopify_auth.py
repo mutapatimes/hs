@@ -24,13 +24,44 @@ from halia import config
 from halia.store import ShopStore
 
 
+def credentials_for_shop(shop: str) -> tuple[str | None, str | None]:
+    """(client_id, client_secret) for the app THIS shop installs through: its custom-distribution
+    bridge app when one is configured (HALIA_SHOPIFY_CUSTOM_APPS), else the public Halia app."""
+    custom = config.SHOPIFY_CUSTOM_APPS.get((shop or "").strip().lower())
+    if custom:
+        return custom
+    return config.SHOPIFY_API_KEY, config.SHOPIFY_API_SECRET
+
+
+def _all_secrets() -> list[str]:
+    """Every app secret this deployment answers for: the public app + each custom bridge app."""
+    out = [s for s in [config.SHOPIFY_API_SECRET] if s]
+    out.extend(secret for _, secret in config.SHOPIFY_CUSTOM_APPS.values())
+    return out
+
+
+def _creds_for_session_token(token: str) -> tuple[str | None, str | None]:
+    """Resolve which app a session token belongs to by peeking its (unverified) ``aud`` claim,
+    then return that app's (client_id, secret). The caller still verifies the signature — the
+    peek only picks WHICH key to verify with, it grants nothing by itself."""
+    try:
+        aud = jwt.decode(token, options={"verify_signature": False}).get("aud")
+    except jwt.PyJWTError:
+        aud = None
+    if aud:
+        for cid, secret in config.SHOPIFY_CUSTOM_APPS.values():
+            if cid == aud:
+                return cid, secret
+    return config.SHOPIFY_API_KEY, config.SHOPIFY_API_SECRET
+
+
 def verify_app_proxy(request: Request, secret: str | None = None) -> bool:
     """Verify a Shopify **App Proxy** request. Shopify signs proxied requests with an HMAC-SHA256
     of the sorted query params (minus ``signature``), keyed by the app's shared secret. This lets us
     serve the catalogue under the merchant's OWN storefront domain (theirbrand.com/a/catalogue/…)
     so a client never sees Halia. Returns True only for genuine, correctly-signed proxy requests."""
-    secret = secret or config.SHOPIFY_API_SECRET
-    if not secret:
+    secrets = [secret] if secret else _all_secrets()
+    if not secrets:
         return False
     params: dict[str, list[str]] = {}
     sig = None
@@ -42,8 +73,11 @@ def verify_app_proxy(request: Request, secret: str | None = None) -> bool:
     if not sig:
         return False
     msg = "".join(f"{k}={','.join(params[k])}" for k in sorted(params))
-    digest = hmac.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()
-    return hmac.compare_digest(digest, sig)
+    for s in secrets:
+        digest = hmac.new(s.encode(), msg.encode(), hashlib.sha256).hexdigest()
+        if hmac.compare_digest(digest, sig):
+            return True
+    return False
 
 # Shopify token-exchange constants (researched from shopify.dev token-exchange docs).
 _GRANT_TYPE = "urn:ietf:params:oauth:grant-type:token-exchange"
@@ -61,6 +95,8 @@ def verify_session_token(token: str, secret: str | None = None, api_key: str | N
 
     Raises HTTPException(401) on any problem.
     """
+    if secret is None and api_key is None:
+        api_key, secret = _creds_for_session_token(token)   # custom bridge app or the public app
     secret = secret or config.SHOPIFY_API_SECRET
     api_key = api_key or config.SHOPIFY_API_KEY
     if not secret or not api_key:
@@ -83,6 +119,8 @@ def session_claims(token: str, secret: str | None = None, api_key: str | None = 
 
     Non-raising sibling of verify_session_token, used to read the optional staff-user claim.
     """
+    if secret is None and api_key is None:
+        api_key, secret = _creds_for_session_token(token)   # custom bridge app or the public app
     secret = secret or config.SHOPIFY_API_SECRET
     api_key = api_key or config.SHOPIFY_API_KEY
     if not (secret and api_key):
@@ -125,9 +163,10 @@ def token_exchange(shop: str, session_token: str, transport=None) -> dict:
     Returns the raw payload: ``access_token`` plus ``expires_in`` / ``refresh_token`` /
     ``refresh_token_expires_in`` (the expiring-token fields). Callers persist it via ``_persist_token``.
     """
+    cid, secret = credentials_for_shop(shop)
     body = {
-        "client_id": config.SHOPIFY_API_KEY,
-        "client_secret": config.SHOPIFY_API_SECRET,
+        "client_id": cid,
+        "client_secret": secret,
         "grant_type": _GRANT_TYPE,
         "subject_token": session_token,
         "subject_token_type": _SUBJECT_TOKEN_TYPE,
@@ -148,9 +187,10 @@ def token_exchange(shop: str, session_token: str, transport=None) -> dict:
 def refresh_offline_token(shop: str, refresh_token: str, transport=None) -> dict:
     """Renew an expiring offline token with its refresh token. Needs NO App Bridge session, so any
     code path (background syncs, extension lookups, the catalogue proxy) can self-renew."""
+    cid, secret = credentials_for_shop(shop)
     body = {
-        "client_id": config.SHOPIFY_API_KEY,
-        "client_secret": config.SHOPIFY_API_SECRET,
+        "client_id": cid,
+        "client_secret": secret,
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
     }

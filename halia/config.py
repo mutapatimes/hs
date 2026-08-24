@@ -120,17 +120,36 @@ HALIA_FREE_SHOPS = {s.strip() for s in os.environ.get("HALIA_FREE_SHOPS", "").sp
 HALIA_ORIGIN_SIGNAL_SHOPS = {s.strip() for s in
                              os.environ.get("HALIA_ORIGIN_SIGNAL_SHOPS", "").split(",") if s.strip()}
 
-# Shopify one-click onboarding via the app's install link (App Store listing, once live).
-# Only takes effect once HALIA_SHOPIFY_APP_LIVE=1 (below) — Shopify's "custom install link" is a
-# Custom-distribution-only feature, not available to Halia's Public-distribution app, so there is
-# no one-click path for outside merchants until the App Store listing is actually approved.
-HALIA_SHOPIFY_INSTALL_URL = os.environ.get("HALIA_SHOPIFY_INSTALL_URL") or ""
-
 # Flip to true only once Shopify has approved the public listing. Until then the /connect wizard
 # hides the "Connect with Shopify" one-click card (it would 404/block with "app under review" for
 # any store outside your own Partner org) and offers only the Admin API token method, which works
 # for any Shopify store regardless of review status.
 HALIA_SHOPIFY_APP_LIVE = (os.environ.get("HALIA_SHOPIFY_APP_LIVE") or "").strip().lower() in ("1", "true", "yes")
+
+
+def _parse_custom_apps(raw: str) -> dict[str, tuple[str, str]]:
+    """'shop.myshopify.com=client_id:client_secret,other.myshopify.com=id2:secret2' ->
+    {shop_domain: (client_id, client_secret)}. Malformed entries are skipped, never fatal."""
+    out: dict[str, tuple[str, str]] = {}
+    for part in (raw or "").split(","):
+        if "=" not in part:
+            continue
+        domain, creds = part.split("=", 1)
+        domain = domain.strip().lower()
+        if ":" not in creds or not domain.endswith(".myshopify.com"):
+            continue
+        cid, secret = creds.split(":", 1)
+        if cid.strip() and secret.strip():
+            out[domain] = (cid.strip(), secret.strip())
+    return out
+
+
+# Custom-distribution bridge apps: while the public listing is under Shopify review, each
+# onboarded brand gets its own Partner-Dashboard app with Custom distribution (no review needed,
+# real one-click install). One entry per brand store; that store then authenticates, installs and
+# token-exchanges against ITS app's credentials instead of the public app's — and, because
+# custom-distribution apps cannot use Shopify's Billing API, it is billed through Stripe.
+SHOPIFY_CUSTOM_APPS = _parse_custom_apps(os.environ.get("HALIA_SHOPIFY_CUSTOM_APPS", ""))
 
 # Cap the WooCommerce pull for the interactive dashboard (recent orders are the most
 # actionable; a full back-catalogue pull on a big store can take many minutes). Defaults to

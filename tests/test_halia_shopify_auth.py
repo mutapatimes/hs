@@ -65,6 +65,51 @@ def test_token_exchange_raises_on_failure():
         shopify_auth.token_exchange(SHOP, "x", transport=lambda u, b: (401, {"error": "bad"}))
 
 
+# ── custom-distribution bridge apps: per-shop credentials during the review window ──
+
+BRIDGE_SHOP = "brand.myshopify.com"
+BRIDGE_KEY, BRIDGE_SECRET = "bridge-key", "bridge-secret"
+
+
+def _with_bridge(monkeypatch):
+    monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", KEY)
+    monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
+    monkeypatch.setattr("halia.config.SHOPIFY_CUSTOM_APPS",
+                        {BRIDGE_SHOP: (BRIDGE_KEY, BRIDGE_SECRET)})
+
+
+def test_credentials_for_shop_prefers_bridge_app(monkeypatch):
+    _with_bridge(monkeypatch)
+    assert shopify_auth.credentials_for_shop(BRIDGE_SHOP) == (BRIDGE_KEY, BRIDGE_SECRET)
+    assert shopify_auth.credentials_for_shop(SHOP) == (KEY, SECRET)
+
+
+def test_verify_resolves_bridge_app_token_by_aud(monkeypatch):
+    """A session token signed by a bridge app (aud = its client_id) verifies without explicit
+    creds — the aud peek picks the right secret; the public app's tokens still verify too."""
+    _with_bridge(monkeypatch)
+    bridge_tok = _token(dest=f"https://{BRIDGE_SHOP}", aud=BRIDGE_KEY, secret=BRIDGE_SECRET)
+    assert shopify_auth.verify_session_token(bridge_tok) == BRIDGE_SHOP
+    assert shopify_auth.verify_session_token(_token()) == SHOP
+    # a token claiming the bridge aud but signed with the WRONG secret must still fail
+    forged = _token(dest=f"https://{BRIDGE_SHOP}", aud=BRIDGE_KEY, secret="wrong")
+    with pytest.raises(HTTPException):
+        shopify_auth.verify_session_token(forged)
+
+
+def test_token_exchange_uses_bridge_credentials(monkeypatch):
+    _with_bridge(monkeypatch)
+    captured = {}
+
+    def fake_post(url, body):
+        captured["body"] = body
+        return 200, {"access_token": "shpat_bridge"}
+
+    shopify_auth.token_exchange(BRIDGE_SHOP, "sess.tok.en", transport=fake_post)
+    assert captured["body"]["client_id"] == BRIDGE_KEY
+    assert captured["body"]["client_secret"] == BRIDGE_SECRET
+
+
 # ── expiring offline tokens (Phase 2): persist expiry + refresh, renew without a session ──
 
 def _temp_store(tmp_path, monkeypatch):

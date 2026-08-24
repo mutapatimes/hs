@@ -34,6 +34,19 @@ def test_webhook_rejects_invalid_hmac(monkeypatch):
     assert r.status_code == 401
 
 
+def test_webhook_accepts_bridge_app_signature(monkeypatch):
+    """A webhook signed by a custom-distribution bridge app's secret must verify too."""
+    monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
+    monkeypatch.setattr("halia.config.SHOPIFY_CUSTOM_APPS",
+                        {"brand.myshopify.com": ("bridge-key", "bridge-secret")})
+    body = b'{"payload":{}}'
+    r = TestClient(app).post("/webhooks/shopify", content=body,
+                             headers={"X-Shopify-Hmac-Sha256": _sign(body, "bridge-secret"),
+                                      "X-Shopify-Topic": "customers/data_request",
+                                      "X-Shopify-Shop-Domain": "brand.myshopify.com"})
+    assert r.status_code == 200
+
+
 def test_shop_redact_deletes_secrets_and_evicts(tmp_path, monkeypatch):
     monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
     monkeypatch.setattr("halia.store.DB_PATH", str(tmp_path / "w.db"))
