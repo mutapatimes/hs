@@ -54,3 +54,21 @@ def test_name_only_frame_stays_ungated(tmp_path):
     t = _table(tmp_path)
     res = us_insider.flag_us_insider(pd.DataFrame([{"Name": "Cornelius Vanderbilt"}]), t)
     assert bool(res["us_insider"][0])
+
+
+def test_zip_signals_veto_foreign_country():
+    # 20144 is Delaplane VA and also central Milan: the customer's own country decides.
+    from scoring.signals import us_property, us_zip
+    ptable = {"20144": {"tier": "prime", "area": "Delaplane VA"}}
+    ztable = {"20144": "Delaplane VA"}
+    df = pd.DataFrame([
+        {"LATEST_BILLING_ZIP": "20144", "LATEST_BILLING_ADDRESS4": "US"},
+        {"LATEST_BILLING_ZIP": "20144", "LATEST_BILLING_ADDRESS4": "Italy"},
+        {"LATEST_BILLING_ZIP": "20144", "LATEST_BILLING_ADDRESS4": ""},      # blank stays US-plausible
+        {"LATEST_BILLING_ZIP": "20144", "LATEST_BILLING_ADDRESS4": "Italy",
+         "LATEST_SHIPPING_ZIP": "20144", "LATEST_SHIPPING_ADDRESS4": "United States"},
+    ])
+    assert list(us_property.flag_us_property(df, table=ptable)[us_property.FLAG_COL]) == [
+        True, False, True, True]
+    assert list(us_zip.flag_us_zip(df, zips=ztable)[us_zip.FLAG_COL]) == [
+        True, False, True, True]

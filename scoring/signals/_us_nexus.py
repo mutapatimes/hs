@@ -9,7 +9,9 @@ so those signals only fire when the customer is INDEPENDENTLY pinned to the US b
     also matches continental-EU postcodes (Milan 20121, Paris 75001), so an explicit foreign country
     vetoes the ZIP path.
 
-The ZIP-based US signals (``us_zip``, ``us_property``) are already geo-anchored and need no gate.
+The ZIP-based US signals (``us_zip``, ``us_property``) apply the same foreign-country veto per
+address side via :func:`is_foreign_country` — a Milan 20144 with country "Italy" must not read
+as Delaplane, Virginia.
 """
 from __future__ import annotations
 
@@ -46,6 +48,11 @@ def _country_state(v) -> str:
     if _blank(v):
         return ""
     return "us" if str(v).strip().upper() in _US_COUNTRY else "foreign"
+
+
+def is_foreign_country(v) -> bool:
+    """True when a country cell explicitly names a non-US country (blank/unknown is NOT foreign)."""
+    return _country_state(v) == "foreign"
 
 
 def us_nexus_mask(df: pd.DataFrame):
