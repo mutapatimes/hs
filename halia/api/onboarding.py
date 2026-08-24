@@ -1071,6 +1071,11 @@ label{display:block;font:600 13px var(--sans);margin:18px 0 7px}
 .termsrow input{width:auto;flex:none;margin:2px 0 0;padding:0;cursor:pointer}
 .termsrow a{color:var(--gold);text-decoration:underline}
 .hint{font-size:13px;color:var(--mute);line-height:1.5;margin:6px 0 0}
+.trustbox{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);background:#efeadd;padding:16px 18px;margin:20px 0 4px}
+.trustbox .ti{flex:none;font-size:17px;line-height:1}
+.trustbox p{margin:0;font-size:13.5px;color:var(--mute);line-height:1.55}
+.trustbox b{color:var(--ink)}
+.pastecue{font:600 13.5px var(--sans);color:var(--ink);margin:22px 0 -6px}
 input{width:100%;padding:14px 16px;border:1px solid var(--line);border-radius:0;font:15px var(--sans);background:#fffdf8;color:var(--ink)}
 input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(122,115,99,.15)}
 .row{display:flex;gap:18px;margin-top:32px;align-items:center}
@@ -1242,15 +1247,22 @@ function renderSource(){
   } else if(state.source==='shopify'){
     eye.textContent='Your store data · Shopify';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
-    le.textContent='Choose how to connect. Either way Halia gets read-only access: it can read your past orders and nothing else.';
-    b.innerHTML='<div class="cards">'
-      +(SHOP_INSTALL?'<div class="pcard" data-sm="install"><div class="pi">&#9889;</div><div><h3>Connect with Shopify</h3><p>Add Halia from Shopify in a click. No token to copy.</p></div></div>':'')
-      +'<div class="pcard" data-sm="token"><div class="pi">&#35;</div><div><h3>Enter an Admin API token</h3><p>Create a custom-app token and paste it.</p></div></div>'
-      +'</div><div id="shopmethod" style="margin-top:6px"></div>';
-    [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){
-      [].forEach.call(b.querySelectorAll('.pcard'),function(x){x.classList.remove('sel');});
-      c.classList.add('sel');state.shop_method=c.dataset.sm;renderShopMethod();};});
-    if(state.shop_method){var ss=b.querySelector('.pcard[data-sm="'+state.shop_method+'"]');if(ss)ss.classList.add('sel');renderShopMethod();}
+    if(SHOP_INSTALL){
+      le.textContent='Choose how to connect. Either way Halia gets read-only access: it can read your past orders and nothing else.';
+      b.innerHTML='<div class="cards">'
+        +'<div class="pcard" data-sm="install"><div class="pi">&#9889;</div><div><h3>Connect with Shopify</h3><p>Add Halia from Shopify in a click. No token to copy.</p></div></div>'
+        +'<div class="pcard" data-sm="token"><div class="pi">&#35;</div><div><h3>Enter an Admin API token</h3><p>Create a custom-app token and paste it.</p></div></div>'
+        +'</div><div id="shopmethod" style="margin-top:6px"></div>';
+      [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){
+        [].forEach.call(b.querySelectorAll('.pcard'),function(x){x.classList.remove('sel');});
+        c.classList.add('sel');state.shop_method=c.dataset.sm;renderShopMethod();};});
+      if(state.shop_method){var ss=b.querySelector('.pcard[data-sm="'+state.shop_method+'"]');if(ss)ss.classList.add('sel');renderShopMethod();}
+    } else {
+      le.innerHTML='Halia&rsquo;s Shopify listing is still being reviewed, so the usual one&#8209;click install isn&rsquo;t on offer yet. In the meantime you connect with a private key you create yourself, inside your own store. It takes about two minutes, and nothing about it is a workaround: it&rsquo;s a normal, Shopify&#8209;supported way for a store to connect a private tool.';
+      state.shop_method='token';
+      b.innerHTML='<div id="shopmethod"></div>';
+      renderShopMethod();
+    }
   } else if(state.source==='bigcommerce'){
     eye.textContent='Your store data · BigCommerce';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
@@ -1317,7 +1329,17 @@ function pollWoo(){
 function renderShopMethod(){
   var w=document.getElementById('shopmethod');if(!w)return;
   if(state.shop_method==='token'){
-    w.innerHTML='<ol class="slist"><li>In Shopify admin, open <b>Settings &rarr; Apps and sales channels &rarr; Develop apps</b>.</li><li>Click <b>Create an app</b>, name it "Halia", then <b>Configure Admin API scopes</b>.</li><li>Tick <b>read_orders</b>, <b>read_customers</b>, <b>write_customers</b> (so Halia can tag your VICs back into Shopify) and <b>read_products</b> (for the catalogue builder), save, then <b>Install app</b>.</li><li>Copy the <b>Admin API access token</b> (starts with shpat_).</li></ol><label>Your Shopify store domain</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address, even with a custom domain.</div><label>Admin API access token</label><input id="admin_token" type="password" placeholder="shpat_..." autocomplete="off">';
+    w.innerHTML='<div class="trustbox"><div class="ti">&#128274;</div><p><b>Read-only, always.</b> Halia can see your past orders and customer names, nothing else. It cannot see payment details, change a price, or contact your customers. Turn it off any time by deleting the app in Shopify, no need to tell us.</p></div>'
+      +'<ol class="slist">'
+      +'<li>In your Shopify admin, go to <b>Settings &rarr; Apps and sales channels &rarr; Develop apps</b>. This is a normal part of Shopify for creating private connections just like this one.</li>'
+      +'<li>If Shopify shows a one-time button to <b>Allow custom app development</b>, click it first. Then click <b>Create an app</b> and name it <b>Halia</b>.</li>'
+      +'<li>Click <b>Configure Admin API scopes</b> and turn on four permissions: <b>read_orders</b>, <b>read_customers</b>, <b>write_customers</b> (this only lets Halia tag your VIP customers back into Shopify, it cannot edit anything else about them) and <b>read_products</b> (for the catalogue tool). Click <b>Save</b>.</li>'
+      +'<li>Click <b>Install app</b>, then confirm.</li>'
+      +'<li>On the <b>API credentials</b> tab, click <b>Reveal token once</b> and copy the <b>Admin API access token</b>. It starts with <b>shpat_</b>. Copy it now, Shopify only shows it this one time.</li>'
+      +'</ol>'
+      +'<div class="pastecue">Now paste those two things here:</div>'
+      +'<label>Your Shopify store address</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address, even if you use a custom domain day to day. You will find it in the browser address bar while you are in Shopify admin.</div>'
+      +'<label>Admin API access token</label><input id="admin_token" type="password" placeholder="Paste the shpat_&hellip; token here" autocomplete="off"><div class="hint">Pasted straight from Shopify. It is stored securely and never shown on screen again.</div>';
   } else if(state.shop_method==='install'){
     w.innerHTML='<label>Your Shopify store domain</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address. We open Shopify so you can add Halia, nothing to copy.</div><button type="button" class="btn" id="shopauth" style="margin-top:14px">Install Halia in Shopify &rarr;</button><div id="shopstatus" style="margin-top:14px"></div>';
     document.getElementById('shopauth').onclick=startShopInstall;
@@ -1514,7 +1536,8 @@ def register(app) -> None:
         import json
         return HTMLResponse(
             _WIZARD.replace("__SIGNUP_REQUIRED__", "true" if _signup_code() else "false")
-                   .replace("__SHOP_INSTALL_URL__", json.dumps(config.HALIA_SHOPIFY_INSTALL_URL or "")))
+                   .replace("__SHOP_INSTALL_URL__", json.dumps(
+                       config.HALIA_SHOPIFY_INSTALL_URL if config.HALIA_SHOPIFY_APP_LIVE else "")))
 
     @app.post("/v1/onboard")
     def onboard(payload: dict = Body(...), request: Request = None) -> dict:

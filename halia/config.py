@@ -120,11 +120,17 @@ HALIA_FREE_SHOPS = {s.strip() for s in os.environ.get("HALIA_FREE_SHOPS", "").sp
 HALIA_ORIGIN_SIGNAL_SHOPS = {s.strip() for s in
                              os.environ.get("HALIA_ORIGIN_SIGNAL_SHOPS", "").split(",") if s.strip()}
 
-# Shopify one-click onboarding via your app's install link (Dev Dashboard -> Distribution ->
-# Manage custom install link). When set, the wizard's 'Connect with Shopify' button opens this
-# link; the merchant installs, the embedded app stores their token, and onboarding picks it up.
-# Unset = the wizard offers only the manual Admin API token method for Shopify.
+# Shopify one-click onboarding via the app's install link (App Store listing, once live).
+# Only takes effect once HALIA_SHOPIFY_APP_LIVE=1 (below) — Shopify's "custom install link" is a
+# Custom-distribution-only feature, not available to Halia's Public-distribution app, so there is
+# no one-click path for outside merchants until the App Store listing is actually approved.
 HALIA_SHOPIFY_INSTALL_URL = os.environ.get("HALIA_SHOPIFY_INSTALL_URL") or ""
+
+# Flip to true only once Shopify has approved the public listing. Until then the /connect wizard
+# hides the "Connect with Shopify" one-click card (it would 404/block with "app under review" for
+# any store outside your own Partner org) and offers only the Admin API token method, which works
+# for any Shopify store regardless of review status.
+HALIA_SHOPIFY_APP_LIVE = (os.environ.get("HALIA_SHOPIFY_APP_LIVE") or "").strip().lower() in ("1", "true", "yes")
 
 # Cap the WooCommerce pull for the interactive dashboard (recent orders are the most
 # actionable; a full back-catalogue pull on a big store can take many minutes). Defaults to
