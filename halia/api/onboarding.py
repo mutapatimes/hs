@@ -588,28 +588,22 @@ def _hosted_head(store: str = "") -> str:
     import json as _json
     store_js = _json.dumps(store or "")
     return (
-        # Apply the saved theme BEFORE first paint (head_extra lands at the top of <head>).
-        "<script>try{if(localStorage.getItem('halia-theme')==='dark')"
-        "document.documentElement.classList.add('dark')}catch(e){}</script>"
         "<style>"
         ".topbar,.sidenav,.crumb{display:none!important}"
         ".admin{grid-template-columns:1fr!important;padding-top:52px}"
         "#halia-top{position:fixed;top:0;left:0;right:0;height:52px;z-index:200;display:flex;"
         "align-items:center;gap:14px;padding:0 18px;background:#1a1712;color:#f5f2ea;"
         "border-bottom:1px solid rgba(255,255,255,.08);"
-        "font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif}"
+        "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif}"
         "#halia-top .hb{display:flex;align-items:center;gap:9px;"
         "font-family:'Cormorant Garamond',Georgia,serif;font-size:20px}"
         "#halia-top .hb .ast{color:#d8d2c6;font-size:19px}"
         "#halia-top .hstore{color:#cfc7b5;font-size:13px;border-left:1px solid rgba(255,255,255,.16);padding-left:14px}"
         "#halia-top .hsp{flex:1}"
-        "#halia-top button{padding:7px 14px;border-radius:0;font:600 13px 'Hanken Grotesk',system-ui;cursor:pointer}"
+        "#halia-top button{padding:7px 14px;border-radius:0;font:600 13px system-ui;cursor:pointer}"
         "#halia-refresh{border:1px solid #2c463d;background:#1f564a;color:#fff}#halia-refresh[disabled]{opacity:.6}"
         "#halia-settings,#halia-signout{border:1px solid #3a3630;background:transparent;color:#e9e4d8}"
         "#halia-settings:hover,#halia-signout:hover{border-color:#57524a}"
-        "#halia-theme{border:1px solid #3a3630;background:transparent;color:#e9e4d8;width:36px;"
-        "padding:7px 0!important;font-size:14px;line-height:1}"
-        "#halia-theme:hover{border-color:#57524a}"
         "body:has(.drawer.show) #halia-top{display:none}"   # don't cover the open client drawer's controls
         # Phone: the bar compacts — store name goes, Settings / Refresh become icon-only.
         "@media(max-width:600px){#halia-top .hstore{display:none}"
@@ -633,12 +627,11 @@ def _hosted_head(store: str = "") -> str:
         "border-radius:0;background:#1f564a}"
         "#hnav .hsp{flex:1;min-height:12px}"
         # Dark mode for the rail (the template tokens don't reach this injected chrome).
-        "html.dark #hnav{background:#1b1a17;border-right-color:rgba(255,255,255,.09)}"
-        "html.dark #hnav .hlbl{color:#807e77}"
-        "html.dark #hnav .hn{color:#a6a49c}"
-        "html.dark #hnav .hn:hover{background:rgba(255,255,255,.05);color:#e9e7e1}"
-        "html.dark #hnav .hn.on{background:#232220;color:#e9e7e1;box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}"
-        "html.dark #hnav .hn.on .ic{color:#2e7263}"
+
+
+
+
+
         ".admin{padding-left:214px}"
         ".views{display:none!important}"                    # the vertical rail replaces the top tabs
         "@media(max-width:760px){#hnav{display:none}.admin{padding-left:0}.views{display:flex!important}}"
@@ -648,7 +641,6 @@ def _hosted_head(store: str = "") -> str:
         "var bar=document.createElement('div');bar.id='halia-top';"
         "bar.innerHTML='<span class=\"hb\"><span class=\"ast\">\\u2042</span> Halia</span>'"
         "+(s?'<span class=\"hstore\"></span>':'')+'<span class=\"hsp\"></span>'"
-        "+'<button id=\"halia-theme\" title=\"Switch appearance\"></button>'"
         "+'<button id=\"halia-settings\">\\u2699<span class=\"blbl\"> Settings</span></button>'"
         "+'<button id=\"halia-refresh\">\\u21bb<span class=\"blbl\"> Refresh scores</span></button>'"
         "+'<button id=\"halia-signout\">Sign out</button>';"
@@ -660,12 +652,6 @@ def _hosted_head(store: str = "") -> str:
         ".catch(function(){r.textContent='Refresh failed';r.disabled=false})};"
         "document.getElementById('halia-signout').onclick=function(){location.href='/app/logout'};"
         "document.getElementById('halia-settings').onclick=function(){window.openSettings&&window.openSettings()};"
-        # Dark mode: toggle html.dark, remember the choice; the template's token block is the theme.
-        "var th=document.getElementById('halia-theme');"
-        "function thIco(){th.textContent=document.documentElement.classList.contains('dark')?'\\u2600':'\\u263e';}"
-        "thIco();"
-        "th.onclick=function(){var r=document.documentElement;r.classList.toggle('dark');"
-        "try{localStorage.setItem('halia-theme',r.classList.contains('dark')?'dark':'light')}catch(e){}thIco();};"
         # ---- Halia vertical nav rail ----
         "var NAV=["
         "['overview','Overview',`<path d='M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z'/>`],"
