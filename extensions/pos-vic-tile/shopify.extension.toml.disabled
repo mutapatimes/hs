@@ -3,6 +3,7 @@ api_version = "2026-01"
 [[extensions]]
 name = "Halia — VIC at the till"
 handle = "halia-vic-tile"
+uid = "b5fca321-f24d-7440-d784-43215030242a5af58843"
 description = "Flags a potential VIC on the current cart and shows the discreet play."
 type = "ui_extension"
 
