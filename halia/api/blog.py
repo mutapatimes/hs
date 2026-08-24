@@ -23,7 +23,7 @@ from halia.api import console
 from halia.api.content import _admin_ok
 from halia.api.shopify_auth import shop_store
 
-# Reuse the generated marketing chrome (light theme, Cormorant Garamond + Inter). These carry the
+# Reuse the generated marketing chrome (light theme, Cormorant Garamond + Hanken Grotesk). These carry the
 # site nav/footer (with the Blog link) so blog pages match every other page.
 from scripts.build_solutions_pages import _footer, _nav, _SCRIPT
 
@@ -71,18 +71,17 @@ def _tags(post: dict) -> list[str]:
 
 # ── page shell ───────────────────────────────────────────────────────────────────
 _BLOG_CSS = """
-  :root{--bg:#f5f2ea;--bg-2:#efeadd;--ink:#1a1712;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;
+  :root{--bg:#f5f2ea;--bg-2:#efeadd;--ink:#1a1712;--mute:#615b50;--faint:#9a9385;--accent:#5E6B74;
     --line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.07);
-    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+    --serif:'Cormorant Garamond',Georgia,serif;--sans:'Hanken Grotesk',-apple-system,system-ui,sans-serif}
   *{box-sizing:border-box}html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
   a{color:inherit;text-decoration:none}::selection{background:#1a1712;color:#f5f2ea}
   .wrap{max-width:1120px;margin:0 auto;padding:0 40px}.narrow{max-width:760px}
-  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
-  h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.08}
+  h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;margin:0;line-height:1.08}
   .display{font-size:clamp(38px,5.4vw,66px)}
-  em{font-style:italic;color:var(--gold)}
-  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:999px;border:1px solid var(--ink);color:#f5f2ea;background:var(--ink);transition:.25s;cursor:pointer}
+  em{font-style:italic}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:3px;border:1px solid var(--ink);color:#f5f2ea;background:var(--ink);transition:.25s;cursor:pointer}
   .btn:hover{background:transparent;color:var(--ink)}.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
   header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(245,242,234,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
   .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
@@ -90,7 +89,7 @@ _BLOG_CSS = """
   .nav-links{display:flex;gap:32px;align-items:center;height:100%}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
   .nav .right{display:flex;gap:20px;align-items:center}.nav .right .si{font:500 14px var(--sans);color:var(--mute)}
   @media(max-width:900px){.nav-links{display:none}}
-  .burger{display:none;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;flex:none;padding:0}
+  .burger{display:none;align-items:center;justify-content:center;width:42px;height:42px;border-radius:3px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;flex:none;padding:0}
   .burger svg{width:20px;height:20px}
   .mscrim{position:fixed;inset:0;background:rgba(10,10,11,.5);opacity:0;visibility:hidden;transition:opacity .3s;z-index:55}.mscrim.show{opacity:1;visibility:visible}
   .mdrawer{position:fixed;top:0;right:0;bottom:0;width:min(84vw,330px);background:var(--bg);border-left:1px solid var(--line);z-index:60;transform:translateX(100%);transition:transform .32s cubic-bezier(.2,.7,.2,1);display:flex;flex-direction:column;padding:22px 26px 30px;overflow-y:auto}
@@ -98,7 +97,7 @@ _BLOG_CSS = """
   .mdrawer .mclose{align-self:flex-end;background:none;border:none;color:var(--mute);font-size:28px;line-height:1;cursor:pointer;padding:2px 4px;margin-bottom:6px}
   .mdrawer a{font:500 17px var(--sans);color:var(--ink);padding:14px 0;border-bottom:1px solid var(--line-2)}
   .mdrawer a.msi{color:var(--mute);font-size:15px}
-  .mdrawer a.mcta{margin-top:20px;border:none;background:var(--ink);color:var(--bg);text-align:center;border-radius:999px;padding:15px;font-weight:600}
+  .mdrawer a.mcta{margin-top:20px;border:none;background:var(--ink);color:var(--bg);text-align:center;border-radius:3px;padding:15px;font-weight:600}
   @media(max-width:900px){.burger{display:inline-flex}}
   /* nav dropdown (.nav-drop/.nav-menu) and the whole footer (.hfoot/.hf-*) come from /static/brand.css */
   /* blog index */
@@ -106,21 +105,21 @@ _BLOG_CSS = """
   .bhero .lede{font-size:clamp(18px,2vw,21px);color:var(--mute);max-width:52ch;margin-top:16px}
   .bctl{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:26px 0 8px;padding-bottom:18px;border-bottom:1px solid var(--line-2)}
   .btags{display:flex;gap:8px;flex-wrap:wrap}
-  .btag{font:500 12.5px var(--sans);color:var(--mute);border:1px solid var(--line);padding:6px 13px;border-radius:999px}
+  .btag{font:500 12.5px var(--sans);color:var(--mute);border:1px solid var(--line);padding:6px 13px;border-radius:3px}
   .btag.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .bsort a{font:500 13px var(--sans);color:var(--faint);margin-left:14px}.bsort a.on{color:var(--ink);text-decoration:underline}
   .bgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;padding:34px 0}
   @media(max-width:900px){.bgrid{grid-template-columns:1fr}}
-  .bcard{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--bg-2);transition:.25s}
-  .bcard:hover{transform:translateY(-3px);border-color:var(--gold)}
+  .bcard{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--bg-2);transition:.25s}
+  .bcard:hover{transform:translateY(-3px);border-color:var(--ink)}
   .bcard .cover{aspect-ratio:16/10;object-fit:cover;width:100%;display:block;background:#e7e0d2}
   .bcard .bc-in{padding:20px 22px 24px;display:flex;flex-direction:column;gap:10px;flex:1}
-  .bcard .bc-meta{font:500 11.5px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .bcard .bc-meta{font:500 12px var(--sans);color:var(--faint)}
   .bcard h3{font-size:24px}
   .bcard .bc-dek{color:var(--mute);font-size:14.5px;flex:1}
-  .bcard .bc-more{font:500 13px var(--sans);color:var(--gold)}
+  .bcard .bc-more{font:500 13px var(--sans);color:var(--accent)}
   .pager{display:flex;align-items:center;justify-content:center;gap:8px;padding:20px 0 10px}
-  .pager a,.pager span{font:500 13px var(--sans);min-width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;color:var(--mute)}
+  .pager a,.pager span{font:500 13px var(--sans);min-width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:3px;color:var(--mute)}
   .pager a:hover{border-color:var(--ink);color:var(--ink)}.pager .on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .pager .off{opacity:.4}
   .bempty{padding:60px 0;color:var(--faint)}
@@ -131,22 +130,22 @@ _BLOG_CSS = """
   .art h1{font-size:clamp(32px,4.6vw,54px);max-width:20ch}
   .art .byline{display:flex;gap:12px;flex-wrap:wrap;color:var(--faint);font:500 13.5px var(--sans);margin:20px 0 6px}
   .art .dek{font-size:clamp(18px,2vw,22px);color:var(--mute);max-width:56ch;margin-top:10px;font-family:var(--serif);font-style:italic}
-  .art .cover{width:100%;aspect-ratio:16/8;object-fit:cover;border-radius:16px;margin:34px 0 10px;background:#e7e0d2}
+  .art .cover{width:100%;aspect-ratio:16/8;object-fit:cover;border-radius:4px;margin:34px 0 10px;background:#e7e0d2}
   .prose{max-width:720px;margin:30px auto 0;font-size:17.5px;line-height:1.72;color:#2b2820}
   .prose h2{font-size:clamp(26px,3vw,34px);margin:44px 0 14px}
   .prose h3{font-size:22px;margin:32px 0 10px}
   .prose p{margin:0 0 20px}.prose ul,.prose ol{margin:0 0 20px;padding-left:22px}.prose li{margin:6px 0}
-  .prose a{color:var(--gold);text-decoration:underline}
-  .prose img{max-width:100%;border-radius:12px;margin:14px 0}
-  .prose blockquote{margin:26px 0;padding:6px 0 6px 22px;border-left:2px solid var(--gold);font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink)}
+  .prose a{color:var(--accent);text-decoration:underline}
+  .prose img{max-width:100%;border-radius:4px;margin:14px 0}
+  .prose blockquote{margin:30px 0;padding:0;font-family:var(--serif);font-style:italic;font-size:25px;line-height:1.4;color:var(--ink)}
   .prose strong{font-weight:600;color:var(--ink)}
-  .cmp-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;margin:28px 0}
+  .cmp-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:4px;margin:28px 0}
   table.cmp{width:100%;border-collapse:collapse;font-size:14.5px;min-width:620px}
   table.cmp th,table.cmp td{padding:13px 16px;text-align:left;border-top:1px solid var(--line-2);vertical-align:top}
-  table.cmp thead th{background:var(--bg-2);border-top:none;font:600 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  table.cmp thead th{background:var(--bg-2);border-top:none;font:600 13px var(--sans);color:var(--mute)}
   table.cmp thead th.h{color:var(--ink)}
   table.cmp td.row{font-weight:600;color:var(--ink);white-space:nowrap}
-  table.cmp td.us{background:rgba(122,115,99,.09);color:var(--ink)}
+  table.cmp td.us{background:rgba(94,107,116,.09);color:var(--ink)}
   .cmp-src{font-size:12.5px;color:var(--faint);margin-top:-14px}
   .arts-cta{text-align:center}.pad{padding:clamp(70px,10vh,120px) 0}
   .tagrow{display:flex;gap:8px;flex-wrap:wrap;max-width:720px;margin:30px auto 0}
@@ -249,13 +248,13 @@ def _doc(title: str, meta_desc: str, body: str, *, index: bool = True, extra_hea
     return (
         "<!doctype html><html lang=\"en\"><head>"
         "<link rel=\"stylesheet\" href=\"/static/brand.css\"><script src=\"/static/brand.js\" defer></script>"
-        f"<link rel=\"icon\" href=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%237a7363'>{_ASTER}</text></svg>\">"
+        f"<link rel=\"icon\" href=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%235E6B74'>{_ASTER}</text></svg>\">"
         "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"{robots}<title>{_html.escape(title)}</title>"
         f"<meta name=\"description\" content=\"{_html.escape(meta_desc)}\">"
         f"{social}"
         "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>"
-        "<link href=\"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500&display=swap\" rel=\"stylesheet\">"
+        "<link href=\"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500;600&display=swap\" rel=\"stylesheet\">"
         f"<style>{_BLOG_CSS}</style>{jsonld}{extra_head}</head><body>"
         f"{_nav()}{body}{_footer()}{_SCRIPT}{_chat()}</body></html>"
     )
@@ -321,10 +320,9 @@ def render_index(store, page: int, sort: str, tag: str | None) -> str:
                 f'<a class="{"on" if sort=="oldest" else ""}" href="/blog?sort=oldest{("&tag="+tag) if tag else ""}">Oldest</a></div>')
     body = (
         '<section class="bhero"><div class="wrap">'
-        '<div class="eyebrow">The Halia Journal</div>'
-        '<h1 class="display">Notes on private client intelligence.</h1>'
-        '<p class="lede">Field notes, comparisons, and thinking on how luxury retailers find and keep '
-        'the high-value clients hiding in their own data.</p>'
+        '<h1 class="display">The Journal</h1>'
+        '<p class="lede">How luxury retailers find and keep the high-value clients already '
+        'in their data.</p>'
         f'<div class="bctl"><div class="btags">{all_chip}{other_chips}</div>{sort_ctl}</div>'
         f'<div class="bgrid">{cards}</div>'
         f'{_pager(page, pages, sort, tag)}'
@@ -343,13 +341,12 @@ def render_post(post: dict, *, preview: bool = False) -> str:
         f'{_html.escape(_date_label(post.get("published_at") or post.get("updated_at")))}</time>',
         f"{_read_min(post.get('body_html',''))} min read") if x)
     tags = "".join(f'<span class="btag">{_html.escape(t)}</span>' for t in _tags(post))
-    draft_note = ('<div class="crumb" style="color:#b4632b">Draft preview — not visible to the '
+    draft_note = ('<div class="crumb" style="color:#8a5a2b">Draft preview. Not visible to the '
                   'public.</div>' if preview else "")
     body = (
         '<article class="art"><div class="wrap narrow">'
         f'{draft_note}'
         '<div class="crumb"><a href="/blog">&larr; The Journal</a></div>'
-        '<div class="eyebrow">Journal</div>'
         f'<h1>{_html.escape(post.get("title") or "Untitled")}</h1>'
         f'<div class="byline">{byline}</div>'
         f'<p class="dek">{_html.escape(post.get("dek") or "")}</p>'
@@ -358,16 +355,15 @@ def render_post(post: dict, *, preview: bool = False) -> str:
         f'{(f"<div class=tagrow>{tags}</div>") if tags else ""}'
         '</article>'
         '<section class="pad arts-cta"><div class="wrap">'
-        '<div class="eyebrow" style="margin-bottom:20px">Begin</div>'
         '<h2 class="display" style="font-size:clamp(30px,4vw,46px)">See who you have been missing.</h2>'
-        '<p class="lede" style="max-width:40ch;margin:14px auto 30px;color:var(--mute)">Connect your '
+        '<p class="lede" style="max-width:40ch;margin:16px auto 30px;color:var(--mute)">Connect your '
         'store and Halia surfaces your hidden VICs, usually within the hour.</p>'
         '<a class="btn" href="/connect">Connect your store <span class="arrow">&rarr;</span></a>'
         '</div></section>')
     slug = post.get("slug") or ""
     canonical = f"/blog/{slug}"
     desc = post.get("dek") or (
-        f"{post.get('title') or 'From the Halia Journal'} — notes on private client "
+        f"{post.get('title') or 'From the Halia Journal'}: notes on private client "
         "intelligence for luxury retail, from Halia.")
     image = f"/blog/img/{post['cover_image_id']}" if post.get("cover_image_id") else ""
     jsonld = "" if preview else _post_jsonld(post, canonical, desc, image)
