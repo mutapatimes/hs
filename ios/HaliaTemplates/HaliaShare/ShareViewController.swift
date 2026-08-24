@@ -17,7 +17,10 @@ class ShareViewController: UIViewController {
             guard let self = self else { return }
             let root = ShareRootView(
                 query: text ?? "",
-                onOpen: { [weak self] url in self?.extensionContext?.open(url, completionHandler: nil) },
+                onOpen: { [weak self] url, completion in
+                    guard let self, let ctx = self.extensionContext else { completion(false); return }
+                    ctx.open(url, completionHandler: completion)
+                },
                 onClose: { [weak self] in self?.finish() })
             let host = UIHostingController(rootView: root)
             host.view.backgroundColor = .clear

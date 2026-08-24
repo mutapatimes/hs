@@ -1308,6 +1308,7 @@ def register(app) -> None:
                 "name": name,
                 "grade": str(r.get("grade") or "").strip(),
                 "phone": r.get("phone"),
+                "email": r.get("email"),
                 "latent": r.get("latent"),
             })
         out.sort(key=lambda c: (-rank.get(c["grade"], 0), c["name"].lower()))

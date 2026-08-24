@@ -307,15 +307,17 @@ struct HaliaAPI {
         let name: String
         let grade: String
         let phone: String?
+        let email: String?
         let latent: String?
         var id: String { (cid ?? "") + "|" + name }
-        private enum K: String, CodingKey { case cid, name, grade, phone, latent }
+        private enum K: String, CodingKey { case cid, name, grade, phone, email, latent }
         init(from d: Decoder) throws {
             let c = try d.container(keyedBy: K.self)
             cid    = (try? c.decodeIfPresent(Scalar.self, forKey: .cid))?.text
             name   = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? ""
             grade  = (try? c.decodeIfPresent(String.self, forKey: .grade)) ?? ""
             phone  = (try? c.decodeIfPresent(String.self, forKey: .phone)) ?? nil
+            email  = (try? c.decodeIfPresent(String.self, forKey: .email)) ?? nil
             latent = (try? c.decodeIfPresent(Scalar.self, forKey: .latent))?.text
         }
     }
