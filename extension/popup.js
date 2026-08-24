@@ -14,7 +14,7 @@ chrome.runtime.sendMessage({ type: "halia:config" }, (c) => {
     state.className = "state ok";
     dot.classList.add("ok");
   } else {
-    state.textContent = "Not connected yet. Sign in to Halia and press Connect this browser.";
+    state.textContent = "Not connected yet. Open Halia, on the web or from your Shopify admin's Apps menu, and press Connect this browser in Settings.";
     state.className = "state bad";
     const open = document.getElementById("open");
     open.textContent = "Open Halia →";
