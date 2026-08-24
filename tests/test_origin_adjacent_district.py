@@ -45,7 +45,9 @@ def test_matches_gulf_postcode():
 
 def test_does_not_fire_by_default_but_fires_when_opted_in():
     df = _row(LATEST_BILLING_ADDRESS1="Emirates Hills", LATEST_BILLING_ADDRESS4="UAE")
-    assert score_customers(df).loc[0, COUNT_COL] == 0            # gated off
+    # Emirates Hills also carries the on-by-default ae_property wealth fact; the gated
+    # origin-proxy signal itself must stay silent until opted in.
+    assert "Prime residential district" not in score_customers(df).loc[0, REASONS_COL]
     opted = score_customers(df, include_origin=True)
     assert "Prime residential district" in opted.loc[0, REASONS_COL]  # available on opt-in
 

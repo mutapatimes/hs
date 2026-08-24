@@ -1,0 +1,46 @@
+postcode,area,median_aud,tier
+# Curated national seed: Australia's high-value residential postcodes (house medians, AUD).
+# NSW rows are replaced by scripts/build_au_property.py from Valuer General bulk sales data;
+# other states (VIC/QLD/WA/SA/ACT/TAS) have commercial-only registers, so their rows stay
+# curated. Tier bands (house median): ultra>=4,500,000 prime>=3,000,000 high>=2,200,000.
+2027,Point Piper & Darling Point,9000000,ultra
+2023,Bellevue Hill,9500000,ultra
+2030,Vaucluse & Rose Bay,7500000,ultra
+2028,Double Bay,6500000,ultra
+2025,Woollahra,5500000,ultra
+2088,Mosman,5400000,ultra
+2108,Palm Beach,4800000,ultra
+2063,Northbridge,4400000,prime
+2110,Hunters Hill & Woolwich,4200000,prime
+2026,Bondi & Tamarama,4000000,prime
+2095,Manly,3900000,prime
+2061,Kirribilli & Milsons Point,3800000,prime
+2090,Cremorne,3600000,prime
+2021,Paddington,3300000,prime
+2041,Balmain,2700000,high
+2011,Potts Point & Elizabeth Bay,2400000,high
+3142,Toorak & Hawksburn,5400000,ultra
+3002,East Melbourne,4600000,ultra
+3186,Brighton,3500000,prime
+3143,Armadale,3200000,prime
+3144,Malvern,3100000,prime
+3101,Kew,3000000,prime
+3122,Hawthorn,3000000,prime
+3944,Portsea,3000000,prime
+3206,Albert Park & Middle Park,2900000,prime
+3141,South Yarra,2500000,high
+4007,Ascot & Hamilton,2900000,prime
+4005,New Farm & Teneriffe,2800000,prime
+4218,Mermaid Beach & Broadbeach Waters,3400000,prime
+4567,Noosa Heads & Sunshine Beach,3200000,prime
+4171,Bulimba & Hawthorne,2300000,high
+6011,Peppermint Grove & Cottesloe,4600000,ultra
+6009,Dalkeith & Nedlands,4500000,ultra
+6010,Claremont & Swanbourne,2800000,prime
+6012,Mosman Park,2600000,prime
+6153,Applecross & Mount Pleasant,2500000,prime
+2600,Deakin & Yarralumla,2800000,prime
+2603,Forrest & Griffith,2700000,prime
+5061,Unley Park & Hyde Park,2200000,high
+5006,North Adelaide,2200000,high
+7005,Sandy Bay,2200000,high
