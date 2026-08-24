@@ -491,6 +491,7 @@ _NAV = [
     ("revenue", "/console/revenue", "Revenue"),
     ("outreach", "/console/outreach", "Outreach"),
     ("milestones", "/console/milestones", "Milestones"),
+    ("readiness", "/console/readiness", "Readiness"),
     ("content", "/admin", "Content"),
     ("blog", "/admin/blog", "Blog"),
     ("settings", "/console/settings", "Settings"),
@@ -1226,6 +1227,59 @@ def register(app) -> None:
                     "date": _today()}
         from halia.console_config import console_settings
         return HTMLResponse(_render_milestones(console_settings().get("milestones") or [], snapshot))
+
+    @app.get("/console/readiness", response_class=HTMLResponse)
+    def console_readiness(request: Request):
+        """Launch readiness: which integrations this deployment actually has configured.
+        Presence booleans only — never a secret value. The single page that answers
+        "is anything on the launch checklist still unset?" without an SSH session."""
+        gate = _gate(request)
+        if gate:
+            return gate
+        import os as _o
+        from halia import config as _c
+        try:
+            from halia.notify import email_configured as _email_ok
+            email_ok = _email_ok()
+        except Exception:  # noqa: BLE001
+            email_ok = False
+        checks = [
+            ("Postgres (DATABASE_URL)", bool(_c.DATABASE_URL),
+             "Without it the store is SQLite on the container disk and is lost on deploy."),
+            ("Secrets encryption (HALIA_ENCRYPTION_KEY)", bool(_o.environ.get("HALIA_ENCRYPTION_KEY")),
+             "Fernet key for tokens at rest. Set once and never rotate casually."),
+            ("Shopify public app (SHOPIFY_API_KEY/SECRET)", bool(_c.SHOPIFY_API_KEY and _c.SHOPIFY_API_SECRET),
+             "The App Store track's credentials."),
+            ("Public app live (HALIA_SHOPIFY_APP_LIVE)", bool(_c.HALIA_SHOPIFY_APP_LIVE),
+             "Flip only after Shopify approves; shows the public one-click to every store."),
+            (f"Bridge apps ({len(_c.SHOPIFY_CUSTOM_APPS)} configured)", bool(_c.SHOPIFY_CUSTOM_APPS),
+             "HALIA_SHOPIFY_CUSTOM_APPS entries, one per review-window client."),
+            ("Stripe key (STRIPE_SECRET_KEY)", bool(_c.STRIPE_SECRET_KEY),
+             "Alone, this makes plan cards open real Stripe Checkout."),
+            ("Stripe webhook (STRIPE_WEBHOOK_SECRET)", bool(_c.STRIPE_WEBHOOK_SECRET),
+             "Instant activation after payment; without it activation lands on return to the dashboard."),
+            ("Email sending (Brevo/SMTP)", email_ok,
+             "Sign-in links, order alerts, the request-access form, lifecycle email."),
+            ("AI drafting (HALIA_LLM_API_KEY)", bool(_o.environ.get("HALIA_LLM_API_KEY") or _o.environ.get("ANTHROPIC_API_KEY")),
+             "The brief + Draft with Halia; templates still work without it."),
+            ("Web Push (VAPID keys)", bool(_o.environ.get("HALIA_VAPID_PRIVATE_KEY")),
+             "Desktop order alerts through the browser; optional."),
+            ("Signup gate (HALIA_SIGNUP_CODE)", bool(_c.SIGNUP_CODE),
+             "Optional invite code on /connect. Off means anyone may request access."),
+        ]
+        done = sum(1 for _, ok, _h in checks if ok)
+        rows = "".join(
+            f"<tr><td>{'<span style=color:#0f7b4f>●</span>' if ok else '<span style=color:#b6b1a6>○</span>'} "
+            f"<b>{_html.escape(name)}</b><br><span class=mut style='font-size:12.5px'>{_html.escape(hint)}</span></td>"
+            f"<td style='white-space:nowrap'>{'Configured' if ok else 'Not set'}</td></tr>"
+            for name, ok, hint in checks)
+        body = (
+            f"<div class=sec>Environment</div>"
+            f"<p class=sub>{done} of {len(checks)} configured. Presence only; values never shown.</p>"
+            "<div class=scroll><table><thead><tr><th>Integration</th><th>State</th></tr></thead>"
+            f"<tbody>{rows}</tbody></table></div>")
+        return HTMLResponse(_shell("readiness", "Readiness", body,
+                                   subtitle="What this deployment has configured, at a glance"))
 
     @app.get("/console/settings", response_class=HTMLResponse)
     def console_settings_page(request: Request, tab: str = "defaults", saved: int = 0):

@@ -38,6 +38,12 @@ services:
         sync: false
       - key: HALIA_FREE_SHOPS         # comma-separated tenant keys to comp (e.g. your first client)
         sync: false
+      - key: SENTRY_DSN               # error tracking (sentry.io project DSN); idle when unset
+        sync: false
+      - key: HALIA_SHOPIFY_CUSTOM_APPS  # bridge apps: shop.myshopify.com=client_id:secret,...
+        sync: false
+      - key: HALIA_SHOPIFY_APP_LIVE   # "1" once Shopify approves the public listing
+        sync: false
       - key: HALIA_CONSOLE_KEY          # password for /console, the cross-tenant console dashboard
         sync: false
       - key: HALIA_ADMIN_KEY            # password for /admin, the content (CMS) editor. Use the SAME
