@@ -1,0 +1,36 @@
+code_postal,area,median_eur_m2,tier
+# Curated seed rows (prime Paris + the Riviera + the resorts) so the fr_property signal works
+# out of the box. Regenerate to full national coverage from open DVF data with
+# scripts/build_fr_property.py — it merges, preserving rows DVF cannot see (Alsace-Moselle).
+75001,Paris 1er,13500,ultra
+75002,Paris 2e,11800,ultra
+75003,Paris 3e,12200,ultra
+75004,Paris 4e,13800,ultra
+75005,Paris 5e,12500,ultra
+75006,Paris 6e,15500,ultra
+75007,Paris 7e,15000,ultra
+75008,Paris 8e,13200,ultra
+75009,Paris 9e,10500,prime
+75016,Paris 16e,11800,ultra
+75017,Paris 17e,10800,prime
+75116,Paris 16e,12200,ultra
+92200,Neuilly-sur-Seine,10800,prime
+92210,Saint-Cloud,7800,high
+78000,Versailles,7500,high
+06230,Saint-Jean-Cap-Ferrat,14500,ultra
+06310,Beaulieu-sur-Mer,9500,prime
+06160,Cap d'Antibes,10500,prime
+06400,Cannes,8600,prime
+06600,Antibes,6300,high
+83990,Saint-Tropez,13500,ultra
+83350,Ramatuelle,12500,ultra
+73120,Courchevel,12800,ultra
+73150,Val-d'Isère,12200,ultra
+74120,Megève,10500,prime
+74400,Chamonix-Mont-Blanc,8800,prime
+14800,Deauville,6800,high
+64200,Biarritz,7800,high
+17410,Saint-Martin-de-Ré,8200,prime
+69006,Lyon 6e,6400,high
+33000,Bordeaux,6100,high
+97133,Saint-Barthélemy,20000,ultra
