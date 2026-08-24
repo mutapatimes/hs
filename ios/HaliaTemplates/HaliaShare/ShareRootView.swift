@@ -374,7 +374,8 @@ struct ShareRootView: View {
     private func applyOpener(_ o: Opener) {
         activeOpener = o.label
         let first = chosen?.name.split(separator: " ").first.map(String.init) ?? ""
-        var msg = first.isEmpty ? o.body : "\(first),\n\n\(o.body)"
+        let body = OpenersStore.fill(o.body, title: OpenersStore.pageTitle(from: query))
+        var msg = first.isEmpty ? body : "\(first),\n\n\(body)"
         if !productLink.isEmpty { msg += "\n\n" + productLink }
         draft = msg; copied = false
     }
