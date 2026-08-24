@@ -2063,7 +2063,7 @@ function copyText(t){
 // compliance pack). Not legal advice; surfaced in Settings and on the onboarding success screen.
 const PRIVACY_INSERTS=[
   {h:"Understanding our customers",body:"To give our best customers a more personal level of service, we use a tool that reviews information we already hold, such as your order history and the area your orders are delivered to, to recognise clients who may value a more personal service, such as a dedicated contact or an invitation to a preview."},
-  {h:"What it looks at",body:"It draws on commercial and address facts: what and how often you have bought from us, and publicly recognisable signs of an area or a professional email domain. It does not use your nationality, your ethnicity, or the origin of your name."},
+  {h:"The information it uses",body:"It draws on commercial and address facts: what and how often you have bought from us, and publicly recognisable signs of an area or a professional email domain. It does not use your nationality, your ethnicity, or the origin of your name."},
   {h:"A person always decides",body:"The tool only highlights customers for our team to consider. It never makes an automatic decision about you and never withholds a product, price or service. A member of our team always decides whether to get in touch. You can ask us to stop at any time."}
 ];
 // Group templates by category with small headers, so a long library stays scannable in the menus.
@@ -3655,7 +3655,7 @@ function openSettings(page){
           ${integ==='klaviyo'?`
             <div style="${H}">Klaviyo</div>
             <p style="${P}">Push grades, build segments, and email clients. Uses your <b>private</b> API key (starts <code>pk_</code>).</p>
-            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Klaviyo, go to <b>Account → Settings → API keys → Create Private API Key</b>. Give it full access to Profiles and Segments. The key starts <code>pk_</code>.</div>
+            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px">In Klaviyo, go to <b>Account → Settings → API keys → Create Private API Key</b>. Give it full access to Profiles and Segments. The key starts <code>pk_</code>.</div>
             <div style="margin-bottom:12px"><span style="${kv?ST_ON:ST_OFF}">${kv?"Connected":"Not connected"}</span></div>
             <div style="display:flex;gap:8px;max-width:540px">
               <input id="setKvKey" type="password" placeholder="pk_live_… (paste to connect or replace)" style="flex:1;${I}">
@@ -3665,7 +3665,7 @@ function openSettings(page){
           `:integ==='mailchimp'?`
             <div style="${H}">Mailchimp</div>
             <p style="${P}">Push grades, tags, and segments to your audience. Uses an API key that ends in <b>-usXX</b> (your data centre).</p>
-            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Mailchimp, go to <b>Account → Extras → API keys → Create A Key</b>. Copy the whole key; it ends in a data-centre suffix like <code>-us21</code>.</div>
+            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px">In Mailchimp, go to <b>Account → Extras → API keys → Create A Key</b>. Copy the whole key; it ends in a data-centre suffix like <code>-us21</code>.</div>
             <div style="margin-bottom:12px"><span style="${mc?ST_ON:ST_OFF}">${mc?"Connected"+(SETTINGS.mailchimp_list_name?" · "+esc(SETTINGS.mailchimp_list_name):""):"Not connected"}</span></div>
             <div style="display:flex;gap:8px;max-width:540px">
               <input id="setMcKey" type="password" placeholder="xxxxxxxx-us21 (paste to connect or replace)" style="flex:1;${I}">
@@ -3675,7 +3675,7 @@ function openSettings(page){
           `:`
             <div style="${H}">HubSpot</div>
             <p style="${P}">Write each client's Halia grade, score, and reasons onto their HubSpot contact. Uses a <b>Private App token</b> (starts <code>pat-</code>).</p>
-            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in HubSpot, go to <b>Settings → Integrations → Private Apps → Create a private app</b>. Grant the CRM contact read + write scopes. The token starts <code>pat-</code>.</div>
+            <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px">In HubSpot, go to <b>Settings → Integrations → Private Apps → Create a private app</b>. Grant the CRM contact read + write scopes. The token starts <code>pat-</code>.</div>
             <div style="margin-bottom:12px"><span style="${hs?ST_ON:ST_OFF}">${hs?"Connected":"Not connected"}</span></div>
             <div style="display:flex;gap:8px;max-width:540px">
               <input id="setHsKey" type="password" placeholder="pat-… (paste to connect or replace)" style="flex:1;${I}">
@@ -3827,7 +3827,7 @@ function openSettings(page){
         <div style="${C}">
           <div style="${H}">Slack alerts</div>
           <p style="${P}">Post to a Slack channel the moment a high-grade client orders, so your team can recognise them in the moment. Nothing about your customers is stored to power this.</p>
-          <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Slack, go to <b>Apps → Incoming Webhooks → Add to Slack</b>, pick the channel, and copy the webhook URL. It starts <code>https://hooks.slack.com/</code>.</div>
+          <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px">In Slack, go to <b>Apps → Incoming Webhooks → Add to Slack</b>, pick the channel, and copy the webhook URL. It starts <code>https://hooks.slack.com/</code>.</div>
           <div style="margin-bottom:12px"><span style="${sl?ST_ON:ST_OFF}">${sl?"Connected"+(SETTINGS.slack_webhook?" · "+esc(SETTINGS.slack_webhook):""):"Not connected"}</span></div>
           <div style="display:flex;gap:8px;max-width:540px">
             <input id="setSlackHook" type="password" placeholder="https://hooks.slack.com/services/… (paste to connect or replace)" style="flex:1;${I}">
@@ -3868,7 +3868,7 @@ function openSettings(page){
           <div style="${H}">Catalogue link domain</div>
           <p style="${P}">Catalogue links can carry your own domain instead of Halia's. Shopify stores get this automatically; on any other platform, enter a subdomain of your site here.</p>
           <input id="setCatDomain" value="${esc(SETTINGS.catalog_domain||'')}" placeholder="catalogue.yourbrand.com" style="width:100%;max-width:440px;${I}">
-          <details style="${DET}"><summary style="${SUM}">${SUMARR}How to point your subdomain at Halia</summary>
+          <details style="${DET}"><summary style="${SUM}">${SUMARR}Pointing your subdomain at Halia</summary>
             <p style="${P};margin-top:6px;font-size:12.5px">In your domain provider, add a DNS record for the subdomain (for example <code>catalogue.yourbrand.com</code>): type <b>CNAME</b>, pointing to <code>haliascore.com</code>. It usually takes effect within an hour.</p></details>
         </div>
 
