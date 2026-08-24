@@ -103,6 +103,13 @@
     .ph { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f4f1ea;
       border-bottom: 1px solid #eee7da; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #6b6355; }
     .ph .m { color: #1F564A; font-size: 13px; }
+    @media (prefers-reduced-motion: no-preference) {
+      .ph .m { animation: hbreathe 3.4s ease-in-out infinite; }
+      @keyframes hbreathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+      .chip { animation: chippulse 3.4s ease-in-out infinite; }
+      @keyframes chippulse { 0%, 100% { box-shadow: 0 3px 12px rgba(0,0,0,.28); }
+        50% { box-shadow: 0 3px 12px rgba(0,0,0,.28), 0 0 0 4px rgba(111,191,160,.22); } }
+    }
     .ph .sp { flex: 1; }
     .x { border: 0; background: transparent; color: #8a8271; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; }
     .body { padding: 10px 12px; }

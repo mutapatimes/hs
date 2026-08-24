@@ -22,11 +22,16 @@
     .panel { position: fixed; right: 0; top: 0; height: 100vh; width: 344px; max-width: 92vw;
       z-index: 2147483647; background: #fbfaf7; color: #1a1a1a; border-left: 1px solid #e3ded3;
       box-shadow: -12px 0 44px rgba(0,0,0,.16); display: flex; flex-direction: column;
-      transform: translateX(100%); transition: transform .18s ease; }
+      transform: translateX(100%); transition: transform .22s cubic-bezier(.2,.7,.2,1); }
     .dock.open .panel { transform: translateX(0); }
     .bar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #eee7da;
-      background: #f4f1ea; flex: none; }
+      background: #f4f1ea; flex: none; position: relative; }
     .bar .m { color: #1F564A; font-size: 15px; }
+    /* the engine's scanline: a hairline that sweeps under the bar whenever Halia is working */
+    .bar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+      background: linear-gradient(90deg, transparent 15%, #1F564A 40%, #6FBFA0 50%, #1F564A 60%, transparent 85%);
+      background-size: 240% 100%; opacity: 0; transition: opacity .25s ease; pointer-events: none; }
+    .dock.thinking .bar::after { opacity: 1; }
     .bar .t { font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 11px; color: #6b6355; }
     .bar .sp { flex: 1; }
     .modebtn { border: 1px solid #d8cfbc; background: #fff; color: #6b6355; font-size: 10px;
@@ -60,7 +65,7 @@
     .grade.g-a { background: #1F564A; } .grade.g-b { background: #55606b; } .grade.g-c { background: #8a8271; }
     /* initials avatar with a grade badge */
     .idw { position: relative; flex: none; }
-    .ava2 { width: 46px; height: 46px; border-radius: 50%; background: #efe7d4; color: #7a6a3f;
+    .ava2 { width: 46px; height: 46px; border-radius: 50%; background: #e7efeb; color: #1F564A;
       display: grid; place-items: center; font-weight: 600; font-size: 15px; letter-spacing: .02em; }
     .gbadge { position: absolute; right: -4px; bottom: -4px; min-width: 20px; height: 18px; padding: 0 4px;
       border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700;
@@ -107,18 +112,26 @@
         background: linear-gradient(115deg, transparent 32%, rgba(255,255,255,.55) 50%, transparent 68%);
         transform: translateX(-130%); animation: sheen .8s ease .18s 1 both; }
       @keyframes sheen { to { transform: translateX(130%); } }
-      /* the ⁂ mark gently breathes — the panel is reading live */
+      /* the ⁂ mark breathes everywhere — a resting heartbeat; quicker while the engine works */
       .foot .m.live { animation: breathe 2.6s ease-in-out infinite; }
+      .bar .m, .handle .m { animation: breathe 3.4s ease-in-out infinite; }
+      .dock.thinking .bar .m { animation-duration: 1.1s; }
       @keyframes breathe { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+      .dock.thinking .bar::after { animation: scan 1.5s linear infinite; }
+      @keyframes scan { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+      /* a new client's identity pops in, then the sheen sweeps the grade */
+      .head.fadein .grade, .head.fadein .ava2 { animation: hpop .38s cubic-bezier(.2,.8,.3,1.15) both; }
+      @keyframes hpop { from { transform: scale(.72); opacity: .3; } to { transform: none; opacity: 1; } }
     }
+    :where(button, input, textarea, select):focus-visible { outline: 2px solid #1F564A; outline-offset: 1px; }
     .who { flex: 1; min-width: 0; }
     .who .nm { font-weight: 600; font-size: 15px; line-height: 1.2; }
     .who .sub { color: #6b6355; font-size: 12px; margin-top: 2px; line-height: 1.35; }
     .pill { display: inline-block; margin-top: 5px; margin-right: 4px; font-size: 10px; padding: 1px 7px;
       border: 1px solid #d8cfbc; color: #6b6355; letter-spacing: .04em; text-transform: uppercase; }
-    .pill.play { background: #efe7d4; border-color: #d8cfbc; color: #7a6a3f; }
+    .pill.play { background: #e7efeb; border-color: #cfe0d8; color: #1F564A; }
     .box { margin-top: 10px; padding: 8px 10px; background: #f2efe6; border: 1px solid #ece5d6; }
-    .box.basket { background: #f6efe0; border-color: #e7d9bd; }
+    .box.basket { background: #edf3f0; border-color: #cfe0d8; }
     .box .k { font-size: 10px; color: #6b6355; text-transform: uppercase; letter-spacing: .05em; }
     .box .v { font-size: 16px; font-weight: 700; margin-top: 1px; }
     .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #6b6355; margin: 11px 0 5px; }
@@ -180,9 +193,9 @@
     .row .rd { font-size: 11.5px; color: #6b6355; margin-top: 1px; }
     .row .live { color: #3f7a4f; font-weight: 600; }
     .muted { color: #6b6355; line-height: 1.45; font-size: 12.5px; }
-    .warn { margin-top: 9px; padding: 7px 10px; background: #f7ede0; border: 1px solid #e6ceac;
-      color: #86602a; font-size: 12px; line-height: 1.35; }
-    .warn b { color: #6b481c; }
+    .warn { margin-top: 9px; padding: 7px 10px; background: #f9efec; border: 1px solid #e3c9c0;
+      color: #8e3b2b; font-size: 12px; line-height: 1.35; }
+    .warn b { color: #6d2c1f; }
     .link { color: #1F564A; text-decoration: underline; cursor: pointer; font-size: 12px; }
     .foot { flex: none; padding: 9px 14px; border-top: 1px solid #eee7da; font-size: 11px; color: #9a9280;
       display: flex; align-items: center; gap: 6px; }
@@ -419,15 +432,17 @@
     contact:    { title: "Visit and appointments", action: "Invite a client" },
     press:      { title: "A link",               action: "Send this to a client" }
   };
+  // {title} is the page's own name (the product title on a product page); when the page offers no
+  // usable title, {title} falls back to "this" and the sentence is re-capitalised.
   const SHARE_OPENERS = {
     product: [
-      { label: "Set aside",        body: "I have set this aside for you, if you would like it." },
-      { label: "Just in",          body: "This just arrived and I thought of you straight away." },
-      { label: "Your taste",       body: "This reminded me of your taste the moment it came in." },
-      { label: "What do you think", body: "I would love to know what you think of this." },
-      { label: "Limited",          body: "We have very few of these, and I wanted you to have first look." },
-      { label: "First look",       body: "An early look for you, before this goes out more widely." },
-      { label: "Back in stock",    body: "Good news, this piece is back. I can hold one for you." }
+      { label: "Set aside",        body: "I have set {title} aside for you, if you would like it." },
+      { label: "Just in",          body: "{title} just arrived and I thought of you straight away." },
+      { label: "Your taste",       body: "{title} reminded me of your taste the moment it came in." },
+      { label: "What do you think", body: "I would love to know what you think of {title}." },
+      { label: "Limited",          body: "We are down to the last few of {title}, and I wanted you to have first look." },
+      { label: "First look",       body: "An early look at {title} for you, before it goes out more widely." },
+      { label: "Back in stock",    body: "Good news, {title} is back. I can hold one for you." }
     ],
     collection: [
       { label: "An edit for you",  body: "I put together a few pieces I thought you would love." },
@@ -459,6 +474,21 @@
     const k = shareKind();
     const over = ctx && ctx.openers && Array.isArray(ctx.openers[k]) && ctx.openers[k].length ? ctx.openers[k] : null;
     return over || SHARE_OPENERS[k] || SHARE_OPENERS.press;
+  }
+  // The page's own name, if it reads well mid-sentence: real titles only, not slogans or whole
+  // sentences. Anything empty or over-long falls back to "this".
+  function shareTitle() {
+    const t = ((share && share.title) || "").trim();
+    return (t && t.length <= 60) ? t : "";
+  }
+  // Fill {title} in an opener (built-in or the merchant's own custom openers alike).
+  function fillOpener(body) {
+    const b = String(body || "");
+    if (b.indexOf("{title}") < 0) return b;
+    const t = shareTitle();
+    let out = b.split("{title}").join(t || "this");
+    if (!t) out = out.charAt(0).toUpperCase() + out.slice(1);   // "this just arrived…" → "This…"
+    return out;
   }
 
   function ensure() {
@@ -574,6 +604,15 @@
 
   function sec(name) { return root && root.querySelector(`[data-s="${name}"]`); }
 
+  // The engine's pulse: whenever any live work is in flight (reading a client, writing a brief,
+  // suggesting products, searching the book) the bar's scanline sweeps and the mark quickens.
+  function updateThinking() {
+    const on = !!((client && client.loading) || (draft && draft.busy) || (suggest && suggest.busy)
+      || clientResults === "busy");
+    const dock = root && root.querySelector(".dock");
+    if (dock) dock.classList.toggle("thinking", on);
+  }
+
   // ── REVERSE SHARE ─────────────────────────────────────────────────────────
   // The page the associate is on, sent to a client they choose. Pick an opener that fits the page,
   // pick who from the book, and message them the link. Nothing is stored; the link is the page's own.
@@ -594,7 +633,7 @@
     const first = shareFirst();
     const parts = [];
     if (shareGreeting && first) parts.push("Dear " + first + ",");
-    if (op && op.body) parts.push(op.body);
+    if (op && op.body) parts.push(fillOpener(op.body));
     const link = shareLink();
     if (link) parts.push(link);
     shareDraft = parts.join("\n\n");
@@ -602,6 +641,7 @@
     if (ta) ta.value = shareDraft;
   }
   function paintClientList() {
+    updateThinking();
     const box = root && root.querySelector('[data-a="shclients"]'); if (!box) return;
     if (clientResults === "busy") { box.innerHTML = `<div class="muted" style="padding:8px 9px">Reading your book…</div>`; return; }
     if (clientResults === "err") { box.innerHTML = `<div class="muted" style="padding:8px 9px">Couldn't reach your book.</div>`; return; }
@@ -732,6 +772,7 @@
   }
 
   function renderClient() {
+    updateThinking();
     const el = sec("client"); if (!el) return;
     if (!client) { el.innerHTML = `<div class="sh">Client</div>
       <div class="muted">Open a chat or email and Halia shows who they are, their grade and the next move.</div>`;
@@ -990,6 +1031,7 @@
   }
 
   function renderTemplates() {
+    updateThinking();
     const el = sec("tpl"); if (!el) return;
     const list = templateList();
     if (!list.length) {
@@ -1249,6 +1291,7 @@
   }
 
   function renderProducts() {
+    updateThinking();
     const el = sec("prod"); if (!el) return;
     if (!ctx || ctx.platform !== "shopify") { el.innerHTML = ""; return; }  // cart permalinks are Shopify
     el.innerHTML = `<div class="sh">Build a cart</div>
