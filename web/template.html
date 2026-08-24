@@ -919,7 +919,7 @@
           <div class="live"><span class="pulse"></span> Scored from your data · <span class="mono">__STAT_SCORED__</span> customers · <button class="rescore" id="rescore">Re-score</button></div>
           <div style="display:flex;gap:8px;position:relative">
             <button class="dbtn" id="alertsBell" style="border:1px solid var(--line);background:var(--card);position:relative;display:none">🔔 Alerts<span id="alertsCount" style="display:none;position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:0;background:#1f564a;color:#fff;font:700 11px/18px system-ui;text-align:center"></span></button>
-            <button class="dbtn" id="openSettings" style="border:1px solid var(--line);background:var(--card)">⚙ Settings</button>
+            <button class="dbtn" id="openSettings" style="border:1px solid var(--line);background:var(--card)">Settings</button>
             <div id="alertsPanel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-height:440px;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:0 22px 54px -22px rgba(0,0,0,.28);z-index:140;text-align:left"></div>
           </div>
         </div>
@@ -1151,7 +1151,7 @@
 
 
       <div class="foot">
-        __FOOT_DEMO__Latent value is a client's projected worth once nurtured into a top client. Tune your ceiling in <b>⚙ Settings</b>.
+        __FOOT_DEMO__Latent value is a client's projected worth once nurtured into a top client. Tune your ceiling in <b>Settings</b>.
       </div>
     </div>
   </main>
@@ -1568,7 +1568,7 @@ function renderHistBanner(){
   if(FULL_HISTORY || !LOCKED_COUNT) return;
   const html='Showing the last 30 days. <b>'+LOCKED_COUNT.toLocaleString("en-GB")+' more client'+(LOCKED_COUNT===1?'':'s')+'</b>'
     +(LOCKED_LATENT?(' worth <b>'+LOCKED_LATENT+'</b> in latent value'):'')
-    +' are behind the full-history plan. <button class="histup">Unlock full history &rarr;</button>';
+    +' are behind the full-history plan. <button class="histup">See full history &rarr;</button>';
   ["cHist","oHist"].forEach(id=>{const el=document.getElementById(id);if(el){el.innerHTML=html;el.style.display="";const b=el.querySelector(".histup");if(b)b.onclick=upgradePrompt;}});
 }
 renderHistBanner();
@@ -4181,7 +4181,7 @@ function openSettings(page){
             +`<button id="billCancel" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0 8px">Cancel subscription</button></div>`;
         }
       } else {
-        h+=`<p style="${P}">Choose a plan to unlock the full dashboard. Checkout is secure via Stripe and opens in a new tab.</p>`;
+        h+=`<p style="${P}">Choose a plan to see the full dashboard. Checkout is secure via Stripe and opens in a new tab.</p>`;
       }
       h+=`<div id="billPlans" style="margin-top:18px"></div>`;
       box.innerHTML=h;
@@ -4745,8 +4745,8 @@ function showFirstRun(){
     const worth = LOCKED_LATENT ? (' (about <b>'+LOCKED_LATENT+'</b> in latent value)') : '';
     box.innerHTML=shell(`
       <h2 style="font-family:'Fraunces',serif;font-weight:500;font-size:22px;letter-spacing:-.01em">Your scored clients are outside the last 30 days</h2>
-      <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">Halia has scored your customers. Your current view shows only the last 30 days, and your <b>${LOCKED_COUNT.toLocaleString("en-GB")}</b> potential VIC${LOCKED_COUNT===1?'':'s'}${worth} last shopped earlier. Unlock full history to see them.</p>
-      <button id="firstRunUpgrade" style="margin-top:22px;padding:11px 22px;border-radius:0;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">Unlock full history</button>`);
+      <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">Halia has scored your customers. Your current view shows only the last 30 days, and your <b>${LOCKED_COUNT.toLocaleString("en-GB")}</b> potential VIC${LOCKED_COUNT===1?'':'s'}${worth} last shopped earlier. Upgrade to full history to see them.</p>
+      <button id="firstRunUpgrade" style="margin-top:22px;padding:11px 22px;border-radius:0;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">See full history</button>`);
     wrap.appendChild(box);
     const up=document.getElementById("firstRunUpgrade");
     if(up) up.onclick=upgradePrompt;
