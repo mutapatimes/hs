@@ -17,7 +17,7 @@
       background: #1a1a1a; color: #fbfaf7; border: 0; cursor: pointer; padding: 12px 7px;
       writing-mode: vertical-rl; text-orientation: mixed; letter-spacing: .12em; font-size: 11px;
       text-transform: uppercase; display: flex; align-items: center; gap: 8px; box-shadow: -2px 0 12px rgba(0,0,0,.18); }
-    .handle .m { writing-mode: horizontal-tb; font-size: 14px; color: #cdb682; }
+    .handle .m { writing-mode: horizontal-tb; font-size: 14px; color: #6FBFA0; }
     .dock.open .handle { display: none; }
     .panel { position: fixed; right: 0; top: 0; height: 100vh; width: 344px; max-width: 92vw;
       z-index: 2147483647; background: #fbfaf7; color: #1a1a1a; border-left: 1px solid #e3ded3;
@@ -26,7 +26,7 @@
     .dock.open .panel { transform: translateX(0); }
     .bar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #eee7da;
       background: #f4f1ea; flex: none; }
-    .bar .m { color: #8a7a4f; font-size: 15px; }
+    .bar .m { color: #1F564A; font-size: 15px; }
     .bar .t { font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 11px; color: #6b6355; }
     .bar .sp { flex: 1; }
     .modebtn { border: 1px solid #d8cfbc; background: #fff; color: #6b6355; font-size: 10px;
@@ -496,7 +496,7 @@
           <section class="sec" data-s="media"></section>
           <section class="sec" data-s="cat"></section>
         </div>
-        <div class="foot" data-a="foot"><span class="m live" style="color:#8a7a4f">⁂</span> Read live from your book. Nothing stored.</div>
+        <div class="foot" data-a="foot"><span class="m live" style="color:#1F564A">⁂</span> Read live from your book. Nothing stored.</div>
       </aside>
       <div class="toast">Copied</div>`;
     root.appendChild(dock);
@@ -717,7 +717,7 @@
   // The footer shows who is signed in (the seat) with a one-click sign out, else the zero-retention note.
   function renderFoot() {
     const el = root && root.querySelector('[data-a="foot"]'); if (!el) return;
-    const mark = '<span class="m live" style="color:#8a7a4f">⁂</span> ';
+    const mark = '<span class="m live" style="color:#1F564A">⁂</span> ';
     if (ctx && ctx.seat) {
       el.innerHTML = mark + "Signed in as " + esc(ctx.seat)
         + ' · <span data-a="signout" style="cursor:pointer;text-decoration:underline">Sign out</span>';
