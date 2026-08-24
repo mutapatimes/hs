@@ -108,7 +108,7 @@ _BLOG_CSS = """
   .btag{font:500 12.5px var(--sans);color:var(--mute);border:1px solid var(--line);padding:6px 13px;border-radius:3px}
   .btag.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .bsort a{font:500 13px var(--sans);color:var(--faint);margin-left:14px}.bsort a.on{color:var(--ink);text-decoration:underline}
-  .bgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;padding:34px 0}
+  .bgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:28px;padding:34px 0}
   @media(max-width:900px){.bgrid{grid-template-columns:1fr}}
   .bcard{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--bg-2);transition:.25s}
   .bcard:hover{transform:translateY(-3px);border-color:var(--ink)}
@@ -116,8 +116,7 @@ _BLOG_CSS = """
   .bcard .bc-in{padding:20px 22px 24px;display:flex;flex-direction:column;gap:10px;flex:1}
   .bcard .bc-meta{font:500 12px var(--sans);color:var(--faint)}
   .bcard h3{font-size:24px}
-  .bcard .bc-dek{color:var(--mute);font-size:14.5px;flex:1}
-  .bcard .bc-more{font:500 13px var(--sans);color:var(--accent)}
+  .bcard .bc-dek{color:var(--mute);font-size:14.5px;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .pager{display:flex;align-items:center;justify-content:center;gap:8px;padding:20px 0 10px}
   .pager a,.pager span{font:500 13px var(--sans);min-width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:3px;color:var(--mute)}
   .pager a:hover{border-color:var(--ink);color:var(--ink)}.pager .on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -129,7 +128,7 @@ _BLOG_CSS = """
   .art .crumb a:hover{color:var(--ink)}
   .art h1{font-size:clamp(32px,4.6vw,54px);max-width:20ch}
   .art .byline{display:flex;gap:12px;flex-wrap:wrap;color:var(--faint);font:500 13.5px var(--sans);margin:20px 0 6px}
-  .art .dek{font-size:clamp(18px,2vw,22px);color:var(--mute);max-width:56ch;margin-top:10px;font-family:var(--serif);font-style:italic}
+  .art .dek{font-size:clamp(18px,1.6vw,20px);color:var(--mute);max-width:60ch;margin-top:14px;line-height:1.5}
   .art .cover{width:100%;aspect-ratio:16/8;object-fit:cover;border-radius:4px;margin:34px 0 10px;background:#e7e0d2}
   .prose{max-width:720px;margin:30px auto 0;font-size:17.5px;line-height:1.72;color:#2b2820}
   .prose h2{font-size:clamp(26px,3vw,34px);margin:44px 0 14px}
@@ -269,15 +268,16 @@ def _chat() -> str:
 def _card(post: dict) -> str:
     cover = (f'<img class="cover" src="/blog/img/{_html.escape(post["cover_image_id"])}" '
              f'alt="" loading="lazy">' if post.get("cover_image_id") else "")
-    meta = _html.escape(" · ".join(x for x in (post.get("author"),
-                        _date_label(post.get("published_at") or post.get("updated_at")),
-                        f"{_read_min(post.get('body_html',''))} min read") if x))
+    # A preview needs only when + how long, the title, and a short teaser. The whole card is the
+    # link, so no "Read" affordance; the author is the same on every post, so it stays off the card.
+    meta = _html.escape(" · ".join(x for x in (
+        _date_label(post.get("published_at") or post.get("updated_at")),
+        f"{_read_min(post.get('body_html',''))} min read") if x))
     return (
         f'<a class="bcard" href="/blog/{_html.escape(post["slug"])}">{cover}'
         f'<div class="bc-in"><div class="bc-meta">{meta}</div>'
         f'<h3>{_html.escape(post.get("title") or "Untitled")}</h3>'
-        f'<div class="bc-dek">{_html.escape(post.get("dek") or "")}</div>'
-        f'<div class="bc-more">Read &rarr;</div></div></a>')
+        f'<div class="bc-dek">{_html.escape(post.get("dek") or "")}</div></div></a>')
 
 
 def _pager(page: int, pages: int, sort: str, tag: str | None) -> str:
@@ -321,8 +321,6 @@ def render_index(store, page: int, sort: str, tag: str | None) -> str:
     body = (
         '<section class="bhero"><div class="wrap">'
         '<h1 class="display">The Journal</h1>'
-        '<p class="lede">How luxury retailers find and keep the high-value clients already '
-        'in their data.</p>'
         f'<div class="bctl"><div class="btags">{all_chip}{other_chips}</div>{sort_ctl}</div>'
         f'<div class="bgrid">{cards}</div>'
         f'{_pager(page, pages, sort, tag)}'
