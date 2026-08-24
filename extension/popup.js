@@ -14,8 +14,15 @@ chrome.runtime.sendMessage({ type: "halia:config" }, (c) => {
     state.className = "state ok";
     dot.classList.add("ok");
   } else {
-    state.textContent = "Not connected yet. Add your Halia token in settings.";
+    state.textContent = "Not connected yet. Sign in to Halia and press Connect this browser.";
     state.className = "state bad";
+    const open = document.getElementById("open");
+    open.textContent = "Open Halia →";
+    open.onclick = () => {
+      chrome.tabs.create({ url: (c.base || "https://haliascore.com").replace(/\/$/, "") + "/app" });
+      window.close();
+    };
+    return;
   }
 });
 
