@@ -296,7 +296,7 @@ def _shop_for_email(email: str) -> str | None:
 
 _SIGNIN_CSS = (
     "*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#f5f2ea;color:#1a1712;"
-    "font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"
+    "font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"
     "display:flex;align-items:center;justify-content:center;padding:28px}"
     ".card{width:100%;max-width:430px;background:#fffdf8;border:1px solid rgba(20,18,12,.12);"
     "border-radius:0;padding:40px 36px;box-shadow:0 40px 90px -50px rgba(20,18,12,.4)}"
@@ -304,11 +304,11 @@ _SIGNIN_CSS = (
     "font-size:24px;margin-bottom:26px}.mark .ast{color:#7a7363;font-size:22px}"
     "h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:38px;"
     "letter-spacing:-.01em;margin:0 0 8px}.sub{color:#615b50;font-size:14.5px;line-height:1.5;margin:0 0 24px}"
-    "label{display:block;font:500 12px 'Inter',sans-serif;letter-spacing:.02em;color:#615b50;margin:0 0 6px}"
+    "label{display:block;font:500 12px 'Hanken Grotesk',sans-serif;letter-spacing:.02em;color:#615b50;margin:0 0 6px}"
     "input{width:100%;padding:13px 15px;border:1px solid rgba(20,18,12,.22);border-radius:0;"
-    "font:15px 'Inter',sans-serif;color:#1a1712;background:#fff}input:focus{outline:none;border-color:#7a7363}"
+    "font:15px 'Hanken Grotesk',sans-serif;color:#1a1712;background:#fff}input:focus{outline:none;border-color:#7a7363}"
     ".btn{width:100%;margin-top:18px;background:#1a1712;color:#f5f2ea;border:none;border-radius:0;"
-    "padding:14px 20px;font:600 14px 'Inter',sans-serif;cursor:pointer;transition:.2s}"
+    "padding:14px 20px;font:600 14px 'Hanken Grotesk',sans-serif;cursor:pointer;transition:.2s}"
     ".btn:hover{background:#000}.alt{color:#615b50;font-size:13.5px;margin:22px 0 0;text-align:center}"
     "a{color:#1a1712;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(20,18,12,.3)}"
     ".err{background:#fbeee9;border:1px solid #e0b4a6;color:#8e2f14;border-radius:0;padding:11px 13px;"
@@ -329,7 +329,7 @@ def _signin_shell(inner: str) -> str:
         "<link rel=preconnect href='https://fonts.googleapis.com'>"
         "<link rel=preconnect href='https://fonts.gstatic.com' crossorigin>"
         "<link href='https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&"
-        "family=Inter:wght@400;500;600&display=swap' rel=stylesheet>"
+        "family=Hanken+Grotesk:wght@400;500;600&display=swap' rel=stylesheet>"
         f"<style>{_SIGNIN_CSS}</style></head><body><div class=card>"
         "<div class=mark><span class=ast>&#8258;</span> Halia</div>"
         f"{inner}</div></body></html>"
@@ -597,13 +597,13 @@ def _hosted_head(store: str = "") -> str:
         "#halia-top{position:fixed;top:0;left:0;right:0;height:52px;z-index:200;display:flex;"
         "align-items:center;gap:14px;padding:0 18px;background:#1a1712;color:#f5f2ea;"
         "border-bottom:1px solid rgba(255,255,255,.08);"
-        "font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif}"
+        "font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif}"
         "#halia-top .hb{display:flex;align-items:center;gap:9px;"
         "font-family:'Cormorant Garamond',Georgia,serif;font-size:20px}"
         "#halia-top .hb .ast{color:#d8d2c6;font-size:19px}"
         "#halia-top .hstore{color:#cfc7b5;font-size:13px;border-left:1px solid rgba(255,255,255,.16);padding-left:14px}"
         "#halia-top .hsp{flex:1}"
-        "#halia-top button{padding:7px 14px;border-radius:0;font:600 13px 'Inter',system-ui;cursor:pointer}"
+        "#halia-top button{padding:7px 14px;border-radius:0;font:600 13px 'Hanken Grotesk',system-ui;cursor:pointer}"
         "#halia-refresh{border:1px solid #2c463d;background:#1f564a;color:#fff}#halia-refresh[disabled]{opacity:.6}"
         "#halia-settings,#halia-signout{border:1px solid #3a3630;background:transparent;color:#e9e4d8}"
         "#halia-settings:hover,#halia-signout:hover{border-color:#57524a}"
@@ -619,11 +619,11 @@ def _hosted_head(store: str = "") -> str:
         # Halia vertical nav (left rail) — the self-serve equivalent of the Shopify admin sidebar.
         "#hnav{position:fixed;left:0;top:52px;bottom:0;width:214px;z-index:150;background:#faf9f6;"
         "border-right:1px solid rgba(20,18,12,.10);padding:16px 12px;display:flex;flex-direction:column;"
-        "gap:3px;overflow-y:auto;font-family:'Inter',-apple-system,system-ui,sans-serif}"
-        "#hnav .hlbl{font:700 10.5px 'Inter',system-ui;letter-spacing:.16em;text-transform:uppercase;"
+        "gap:3px;overflow-y:auto;font-family:'Hanken Grotesk',-apple-system,system-ui,sans-serif}"
+        "#hnav .hlbl{font:700 10.5px 'Hanken Grotesk',system-ui;letter-spacing:.16em;text-transform:uppercase;"
         "color:#a8a29a;padding:2px 13px 11px}"
         "#hnav .hn{display:flex;align-items:center;gap:11px;padding:9px 13px;border-radius:0;cursor:pointer;"
-        "font:600 13.5px 'Inter',system-ui;color:#5f594e;border:0;background:none;width:100%;text-align:left;"
+        "font:600 13.5px 'Hanken Grotesk',system-ui;color:#5f594e;border:0;background:none;width:100%;text-align:left;"
         "position:relative;transition:background .16s,color .16s}"
         "#hnav .hn .ic{width:17px;height:17px;flex:none;opacity:.68}"
         "#hnav .hn:hover{background:rgba(20,18,12,.05);color:#1a1712}"
@@ -700,9 +700,9 @@ _PREPARING = r'''<!doctype html><html lang="en"><head><link rel="stylesheet" hre
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <noscript><meta http-equiv="refresh" content="6"></noscript>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f4f1ea;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;--line:rgba(20,18,12,.14);--line2:rgba(20,18,12,.07);--ok:#2e9e6b;--serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+:root{--bg:#f4f1ea;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;--line:rgba(20,18,12,.14);--line2:rgba(20,18,12,.07);--ok:#2e9e6b;--serif:'Cormorant Garamond',Georgia,serif;--sans:'Hanken Grotesk',-apple-system,system-ui,sans-serif}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(1100px 600px at 50% -12%,#fcfaf5,#f4f1ea 62%);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
 .hd{max-width:720px;margin:0 auto;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
@@ -917,9 +917,9 @@ _TEASER = r'''<!doctype html><html lang="en"><head><link rel="stylesheet" href="
 <title>Your hidden VICs · Halia</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f4f1ea;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;--line:rgba(20,18,12,.16);--serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+:root{--bg:#f4f1ea;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;--line:rgba(20,18,12,.16);--serif:'Cormorant Garamond',Georgia,serif;--sans:'Hanken Grotesk',-apple-system,system-ui,sans-serif}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(1100px 600px at 50% -12%,#fcfaf5,#f4f1ea 62%);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
 .top{max-width:960px;margin:0 auto;padding:22px 28px}
@@ -944,10 +944,10 @@ h1 em{font-style:normal;color:inherit}
   <p class="lede">Halia read your store and found high-value clients you are not treating like VIPs yet, and estimated the revenue waiting inside them. Their names, scores, the signals behind each one, and one-tap outreach are a single step away.</p>
   <div class="stats">
     <div class="stat"><div class="num">__COUNT__</div><div class="lab">Hidden VICs found</div></div>
-    <div class="stat"><div class="num">__LATENT__</div><div class="lab">Latent value to unlock</div></div>
+    <div class="stat"><div class="num">__LATENT__</div><div class="lab">Estimated latent value</div></div>
     <div class="stat"><div class="num">__TOPTIER__</div><div class="lab">Graded A or above</div></div>
   </div>
-  <button class="btn" id="unlock">Unlock this hidden revenue now &rarr;</button>
+  <button class="btn" id="unlock">See who they are &rarr;</button>
   <p class="fine">Cancel anytime. Halia stays zero-retention: your customers are scored in the moment and never stored.</p>
   <div class="err" id="err" style="display:none"></div>
 </main>
@@ -956,7 +956,7 @@ document.getElementById('unlock').onclick=function(){
   var b=this;b.disabled=true;b.textContent='Opening secure checkout…';
   fetch('/v1/checkout',{method:'POST'}).then(function(r){return r.json();})
    .then(function(d){if(d&&d.url){location.href=d.url;}else{throw new Error('no url');}})
-   .catch(function(){b.disabled=false;b.innerHTML='Unlock this hidden revenue now &rarr;';
+   .catch(function(){b.disabled=false;b.innerHTML='See who they are &rarr;';
      var e=document.getElementById('err');e.textContent='We could not start checkout just now. Please try again.';e.style.display='block';});
 };
 </script>
@@ -1046,9 +1046,9 @@ _WIZARD = r'''<!doctype html><html lang="en"><head><link rel="stylesheet" href="
 <title>Connect your store · Halia</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f4f1ea;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;--line:rgba(20,18,12,.16);--serif:'Cormorant Garamond',Georgia,serif;--sans:'Inter',-apple-system,system-ui,sans-serif}
+:root{--bg:#f4f1ea;--ink:#13110c;--mute:#615b50;--faint:#9a9385;--gold:#7a7363;--line:rgba(20,18,12,.16);--serif:'Cormorant Garamond',Georgia,serif;--sans:'Hanken Grotesk',-apple-system,system-ui,sans-serif}
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;background:radial-gradient(1100px 600px at 50% -12%,#fcfaf5,#f4f1ea 62%);color:var(--ink);font-family:var(--sans);font-size:16px;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
@@ -1222,7 +1222,7 @@ function renderSource(){
     ti.innerHTML='Connect your orders, <em>safely.</em>';
     le.textContent='Choose how to connect. Either way Halia gets read-only access: it can read your past orders and nothing else.';
     b.innerHTML='<div class="cards">'
-      +'<div class="pcard" data-wm="auto"><div class="pi">&#9889;</div><div><h3>Connect automatically</h3><p>Approve Halia inside your own WordPress admin.</p></div></div>'
+      +'<div class="pcard" data-wm="auto"><div class="pi">&#8258;</div><div><h3>Connect automatically</h3><p>Approve Halia inside your own WordPress admin.</p></div></div>'
       +'<div class="pcard" data-wm="manual"><div class="pi">&#35;</div><div><h3>Enter an API key</h3><p>Create a read-only key in WooCommerce and paste it.</p></div></div>'
       +'</div><div id="woomethod" style="margin-top:6px"></div>';
     [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){
