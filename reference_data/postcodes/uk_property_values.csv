@@ -29007,7 +29007,6 @@ OX9 3QR,Thame,700250,high
 E11 2AU,London,700050,high
 DA8 3DQ,Erith,700049,high
 KT22,Leatherhead & Oxshott,700000,high
-EH3,Edinburgh New Town,700000,high
 RH15 0GP,Burgess Hill,700000,high
 KT6 7SH,Surbiton,700000,high
 CM3 3FH,Chelmsford,700000,high
@@ -41917,7 +41916,6 @@ BS9 3PD,Stoke Bishop (Bristol),620250,high
 RG31 6YU,Reading,620125,high
 NR7 0HB,Norwich,620087,high
 BA10 0AT,Bruton,620066,high
-EH10,Edinburgh Morningside,620000,high
 KT3,New Malden,620000,high
 GU8,Godalming & Witley,620000,high
 WS13 8FD,Lichfield,620000,high
@@ -43983,7 +43981,6 @@ S17 3QQ,Sheffield,610255,high
 DA15 9DD,Sidcup,610250,high
 SP5 2SY,Salisbury,610172,high
 HA7 2LB,Stanmore,610050,high
-EH4,Edinburgh (west),610000,high
 HG2,Harrogate (south),610000,high
 GU1,Guildford,610000,high
 BR7,Chislehurst,610000,high
@@ -46969,3 +46966,20 @@ CV47 9AN,Southam,600000,high
 TW3 1AQ,Hounslow,600000,high
 NE61 1EQ,Morpeth,600000,high
 E14 7DA,London,600000,high
+EH4,"Edinburgh (Murrayfield, Ravelston & Cramond)",540000,prime
+EH10,Edinburgh (Morningside & Merchiston),450000,prime
+EH9,Edinburgh (The Grange & Marchmont),431000,prime
+EH3,Edinburgh New Town,430000,prime
+G46,Giffnock & Whitecraigs,407000,prime
+EH31,Gullane,400000,prime
+EH13,Edinburgh (Colinton & Fairmilehead),384000,prime
+AB15,Aberdeen West (Cults & Rubislaw),361000,prime
+EH39,North Berwick,357000,prime
+EH15,Edinburgh (Joppa & Portobello),350000,prime
+G61,Bearsden,343000,prime
+EH12,Edinburgh (Murrayfield & Corstorphine),340000,prime
+KY16,St Andrews,340000,prime
+G77,Newton Mearns,333000,prime
+G62,Milngavie,322000,prime
+EH5,Edinburgh (Trinity),317000,prime
+G12,Glasgow West End (Dowanhill & Kelvinside),315000,prime
