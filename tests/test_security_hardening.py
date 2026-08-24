@@ -109,3 +109,26 @@ def test_csv_export_neutralizes_formula_injection(monkeypatch):
     # every dangerous leading char is now quoted as text
     assert "'=cmd()" in body and "'+44@x.com" in body and "'=HYPERLINK" in body and "'-2+2" in body
     assert "\n=cmd" not in body   # no bare formula at a field start
+
+
+# ---- Security response headers on every response, without clobbering the embedded app ----
+def test_security_headers_present_and_frame_denied():
+    r = client.get("/health")
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert r.headers["referrer-policy"] == "strict-origin-when-cross-origin"
+    assert "frame-ancestors 'none'" in r.headers["content-security-policy"]
+    assert r.headers.get("x-frame-options") == "DENY"
+
+
+def test_hsts_only_over_https():
+    plain = client.get("/health")
+    assert "strict-transport-security" not in {k.lower() for k in plain.headers}
+    tls = client.get("/health", headers={"x-forwarded-proto": "https"})
+    assert "max-age=" in tls.headers.get("strict-transport-security", "")
+
+
+def test_embedded_app_frame_policy_is_not_clobbered(monkeypatch):
+    # The embedded app must stay framable by admin.shopify.com; the global 'none' must not win.
+    from halia.api import embedded
+    resp_csp = embedded._csp("demo.myshopify.com")
+    assert "admin.shopify.com" in resp_csp and "frame-ancestors 'none'" not in resp_csp
