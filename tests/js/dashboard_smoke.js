@@ -31,11 +31,16 @@ const dom = new JSDOM(html, {
   },
 });
 
-// Let async init settle, then report what rendered.
+// Let async init settle, then report what rendered. The landing is now adaptive (Clients for a
+// fresh browser), so measure the Clients table on the landing, then explicitly show Overview and
+// measure its donut — the test's intent is that both views render, not that Overview is home.
 setTimeout(() => {
   const d = dom.window.document;
-  const ovDonut = ((d.getElementById("ovDonut") || {}).innerHTML || "").length;
   const rows = ((d.getElementById("rows") || {}).innerHTML || "").length;
-  console.log(JSON.stringify({ errors, ovDonut, rows }));
-  process.exit(0);
+  try { if (typeof dom.window.showView === "function") dom.window.showView("overview"); } catch (_) {}
+  setTimeout(() => {
+    const ovDonut = ((d.getElementById("ovDonut") || {}).innerHTML || "").length;
+    console.log(JSON.stringify({ errors, ovDonut, rows }));
+    process.exit(0);
+  }, 150);
 }, 800);
