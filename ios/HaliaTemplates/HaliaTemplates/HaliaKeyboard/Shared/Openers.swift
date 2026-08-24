@@ -63,14 +63,15 @@ enum PageKind: String, Codable, CaseIterable, Identifiable {
 
 enum OpenersStore {
     static let defaults: [PageKind: [Opener]] = [
+        // {title} becomes the product's own name, read from the shared link; without one it reads "this".
         .product: [
-            Opener(label: "Set aside",        body: "I have set this aside for you, if you would like it."),
-            Opener(label: "Just in",          body: "This just arrived and I thought of you straight away."),
-            Opener(label: "Your taste",       body: "This reminded me of your taste the moment it came in."),
-            Opener(label: "What do you think", body: "I would love to know what you think of this."),
-            Opener(label: "Limited",          body: "We have very few of these, and I wanted you to have first look."),
-            Opener(label: "First look",       body: "An early look for you, before this goes out more widely."),
-            Opener(label: "Back in stock",    body: "Good news, this piece is back. I can hold one for you."),
+            Opener(label: "Set aside",        body: "I have set {title} aside for you, if you would like it."),
+            Opener(label: "Just in",          body: "{title} just arrived and I thought of you straight away."),
+            Opener(label: "Your taste",       body: "{title} reminded me of your taste the moment it came in."),
+            Opener(label: "What do you think", body: "I would love to know what you think of {title}."),
+            Opener(label: "Limited",          body: "We are down to the last few of {title}, and I wanted you to have first look."),
+            Opener(label: "First look",       body: "An early look at {title} for you, before it goes out more widely."),
+            Opener(label: "Back in stock",    body: "Good news, {title} is back. I can hold one for you."),
         ],
         .collection: [
             Opener(label: "An edit for you",  body: "I put together a few pieces I thought you would love."),
@@ -119,4 +120,27 @@ enum OpenersStore {
     static func reset(_ kind: PageKind) { AppGroup.defaults.removeObject(forKey: key(kind)) }
 
     private static func key(_ kind: PageKind) -> String { AppGroup.Key.openers + "." + kind.rawValue }
+
+    /// The shared page's own name, read from its URL slug ("/products/silk-twill-scarf" →
+    /// "Silk Twill Scarf"). Empty when the URL gives nothing usable.
+    static func pageTitle(from raw: String) -> String {
+        guard let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)) else { return "" }
+        let comps = url.pathComponents.filter { $0 != "/" }
+        guard let ix = comps.firstIndex(where: { $0 == "products" || $0 == "collections" }),
+              ix + 1 < comps.count else { return "" }
+        let slug = comps[ix + 1].removingPercentEncoding ?? comps[ix + 1]
+        let words = slug.split(whereSeparator: { $0 == "-" || $0 == "_" }).map(String.init)
+        guard !words.isEmpty else { return "" }
+        let name = words.map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined(separator: " ")
+        return name.count <= 60 ? name : ""
+    }
+
+    /// Fill {title} in an opener body (defaults and the host app's edited openers alike). Without a
+    /// usable title it reads "this", re-capitalised in case the token opened the sentence.
+    static func fill(_ body: String, title: String) -> String {
+        guard body.contains("{title}") else { return body }
+        var out = body.replacingOccurrences(of: "{title}", with: title.isEmpty ? "this" : title)
+        if title.isEmpty, let first = out.first { out = String(first).uppercased() + out.dropFirst() }
+        return out
+    }
 }

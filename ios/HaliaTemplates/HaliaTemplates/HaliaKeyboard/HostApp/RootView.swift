@@ -705,7 +705,7 @@ private struct OpenersEditor: View {
     var body: some View {
         NavigationView {
             List {
-                Text("These appear as chips when you share a page into Halia and pick a client. The client's name and the link are added for you.")
+                Text("These appear as chips when you share a page into Halia and pick a client. The client's name and the link are added for you. Write {title} where the product's name should go.")
                     .font(.system(size: 12.5)).foregroundColor(Palette.faint)
                     .listRowBackground(Color.clear)
                 ForEach(PageKind.allCases) { kind in
