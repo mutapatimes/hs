@@ -95,14 +95,14 @@
     :host { all: initial; }
     * { box-sizing: border-box; font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
     .chip { position: fixed; z-index: 2147483646; width: 26px; height: 26px; border-radius: 50%;
-      background: #1a1a1a; color: #cdb682; border: 0; cursor: pointer; font-size: 14px; line-height: 1;
+      background: #1a1a1a; color: #6FBFA0; border: 0; cursor: pointer; font-size: 14px; line-height: 1;
       display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(0,0,0,.28); }
     .chip:hover { background: #333; }
     .panel { position: fixed; z-index: 2147483647; width: 300px; max-width: 90vw; background: #fbfaf7;
       color: #1a1a1a; border: 1px solid #e3ded3; box-shadow: 0 14px 44px rgba(0,0,0,.26); }
     .ph { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #f4f1ea;
       border-bottom: 1px solid #eee7da; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #6b6355; }
-    .ph .m { color: #8a7a4f; font-size: 13px; }
+    .ph .m { color: #1F564A; font-size: 13px; }
     .ph .sp { flex: 1; }
     .x { border: 0; background: transparent; color: #8a8271; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; }
     .body { padding: 10px 12px; }

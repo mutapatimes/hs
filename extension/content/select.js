@@ -30,7 +30,7 @@
       cursor: pointer; font-size: 12px; padding: 6px 10px; box-shadow: 0 4px 16px rgba(0,0,0,.28);
       display: inline-flex; align-items: center; gap: 7px; letter-spacing: .01em; }
     .pill:hover { background: #333; }
-    .pill .m { color: #cdb682; font-size: 13px; }
+    .pill .m { color: #6FBFA0; font-size: 13px; }
     .card { position: fixed; z-index: 2147483647; width: 264px; max-width: 88vw; background: #fbfaf7;
       color: #1a1a1a; border: 1px solid #e3ded3; box-shadow: 0 12px 40px rgba(0,0,0,.24); }
     .card .top { display: flex; align-items: center; gap: 9px; padding: 11px 12px; background: #f4f1ea;
