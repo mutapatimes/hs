@@ -401,6 +401,7 @@ def test_shopify_oauth_flow_end_to_end(client, monkeypatch):
     c, store = client
     monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", "key")
     monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", "secret")
+    monkeypatch.setattr("halia.config.HALIA_SHOPIFY_APP_LIVE", True)
     monkeypatch.setattr("halia.config.HALIA_APP_URL", "https://halia.test")
     monkeypatch.setattr(onboarding, "_shopify_exchange", lambda shop, code: {
         "access_token": "shpat_oauth", "expires_in": 3600,
@@ -431,11 +432,52 @@ def test_shopify_callback_rejects_bad_hmac(client, monkeypatch):
     c, _ = client
     monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", "key")
     monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", "secret")
+    monkeypatch.setattr("halia.config.HALIA_SHOPIFY_APP_LIVE", True)
     monkeypatch.setattr("halia.config.HALIA_APP_URL", "https://halia.test")
     tok = c.post("/v1/shopify/authorize", json={"shop_domain": "acme.myshopify.com"}).json()["token"]
     r = c.get("/connect/shopify/callback",
               params={"code": "abc", "shop": "acme.myshopify.com", "state": tok, "hmac": "bad"})
     assert r.status_code == 400
+
+
+def test_shopify_authorize_blocked_while_under_review(client, monkeypatch):
+    """Public app configured but not yet approved: one-click must refuse (Shopify would block it)."""
+    c, _ = client
+    monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", "key")
+    monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", "secret")
+    monkeypatch.setattr("halia.config.HALIA_SHOPIFY_APP_LIVE", False)
+    monkeypatch.setattr("halia.config.HALIA_APP_URL", "https://halia.test")
+    assert c.post("/v1/shopify/authorize",
+                  json={"shop_domain": "acme.myshopify.com"}).status_code == 400
+    assert c.get("/v1/shopify/oneclick", params={"shop": "acme.myshopify.com"}).json() == {
+        "available": False, "shop_domain": "acme.myshopify.com"}
+
+
+def test_shopify_custom_app_oneclick_while_under_review(client, monkeypatch):
+    """A store with its own custom-distribution bridge app gets one-click even before the public
+    listing is approved, and the OAuth URL carries THAT app's client_id, not the public one."""
+    import hashlib
+    import hmac as _hmac
+    c, store = client
+    monkeypatch.setattr("halia.config.SHOPIFY_API_KEY", "pubkey")
+    monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", "pubsecret")
+    monkeypatch.setattr("halia.config.HALIA_SHOPIFY_APP_LIVE", False)
+    monkeypatch.setattr("halia.config.HALIA_APP_URL", "https://halia.test")
+    monkeypatch.setattr("halia.config.SHOPIFY_CUSTOM_APPS",
+                        {"brand.myshopify.com": ("bridgekey", "bridgesecret")})
+    assert c.get("/v1/shopify/oneclick",
+                 params={"shop": "https://brand.myshopify.com"}).json()["available"] is True
+    a = c.post("/v1/shopify/authorize", json={"shop_domain": "brand.myshopify.com"}).json()
+    assert "client_id=bridgekey" in a["url"]
+    # the callback verifies the HMAC with the BRIDGE app's secret, not the public app's
+    params = {"code": "abc", "shop": "brand.myshopify.com", "state": a["token"]}
+    msg = "&".join(f"{k}={params[k]}" for k in sorted(params))
+    params["hmac"] = _hmac.new(b"bridgesecret", msg.encode(), hashlib.sha256).hexdigest()
+    monkeypatch.setattr(onboarding, "_shopify_exchange", lambda shop, code: {
+        "access_token": "shpat_bridge", "expires_in": 3600,
+        "refresh_token": "rt_bridge", "refresh_token_expires_in": 7776000})
+    assert c.get("/connect/shopify/callback", params=params).status_code == 200
+    assert c.get(f"/v1/shopify/authorized/{a['token']}").json()["ready"] is True
 
 
 def test_newsletter_subscribe(client):

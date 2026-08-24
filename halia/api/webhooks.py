@@ -43,8 +43,11 @@ def register(app) -> None:
     @app.post("/webhooks/shopify")
     async def shopify_webhook(request: Request):
         raw = await request.body()
-        if not verify_hmac(raw, request.headers.get("X-Shopify-Hmac-Sha256", ""),
-                           config.SHOPIFY_API_SECRET):
+        # A webhook may come from the public app OR any custom-distribution bridge app, each
+        # signing with its own secret — accept a valid signature from any of ours.
+        header = request.headers.get("X-Shopify-Hmac-Sha256", "")
+        secrets = [config.SHOPIFY_API_SECRET] + [s for _, s in config.SHOPIFY_CUSTOM_APPS.values()]
+        if not any(verify_hmac(raw, header, s) for s in secrets):
             raise HTTPException(401, "Invalid webhook HMAC")  # Shopify requirement
 
         topic = request.headers.get("X-Shopify-Topic", "")
