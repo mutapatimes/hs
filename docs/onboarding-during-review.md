@@ -102,14 +102,14 @@ needs three env vars on Render before anyone can pay:
 
 | Env var | What it is |
 |---|---|
-| `STRIPE_SECRET_KEY` | Your Stripe API key |
+| `STRIPE_SECRET_KEY` | Your Stripe API key. Alone, this is enough: plan cards open real Stripe Checkout |
 | `STRIPE_PLAN_LINKS` | `discovery=https://buy.stripe.com/...,signal=...,atelier=...` payment links, one per plan, created in Stripe |
 | `STRIPE_WEBHOOK_SECRET` | From a Stripe webhook endpoint pointed at `https://haliascore.com/webhooks/stripe` |
 
 The client sees plan cards in their dashboard; choosing one opens Stripe checkout; the webhook
 marks them active automatically. They manage or cancel from the Stripe portal in Settings.
 
-Until these are set, clients can use Halia but cannot pay.
+Without the webhook secret, activation still lands when the merchant returns to the dashboard after paying.
 
 ---
 
