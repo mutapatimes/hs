@@ -135,4 +135,20 @@ $("test").onclick = test;
 $("signout").onclick = signOut;
 $("addwoo").onclick = addStore;
 $("everywhere").onchange = toggleEverywhere;
+
+// One-click path: open the dashboard; its Settings offers "Connect this browser" to this extension.
+$("openhalia").onclick = async () => {
+  const base = ($("base").value || "").trim() || DEFAULT_BASE;
+  chrome.tabs.create({ url: base.replace(/\/$/, "") + "/app" });
+  setStatus($("connstatus"), "Waiting for you to press Connect in Halia…", true);
+};
+
+// The dashboard bridge stores the token in the background; reflect it here the moment it lands.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "sync" || !changes.haliaToken) return;
+  const v = changes.haliaToken.newValue || "";
+  $("token").value = v;
+  if (changes.haliaName && changes.haliaName.newValue) $("name").value = changes.haliaName.newValue;
+  setStatus($("connstatus"), v ? "Connected ✓" : "", true);
+});
 load();
