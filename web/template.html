@@ -1908,7 +1908,7 @@ document.getElementById("bulkshopseg").onclick=async()=>{
       body:JSON.stringify({customer_ids:cids,name})});
     const d=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(d.detail||("HTTP "+r.status));
-    toast(`Shopify segment "${name}" created with ${d.count} customer${d.count===1?"":"s"} — open Shopify Email and send to it.`);
+    toast(`Shopify segment "${name}" created with ${d.count} customer${d.count===1?"":"s"}. Open Shopify Email and send to it.`);
     selected.clear();renderRows();updateBulk();
   }catch(e){ toast("Couldn't create segment: "+e.message); }
   finally{ btn.disabled=false; btn.textContent=t; }
@@ -2056,15 +2056,15 @@ function fillTemplate(s,c){c=c||{};return String(s||"")
   .split("{order_total}").join(c.amount!=null?("£"+Number(c.amount).toLocaleString()):"");}
 function copyText(t){
   if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(t).then(()=>toast("Copied to clipboard.")).catch(()=>toast("Couldn't copy — select the text and copy manually."));
-  } else { toast("Copy isn't supported here — select the text and copy manually."); }
+    navigator.clipboard.writeText(t).then(()=>toast("Copied to clipboard.")).catch(()=>toast("Couldn't copy. Select the text and copy manually."));
+  } else { toast("Copy isn't supported here. Select the text and copy manually."); }
 }
 // Lean suggested wording a merchant can paste into their own privacy policy (see the full
 // compliance pack). Not legal advice; surfaced in Settings and on the onboarding success screen.
 const PRIVACY_INSERTS=[
-  {h:"Understanding our customers",body:"To give our best customers a more personal level of service, we use a tool that reviews information we already hold — such as your order history and the area your orders are delivered to — to recognise clients who may value a more personal service, such as a dedicated contact or an invitation to a preview."},
-  {h:"What it looks at",body:"It draws on commercial and address facts — what and how often you have bought from us, and publicly recognisable signs of an area or a professional email domain. It does not use your nationality, your ethnicity, or the origin of your name."},
-  {h:"A person always decides",body:"The tool only highlights customers for our team to consider. It never makes an automatic decision about you and never withholds a product, price or service — a member of our team always decides whether to get in touch. You can ask us to stop at any time."}
+  {h:"Understanding our customers",body:"To give our best customers a more personal level of service, we use a tool that reviews information we already hold, such as your order history and the area your orders are delivered to, to recognise clients who may value a more personal service, such as a dedicated contact or an invitation to a preview."},
+  {h:"What it looks at",body:"It draws on commercial and address facts: what and how often you have bought from us, and publicly recognisable signs of an area or a professional email domain. It does not use your nationality, your ethnicity, or the origin of your name."},
+  {h:"A person always decides",body:"The tool only highlights customers for our team to consider. It never makes an automatic decision about you and never withholds a product, price or service. A member of our team always decides whether to get in touch. You can ask us to stop at any time."}
 ];
 // Group templates by category with small headers, so a long library stays scannable in the menus.
 function tmplMenuGroups(templates,itemFn){
@@ -2692,9 +2692,10 @@ function loadPlanCards(container, force){
   if(!container) return;
   if(PLANS_CACHE && !force){ container.innerHTML=planCardsHTML(PLANS_CACHE); wireShopifyCtas(container,PLANS_CACHE); return; }
   container.innerHTML=haliaLoader("Loading plans");
-  // Shopify merchants must be charged through Shopify's Billing API; every other platform uses Stripe.
+  // Shopify merchants are charged through Shopify's Billing API; every other platform uses Stripe —
+  // as does a Shopify tenant on a custom-distribution bridge app (the server says so via d.stripe).
   const url = PLATFORM==="shopify" ? "/v1/plans/status" : "/v1/billing/plans";
-  fetch(url).then(r=>r.json()).then(d=>{ if(PLATFORM==="shopify") d.shopify=true; PLANS_CACHE=d; container.innerHTML=planCardsHTML(d); wireShopifyCtas(container,d); })
+  fetch(url).then(r=>r.json()).then(d=>{ if(PLATFORM==="shopify"&&!d.stripe) d.shopify=true; PLANS_CACHE=d; container.innerHTML=planCardsHTML(d); wireShopifyCtas(container,d); })
     .catch(()=>{ container.innerHTML='<div style="color:var(--soft);font-size:13.5px">Couldn\'t load plans.</div>'; });
 }
 // Shopify Billing: the plan CTAs are buttons (not Stripe anchors); wire them after each render.
@@ -3265,7 +3266,7 @@ function openDrawer(id){
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
               <div class="dname">${esc(c.name)}</div>
               ${c.name?`<div style="position:relative;flex:none">
-                <button class="dbtn" id="dlook" style="padding:5px 11px;font-size:12px" title="Search the web for this client — from your browser, never sent to Halia">Look up ▾</button>
+                <button class="dbtn" id="dlook" style="padding:5px 11px;font-size:12px" title="Search the web for this client, from your browser. Never sent to Halia">Look up ▾</button>
                 <div id="dlookmenu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:0;box-shadow:0 10px 26px rgba(0,0,0,.13);overflow:hidden;z-index:50">${lookupItems(c)}</div>
               </div>`:''}
             </div>
@@ -3364,7 +3365,7 @@ function openDrawer(id){
           body:JSON.stringify({customer_id:c.cid,email:c.email,verdict:verdict})})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
           if(!ok)throw new Error(d.detail||"failed");
-          box.innerHTML='<span style="color:var(--brand);font-size:13px;font-weight:600">Thanks — '
+          box.innerHTML='<span style="color:var(--brand);font-size:13px;font-weight:600">Thanks, '
             +(verdict==="fit"?"marked a good call":"marked not a fit")
             +(d.tagged?" &amp; tagged in Shopify":"")+".</span>";
           rated.set(c.id, verdict); renderRows();   // show a "rated" badge on the row
@@ -3608,6 +3609,13 @@ function openSettings(page){
   const SUB_ON="background:var(--brand);color:#fff;border:none;border-radius:0;padding:6px 13px;font:600 12px "+SF+";cursor:pointer";
   const SUB_OFF="background:var(--shell);color:var(--soft);border:none;border-radius:0;padding:6px 13px;font:600 12px "+SF+";cursor:pointer";
   const CHIP="background:var(--brand-tint);border:1px solid #c9ddd5;border-radius:0;padding:3px 9px;font:600 12px 'Spline Sans Mono',ui-monospace,monospace;color:var(--brand-deep);cursor:pointer;margin:0 6px 6px 0";
+  // status chips: connected/on = tinted green, off = neutral shell
+  const ST_ON="display:inline-block;padding:4px 10px;background:#e3efe8;color:#0f6b47;font:600 11.5px "+SF+";letter-spacing:.03em";
+  const ST_OFF="display:inline-block;padding:4px 10px;background:var(--shell,#efece4);color:#7c766c;font:600 11.5px "+SF+";letter-spacing:.03em";
+  // collapsed technical how-to inside a card (keeps the card scannable for everyone else)
+  const DET="margin-top:14px;border-top:1px solid var(--line);padding-top:4px";
+  const SUM="cursor:pointer;font:600 12.5px "+SF+";color:var(--soft);padding:8px 0;list-style:none;display:flex;align-items:center;gap:7px";
+  const SUMARR="<span style='font-size:10px;color:var(--faint)'>&#9656;</span>";
   // top page-tabs (underline style, like a real settings nav)
   const STAB_ON="background:none;border:none;border-bottom:2px solid var(--brand);color:var(--ink);padding:10px 4px;margin-right:22px;font:600 14px "+SF+";cursor:pointer;white-space:nowrap";
   const STAB_OFF="background:none;border:none;border-bottom:2px solid transparent;color:var(--soft);padding:10px 4px;margin-right:22px;font:600 14px "+SF+";cursor:pointer;white-space:nowrap";
@@ -3622,8 +3630,7 @@ function openSettings(page){
       <div style="max-width:880px;margin:0 auto;padding:0 20px 120px">
         <div style="position:sticky;top:0;background:var(--bg);z-index:2;padding-top:18px">
           <button id="sback" style="display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--soft);font:600 13px ${SF};cursor:pointer;padding:6px 0">&#8592; Back to dashboard</button>
-          <h1 style="margin:4px 0 4px;font:500 30px/1.1 'Fraunces',serif;letter-spacing:-.01em;color:var(--ink)">Settings</h1>
-          <p style="font:14px/1.5 ${SF};color:var(--soft);margin:0 0 14px">Manage your integrations, scoring, alerts, templates and billing.</p>
+          <h1 style="margin:4px 0 14px;font:500 30px/1.1 'Fraunces',serif;letter-spacing:-.01em;color:var(--ink)">Settings</h1>
           <div style="display:flex;border-bottom:1px solid var(--line);overflow-x:auto">
             ${SPAGES.map(([k,label])=>`<button data-goto="${k}" style="${spage===k?STAB_ON:STAB_OFF}">${label}</button>`).join("")}
           </div>
@@ -3638,7 +3645,7 @@ function openSettings(page){
             ${[["klaviyo","Klaviyo",kv],["mailchimp","Mailchimp",mc],["hubspot","HubSpot",hs]].map(([k,label,on])=>`
               <button data-integ="${k}" style="text-align:left;padding:14px 15px;border-radius:0;border:1px solid ${integ===k?'var(--brand)':'var(--line-strong)'};background:${integ===k?'var(--brand-tint)':'var(--card)'};cursor:pointer">
                 <div style="font:600 14px ${SF};color:var(--ink)">${label}</div>
-                <div style="font:600 12px ${SF};color:${on?'#0f7b4f':'var(--faint)'};margin-top:5px">${on?'● Connected':'○ Not connected'}</div>
+                <div style="margin-top:7px"><span style="${on?ST_ON:ST_OFF};padding:3px 8px;font-size:11px">${on?'Connected':'Not connected'}</span></div>
               </button>`).join("")}
           </div>
         </div>
@@ -3648,7 +3655,7 @@ function openSettings(page){
             <div style="${H}">Klaviyo</div>
             <p style="${P}">Push grades, build segments, and email clients. Uses your <b>private</b> API key (starts <code>pk_</code>).</p>
             <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Klaviyo, go to <b>Account → Settings → API keys → Create Private API Key</b>. Give it full access to Profiles and Segments. The key starts <code>pk_</code>.</div>
-            <div style="font:600 13px system-ui;color:${kv?'#0f7b4f':'#616161'};margin-bottom:10px">${kv?"● Connected":"○ Not connected"}</div>
+            <div style="margin-bottom:12px"><span style="${kv?ST_ON:ST_OFF}">${kv?"Connected":"Not connected"}</span></div>
             <div style="display:flex;gap:8px;max-width:540px">
               <input id="setKvKey" type="password" placeholder="pk_live_… (paste to connect or replace)" style="flex:1;${I}">
               <button id="setKvConnect" style="${BS}">Connect</button>
@@ -3658,7 +3665,7 @@ function openSettings(page){
             <div style="${H}">Mailchimp</div>
             <p style="${P}">Push grades, tags, and segments to your audience. Uses an API key that ends in <b>-usXX</b> (your data centre).</p>
             <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Mailchimp, go to <b>Account → Extras → API keys → Create A Key</b>. Copy the whole key; it ends in a data-centre suffix like <code>-us21</code>.</div>
-            <div style="font:600 13px system-ui;color:${mc?'#0f7b4f':'#616161'};margin-bottom:10px">${mc?"● Connected"+(SETTINGS.mailchimp_list_name?" · "+esc(SETTINGS.mailchimp_list_name):""):"○ Not connected"}</div>
+            <div style="margin-bottom:12px"><span style="${mc?ST_ON:ST_OFF}">${mc?"Connected"+(SETTINGS.mailchimp_list_name?" · "+esc(SETTINGS.mailchimp_list_name):""):"Not connected"}</span></div>
             <div style="display:flex;gap:8px;max-width:540px">
               <input id="setMcKey" type="password" placeholder="xxxxxxxx-us21 (paste to connect or replace)" style="flex:1;${I}">
               <button id="setMcConnect" style="${BS}">Connect</button>
@@ -3668,7 +3675,7 @@ function openSettings(page){
             <div style="${H}">HubSpot</div>
             <p style="${P}">Write each client's Halia grade, score, and reasons onto their HubSpot contact. Uses a <b>Private App token</b> (starts <code>pat-</code>).</p>
             <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in HubSpot, go to <b>Settings → Integrations → Private Apps → Create a private app</b>. Grant the CRM contact read + write scopes. The token starts <code>pat-</code>.</div>
-            <div style="font:600 13px system-ui;color:${hs?'#0f7b4f':'#616161'};margin-bottom:10px">${hs?"● Connected":"○ Not connected"}</div>
+            <div style="margin-bottom:12px"><span style="${hs?ST_ON:ST_OFF}">${hs?"Connected":"Not connected"}</span></div>
             <div style="display:flex;gap:8px;max-width:540px">
               <input id="setHsKey" type="password" placeholder="pat-… (paste to connect or replace)" style="flex:1;${I}">
               <button id="setHsConnect" style="${BS}">Connect</button>
@@ -3699,14 +3706,14 @@ function openSettings(page){
         <div style="${C}">
           <div style="${H}">What your house offers</div>
           <p style="${P}">A short set of questions about what you can do for a top client, even the things you have never written down. Halia keeps to it: it will only ever offer a service you have told it you provide, and it never decides anything on your behalf.</p>
-          <div style="font:600 13px system-ui;color:${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?'#0f7b4f':'#616161'};margin-bottom:10px">${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?("\u25cf Answered \u00b7 "+Object.keys(SETTINGS.vip_profile).length+" of 6"):"\u25cb Not answered yet"}</div>
+          <div style="margin-bottom:12px"><span style="${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?ST_ON:ST_OFF}">${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?("Answered \u00b7 "+Object.keys(SETTINGS.vip_profile).length+" of 6"):"Not answered yet"}</span></div>
           <button id="setVipOpen" style="${BS}">${(SETTINGS.vip_profile&&Object.keys(SETTINGS.vip_profile).length)?"Review answers":"Answer the questions"}</button>
           <div style="font:12px system-ui;color:#8a8a8a;margin-top:12px">Two minutes, and every question can be skipped.</div>
         </div>
 
         <div style="${C}">
           <div style="${H}">Team</div>
-          <p style="${P}">Give each person their own sign-in for the extension and the Halia keyboard. Add a teammate to get their personal join code and QR; usage is attributed to them, and you can revoke anyone in a click.</p>
+          <p style="${P}">Each person gets their own sign-in for the extension and the Halia keyboard, so actions carry their name and you can revoke one person without touching the rest.</p>
           <div id="seatList" style="margin:6px 0 14px"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input id="seatName" placeholder="Teammate's name" style="flex:1;min-width:180px;border:1px solid var(--line-strong);border-radius:0;padding:9px 11px;font:14px system-ui;color:var(--ink);background:var(--card)">
@@ -3721,21 +3728,21 @@ function openSettings(page){
             </div>
             <code id="seatTok" style="display:none"></code>
             <div id="seatQrWrap" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
-              <div style="${LBL}">Halia keyboard app (iPhone): they scan this to sign in. No token to type.</div>
+              <div style="${LBL}">Halia keyboard app (iPhone): they scan this to sign in.</div>
               <img id="seatQr" alt="Scan to sign in" style="width:184px;height:184px;image-rendering:pixelated;margin-top:10px;background:#fff;padding:8px">
             </div>
           </div>
         </div>
 
         <div style="${C}">
-          <div style="${H}">Shared token <span style="font:500 12px system-ui;color:#8a8a8a">(legacy, one for the whole shop)</span></div>
-          <p style="${P}">One token everyone shares. Prefer adding teammates above so usage is attributed and revocable per person. This still works for a single-person shop or an existing install.</p>
-          <div style="font:600 13px system-ui;color:${SETTINGS.extension_enabled?'#0f7b4f':'#616161'};margin-bottom:6px">${SETTINGS.extension_enabled?"● A token is active":"○ No token yet"}</div>
+          <div style="${H}">Shared token</div>
+          <p style="${P}">One sign-in the whole shop shares. Adding teammates above is usually better; keep this for a single-person shop or an existing install.</p>
+          <div style="margin-bottom:10px"><span style="${SETTINGS.extension_enabled?ST_ON:ST_OFF}">${SETTINGS.extension_enabled?"A token is active":"No token yet"}</span></div>
           <div style="font:12px system-ui;color:#8a8a8a;margin-bottom:12px">${SETTINGS.ai_drafting?"“The brief” reads the conversation on screen and gives your team where the relationship stands, the next moves worth making, and a reply ready to send.":"“The brief” gives your team where the client stands, the next moves worth making, and a reply drawn from your own templates."}</div>
           <button id="setExtGen" style="${BS}">${SETTINGS.extension_enabled?"Generate a new token":"Generate token"}</button>
           <div id="setExtConnWrap" style="display:none;margin-top:14px;padding:13px 15px;background:var(--brand-tint,#e9f1ee);border-radius:0">
             <div style="font:600 13px system-ui;color:#1f564a">Halia extension found in this browser</div>
-            <div style="font:12px system-ui;color:#3a5a50;margin:4px 0 11px">Connect it in one click. No token to copy or paste.</div>
+            <div style="font:12px system-ui;color:#3a5a50;margin:4px 0 11px">Connect it in one click.</div>
             <button id="setExtConnect" style="${BS}">Connect this browser</button>
             <span id="setExtConnStatus" style="font:600 12px system-ui;margin-left:11px"></span>
           </div>
@@ -3744,11 +3751,11 @@ function openSettings(page){
             <code id="setExtTok" style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);background:var(--rowhover);border-radius:0;padding:11px 13px;word-break:break-all;margin-top:6px"></code>
             <div style="margin-top:10px"><button id="setExtCopy" style="background:none;border:none;color:#1f564a;font:600 13px system-ui;cursor:pointer;padding:0">Copy token</button></div>
             <div id="setExtQrWrap" style="display:none;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
-              <div style="${LBL}">Halia keyboard app (iPhone): scan this with your phone to connect it. No token to type.</div>
+              <div style="${LBL}">Halia keyboard app (iPhone): scan this with your phone to connect it.</div>
               <img id="setExtQr" alt="Scan to connect the Halia keyboard app" style="width:184px;height:184px;image-rendering:pixelated;margin-top:10px;background:#fff;padding:8px">
             </div>
           </div>
-          <div style="font:12px system-ui;color:#8a8a8a;margin-top:12px">Generating a new token replaces any previous one, and any extension using the old token will need the new one.</div>
+          <div style="font:12px system-ui;color:#8a8a8a;margin-top:12px">A new token replaces the old one everywhere.</div>
         </div>
 
         </div><!-- /integrations -->
@@ -3761,8 +3768,8 @@ function openSettings(page){
         </div>
 
         <div style="${C}">
-          <div style="${H}">Latent-value benchmarks</div>
-          <p style="${P}">Your own numbers, so the latent estimate is real. We grow each client from their spend toward your ceiling, the higher of your top lifetime client or AOV × max orders, scaled by their Halia score.</p>
+          <div style="${H}">Your store’s benchmarks</div>
+          <p style="${P}">Three numbers that anchor what a nurtured client could be worth in your store. Leave any blank and Halia estimates it from your orders.</p>
           <div class="sgrid3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
             <div><div style="${LBL}">Average order value (£)</div><input id="setAov" type="number" min="0" value="${esc(SETTINGS.aov)}" style="width:100%;${I}"></div>
             <div><div style="${LBL}">Most orders from one client</div><input id="setMaxOrders" type="number" min="0" value="${esc(SETTINGS.max_orders)}" style="width:100%;${I}"></div>
@@ -3772,8 +3779,8 @@ function openSettings(page){
 
         <div style="${C}">
           <div style="${H}">Signal calibration</div>
-          <p style="${P}">Learn which signals actually track spend <b>for your store</b> and re-tune each signal's weight to match — so rankings reflect your customers, not our defaults. Halia reads your store, measures each signal's spend lift, and adjusts the weights (bounded, and never switching a signal off). <b>Preview</b> to see the effect first; <b>Apply</b> to adopt it and re-score.</p>
-          <div style="font:600 13px system-ui;color:${calibrated?'#0f7b4f':'#616161'};margin-bottom:12px">${calibrated?"● Calibrated to your store":"○ Using default weights"}</div>
+          <p style="${P}">Halia can re-weight its signals to match what actually predicts spend in your store, so rankings reflect your customers rather than the defaults. Preview shows the effect before anything changes; Apply re-scores with the new weights. No signal is ever switched off.</p>
+          <div style="margin-bottom:14px"><span style="${calibrated?ST_ON:ST_OFF}">${calibrated?"Calibrated to your store":"Using default weights"}</span></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <button id="calibPreview" style="${BS}">Preview</button>
             <button id="calibApply" style="${BP}">Apply calibration</button>
@@ -3782,7 +3789,7 @@ function openSettings(page){
           <div id="calibResult" style="margin-top:14px"></div>
           <div style="border-top:1px solid #e3e3e3;margin:18px 0 14px"></div>
           <div style="${H};font-size:13px">Or calibrate from your feedback <span style="color:#0f7b4f;font-weight:600">· recommended</span></div>
-          <p style="${P}">Re-weight by which surfaced clients your team marked a <b>good call</b> — outcome-based, so it doesn't under-rate the signals that spot wealth <i>before</i> it shows up as spend. Needs a few verdicts first (the 👍 / 👎 on each client).</p>
+          <p style="${P}">Re-weights by the good-call verdicts your team leaves on clients, so signals that spot wealth before it shows up as spend keep their due. Needs a few verdicts first.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <button id="fbPreview" style="${BS}">Preview from feedback</button>
             <button id="fbApply" style="${BP}">Apply from feedback</button>
@@ -3805,22 +3812,22 @@ function openSettings(page){
               <option value="A*,A"${(SETTINGS.notify_grades||[]).indexOf("A")>=0?" selected":""}>A&#42; and A</option>
             </select>
           </div>
-          <div style="margin-top:18px"><div style="${LBL}">Email alerts to (comma-separated)</div>
+          <div style="margin-top:18px"><div style="${LBL}">Email alerts to</div>
             <input id="setNotifyEmail" type="text" value="${esc((SETTINGS.notify_emails||[]).join(', '))}" placeholder="you@brand.com, manager@brand.com" style="width:100%;max-width:480px;${I}">
             <div style="font:12px system-ui;color:#8a8a8a;margin-top:5px">Everyone here gets an email when a high-grade client orders.</div></div>
           <label style="display:flex;align-items:center;gap:10px;font:500 14px system-ui;color:var(--ink);cursor:pointer;margin-top:18px">
             <input type="checkbox" id="setBasketAlerts" ${SETTINGS.basket_alerts!==false?"checked":""} style="width:16px;height:16px;accent-color:#1f564a"> Also alert on high-value open baskets</label>
-          <div style="font:12px system-ui;color:#8a8a8a;margin-top:5px">When a high-grade client has an unpaid checkout above your threshold, we send the same Slack / email alert so your team can recover it while it's warm.</div>
-          <div style="margin-top:20px"><div style="${LBL}">Real-time webhook</div>
-            <code style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);background:var(--rowhover);border-radius:0;padding:11px 13px;word-break:break-all;margin-top:6px">${esc(SETTINGS.webhook_url||"")}</code>
-            <p style="${P};margin-top:8px;font-size:12px">Add this as an “Order created” webhook in your store (WooCommerce → Settings → Advanced → Webhooks, or a Shopify orders/create webhook) for instant alerts even when Halia is closed. Nothing about your customers is stored to power them.</p></div>
+          <div style="font:12px system-ui;color:#8a8a8a;margin-top:5px">When a high-grade client leaves an unpaid checkout above your threshold, you get the same alert so your team can recover it while it's warm.</div>
+          <details style="${DET}"><summary style="${SUM}">${SUMARR}Advanced: instant alerts, even with Halia closed</summary>
+            <p style="${P};margin-top:6px;font-size:12.5px">Add this address as an “Order created” webhook in your store platform (in WooCommerce: Settings → Advanced → Webhooks). Nothing about your customers is stored to power it.</p>
+            <code style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);background:var(--rowhover);border-radius:0;padding:11px 13px;word-break:break-all">${esc(SETTINGS.webhook_url||"")}</code></details>
         </div>
 
         <div style="${C}">
           <div style="${H}">Slack alerts</div>
           <p style="${P}">Post to a Slack channel the moment a high-grade client orders, so your team can recognise them in the moment. Nothing about your customers is stored to power this.</p>
           <div style="background:var(--brand-tint);border:1px solid #d3e5de;border-radius:0;padding:11px 13px;font:12.5px/1.55 ${SF};color:#2c4a42;margin-bottom:14px"><b>Where to find it:</b> in Slack, go to <b>Apps → Incoming Webhooks → Add to Slack</b>, pick the channel, and copy the webhook URL. It starts <code>https://hooks.slack.com/</code>.</div>
-          <div style="font:600 13px system-ui;color:${sl?'#0f7b4f':'#616161'};margin-bottom:10px">${sl?"● Connected"+(SETTINGS.slack_webhook?" · "+esc(SETTINGS.slack_webhook):""):"○ Not connected"}</div>
+          <div style="margin-bottom:12px"><span style="${sl?ST_ON:ST_OFF}">${sl?"Connected"+(SETTINGS.slack_webhook?" · "+esc(SETTINGS.slack_webhook):""):"Not connected"}</span></div>
           <div style="display:flex;gap:8px;max-width:540px">
             <input id="setSlackHook" type="password" placeholder="https://hooks.slack.com/services/… (paste to connect or replace)" style="flex:1;${I}">
             <button id="setSlackConnect" style="${BS}">Connect</button>
@@ -3839,7 +3846,7 @@ function openSettings(page){
 
         <div style="${C}">
           <div style="${H}">Catalogue message</div>
-          <p style="${P}">The message behind <b>Send catalogue</b> in the Email ▾ / WhatsApp ▾ menus. Tokens: <b>{first_name}</b>, <b>{catalog_link}</b> (the client's own personalised link) and <b>{sender}</b>.</p>
+          <p style="${P}">Sent when you choose <b>Send catalogue</b> on a client. <b>{first_name}</b> and <b>{sender}</b> personalise it; <b>{catalog_link}</b> becomes that client's own link.</p>
           <textarea id="setCatMsg" placeholder="Hi {first_name}, …" style="width:100%;min-height:150px;${I};resize:vertical;line-height:1.6">${esc(SETTINGS.catalog_message||"")}</textarea>
         </div>
 
@@ -3857,14 +3864,16 @@ function openSettings(page){
         </div>
 
         <div style="${C}">
-          <div style="${H}">Catalogue link domain <span style="color:#8a8a8a;font-weight:400;font-size:13px">(optional)</span></div>
-          <p style="${P}">Catalogue links show your own brand, not Halia. <b>Shopify</b> stores use the built-in App Proxy automatically. On <b>WooCommerce</b> (or any other store), point a subdomain at Halia (a CNAME to <code>haliascore.com</code>) and enter it here, e.g. <code>catalogue.yourbrand.com</code>.</p>
+          <div style="${H}">Catalogue link domain</div>
+          <p style="${P}">Catalogue links can carry your own domain instead of Halia's. Shopify stores get this automatically; on any other platform, enter a subdomain of your site here.</p>
           <input id="setCatDomain" value="${esc(SETTINGS.catalog_domain||'')}" placeholder="catalogue.yourbrand.com" style="width:100%;max-width:440px;${I}">
+          <details style="${DET}"><summary style="${SUM}">${SUMARR}How to point your subdomain at Halia</summary>
+            <p style="${P};margin-top:6px;font-size:12.5px">In your domain provider, add a DNS record for the subdomain (for example <code>catalogue.yourbrand.com</code>): type <b>CNAME</b>, pointing to <code>haliascore.com</code>. It usually takes effect within an hour.</p></details>
         </div>
 
         <div style="${C}">
           <div style="${H}">Message templates</div>
-          <p style="${P}"><b>Client emails</b> power the per-client “Email ▾” / “WhatsApp ▾” menus. <b>Order actions</b> power the status buttons in the Orders view. Pick a template on the left; edit it on the right.</p>
+          <p style="${P}"><b>Client emails</b> appear in each client's Email and WhatsApp menus. <b>Order actions</b> sit on the status buttons in Orders. Pick a template on the left to edit it.</p>
           <div style="display:flex;gap:8px;margin-bottom:14px">
             <button data-tab="client" style="${tab==='client'?TAB_ON:TAB_OFF}">Client emails</button>
             <button data-tab="order" style="${tab==='order'?TAB_ON:TAB_OFF}">Order actions</button>
@@ -3888,7 +3897,7 @@ function openSettings(page){
         <div class="spage" data-page="privacy" style="display:${spage==='privacy'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Privacy wording for your policy</div>
-          <p style="${P}">Suggested wording to add to your own privacy policy — a starting point, not legal advice. Need the full paperwork? <a href="mailto:hello@haliascore.com?subject=Halia%20compliance%20pack" style="color:#1f564a;font-weight:600">Request the DPA &amp; compliance pack</a>.</p>
+          <p style="${P}">Suggested wording to add to your own privacy policy: a starting point, not legal advice. Need the full paperwork? <a href="mailto:hello@haliascore.com?subject=Halia%20compliance%20pack" style="color:#1f564a;font-weight:600">Request the DPA &amp; compliance pack</a>.</p>
           ${PRIVACY_INSERTS.map((p,i)=>`<div style="border:1px solid #e3e3e3;border-radius:0;padding:12px;margin-bottom:10px;background:var(--rowhover)">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px"><div style="font:650 13px system-ui;color:var(--ink)">${p.h}</div><button data-copy="${i}" style="${BS};padding:5px 12px">Copy</button></div>
             <div style="font:13px/1.55 system-ui;color:var(--soft)">${esc(p.body)}</div></div>`).join("")}
@@ -3933,8 +3942,8 @@ function openSettings(page){
         </div>
         </div><!-- /support -->
 
-        <div id="saveBar" style="display:${['scoring','alerts','templates'].includes(spage)?'':'none'};margin-top:4px">
-          <button id="saveSettings" style="${BP}">Save settings</button>
+        <div id="saveBar" style="display:${['scoring','alerts','templates'].includes(spage)?'':'none'};position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:14px 0 18px;margin-top:10px">
+          <button id="saveSettings" style="${BP}">Save changes</button>
         </div>
       </div>
      </div>`;
@@ -4130,6 +4139,14 @@ function openSettings(page){
       const P2="color:var(--soft);font-size:13.5px;line-height:1.55;margin:0 0 12px";
       box.innerHTML=haliaLoader("Loading plans");
       fetch("/v1/plans/status").then(r=>r.json()).then(d=>{
+        if(d.stripe){
+          // Custom-distribution bridge tenant: billed through Stripe, so render the Stripe
+          // billing panel (portal, cancel, payment-link plan cards) instead of Shopify Billing.
+          PLANS_CACHE=d;
+          fetch("/v1/billing/status").then(r=>r.json()).then(b=>{b._stripe=true;SETTINGS.billing=b;paintBilling(b);})
+            .catch(()=>{ box.innerHTML='<div style="color:var(--soft);font-size:13.5px">Couldn\'t load billing.</div>'; });
+          return;
+        }
         d.shopify=true; PLANS_CACHE=d;
         const cur=d.current||"free";
         const curPlan=(d.plans||[]).find(p=>p.key===cur)||{name:"Free"};
@@ -4143,15 +4160,15 @@ function openSettings(page){
     }
     function paintBilling(b){
       const box=document.getElementById("billingBox"); if(!box) return;
-      if(PLATFORM==="shopify") return paintBillingShopify(box);
+      if(PLATFORM==="shopify"&&!(b&&b._stripe)) return paintBillingShopify(box);
       const LBLMAP={active:"Active",trialing:"Trial",comped:"Complimentary",canceled:"Cancelled",
                     past_due:"Past due",incomplete:"Incomplete",free:"Not subscribed"};
-      if(!b.enabled){box.innerHTML=`<div style="${P};margin:0">You have full access — no billing is required at the moment.</div>`;return;}
+      if(!b.enabled){box.innerHTML=`<div style="${P};margin:0">You have full access. No billing is required at the moment.</div>`;return;}
       const label=LBLMAP[b.status]||b.status;
       const dot=b.paid?'#0f7b4f':'#8a6d3b';
       const fmt=ts=>ts?new Date(ts*1000).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}):"";
       let h=`<div style="font:600 13px system-ui;color:${dot};margin-bottom:12px">● Plan: ${label}</div>`;
-      if(b.comped){box.innerHTML=h+`<p style="${P};margin:0">Your access is complimentary — there's nothing to manage.</p>`;return;}
+      if(b.comped){box.innerHTML=h+`<p style="${P};margin:0">Your access is complimentary. There is nothing to manage.</p>`;return;}
       if(b.manageable){
         if(b.cancel_at_period_end){
           h+=`<p style="${P}">Your subscription is set to cancel on <b>${fmt(b.current_period_end)}</b>. You keep full access until then.</p>`
@@ -4198,7 +4215,7 @@ function openSettings(page){
       const dngr="background:#8e1f0b;color:#fff;border:none;border-radius:0;padding:11px 20px;font:600 13px system-ui;cursor:pointer";
       function step1(){
         box.innerHTML=`<div style="${H};margin-bottom:6px">Before you go</div>
-          <p style="${P}">We'd love to know what isn't working — it genuinely helps us improve.</p>
+          <p style="${P}">We'd love to know what isn't working. It genuinely helps us improve.</p>
           <div>${REASONS.map((r,i)=>`<label style="display:flex;align-items:center;gap:9px;padding:6px 0;font:14px system-ui;color:var(--ink);cursor:pointer"><input type="radio" name="creason" value="${r}" ${i===0?'checked':''} style="accent-color:#1f564a">${r}</label>`).join("")}</div>
           <textarea id="cdetail" rows="3" placeholder="Anything more? (optional)" style="width:100%;${I};resize:vertical;margin-top:8px"></textarea>
           <div style="display:flex;gap:8px;margin-top:14px"><button id="cNext" style="${BP}">Continue</button><button id="cBack" style="${BS}">Never mind</button></div>`;
@@ -4207,12 +4224,12 @@ function openSettings(page){
       }
       function step2(){
         box.innerHTML=`<div style="${H};margin-bottom:6px">A parting offer</div>
-          <p style="${P}">Before you cancel — stay and take <b>50% off for the rest of your subscription</b>. The same dashboard and potential-VIC intelligence, at half the price.</p>
+          <p style="${P}">Before you cancel: stay and take <b>50% off for the rest of your subscription</b>. The same dashboard and potential-VIC intelligence, at half the price.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="cOffer" style="${BP}">Keep Halia at 50% off</button><button id="cNo" style="${BS}">No thanks, continue</button></div>`;
         document.getElementById("cNo").onclick=step3;
         document.getElementById("cOffer").onclick=()=>{const bn=document.getElementById("cOffer");bn.disabled=true;bn.textContent="Applying…";
           fetch("/v1/billing/retention",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
-            if(!ok)throw new Error((d&&d.detail)||"failed");toast("50% discount applied — glad to keep you.");SETTINGS.billing=null;loadBilling();})
+            if(!ok)throw new Error((d&&d.detail)||"failed");toast("50% discount applied. Glad to keep you.");SETTINGS.billing=null;loadBilling();})
             .catch(e=>{toast("Couldn't apply the offer: "+e.message);bn.disabled=false;bn.textContent="Keep Halia at 50% off";});};
       }
       function step3(){
@@ -4223,7 +4240,7 @@ function openSettings(page){
         document.getElementById("cConfirm").onclick=()=>{const bn=document.getElementById("cConfirm");bn.disabled=true;bn.textContent="Cancelling…";
           fetch("/v1/billing/cancel",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({reason:reason,detail:detail})})
             .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error((d&&d.detail)||"failed");
-              toast("Subscription cancelled — access continues until your period ends.");SETTINGS.billing=null;loadBilling();})
+              toast("Subscription cancelled. Access continues until your period ends.");SETTINGS.billing=null;loadBilling();})
             .catch(e=>{toast("Something went wrong: "+e.message);bn.disabled=false;bn.textContent="Cancel my subscription";});};
       }
       step1();
@@ -4237,7 +4254,7 @@ function openSettings(page){
     const calibBox=document.getElementById("calibResult");
     function showCalib(rep,note){
       const rws=(rep||[]).filter(r=>r.n_fired>0);
-      if(!rws.length){calibBox.innerHTML=`<div style="${P};margin:0">No signals have fired on your store yet — nothing to calibrate.</div>`;return;}
+      if(!rws.length){calibBox.innerHTML=`<div style="${P};margin:0">No signals have fired on your store yet, so there is nothing to calibrate.</div>`;return;}
       calibBox.innerHTML=`${note?`<div style="${LBL};margin-bottom:8px">${note}</div>`:""}
         <div style="overflow:auto;border:1px solid #e3e3e3;border-radius:0">
         <table style="width:100%;border-collapse:collapse;font:12.5px system-ui">
@@ -4257,7 +4274,7 @@ function openSettings(page){
     if(cprev) cprev.onclick=()=>{cprev.disabled=true;cprev.textContent="Reading your store…";
       fetch("/v1/calibrate").then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
         if(!ok)throw new Error(d.detail||"failed");
-        showCalib(d.report,"Preview only — not yet applied. Apply to adopt these weights.");
+        showCalib(d.report,"Preview only, not yet applied. Apply to adopt these weights.");
       }).catch(e=>toast("Preview failed: "+e.message)).finally(()=>{cprev.disabled=false;cprev.textContent="Preview";});
     };
     const capply=document.getElementById("calibApply");
@@ -4276,7 +4293,7 @@ function openSettings(page){
     const fbBox=document.getElementById("fbResult");
     function showFbCalib(rep,verdicts,note){
       const rws=(rep||[]).filter(r=>r.n>0);
-      if(!rws.length){fbBox.innerHTML=`<div style="${P};margin:0">No feedback yet — mark a few clients 👍 good call / 👎 not a fit, then come back.</div>`;return;}
+      if(!rws.length){fbBox.innerHTML=`<div style="${P};margin:0">No feedback yet. Mark a few clients good call or not a fit, then come back.</div>`;return;}
       fbBox.innerHTML=`${note?`<div style="${LBL};margin-bottom:8px">${note} · ${verdicts} verdict${verdicts===1?"":"s"} so far</div>`:""}
         <div style="overflow:auto;border:1px solid #e3e3e3;border-radius:0">
         <table style="width:100%;border-collapse:collapse;font:12.5px system-ui">
@@ -4296,7 +4313,7 @@ function openSettings(page){
     if(fbprev) fbprev.onclick=()=>{fbprev.disabled=true;fbprev.textContent="Reading feedback…";
       fetch("/v1/calibrate/feedback").then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
         if(!ok)throw new Error(d.detail||"failed");
-        showFbCalib(d.report,d.verdicts,"Preview only — not yet applied.");
+        showFbCalib(d.report,d.verdicts,"Preview only, not yet applied.");
       }).catch(e=>toast("Preview failed: "+e.message)).finally(()=>{fbprev.disabled=false;fbprev.textContent="Preview from feedback";});
     };
     const fbapply=document.getElementById("fbApply");
@@ -4325,9 +4342,9 @@ function openSettings(page){
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";
       fetch("/v1/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
-          toast("Settings saved. Refreshing…"); setTimeout(()=>location.reload(),600);
+          toast("Saved. Refreshing…"); setTimeout(()=>location.reload(),600);
         })
-        .catch(e=>{toast("Save failed: "+e.message);b.disabled=false;b.textContent="Save settings";});
+        .catch(e=>{toast("Save failed: "+e.message);b.disabled=false;b.textContent="Save changes";});
     };
     settingsEl.style.display="block";
     setUrlPath("/view/settings");                    // reflect in the URL so App Bridge highlights Settings
@@ -4658,7 +4675,7 @@ function catSafeJson(r){
     if((d.detail==null) && !r.ok){
       d.detail = (r.status===502||r.status===503||r.status===504)
         ? "Halia is briefly unavailable (it may be updating). Please try again in a moment."
-        : (r.status===0 ? "Network error — check your connection and try again."
+        : (r.status===0 ? "Network error. Check your connection and try again."
                         : ("Something went wrong (error "+r.status+"). Please try again."));
     }
     return {ok:r.ok, d:d||{}, status:r.status};
