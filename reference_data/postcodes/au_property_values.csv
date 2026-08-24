@@ -1,8 +1,10 @@
 postcode,area,median_aud,tier
-# Curated national seed: Australia's high-value residential postcodes (house medians, AUD).
-# NSW rows are replaced by scripts/build_au_property.py from Valuer General bulk sales data;
-# other states (VIC/QLD/WA/SA/ACT/TAS) have commercial-only registers, so their rows stay
-# curated. Tier bands (house median): ultra>=4,500,000 prime>=3,000,000 high>=2,200,000.
+# Australia's high-value residential postcodes (house medians, AUD).
+# NSW rows are curated until replaced by scripts/build_au_property.py (Valuer General bulk
+# sales). VIC figures are official Valuer-General VPSR 2024 suburb medians; SA figures are
+# official quarterly medians (data.sa.gov.au) pooled over FY2025-26. QLD/WA/ACT/TAS registers
+# are commercial, so those rows stay curated estimates.
+# Tier bands (house median): ultra>=4,500,000 prime>=3,000,000 high>=2,200,000.
 2027,Point Piper & Darling Point,9000000,ultra
 2023,Bellevue Hill,9500000,ultra
 2030,Vaucluse & Rose Bay,7500000,ultra
@@ -19,16 +21,27 @@ postcode,area,median_aud,tier
 2021,Paddington,3300000,prime
 2041,Balmain,2700000,high
 2011,Potts Point & Elizabeth Bay,2400000,high
-3142,Toorak & Hawksburn,5400000,ultra
-3002,East Melbourne,4600000,ultra
-3186,Brighton,3500000,prime
-3143,Armadale,3200000,prime
-3144,Malvern,3100000,prime
-3101,Kew,3000000,prime
-3122,Hawthorn,3000000,prime
-3944,Portsea,3000000,prime
-3206,Albert Park & Middle Park,2900000,prime
-3141,South Yarra,2500000,high
+3142,Toorak & Hawksburn,6060000,ultra
+3186,Brighton,3405500,prime
+3944,Portsea,3330000,prime
+3144,Malvern,3306000,prime
+3126,Canterbury,3212500,prime
+3002,East Melbourne & Jolimont,3650000,prime
+3103,Balwyn & Deepdene,2900000,high
+3122,Hawthorn,2900000,high
+3101,Kew,2805000,high
+3124,Camberwell,2600000,high
+3123,Hawthorn East,2585000,high
+3929,Flinders,2500000,high
+3206,Middle Park & Albert Park,2400000,high
+3143,Armadale,2380000,high
+3146,Glen Iris,2370000,high
+3161,Caulfield North,2450000,high
+3127,Surrey Hills & Mont Albert,2350000,high
+3104,Balwyn North,2310000,high
+3141,South Yarra,2260000,high
+3102,Kew East,2229000,high
+3187,Brighton East,2200000,high
 4007,Ascot & Hamilton,2900000,prime
 4005,New Farm & Teneriffe,2800000,prime
 4218,Mermaid Beach & Broadbeach Waters,3400000,prime
@@ -41,6 +54,12 @@ postcode,area,median_aud,tier
 6153,Applecross & Mount Pleasant,2500000,prime
 2600,Deakin & Yarralumla,2800000,prime
 2603,Forrest & Griffith,2700000,prime
-5061,Unley Park & Hyde Park,2200000,high
-5006,North Adelaide,2200000,high
+5065,Toorak Gardens & Tusmore,2857350,high
+5069,St Peters & College Park,2547816,high
+5081,Medindie & Walkerville,2433793,high
+5006,North Adelaide,2433143,high
+5061,Unley Park & Malvern,2400000,high
+5044,Somerton Park,2323176,high
+5062,Netherby & Springfield,2303250,high
+5068,Kensington Gardens & Leabrook,2261269,high
 7005,Sandy Bay,2200000,high

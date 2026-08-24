@@ -52,30 +52,30 @@ postcode,area,avg_taxable_income,tier
 2600,Deakin & Yarralumla,137164,high
 2603,Forrest & Griffith,148501,high
 2618,Capital Region,145036,high
-3002,East Melbourne,134811,high
+3002,East Melbourne & Jolimont,134811,high
 3079,Melbourne - North East,129204,high
 3093,Melbourne - North East,127736,high
 3101,Kew,137010,high
 3122,Hawthorn,132069,high
-3123,Melbourne - Inner East,126688,high
-3126,Melbourne - Inner East,146066,high
+3123,Hawthorn East,126688,high
+3126,Canterbury,146066,high
 3141,South Yarra,121257,high
 3142,Toorak & Hawksburn,282398,ultra
 3143,Armadale,155845,prime
 3144,Malvern,161384,prime
-3161,Melbourne - Inner South,129070,high
+3161,Caulfield North,129070,high
 3186,Brighton,172387,prime
 3188,Melbourne - Inner South,123025,high
 3191,Melbourne - Inner South,122151,high
 3193,Melbourne - Inner South,120484,high
-3206,Albert Park & Middle Park,176567,prime
+3206,Middle Park & Albert Park,176567,prime
 3207,Melbourne - Inner,124316,high
 3441,Melbourne - North West,133852,high
 3641,Shepparton,120915,high
 3770,Melbourne - Outer East,137767,high
 3916,Mornington Peninsula,129693,high
 3926,Mornington Peninsula,124399,high
-3929,Mornington Peninsula,162311,prime
+3929,Flinders,162311,prime
 3937,Mornington Peninsula,144227,high
 3943,Mornington Peninsula,158151,prime
 3944,Portsea,330037,ultra
@@ -85,7 +85,7 @@ postcode,area,avg_taxable_income,tier
 4065,Brisbane Inner City,133684,high
 4155,Brisbane - East,186136,prime
 4171,Bulimba & Hawthorne,138307,high
-5061,Unley Park & Hyde Park,125350,high
+5061,Unley Park & Malvern,125350,high
 5066,Adelaide - Central and Hills,145283,high
 6008,Perth - Inner,120807,high
 6009,Dalkeith & Nedlands,184481,prime
