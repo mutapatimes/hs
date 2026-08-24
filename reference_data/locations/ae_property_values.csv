@@ -1,0 +1,37 @@
+area,emirate,median_aed_sqm,tier
+# Curated seed of high-value UAE residential communities, tiered by prevailing AED/sqm.
+# Rebuild from the Dubai Land Department's open transaction data with
+# scripts/build_ae_property.py (manual download; Dubai Pulse blocks non-UAE server IPs).
+# Names are as customers write them in addresses. Never include a generic single word
+# ("Jumeirah", "Marina"): it would substring-match mid-market communities.
+Emirates Hills,Dubai,,ultra
+Jumeirah Bay Island,Dubai,,ultra
+Jumeira Bay,Dubai,,ultra
+Palm Jumeirah,Dubai,,ultra
+Bluewaters Island,Dubai,,ultra
+Al Barari,Dubai,,ultra
+District One,Dubai,,ultra
+Dubai Hills Grove,Dubai,,ultra
+Pearl Jumeira,Dubai,,ultra
+Jumeirah Golf Estates,Dubai,,prime
+Dubai Hills Estate,Dubai,,prime
+Downtown Dubai,Dubai,,prime
+DIFC,Dubai,,prime
+Emaar Beachfront,Dubai,,prime
+City Walk,Dubai,,prime
+Jumeirah Islands,Dubai,,prime
+The Meadows,Dubai,,prime
+Palm Jebel Ali,Dubai,,prime
+Tilal Al Ghaf,Dubai,,prime
+La Mer,Dubai,,prime
+Madinat Jumeirah Living,Dubai,,prime
+Saadiyat Island,Abu Dhabi,,prime
+Dubai Marina,Dubai,,high
+Jumeirah Beach Residence,Dubai,,high
+Business Bay,Dubai,,high
+Dubai Creek Harbour,Dubai,,high
+Arabian Ranches,Dubai,,high
+The Lakes,Dubai,,high
+Umm Suqeim,Dubai,,high
+Al Raha Beach,Abu Dhabi,,high
+Yas Island,Abu Dhabi,,high

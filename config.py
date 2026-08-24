@@ -97,6 +97,7 @@ PREMIUM_BINS_FILE = CARDS_DIR / "premium_bins.csv"
 LOCATIONS_DIR = REFERENCE_DIR / "locations"
 HNW_LOCATIONS_FILE = LOCATIONS_DIR / "hnw_locations.csv"
 HNW_AREAS_FILE = LOCATIONS_DIR / "hnw_areas.csv"
+AE_PROPERTY_VALUES_FILE = LOCATIONS_DIR / "ae_property_values.csv"
 # Origin-adjacent prime districts (Bucket 3 — arguable wealth-geography but the flagged
 # population skews to one national origin in a UK book, so GATED off by default). Names matched
 # like hnw_areas; postcodes like intl_hnwi_postcodes. See docs/geography-signal-taxonomy.md.
