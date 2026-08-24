@@ -18,6 +18,12 @@ from pathlib import Path
 import pandas as pd
 
 from config import US_PROPERTY_VALUES_FILE
+from scoring.signals._us_nexus import is_foreign_country
+
+# Each ZIP column is vetoed by ITS OWN address's country column when it names a non-US country
+# (several countries share the 5-digit space: 20144 is Delaplane VA and central Milan).
+_COUNTRY_FOR = {"LATEST_BILLING_ZIP": "LATEST_BILLING_ADDRESS4",
+                "LATEST_SHIPPING_ZIP": "LATEST_SHIPPING_ADDRESS4"}
 
 FLAG_COL = "us_property"
 TIER_COL = "us_property_tier"
@@ -89,6 +95,9 @@ def flag_us_property(
     def _best(row):
         best = (False, None, None)
         for c in cols:
+            ccol = _COUNTRY_FOR.get(c)
+            if ccol and ccol in row.index and is_foreign_country(row[ccol]):
+                continue   # Milan 20144 with country "Italy" must not read as a Virginia ZIP
             hit, tier, reason = match_zip(row[c], table)
             if hit and _TIER_RANK.get(tier, 0) > _TIER_RANK.get(best[1], 0):
                 best = (hit, tier, reason)

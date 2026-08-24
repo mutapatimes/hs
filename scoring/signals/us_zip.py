@@ -4,7 +4,9 @@ Flags customers whose US billing ZIP falls in an ultra-high-net-worth area
 (reference_data/postcodes/us_hnwi_zips.csv). US ZIPs are 5 digits, so this is a
 separate signal from the UK postcode matcher. ZIP+4 (e.g. 90210-1234) is reduced
 to its 5-digit prefix before matching. UK postcodes (which always contain
-letters) never produce 5 digits, so they can't false-fire here.
+letters) never produce 5 digits, so they can't false-fire here; continental
+5-digit postcodes CAN, so a side whose own country column names a non-US
+country is vetoed.
 
 The seed list is curated; regenerate to comprehensive, data-driven national coverage from IRS
 Statistics of Income (SOI) ZIP-code data with scripts/build_us_zips.py (mean AGI per ZIP — a
@@ -19,6 +21,12 @@ from pathlib import Path
 import pandas as pd
 
 from config import US_HNWI_ZIPS_FILE
+from scoring.signals._us_nexus import is_foreign_country
+
+# Each ZIP column is vetoed by ITS OWN address's country column when it names a non-US country
+# (several countries share the 5-digit space: 20144 is Delaplane VA and central Milan).
+_COUNTRY_FOR = {"LATEST_BILLING_ZIP": "LATEST_BILLING_ADDRESS4",
+                "LATEST_SHIPPING_ZIP": "LATEST_SHIPPING_ADDRESS4"}
 
 FLAG_COL = "us_hnwi_zip"
 REASON_COL = "us_hnwi_zip_reason"
@@ -79,6 +87,9 @@ def flag_us_zip(
 
     def _match(row):
         for c in cols:
+            ccol = _COUNTRY_FOR.get(c)
+            if ccol and ccol in row.index and is_foreign_country(row[ccol]):
+                continue
             hit, reason = match_zip(row[c], zips)
             if hit:
                 return hit, reason
