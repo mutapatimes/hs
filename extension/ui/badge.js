@@ -19,12 +19,12 @@
        display: flex; align-items: center; gap: 8px; box-shadow: -2px 0 12px rgba(0,0,0,.18); }
     .handle .m { writing-mode: horizontal-tb; font-size: 14px; color: #6FBFA0; }
     .dock.open .handle { display: none; }
-    .panel { position: fixed; right: 0; top: 0; height: 100vh; width: 344px; max-width: 92vw;
+    .panel { position: fixed; right: 0; top: 0; height: 100vh; width: 364px; max-width: 92vw;
       z-index: 2147483647; background: #ffffff; color: #303030; border-left: 1px solid #e3e3e3;
       box-shadow: -12px 0 44px rgba(0,0,0,.16); display: flex; flex-direction: column;
       transform: translateX(100%); transition: transform .22s cubic-bezier(.2,.7,.2,1); }
     .dock.open .panel { transform: translateX(0); }
-    .bar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #e3e3e3;
+    .bar { display: flex; align-items: center; gap: 8px; padding: 15px 18px; border-bottom: 1px solid #e3e3e3;
       background: #f7f7f7; flex: none; position: relative; }
     .bar .m { color: #1F564A; font-size: 15px; }
     /* the engine's scanline: a hairline that sweeps under the bar whenever Halia is working */
@@ -49,23 +49,23 @@
     .tabs { display: flex; padding: 0 8px; background: #f7f7f7; border-bottom: 1px solid #e3e3e3; flex: none; }
     .tabs.hide { display: none; }
     .tab { flex: 1; border: 0; background: transparent; color: #8a8a8a; font-size: 11px; 
-      letter-spacing: .06em; padding: 9px 4px; cursor: pointer; border-bottom: 2px solid transparent; }
+      letter-spacing: .06em; padding: 12px 4px; cursor: pointer; border-bottom: 2px solid transparent; }
     .tab:hover { color: #303030; }
     .tab.on { color: #303030; border-bottom-color: #1F564A; font-weight: 600; }
     .lnkbtn { background: none; border: 0; color: #1F564A; font-size: 11.5px; cursor: pointer; padding: 6px 0 0; }
     .lnkbtn:hover { text-decoration: underline; }
     .scroll { overflow-y: auto; flex: 1; }
-    .sec { border-bottom: 1px solid #e3e3e3; padding: 13px 14px; }
-    .sh { font-size: 11px;   color: #8a8a8a; margin: 0 0 9px;
+    .sec { border-bottom: 1px solid #e3e3e3; padding: 18px; }
+    .sh { font-size: 11.5px;   color: #8a8a8a; margin: 0 0 12px;
       display: flex; align-items: center; gap: 7px; }
     .sh .n { background: #e3e3e3; color: #616161; font-size: 10px; padding: 1px 6px; }
-    .head { display: flex; align-items: flex-start; gap: 10px; }
+    .head { display: flex; align-items: flex-start; gap: 13px; }
     .grade { flex: none; min-width: 44px; height: 44px; padding: 0 8px; display: flex; align-items: center;
       justify-content: center; font-weight: 700; font-size: 19px; color: #fff; background: #616161; }
     .grade.g-a { background: #1F564A; } .grade.g-b { background: #55606b; } .grade.g-c { background: #8a8a8a; }
     /* initials avatar with a grade badge */
     .idw { position: relative; flex: none; }
-    .ava2 { width: 46px; height: 46px; border-radius: 50%; background: #e7efeb; color: #1F564A;
+    .ava2 { width: 52px; height: 52px; border-radius: 50%; background: #e7efeb; color: #1F564A;
       display: grid; place-items: center; font-weight: 600; font-size: 15px; letter-spacing: .02em; }
     .gbadge { position: absolute; right: -4px; bottom: -4px; min-width: 20px; height: 18px; padding: 0 4px;
       border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700;
@@ -125,23 +125,23 @@
     }
     :where(button, input, textarea, select):focus-visible { outline: 2px solid #1F564A; outline-offset: 1px; }
     .who { flex: 1; min-width: 0; }
-    .who .nm { font-weight: 600; font-size: 15px; line-height: 1.2; }
-    .who .sub { color: #616161; font-size: 12px; margin-top: 2px; line-height: 1.35; }
+    .who .nm { font-weight: 650; font-size: 16.5px; line-height: 1.25; }
+    .who .sub { color: #616161; font-size: 12.5px; margin-top: 3px; line-height: 1.45; }
     .pill { display: inline-block; margin-top: 5px; margin-right: 4px; font-size: 10px; padding: 1px 7px;
       border: 1px solid #cccccc; color: #616161;   }
     .pill.play { background: #e7efeb; border-color: #cfe0d8; color: #1F564A; }
-    .box { margin-top: 10px; padding: 8px 10px; background: #f7f7f7; border: 1px solid #e3e3e3; }
+    .box { margin-top: 14px; padding: 12px 14px; background: #f7f7f7; border: 1px solid #e3e3e3; }
     .box.basket { background: #edf3f0; border-color: #cfe0d8; }
     .box .k { font-size: 10px; color: #616161;   }
-    .box .v { font-size: 16px; font-weight: 700; margin-top: 1px; }
-    .lbl { font-size: 10px;   color: #616161; margin: 11px 0 5px; }
+    .box .v { font-size: 19px; font-weight: 650; margin-top: 2px; }
+    .lbl { font-size: 11px;   color: #616161; margin: 16px 0 7px; }
     .reasons { list-style: none; margin: 0; padding: 0; }
-    .reasons li { padding: 3px 0 3px 13px; position: relative; line-height: 1.35; font-size: 12.5px; }
+    .reasons li { padding: 5px 0 5px 15px; position: relative; line-height: 1.5; font-size: 13px; }
     .reasons li:before { content: "·"; position: absolute; left: 3px; color: #1F564A; font-weight: 700; }
     .reco { line-height: 1.4; color: #303030; font-size: 12.5px; }
-    .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .btn { border: 1px solid #cccccc; background: #fff; color: #303030; padding: 6px 10px; cursor: pointer;
-      font-size: 12px; text-decoration: none; display: inline-block; transition: background .15s ease, transform .06s ease; }
+    .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .btn { border: 1px solid #cccccc; background: #fff; color: #303030; padding: 8px 13px; cursor: pointer;
+      font-size: 12.5px; text-decoration: none; display: inline-block; transition: background .15s ease, transform .06s ease; }
     .btn:hover { background: #f7f7f7; }
     .btn:active { transform: translateY(1px); }
     .btn.primary { background: #303030; color: #ffffff; border-color: #303030; }
@@ -157,15 +157,15 @@
     /* Media panel: a photo grid for sending product imagery into the chat */
     .mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .mcard { border: 1px solid #e3e3e3; background: #fff; padding: 6px; display: flex; flex-direction: column; }
-    .mimg { width: 100%; height: 104px; object-fit: cover; background: #f7f7f7; display: block; }
+    .mimg { width: 100%; height: 122px; object-fit: cover; background: #f7f7f7; display: block; }
     .mtt { font-size: 11.5px; color: #303030; margin: 6px 0; line-height: 1.3; max-height: 2.6em; overflow: hidden; }
     .macts { display: flex; gap: 5px; flex-wrap: wrap; margin-top: auto; }
     .macts .btn { font-size: 11px; padding: 4px 8px; }
-    .tlist { border: 1px solid #e3e3e3; max-height: 196px; overflow-y: auto; margin-bottom: 8px; background: #fff; }
-    .tcat { font-size: 10px;   color: #8a8a8a;
-      padding: 8px 8px 3px; background: #f7f7f7; position: sticky; top: 0; }
+    .tlist { border: 1px solid #e3e3e3; max-height: clamp(240px, 44vh, 560px); overflow-y: auto; margin-bottom: 10px; background: #fff; }
+    .tcat { font-size: 10.5px;   color: #8a8a8a;
+      padding: 10px 11px 4px; background: #f7f7f7; position: sticky; top: 0; }
     .titem { display: block; width: 100%; text-align: left; border: 0; background: transparent;
-      padding: 6px 8px; font-size: 12.5px; color: #303030; cursor: pointer; }
+      padding: 9px 11px; font-size: 13px; color: #303030; cursor: pointer; }
     .titem:hover { background: #f7f7f7; }
     .titem.sel { background: #f7f7f7; font-weight: 600; }
     select { width: 100%; padding: 6px; border: 1px solid #cccccc; background: #fff; font-size: 12px; }
@@ -173,7 +173,7 @@
       font-family: inherit; resize: vertical; color: #303030; }
     .prev { margin-top: 6px; padding: 8px; background: #f7f7f7; border: 1px solid #e3e3e3; font-size: 12px;
       line-height: 1.4; white-space: pre-wrap; max-height: 116px; overflow-y: auto; }
-    .dbox { border: 1px solid #e3e3e3; background: #f7f7f7; padding: 9px; margin-bottom: 11px; }
+    .dbox { border: 1px solid #e3e3e3; background: #f7f7f7; padding: 14px; margin-bottom: 14px; }
     .dbox .sh { margin: 0 0 7px; }
     textarea.dinstr { width: 100%; box-sizing: border-box; border: 1px solid #cccccc; background: #fff;
       font: inherit; font-size: 12.5px; padding: 7px 9px; resize: vertical; min-height: 32px; color: #303030; }
@@ -193,13 +193,13 @@
     .row .rd { font-size: 11.5px; color: #616161; margin-top: 1px; }
     .row .live { color: #3f7a4f; font-weight: 600; }
     .muted { color: #616161; line-height: 1.45; font-size: 12.5px; }
-    .warn { margin-top: 9px; padding: 7px 10px; background: #f9efec; border: 1px solid #e3c9c0;
+    .warn { margin-top: 12px; padding: 10px 13px; background: #f9efec; border: 1px solid #e3c9c0;
       color: #8e3b2b; font-size: 12px; line-height: 1.35; }
     .warn b { color: #6d2c1f; }
     .link { color: #1F564A; text-decoration: underline; cursor: pointer; font-size: 12px; }
-    .foot { flex: none; padding: 9px 14px; border-top: 1px solid #e3e3e3; font-size: 11px; color: #8a8a8a;
+    .foot { flex: none; padding: 12px 18px; border-top: 1px solid #e3e3e3; font-size: 11px; color: #8a8a8a;
       display: flex; align-items: center; gap: 6px; }
-    .toast { position: fixed; right: 356px; bottom: 22px; background: #303030; color: #fff; font-size: 11px;
+    .toast { position: fixed; right: 376px; bottom: 22px; background: #303030; color: #fff; font-size: 11px;
       padding: 5px 10px; opacity: 0; transition: opacity .15s; pointer-events: none; z-index: 2147483647; }
     .toast.on { opacity: 1; }
     /* reverse share: the page you are on, sent to a client you pick */
@@ -211,9 +211,9 @@
       padding: 4px 9px; line-height: 1.3; }
     .ochip:hover { background: #f7f7f7; }
     .ochip.on { background: #1F564A; color: #ffffff; border-color: #1F564A; }
-    .clist { border: 1px solid #e3e3e3; max-height: 188px; overflow-y: auto; background: #fff; margin-top: 8px; }
-    .cli { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; border: 0;
-      background: transparent; border-bottom: 1px solid #f2ede2; padding: 7px 9px; cursor: pointer; }
+    .clist { border: 1px solid #e3e3e3; max-height: clamp(220px, 38vh, 480px); overflow-y: auto; background: #fff; margin-top: 10px; }
+    .cli { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0;
+      background: transparent; border-bottom: 1px solid #ececec; padding: 10px 12px; cursor: pointer; }
     .cli:last-child { border-bottom: 0; }
     .cli:hover { background: #f7f7f7; }
     .cli.sel { background: #f7f7f7; }
