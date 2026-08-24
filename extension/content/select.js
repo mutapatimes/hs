@@ -26,7 +26,7 @@
   const CSS = `
     :host { all: initial; }
     * { box-sizing: border-box; font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    .pill { position: fixed; z-index: 2147483647; background: #1a1a1a; color: #fbfaf7; border: 0;
+    .pill { position: fixed; z-index: 2147483647; background: #303030; color: #ffffff; border: 0;
       cursor: pointer; font-size: 12px; padding: 6px 10px; box-shadow: 0 4px 16px rgba(0,0,0,.28);
       display: inline-flex; align-items: center; gap: 7px; letter-spacing: .01em; }
     .pill:hover { background: #333; }
@@ -35,33 +35,36 @@
       .pill .m, .card .top .m { animation: hbreathe 3.4s ease-in-out infinite; }
       @keyframes hbreathe { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
     }
-    .card { position: fixed; z-index: 2147483647; width: 264px; max-width: 88vw; background: #fbfaf7;
-      color: #1a1a1a; border: 1px solid #e3ded3; box-shadow: 0 12px 40px rgba(0,0,0,.24); }
-    .card .top { display: flex; align-items: center; gap: 9px; padding: 11px 12px; background: #f4f1ea;
-      border-bottom: 1px solid #eee7da; }
+    .card { position: fixed; z-index: 2147483647; width: 264px; max-width: 88vw; background: #ffffff;
+      color: #303030; border: 1px solid #e3e3e3; box-shadow: 0 12px 40px rgba(0,0,0,.24); }
+    .card .top { display: flex; align-items: center; gap: 9px; padding: 11px 12px; background: #f7f7f7;
+      border-bottom: 1px solid #e3e3e3; }
     .cg { flex: none; min-width: 26px; height: 24px; padding: 0 6px; display: flex; align-items: center;
-      justify-content: center; font-weight: 700; font-size: 12px; color: #fff; background: #6b6355; border-radius: 3px; }
-    .cg.g-a { background: #1F564A; } .cg.g-b { background: #55606b; } .cg.g-c { background: #8a8271; }
+      justify-content: center; font-weight: 700; font-size: 12px; color: #fff; background: #616161; border-radius: 3px; }
+    .cg.g-a { background: #1F564A; } .cg.g-b { background: #55606b; } .cg.g-c { background: #8a8a8a; }
     .nm { flex: 1; min-width: 0; font-weight: 600; font-size: 13.5px; line-height: 1.2; }
-    .nm .sub { font-weight: 400; font-size: 11px; color: #6b6355; margin-top: 2px; }
-    .x { border: 0; background: transparent; color: #8a8271; cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1; }
+    .nm .sub { font-weight: 400; font-size: 11px; color: #616161; margin-top: 2px; }
+    .x { border: 0; background: transparent; color: #8a8a8a; cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1; }
     .body { padding: 10px 12px; }
-    .pill-tag { display: inline-block; font-size: 10px; padding: 1px 7px; border: 1px solid #d8cfbc; color: #6b6355;
-      letter-spacing: .04em; text-transform: uppercase; margin-bottom: 7px; }
+    .pill-tag { display: inline-block; font-size: 10px; padding: 1px 7px; border: 1px solid #cccccc; color: #616161;
+        margin-bottom: 7px; }
     .pill-tag.hid { background: #e7efeb; border-color: #cfe0d8; color: #1F564A; }
-    .kv { font-size: 12px; color: #33302a; line-height: 1.45; margin: 3px 0; }
+    .kv { font-size: 12px; color: #303030; line-height: 1.45; margin: 3px 0; }
     .kv b { font-weight: 600; }
-    .reason { font-size: 12px; color: #33302a; line-height: 1.4; margin: 6px 0 0; padding-left: 12px; position: relative; }
+    .reason { font-size: 12px; color: #303030; line-height: 1.4; margin: 6px 0 0; padding-left: 12px; position: relative; }
     .reason:before { content: "·"; position: absolute; left: 3px; color: #1F564A; font-weight: 700; }
     .acts { display: flex; gap: 6px; margin-top: 11px; flex-wrap: wrap; }
-    .btn { border: 1px solid #d8cfbc; background: #fff; color: #1a1a1a; padding: 5px 9px; cursor: pointer;
+    .btn { border: 1px solid #cccccc; background: #fff; color: #303030; padding: 5px 9px; cursor: pointer;
       font-size: 11.5px; text-decoration: none; display: inline-block; }
-    .btn:hover { background: #f4f1ea; }
-    .btn.primary { background: #1a1a1a; color: #fbfaf7; border-color: #1a1a1a; }
-    .muted { color: #6b6355; font-size: 12px; line-height: 1.45; }
-    .dot { width: 6px; height: 6px; border-radius: 50%; background: #b3ab97; display: inline-block; margin-right: 6px;
+    .btn:hover { background: #f7f7f7; }
+    .btn.primary { background: #303030; color: #ffffff; border-color: #303030; }
+    .muted { color: #616161; font-size: 12px; line-height: 1.45; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #8a8a8a; display: inline-block; margin-right: 6px;
       animation: hb 1s ease-in-out infinite; }
     @keyframes hb { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+
+    .pill, .btn, .cg, .pill-tag { border-radius: 8px; }
+    .card { border-radius: 12px; overflow: hidden; }
   `;
 
   let host, root, pill, card, lastText = "", anchor = null;
