@@ -661,8 +661,10 @@
   .pl-price{font:700 clamp(28px,3.4vw,36px)/1 'Fraunces',serif;letter-spacing:-.02em;margin:6px 0 2px}
   .pl-price span{font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
   .pl-card.feat .pl-price span{color:rgba(255,255,255,.6)}
-  .pl-who{font-size:12.5px;color:var(--soft);min-height:32px;margin-bottom:14px}
+  .pl-who{font-size:12.5px;color:var(--soft);min-height:32px;margin-bottom:10px}
   .pl-card.feat .pl-who{color:rgba(255,255,255,.72)}
+  .pl-seats{font:600 11.5px 'Hanken Grotesk',sans-serif;color:var(--ink);letter-spacing:.01em;margin:0 0 14px;padding:6px 9px;background:var(--shell);border:1px solid var(--line);border-radius:7px}
+  .pl-card.feat .pl-seats{color:rgba(255,255,255,.9);background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)}
   .pl-feats{list-style:none;margin:0 0 20px;padding:14px 0 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:9px;flex:1}
   .pl-card.feat .pl-feats{border-top-color:rgba(255,255,255,.18)}
   .pl-feats li{display:flex;gap:9px;font-size:13px;line-height:1.35}
@@ -2740,9 +2742,11 @@ function planCardsHTML(d){
     const feats=p.features.map(f=>`<li class="${f.included?"":"off"}"><span class="tk">${f.included?"✓":"✕"}</span><span>${f.label}</span></li>`).join("");
     const price=p.custom?`<div class="pl-price">Custom</div>`:`<div class="pl-price">${p.priceLabel}${p.price?`<span> /month</span>`:``}</div>`;
     const badge=p.highlighted?`<span class="pl-badge">Most popular</span>`:(isRec?`<span class="pl-badge">Your book</span>`:``);
+    const seats=p.seatLabel?`<div class="pl-seats">${esc(p.seatLabel)}</div>`:``;
     return `<div class="pl-card${p.highlighted?" feat":""}${isRec?" cur":""}">
       ${badge}<div class="pl-name">${esc(p.name)}</div>${price}
       <div class="pl-who">${p.who}</div>
+      ${seats}
       <ul class="pl-feats">${feats}</ul>
       ${planCardCta(p,d)}
     </div>`;
