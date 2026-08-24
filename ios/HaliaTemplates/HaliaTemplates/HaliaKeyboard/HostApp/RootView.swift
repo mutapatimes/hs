@@ -198,10 +198,11 @@ struct RootView: View {
                 WelcomeView { go(.wizard) }
                     .transition(.opacity)
             case .wizard:
-                WizardView(model: model) { withAnimation(.easeInOut(duration: 0.4)) { phase = .home } }
+                WizardView(model: model, onBack: { go(.splash) },
+                           onFinish: { withAnimation(.easeInOut(duration: 0.4)) { phase = .home } })
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             case .home:
-                HomeView(model: model, onReconnect: { go(.wizard) })
+                HomeView(model: model, onReconnect: { go(.wizard) }, onSignedOut: { go(.splash) })
                     .transition(.opacity)
             }
         }
@@ -266,10 +267,6 @@ private struct WelcomeView: View {
                     Text("Private client care, in your pocket.")
                         .font(serif(23)).foregroundColor(.white)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Your templates, your clients and your house voice, one tap away inside WhatsApp.")
-                        .font(.system(size: 15)).foregroundColor(.white.opacity(0.82))
-                        .lineSpacing(3).padding(.top, 12)
-                        .fixedSize(horizontal: false, vertical: true)
 
                     Button(action: onBegin) {
                         Text("Begin").font(.system(size: 17, weight: .semibold)).foregroundColor(Palette.brandDeep)
@@ -290,8 +287,8 @@ private struct WelcomeView: View {
                 .offset(y: appear ? 0 : 22)
                 .opacity(appear ? 1 : 0)
             }
-            .ignoresSafeArea()
         }
+        .ignoresSafeArea()
         .onAppear {
             withAnimation(.easeOut(duration: 0.7).delay(0.05)) { appear = true }
         }
@@ -302,10 +299,11 @@ private struct WelcomeView: View {
 
 private struct WizardView: View {
     @ObservedObject var model: RootModel
+    let onBack: () -> Void
     let onFinish: () -> Void
 
     @State private var step = 0
-    private let total = 2
+    private let total = 3
 
     var body: some View {
         VStack(spacing: 0) {
@@ -313,6 +311,7 @@ private struct WizardView: View {
             TabView(selection: $step) {
                 ConnectStep(model: model).tag(0)
                 KeyboardStep().tag(1)
+                ExtensionsStep().tag(2)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeInOut(duration: 0.35), value: step)
@@ -342,13 +341,13 @@ private struct WizardView: View {
 
     private var navBar: some View {
         HStack {
-            if step > 0 {
-                Button(action: back) {
-                    Text("Back").font(.system(size: 15, weight: .semibold)).foregroundColor(Palette.soft)
-                        .padding(.horizontal, 18).padding(.vertical, 13)
-                }
-                .buttonStyle(.plain)
+            // Always reachable, even on the first step — backing out of step 0 leaves the wizard
+            // entirely rather than doing nothing, so there is never a screen with no way out.
+            Button(action: back) {
+                Text("Back").font(.system(size: 15, weight: .semibold)).foregroundColor(Palette.soft)
+                    .padding(.horizontal, 18).padding(.vertical, 13)
             }
+            .buttonStyle(.plain)
             Spacer()
             Button(action: next) {
                 Text(step == total - 1 ? "Enter your desk" : "Continue")
@@ -367,11 +366,25 @@ private struct WizardView: View {
     }
 
     private func back() {
-        withAnimation(.easeInOut(duration: 0.35)) { step = max(0, step - 1) }
+        if step > 0 {
+            withAnimation(.easeInOut(duration: 0.35)) { step -= 1 }
+        } else {
+            onBack()
+        }
     }
 
     private func next() {
-        if step == total - 1 { onFinish(); return }
+        if step == total - 1 {
+            guard model.signedIn else {
+                // Nothing connected yet — "Enter your desk" would just be an empty desk. Send them
+                // back to Connect instead of finishing into a screen with nothing on it.
+                withAnimation(.easeInOut(duration: 0.35)) { step = 0 }
+                model.status = "Connect first, then you're in."
+                model.isError = true
+                return
+            }
+            onFinish(); return
+        }
         withAnimation(.easeInOut(duration: 0.35)) { step = min(total - 1, step + 1) }
     }
 }
@@ -380,7 +393,7 @@ private struct StepScaffold<Content: View>: View {
     let title: String
     let subtitle: String
     let content: Content
-    init(_ title: String, _ subtitle: String, @ViewBuilder content: () -> Content) {
+    init(_ title: String, _ subtitle: String = "", @ViewBuilder content: () -> Content) {
         self.title = title; self.subtitle = subtitle; self.content = content()
     }
     var body: some View {
@@ -389,8 +402,10 @@ private struct StepScaffold<Content: View>: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(title).font(serif(32)).foregroundColor(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(subtitle).font(.system(size: 14.5)).foregroundColor(Palette.soft)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if !subtitle.isEmpty {
+                        Text(subtitle).font(.system(size: 14.5)).foregroundColor(Palette.soft)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 .padding(.top, 6)
                 content
@@ -406,7 +421,7 @@ private struct ConnectStep: View {
     @State private var showToken = false
 
     var body: some View {
-        StepScaffold("Connect Halia", "One scan and you are in.") {
+        StepScaffold("Connect Halia") {
             Card {
                 Text("Open Settings in Halia on your computer, then scan the code shown there.")
                     .font(.system(size: 13.5)).foregroundColor(Palette.soft).lineSpacing(2)
@@ -460,27 +475,77 @@ private struct ConnectStep: View {
 }
 
 private struct KeyboardStep: View {
-    private let steps = [
-        "Open Settings › General › Keyboard › Keyboards, add Halia, then allow Full Access.",
-        "In WhatsApp, tap the globe to switch to Halia.",
-        "To personalise, copy the client's name in the chat, then tap Use copied client.",
-    ]
     var body: some View {
-        StepScaffold("Turn on the keyboard", "Three steps, once.") {
+        StepScaffold("Turn on the keyboard") {
             Card {
-                VStack(alignment: .leading, spacing: 14) {
-                    ForEach(Array(steps.enumerated()), id: \.offset) { i, s in
-                        HStack(alignment: .top, spacing: 12) {
-                            Text("\(i + 1)")
-                                .font(serif(15, .semibold)).foregroundColor(.white)
-                                .frame(width: 26, height: 26)
-                                .background(Circle().fill(Palette.brand))
-                            Text(s).font(.system(size: 14.5)).foregroundColor(Palette.soft).lineSpacing(2)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                Text("Add Halia under Keyboards, then allow Full Access.")
+                    .font(.system(size: 13.5)).foregroundColor(Palette.soft).lineSpacing(2)
+
+                Button(action: openSettings) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "gearshape.fill").font(.system(size: 16, weight: .semibold))
+                        Text("Open Settings").font(.system(size: 15, weight: .semibold))
                     }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Palette.brand))
                 }
+                .buttonStyle(.plain).padding(.top, 2)
+
+                Text("Then in WhatsApp, tap the globe key to switch to Halia.")
+                    .font(.system(size: 13.5)).foregroundColor(Palette.soft).lineSpacing(2).padding(.top, 2)
             }
+        }
+    }
+}
+
+/// Deep link to the Settings app. Apple gives no way to land on a specific pane (Keyboards, Call
+/// Blocking & Identification), so this opens Settings' root and the copy names where to go next.
+private func openSettings() {
+    guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+    UIApplication.shared.open(url)
+}
+
+private struct FeatureRow: View {
+    let icon: String
+    let title: String
+    let text: String
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon).font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Palette.brand))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.system(size: 14.5, weight: .semibold)).foregroundColor(Palette.ink)
+                Text(text).font(.system(size: 13.5)).foregroundColor(Palette.soft).lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+private struct ExtensionsStep: View {
+    var body: some View {
+        StepScaffold("Two more tools") {
+            Card {
+                FeatureRow(icon: "square.and.arrow.up", title: "Share to a client",
+                    text: "Share a product or a page into Halia, and send it straight to the right client.")
+                Divider().overlay(Palette.line)
+                FeatureRow(icon: "phone.fill", title: "Know who's calling",
+                    text: "A client's name and grade show up when they call, not just a number.")
+            }
+            Button(action: openSettings) {
+                HStack(spacing: 10) {
+                    Image(systemName: "gearshape.fill").font(.system(size: 16, weight: .semibold))
+                    Text("Turn on caller ID").font(.system(size: 15, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity).padding(.vertical, 14)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Palette.brand))
+            }
+            .buttonStyle(.plain)
+            Text("Settings › Phone › Call Blocking & Identification.")
+                .font(.system(size: 12.5)).foregroundColor(Palette.faint)
         }
     }
 }
@@ -490,6 +555,7 @@ private struct KeyboardStep: View {
 private struct HomeView: View {
     @ObservedObject var model: RootModel
     let onReconnect: () -> Void
+    let onSignedOut: () -> Void
     @State private var showOpeners = false
 
     private var syncLine: String {
@@ -498,6 +564,10 @@ private struct HomeView: View {
         let n = model.templates.count
         return n == 0 ? "No templates yet" : "\(n) template\(n == 1 ? "" : "s") ready"
     }
+
+    // The desk has genuinely nothing to report yet: not mid-sync, not erroring, just empty. The
+    // masthead gets a living field instead of a flat gradient here, so waiting doesn't feel inert.
+    private var isEmptyDesk: Bool { !model.busy && !model.isError && model.templates.isEmpty }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -514,7 +584,7 @@ private struct HomeView: View {
             .padding(.horizontal, 24).padding(.top, 6)
 
             Spacer(minLength: 24)
-            Button(action: { Task { await model.signOut() } }) {
+            Button(action: { Task { await model.signOut(); onSignedOut() } }) {
                 Text("Sign out").font(.system(size: 14, weight: .semibold)).foregroundColor(Palette.soft)
             }
             .buttonStyle(.plain).padding(.horizontal, 24).padding(.bottom, 24)
@@ -550,10 +620,14 @@ private struct HomeView: View {
         .padding(.horizontal, 24)
         .padding(.top, 76)
         .padding(.bottom, 32)
-        .background(
-            LinearGradient(colors: [Palette.brandDeep, Palette.brand],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
+        .background {
+            if isEmptyDesk {
+                LivingGradient()
+            } else {
+                LinearGradient(colors: [Palette.brandDeep, Palette.brand],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+        }
     }
 
     private var hairline: some View { Rectangle().fill(Palette.line).frame(height: 1) }
@@ -572,6 +646,46 @@ private struct HomeView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// A slow-breathing mesh of the house greens for the empty "no templates yet" desk. The four corners
+// stay anchored in the same two tones the ordinary masthead uses, so the white type above keeps its
+// contrast; three interior points drift and shift between brand and sage, each on its own long,
+// unsynchronised cycle, so it reads as alive rather than a moving wallpaper.
+private struct LivingGradient: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            MeshGradient(
+                width: 3, height: 3,
+                points: [
+                    SIMD2(0, 0),                                  SIMD2(0.5, 0),                                SIMD2(1, 0),
+                    drift(0, 0.5, t, period: 19, seed: 0),        drift(0.5, 0.5, t, period: 23, seed: 7),      drift(1, 0.5, t, period: 17, seed: 3),
+                    SIMD2(0, 1),                                  SIMD2(0.5, 1),                                SIMD2(1, 1),
+                ],
+                colors: [
+                    Palette.brandDeep, Palette.brand,                    Palette.brandDeep,
+                    glow(t, period: 14, seed: 1), glow(t, period: 18, seed: 5), glow(t, period: 12, seed: 9),
+                    Palette.brandDeep, Palette.brand,                    Palette.brandDeep,
+                ]
+            )
+        }
+    }
+
+    private func drift(_ x: Double, _ y: Double, _ t: Double, period: Double, seed: Double) -> SIMD2<Float> {
+        let a = (t / period + seed) * 2 * .pi
+        return SIMD2(Float(x + 0.07 * sin(a)), Float(y + 0.05 * cos(a * 0.8)))
+    }
+
+    private let brandRGB: (Double, Double, Double) = (0.122, 0.337, 0.290)
+    private let sageRGB: (Double, Double, Double) = (0.365, 0.475, 0.435)
+
+    private func glow(_ t: Double, period: Double, seed: Double) -> Color {
+        let m = (sin((t / period + seed) * 2 * .pi) + 1) / 2   // eases 0...1...0, never snaps
+        return Color(red: brandRGB.0 + (sageRGB.0 - brandRGB.0) * m,
+                     green: brandRGB.1 + (sageRGB.1 - brandRGB.1) * m,
+                     blue: brandRGB.2 + (sageRGB.2 - brandRGB.2) * m)
     }
 }
 
