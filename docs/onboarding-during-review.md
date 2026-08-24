@@ -23,15 +23,33 @@ backend as everything else.
 
 ### You do (once per client, ~5 minutes)
 
-1. Go to **partners.shopify.com → Apps → Create app**. Name it "Halia — {Brand}".
-   The name is only visible to you.
-2. When asked about distribution, choose **Custom distribution** and enter the client's
+1. Go to **partners.shopify.com → Apps → Create app**. Name it "Halia - {Brand}".
+   The name is only visible to you. Ignore any "Start using Shopify CLI" banner: the browser
+   form is all you need.
+2. On the app's settings screen, fill the fields exactly like this (they mirror the public app):
+
+   | Field | Value |
+   |---|---|
+   | App URL | `https://haliascore.com` (replace the example.com placeholder) |
+   | Embed app in Shopify admin | On |
+   | Preferences URL | Leave empty |
+   | Webhooks API version | Leave the offered default |
+   | Scopes | `read_customers,read_orders,read_all_orders,write_customers,read_products` |
+   | Optional scopes | Leave empty |
+   | Use legacy install flow | Off |
+   | Allowed redirection URL(s) | `https://haliascore.com/connect/shopify/callback, https://haliascore.com` |
+   | POS | Skip |
+   | App proxy (optional) | URL `https://haliascore.com/proxy/catalogue`, prefix `a`, subpath `catalogue`. Makes catalogue links live on the client's own domain. |
+
+   **If `read_all_orders` is flagged "requires permission"**: click **Request access** (it reads
+   order history older than 60 days, for the merchant's own clienteling; Halia retains nothing).
+   If the form will not save with it, remove it for now, save, and add it back once granted;
+   until then Halia scores the most recent 60 days.
+3. Save, and release the version if the dashboard asks.
+4. Under **Distribution**, choose **Custom distribution** and enter the client's
    `.myshopify.com` address. Never do this on the main Halia app: the distribution choice is
    permanent per app.
-3. In the app's Configuration, set:
-   - **App URL**: `https://haliascore.com/`
-   - **Allowed redirection URL**: `https://haliascore.com/connect/shopify/callback`
-4. On the app's overview page, copy the **Client ID** and **Client secret** (two codes Shopify
+5. From the app's overview page, copy the **Client ID** and **Client secret** (two codes Shopify
    shows you). Add them to the `HALIA_SHOPIFY_CUSTOM_APPS` env var on Render:
 
    ```
@@ -45,9 +63,9 @@ backend as everything else.
    ```
 
    Redeploy so it takes effect.
-5. Send the client either the install link (Partner Dashboard → the app → **Generate link**)
-   or simply `https://haliascore.com/connect`. The wizard recognises their store and shows
-   them the one-click card.
+6. Send the client either the install link (Distribution → **Generate link**) or simply
+   `https://haliascore.com/connect`. The wizard recognises their store and shows them the
+   one-click card.
 
 ### The client does
 

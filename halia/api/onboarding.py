@@ -1072,11 +1072,6 @@ label{display:block;font:600 13px var(--sans);margin:18px 0 7px}
 .termsrow input{width:auto;flex:none;margin:2px 0 0;padding:0;cursor:pointer}
 .termsrow a{color:var(--gold);text-decoration:underline}
 .hint{font-size:13px;color:var(--mute);line-height:1.5;margin:6px 0 0}
-.trustbox{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);background:#efeadd;padding:16px 18px;margin:20px 0 4px}
-.trustbox .ti{flex:none;font-size:17px;line-height:1}
-.trustbox p{margin:0;font-size:13.5px;color:var(--mute);line-height:1.55}
-.trustbox b{color:var(--ink)}
-.pastecue{font:600 13.5px var(--sans);color:var(--ink);margin:22px 0 -6px}
 input{width:100%;padding:14px 16px;border:1px solid var(--line);border-radius:0;font:15px var(--sans);background:#fffdf8;color:var(--ink)}
 input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(122,115,99,.15)}
 .row{display:flex;gap:18px;margin-top:32px;align-items:center}
@@ -1233,6 +1228,7 @@ function initEmails(){var l=document.getElementById('emaillist');if(l&&!l.childr
 function collectEmails(){return [].map.call(document.querySelectorAll('#emaillist input'),function(i){return i.value.trim();}).filter(Boolean);}
 function renderSource(){
   var eye=document.getElementById('srceye'),ti=document.getElementById('srctitle'),le=document.getElementById('srclede'),b=document.getElementById('srcbody');
+  var nx0=document.querySelector('.step[data-step="2"] [data-next]');if(nx0)nx0.style.display='';
   if(state.source==='woocommerce'){
     eye.textContent='Your store data · WooCommerce';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
@@ -1249,26 +1245,23 @@ function renderSource(){
     eye.textContent='Your store data · Shopify';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
     if(SHOP_LIVE||state.oneclick){
-      le.textContent='Choose how to connect. Either way Halia gets read-only access: it can read your past orders and nothing else.';
-      var occ=(state.oneclick&&!SHOP_LIVE)
-        ?'<h3>Connect with Shopify</h3><p>Ready for your store. Add Halia in a click.</p>'
-        :'<h3>Connect with Shopify</h3><p>Add Halia from Shopify in a click.</p>';
-      b.innerHTML='<div class="cards">'
-        +'<div class="pcard" data-sm="install"><div class="pi">&#9889;</div><div>'+occ+'</div></div>'
-        +'<div class="pcard" data-sm="token"><div class="pi">&#35;</div><div><h3>Enter an Admin API token</h3><p>Create a custom-app token and paste it.</p></div></div>'
-        +'</div><div id="shopmethod" style="margin-top:6px"></div>';
-      [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){
-        [].forEach.call(b.querySelectorAll('.pcard'),function(x){x.classList.remove('sel');});
-        c.classList.add('sel');state.shop_method=c.dataset.sm;renderShopMethod();};});
-      if(state.oneclick&&!state.shop_method)state.shop_method='install';
-      if(state.shop_method){var ss=b.querySelector('.pcard[data-sm="'+state.shop_method+'"]');if(ss)ss.classList.add('sel');renderShopMethod();}
-    } else {
-      le.textContent='Create a private key inside your own Shopify admin and paste it here. It takes about two minutes, and Halia gets read-only access: it can read your past orders and nothing else.';
-      state.shop_method='token';
+      le.textContent=(state.oneclick&&!SHOP_LIVE)
+        ?'Halia is ready for your store. Add it in a click; it gets read-only access to your past orders and nothing else.'
+        :'Add Halia from Shopify in a click. It gets read-only access to your past orders and nothing else.';
+      state.shop_method='install';
       b.innerHTML='<div id="shopmethod"></div>';
       renderShopMethod();
+    } else {
+      le.textContent='We set every Shopify store up personally. Leave your details and we will have you connected within a day.';
+      state.shop_method='request';
+      b.innerHTML='<label>Your Shopify store address</label><input id="req_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||gv('store_url'))+'">'
+        +'<label>Your email</label><input id="req_email" type="email" placeholder="you@yourbrand.com" autocomplete="off">'
+        +'<button type="button" class="btn" id="reqsend" style="margin-top:16px">Request access &rarr;</button>'
+        +'<div id="reqstatus" style="margin-top:14px"></div>';
+      document.getElementById('reqsend').onclick=sendAccessRequest;
       checkOneclick();
     }
+    if(state.shop_method==='request'&&nx0)nx0.style.display='none';
   } else if(state.source==='bigcommerce'){
     eye.textContent='Your store data · BigCommerce';
     ti.innerHTML='Connect your orders, <em>safely.</em>';
@@ -1294,7 +1287,7 @@ function renderSource(){
     eye.textContent='Your store';
     ti.innerHTML='Which platform powers your <em>store?</em>';
     le.textContent='We could not tell automatically, no problem at all. Pick yours and we will show you exactly what to do.';
-    b.innerHTML='<div class="cards"><div class="pcard" data-src="shopify"><div class="pi">S</div><div><h3>Shopify</h3><p>Connect with a read-only Admin API token.</p></div></div><div class="pcard" data-src="woocommerce"><div class="pi">W</div><div><h3>WooCommerce</h3><p>Connect with a read-only REST API key.</p></div></div><div class="pcard" data-src="bigcommerce"><div class="pi">B</div><div><h3>BigCommerce</h3><p>Connect with a store hash and API token.</p></div></div><div class="pcard" data-src="centra"><div class="pi">C</div><div><h3>Centra</h3><p>Connect with an Order:read Integration API token.</p></div></div><div class="pcard" data-src="scayle"><div class="pi">S</div><div><h3>SCAYLE</h3><p>Connect with an Admin API access token.</p></div></div></div>';
+    b.innerHTML='<div class="cards"><div class="pcard" data-src="shopify"><div class="pi">S</div><div><h3>Shopify</h3><p>One-click install, set up for you.</p></div></div><div class="pcard" data-src="woocommerce"><div class="pi">W</div><div><h3>WooCommerce</h3><p>Connect with a read-only REST API key.</p></div></div><div class="pcard" data-src="bigcommerce"><div class="pi">B</div><div><h3>BigCommerce</h3><p>Connect with a store hash and API token.</p></div></div><div class="pcard" data-src="centra"><div class="pi">C</div><div><h3>Centra</h3><p>Connect with an Order:read Integration API token.</p></div></div><div class="pcard" data-src="scayle"><div class="pi">S</div><div><h3>SCAYLE</h3><p>Connect with an Admin API access token.</p></div></div></div>';
     [].forEach.call(b.querySelectorAll('.pcard'),function(c){c.onclick=function(){state.source=c.dataset.src;renderSource();};});
   }
 }
@@ -1332,21 +1325,29 @@ function pollWoo(){
      else{_wooPoll=setTimeout(pollWoo,3000);}})
    .catch(function(){_wooPoll=setTimeout(pollWoo,4000);});
 }
+function sendAccessRequest(){
+  var st=document.getElementById('reqstatus'),btn=document.getElementById('reqsend');
+  var dom=gv('req_domain'),em=gv('req_email');
+  if(!dom){st.innerHTML='<span style="color:#8e1f0b;font-size:13.5px">Enter your store address first.</span>';return;}
+  if(!EMRE.test(em)){st.innerHTML='<span style="color:#8e1f0b;font-size:13.5px">Enter your email so we can reach you.</span>';return;}
+  btn.disabled=true;btn.innerHTML='Sending&hellip;';
+  fetch('/v1/shopify/request-access',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({shop_domain:dom,email:em})})
+   .then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d};});})
+   .then(function(res){
+     if(!res.ok)throw new Error((res.d&&res.d.detail)||'Could not send.');
+     if(res.d.sent){
+       btn.style.display='none';
+       st.innerHTML='<span style="color:#1f564a;font:600 15px var(--sans)">&#10003; Request sent. We will be in touch within a day.</span>';
+     } else {
+       btn.style.display='none';
+       st.innerHTML='<a class="btn" href="'+res.d.mailto+'" style="text-decoration:none;display:inline-flex">Email us &rarr;</a><div class="hint" style="margin-top:10px">Opens your mail app with everything filled in.</div>';
+     }
+   })
+   .catch(function(e){btn.disabled=false;btn.innerHTML='Request access &rarr;';st.innerHTML='<span style="color:#8e1f0b;font-size:13.5px">'+e.message+'</span>';});
+}
 function renderShopMethod(){
   var w=document.getElementById('shopmethod');if(!w)return;
-  if(state.shop_method==='token'){
-    w.innerHTML='<div class="trustbox"><div class="ti">&#128274;</div><p><b>Read-only, always.</b> Halia can see your past orders and customer names, nothing else. It cannot see payment details, change a price, or contact your customers. Turn it off any time by deleting the app in Shopify, no need to tell us.</p></div>'
-      +'<ol class="slist">'
-      +'<li>In your Shopify admin, go to <b>Settings &rarr; Apps and sales channels &rarr; Develop apps</b>.</li>'
-      +'<li>If Shopify shows a one-time button to <b>Allow custom app development</b>, click it first. Then click <b>Create an app</b> and name it <b>Halia</b>.</li>'
-      +'<li>Click <b>Configure Admin API scopes</b> and turn on four permissions: <b>read_orders</b>, <b>read_customers</b>, <b>write_customers</b> (this only lets Halia tag your VIP customers back into Shopify, it cannot edit anything else about them) and <b>read_products</b> (for the catalogue tool). Click <b>Save</b>.</li>'
-      +'<li>Click <b>Install app</b>, then confirm.</li>'
-      +'<li>On the <b>API credentials</b> tab, click <b>Reveal token once</b> and copy the <b>Admin API access token</b>. It starts with <b>shpat_</b>. Copy it now, Shopify only shows it this one time.</li>'
-      +'</ol>'
-      +'<div class="pastecue">Now paste those two things here:</div>'
-      +'<label>Your Shopify store address</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address, even if you use a custom domain day to day. You will find it in the browser address bar while you are in Shopify admin.</div>'
-      +'<label>Admin API access token</label><input id="admin_token" type="password" placeholder="Paste the shpat_&hellip; token here" autocomplete="off"><div class="hint">Pasted straight from Shopify. It is stored securely and never shown on screen again.</div>';
-  } else if(state.shop_method==='install'){
+  if(state.shop_method==='install'){
     w.innerHTML='<label>Your Shopify store domain</label><input id="shop_domain" placeholder="your-store.myshopify.com" autocomplete="off" value="'+(state.myshop||'')+'"><div class="hint">The .myshopify.com address.</div><button type="button" class="btn" id="shopauth" style="margin-top:14px">Install Halia in Shopify &rarr;</button><div id="shopstatus" style="margin-top:14px"></div>';
     document.getElementById('shopauth').onclick=startShopInstall;
     if(state.shop_installed)document.getElementById('shopstatus').innerHTML='<span style="color:#1f564a;font:600 14px var(--sans)">&#10003; Connected. Continue when ready.</span>';
@@ -1431,9 +1432,8 @@ function valid(n){
   if(n===1){if(!/^https?:\/\//i.test(gv('store_url'))){err('err1','Enter your full store address, starting with https://');return false;}}
   if(n===2){
     if(state.source==='shopify'){
-      if(!state.shop_method){err('err2','Choose how to connect your store.');return false;}
-      if(state.shop_method==='install'&&!state.shop_installed){err('err2','Click Install and add Halia in Shopify, then continue.');return false;}
-      if(state.shop_method==='token'&&(!gv('shop_domain')||!gv('admin_token'))){err('err2','Enter your store domain and Admin API token.');return false;}}
+      if(state.shop_method==='request'){err('err2','Leave your details above and we will set you up.');return false;}
+      if(!state.shop_installed){err('err2','Click Install and add Halia in Shopify, then continue.');return false;}}
     else if(state.source==='woocommerce'){
       if(!state.woo_method){err('err2','Choose how to connect your store.');return false;}
       if(state.woo_method==='auto'&&!state.woo_token){err('err2','Click Authorize and approve Halia in WooCommerce, then continue.');return false;}
@@ -1790,6 +1790,38 @@ def register(app) -> None:
     def shopify_oneclick(shop: str = "") -> dict:
         domain = _norm_shop(shop)
         return {"available": bool(domain and _oneclick_available(domain)), "shop_domain": domain}
+
+    # While the public app is under review, a Shopify merchant leaves their details and we set
+    # their store up personally (a bridge app). Emails hello@; the mailto is the client-side
+    # fallback when no mail provider is configured on the server.
+    @app.post("/v1/shopify/request-access")
+    def shopify_request_access(payload: dict = Body(...)) -> dict:
+        from urllib.parse import quote
+
+        import re as _re
+        p = payload or {}
+        domain = _re.sub(r"^https?://", "", str(p.get("shop_domain", "")).strip()).strip("/")[:120]
+        email = str(p.get("email", "")).strip()[:200]
+        if not domain:
+            raise HTTPException(400, "Enter your store address.")
+        if "@" not in email:
+            raise HTTPException(400, "Enter your email so we can reach you.")
+        subject = f"Shopify access request: {domain}"
+        body_txt = f"Store: {domain}\nEmail: {email}\nFrom: /connect (Shopify request-access)"
+        sent = False
+        try:
+            from halia.notify import email_configured, send_email
+            if email_configured():
+                sent = send_email("hello@haliascore.com", subject,
+                                  f"<p>Store: <b>{html.escape(domain)}</b><br>"
+                                  f"Email: <b>{html.escape(email)}</b></p>"
+                                  "<p>From /connect (Shopify request-access).</p>",
+                                  text=body_txt, reply_to=email)
+        except Exception:  # noqa: BLE001 — fall through to the mailto
+            traceback.print_exc()
+        return {"ok": True, "sent": sent,
+                "mailto": "mailto:hello@haliascore.com?subject=" + quote(subject)
+                          + "&body=" + quote(body_txt)}
 
     @app.post("/v1/shopify/authorize")
     def shopify_authorize(payload: dict = Body(...)) -> dict:
