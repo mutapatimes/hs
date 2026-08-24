@@ -53,10 +53,11 @@ _EYEBROW = {
 
 
 def _hero(eyebrow: str) -> str:
-    """A self-composed, image-free masthead hero: the mark, wordmark, a hairline, and an eyebrow.
+    """A self-composed, image-free masthead hero: the mark, the wordmark, a hairline.
 
     No external image on purpose — it renders identically in every client, carries no deliverability
-    weight, and cannot break before the domain is serving. A hosted banner can layer on later.
+    weight, and cannot break before the domain is serving. The ``eyebrow`` text is no longer painted
+    here (kicker labels read as filler); it survives only as the hidden inbox preheader in _layout.
     """
     return (
         f"<tr><td align=center style='padding:8px 0 30px'>"
@@ -65,10 +66,7 @@ def _hero(eyebrow: str) -> str:
         # wordmark
         f"<div style='font:300 32px {_SERIF};color:{_INK};letter-spacing:.05em;margin-top:9px'>Halia</div>"
         # gold hairline
-        f"<div style='width:34px;height:2px;background:{_GOLD};margin:18px auto 14px'></div>"
-        # eyebrow
-        f"<div style='font:600 11px {_SANS};letter-spacing:.26em;text-transform:uppercase;"
-        f"color:{_MUT}'>{_html.escape(eyebrow)}</div>"
+        f"<div style='width:34px;height:2px;background:{_GOLD};margin:18px auto 2px'></div>"
         f"</td></tr>")
 
 

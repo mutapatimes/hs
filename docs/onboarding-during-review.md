@@ -4,11 +4,11 @@ Shopify is reviewing Halia's public app. Until it approves, a store outside your
 organisation cannot install the public app: Shopify blocks it with "This app is under review."
 Two paths work today. Both end with the client fully live on Halia.
 
-| | Bridge app (Path A) | Token method (Path B) |
+| | Bridge app (Path A) | Request form (Path B) |
 |---|---|---|
-| Client experience | One click, like a normal app install | ~2 minutes of copy-paste in their admin |
-| Your setup per client | ~5 minutes in the Partner Dashboard | None |
-| Use for | Priority brands, first impressions | Anyone who shows up, zero notice |
+| Who starts it | You, for a brand you are courting | The brand, arriving at /connect on their own |
+| Client experience | One click, like a normal app install | Store + email, then your one-click link within a day |
+| Your part | ~5 minutes in the Partner Dashboard | The same 5 minutes, when their request lands |
 | Billing | Stripe | Stripe |
 
 After approval, one env flip restores the normal public one-click for everyone new.
@@ -83,30 +83,22 @@ backend as everything else.
 
 ---
 
-## Path B: token method (works today, zero setup from you)
+## Path B: the request form (brands that arrive on their own)
 
-### You do
+The /connect wizard offers no self-serve Shopify setup during review. A brand that shows up
+picks Shopify, enters their store address and email, and taps **Request access**. That emails
+hello@haliascore.com with their address as Reply-To (or, if no mail provider is configured on
+Render yet, hands them a prefilled mailto button reaching the same inbox).
 
-Send them `https://haliascore.com/connect`. If `HALIA_SIGNUP_CODE` is set on Render, also
-send the code. That is all.
-
-### The client does (the wizard walks them through it)
-
-1. In their Shopify admin: **Settings → Apps and sales channels → Develop apps**.
-2. Click **Create an app**, name it Halia.
-3. **Configure Admin API scopes** and turn on: `read_orders`, `read_customers`,
-   `write_customers`, `read_products`. Save.
-4. Click **Install app**, confirm, then copy the **Admin API access token** (starts with
-   `shpat_`, shown once).
-5. Paste their store address and the token into the wizard. Done.
+When a request lands: follow Path A for their store and reply with the install link.
 
 ---
 
 ## Billing during review (both paths)
 
-Bridge and token clients pay through **Stripe**, not Shopify. Custom-distribution apps are not
-allowed to use Shopify's billing, and token clients never touch the Shopify app at all. The
-code is live; it needs three env vars on Render before anyone can pay:
+Every review-window client is a bridge-app client, and custom-distribution apps are not
+allowed to use Shopify's billing, so they all pay through **Stripe**. The code is live; it
+needs three env vars on Render before anyone can pay:
 
 | Env var | What it is |
 |---|---|
@@ -134,8 +126,6 @@ Until these are set, clients can use Halia but cannot pay.
    public app's token for their store automatically on install, then cancel their Stripe
    subscription and have them subscribe on the Plans screen. Remove their env entry only
    after that install has succeeded.
-4. Token-method clients (Path B) can stay as they are forever, or install the public app the
-   same way whenever you or they want the embedded admin experience.
 
 ---
 
@@ -146,5 +136,5 @@ Until these are set, clients can use Halia but cannot pay.
 | `HALIA_SHOPIFY_APP_LIVE` | `1` once Shopify approves; shows the public one-click to everyone |
 | `HALIA_SHOPIFY_CUSTOM_APPS` | `shop=client_id:secret,...` one entry per bridge client |
 | `SHOPIFY_API_KEY` / `SHOPIFY_API_SECRET` | The public Halia app's credentials |
-| `STRIPE_SECRET_KEY`, `STRIPE_PLAN_LINKS`, `STRIPE_WEBHOOK_SECRET` | Stripe billing for bridge + token clients |
+| `STRIPE_SECRET_KEY`, `STRIPE_PLAN_LINKS`, `STRIPE_WEBHOOK_SECRET` | Stripe billing for bridge clients |
 | `HALIA_SIGNUP_CODE` | Optional gate on `/connect`; share it with invited clients |
