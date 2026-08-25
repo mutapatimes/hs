@@ -1056,7 +1056,8 @@ def register(app) -> None:
         if not parts:
             raise HTTPException(422, "No buyable variants for those products")
         data.record_activity(shop, "extension_cart_link")
-        return {"url": f"{_cart_base(shop)}/cart/{','.join(parts)}"}
+        from halia.api.catalog import _with_utm
+        return {"url": _with_utm(f"{_cart_base(shop)}/cart/{','.join(parts)}", "halia-cart")}
 
     @app.get("/v1/extension/events")
     def extension_events(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
@@ -1394,4 +1395,5 @@ def register(app) -> None:
         base = _cart_base(shop).rstrip("/")
         url = base + "/cart/" + ",".join(v + ":1" for v in vids[:40])
         data.record_activity(shop, "extension_cart_link_urls")
-        return {"url": url, "resolved": len(vids), "requested": len(handles)}
+        from halia.api.catalog import _with_utm
+        return {"url": _with_utm(url, "halia-cart"), "resolved": len(vids), "requested": len(handles)}

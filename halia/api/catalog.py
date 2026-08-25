@@ -275,13 +275,23 @@ def catalog_share_base(shop: str) -> str:
     return f"{base}/catalog" if base else "/catalog"
 
 
+def _with_utm(url: str, campaign: str) -> str:
+    """Tag a shareable link so the resulting sale attributes back to Halia clienteling. Shopify
+    (and most analytics) reads these off the landing URL, so a cart or catalogue link carries the
+    attribution through to the order. utm_campaign matches what data._order_utm reads on orders."""
+    if not url:
+        return url
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}utm_source=halia&utm_medium=clienteling&utm_campaign={campaign}"
+
+
 def catalog_url_for(shop: str) -> str:
     """The active catalogue's shareable (interactive form) URL for {catalog_link}, or '' if none set.
     The form renders live, so this works before a PDF is generated."""
     cat = shop_store().active_catalog(shop)
     if not cat:
         return ""
-    return f"{catalog_share_base(shop)}/{cat['id']}"
+    return _with_utm(f"{catalog_share_base(shop)}/{cat['id']}", "halia-catalogue")
 
 
 # ── personalisation: the catalogue title + subtitle can carry {name}/{first_name}/{store} tokens,
@@ -514,7 +524,7 @@ def register(app) -> None:
         if not parts:
             raise HTTPException(422, "None of those products have a buyable variant.")
         _data.record_activity(shop, "cart_link")
-        return {"url": f"{_cart_base(shop)}/cart/{','.join(parts)}"}
+        return {"url": _with_utm(f"{_cart_base(shop)}/cart/{','.join(parts)}", "halia-cart")}
 
     @app.get("/v1/catalog/products")
     def catalog_products(request: Request, shop: str = Depends(require_shop)) -> dict:
