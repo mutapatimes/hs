@@ -77,6 +77,23 @@ def _history(orders: list[dict]) -> dict:
         titles = [t for t in ({str(li.get("title") or "").strip() for li in lines}) if t][:6]
         if titles:
             row["titles"] = sorted(titles)
+        detail = []
+        for li in lines:
+            name = str(li.get("title") or li.get("name") or "").strip()
+            if not name:
+                continue
+            entry = {"name": name, "qty": int(li.get("quantity") or 1)}
+            size = str(li.get("variant_title") or li.get("variation") or "").strip()
+            if size and size.lower() not in ("default title", "none"):
+                entry["size"] = size
+            try:
+                if li.get("price") is not None:
+                    entry["price"] = round(float(li["price"]), 2)
+            except (TypeError, ValueError):
+                pass
+            detail.append(entry)
+        if detail:
+            row["lines"] = detail[:20]   # the actual items on the order, for the drawer
         utm = _order_utm(o)
         if utm:                                   # keep the payload lean: only when present
             row["utm"] = utm
