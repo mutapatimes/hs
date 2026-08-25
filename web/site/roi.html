@@ -18,7 +18,7 @@
 <title>ROI calculator · Halia</title>
 <meta name="description" content="Estimate the revenue hiding in your customer database. Watch Halia model the high-value clients behind modest spend, in real time.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#f6f6f4;--bg-2:#edecea;--ink:#1a1a1d;--mute:#5c5c61;--faint:#9896a0;--gold:#5E6B74;
     --line:rgba(22,22,27,.14);--line-2:rgba(22,22,27,.07);
@@ -98,33 +98,29 @@
   .rc-ns input{accent-color:#5E6B74;width:13px;height:13px}
   .rc-f.dk input[type=range],.rc-f.dk select{opacity:.4;pointer-events:none}
   .rc-f.dk .rl output{color:#5E6B74}
-  /* the engine stage — a dark console that shows Halia computing */
-  .rc-stage{background:#161619;color:#f6f6f4;padding:clamp(22px,3vw,30px);display:flex;flex-direction:column;position:relative;overflow:hidden;position:sticky;top:96px}
+  /* the working — back-of-the-envelope on paper */
+  .rc-stage{--tw:"Courier Prime","American Typewriter","Courier New",monospace;
+    background:#fbfaf6;border:1px solid #d9d6cb;box-shadow:0 1px 3px rgba(30,28,20,.07),0 12px 28px -18px rgba(30,28,20,.18);
+    color:#26251f;padding:clamp(24px,3vw,34px);display:flex;flex-direction:column;position:sticky;top:96px}
   @media(max-width:840px){.rc-stage{position:static}}
-  .rc-stage .sl{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#8a8b93}
-  .rc-pict{display:flex;flex-wrap:wrap;gap:5px 4px;margin:16px 0 10px;line-height:0}
-  .rc-pict svg{width:13px;height:13px;flex:0 0 auto;fill:#3a3b42;transition:fill .5s,filter .5s}
-  .rc-pict svg.found{fill:#8fb8ae}
-  .rc-pict svg.won{fill:#7fe0c8;filter:drop-shadow(0 0 5px rgba(127,224,200,.55))}
-  .rc-plegend{display:flex;gap:18px;flex-wrap:wrap;font:500 11px var(--sans);color:#8a8b93;margin-bottom:18px}
-  .rc-plegend .pl{display:inline-flex;align-items:center;gap:6px}
-  .rc-plegend .pk{width:9px;height:9px;border-radius:2px}
-  .rc-plegend .pk.found{background:#8fb8ae}
-  .rc-plegend .pk.won{background:#7fe0c8}
-  .rc-heads{display:flex;gap:clamp(24px,5vw,44px);flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.09);padding-top:20px}
+  .rc-stage .sl{font:700 12px var(--tw);letter-spacing:.1em;text-transform:uppercase;color:#8b8779}
+  .rc-pict{display:flex;flex-wrap:wrap;gap:5px 4px;margin:18px 0 8px;line-height:0}
+  .rc-pict svg{width:13px;height:13px;flex:0 0 auto;fill:none;stroke:#c9c5b8;stroke-width:1.6;transition:stroke .5s}
+  .rc-pict svg.found{stroke:#1f564a;stroke-width:2}
+  .rc-plegend{font:400 12px var(--tw);color:#8b8779;margin-bottom:20px}
+  .rc-plegend .pk{display:inline-block;width:8px;height:8px;border:1.5px solid #1f564a;border-radius:50%;margin:0 5px 0 2px;vertical-align:-1px}
+  .rc-heads{display:flex;gap:clamp(22px,4vw,40px);flex-wrap:wrap;border-top:1px dashed #cfccc0;padding-top:20px}
   .rc-head{display:flex;flex-direction:column}
-  .rc-hn{font-family:var(--serif);font-weight:300;font-size:clamp(38px,6vw,60px);line-height:1;color:#fff;font-variant-numeric:tabular-nums}
-  .rc-hl{font:500 12px var(--sans);color:#8a8b93;margin-top:9px;letter-spacing:.02em;max-width:18ch}
-  .rc-steps{border-top:1px solid rgba(255,255,255,.09);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+  .rc-hn{font:700 clamp(21px,2.6vw,29px)/1.15 var(--tw);color:#1c1b16;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .rc-hl{font:400 12px var(--tw);color:#8b8779;margin-top:7px;max-width:20ch}
+  .rc-steps{border-top:1px dashed #cfccc0;margin-top:20px;padding-top:16px;display:flex;flex-direction:column;gap:10px}
   .rc-step{opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s}
-  .rc-row{display:flex;justify-content:space-between;gap:12px;font:500 12.5px ui-monospace,Menlo,monospace;color:#a9aab2}
-  .rc-row .hl{color:#fff;font-weight:700}
-  .rc-why{font:400 11.5px var(--sans);color:#7f8088;line-height:1.5;margin:4px 0 2px}
+  .rc-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:400 13px var(--tw);color:#4a483f}
+  .rc-row .hl{font-weight:700;color:#1c1b16}
+  .rc-row .v{font-weight:700;color:#1f564a;white-space:nowrap}
+  .rc-why{font:400 11.5px var(--tw);color:#a09c8d;line-height:1.5;margin:3px 0 0}
   .rc-step.in{opacity:1;transform:none}
-  .rc-step b{color:#f6f6f4;font-weight:600}
-  .rc-step .v{color:#8fb8ae;font-weight:600}
-  .rc-explain{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.09);font:400 13.5px var(--sans);line-height:1.55;color:#c7c8cf}
-  .rc-explain b{color:#fff;font-weight:600}
+  .rc-step.sum{border-top:1px solid #26251f;padding-top:10px}
   .rc-note{color:var(--faint);font-size:12px;line-height:1.55;margin-top:18px;max-width:60ch}
   .roi-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:28px}
   .roi-cta form{display:flex;gap:10px;flex-wrap:wrap;margin:0}
@@ -166,7 +162,7 @@
 </style>
 <section class="phero"><div class="wrap"><div class="phero-text">
  <h1 class="display">What is your hidden book worth?</h1>
- <p class="lede" style="margin-top:16px;max-width:62ch">Halia surfaces the high-value clients hiding behind modest spend, the ones a spend-sorted list never shows. To size what they are worth, this runs the model McKinsey published on top-1% customers over your own figures. Every step is shown below.</p>
+ <p class="lede" style="margin-top:16px;max-width:62ch">Halia surfaces the high-value clients hiding behind modest spend, the ones a spend-sorted list never shows. To size what they are worth, this runs the model McKinsey published on top-1% customers over your own figures. Because these are estimates, the answer comes back as a range, low end to high, with every assumption written out.</p>
  <a class="rk-cta" style="margin-top:26px" href="https://www.mckinsey.com/capabilities/growth-marketing-and-sales/our-insights/small-and-mighty-the-untapped-value-of-your-top-1-percent" target="_blank" rel="noopener">Read the McKinsey report <span class="arrow">&rarr;</span></a>
 </div></div></section>
 
@@ -174,17 +170,17 @@
  <div class="rcalc">
   <div class="rc-in"><div class="rc-f" data-fid="rcall"><div class="rl"><span>Clients you have ever had</span><output id="rcallOut"></output></div><input id="rcall" type="range" min="5000" max="2000000" step="5000" value="200000"><label class="rc-ns"><input type="checkbox" data-ns="rcall">Not sure?</label></div><div class="rc-f" data-fid="rcyr"><div class="rl"><span>Clients who bought this year</span><output id="rcyrOut"></output></div><input id="rcyr" type="range" min="1000" max="500000" step="1000" value="50000"><label class="rc-ns"><input type="checkbox" data-ns="rcyr">Not sure?</label></div><div class="rc-f" data-fid="ra"><div class="rl"><span>Average order value</span><output id="raOut"></output></div><input id="ra" type="range" min="50" max="2000" step="10" value="200"><label class="rc-ns"><input type="checkbox" data-ns="ra">Not sure?</label></div><div class="rc-f" data-fid="rf"><div class="rl"><span>Orders per client, per year</span><output id="rfOut"></output></div><input id="rf" type="range" min="1" max="12" step="1" value="2"><label class="rc-ns"><input type="checkbox" data-ns="rf">Not sure?</label></div><div class="rc-f" data-fid="rg"><div class="rl"><span>Category</span><output id="rgOut"></output></div><select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="wine">Wine &amp; spirits</option><option value="beauty">Beauty &amp; fragrance</option><option value="jewellery">Jewellery &amp; watches</option><option value="home">Home &amp; interiors</option><option value="gifting">Flowers, food &amp; gifting</option><option value="books">Rare books &amp; collectibles</option><option value="electronics">Electronics &amp; big-box</option></select><label class="rc-ns"><input type="checkbox" data-ns="rg">Not sure?</label></div><div class="rc-f" data-fid="rk"><div class="rl"><span>Clienteling you do today</span><output id="rkOut"></output></div><select id="rk"><option value="none">None, mostly mass email</option><option value="some" selected>Some, by hand</option><option value="heavy">A dedicated team</option></select><label class="rc-ns"><input type="checkbox" data-ns="rk">Not sure?</label></div></div>
   <div class="rc-stage">
-   <div class="sl">Modelling on McKinsey benchmarks</div>
+   <div class="sl">Back-of-the-envelope</div>
    <div class="rc-pict" id="pict"></div>
-   <div class="rc-plegend"><span class="pl"><i class="pk found"></i>hidden VIPs Halia finds</span><span class="pl"><i class="pk won"></i>you win back</span></div>
+   <div class="rc-plegend">your clients &middot;<span class="pk"></span>the hidden few worth finding</div>
    <div class="rc-heads">
-    <div class="rc-head"><div class="rc-hn" id="rrVips">0</div><div class="rc-hl">VIPs Halia wins you a year</div></div>
-    <div class="rc-head"><div class="rc-hn" id="rrYear">&pound;0</div><div class="rc-hl">recoverable per year</div></div>
+    <div class="rc-head"><div class="rc-hn" id="rrVips">&ndash;</div><div class="rc-hl">clients won back, a year</div></div>
+    <div class="rc-head"><div class="rc-hn" id="rrYear">&ndash;</div><div class="rc-hl">recoverable, low to high</div></div>
    </div>
    <div class="rc-steps" id="steps"></div>
   </div>
  </div>
- <p class="rc-note">An estimate on McKinsey&rsquo;s benchmarks and your own figures. The full working is in the model below; your numbers will differ.</p>
+ <p class="rc-note">These are estimates, so the result is a range: McKinsey&rsquo;s low end to their high end, with every assumption written out in the model below. Your year will land where your team takes it.</p>
  <div class="roi-cta">
   <form id="roiForm" novalidate>
    <input id="roiEmail" type="email" placeholder="Your work email" required>
@@ -196,26 +192,29 @@
 
 <section class="pad" style="padding-top:6px"><div class="wrap" style="max-width:1080px">
  <h2 class="h2" style="max-width:16ch">The calculation</h2>
- <p class="lede" style="max-width:56ch;margin:14px 0 24px">The same figures, laid out as a model. It updates as you move the sliders.</p>
+ <p class="lede" style="max-width:56ch;margin:14px 0 24px">The same figures, laid out with a low column and a high column. It updates as you move the sliders.</p>
  <div class="xl">
-  <div class="xl-bar"><span class="xl-ref">B15</span><span class="xl-fx">fx</span><span class="xl-formula">=B12+B14</span></div>
+  <div class="xl-bar"><span class="xl-ref">B18</span><span class="xl-fx">fx</span><span class="xl-formula">=B11+B17</span></div>
   <div class="xl-scroll"><table class="xl-grid">
-   <tr class="xl-cols"><th class="xl-corner"></th><th>A</th><th>B</th></tr>
-   <tr><td class="xl-rn">1</td><td class="xl-th">The model</td><td class="xl-th">Your numbers</td></tr>
-   <tr class=""><td class="xl-rn">2</td><td>Clients you have ever had</td><td class="xl-num" id="x2"></td></tr>
-   <tr class=""><td class="xl-rn">3</td><td>VIP find rate <span class="xl-note">McKinsey: the top 1&ndash;10%</span></td><td class="xl-num" id="x3"></td></tr>
-   <tr class="xl-calc"><td class="xl-rn">4</td><td>VIPs Halia can find <span class="xl-f">=B2*B3</span></td><td class="xl-num" id="x4"></td></tr>
-   <tr class=""><td class="xl-rn">5</td><td>Lapsed win-back rate <span class="xl-note">they left, a quarter return</span></td><td class="xl-num" id="x5"></td></tr>
-   <tr class="xl-calc"><td class="xl-rn">6</td><td>Lapsed VIPs won back <span class="xl-f">=B4*B5</span></td><td class="xl-num" id="x6"></td></tr>
-   <tr class=""><td class="xl-rn">7</td><td>Clients who bought this year</td><td class="xl-num" id="x7"></td></tr>
-   <tr class="xl-calc"><td class="xl-rn">8</td><td>VIPs found among them <span class="xl-f">=B7*B3</span></td><td class="xl-num" id="x8"></td></tr>
-   <tr class=""><td class="xl-rn">9</td><td>Active conversion rate <span class="xl-note">still engaged, half convert</span></td><td class="xl-num" id="x9"></td></tr>
-   <tr class="xl-calc"><td class="xl-rn">10</td><td>Active VIPs won <span class="xl-f">=B8*B9</span></td><td class="xl-num" id="x10"></td></tr>
-   <tr class=""><td class="xl-rn">11</td><td>A VIP&rsquo;s annual value <span class="xl-note">AOV &times; orders &times; category</span></td><td class="xl-num" id="x11"></td></tr>
-   <tr class="xl-calc"><td class="xl-rn">12</td><td>Lapsed revenue recovered <span class="xl-f">=B6*B11</span></td><td class="xl-num" id="x12"></td></tr>
-   <tr class=""><td class="xl-rn">13</td><td>Programme uplift <span class="xl-note">McKinsey: 10&ndash;20%</span></td><td class="xl-num" id="x13"></td></tr>
-   <tr class="xl-calc"><td class="xl-rn">14</td><td>Active revenue lifted <span class="xl-f">=B10*B11*B13</span></td><td class="xl-num" id="x14"></td></tr>
-   <tr class="xl-res"><td class="xl-rn">15</td><td>Recoverable per year <span class="xl-f">=B12+B14</span></td><td class="xl-num" id="x15"></td></tr>
+   <tr class="xl-cols"><th class="xl-corner"></th><th>A</th><th>B</th><th>C</th></tr>
+   <tr><td class="xl-rn">1</td><td class="xl-th">The model</td><td class="xl-th">Low</td><td class="xl-th">High</td></tr>
+   <tr class=""><td class="xl-rn">2</td><td>Clients who bought this year</td><td class="xl-num" id="x2b"></td><td class="xl-num" id="x2c"></td></tr>
+   <tr class=""><td class="xl-rn">3</td><td>Average order value</td><td class="xl-num" id="x3b"></td><td class="xl-num" id="x3c"></td></tr>
+   <tr class=""><td class="xl-rn">4</td><td>Orders per client, per year</td><td class="xl-num" id="x4b"></td><td class="xl-num" id="x4c"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">5</td><td>Revenue this year <span class="xl-f">=B2*B3*B4</span></td><td class="xl-num" id="x5b"></td><td class="xl-num" id="x5c"></td></tr>
+   <tr class=""><td class="xl-rn">6</td><td>Top clients&rsquo; share of revenue <span class="xl-note">McKinsey: 20&ndash;50%; your category, near the floor</span></td><td class="xl-num" id="x6b"></td><td class="xl-num" id="x6c"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">7</td><td>Their revenue <span class="xl-f">=B5*B6</span></td><td class="xl-num" id="x7b"></td><td class="xl-num" id="x7c"></td></tr>
+   <tr class=""><td class="xl-rn">8</td><td>Share not clienteled today <span class="xl-note">set by how much clienteling you do</span></td><td class="xl-num" id="x8b"></td><td class="xl-num" id="x8c"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">9</td><td>Top-client revenue no one works <span class="xl-f">=B7*B8</span></td><td class="xl-num" id="x9b"></td><td class="xl-num" id="x9c"></td></tr>
+   <tr class=""><td class="xl-rn">10</td><td>Programme uplift <span class="xl-note">McKinsey: 10&ndash;20%, both ends kept</span></td><td class="xl-num" id="x10b"></td><td class="xl-num" id="x10c"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">11</td><td>Uplift on worked clients <span class="xl-f">=B9*B10</span></td><td class="xl-num" id="x11b"></td><td class="xl-num" id="x11c"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">12</td><td>Past clients no longer buying <span class="xl-f">=ever&nbsp;&minus;&nbsp;this year</span></td><td class="xl-num" id="x12b"></td><td class="xl-num" id="x12c"></td></tr>
+   <tr class=""><td class="xl-rn">13</td><td>Former top clients among them <span class="xl-note">the floor of McKinsey&rsquo;s 1&ndash;10%</span></td><td class="xl-num" id="x13b"></td><td class="xl-num" id="x13c"></td></tr>
+   <tr class=""><td class="xl-rn">14</td><td>Return when reached</td><td class="xl-num" id="x14b"></td><td class="xl-num" id="x14c"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">15</td><td>Clients returning <span class="xl-f">=B13*B14</span></td><td class="xl-num" id="x15b"></td><td class="xl-num" id="x15c"></td></tr>
+   <tr class=""><td class="xl-rn">16</td><td>At your average annual value <span class="xl-f">=B3*B4</span></td><td class="xl-num" id="x16b"></td><td class="xl-num" id="x16c"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">17</td><td>Returning spend <span class="xl-f">=B15*B16</span></td><td class="xl-num" id="x17b"></td><td class="xl-num" id="x17c"></td></tr>
+   <tr class="xl-res"><td class="xl-rn">18</td><td>Recoverable per year <span class="xl-f">=B11+B17</span></td><td class="xl-num" id="x18b"></td><td class="xl-num" id="x18c"></td></tr>
   </table></div>
  </div>
  </div>
@@ -248,17 +247,18 @@
   // each year; a well-run VIP programme delivers a 10-20% revenue uplift and a 5-10% lift in retention.
   var g=function(id){return document.getElementById(id);};
   function gbp(n){return "£"+Math.round(n).toLocaleString("en-GB");}
-  function big(n){return n>=1e6?"£"+(n/1e6).toFixed(n<1e7?2:1)+"m":n>=1000?"£"+Math.round(n/1000)+"k":"£"+Math.round(n);}
+  function big(n){return n>=1e6?"£"+(n/1e6).toFixed(n<1e7?1:0)+"m":n>=1000?"£"+Math.round(n/1000)+"k":"£"+Math.round(n);}
   function comma(n){return Math.round(n).toLocaleString("en-GB");}
+  function rng(lo,hi,f){return f(lo)+" – "+f(hi);}
   function nsOn(id){var f=document.querySelector('[data-ns="'+id+'"]');return f&&f.checked;}
   function val(id){var e=g(id);if(!e)return DEF[id];return nsOn(id)?DEF[id]:(e.type==="range"?+e.value:e.value);}
-  // Two streams: lapsed VIPs Halia wins back (full value returns) and this year's VIPs into
-  // clienteling (McKinsey's 10-20% programme uplift). FIND/CONV are held fixed as assumptions.
-  var FIND=0.03;          // share of a client base that are hidden high-value clients (McKinsey: top 1-10%)
-  var CONV_LAPSED=0.25;   // of the lapsed VIPs Halia surfaces, a quarter come back
-  var CONV_ACTIVE=0.50;   // of this year's VIPs, half convert while still engaged
-  var VIP_MULT={fashion:3,wine:4,beauty:3,jewellery:6,home:4,gifting:3,books:5,electronics:2}; // a VIP's value vs average (McKinsey: 10-25x; we stay well below)
-  var UPLIFT_KLI={none:.18,some:.15,heavy:.12}; // programme uplift on active VIPs (McKinsey: 10-20%)
+  // Every coefficient is either McKinsey's published range (applied at BOTH ends, so the answer
+  // is a band) or the floor of one. Nothing here claims to know your business better than you do.
+  var VIP_SHARE={fashion:.20,wine:.25,beauty:.20,jewellery:.30,home:.25,gifting:.22,books:.28,electronics:.20}; // where your category likely sits inside McKinsey's 20-50%
+  var GAP={none:.80,some:.50,heavy:.25};  // share of top clients not actively clienteled today
+  var UPLIFT_LO=.10,UPLIFT_HI=.20;        // McKinsey: programme uplift, both ends kept
+  var FORMER=.01;                          // former top clients among past buyers: floor of McKinsey's 1-10%
+  var BACK_LO=.10,BACK_HI=.25;             // of those reached, how many return
   var DEF={rcall:200000,rcyr:50000,ra:200,rf:2,rg:"fashion",rk:"some"};
   var catLbl={fashion:"Fashion",wine:"Wine",beauty:"Beauty",jewellery:"Jewellery",home:"Home",gifting:"Gifting",books:"Rare books",electronics:"Electronics",none:"None today",some:"Some",heavy:"A team"};
   function setOuts(){
@@ -271,53 +271,58 @@
   }
   function model(){
     var TA=+val("rcall"),TY=+val("rcyr"),A=+val("ra"),F=+val("rf");
-    var mult=VIP_MULT[val("rg")]||3, uplift=UPLIFT_KLI[val("rk")]||.15;
-    var vipAnnual=A*F*mult;
-    var lapsedFound=TA*FIND, lapsedWon=lapsedFound*CONV_LAPSED;
-    var activeFound=TY*FIND, activeWon=activeFound*CONV_ACTIVE;
-    var lapsedRev=lapsedWon*vipAnnual, activeRev=activeWon*vipAnnual*uplift;
-    var year=lapsedRev+activeRev, vipsWon=lapsedWon+activeWon;
-    return {TA:TA,TY:TY,A:A,F:F,mult:mult,uplift:uplift,vipAnnual:vipAnnual,
-      lapsedFound:lapsedFound,lapsedWon:lapsedWon,activeFound:activeFound,activeWon:activeWon,
-      lapsedRev:lapsedRev,activeRev:activeRev,year:year,vipsWon:vipsWon};
+    var share=VIP_SHARE[val("rg")]||.20, gap=GAP[val("rk")]||.5;
+    var R=TY*A*F;
+    var vipRev=R*share, unworked=vipRev*gap;
+    var upLo=unworked*UPLIFT_LO, upHi=unworked*UPLIFT_HI;
+    var past=Math.max(0,TA-TY), former=past*FORMER;
+    var backLo=former*BACK_LO, backHi=former*BACK_HI;
+    var avgVal=A*F;
+    var lapLo=backLo*avgVal, lapHi=backHi*avgVal;
+    return {TA:TA,TY:TY,A:A,F:F,share:share,gap:gap,R:R,vipRev:vipRev,unworked:unworked,
+      upLo:upLo,upHi:upHi,past:past,former:former,backLo:backLo,backHi:backHi,avgVal:avgVal,
+      lapLo:lapLo,lapHi:lapHi,lo:upLo+lapLo,hi:upHi+lapHi};
   }
   function excel(m){ var set=function(id,v){var e=g(id);if(e)e.innerHTML=v;};
-    set("x2",comma(m.TA)); set("x3","3%"); set("x4",comma(m.lapsedFound));
-    set("x5","25%"); set("x6",comma(m.lapsedWon)); set("x7",comma(m.TY));
-    set("x8",comma(m.activeFound)); set("x9","50%"); set("x10",comma(m.activeWon));
-    set("x11",gbp(m.vipAnnual)); set("x12",gbp(m.lapsedRev)); set("x13",Math.round(m.uplift*100)+"%");
-    set("x14",gbp(m.activeRev)); set("x15",gbp(m.year)); }
-  // people pictogram: the crowd scales with your base; the highlighted few are the VIPs
-  var PERSON=function(c){return '<svg class="'+c+'" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4.2"/><path d="M3.5 22c0-4.7 3.8-8.5 8.5-8.5s8.5 3.8 8.5 8.5z"/></svg>';};
+    var both=function(n,v){set("x"+n+"b",v);set("x"+n+"c",v);};
+    both(2,comma(m.TY)); both(3,gbp(m.A)); both(4,m.F); both(5,gbp(m.R));
+    both(6,Math.round(m.share*100)+"%"); both(7,gbp(m.vipRev));
+    both(8,Math.round(m.gap*100)+"%"); both(9,gbp(m.unworked));
+    set("x10b","10%");set("x10c","20%"); set("x11b",gbp(m.upLo));set("x11c",gbp(m.upHi));
+    both(12,comma(m.past)); both(13,comma(m.former));
+    set("x14b","10%");set("x14c","25%"); set("x15b",comma(m.backLo));set("x15c",comma(m.backHi));
+    both(16,gbp(m.avgVal)); set("x17b",gbp(m.lapLo));set("x17c",gbp(m.lapHi));
+    set("x18b",gbp(m.lo));set("x18c",gbp(m.hi)); }
+  // outlined people: the crowd is your book; the few in green are the hidden ones
+  var PERSON=function(c){return '<svg class="'+c+'" viewBox="0 0 24 24"><circle cx="12" cy="6.5" r="3.6"/><path d="M4.5 21.5c0-4.2 3.4-7.6 7.5-7.6s7.5 3.4 7.5 7.6"/></svg>';};
   function pictogram(m){ var el=g("pict"); if(!el)return;
-    var n=Math.max(60,Math.min(252,Math.round(m.TA/1600)));
-    var found=Math.max(3,Math.round(n*FIND)), won=Math.max(1,Math.round(found*0.32));
-    var out=""; for(var i=0;i<n;i++){out+=PERSON(i<won?"won":(i<found?"found":""));}
+    var n=Math.max(80,Math.min(240,Math.round(m.TA/1500)));
+    var found=Math.max(3,Math.round(n*.02));
+    var out="",gapN=Math.floor(n/found);
+    for(var i=0;i<n;i++){out+=PERSON(i%gapN===Math.floor(gapN/2)?"found":"");}
     el.innerHTML=out; }
-  // count-up on the two headline numbers
-  var tws={};
-  function tween(id,target,fmt){ var el=g(id); if(!el)return; var st=tws[id]||{v:0};
-    if(st.raf)cancelAnimationFrame(st.raf); var from=st.v,t0=performance.now(),dur=650;
-    (function step(now){var k=Math.min(1,(now-t0)/dur);var e=1-Math.pow(1-k,3);st.v=from+(target-from)*e;
-      el.textContent=fmt(st.v); if(k<1)st.raf=requestAnimationFrame(step);else st.v=target;})(t0);
-    tws[id]=st; }
   function steps(m){
     var rows=[
-      {l:"Lapsed VIPs Halia wins back", v:comma(m.lapsedWon),
-       why:"3% of every client you have ever had are high-value clients hiding behind modest spend (McKinsey: the top 1 to 10%). Reach them and a quarter come back."},
-      {l:"Active VIPs into clienteling", v:comma(m.activeWon),
-       why:"Among this year's buyers, half of the VIPs Halia surfaces convert while they are still engaged."},
-      {l:"Lapsed revenue recovered", v:big(m.lapsedRev),
-       why:"Won-back clients at a VIP's annual value, "+m.mult+"x an average book."},
-      {l:"Recoverable per year", v:big(m.year), s:1,
-       why:"Plus McKinsey's 10 to 20% programme uplift on the active VIPs."}
+      {l:"revenue this year", v:big(m.R),
+       why:comma(m.TY)+" clients × "+gbp(m.A)+" × "+m.F+" orders"},
+      {l:"your top clients hold ~"+Math.round(m.share*100)+"%", v:big(m.vipRev),
+       why:"McKinsey: 20 to 50% of revenue. We keep your category near the floor."},
+      {l:"not actively clienteled", v:big(m.unworked),
+       why:"The share no one is looking after today, where the headroom is."},
+      {l:"uplift when worked", v:rng(m.upLo,m.upHi,big),
+       why:"McKinsey: 10 to 20% when top clients get a programme. Both ends kept."},
+      {l:"lapsed clients who return", v:rng(m.backLo,m.backHi,comma),
+       why:"1% of past clients were the hidden few; 10 to 25% return when reached."},
+      {l:"their spend, at your average", v:rng(m.lapLo,m.lapHi,big)},
+      {l:"a year, roughly", v:rng(m.lo,m.hi,big), s:1}
     ];
-    var el=g("steps");el.innerHTML=rows.map(function(r){return '<div class="rc-step"><div class="rc-row"><span'+(r.s?' class=hl':'')+'>'+r.l+'</span><span'+(r.s?' class=hl':' class=v')+'>'+r.v+'</span></div>'+(r.why?'<div class="rc-why">'+r.why+'</div>':'')+'</div>';}).join("");
+    var el=g("steps");el.innerHTML=rows.map(function(r){return '<div class="rc-step'+(r.s?' sum':'')+'"><div class="rc-row"><span'+(r.s?' class=hl':'')+'>'+r.l+'</span><span class="'+(r.s?'hl':'v')+'">'+r.v+'</span></div>'+(r.why?'<div class="rc-why">'+r.why+'</div>':'')+'</div>';}).join("");
     var st=el.querySelectorAll(".rc-step");
-    st.forEach(function(s,i){setTimeout(function(){s.classList.add("in");},90*i);});
+    st.forEach(function(s,i){setTimeout(function(){s.classList.add("in");},80*i);});
   }
   function recompute(){ setOuts(); var m=model();
-    tween("rrVips",m.vipsWon,comma); tween("rrYear",m.year,big);
+    g("rrVips").textContent=rng(m.backLo,m.backHi,comma);
+    g("rrYear").textContent=rng(m.lo,m.hi,big);
     pictogram(m); excel(m); steps(m); }
   ["rcall","rcyr","ra","rf","rg","rk"].forEach(function(id){var e=g(id);if(e)e.addEventListener("input",recompute);});
   document.querySelectorAll("[data-ns]").forEach(function(cb){cb.addEventListener("change",function(){
