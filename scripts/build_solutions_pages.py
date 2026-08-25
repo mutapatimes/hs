@@ -423,7 +423,7 @@ _CSS = """
   .wrap{max-width:1120px;margin:0 auto;padding:0 40px}.narrow{max-width:820px}
   .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--accent)}
   h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.05}
-  .display{font-size:clamp(42px,6.4vw,80px)}.h2{font-size:clamp(28px,4vw,46px)}
+  .display{font-size:clamp(42px,6.4vw,80px);text-wrap:balance}.h2{font-size:clamp(28px,4vw,46px);text-wrap:balance}
   em{font-style:italic;color:var(--accent)}
   .lede{font-size:clamp(18px,2vw,21px);color:var(--mute);line-height:1.5}
   .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:0;border:1px solid var(--ink);color:#f6f6f4;background:var(--ink);transition:.25s;cursor:pointer}
