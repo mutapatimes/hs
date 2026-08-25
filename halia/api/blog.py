@@ -495,13 +495,13 @@ you choose decides what you can do next.</p>
 <p>OuterSignal and Mercana are built to surface <strong>influencers and public figures</strong>: the
 customer with a large following, the actor, the athlete, the founder with a podcast. That is genuinely
 useful. A well-timed gift becomes a story; a story becomes reach; reach is a marketing asset.</p>
-<p>Halia is built to surface <strong>high-net-worth private clients</strong>: the quiet buyers whose
+<p>Halia is built to surface <strong>high-net-worth private clients</strong>: the private buyers whose
 spending, once recognised and nurtured, becomes a material share of your revenue. Most of them will
 never post about you. They are not a campaign. They are the people who, over a year, place the orders
 that move your numbers.</p>
 <p>Both are worth finding. They are simply different jobs. A famous name earns you exposure. A wealthy
 regular earns you revenue. If your goal is growth on the bottom line rather than a moment on social,
-that distinction is the whole game.</p>
+that distinction is what matters.</p>
 
 <h2>Where the data comes from, and whether it stays</h2>
 <p>OuterSignal and Mercana enrich each customer by calling external people-data APIs and then keep the
@@ -562,8 +562,8 @@ It also answers a different question from the one a luxury house asks at the cou
 <p>Altrata is built for reaching <strong>executives and organisations</strong>: the board member to
 warm up before a raise, the C-suite name behind an account, the decision-maker a search firm needs to
 place. Its heritage is dealmaking, fundraising, executive search, and account-based marketing, work
-where knowing who sits where, and who knows whom, is the whole advantage.</p>
-<p>Halia is built for a quieter figure: the <strong>high-net-worth private client already buying from
+where knowing who sits where, and who knows whom, is the advantage.</p>
+<p>Halia is built for a different figure: the <strong>high-net-worth private client already buying from
 you</strong>. Not a prospect to source from a database, but the person who placed a modest first order
 last week and, once recognised and looked after, becomes a material share of your year. Altrata helps
 you find someone out in the world and open a door. Halia helps you notice someone already inside it.</p>
@@ -612,8 +612,8 @@ not merit.</p>
 <p>If your next move is a capital raise, an acquisition, a placement, or a programme aimed at named
 executives, Altrata's breadth is hard to match, and having it live in Salesforce is a genuine
 advantage.</p>
-<p>If you run a luxury or premium house and your growth comes from recognising the wealthy buyer hiding
-behind a quiet first order, then looking after them for years, Halia is built for exactly that, and it
+<p>If you run a luxury or premium house and your growth comes from recognising the wealthy buyer
+behind a modest first order, then looking after them for years, Halia is built for exactly that, and it
 does the job without keeping a single customer record.</p>
 """
 
@@ -660,15 +660,15 @@ their choice wherever they happen to be standing.</p>
 
 <h2>Which brings it back to the shop floor</h2>
 <p>Here is the through-line. The report's wealthy individual is mobile, deliberate, currency-aware, and
-quietly enormous, and almost none of that is legible from a single receipt. The modest first order in
+larger than they look, and almost none of that is legible from a single receipt. The modest first order in
 your store may belong to a client who spends across three continents and has simply not yet decided you
 are worth returning to.</p>
 <p>Recognising that person is now the edge. It is a specific act: seeing, from what is already in front
-of you, that this quiet buyer is worth a personal appointment, an early allocation, a note that
+of you, that this unremarkable buyer is worth a personal appointment, an early allocation, a note that
 remembers their last visit. Do that consistently and you become the name they think of in Zurich and in
 Singapore alike.</p>
-<p>That recognition is the whole job Halia was built for: to find the high-net-worth client hiding
-behind an unremarkable order, grade them honestly, and hand your team the move that keeps them. In a
+<p>That recognition is what Halia was built for: to find the high-net-worth client inside
+an unremarkable order, grade them honestly, and hand your team the move that keeps them. In a
 year when the wealthy will happily buy the same thing somewhere else, being the house that knew them is
 worth more than being the cheapest counter, which, thanks to the currency, you were never going to be
 anyway.</p>
@@ -717,7 +717,7 @@ them as clients before they had to.</p>
 
 <h2>Which brings it back to the counter</h2>
 <p>Property, jets, and vineyards are the report's subject, but its through-line belongs to retail too:
-wealth is larger, more global, more mobile, and younger than the person in front of you appears. A quiet
+wealth is larger, more global, more mobile, and younger than the person in front of you appears. A modest
 first order can belong to an ultra-high-net-worth individual, a mobile professional on their way into
 the millions, or the heir to a fortune deciding which brands to keep.</p>
 <p>None of that is legible from a receipt. Reading it is the work. Halia was built to find the wealth
@@ -754,30 +754,28 @@ _SEED_POSTS = [
      "title": "Wealth is moving, and getting younger: reading the Knight Frank Wealth Report 2025",
      "dek": "Knight Frank's 19th Wealth Report finds affluence expanding, globalising, mobile, "
             "and passing to a next generation that buys on relationship. For luxury retail, that "
-            "raises the value of simply knowing who your quiet clients are.",
+            "raises the value of simply knowing who your best clients are.",
      "body": _KNIGHT_FRANK_BODY, "tags": "wealth, luxury, research"},
 ]
 
 
 def seed_blog() -> None:
-    """Publish the seed posts, and keep their publish dates one week apart.
+    """Publish the seed posts and keep their copy and schedule canonical.
 
-    New posts are created; posts already present are left untouched except for their
-    ``published_at``, which is reconciled to the canonical one-week-apart schedule so the
-    spacing holds even after earlier seeds. Body edits made in the CMS are preserved."""
+    These four are Halia's own house content, authored in code, so each deploy re-syncs the
+    title, dek, body and tags to the version in this file (that is how a copy edit here reaches
+    the live site) while preserving the post's cover image if one was set in the CMS. Publish
+    dates are held one week apart."""
     store = shop_store()
     for spec in _SEED_POSTS:
-        existing = store.get_post(spec["slug"])
-        if existing is None:
-            store.upsert_post({
-                "slug": spec["slug"], "title": spec["title"], "dek": spec["dek"],
-                "body_html": _sanitize(spec["body"]), "author": "The Halia team",
-                "cover_image_id": None, "tags": spec["tags"], "status": "published",
-                "published_at": spec["published_at"],
-            })
-        elif existing.get("published_at") != spec["published_at"]:
-            existing["published_at"] = spec["published_at"]     # fix spacing, keep any edits
-            store.upsert_post(existing)
+        existing = store.get_post(spec["slug"]) or {}
+        store.upsert_post({
+            "slug": spec["slug"], "title": spec["title"], "dek": spec["dek"],
+            "body_html": _sanitize(spec["body"]), "author": "The Halia team",
+            "cover_image_id": existing.get("cover_image_id"),
+            "tags": spec["tags"], "status": "published",
+            "published_at": spec["published_at"],
+        })
 
 
 # ── routes ─────────────────────────────────────────────────────────────────────────
