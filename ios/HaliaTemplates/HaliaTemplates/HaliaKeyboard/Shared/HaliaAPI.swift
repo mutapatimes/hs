@@ -369,6 +369,16 @@ struct HaliaAPI {
         try await postAny("/v1/capture", body: fields)
     }
 
+    private struct CaptureLink: Decodable { let url: String? }
+
+    /// The store's self-capture URL (rendered as a QR the client scans on their own phone).
+    func captureLink() async throws -> String {
+        let (data, _) = try await send("/v1/capture/link", method: "GET", body: nil)
+        guard let d = try? JSONDecoder().decode(CaptureLink.self, from: data), let u = d.url
+        else { throw HaliaAPIError.decode }
+        return u
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {

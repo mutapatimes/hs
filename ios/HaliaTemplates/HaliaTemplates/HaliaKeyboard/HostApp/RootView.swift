@@ -560,6 +560,7 @@ private struct HomeView: View {
     let onSignedOut: () -> Void
     @State private var showOpeners = false
     @State private var showCapture = false
+    @State private var showCaptureTools = false
     @State private var captureNote: String?
     @Environment(\.openURL) private var openURL
 
@@ -579,6 +580,8 @@ private struct HomeView: View {
             masthead
             VStack(spacing: 0) {
                 row("Add a client", "Capture their details, straight into your book") { showCapture = true }
+                hairline
+                row("Capture tools", "QR codes and your card, for the shop floor") { showCaptureTools = true }
                 hairline
                 row("Message openers", "The angles you send from Share") { showOpeners = true }
                 hairline
@@ -609,6 +612,7 @@ private struct HomeView: View {
         .fullScreenCover(isPresented: $showCapture) {
             CaptureView { note in captureNote = note }
         }
+        .sheet(isPresented: $showCaptureTools) { CaptureToolsView() }
         .overlay(alignment: .bottom) {
             if let note = captureNote {
                 Text(note)
@@ -857,7 +861,7 @@ private struct CaptureView: View {
                 Toggle("Email me about new arrivals and events", isOn: $emailUpdates)
                 Toggle("Text me occasionally", isOn: $smsUpdates)
             } footer: {
-                Text("Your details stay with the store, to look after you as a client.")
+                Text("Kept by the store for personal service.")
             }
             if let errorText {
                 Section { Text(errorText).foregroundColor(.red).font(.footnote) }
@@ -922,6 +926,171 @@ private struct CaptureView: View {
             saving = false
             errorText = "Could not save just now. Check the connection and try again."
         }
+    }
+}
+
+
+// MARK: - Capture tools (QR codes, the associate's card)
+
+import CoreImage.CIFilterBuiltins
+
+/// The associate's own details, kept on-device (App Group) so the shareable card and the
+/// WhatsApp QR work without any server round-trip.
+private struct MyCard: Codable {
+    var name = ""
+    var title = ""
+    var phone = ""
+    var email = ""
+
+    static let key = "halia.mycard.json"
+
+    static func load() -> MyCard {
+        guard let d = AppGroup.defaults.data(forKey: key),
+              let c = try? JSONDecoder().decode(MyCard.self, from: d) else {
+            var c = MyCard()
+            c.name = AppGroup.defaults.string(forKey: AppGroup.Key.name) ?? ""
+            return c
+        }
+        return c
+    }
+
+    func save() {
+        if let d = try? JSONEncoder().encode(self) { AppGroup.defaults.set(d, forKey: Self.key) }
+    }
+
+    var firstName: String { name.split(separator: " ").first.map(String.init) ?? name }
+
+    /// A standard vCard, so "Share my contact" hands the client a real contact card
+    /// (AirDrop, WhatsApp, Messages — whatever the share sheet offers).
+    var vcard: String {
+        var lines = ["BEGIN:VCARD", "VERSION:3.0", "FN:\(name)"]
+        let parts = name.split(separator: " ", maxSplits: 1).map(String.init)
+        lines.append("N:\(parts.count > 1 ? parts[1] : "");\(parts.first ?? "");;;")
+        if !title.isEmpty { lines.append("TITLE:\(title)") }
+        if !phone.isEmpty { lines.append("TEL;TYPE=CELL:\(phone)") }
+        if !email.isEmpty { lines.append("EMAIL:\(email)") }
+        lines.append("END:VCARD")
+        return lines.joined(separator: "\r\n")
+    }
+}
+
+private func qrImage(for string: String) -> UIImage? {
+    let filter = CIFilter.qrCodeGenerator()
+    filter.message = Data(string.utf8)
+    filter.correctionLevel = "M"
+    guard let output = filter.outputImage else { return nil }
+    let scaled = output.transformed(by: CGAffineTransform(scaleX: 11, y: 11))
+    guard let cg = CIContext().createCGImage(scaled, from: scaled.extent) else { return nil }
+    return UIImage(cgImage: cg)
+}
+
+private struct QRCard: View {
+    let value: String
+    let caption: String
+
+    var body: some View {
+        VStack(spacing: 12) {
+            if let img = qrImage(for: value) {
+                Image(uiImage: img)
+                    .interpolation(.none)
+                    .resizable().scaledToFit()
+                    .frame(maxWidth: 240)
+                    .padding(10).background(Color.white).cornerRadius(14)
+            }
+            Text(caption)
+                .font(.system(size: 13)).foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+    }
+}
+
+private struct CaptureToolsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var card = MyCard.load()
+    @State private var captureURL: String?
+    @State private var vcardFile: URL?
+
+    private var waLink: String? {
+        let digits = card.phone.filter { $0.isNumber }
+        guard digits.count >= 7 else { return nil }
+        let msg = "Hi \(card.firstName.isEmpty ? "there" : card.firstName), please feel free to add my number."
+        let enc = msg.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? msg
+        return "https://wa.me/\(digits)?text=\(enc)"
+    }
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section {
+                    if let url = captureURL {
+                        QRCard(value: url,
+                               caption: "The client scans this and leaves their details on their own phone. Straight into your book, graded.")
+                    } else {
+                        HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 30)
+                    }
+                } header: { Text("Self-capture") }
+
+                Section {
+                    if let wa = waLink {
+                        QRCard(value: wa,
+                               caption: "The client scans this and WhatsApp opens with a message to you, ready to send. One tap and you have their number.")
+                    } else {
+                        Text("Add your phone number below and this QR appears.")
+                            .font(.system(size: 13.5)).foregroundColor(.secondary)
+                    }
+                } header: { Text("WhatsApp") }
+
+                Section {
+                    if let f = vcardFile {
+                        ShareLink(item: f, preview: SharePreview(card.name.isEmpty ? "My contact" : card.name)) {
+                            Label("Share my contact", systemImage: "square.and.arrow.up")
+                        }
+                    } else {
+                        Text("Add your details below to share your card.")
+                            .font(.system(size: 13.5)).foregroundColor(.secondary)
+                    }
+                } header: { Text("Your card") } footer: {
+                    Text("Opens the share sheet: AirDrop, WhatsApp, Messages. The client saves you as a contact.")
+                }
+
+                Section {
+                    TextField("Your name", text: $card.name)
+                    TextField("Role, e.g. Client advisor", text: $card.title)
+                    TextField("Phone", text: $card.phone).keyboardType(.phonePad)
+                    TextField("Email", text: $card.email)
+                        .keyboardType(.emailAddress).autocapitalization(.none)
+                } header: { Text("Your details") } footer: {
+                    Text("Kept on this device. They power the card and the WhatsApp QR.")
+                }
+            }
+            .navigationTitle("Capture tools")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { card.save(); dismiss() }.fontWeight(.semibold)
+                }
+            }
+            .onChange(of: card.name) { _ in card.save(); writeVcard() }
+            .onChange(of: card.title) { _ in card.save(); writeVcard() }
+            .onChange(of: card.phone) { _ in card.save(); writeVcard() }
+            .onChange(of: card.email) { _ in card.save(); writeVcard() }
+            .task {
+                writeVcard()
+                captureURL = try? await HaliaAPI.current.captureLink()
+            }
+        }
+    }
+
+    private func writeVcard() {
+        let hasCard = !card.name.trimmingCharacters(in: .whitespaces).isEmpty
+            && (!card.phone.isEmpty || !card.email.isEmpty)
+        guard hasCard else { vcardFile = nil; return }
+        let dir = FileManager.default.temporaryDirectory
+        let file = dir.appendingPathComponent("contact.vcf")
+        try? card.vcard.data(using: .utf8)?.write(to: file)
+        vcardFile = file
     }
 }
 
