@@ -359,6 +359,16 @@ struct HaliaAPI {
         return r.url ?? ""
     }
 
+    // MARK: Client capture (handover)
+
+    struct CaptureResult: Decodable { let ok: Bool?; let created: Bool?; let grade: String? }
+
+    /// Save a captured client straight into the store's Shopify (deduped, consent recorded,
+    /// scored on the way through). Fields mirror POST /v1/capture.
+    func captureClient(_ fields: [String: Any]) async throws -> CaptureResult {
+        try await postAny("/v1/capture", body: fields)
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {

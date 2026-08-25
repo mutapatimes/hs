@@ -559,6 +559,8 @@ private struct HomeView: View {
     let onReconnect: () -> Void
     let onSignedOut: () -> Void
     @State private var showOpeners = false
+    @State private var showCapture = false
+    @State private var captureNote: String?
     @Environment(\.openURL) private var openURL
 
     private var syncLine: String {
@@ -576,6 +578,8 @@ private struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             masthead
             VStack(spacing: 0) {
+                row("Add a client", "Capture their details, straight into your book") { showCapture = true }
+                hairline
                 row("Message openers", "The angles you send from Share") { showOpeners = true }
                 hairline
                 row("Reconnect", "Scan a new code or paste a token", action: onReconnect)
@@ -602,6 +606,23 @@ private struct HomeView: View {
         .background(PaperBackground())
         .ignoresSafeArea(edges: .top)
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
+        .fullScreenCover(isPresented: $showCapture) {
+            CaptureView { note in captureNote = note }
+        }
+        .overlay(alignment: .bottom) {
+            if let note = captureNote {
+                Text(note)
+                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Capsule().fill(Palette.brandDeep))
+                    .padding(.bottom, 70)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                            withAnimation { captureNote = nil }
+                        }
+                    }
+            }
+        }
     }
 
     // A deep-green masthead that anchors the screen and reads like a private-client desk, not a
@@ -757,6 +778,150 @@ private struct OpenersEditor: View {
 
     private func binding(for kind: PageKind) -> Binding<[Opener]> {
         Binding(get: { sets[kind] ?? [] }, set: { sets[kind] = $0 })
+    }
+}
+
+
+// MARK: - Client capture (handover)
+//
+// The screen an associate hands to a client. Deliberately system-styled — a plain grouped form,
+// like adding a contact — and store-voiced: the client is giving their details to the store
+// (the data controller), and the profile's only home is the store's own Shopify. While it is
+// open the rest of the app is unreachable; leaving it goes through a hand-back screen so the
+// desk is never the first thing a client sees.
+private struct CaptureView: View {
+    let onDone: (String?) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var first = ""
+    @State private var last = ""
+    @State private var company = ""
+    @State private var phone = ""
+    @State private var email = ""
+    @State private var birthday = ""
+    @State private var postcode = ""
+    @State private var city = ""
+    @State private var country = ""
+    @State private var sizes = ""
+    @State private var preferences = ""
+    @State private var notes = ""
+    @State private var emailUpdates = false
+    @State private var smsUpdates = false
+    @State private var saving = false
+    @State private var errorText: String?
+    @State private var handBack = false     // saved (or cancelled): show the hand-back screen
+    @State private var savedGrade: String?
+
+    private var canSave: Bool {
+        !saving && (!email.trimmingCharacters(in: .whitespaces).isEmpty
+                    || !phone.trimmingCharacters(in: .whitespaces).isEmpty)
+    }
+
+    var body: some View {
+        NavigationView {
+            if handBack {
+                handBackView
+            } else {
+                form
+            }
+        }
+        .interactiveDismissDisabled(true)
+    }
+
+    private var form: some View {
+        Form {
+            Section {
+                TextField("First name", text: $first).textContentType(.givenName)
+                TextField("Last name", text: $last).textContentType(.familyName)
+                TextField("Company", text: $company).textContentType(.organizationName)
+            }
+            Section {
+                TextField("Phone", text: $phone)
+                    .textContentType(.telephoneNumber).keyboardType(.phonePad)
+                TextField("Email", text: $email)
+                    .textContentType(.emailAddress).keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                TextField("Birthday", text: $birthday)
+            }
+            Section {
+                TextField("Postcode", text: $postcode).textContentType(.postalCode)
+                TextField("City", text: $city).textContentType(.addressCity)
+                TextField("Country", text: $country).textContentType(.countryName)
+            }
+            Section("Preferences") {
+                TextField("Sizes", text: $sizes)
+                TextField("Likes and interests", text: $preferences)
+                TextField("Notes", text: $notes)
+            }
+            Section {
+                Toggle("Email me about new arrivals and events", isOn: $emailUpdates)
+                Toggle("Text me occasionally", isOn: $smsUpdates)
+            } footer: {
+                Text("Your details stay with the store, to look after you as a client.")
+            }
+            if let errorText {
+                Section { Text(errorText).foregroundColor(.red).font(.footnote) }
+            }
+        }
+        .navigationTitle("Your details")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { handBack = true }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button(saving ? "Saving…" : "Done") { Task { await save() } }
+                    .fontWeight(.semibold)
+                    .disabled(!canSave)
+            }
+        }
+    }
+
+    /// After Done or Cancel the phone goes back to the associate; a long-press stands between
+    /// the client and the desk.
+    private var handBackView: some View {
+        VStack(spacing: 18) {
+            Spacer()
+            Image(systemName: savedGrade == nil && errorText == nil && !saving
+                  ? "hand.wave" : "checkmark.circle")
+                .font(.system(size: 44, weight: .light))
+                .foregroundColor(.secondary)
+            Text("Thank you").font(.title2.weight(.semibold))
+            Text("Please hand the phone back.")
+                .font(.system(size: 15)).foregroundColor(.secondary)
+            Spacer()
+            Text("Hold to continue")
+                .font(.footnote).foregroundColor(.secondary)
+                .padding(.vertical, 14).padding(.horizontal, 36)
+                .background(Capsule().stroke(Color.secondary.opacity(0.4)))
+                .onLongPressGesture(minimumDuration: 1.2) {
+                    onDone(savedGrade.map { "Saved \u{00b7} Grade " + $0 })
+                    dismiss()
+                }
+                .padding(.bottom, 40)
+        }
+    }
+
+    private func save() async {
+        saving = true; errorText = nil
+        var fields: [String: Any] = ["channel": "handover"]
+        for (k, v) in [("first_name", first), ("last_name", last), ("company", company),
+                       ("phone", phone), ("email", email), ("birthday", birthday),
+                       ("postcode", postcode), ("city", city), ("country", country),
+                       ("sizes", sizes), ("preferences", preferences), ("notes", notes)] {
+            let t = v.trimmingCharacters(in: .whitespaces)
+            if !t.isEmpty { fields[k] = t }
+        }
+        fields["consent"] = ["email_marketing": emailUpdates, "sms_marketing": smsUpdates]
+        do {
+            let result = try await HaliaAPI.current.captureClient(fields)
+            savedGrade = result.grade
+            saving = false
+            handBack = true
+        } catch {
+            saving = false
+            errorText = "Could not save just now. Check the connection and try again."
+        }
     }
 }
 
