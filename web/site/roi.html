@@ -196,13 +196,17 @@
     g("rkOut").innerHTML=catLbl[val("rk")]||"";
   }
   function retFactor(P){ return P<20?1.15:(P>50?0.9:1.0); }
+  var CONV=0.5, VHLTV_SHARE=0.5, VHLTV_MULT=2.5;   // of the 2% detected, half convert; half of those are very high LTV
   function model(){
     var C=+val("rc"),A=+val("ra"),F=+val("rf"),P=+val("rp");
     var hidden=Math.round(C*HID);
+    var converted=Math.round(hidden*CONV);
+    var vhltv=Math.round(converted*VHLTV_SHARE);
     var perClient=A*F;
-    var uplift=(CAT[val("rg")]||.55)*(REG[val("rr")]||1)*(KLI[val("rk")]||1)*retFactor(P);
-    var year=hidden*perClient*uplift;
-    return {C:C,A:A,F:F,hidden:hidden,perClient:perClient,uplift:uplift,year:year};
+    var baseUplift=(CAT[val("rg")]||.55)*(REG[val("rr")]||1)*(KLI[val("rk")]||1)*retFactor(P);
+    var avgUplift=baseUplift*((1-VHLTV_SHARE)+VHLTV_SHARE*VHLTV_MULT);  // half standard, half very-high-LTV
+    var year=converted*perClient*avgUplift;
+    return {C:C,A:A,F:F,hidden:hidden,converted:converted,vhltv:vhltv,perClient:perClient,baseUplift:baseUplift,avgUplift:avgUplift,year:year};
   }
   // animated count-up
   var tw=null,shown=0;
@@ -216,9 +220,11 @@
   function steps(m){
     var rows=[
       ["Scanning your customers","<b>"+m.C.toLocaleString("en-GB")+"</b>"],
-      ["Hidden high-value detected &middot; 2%","<span class=v>"+m.hidden.toLocaleString("en-GB")+" clients</span>"],
+      ["Hidden high-value detected &middot; 2%","<span class=v>"+m.hidden.toLocaleString("en-GB")+"</span>"],
+      ["Expected to convert &middot; 50%","<span class=v>"+m.converted.toLocaleString("en-GB")+" clients</span>"],
+      ["Very high lifetime value &middot; half of those","<b>"+m.vhltv.toLocaleString("en-GB")+"</b>"],
       ["Their spend today &middot; "+gbp(m.A)+" &times; "+m.F+"/yr","<b>"+gbp(m.perClient)+"</b> each"],
-      ["Halia uplift &middot; "+catLbl[val("rg")]+", "+catLbl[val("rr")],"<span class=v>&times;"+m.uplift.toFixed(2)+"</span>"],
+      ["Halia uplift &middot; "+catLbl[val("rg")]+", "+catLbl[val("rr")],"<span class=v>&times;"+m.avgUplift.toFixed(2)+"</span>"],
       ["Recoverable per year","<b>"+big(m.year)+"</b>"]
     ];
     var el=g("steps");el.innerHTML=rows.map(function(r){return '<div class="rc-step"><span>'+r[0]+'</span><span>'+r[1]+'</span></div>';}).join("");
@@ -226,30 +232,33 @@
     st.forEach(function(s,i){setTimeout(function(){s.classList.add("in");},90*i);});
   }
   // canvas: a grid of customers; the hidden ~2% glow as they are found, with a scan sweep
-  var cv=g("dots"),ctx=cv&&cv.getContext&&cv.getContext("2d"),lit=[],cols=0,rows=0,scan=0,raf=null;
+  var cv=g("dots"),ctx=cv&&cv.getContext&&cv.getContext("2d"),lit=[],vh={},cols=0,rows=0,scan=0,raf=null;
   function layout(){ if(!cv)return; var dpr=window.devicePixelRatio||1; var w=cv.clientWidth||520,h=cv.clientHeight||150;
     cv.width=w*dpr;cv.height=h*dpr;if(ctx)ctx.setTransform(dpr,0,0,dpr,0,0);
     cols=Math.max(20,Math.floor(w/15));rows=Math.max(6,Math.floor(h/15)); }
-  function pickLit(m){ var total=cols*rows; var n=Math.max(3,Math.round(total*HID)); lit=[];
-    var stepN=total/n; for(var i=0;i<n;i++){lit.push(Math.floor(i*stepN+stepN*0.5*((i*37%7)/7)));} }
+  function pickLit(m){ var total=cols*rows; var n=Math.max(3,Math.round(total*HID)); lit=[];vh={};
+    var stepN=total/n; for(var i=0;i<n;i++){var idx=Math.floor(i*stepN+stepN*0.5*((i*37%7)/7));lit.push(idx);
+      if(i%4===0)vh[idx]=1;} }   // ~a quarter of the hidden (2% x 50% x 50%) are the very-high-LTV ones
   function draw(){ if(!ctx)return; var w=cv.clientWidth,h=cv.clientHeight; ctx.clearRect(0,0,w,h);
     var gx=w/cols,gy=h/rows; var t=performance.now()/600;
     for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
       var idx=r*cols+c, x=c*gx+gx/2, y=r*gy+gy/2, revealed=x<=scan;
       var isLit=lit.indexOf(idx)>=0;
-      if(isLit&&revealed){ var pulse=0.6+0.4*Math.sin(t+idx); ctx.beginPath();ctx.arc(x,y,3.1,0,6.28);
-        ctx.fillStyle="rgba(143,184,174,"+pulse+")";ctx.fill();
-        ctx.beginPath();ctx.arc(x,y,6.2,0,6.28);ctx.fillStyle="rgba(94,107,116,"+(0.14*pulse)+")";ctx.fill(); }
+      if(isLit&&revealed){ var pulse=0.6+0.4*Math.sin(t+idx);
+        if(vh[idx]){ ctx.beginPath();ctx.arc(x,y,3.6,0,6.28);ctx.fillStyle="rgba(214,196,138,"+pulse+")";ctx.fill();
+          ctx.beginPath();ctx.arc(x,y,8,0,6.28);ctx.fillStyle="rgba(214,196,138,"+(0.16*pulse)+")";ctx.fill(); }
+        else { ctx.beginPath();ctx.arc(x,y,3.1,0,6.28);ctx.fillStyle="rgba(143,184,174,"+pulse+")";ctx.fill();
+          ctx.beginPath();ctx.arc(x,y,6.2,0,6.28);ctx.fillStyle="rgba(94,107,116,"+(0.14*pulse)+")";ctx.fill(); } }
       else { ctx.beginPath();ctx.arc(x,y,1.15,0,6.28); ctx.fillStyle= revealed?"rgba(255,255,255,.16)":"rgba(255,255,255,.05)"; ctx.fill(); }
     }
     if(scan<w){ ctx.fillStyle="rgba(143,184,174,.28)";ctx.fillRect(scan-1,0,2,h); }
   }
   function loop(){ if(scan<(cv?cv.clientWidth:0)+2){scan+=Math.max(6,(cv.clientWidth||520)/34);} draw(); raf=requestAnimationFrame(loop); }
-  function rescan(m){ if(!ctx)return; layout(); pickLit(m); scan=0; g("scanlbl").textContent="found "+m.hidden.toLocaleString("en-GB")+" hidden clients"; }
+  function rescan(m){ if(!ctx)return; layout(); pickLit(m); scan=0; g("scanlbl").textContent="found "+m.hidden.toLocaleString("en-GB")+" hidden \u00b7 "+m.vhltv.toLocaleString("en-GB")+" very high value"; }
   var deb=null;
   function explain(m){ var e=g("rcExplain"); if(!e)return;
     var name={fashion:"fashion",wine:"wine &amp; spirits",beauty:"beauty",jewellery:"jewellery &amp; watches",home:"home &amp; interiors",gifting:"flowers, food &amp; gifting",books:"rare books &amp; collectibles",electronics:"electronics"}[val("rg")]||"your category";
-    e.innerHTML="In "+name+", "+ (CAT_TAG[val("rg")]||"") + " On your figures, about <b>"+big(m.year)+"</b> a year is tied up in high-value clients you are likely under-serving \u2014 the ones a spend-sorted list never surfaces."; }
+    e.innerHTML="In "+name+", "+ (CAT_TAG[val("rg")]||"") + " Realistically you would convert about half of the "+m.hidden.toLocaleString('en-GB')+" we find, and half of those become very high value \u2014 roughly <b>"+big(m.year)+"</b> a year in clients a spend-sorted list never surfaces."; }
   function recompute(){ setOuts(); var m=model(); tweenTo(m.year); explain(m);
     g("rrMonth").innerHTML="about "+big(m.year/12)+" per month"; steps(m); rescan(m); }
   // wire
