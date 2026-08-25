@@ -602,7 +602,7 @@ def _footer() -> str:
         '<div class="hf-col"><h4>Solutions</h4><a href="/solutions/fashion">Fashion &amp; apparel</a><a href="/solutions/wine">Wine &amp; spirits</a>'
         '<a href="/solutions/beauty">Beauty &amp; fragrance</a><a href="/solutions/jewellery">Jewellery &amp; watches</a><a href="/solutions/home">Home &amp; interiors</a><a href="/solutions">All solutions &rarr;</a></div>'
         '<div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/pricing">Pricing</a>'
-        '<a href="/blog">Blog</a><a href="/brand">Brand</a><a href="mailto:hello@haliascore.com">Contact</a></div>'
+        '<a href="/blog">Blog</a><a href="/brand">Brand</a><a href="/contact">Contact</a></div>'
         '<div class="hf-col"><h4>Trust &amp; legal</h4><a href="/security">Security</a><a href="/responsible">Responsible profiling</a>'
         '<a href="/status">System status</a><a href="/faq">FAQ</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>'
         '</div>'
