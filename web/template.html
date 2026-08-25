@@ -2628,12 +2628,12 @@ function renderLandscape(){
   const el=document.getElementById("ovLandscape");
   if(!el||!LANDSCAPE.hidden) return;
   const tiles=[
-    {k:"hidden",   t:"Hidden VICs",      c:"Strong wealth signals on modest spend. Your introduction list.",
+    {k:"hidden",   t:"Hidden VICs",      c:"Strong wealth signals on modest spend.",
      n:LANDSCAPE.hidden.n,   v:LANDSCAPE.hidden.value,  vlbl:"latent", click:()=>{playFilter="";activeSegs.clear();page=1;showView("clients");renderChips();renderRows();}},
-    {k:"sleeping", t:"Gone quiet",       c:"Proven clients whose orders stopped. A quiet note brings them back.",
+    {k:"sleeping", t:"Gone quiet",       c:"Proven clients whose orders stopped.",
      n:LANDSCAPE.sleeping.n, v:LANDSCAPE.sleeping.value, vlbl:"lifetime", click:()=>filterToPlay("sleeping")},
-    {k:"active",   t:"Active VICs",      c:"Strong wealth signals, shopping now. Keep the service impeccable."   , n:LANDSCAPE.active.n},
-    {k:"regulars", t:"Devoted regulars", c:"Frequent buyers at ordinary wealth. Recognise them in kind.", n:LANDSCAPE.regulars.n},
+    {k:"active",   t:"Active VICs",      c:"Strong wealth signals, shopping now.", n:LANDSCAPE.active.n},
+    {k:"regulars", t:"Devoted regulars", c:"Frequent buyers at ordinary wealth.", n:LANDSCAPE.regulars.n},
   ];
   el.innerHTML=tiles.map(t=>`<div class="lstile ${t.click?'click':''}" data-k="${t.k}">
     <div class="n">${(t.n||0).toLocaleString("en-GB")}${t.v?`<small>${fmtBig(t.v)} ${t.vlbl}</small>`:""}</div>
