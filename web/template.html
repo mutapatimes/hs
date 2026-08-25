@@ -3366,7 +3366,7 @@ function openDrawer(id){
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   wireDrawerCtl();
-  wireCartBuilder();     // "Send a cart" -> one-tap Shopify checkout link (Shopify only)
+  wireCartBuilder(c);    // "Send a cart" -> one-tap Shopify checkout link (Shopify only)
   renderDrawerPipe(c);   // outreach-pipeline section (stage / owner / activity)
   // Associate feedback loop: one tap records an anonymous per-signal tally (Halia) + tags the
   // client in the merchant's own store. This is the label that later fixes calibration direction.
@@ -3451,7 +3451,7 @@ function toggleDrawerWide(){
 function wireDrawerCtl(){const c=document.getElementById("dclose");if(c)c.onclick=closeDrawer;const e=document.getElementById("dexpand");if(e)e.onclick=toggleDrawerWide;}
 // "Send a cart": search products, pick quantities, and build a one-tap Shopify checkout link the
 // client pays themselves (read-only cart permalink; creates nothing on the store). Shopify only.
-function wireCartBuilder(){
+function wireCartBuilder(c){
   const root=document.getElementById("cartb"); if(!root) return;
   const inp=document.getElementById("cbSearch"), go=document.getElementById("cbGo"),
         resEl=document.getElementById("cbResults"), cartEl=document.getElementById("cbCart");
@@ -3467,18 +3467,27 @@ function wireCartBuilder(){
         <span style="min-width:16px;text-align:center">${it.qty}</span>
         <button data-q="${esc(it.id)}" data-s="1" style="${bt};width:24px;height:24px">+</button>
         <button data-rm="${esc(it.id)}" style="${bt};width:24px;height:24px;color:#9A3838">×</button></div>`).join("")}
-      <button class="dbtn primary" id="cbLink" style="margin-top:8px;width:100%">Copy checkout link · ${n} item${n===1?"":"s"}</button>
+      <button class="dbtn primary" id="cbLink" style="margin-top:8px;width:100%">Build checkout link · ${n} item${n===1?"":"s"}</button>
+      <div id="cbOut"></div>
       <div style="font-size:11.5px;color:var(--faint);margin-top:6px">A cart link on your own store. Nothing is charged until the client checks out.</div></div>`;
     cartEl.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{const it=cart.find(x=>x.id===b.dataset.q); if(it){it.qty=Math.max(1,it.qty+(+b.dataset.s)); renderCart();}});
     cartEl.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{cart=cart.filter(x=>x.id!==b.dataset.rm); renderCart();});
-    const lk=document.getElementById("cbLink");
+    const lk=document.getElementById("cbLink"), lbl=lk?lk.textContent:"";
     if(lk) lk.onclick=()=>{ lk.disabled=true; lk.textContent="Building link…";
       fetch("/v1/cart-link",{method:"POST",headers:{"content-type":"application/json"},
         body:JSON.stringify({items:cart.map(i=>({id:i.id,qty:i.qty}))})})
         .then(r=>r.ok?r.json():r.json().then(d=>Promise.reject(d.detail||"Couldn't build the link")))
-        .then(d=>navigator.clipboard.writeText(d.url).then(()=>toast("Checkout link copied — paste it to your client."),()=>toast(d.url)))
+        .then(d=>{ const url=d.url, num=phoneDigits(c.phone), em=c.email,
+            msg=`Hi ${c.first||"there"}, I have put a cart together for you — you can check out here: ${url}`,
+            out=document.getElementById("cbOut");
+          out.innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="dbtn" id="cbCopy">Copy link</button>
+            ${num?`<a class="dbtn" href="https://wa.me/${num}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="text-decoration:none">WhatsApp</a>`:""}
+            ${em?`<a class="dbtn" href="mailto:${em}?subject=${encodeURIComponent("A cart for you")}&body=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="text-decoration:none">Email</a>`:""}</div>`;
+          const cp=document.getElementById("cbCopy"); if(cp)cp.onclick=()=>navigator.clipboard.writeText(url).then(()=>toast("Checkout link copied."),()=>toast(url));
+          navigator.clipboard.writeText(url).then(()=>toast("Checkout link ready — copied, or send it below."),()=>toast("Checkout link ready — send it below.")); })
         .catch(e=>toast("Cart: "+(typeof e==="string"?e:"couldn't build the link")))
-        .finally(()=>renderCart()); };
+        .finally(()=>{ lk.disabled=false; lk.textContent=lbl; }); };
   }
   function add(p){ const id=String(p.id); const ex=cart.find(x=>x.id===id); if(ex)ex.qty++; else cart.push({id,title:p.title||"Product",qty:1}); renderCart(); }
   function search(){
