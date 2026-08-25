@@ -342,7 +342,7 @@ def _signin_page(error: str = "", email: str = "") -> str:
     inner = (
         "<h1>Sign in</h1>"
         "<p class=sub>Enter the email you connected with and we'll send you a secure, "
-        "single-use link. No password to remember.</p>"
+        "single-use link.</p>"
         f"{err}"
         "<form method=post action=/app/signin>"
         "<label for=email>Work email</label>"
