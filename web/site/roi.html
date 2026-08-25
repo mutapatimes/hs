@@ -102,12 +102,19 @@
   .rc-stage{background:#161619;color:#f6f6f4;padding:clamp(22px,3vw,30px);display:flex;flex-direction:column;position:relative;overflow:hidden;position:sticky;top:96px}
   @media(max-width:840px){.rc-stage{position:static}}
   .rc-stage .sl{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#8a8b93}
-  .rc-canvas-wrap{position:relative;margin:14px 0 6px;border:1px solid rgba(255,255,255,.09);background:#101013;height:150px}
-  #dots{display:block;width:100%;height:100%}
-  .rc-scanlbl{position:absolute;left:11px;bottom:9px;font:500 11px ui-monospace,Menlo,monospace;color:#9aa;letter-spacing:.02em}
-  .rc-big{font-family:var(--serif);font-weight:300;font-size:clamp(44px,7vw,72px);line-height:1;margin:16px 0 2px;color:#fff;font-variant-numeric:tabular-nums}
-  .rc-big .yr{display:block;font-family:var(--sans);font-size:12.5px;color:#8a8b93;margin-top:9px;font-weight:500;letter-spacing:.02em}
-  .rc-month{color:#c7c8cf;font-size:14px;margin-bottom:16px}
+  .rc-pict{display:flex;flex-wrap:wrap;gap:5px 4px;margin:16px 0 10px;line-height:0}
+  .rc-pict svg{width:13px;height:13px;flex:0 0 auto;fill:#3a3b42;transition:fill .5s,filter .5s}
+  .rc-pict svg.found{fill:#8fb8ae}
+  .rc-pict svg.won{fill:#7fe0c8;filter:drop-shadow(0 0 5px rgba(127,224,200,.55))}
+  .rc-plegend{display:flex;gap:18px;flex-wrap:wrap;font:500 11px var(--sans);color:#8a8b93;margin-bottom:18px}
+  .rc-plegend .pl{display:inline-flex;align-items:center;gap:6px}
+  .rc-plegend .pk{width:9px;height:9px;border-radius:2px}
+  .rc-plegend .pk.found{background:#8fb8ae}
+  .rc-plegend .pk.won{background:#7fe0c8}
+  .rc-heads{display:flex;gap:clamp(24px,5vw,44px);flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.09);padding-top:20px}
+  .rc-head{display:flex;flex-direction:column}
+  .rc-hn{font-family:var(--serif);font-weight:300;font-size:clamp(38px,6vw,60px);line-height:1;color:#fff;font-variant-numeric:tabular-nums}
+  .rc-hl{font:500 12px var(--sans);color:#8a8b93;margin-top:9px;letter-spacing:.02em;max-width:18ch}
   .rc-steps{border-top:1px solid rgba(255,255,255,.09);padding-top:14px;display:flex;flex-direction:column;gap:8px}
   .rc-step{opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s}
   .rc-row{display:flex;justify-content:space-between;gap:12px;font:500 12.5px ui-monospace,Menlo,monospace;color:#a9aab2}
@@ -165,16 +172,19 @@
 
 <section class="pad" style="padding-top:14px"><div class="wrap" style="max-width:1080px">
  <div class="rcalc">
-  <div class="rc-in"><div class="rc-f" data-fid="rc"><div class="rl"><span>Customers in your database</span><output id="rcOut"></output></div><input id="rc" type="range" min="1000" max="500000" step="1000" value="50000"><label class="rc-ns"><input type="checkbox" data-ns="rc">Not sure?</label></div><div class="rc-f" data-fid="ract"><div class="rl"><span>Active in the last year</span><output id="ractOut"></output></div><input id="ract" type="range" min="10" max="100" step="5" value="70"><label class="rc-ns"><input type="checkbox" data-ns="ract">Not sure?</label></div><div class="rc-f" data-fid="ra"><div class="rl"><span>Average order value</span><output id="raOut"></output></div><input id="ra" type="range" min="50" max="2000" step="10" value="200"><label class="rc-ns"><input type="checkbox" data-ns="ra">Not sure?</label></div><div class="rc-f" data-fid="rf"><div class="rl"><span>Orders per active customer, per year</span><output id="rfOut"></output></div><input id="rf" type="range" min="1" max="12" step="1" value="2"><label class="rc-ns"><input type="checkbox" data-ns="rf">Not sure?</label></div><div class="rc-f" data-fid="rg"><div class="rl"><span>Category</span><output id="rgOut"></output></div><select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="wine">Wine &amp; spirits</option><option value="beauty">Beauty &amp; fragrance</option><option value="jewellery">Jewellery &amp; watches</option><option value="home">Home &amp; interiors</option><option value="gifting">Flowers, food &amp; gifting</option><option value="books">Rare books &amp; collectibles</option><option value="electronics">Electronics &amp; big-box</option></select><label class="rc-ns"><input type="checkbox" data-ns="rg">Not sure?</label></div><div class="rc-f" data-fid="rhid"><div class="rl"><span>Best clients hidden behind modest spend</span><output id="rhidOut"></output></div><input id="rhid" type="range" min="15" max="60" step="5" value="40"><label class="rc-ns"><input type="checkbox" data-ns="rhid">Not sure?</label></div><div class="rc-f" data-fid="rk"><div class="rl"><span>Clienteling you do today</span><output id="rkOut"></output></div><select id="rk"><option value="none">None, mostly mass email</option><option value="some" selected>Some, by hand</option><option value="heavy">A dedicated team</option></select><label class="rc-ns"><input type="checkbox" data-ns="rk">Not sure?</label></div></div>
+  <div class="rc-in"><div class="rc-f" data-fid="rcall"><div class="rl"><span>Clients you have ever had</span><output id="rcallOut"></output></div><input id="rcall" type="range" min="5000" max="2000000" step="5000" value="200000"><label class="rc-ns"><input type="checkbox" data-ns="rcall">Not sure?</label></div><div class="rc-f" data-fid="rcyr"><div class="rl"><span>Clients who bought this year</span><output id="rcyrOut"></output></div><input id="rcyr" type="range" min="1000" max="500000" step="1000" value="50000"><label class="rc-ns"><input type="checkbox" data-ns="rcyr">Not sure?</label></div><div class="rc-f" data-fid="ra"><div class="rl"><span>Average order value</span><output id="raOut"></output></div><input id="ra" type="range" min="50" max="2000" step="10" value="200"><label class="rc-ns"><input type="checkbox" data-ns="ra">Not sure?</label></div><div class="rc-f" data-fid="rf"><div class="rl"><span>Orders per client, per year</span><output id="rfOut"></output></div><input id="rf" type="range" min="1" max="12" step="1" value="2"><label class="rc-ns"><input type="checkbox" data-ns="rf">Not sure?</label></div><div class="rc-f" data-fid="rg"><div class="rl"><span>Category</span><output id="rgOut"></output></div><select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="wine">Wine &amp; spirits</option><option value="beauty">Beauty &amp; fragrance</option><option value="jewellery">Jewellery &amp; watches</option><option value="home">Home &amp; interiors</option><option value="gifting">Flowers, food &amp; gifting</option><option value="books">Rare books &amp; collectibles</option><option value="electronics">Electronics &amp; big-box</option></select><label class="rc-ns"><input type="checkbox" data-ns="rg">Not sure?</label></div><div class="rc-f" data-fid="rk"><div class="rl"><span>Clienteling you do today</span><output id="rkOut"></output></div><select id="rk"><option value="none">None, mostly mass email</option><option value="some" selected>Some, by hand</option><option value="heavy">A dedicated team</option></select><label class="rc-ns"><input type="checkbox" data-ns="rk">Not sure?</label></div></div>
   <div class="rc-stage">
    <div class="sl">Modelling on McKinsey benchmarks</div>
-   <div class="rc-canvas-wrap"><canvas id="dots"></canvas><div class="rc-scanlbl" id="scanlbl">scanning&hellip;</div></div>
-   <div class="rc-big" id="rrYear">&pound;0<span class="yr">recoverable per year</span></div>
-   <div class="rc-month" id="rrMonth">&nbsp;</div>
+   <div class="rc-pict" id="pict"></div>
+   <div class="rc-plegend"><span class="pl"><i class="pk found"></i>hidden VIPs Halia finds</span><span class="pl"><i class="pk won"></i>you win back</span></div>
+   <div class="rc-heads">
+    <div class="rc-head"><div class="rc-hn" id="rrVips">0</div><div class="rc-hl">VIPs Halia wins you a year</div></div>
+    <div class="rc-head"><div class="rc-hn" id="rrYear">&pound;0</div><div class="rc-hl">recoverable per year</div></div>
+   </div>
    <div class="rc-steps" id="steps"></div>
   </div>
  </div>
- <p class="rc-note">An estimate. Halia applies McKinsey&rsquo;s benchmarks to your own numbers; the research is below. Your figures will differ.</p>
+ <p class="rc-note">An estimate on McKinsey&rsquo;s benchmarks and your own figures. The full working is in the model below; your numbers will differ.</p>
  <div class="roi-cta">
   <form id="roiForm" novalidate>
    <input id="roiEmail" type="email" placeholder="Your work email" required>
@@ -188,23 +198,26 @@
  <h2 class="h2" style="max-width:16ch">The calculation</h2>
  <p class="lede" style="max-width:56ch;margin:14px 0 24px">The same figures, laid out as a model. It updates as you move the sliders.</p>
  <div class="xl">
-  <div class="xl-bar"><span class="xl-ref">B13</span><span class="xl-fx">fx</span><span class="xl-formula">=B11*B12</span></div>
+  <div class="xl-bar"><span class="xl-ref">B15</span><span class="xl-fx">fx</span><span class="xl-formula">=B12+B14</span></div>
   <div class="xl-scroll"><table class="xl-grid">
    <tr class="xl-cols"><th class="xl-corner"></th><th>A</th><th>B</th></tr>
    <tr><td class="xl-rn">1</td><td class="xl-th">The model</td><td class="xl-th">Your numbers</td></tr>
-   <tr class=""><td class="xl-rn">2</td><td>Customers</td><td class="xl-num" id="x2"></td></tr>
-   <tr class=""><td class="xl-rn">3</td><td>Active in the last year</td><td class="xl-num" id="x3"></td></tr>
-   <tr class="xl-calc"><td class="xl-rn">4</td><td>Active customers <span class="xl-f">=B2*B3</span></td><td class="xl-num" id="x4"></td></tr>
-   <tr class=""><td class="xl-rn">5</td><td>Average order value</td><td class="xl-num" id="x5"></td></tr>
-   <tr class=""><td class="xl-rn">6</td><td>Orders per active customer / yr</td><td class="xl-num" id="x6"></td></tr>
-   <tr class="xl-calc"><td class="xl-rn">7</td><td>Annual revenue <span class="xl-f">=B4*B5*B6</span></td><td class="xl-num" id="x7"></td></tr>
-   <tr class=""><td class="xl-rn">8</td><td>Top VIP share <span class="xl-note">McKinsey: 20&ndash;50% of revenue</span></td><td class="xl-num" id="x8"></td></tr>
-   <tr class="xl-calc"><td class="xl-rn">9</td><td>VIP revenue <span class="xl-f">=B7*B8</span></td><td class="xl-num" id="x9"></td></tr>
-   <tr class=""><td class="xl-rn">10</td><td>Hidden behind modest spend <span class="xl-note">a spend-sort misses these, Halia surfaces them</span></td><td class="xl-num" id="x10"></td></tr>
-   <tr class="xl-calc"><td class="xl-rn">11</td><td>VIP revenue Halia surfaces <span class="xl-f">=B9*B10</span></td><td class="xl-num" id="x11"></td></tr>
-   <tr class=""><td class="xl-rn">12</td><td>Programme uplift <span class="xl-note">McKinsey: 10&ndash;20%</span></td><td class="xl-num" id="x12"></td></tr>
-   <tr class="xl-res"><td class="xl-rn">13</td><td>Recoverable per year <span class="xl-f">=B11*B12</span></td><td class="xl-num" id="x13"></td></tr>
+   <tr class=""><td class="xl-rn">2</td><td>Clients you have ever had</td><td class="xl-num" id="x2"></td></tr>
+   <tr class=""><td class="xl-rn">3</td><td>VIP find rate <span class="xl-note">McKinsey: the top 1&ndash;10%</span></td><td class="xl-num" id="x3"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">4</td><td>VIPs Halia can find <span class="xl-f">=B2*B3</span></td><td class="xl-num" id="x4"></td></tr>
+   <tr class=""><td class="xl-rn">5</td><td>Lapsed win-back rate <span class="xl-note">they left, a quarter return</span></td><td class="xl-num" id="x5"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">6</td><td>Lapsed VIPs won back <span class="xl-f">=B4*B5</span></td><td class="xl-num" id="x6"></td></tr>
+   <tr class=""><td class="xl-rn">7</td><td>Clients who bought this year</td><td class="xl-num" id="x7"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">8</td><td>VIPs found among them <span class="xl-f">=B7*B3</span></td><td class="xl-num" id="x8"></td></tr>
+   <tr class=""><td class="xl-rn">9</td><td>Active conversion rate <span class="xl-note">still engaged, half convert</span></td><td class="xl-num" id="x9"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">10</td><td>Active VIPs won <span class="xl-f">=B8*B9</span></td><td class="xl-num" id="x10"></td></tr>
+   <tr class=""><td class="xl-rn">11</td><td>A VIP&rsquo;s annual value <span class="xl-note">AOV &times; orders &times; category</span></td><td class="xl-num" id="x11"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">12</td><td>Lapsed revenue recovered <span class="xl-f">=B6*B11</span></td><td class="xl-num" id="x12"></td></tr>
+   <tr class=""><td class="xl-rn">13</td><td>Programme uplift <span class="xl-note">McKinsey: 10&ndash;20%</span></td><td class="xl-num" id="x13"></td></tr>
+   <tr class="xl-calc"><td class="xl-rn">14</td><td>Active revenue lifted <span class="xl-f">=B10*B11*B13</span></td><td class="xl-num" id="x14"></td></tr>
+   <tr class="xl-res"><td class="xl-rn">15</td><td>Recoverable per year <span class="xl-f">=B12+B14</span></td><td class="xl-num" id="x15"></td></tr>
   </table></div>
+ </div>
  </div>
 </div></section>
 
@@ -212,7 +225,6 @@
  <div class="rk-head">
   <div>
    <h2 class="h2" style="max-width:20ch">McKinsey&rsquo;s findings</h2>
-   <p class="lede" style="margin-top:14px;max-width:52ch">Every figure above is theirs, applied to your numbers.</p>
   </div>
  </div>
  <div class="rk-grid">
@@ -234,102 +246,84 @@
   // Economics grounded in McKinsey, "Small and mighty: the untapped value of your top 1%" (2023):
   // the top 1-10% of customers drive 20-50% of revenue; left unmanaged ~50% change brand preference
   // each year; a well-run VIP programme delivers a 10-20% revenue uplift and a 5-10% lift in retention.
-  var HID=0.05;   // top ~5% VIPs shown in the scan (within McKinsey's top 1-10%)
-  // Deliberately conservative: the LOW end of every McKinsey range, so the number is defensible.
-  var VIP_SHARE={fashion:.20,wine:.24,beauty:.18,jewellery:.28,home:.25,gifting:.22,books:.26,electronics:.18}; // top VIPs' share of revenue (McKinsey: 20-50%; we take the floor)
-  var UPLIFT_KLI={none:.18,some:.15,heavy:.12};   // programme uplift on VIP revenue (McKinsey: 10-20%)
-  var DEF={rc:50000,ract:70,ra:200,rf:2,rg:"fashion",rhid:40,rk:"some"};
   var g=function(id){return document.getElementById(id);};
   function gbp(n){return "£"+Math.round(n).toLocaleString("en-GB");}
-  function big(n){return n>=1e6?"£"+(n/1e6).toFixed(1)+"m":n>=1000?"£"+Math.round(n/1000)+"k":"£"+Math.round(n);}
+  function big(n){return n>=1e6?"£"+(n/1e6).toFixed(n<1e7?2:1)+"m":n>=1000?"£"+Math.round(n/1000)+"k":"£"+Math.round(n);}
+  function comma(n){return Math.round(n).toLocaleString("en-GB");}
   function nsOn(id){var f=document.querySelector('[data-ns="'+id+'"]');return f&&f.checked;}
   function val(id){var e=g(id);if(!e)return DEF[id];return nsOn(id)?DEF[id]:(e.type==="range"?+e.value:e.value);}
-  var catLbl={fashion:"Fashion",wine:"Wine",beauty:"Beauty",jewellery:"Jewellery",home:"Home",gifting:"Gifting",books:"Rare books",electronics:"Electronics",uk:"UK",eu:"Europe",us:"US",gulf:"Gulf",asia:"Asia",global:"Mixed",none:"None today",some:"Some",heavy:"A team"};
-  // outputs shown next to each control
+  // Two streams: lapsed VIPs Halia wins back (full value returns) and this year's VIPs into
+  // clienteling (McKinsey's 10-20% programme uplift). FIND/CONV are held fixed as assumptions.
+  var FIND=0.03;          // share of a client base that are hidden high-value clients (McKinsey: top 1-10%)
+  var CONV_LAPSED=0.25;   // of the lapsed VIPs Halia surfaces, a quarter come back
+  var CONV_ACTIVE=0.50;   // of this year's VIPs, half convert while still engaged
+  var VIP_MULT={fashion:3,wine:4,beauty:3,jewellery:6,home:4,gifting:3,books:5,electronics:2}; // a VIP's value vs average (McKinsey: 10-25x; we stay well below)
+  var UPLIFT_KLI={none:.18,some:.15,heavy:.12}; // programme uplift on active VIPs (McKinsey: 10-20%)
+  var DEF={rcall:200000,rcyr:50000,ra:200,rf:2,rg:"fashion",rk:"some"};
+  var catLbl={fashion:"Fashion",wine:"Wine",beauty:"Beauty",jewellery:"Jewellery",home:"Home",gifting:"Gifting",books:"Rare books",electronics:"Electronics",none:"None today",some:"Some",heavy:"A team"};
   function setOuts(){
-    g("rcOut").textContent=(+val("rc")).toLocaleString("en-GB");
-    g("ractOut").textContent=val("ract")+"%";
+    g("rcallOut").textContent=comma(val("rcall"));
+    g("rcyrOut").textContent=comma(val("rcyr"));
     g("raOut").textContent=gbp(val("ra"));
     g("rfOut").textContent=val("rf")+(+val("rf")===1?" (once)":"");
     g("rgOut").innerHTML=catLbl[val("rg")]||"";
-    g("rhidOut").textContent=val("rhid")+"%";
     g("rkOut").innerHTML=catLbl[val("rk")]||"";
   }
-  // Revenue on ACTIVE customers only; VIP revenue (McKinsey); the hidden slice Halia surfaces;
-  // then the McKinsey programme uplift on what Halia lets you newly work.
   function model(){
-    var C=+val("rc"),act=+val("ract")/100,A=+val("ra"),F=+val("rf"),hid=+val("rhid")/100;
-    var active=C*act;
-    var R=active*A*F;
-    var vipShare=VIP_SHARE[val("rg")]||.20;
-    var vipRev=R*vipShare;
-    var hiddenRev=vipRev*hid;
-    var upliftRate=UPLIFT_KLI[val("rk")]||.15;
-    var year=hiddenRev*upliftRate;
-    return {C:C,act:act,A:A,F:F,hid:hid,active:active,R:R,vipShare:vipShare,vipRev:vipRev,hiddenRev:hiddenRev,upliftRate:upliftRate,year:year,vipCount:Math.round(active*HID)};
+    var TA=+val("rcall"),TY=+val("rcyr"),A=+val("ra"),F=+val("rf");
+    var mult=VIP_MULT[val("rg")]||3, uplift=UPLIFT_KLI[val("rk")]||.15;
+    var vipAnnual=A*F*mult;
+    var lapsedFound=TA*FIND, lapsedWon=lapsedFound*CONV_LAPSED;
+    var activeFound=TY*FIND, activeWon=activeFound*CONV_ACTIVE;
+    var lapsedRev=lapsedWon*vipAnnual, activeRev=activeWon*vipAnnual*uplift;
+    var year=lapsedRev+activeRev, vipsWon=lapsedWon+activeWon;
+    return {TA:TA,TY:TY,A:A,F:F,mult:mult,uplift:uplift,vipAnnual:vipAnnual,
+      lapsedFound:lapsedFound,lapsedWon:lapsedWon,activeFound:activeFound,activeWon:activeWon,
+      lapsedRev:lapsedRev,activeRev:activeRev,year:year,vipsWon:vipsWon};
   }
-  // mirror the model into the live spreadsheet below
   function excel(m){ var set=function(id,v){var e=g(id);if(e)e.innerHTML=v;};
-    set("x2",m.C.toLocaleString("en-GB")); set("x3",Math.round(m.act*100)+"%");
-    set("x4",Math.round(m.active).toLocaleString("en-GB")); set("x5",gbp(m.A)); set("x6",m.F);
-    set("x7",gbp(m.R)); set("x8",Math.round(m.vipShare*100)+"%"); set("x9",gbp(m.vipRev));
-    set("x10",Math.round(m.hid*100)+"%"); set("x11",gbp(m.hiddenRev)); set("x12",Math.round(m.upliftRate*100)+"%");
-    set("x13",gbp(m.year)); }
-  // animated count-up
-  var tw=null,shown=0;
-  function tweenTo(target){
-    if(tw)cancelAnimationFrame(tw);var from=shown,t0=performance.now(),dur=650;
-    (function step(now){var k=Math.min(1,(now-t0)/dur);var e=1-Math.pow(1-k,3);shown=from+(target-from)*e;
-      g("rrYear").innerHTML=big(shown)+'<span class="yr">recoverable per year</span>';
-      if(k<1)tw=requestAnimationFrame(step);else shown=target;})(t0);
-  }
-  // the visible working
+    set("x2",comma(m.TA)); set("x3","3%"); set("x4",comma(m.lapsedFound));
+    set("x5","25%"); set("x6",comma(m.lapsedWon)); set("x7",comma(m.TY));
+    set("x8",comma(m.activeFound)); set("x9","50%"); set("x10",comma(m.activeWon));
+    set("x11",gbp(m.vipAnnual)); set("x12",gbp(m.lapsedRev)); set("x13",Math.round(m.uplift*100)+"%");
+    set("x14",gbp(m.activeRev)); set("x15",gbp(m.year)); }
+  // people pictogram: the crowd scales with your base; the highlighted few are the VIPs
+  var PERSON=function(c){return '<svg class="'+c+'" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4.2"/><path d="M3.5 22c0-4.7 3.8-8.5 8.5-8.5s8.5 3.8 8.5 8.5z"/></svg>';};
+  function pictogram(m){ var el=g("pict"); if(!el)return;
+    var n=Math.max(60,Math.min(252,Math.round(m.TA/1600)));
+    var found=Math.max(3,Math.round(n*FIND)), won=Math.max(1,Math.round(found*0.32));
+    var out=""; for(var i=0;i<n;i++){out+=PERSON(i<won?"won":(i<found?"found":""));}
+    el.innerHTML=out; }
+  // count-up on the two headline numbers
+  var tws={};
+  function tween(id,target,fmt){ var el=g(id); if(!el)return; var st=tws[id]||{v:0};
+    if(st.raf)cancelAnimationFrame(st.raf); var from=st.v,t0=performance.now(),dur=650;
+    (function step(now){var k=Math.min(1,(now-t0)/dur);var e=1-Math.pow(1-k,3);st.v=from+(target-from)*e;
+      el.textContent=fmt(st.v); if(k<1)st.raf=requestAnimationFrame(step);else st.v=target;})(t0);
+    tws[id]=st; }
   function steps(m){
     var rows=[
-      {l:"Annual revenue, active customers", v:big(m.R)},
-      {l:"Top VIPs, "+Math.round(m.vipShare*100)+"% of revenue", v:big(m.vipRev)+"/yr",
-       why:"McKinsey: the top 1 to 10% of customers drive 20 to 50% of revenue."},
-      {l:"Hidden behind modest spend, "+Math.round(m.hid*100)+"%", v:big(m.hiddenRev),
-       why:"The high-value clients a spend-sort never shows. Halia surfaces them."},
-      {l:"Recoverable, "+Math.round(m.upliftRate*100)+"% uplift", v:big(m.year), s:1,
-       why:"McKinsey: a VIP programme lifts their spend 10 to 20%."}
+      {l:"Lapsed VIPs Halia wins back", v:comma(m.lapsedWon),
+       why:"3% of every client you have ever had are high-value clients hiding behind modest spend (McKinsey: the top 1 to 10%). Reach them and a quarter come back."},
+      {l:"Active VIPs into clienteling", v:comma(m.activeWon),
+       why:"Among this year's buyers, half of the VIPs Halia surfaces convert while they are still engaged."},
+      {l:"Lapsed revenue recovered", v:big(m.lapsedRev),
+       why:"Won-back clients at a VIP's annual value, "+m.mult+"x an average book."},
+      {l:"Recoverable per year", v:big(m.year), s:1,
+       why:"Plus McKinsey's 10 to 20% programme uplift on the active VIPs."}
     ];
     var el=g("steps");el.innerHTML=rows.map(function(r){return '<div class="rc-step"><div class="rc-row"><span'+(r.s?' class=hl':'')+'>'+r.l+'</span><span'+(r.s?' class=hl':' class=v')+'>'+r.v+'</span></div>'+(r.why?'<div class="rc-why">'+r.why+'</div>':'')+'</div>';}).join("");
     var st=el.querySelectorAll(".rc-step");
     st.forEach(function(s,i){setTimeout(function(){s.classList.add("in");},90*i);});
   }
-  // canvas: a grid of customers; the hidden ~2% glow as they are found, with a scan sweep
-  var cv=g("dots"),ctx=cv&&cv.getContext&&cv.getContext("2d"),lit=[],cols=0,rows=0,scan=0,raf=null;
-  function layout(){ if(!cv)return; var dpr=window.devicePixelRatio||1; var w=cv.clientWidth||520,h=cv.clientHeight||150;
-    cv.width=w*dpr;cv.height=h*dpr;if(ctx)ctx.setTransform(dpr,0,0,dpr,0,0);
-    cols=Math.max(20,Math.floor(w/15));rows=Math.max(6,Math.floor(h/15)); }
-  function pickLit(m){ var total=cols*rows; var n=Math.max(3,Math.round(total*HID)); lit=[];vh={};
-    var stepN=total/n; for(var i=0;i<n;i++){lit.push(Math.floor(i*stepN+stepN*0.5*((i*37%7)/7)));} }
-  function draw(){ if(!ctx)return; var w=cv.clientWidth,h=cv.clientHeight; ctx.clearRect(0,0,w,h);
-    var gx=w/cols,gy=h/rows; var t=performance.now()/600;
-    for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
-      var idx=r*cols+c, x=c*gx+gx/2, y=r*gy+gy/2, revealed=x<=scan;
-      var isLit=lit.indexOf(idx)>=0;
-      if(isLit&&revealed){ var pulse=0.6+0.4*Math.sin(t+idx);
-        ctx.beginPath();ctx.arc(x,y,3.1,0,6.28);ctx.fillStyle="rgba(143,184,174,"+pulse+")";ctx.fill();
-        ctx.beginPath();ctx.arc(x,y,6.2,0,6.28);ctx.fillStyle="rgba(94,107,116,"+(0.14*pulse)+")";ctx.fill(); }
-      else { ctx.beginPath();ctx.arc(x,y,1.15,0,6.28); ctx.fillStyle= revealed?"rgba(255,255,255,.16)":"rgba(255,255,255,.05)"; ctx.fill(); }
-    }
-    if(scan<w){ ctx.fillStyle="rgba(143,184,174,.28)";ctx.fillRect(scan-1,0,2,h); }
-  }
-  function loop(){ if(scan<(cv?cv.clientWidth:0)+2){scan+=Math.max(6,(cv.clientWidth||520)/34);} draw(); raf=requestAnimationFrame(loop); }
-  function rescan(m){ if(!ctx)return; layout(); pickLit(m); scan=0; g("scanlbl").textContent=m.vipCount.toLocaleString("en-GB")+" top VIPs \u00b7 many hidden behind modest spend"; }
-  var deb=null;
-  function recompute(){ setOuts(); var m=model(); tweenTo(m.year); excel(m);
-    g("rrMonth").innerHTML="about "+big(m.year/12)+" per month"; steps(m); rescan(m); }
-  // wire
-  ["rc","ract","ra","rf","rg","rhid","rk"].forEach(function(id){var e=g(id);if(e)e.addEventListener("input",recompute);});
+  function recompute(){ setOuts(); var m=model();
+    tween("rrVips",m.vipsWon,comma); tween("rrYear",m.year,big);
+    pictogram(m); excel(m); steps(m); }
+  ["rcall","rcyr","ra","rf","rg","rk"].forEach(function(id){var e=g(id);if(e)e.addEventListener("input",recompute);});
   document.querySelectorAll("[data-ns]").forEach(function(cb){cb.addEventListener("change",function(){
     var row=cb.closest(".rc-f"); if(row)row.classList.toggle("dk",cb.checked); recompute(); });});
-  window.addEventListener("resize",function(){layout();var m=model();pickLit(m);});
-  if(ctx){layout();loop();}
   recompute();
-  var f=g("roiForm");
+    var f=g("roiForm");
   if(f)f.addEventListener("submit",function(e){e.preventDefault();var i=g("roiEmail");if(!i.value)return;
     fetch("/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:i.value,source:"roi"})}).catch(function(){});
     i.value="";f.querySelector("button").textContent="Thank you — we'll be in touch";});
