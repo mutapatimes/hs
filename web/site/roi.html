@@ -122,10 +122,7 @@
   .rc-step.in{opacity:1;transform:none}
   .rc-step.sum{border-top:1px solid #26251f;padding-top:10px}
   .rc-note{color:var(--faint);font-size:12px;line-height:1.55;margin-top:18px;max-width:60ch}
-  .dlb{border:1px solid var(--line-strong,rgba(22,22,27,.28));background:transparent;color:var(--ink);padding:11px 18px;font:500 13.5px var(--sans);cursor:pointer;transition:.2s}
-  .dlb:hover{border-color:var(--ink)}
-  .dl-hint{font:500 12.5px var(--sans);color:#1f564a;opacity:0;transition:opacity .3s}
-  .dl-hint.on{opacity:1}
+  .dl-note{font:500 12.5px var(--sans);color:var(--faint)}
   .gloss{margin-top:clamp(48px,7vh,72px);border-top:1px solid var(--line);padding-top:34px}
   .gloss h3{font-family:var(--serif);font-weight:400;font-size:clamp(22px,2.6vw,28px);margin:0 0 22px;color:var(--ink)}
   .gl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px 44px;margin:0}
@@ -177,10 +174,9 @@
  <div class="roi-cta">
   <form id="roiForm" novalidate>
    <input id="roiEmail" type="email" placeholder="Your work email" required>
-   <button type="submit">Get your full ROI analysis &rarr;</button>
+   <button type="submit">Get your ROI analysis &rarr;</button>
   </form>
-  <button class="dlb" id="dlAll" type="button">Download the working, Excel and image</button>
-  <span class="dl-hint" id="dlHint">Enter your email and both downloads start.</span>
+  <span class="dl-note">Your working saves as an Excel model and an image.</span>
  </div>
  <div class="gloss">
   <h3>Terms in the model</h3>
@@ -297,8 +293,6 @@
     var row=cb.closest(".rc-f"); if(row)row.classList.toggle("dk",cb.checked); recompute(); });});
   recompute();
     // email-gated downloads: the model as CSV for Excel, the working as a PNG
-  var unlocked=false; try{unlocked=!!localStorage.getItem("haliaRoiOk");}catch(_){ }
-  var pendingDl=null;
   function dlBlob(blob,name){var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
     document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},800);}
   function csvDownload(){ var m=model(); var pc=function(x){return Math.round(x*100)+"%";};
@@ -363,17 +357,11 @@
     x.fillText("on McKinsey, “Small and mighty: the untapped value of your top 1%” (2023)",pad,y);
     cv.toBlob(function(bl){if(bl)dlBlob(bl,"halia-roi.png");},"image/png"); }
   function runDl(){ csvDownload(); pngDownload(); }
-  function askEmail(){ pendingDl=true; g("dlHint").classList.add("on");
-    var i=g("roiEmail"); i.focus(); i.scrollIntoView({behavior:"smooth",block:"center"}); }
-  var dlBtn=g("dlAll");
-  if(dlBtn)dlBtn.addEventListener("click",function(){ if(unlocked)runDl(); else askEmail(); });
   var f=g("roiForm");
   if(f)f.addEventListener("submit",function(e){e.preventDefault();var i=g("roiEmail");if(!i.value)return;
-    fetch("/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:i.value,source:pendingDl?"roi-download":"roi"})}).catch(function(){});
-    unlocked=true; try{localStorage.setItem("haliaRoiOk","1");}catch(_){ }
-    g("dlHint").classList.remove("on");
-    i.value="";f.querySelector("button").textContent="Thank you, we'll be in touch";
-    if(pendingDl){pendingDl=null;setTimeout(runDl,150);}});
+    fetch("/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:i.value,source:"roi-download"})}).catch(function(){});
+    i.value="";f.querySelector("button").textContent="Thank you, your downloads have started";
+    runDl();});
 })();
 </script>
 <footer class="hfoot"><div class="hf-inner">
