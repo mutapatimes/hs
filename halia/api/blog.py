@@ -265,8 +265,15 @@ def _chat() -> str:
 
 
 # ── public rendering ───────────────────────────────────────────────────────────────
+def _img_src(ref: str) -> str:
+    """A cover ref is either an uploaded blog_images id, or a path/URL — a self-hosted static
+    image (/img/blog/…) or an external one (https://…). Ids are served via /blog/img/<id>."""
+    ref = (ref or "").strip()
+    return ref if ref.startswith(("http://", "https://", "/")) else f"/blog/img/{ref}"
+
+
 def _card(post: dict) -> str:
-    cover = (f'<img class="cover" src="/blog/img/{_html.escape(post["cover_image_id"])}" '
+    cover = (f'<img class="cover" src="{_html.escape(_img_src(post["cover_image_id"]))}" '
              f'alt="" loading="lazy">' if post.get("cover_image_id") else "")
     # A preview needs only when + how long, the title, and a short teaser. The whole card is the
     # link, so no "Read" affordance; the author is the same on every post, so it stays off the card.
@@ -331,7 +338,7 @@ def render_index(store, page: int, sort: str, tag: str | None) -> str:
 
 
 def render_post(post: dict, *, preview: bool = False) -> str:
-    cover = (f'<img class="cover" src="/blog/img/{_html.escape(post["cover_image_id"])}" alt="">'
+    cover = (f'<img class="cover" src="{_html.escape(_img_src(post["cover_image_id"]))}" alt="">'
              if post.get("cover_image_id") else "")
     byline = " · ".join(x for x in (
         _html.escape(post.get("author") or ""),
@@ -363,7 +370,7 @@ def render_post(post: dict, *, preview: bool = False) -> str:
     desc = post.get("dek") or (
         f"{post.get('title') or 'From the Halia Journal'}: notes on private client "
         "intelligence for luxury retail, from Halia.")
-    image = f"/blog/img/{post['cover_image_id']}" if post.get("cover_image_id") else ""
+    image = _img_src(post["cover_image_id"]) if post.get("cover_image_id") else ""
     jsonld = "" if preview else _post_jsonld(post, canonical, desc, image)
     return _doc(f"{post.get('title')} · Halia Journal", desc, body, index=not preview,
                 canonical=canonical, og_type="article", image=image, jsonld=jsonld)
@@ -410,7 +417,7 @@ def _admin_editor(request: Request, post: dict | None) -> str:
                  "tags": "", "status": "draft", "cover_image_id": ""}
     is_new = post is None
     cover = p.get("cover_image_id") or ""
-    cover_prev = (f'<img id="coverPrev" src="/blog/img/{_html.escape(cover)}" '
+    cover_prev = (f'<img id="coverPrev" src="{_html.escape(_img_src(cover))}" '
                   f'style="max-width:220px;border-radius:10px;display:block;margin-top:8px">'
                   if cover else '<img id="coverPrev" style="max-width:220px;border-radius:10px;display:none;margin-top:8px">')
     I = "box-sizing:border-box;width:100%;padding:10px 12px;border:1px solid #d8d8d8;border-radius:10px;font:14px system-ui;margin-top:6px"
@@ -503,6 +510,7 @@ that move your numbers.</p>
 regular earns you revenue. If your goal is growth on the bottom line rather than a moment on social,
 that distinction is what matters.</p>
 
+<p><img src="/img/blog/outersignal.png" alt="OuterSignal influencer-identification screenshot"></p>
 <h2>Where the data comes from, and whether it stays</h2>
 <p>OuterSignal and Mercana enrich each customer by calling external people-data APIs and then keep the
 enriched profiles on file. That depth is real, and so is the trade-off: you are building a retained
@@ -604,8 +612,7 @@ you can stand behind, rather than a box you tick.</p>
 <tr><td class="row">EU / GDPR fit</td><td class="us">Serviceable by architecture</td><td>US-based wealth data</td></tr>
 <tr><td class="row">Market focus</td><td class="us">Luxury &amp; premium retail</td><td>Dealmaking, fundraising, executive search</td></tr>
 </tbody></table></div>
-<p class="cmp-src">Altrata product details are drawn from Altrata's public Salesforce-app and product
-pages, current as of writing. Altrata is a substantial, capable platform; the comparison is about fit,
+<p class="cmp-src">Altrata product details are drawn from Altrata's public <a href="https://altrata.com/salesforce-app" target="_blank" rel="noopener">Salesforce app and product pages</a>, current as of writing. Altrata is a substantial, capable platform; the comparison is about fit,
 not merit.</p>
 
 <h2>When each one fits</h2>
@@ -673,8 +680,7 @@ year when the wealthy will happily buy the same thing somewhere else, being the 
 worth more than being the cheapest counter, which, thanks to the currency, you were never going to be
 anyway.</p>
 
-<p class="cmp-src">Figures cited are from the Julius Baer Global Wealth and Lifestyle Report 2026. The
-reading, and any opinions, are our own.</p>
+<p class="cmp-src">Figures cited are from the <a href="https://www.juliusbaer.com/fr/spotlight/global-wealth-and-lifestyle-report-2026/" target="_blank" rel="noopener">Julius Baer Global Wealth and Lifestyle Report 2026</a>. The reading, and any opinions, are our own.</p>
 """
 
 
@@ -695,6 +701,7 @@ Knight Frank expects Africa to outperform in the years ahead.</p>
 less predictable by nationality than ever. Wealth is being made in more industries and more countries,
 which means it walks through your door under more names than it used to.</p>
 
+<p><img src="/img/blog/knight-frank-body.jpg" alt="Knight Frank Wealth Report 2025"></p>
 <h2>Wealth that moves</h2>
 <p>The report's loudest theme is mobility. The wealthy relocate, hold several homes, and move capital
 between jurisdictions with growing ease, supercharging markets from Miami to Dubai, where a US$1 million
@@ -725,8 +732,7 @@ signals already present in your own customer data, grade the person honestly, es
 behind a modest order, and hand your team the move that turns a passing buyer into a client for the next
 decade, wherever in the world they happen to spend it.</p>
 
-<p class="cmp-src">Figures cited are from the Knight Frank Wealth Report 2025 (19th edition). The
-reading, and any opinions, are our own.</p>
+<p class="cmp-src">Figures cited are from the <a href="https://assets.knightfrank.com/share/D7vHRhrquV7Ef74acYkD" target="_blank" rel="noopener">Knight Frank Wealth Report 2025 (19th edition)</a>. The reading, and any opinions, are our own.</p>
 """
 
 
@@ -743,19 +749,22 @@ _SEED_POSTS = [
      "dek": "Altrata pours executive and wealth data into your CRM and keeps it current. "
             "Halia scores your buyers in memory and keeps nothing. Which you want depends "
             "on the job.",
-     "body": _ALTRATA_BODY, "tags": "comparison, wealth data, positioning"},
+     "body": _ALTRATA_BODY, "tags": "comparison, wealth data, positioning",
+     "cover": "/img/blog/altrata.png"},
     {"slug": JULIUS_BAER_SLUG, "published_at": "2026-07-12T09:00:00+00:00",
      "title": "The quiet buyer just got harder to read: on the Julius Baer Wealth Report 2026",
      "dek": "The 2026 Global Wealth and Lifestyle Report says the affluent buyer is now "
             "mobile, deliberate, and spending across borders. That is exactly the client "
             "luxury retail keeps missing.",
-     "body": _JULIUS_BAER_BODY, "tags": "wealth, luxury, research"},
+     "body": _JULIUS_BAER_BODY, "tags": "wealth, luxury, research",
+     "cover": "https://www.juliusbaer.com/fileadmin/_processed_/7/0/csm_julius-baer-global-wealth-and-lifestyle-report-2026_d64ba7cc1b.png"},
     {"slug": KNIGHT_FRANK_SLUG, "published_at": "2026-07-19T09:00:00+00:00",
      "title": "Wealth is moving, and getting younger: reading the Knight Frank Wealth Report 2025",
      "dek": "Knight Frank's 19th Wealth Report finds affluence expanding, globalising, mobile, "
             "and passing to a next generation that buys on relationship. For luxury retail, that "
             "raises the value of simply knowing who your best clients are.",
-     "body": _KNIGHT_FRANK_BODY, "tags": "wealth, luxury, research"},
+     "body": _KNIGHT_FRANK_BODY, "tags": "wealth, luxury, research",
+     "cover": "/img/blog/knight-frank-wealth-report.jpg"},
 ]
 
 
@@ -772,7 +781,7 @@ def seed_blog() -> None:
         store.upsert_post({
             "slug": spec["slug"], "title": spec["title"], "dek": spec["dek"],
             "body_html": _sanitize(spec["body"]), "author": "The Halia team",
-            "cover_image_id": existing.get("cover_image_id"),
+            "cover_image_id": spec.get("cover") or existing.get("cover_image_id"),
             "tags": spec["tags"], "status": "published",
             "published_at": spec["published_at"],
         })
