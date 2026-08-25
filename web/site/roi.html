@@ -114,12 +114,14 @@
     <input id="rc" type="range" min="1000" max="500000" step="1000" value="50000"></label>
    <label>Average order value <output id="raOut">&pound;200</output>
     <input id="ra" type="range" min="50" max="2000" step="10" value="200"></label>
+   <label>Orders per customer, per year <output id="rfOut">2</output>
+    <input id="rf" type="range" min="1" max="12" step="1" value="2"></label>
   </div>
   <div class="roi-result">
    <div class="rr-lab">Estimated recoverable revenue</div>
-   <div class="rr-big" id="rrYear">&pound;1.5m<span>per year</span></div>
-   <div class="rr-sub" id="rrMonth">about &pound;125k per month</div>
-   <p class="rr-note">An estimate. It assumes roughly 3% of your customers are high-value clients hiding behind modest spend, each placing a couple more orders a year at their true spending level once they are recognised and looked after. Your numbers will differ.</p>
+   <div class="rr-big" id="rrYear">&pound;600k<span>per year</span></div>
+   <div class="rr-sub" id="rrMonth">about &pound;50k per month</div>
+   <p class="rr-note">An estimate. It assumes roughly 2% of your customers are undetected loyal, high-value clients, and that recognising and looking after them lifts their spend by about half again, at your own order value and repeat rate. A product bought once repeats less, so it earns less here. Your numbers will differ.</p>
   </div>
  </div>
  <div class="roi-cta">
@@ -133,17 +135,20 @@
 
 <script>
 (function(){
-  var rc=document.getElementById("rc"),ra=document.getElementById("ra"),
-      rcOut=document.getElementById("rcOut"),raOut=document.getElementById("raOut"),
+  var rc=document.getElementById("rc"),ra=document.getElementById("ra"),rf=document.getElementById("rf"),
+      rcOut=document.getElementById("rcOut"),raOut=document.getElementById("raOut"),rfOut=document.getElementById("rfOut"),
       rrYear=document.getElementById("rrYear"),rrMonth=document.getElementById("rrMonth");
   function gbp(n){return "\u00a3"+Math.round(n).toLocaleString("en-GB");}
   function big(n){return n>=1e6?"\u00a3"+(n/1e6).toFixed(1)+"m":n>=1000?"\u00a3"+Math.round(n/1000)+"k":"\u00a3"+Math.round(n);}
-  function calc(){var C=+rc.value,A=+ra.value;
+  // 2% undetected loyal high-value clients, lifted ~1.5x on their spend, at your AOV and repeat rate.
+  // Frequency drives it: a one-time product (1/yr) earns far less than a repeat one.
+  function calc(){var C=+rc.value,A=+ra.value,F=+rf.value;
     rcOut.textContent=C.toLocaleString("en-GB");raOut.textContent=gbp(A);
-    var year=C*0.03*2*(A*2.5);
+    rfOut.textContent=F+(F===1?" (bought once)":"");
+    var year=C*0.02*1.5*A*F;
     rrYear.innerHTML=big(year)+"<span>per year</span>";
     rrMonth.textContent="about "+big(year/12)+" per month";}
-  if(rc&&ra){rc.oninput=calc;ra.oninput=calc;calc();}
+  if(rc&&ra&&rf){rc.oninput=calc;ra.oninput=calc;rf.oninput=calc;calc();}
   var f=document.getElementById("roiForm");
   if(f)f.addEventListener("submit",function(e){e.preventDefault();
     var i=document.getElementById("roiEmail");if(!i.value)return;
