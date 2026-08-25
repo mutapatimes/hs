@@ -70,7 +70,7 @@ from fastapi.responses import JSONResponse as _JSONResponse  # noqa: E402
 _RL_WINDOW = 60.0
 _RL_MAX = {"r": 120, "w": 30}   # requests per IP per window: reads (GET/HEAD) vs writes
 _RL_HITS: dict = {}
-_RL_PATHS = ("/v1/", "/app", "/connect", "/subscribe", "/webhooks")
+_RL_PATHS = ("/v1/", "/app", "/c/", "/connect", "/subscribe", "/webhooks")
 
 
 def _rate_limited(ip: str, write: bool, now: float | None = None) -> bool:

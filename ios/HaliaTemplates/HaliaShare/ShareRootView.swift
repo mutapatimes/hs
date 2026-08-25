@@ -9,6 +9,7 @@ import UIKit
 
 struct ShareRootView: View {
     let query: String
+    var sharedContact: SharedContact? = nil
     // Hand a wa.me / sms: / mailto: link to the host app via NSExtensionContext.open — the only way an
     // extension can open another app. Calls back true/false so the card can say what actually happened,
     // rather than tapping a button and finding out nothing (or everything) occurred.
@@ -38,6 +39,22 @@ struct ShareRootView: View {
 
     enum Mode { case client, product }
     enum Phase { case loading, found, notfound, signedOut, error(String) }
+    enum CaptureState { case idle, saving, saved }
+    @State private var captureState: CaptureState = .idle
+
+    /// Save a shared-but-unknown contact card straight into the store's Shopify.
+    private func saveShared(_ c: SharedContact) async {
+        captureState = .saving
+        var fields: [String: Any] = ["channel": "vcard"]
+        for (k, v) in [("first_name", c.first), ("last_name", c.last), ("phone", c.phone),
+                       ("email", c.email), ("company", c.company)] {
+            let t = v.trimmingCharacters(in: .whitespaces)
+            if !t.isEmpty { fields[k] = t }
+        }
+        fields["consent"] = ["email_marketing": false, "sms_marketing": false]
+        do { _ = try await HaliaAPI.current.captureClient(fields); captureState = .saved }
+        catch { captureState = .idle; status = "Could not save just now." }
+    }
 
     private let green = Color(red: 0.12, green: 0.34, blue: 0.29)
 
@@ -48,7 +65,20 @@ struct ShareRootView: View {
                     switch phase {
                     case .loading:    loading
                     case .signedOut:  stateView("link", "Connect Halia first", "Open Halia and connect your store, then try again.")
-                    case .notfound:   stateView("magnifyingglass", "No Halia signal", "“\(query)” is not a flagged client in your book yet.")
+                    case .notfound:
+                        stateView("magnifyingglass", "No Halia signal", "“\(query)” is not a flagged client in your book yet.")
+                        if let c = sharedContact, captureState != .saved {
+                            Button(action: { Task { await saveShared(c) } }) {
+                                Text(captureState == .saving ? "Saving…" : "Add to the client book")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .frame(maxWidth: .infinity).padding(.vertical, 13)
+                                    .background(green).foregroundColor(.white).cornerRadius(12)
+                            }
+                            .disabled(captureState == .saving)
+                        } else if captureState == .saved {
+                            Label("Saved to the client book", systemImage: "checkmark.circle")
+                                .font(.system(size: 14, weight: .semibold)).foregroundColor(green)
+                        }
                     case .error(let e): stateView("exclamationmark.triangle", "Something went wrong", e)
                     case .found:      foundView
                     }

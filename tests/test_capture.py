@@ -116,3 +116,32 @@ def test_read_only_tenant_409(env, monkeypatch):
 def test_requires_extension_token(env):
     client, _, _, _ = env
     assert client.post("/v1/capture", json={"email": "a@b.com"}).status_code == 401
+
+
+def test_qr_link_page_and_submit(env, monkeypatch):
+    client, store, ext, _ = env
+    fake = FakeShopify()
+    monkeypatch.setattr(capture_mod, "_gql", fake)
+    capture_mod._SLUG_CACHE.clear()
+    r = client.get("/v1/capture/link", headers={"X-Halia-Ext-Token": ext})
+    url = r.json()["url"]
+    slug = url.rsplit("/c/", 1)[1].split("?")[0]
+    # the public page is store-branded
+    page = client.get(f"/c/{slug}")
+    assert page.status_code == 200 and "Shop X" in page.text
+    # a submit runs the same pipeline but returns a plain thank-you (no grade leak)
+    r = client.post(f"/c/{slug}", json={"email": "new@x.com", "channel": "qr", "by": "Sarah"})
+    assert r.status_code == 200
+    assert r.json() == {"ok": True}
+    assert "customerCreate" in fake.ops()
+    # the slug is stable across calls
+    again = client.get("/v1/capture/link", headers={"X-Halia-Ext-Token": ext}).json()["url"]
+    assert slug in again
+
+
+def test_qr_unknown_slug_404(env):
+    client, _, _, _ = env
+    capture_mod._SLUG_CACHE.clear()
+    assert client.get("/c/nope").status_code == 404
+    assert client.post("/c/nope", json={"email": "a@b.com"}).status_code == 404
+

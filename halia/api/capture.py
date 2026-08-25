@@ -102,6 +102,208 @@ def _score_capture(cid: str, body: dict, email: str, phone: str) -> dict:
         return {}
 
 
+def perform_capture(shop: str, body: dict, channel: str,
+                    associate: str = "", seat_id: str = "") -> dict:
+    """The shared pipeline: dedupe -> write -> consent -> tags -> score. Used by the seat-authed
+    endpoint (handover, keyboard, vcard) and the public QR self-capture form alike."""
+    email = _clean(body.get("email")).lower()
+    phone = _clean(body.get("phone"))
+    if not email and not phone:
+        raise HTTPException(422, "Capture needs at least an email or a phone number")
+
+    token = get_valid_token(shop)
+    if not token:
+        raise HTTPException(409, "This store has no Shopify connection to save the client into")
+
+    first, last = _clean(body.get("first_name")), _clean(body.get("last_name"))
+    consent = body.get("consent") or {}
+    wants_email = bool(consent.get("email_marketing")) and bool(email)
+    wants_sms = bool(consent.get("sms_marketing")) and bool(phone)
+
+    existing = _find_existing(shop, token, email, phone)
+    created = existing is None
+
+    # The customer write: create, or update only the fields the form actually provided.
+    cust_input: dict = {}
+    for key, val in (("firstName", first), ("lastName", last),
+                     ("email", email), ("phone", phone)):
+        if val:
+            cust_input[key] = val
+    if _clean(body.get("notes")) and created:
+        cust_input["note"] = _clean(body.get("notes"))
+    addr = {k: v for k, v in (("address1", _clean(body.get("address"))),
+                              ("city", _clean(body.get("city"))),
+                              ("zip", _clean(body.get("postcode"))),
+                              ("country", _clean(body.get("country")))) if v}
+    if addr and created:
+        cust_input["addresses"] = [addr]
+
+    if created:
+        cust_input["tags"] = [CAPTURE_TAG, f"halia-capture-{channel}"]
+        data_ = _gql(shop, token, _CREATE, {"input": cust_input})
+        node = (data_ or {}).get("customerCreate") or {}
+    else:
+        cust_input["id"] = existing["id"]
+        # Never clobber an existing email/phone with a duplicate-key error: keep only new ones.
+        if _clean(existing.get("email")):
+            cust_input.pop("email", None)
+        if _clean(existing.get("phone")):
+            cust_input.pop("phone", None)
+        data_ = _gql(shop, token, _UPDATE, {"input": cust_input})
+        node = (data_ or {}).get("customerUpdate") or {}
+
+    errs = node.get("userErrors") or []
+    cid = ((node.get("customer") or {}).get("id")) or (existing or {}).get("id")
+    if errs or not cid:
+        raise HTTPException(502, "Shopify declined the profile: "
+                            + "; ".join(e.get("message", "") for e in errs) if errs
+                            else "Shopify returned no customer id")
+
+    # Tags on the update path (create carries them inline).
+    if not created:
+        try:
+            _gql(shop, token, _TAGS_ADD,
+                 {"id": cid, "tags": [CAPTURE_TAG, f"halia-capture-{channel}"]})
+        except Exception:  # noqa: BLE001
+            pass
+
+    # The consent record + preferences live on the customer, in the merchant's own store.
+    now = datetime.now(timezone.utc).isoformat()
+    capture_record = {
+        "channel": channel, "at": now,
+        "associate": associate, "seat_id": seat_id,
+        "consent_text": _clean(body.get("consent_text")) or
+        "Saved to look after you as a client",
+        "email_marketing": wants_email, "sms_marketing": wants_sms,
+        "location": _clean(body.get("location")),
+    }
+    prefs = {k: _clean(body.get(k)) for k in ("sizes", "preferences", "occasion", "birthday")
+             if _clean(body.get(k))}
+    metafields = [{"ownerId": cid, "namespace": "halia", "key": "capture",
+                   "type": "json", "value": json.dumps(capture_record)}]
+    if prefs:
+        metafields.append({"ownerId": cid, "namespace": "halia", "key": "preferences",
+                           "type": "json", "value": json.dumps(prefs)})
+    try:
+        _gql(shop, token, _METAFIELDS_SET, {"metafields": metafields})
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Marketing consent, only where the client opted in — written to Shopify's native
+    # consent fields so Klaviyo and every downstream tool respect it.
+    if wants_email:
+        try:
+            _gql(shop, token, _EMAIL_CONSENT, {"input": {
+                "customerId": cid,
+                "emailMarketingConsent": {"marketingState": "SUBSCRIBED",
+                                          "marketingOptInLevel": "SINGLE_OPT_IN",
+                                          "consentUpdatedAt": now}}})
+        except Exception:  # noqa: BLE001
+            pass
+    if wants_sms:
+        try:
+            _gql(shop, token, _SMS_CONSENT, {"input": {
+                "customerId": cid,
+                "smsMarketingConsent": {"marketingState": "SUBSCRIBED",
+                                        "marketingOptInLevel": "SINGLE_OPT_IN",
+                                        "consentUpdatedAt": now}}})
+        except Exception:  # noqa: BLE001
+            pass
+
+    out = {"ok": True, "created": created, "customer_id": cid}
+    out.update(_score_capture(cid, body, email, phone))
+    return out
+
+
+# ── QR self-capture ──────────────────────────────────────────────────────────
+
+_SLUG_CACHE: dict = {}   # slug -> shop (small tenant counts; rebuilt lazily)
+
+
+def _settings(shop: str) -> dict:
+    from halia.api.shopify_auth import shop_store
+
+    raw = shop_store().get_settings_raw(shop)
+    return json.loads(raw) if raw else {}
+
+
+def _slug_for(shop: str) -> str:
+    """The shop's stable self-capture slug, minted on first use."""
+    from halia.api.shopify_auth import shop_store
+
+    d = _settings(shop)
+    slug = d.get("capture_slug")
+    if not slug:
+        import secrets
+
+        slug = secrets.token_urlsafe(12)
+        d["capture_slug"] = slug
+        shop_store().save_settings(shop, json.dumps(d))
+    _SLUG_CACHE[slug] = shop
+    return slug
+
+
+def _shop_for_slug(slug: str):
+    from halia.api.shopify_auth import shop_store
+
+    if slug in _SLUG_CACHE:
+        return _SLUG_CACHE[slug]
+    for t in shop_store().all_tenants():
+        if _settings(t["shop"]).get("capture_slug") == slug:
+            _SLUG_CACHE[slug] = t["shop"]
+            return t["shop"]
+    return None
+
+
+_QR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>{store}</title><style>
+  *{{box-sizing:border-box}} body{{margin:0;background:#f8f7f5;color:#1a1a1d;
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
+  .wrap{{max-width:430px;margin:0 auto;padding:34px 22px 60px}}
+  h1{{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:27px;margin:0 0 6px}}
+  .sub{{color:#6b6b70;font-size:14px;margin:0 0 26px}}
+  label{{display:block;font-size:12.5px;font-weight:600;margin:14px 0 5px}}
+  input{{width:100%;padding:12px 13px;border:1px solid #d6d5d1;border-radius:10px;background:#fff;
+    font:inherit;font-size:16px;outline:none}} input:focus{{border-color:#8a8a8e}}
+  .tgl{{display:flex;gap:10px;align-items:flex-start;margin:16px 0 0;font-size:14px;color:#3d3d40}}
+  .tgl input{{width:18px;height:18px;margin-top:2px;flex:0 0 auto}}
+  .foot{{color:#8b8b90;font-size:12.5px;margin-top:18px}}
+  button{{width:100%;margin-top:22px;padding:15px;border:0;border-radius:12px;background:#1a1a1d;
+    color:#fff;font:600 16px inherit;cursor:pointer}}
+  .done{{text-align:center;padding-top:14vh}} .done h1{{font-size:30px}}
+</style></head><body><div class="wrap" id="w">
+ <h1>{store}</h1><p class="sub">Leave your details and we&rsquo;ll look after you.</p>
+ <form id="f">
+  <label>First name</label><input name="first_name" autocomplete="given-name">
+  <label>Last name</label><input name="last_name" autocomplete="family-name">
+  <label>Phone</label><input name="phone" type="tel" autocomplete="tel">
+  <label>Email</label><input name="email" type="email" autocomplete="email">
+  <label>Postcode</label><input name="postcode" autocomplete="postal-code">
+  <label>Sizes, likes, occasions (optional)</label><input name="preferences">
+  <label class="tgl"><input type="checkbox" name="em">Email me about new arrivals and events</label>
+  <label class="tgl"><input type="checkbox" name="sm">Text me occasionally</label>
+  <p class="foot">Kept by {store} for personal service.</p>
+  <button type="submit">Save my details</button>
+ </form>
+</div><script>
+document.getElementById('f').addEventListener('submit',function(e){{e.preventDefault();
+  var f=e.target,b={{channel:'qr',by:new URLSearchParams(location.search).get('by')||''}};
+  ['first_name','last_name','phone','email','postcode','preferences'].forEach(function(k){{
+    if(f[k].value.trim())b[k]=f[k].value.trim();}});
+  if(!b.phone&&!b.email){{alert('A phone number or email is needed.');return;}}
+  b.consent={{email_marketing:f.em.checked,sms_marketing:f.sm.checked}};
+  var btn=f.querySelector('button');btn.disabled=true;btn.textContent='Saving\u2026';
+  fetch(location.pathname,{{method:'POST',headers:{{'Content-Type':'application/json'}},
+    body:JSON.stringify(b)}}).then(function(r){{if(!r.ok)throw 0;
+    document.getElementById('w').innerHTML='<div class="done"><h1>Thank you</h1>'+
+      '<p class="sub">You are in good hands.</p></div>';}})
+  .catch(function(){{btn.disabled=false;btn.textContent='Save my details';
+    alert('Could not save just now. Please try again.');}});
+}});
+</script></body></html>"""
+
+
 def register(app) -> None:
     @app.post("/v1/capture")
     def capture(body: Any = Body(...),
@@ -111,112 +313,45 @@ def register(app) -> None:
         auth = _resolve_ext(x_halia_ext_token)
         if not isinstance(body, dict):
             raise HTTPException(422, "Body must be a JSON object")
-
-        email = _clean(body.get("email")).lower()
-        phone = _clean(body.get("phone"))
-        if not email and not phone:
-            raise HTTPException(422, "Capture needs at least an email or a phone number")
-
-        token = get_valid_token(auth.shop)
-        if not token:
-            raise HTTPException(409, "This store has no Shopify connection to save the client into")
-
-        first, last = _clean(body.get("first_name")), _clean(body.get("last_name"))
         channel = _clean(body.get("channel")) or "handover"
-        consent = body.get("consent") or {}
-        wants_email = bool(consent.get("email_marketing")) and bool(email)
-        wants_sms = bool(consent.get("sms_marketing")) and bool(phone)
+        return perform_capture(auth.shop, body, channel,
+                               associate=auth.seat_name or "", seat_id=auth.seat_id or "")
 
-        existing = _find_existing(auth.shop, token, email, phone)
-        created = existing is None
+    @app.get("/v1/capture/link")
+    def capture_link(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
+        """The shop's self-capture URL (for the in-app QR and printable cards)."""
+        from urllib.parse import quote
 
-        # The customer write: create, or update only the fields the form actually provided.
-        cust_input: dict = {}
-        for key, val in (("firstName", first), ("lastName", last),
-                         ("email", email), ("phone", phone)):
-            if val:
-                cust_input[key] = val
-        if _clean(body.get("notes")) and created:
-            cust_input["note"] = _clean(body.get("notes"))
-        addr = {k: v for k, v in (("address1", _clean(body.get("address"))),
-                                  ("city", _clean(body.get("city"))),
-                                  ("zip", _clean(body.get("postcode"))),
-                                  ("country", _clean(body.get("country")))) if v}
-        if addr and created:
-            cust_input["addresses"] = [addr]
+        from halia import config
+        from halia.api.extension import _resolve_ext
 
-        if created:
-            cust_input["tags"] = [CAPTURE_TAG, f"halia-capture-{channel}"]
-            data_ = _gql(auth.shop, token, _CREATE, {"input": cust_input})
-            node = (data_ or {}).get("customerCreate") or {}
-        else:
-            cust_input["id"] = existing["id"]
-            # Never clobber an existing email/phone with a duplicate-key error: keep only new ones.
-            if _clean(existing.get("email")):
-                cust_input.pop("email", None)
-            if _clean(existing.get("phone")):
-                cust_input.pop("phone", None)
-            data_ = _gql(auth.shop, token, _UPDATE, {"input": cust_input})
-            node = (data_ or {}).get("customerUpdate") or {}
+        auth = _resolve_ext(x_halia_ext_token)
+        base = (config.HALIA_APP_URL or "https://haliascore.com").rstrip("/")
+        url = f"{base}/c/{_slug_for(auth.shop)}"
+        if auth.seat_name:
+            url += "?by=" + quote(auth.seat_name)
+        return {"url": url}
 
-        errs = node.get("userErrors") or []
-        cid = ((node.get("customer") or {}).get("id")) or (existing or {}).get("id")
-        if errs or not cid:
-            raise HTTPException(502, "Shopify declined the profile: "
-                                + "; ".join(e.get("message", "") for e in errs) if errs
-                                else "Shopify returned no customer id")
+    @app.get("/c/{slug}", include_in_schema=False)
+    def capture_page(slug: str):
+        from fastapi.responses import HTMLResponse
 
-        # Tags on the update path (create carries them inline).
-        if not created:
-            try:
-                _gql(auth.shop, token, _TAGS_ADD,
-                     {"id": cid, "tags": [CAPTURE_TAG, f"halia-capture-{channel}"]})
-            except Exception:  # noqa: BLE001
-                pass
+        from halia.api.shopify_auth import shop_store
 
-        # The consent record + preferences live on the customer, in the merchant's own store.
-        now = datetime.now(timezone.utc).isoformat()
-        capture_record = {
-            "channel": channel, "at": now,
-            "associate": auth.seat_name or "", "seat_id": auth.seat_id or "",
-            "consent_text": _clean(body.get("consent_text")) or
-            "Saved to look after you as a client",
-            "email_marketing": wants_email, "sms_marketing": wants_sms,
-            "location": _clean(body.get("location")),
-        }
-        prefs = {k: _clean(body.get(k)) for k in ("sizes", "preferences", "occasion", "birthday")
-                 if _clean(body.get(k))}
-        metafields = [{"ownerId": cid, "namespace": "halia", "key": "capture",
-                       "type": "json", "value": json.dumps(capture_record)}]
-        if prefs:
-            metafields.append({"ownerId": cid, "namespace": "halia", "key": "preferences",
-                               "type": "json", "value": json.dumps(prefs)})
-        try:
-            _gql(auth.shop, token, _METAFIELDS_SET, {"metafields": metafields})
-        except Exception:  # noqa: BLE001
-            pass
+        shop = _shop_for_slug(slug)
+        if not shop:
+            raise HTTPException(404, "Unknown link")
+        tenant = dict(shop_store().get_tenant(shop) or {})
+        store = (tenant.get("label") or shop).strip()
+        return HTMLResponse(_QR_PAGE.format(store=store))
 
-        # Marketing consent, only where the client opted in — written to Shopify's native
-        # consent fields so Klaviyo and every downstream tool respect it.
-        if wants_email:
-            try:
-                _gql(auth.shop, token, _EMAIL_CONSENT, {"input": {
-                    "customerId": cid,
-                    "emailMarketingConsent": {"marketingState": "SUBSCRIBED",
-                                              "marketingOptInLevel": "SINGLE_OPT_IN",
-                                              "consentUpdatedAt": now}}})
-            except Exception:  # noqa: BLE001
-                pass
-        if wants_sms:
-            try:
-                _gql(auth.shop, token, _SMS_CONSENT, {"input": {
-                    "customerId": cid,
-                    "smsMarketingConsent": {"marketingState": "SUBSCRIBED",
-                                            "marketingOptInLevel": "SINGLE_OPT_IN",
-                                            "consentUpdatedAt": now}}})
-            except Exception:  # noqa: BLE001
-                pass
-
-        out = {"ok": True, "created": created, "customer_id": cid}
-        out.update(_score_capture(cid, body, email, phone))
-        return out
+    @app.post("/c/{slug}", include_in_schema=False)
+    def capture_submit(slug: str, body: Any = Body(...)) -> dict:
+        shop = _shop_for_slug(slug)
+        if not shop:
+            raise HTTPException(404, "Unknown link")
+        if not isinstance(body, dict):
+            raise HTTPException(422, "Body must be a JSON object")
+        perform_capture(shop, body, "qr", associate=_clean(body.get("by")))
+        # The public form gets a plain thank-you: no grade, no customer id.
+        return {"ok": True}

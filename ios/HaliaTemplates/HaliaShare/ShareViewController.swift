@@ -17,6 +17,7 @@ class ShareViewController: UIViewController {
             guard let self = self else { return }
             let root = ShareRootView(
                 query: text ?? "",
+                sharedContact: Self.lastContact,
                 onOpen: { [weak self] url, completion in
                     guard let self, let ctx = self.extensionContext else { completion(false); return }
                     ctx.open(url, completionHandler: completion)
@@ -62,6 +63,10 @@ class ShareViewController: UIViewController {
         }
     }
 
+    /// The full fields of the last shared vCard, so an unknown contact can be saved to the client
+    /// book (POST /v1/capture) rather than dead-ending at "no signal".
+    static var lastContact: SharedContact?
+
     /// Pull the best lookup identifier out of a shared contact card: a phone (so the send buttons
     /// work too), else an email, else the full name. Parsing a vCard needs no Contacts permission.
     private static func queryFromVCard(_ item: Any?) -> String? {
@@ -75,6 +80,11 @@ class ShareViewController: UIViewController {
         guard let data,
               let contact = (try? CNContactVCardSerialization.contacts(with: data))?.first
         else { return nil }
+        lastContact = SharedContact(
+            first: contact.givenName, last: contact.familyName,
+            phone: contact.phoneNumbers.first?.value.stringValue ?? "",
+            email: (contact.emailAddresses.first?.value as String?) ?? "",
+            company: contact.organizationName)
 
         if let phone = contact.phoneNumbers.first?.value.stringValue {
             // Normalise to +digits so ClientClassifier reads it as a phone (a "(555) 123-4567" would
@@ -86,4 +96,13 @@ class ShareViewController: UIViewController {
         let name = [contact.givenName, contact.familyName].filter { !$0.isEmpty }.joined(separator: " ")
         return name.isEmpty ? nil : name
     }
+}
+
+/// The parsed fields of a shared contact card, handed to the SwiftUI card for capture.
+struct SharedContact {
+    let first: String
+    let last: String
+    let phone: String
+    let email: String
+    let company: String
 }
