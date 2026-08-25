@@ -803,6 +803,7 @@ private struct CaptureView: View {
     @State private var phone = ""
     @State private var email = ""
     @State private var birthday = ""
+    @State private var address = ""
     @State private var postcode = ""
     @State private var city = ""
     @State private var country = ""
@@ -846,11 +847,18 @@ private struct CaptureView: View {
                     .textContentType(.emailAddress).keyboardType(.emailAddress)
                     .autocapitalization(.none)
                 TextField("Birthday", text: $birthday)
+            } footer: {
+                Text("The birthday is for a treat on the day.")
             }
             Section {
+                TextField("Street address", text: $address).textContentType(.streetAddressLine1)
                 TextField("Postcode", text: $postcode).textContentType(.postalCode)
                 TextField("City", text: $city).textContentType(.addressCity)
                 TextField("Country", text: $country).textContentType(.countryName)
+            } header: {
+                Text("Delivery address")
+            } footer: {
+                Text("For gifts, deliveries and invitations to private events.")
             }
             Section("Preferences") {
                 TextField("Sizes", text: $sizes)
@@ -911,7 +919,7 @@ private struct CaptureView: View {
         var fields: [String: Any] = ["channel": "handover"]
         for (k, v) in [("first_name", first), ("last_name", last), ("company", company),
                        ("phone", phone), ("email", email), ("birthday", birthday),
-                       ("postcode", postcode), ("city", city), ("country", country),
+                       ("address", address), ("postcode", postcode), ("city", city), ("country", country),
                        ("sizes", sizes), ("preferences", preferences), ("notes", notes)] {
             let t = v.trimmingCharacters(in: .whitespaces)
             if !t.isEmpty { fields[k] = t }
@@ -1026,7 +1034,7 @@ private struct CaptureToolsView: View {
                 Section {
                     if let url = captureURL {
                         QRCard(value: url,
-                               caption: "The client scans this and leaves their details on their own phone. Straight into your book, graded.")
+                               caption: "The client scans this and leaves their details on their own phone. Straight into your book, graded. The address does the most for the grade.")
                     } else {
                         HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 30)
                     }
