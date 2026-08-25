@@ -482,9 +482,15 @@ def subscribe(payload: Any = Body(...)) -> dict:
     if "@" not in email or "." not in email.split("@")[-1] or len(email) > 200:
         raise HTTPException(422, "Enter a valid email address.")
     shop_store().add_subscriber(email)
+    source = str((payload or {}).get("source", "")).lower()
     # A demo request (source=demo) is added to the Brevo Demo list, which fires the demo-nurture
     # automation ("we'll be in touch" + the 3-email drip). Best-effort; never blocks the response.
-    if str((payload or {}).get("source", "")).lower() == "demo":
+    # ROI-calculator leads (source=roi / roi-download) join the same Brevo list, tagged by SOURCE,
+    # but skip the demo journey: they asked for a model, so a "we'll be in touch" would be odd.
+    if source.startswith("roi"):
+        import halia.notify_brevo as notify_brevo
+        notify_brevo.add_demo_lead(email, attributes={"SOURCE": source})
+    if source == "demo":
         import halia.notify_brevo as notify_brevo
         notify_brevo.add_demo_lead(email)          # record on the Brevo Demo list
         try:

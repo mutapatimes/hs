@@ -122,6 +122,17 @@
   .rc-step.in{opacity:1;transform:none}
   .rc-step.sum{border-top:1px solid #26251f;padding-top:10px}
   .rc-note{color:var(--faint);font-size:12px;line-height:1.55;margin-top:18px;max-width:60ch}
+  .roi-dl{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px}
+  .dlb{border:1px solid var(--line-strong,rgba(22,22,27,.28));background:transparent;color:var(--ink);padding:11px 18px;font:500 13.5px var(--sans);cursor:pointer;transition:.2s}
+  .dlb:hover{border-color:var(--ink)}
+  .dl-hint{font:500 12.5px var(--sans);color:#1f564a;opacity:0;transition:opacity .3s}
+  .dl-hint.on{opacity:1}
+  .gloss{margin-top:clamp(48px,7vh,72px);border-top:1px solid var(--line);padding-top:34px}
+  .gloss h3{font-family:var(--serif);font-weight:400;font-size:clamp(22px,2.6vw,28px);margin:0 0 22px;color:var(--ink)}
+  .gl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px 44px;margin:0}
+  @media(max-width:700px){.gl-grid{grid-template-columns:1fr}}
+  .gl-grid dt{font:600 13.5px var(--sans);color:var(--ink)}
+  .gl-grid dd{margin:5px 0 0;font:400 13.5px var(--sans);line-height:1.6;color:var(--mute)}
   .roi-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:28px}
   .roi-cta form{display:flex;gap:10px;flex-wrap:wrap;margin:0}
   .roi-cta input{background:var(--bg-2);border:1px solid var(--line);padding:13px 18px;color:var(--ink);font:500 14px var(--sans);min-width:250px;outline:none}
@@ -187,6 +198,24 @@
    <button type="submit">Get your full ROI analysis &rarr;</button>
   </form>
   <a class="btn ghost" href="/connect">See who they are, free</a>
+ </div>
+ <div class="roi-dl">
+  <button class="dlb" id="dlCsv" type="button">Download the model for Excel</button>
+  <button class="dlb" id="dlPng" type="button">Save the working as an image</button>
+  <span class="dl-hint" id="dlHint">Enter your email above and your download starts.</span>
+ </div>
+ <div class="gloss">
+  <h3>Terms in the model</h3>
+  <dl class="gl-grid">
+   <div><dt>The hidden few</dt><dd>High-value clients whose modest orders keep them low on a spend-sorted list. McKinsey finds the top 1&ndash;10% of customers carry an outsized share of the business; Halia&rsquo;s job is to surface yours by name.</dd></div>
+   <div><dt>Top clients&rsquo; share</dt><dd>The slice of annual revenue those clients hold. McKinsey puts it at 20 to 50%; the model places your category near the floor of that range.</dd></div>
+   <div><dt>Clienteled</dt><dd>Actively looked after by a person: messages when something arrives in their size, first access, appointments. The model only counts uplift on the share of top clients who are yet to get this.</dd></div>
+   <div><dt>Programme uplift</dt><dd>The extra spend top clients show once they are clienteled. McKinsey measured 10 to 20% at a specialty retailer; the model keeps both ends, which is why the answer is a range.</dd></div>
+   <div><dt>Lapsed client</dt><dd>Someone who bought from you before but sat out this year. McKinsey finds about half of top customers change brand preference in a given year, often over a single experience.</dd></div>
+   <div><dt>Win-back rate</dt><dd>Of the lapsed clients you reach, the share who buy again: held at 10 to 25%. Reaching them at all depends on knowing who they were, which is the finding step.</dd></div>
+   <div><dt>Average annual value</dt><dd>Your average order value times orders per year. Returning clients are counted at this figure, never at an imagined VIP figure, which keeps the low end honest.</dd></div>
+   <div><dt>Recoverable per year</dt><dd>Uplift on newly clienteled top clients plus the spend of returning lapsed clients, quoted low end to high. An estimate to size the opportunity, and a starting point for a real conversation.</dd></div>
+  </dl>
  </div>
 </div></section>
 
@@ -328,10 +357,85 @@
   document.querySelectorAll("[data-ns]").forEach(function(cb){cb.addEventListener("change",function(){
     var row=cb.closest(".rc-f"); if(row)row.classList.toggle("dk",cb.checked); recompute(); });});
   recompute();
-    var f=g("roiForm");
+    // email-gated downloads: the model as CSV for Excel, the working as a PNG
+  var unlocked=false; try{unlocked=!!localStorage.getItem("haliaRoiOk");}catch(_){ }
+  var pendingDl=null;
+  function dlBlob(blob,name){var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
+    document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},800);}
+  function csvDownload(){ var m=model(); var pc=function(x){return Math.round(x*100)+"%";};
+    var rows=[["The model","Low","High"],
+      ["Clients who bought this year",m.TY,m.TY],
+      ["Average order value",m.A,m.A],
+      ["Orders per client, per year",m.F,m.F],
+      ["Revenue this year",Math.round(m.R),Math.round(m.R)],
+      ["Top clients' share of revenue (McKinsey: 20-50%)",pc(m.share),pc(m.share)],
+      ["Their revenue",Math.round(m.vipRev),Math.round(m.vipRev)],
+      ["Share not clienteled today",pc(m.gap),pc(m.gap)],
+      ["Top-client revenue no one works",Math.round(m.unworked),Math.round(m.unworked)],
+      ["Programme uplift (McKinsey: 10-20%)","10%","20%"],
+      ["Uplift on worked clients",Math.round(m.upLo),Math.round(m.upHi)],
+      ["Past clients no longer buying",Math.round(m.past),Math.round(m.past)],
+      ["Former top clients among them (1%)",Math.round(m.former),Math.round(m.former)],
+      ["Return when reached","10%","25%"],
+      ["Clients returning",Math.round(m.backLo),Math.round(m.backHi)],
+      ["At your average annual value",Math.round(m.avgVal),Math.round(m.avgVal)],
+      ["Returning spend",Math.round(m.lapLo),Math.round(m.lapHi)],
+      ["Recoverable per year",Math.round(m.lo),Math.round(m.hi)],
+      [],["Halia, haliascore.com/roi","",""],
+      ["On McKinsey, 'Small and mighty: the untapped value of your top 1%' (2023)","",""]];
+    var csv="﻿"+rows.map(function(r){return r.map(function(c){var t=String(c==null?"":c);return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;}).join(",");}).join("\r\n");
+    dlBlob(new Blob([csv],{type:"text/csv;charset=utf-8"}),"halia-roi-model.csv"); }
+  function pngDownload(){ var m=model();
+    var W=1080,pad=72,y=0,scale=2;
+    var lines=[
+      {t:"BACK-OF-THE-ENVELOPE",f:"700 22px",c:"#8b8779",sp:.1,gap:40},
+      {t:"What your hidden book is worth",f:"700 44px",c:"#1c1b16",gap:56},
+      {t:comma(m.TY)+" clients this year of "+comma(m.TA)+" ever  ·  "+gbp(m.A)+" AOV  ·  "+m.F+" orders a year",f:"400 21px",c:"#8b8779",gap:64,dash:true}];
+    var steps=[
+      ["revenue this year",big(m.R)],
+      ["your top clients hold ~"+Math.round(m.share*100)+"%",big(m.vipRev)],
+      ["not actively clienteled",big(m.unworked)],
+      ["uplift when worked, 10 to 20%",rng(m.upLo,m.upHi,big)],
+      ["lapsed clients who return",rng(m.backLo,m.backHi,comma)],
+      ["their spend, at your average",rng(m.lapLo,m.lapHi,big)]];
+    var H=980;
+    var cv=document.createElement("canvas");cv.width=W*scale;cv.height=H*scale;
+    var x=cv.getContext("2d");x.scale(scale,scale);
+    var tw='"Courier Prime","Courier New",monospace';
+    x.fillStyle="#fbfaf6";x.fillRect(0,0,W,H);
+    x.strokeStyle="#d9d6cb";x.lineWidth=2;x.strokeRect(6,6,W-12,H-12);
+    y=pad+30;
+    lines.forEach(function(L){x.font=L.f+" "+tw;x.fillStyle=L.c;
+      if(L.sp){x.save();var cxp=pad;for(var i=0;i<L.t.length;i++){x.fillText(L.t[i],cxp,y);cxp+=x.measureText(L.t[i]).width+3;}x.restore();}
+      else x.fillText(L.t,pad,y);
+      y+=L.gap;
+      if(L.dash){x.save();x.strokeStyle="#cfccc0";x.setLineDash([5,5]);x.beginPath();x.moveTo(pad,y-34);x.lineTo(W-pad,y-34);x.stroke();x.restore();}});
+    steps.forEach(function(r){x.font="400 23px "+tw;x.fillStyle="#4a483f";x.fillText(r[0],pad,y);
+      x.font="700 23px "+tw;x.fillStyle="#1f564a";var wv=x.measureText(r[1]).width;x.fillText(r[1],W-pad-wv,y);y+=46;});
+    x.strokeStyle="#26251f";x.lineWidth=2;x.beginPath();x.moveTo(pad,y-18);x.lineTo(W-pad,y-18);x.stroke();
+    y+=26;
+    x.font="700 30px "+tw;x.fillStyle="#1c1b16";x.fillText("a year, roughly",pad,y);
+    var tot=rng(m.lo,m.hi,big),wt=x.measureText(tot).width;x.fillText(tot,W-pad-wt,y);
+    y+=44;x.font="400 21px "+tw;x.fillStyle="#8b8779";
+    x.fillText(rng(m.backLo,m.backHi,comma)+" lapsed clients won back",pad,y);
+    y+=70;x.save();x.strokeStyle="#cfccc0";x.setLineDash([5,5]);x.beginPath();x.moveTo(pad,y-34);x.lineTo(W-pad,y-34);x.stroke();x.restore();
+    x.font="400 19px "+tw;x.fillStyle="#a09c8d";
+    x.fillText("haliascore.com/roi",pad,y);y+=30;
+    x.fillText("on McKinsey, “Small and mighty: the untapped value of your top 1%” (2023)",pad,y);
+    cv.toBlob(function(bl){if(bl)dlBlob(bl,"halia-roi.png");},"image/png"); }
+  function runDl(kind){ if(kind==="csv")csvDownload(); else pngDownload(); }
+  function askEmail(kind){ pendingDl=kind; g("dlHint").classList.add("on");
+    var i=g("roiEmail"); i.focus(); i.scrollIntoView({behavior:"smooth",block:"center"}); }
+  ["dlCsv","dlPng"].forEach(function(id){var b=g(id);if(b)b.addEventListener("click",function(){
+    var kind=id==="dlCsv"?"csv":"png";
+    if(unlocked)runDl(kind); else askEmail(kind); });});
+  var f=g("roiForm");
   if(f)f.addEventListener("submit",function(e){e.preventDefault();var i=g("roiEmail");if(!i.value)return;
-    fetch("/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:i.value,source:"roi"})}).catch(function(){});
-    i.value="";f.querySelector("button").textContent="Thank you — we'll be in touch";});
+    fetch("/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:i.value,source:pendingDl?"roi-download":"roi"})}).catch(function(){});
+    unlocked=true; try{localStorage.setItem("haliaRoiOk","1");}catch(_){ }
+    g("dlHint").classList.remove("on");
+    i.value="";f.querySelector("button").textContent="Thank you, we'll be in touch";
+    if(pendingDl){var k=pendingDl;pendingDl=null;setTimeout(function(){runDl(k);},150);}});
 })();
 </script>
 <footer class="hfoot"><div class="hf-inner">
