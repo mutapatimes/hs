@@ -264,6 +264,7 @@ _QR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
   h1{{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:27px;margin:0 0 6px}}
   .sub{{color:#6b6b70;font-size:14px;margin:0 0 26px}}
   label{{display:block;font-size:12.5px;font-weight:600;margin:14px 0 5px}}
+  .why{{font-weight:500;color:#8b8b90}} .grp{{margin-top:20px}}
   input{{width:100%;padding:12px 13px;border:1px solid #d6d5d1;border-radius:10px;background:#fff;
     font:inherit;font-size:16px;outline:none}} input:focus{{border-color:#8a8a8e}}
   .tgl{{display:flex;gap:10px;align-items:flex-start;margin:16px 0 0;font-size:14px;color:#3d3d40}}
@@ -279,7 +280,11 @@ _QR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
   <label>Last name</label><input name="last_name" autocomplete="family-name">
   <label>Phone</label><input name="phone" type="tel" autocomplete="tel">
   <label>Email</label><input name="email" type="email" autocomplete="email">
-  <label>Postcode</label><input name="postcode" autocomplete="postal-code">
+  <label>Birthday <span class="why">for a birthday treat</span></label><input name="birthday" placeholder="14 June">
+  <label class="grp">Delivery address <span class="why">for gifts, deliveries and event invitations</span></label>
+  <input name="address" placeholder="Street address" autocomplete="street-address" style="margin-bottom:8px">
+  <input name="postcode" placeholder="Postcode" autocomplete="postal-code" style="margin-bottom:8px">
+  <input name="city" placeholder="City" autocomplete="address-level2">
   <label>Sizes, likes, occasions (optional)</label><input name="preferences">
   <label class="tgl"><input type="checkbox" name="em">Email me about new arrivals and events</label>
   <label class="tgl"><input type="checkbox" name="sm">Text me occasionally</label>
@@ -289,7 +294,7 @@ _QR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 </div><script>
 document.getElementById('f').addEventListener('submit',function(e){{e.preventDefault();
   var f=e.target,b={{channel:'qr',by:new URLSearchParams(location.search).get('by')||''}};
-  ['first_name','last_name','phone','email','postcode','preferences'].forEach(function(k){{
+  ['first_name','last_name','phone','email','birthday','address','postcode','city','preferences'].forEach(function(k){{
     if(f[k].value.trim())b[k]=f[k].value.trim();}});
   if(!b.phone&&!b.email){{alert('A phone number or email is needed.');return;}}
   b.consent={{email_marketing:f.em.checked,sms_marketing:f.sm.checked}};
