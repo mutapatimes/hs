@@ -111,6 +111,8 @@
   .rc-step.in{opacity:1;transform:none}
   .rc-step b{color:#f6f6f4;font-weight:600}
   .rc-step .v{color:#8fb8ae;font-weight:600}
+  .rc-explain{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.09);font:400 13.5px var(--sans);line-height:1.55;color:#c7c8cf}
+  .rc-explain b{color:#fff;font-weight:600}
   .rc-note{color:var(--faint);font-size:12px;line-height:1.55;margin-top:18px;max-width:60ch}
   .roi-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:28px}
   .roi-cta form{display:flex;gap:10px;flex-wrap:wrap;margin:0}
@@ -136,7 +138,8 @@
    <input id="rf" type="range" min="1" max="12" step="1" value="2">
    <label class="rc-ns"><input type="checkbox" data-ns="rf">I'm not sure &mdash; use the benchmark</label></div><div class="rc-f" data-fid="rg">
    <div class="rl"><span>Category</span><output id="rgOut"></output></div>
-   <select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="jewellery">Jewellery &amp; watches</option><option value="beauty">Beauty &amp; fragrance</option><option value="wine">Wine &amp; spirits</option><option value="home">Home &amp; interiors</option><option value="general">Something else</option></select>
+   <select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="wine">Wine &amp; spirits</option><option value="beauty">Beauty &amp; fragrance</option><option value="jewellery">Jewellery &amp; watches</option><option value="home">Home &amp; interiors</option><option value="gifting">Flowers, food &amp; gifting</option><option value="books">Rare books &amp; collectibles</option><option value="electronics">Electronics &amp; big-box</option></select>
+   <div id="rgTag" style="font-size:12.5px;color:var(--mute);margin-top:7px;font-style:normal"></div>
    <label class="rc-ns"><input type="checkbox" data-ns="rg">I'm not sure &mdash; use the benchmark</label></div><div class="rc-f" data-fid="rr">
    <div class="rl"><span>Where most of your clients are</span><output id="rrOut"></output></div>
    <select id="rr"><option value="uk" selected>United Kingdom</option><option value="eu">Europe</option><option value="us">United States</option><option value="gulf">Gulf / Middle East</option><option value="asia">Asia</option><option value="global">A mix</option></select>
@@ -153,13 +156,14 @@
    <div class="rc-big" id="rrYear">&pound;0<span class="yr">recoverable per year</span></div>
    <div class="rc-month" id="rrMonth">&nbsp;</div>
    <div class="rc-steps" id="steps"></div>
+   <div class="rc-explain" id="rcExplain"></div>
   </div>
  </div>
  <p class="rc-note">A model, not a promise. It assumes ~2% of your customers are undetected loyal, high-value clients, and estimates how much more they would spend once recognised, from your own order value and repeat rate, adjusted by category, market and how much clienteling you do today. Benchmarks are drawn from luxury and premium retail. Your numbers will differ.</p>
  <div class="roi-cta">
   <form id="roiForm" novalidate>
    <input id="roiEmail" type="email" placeholder="Your work email" required>
-   <button type="submit">Send me the full breakdown &rarr;</button>
+   <button type="submit">Get your full ROI analysis &rarr;</button>
   </form>
   <a class="btn ghost" href="/connect">See who they are, free</a>
  </div>
@@ -168,7 +172,8 @@
 <script>
 (function(){
   var HID=0.02;
-  var CAT={fashion:.55,jewellery:.85,beauty:.40,wine:.60,home:.70,general:.55};
+  var CAT={fashion:.55,wine:.65,beauty:.40,jewellery:.90,home:.75,gifting:.50,books:.80,electronics:.45};
+  var CAT_TAG={fashion:"The modest first order hiding a house client.",wine:"The quiet regular who is a serious collector.",beauty:"Entry-level luxury is how the wealthy shop.",jewellery:"A strap buyer hiding a collector.",home:"A cushion order fronting a whole house.",gifting:"The £50 standing order from Belgravia.",books:"Paperbacks beside first editions.",electronics:"The trade buyer lost in retail volume."};
   var REG={uk:1,eu:1,us:1.1,gulf:1.25,asia:1.15,global:1.05};
   var KLI={none:1.35,some:1,heavy:.75};
   var DEF={rc:50000,ra:200,rf:2,rg:"fashion",rr:"uk",rp:30,rk:"some"};
@@ -177,7 +182,7 @@
   function big(n){return n>=1e6?"£"+(n/1e6).toFixed(1)+"m":n>=1000?"£"+Math.round(n/1000)+"k":"£"+Math.round(n);}
   function nsOn(id){var f=document.querySelector('[data-ns="'+id+'"]');return f&&f.checked;}
   function val(id){var e=g(id);if(!e)return DEF[id];return nsOn(id)?DEF[id]:(e.type==="range"?+e.value:e.value);}
-  var catLbl={fashion:"Fashion",jewellery:"Jewellery",beauty:"Beauty",wine:"Wine &amp; spirits",home:"Home",general:"General",uk:"UK",eu:"Europe",us:"US",gulf:"Gulf",asia:"Asia",global:"Mixed",none:"None today",some:"Some",heavy:"A team"};
+  var catLbl={fashion:"Fashion",wine:"Wine",beauty:"Beauty",jewellery:"Jewellery",home:"Home",gifting:"Gifting",books:"Rare books",electronics:"Electronics",uk:"UK",eu:"Europe",us:"US",gulf:"Gulf",asia:"Asia",global:"Mixed",none:"None today",some:"Some",heavy:"A team"};
   // outputs shown next to each control
   function setOuts(){
     var C=val("rc"),A=val("ra"),F=val("rf"),P=val("rp");
@@ -185,6 +190,7 @@
     g("raOut").textContent=gbp(A);
     g("rfOut").textContent=F+(+F===1?" (once)":"");
     g("rgOut").innerHTML=catLbl[val("rg")]||"";
+    var tg=g("rgTag");if(tg)tg.textContent=CAT_TAG[val("rg")]||"";
     g("rrOut").innerHTML=catLbl[val("rr")]||"";
     g("rpOut").textContent=P+"%";
     g("rkOut").innerHTML=catLbl[val("rk")]||"";
@@ -241,7 +247,10 @@
   function loop(){ if(scan<(cv?cv.clientWidth:0)+2){scan+=Math.max(6,(cv.clientWidth||520)/34);} draw(); raf=requestAnimationFrame(loop); }
   function rescan(m){ if(!ctx)return; layout(); pickLit(m); scan=0; g("scanlbl").textContent="found "+m.hidden.toLocaleString("en-GB")+" hidden clients"; }
   var deb=null;
-  function recompute(){ setOuts(); var m=model(); tweenTo(m.year);
+  function explain(m){ var e=g("rcExplain"); if(!e)return;
+    var name={fashion:"fashion",wine:"wine &amp; spirits",beauty:"beauty",jewellery:"jewellery &amp; watches",home:"home &amp; interiors",gifting:"flowers, food &amp; gifting",books:"rare books &amp; collectibles",electronics:"electronics"}[val("rg")]||"your category";
+    e.innerHTML="In "+name+", "+ (CAT_TAG[val("rg")]||"") + " On your figures, about <b>"+big(m.year)+"</b> a year is tied up in high-value clients you are likely under-serving \u2014 the ones a spend-sorted list never surfaces."; }
+  function recompute(){ setOuts(); var m=model(); tweenTo(m.year); explain(m);
     g("rrMonth").innerHTML="about "+big(m.year/12)+" per month"; steps(m); rescan(m); }
   // wire
   ["rc","ra","rf","rg","rr","rp","rk"].forEach(function(id){var e=g(id);if(e)e.addEventListener("input",recompute);});
