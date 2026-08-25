@@ -85,6 +85,13 @@
 </div></header>
 <style>
   .phero .wrap{display:block;max-width:1180px}
+  .mk-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin:6px 0 22px}
+  @media(max-width:680px){.mk-strip{grid-template-columns:1fr}}
+  .mk-stat{background:var(--bg);padding:18px 20px}
+  .mk-stat b{display:block;font-family:var(--serif);font-size:clamp(26px,3.2vw,34px);color:var(--ink);line-height:1}
+  .mk-stat span{display:block;font-size:12.5px;color:var(--mute);margin-top:7px;line-height:1.4}
+  .mk-cite{grid-column:1/-1;background:var(--ink);color:#e7e8ec;font:500 12.5px var(--sans);padding:11px 20px;display:block}
+  .mk-cite:hover{color:#fff}
   .rcalc{display:grid;grid-template-columns:.92fr 1.08fr;gap:clamp(20px,3vw,40px);align-items:stretch;margin-top:10px}
   @media(max-width:840px){.rcalc{grid-template-columns:1fr}}
   .rc-in{border:1px solid var(--line);padding:clamp(20px,3vw,30px);background:var(--bg)}
@@ -122,10 +129,16 @@
 </style>
 <section class="phero"><div class="wrap"><div class="phero-text">
  <h1 class="display">What is your hidden book worth?</h1>
- <p class="lede" style="margin-top:16px;max-width:56ch">Halia surfaces the high-value clients hiding behind modest spend. Tell it what you know &mdash; leave the rest to the benchmarks &mdash; and watch it model the recoverable revenue in real time.</p>
+ <p class="lede" style="margin-top:16px;max-width:56ch">Halia surfaces the high-value clients hiding behind modest spend. This runs your numbers through <b>McKinsey&rsquo;s own research on top-1% customers</b> &mdash; watch it model the recoverable revenue in real time.</p>
 </div></div></section>
 
 <section class="pad" style="padding-top:14px"><div class="wrap" style="max-width:1080px">
+ <div class="mk-strip">
+  <div class="mk-stat"><b>20&ndash;50%</b><span>of revenue comes from the top 1&ndash;10% of customers</span></div>
+  <div class="mk-stat"><b>~50%</b><span>of top VIPs switch brand preference each year, unmanaged</span></div>
+  <div class="mk-stat"><b>10&ndash;20%</b><span>revenue uplift from a well-run VIP programme</span></div>
+  <a class="mk-cite" href="https://ceros.mckinsey.com/vip-loyalty-a-desktop/" target="_blank" rel="noopener">Source: McKinsey, &ldquo;Small and mighty: the untapped value of your top 1%&rdquo; (2023) &rarr;</a>
+ </div>
  <div class="rcalc">
   <div class="rc-in"><div class="rc-f" data-fid="rc">
    <div class="rl"><span>Customers in your database</span><output id="rcOut"></output></div>
@@ -151,7 +164,7 @@
    <select id="rk"><option value="none">None &mdash; mostly mass email</option><option value="some" selected>Some, by hand</option><option value="heavy">A dedicated team</option></select>
    <label class="rc-ns"><input type="checkbox" data-ns="rk">I'm not sure &mdash; use the benchmark</label></div></div>
   <div class="rc-stage">
-   <div class="sl">Halia &middot; modelling your book</div>
+   <div class="sl">Modelling on McKinsey benchmarks</div>
    <div class="rc-canvas-wrap"><canvas id="dots"></canvas><div class="rc-scanlbl" id="scanlbl">scanning&hellip;</div></div>
    <div class="rc-big" id="rrYear">&pound;0<span class="yr">recoverable per year</span></div>
    <div class="rc-month" id="rrMonth">&nbsp;</div>
