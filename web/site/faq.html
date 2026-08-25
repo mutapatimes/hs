@@ -20,21 +20,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#f5f2ea;--bg-2:#efeadd;--ink:#1a1712;--mute:#615b50;--faint:#9a9385;--gold:#5E6B74;
-    --line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.07);
+  :root{--bg:#f6f6f4;--bg-2:#edecea;--ink:#1a1a1d;--mute:#5c5c61;--faint:#9896a0;--gold:#5E6B74;
+    --line:rgba(22,22,27,.14);--line-2:rgba(22,22,27,.07);
     --serif:'Cormorant Garamond',Georgia,serif;--sans:'Hanken Grotesk',-apple-system,system-ui,sans-serif}
   *{box-sizing:border-box}html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-  a{color:inherit;text-decoration:none}::selection{background:#1a1712;color:#f5f2ea}
+  a{color:inherit;text-decoration:none}::selection{background:#1a1a1d;color:#f6f6f4}
   .wrap{max-width:880px;margin:0 auto;padding:0 40px}.wide{max-width:1180px}
   .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
   h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.04}
   .display{font-size:clamp(44px,7vw,86px)}
   .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);line-height:1.5}
-  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:0;border:1px solid var(--ink);color:#f5f2ea;background:var(--ink);transition:.25s}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:0;border:1px solid var(--ink);color:#f6f6f4;background:var(--ink);transition:.25s}
   .btn:hover{background:transparent;color:var(--ink)}.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
   .arrow{transition:transform .25s}.btn:hover .arrow{transform:translateX(4px)}
-  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(245,242,234,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(246,246,244,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
   .nav{display:flex;align-items:center;justify-content:space-between;height:78px;max-width:1180px;margin:0 auto;padding:0 40px}
   .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px}.brand svg{width:22px;height:22px}
   .nav-links{display:flex;gap:30px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
@@ -54,7 +54,7 @@
   .phero{padding:170px 0 40px}.phero h1{margin:18px 0 24px;max-width:22ch}
   .toc{display:flex;flex-wrap:wrap;gap:10px;margin:34px 0 0}
   .toc a{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:0;padding:8px 15px}
-  .toc a:hover{color:var(--ink);border-color:rgba(20,18,12,.45)}
+  .toc a:hover{color:var(--ink);border-color:rgba(22,22,27,.45)}
   .faq-cat{padding:clamp(54px,8vh,90px) 0;border-top:1px solid var(--line-2)}
   .faq-cat .ct{font:500 12px var(--sans);letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
   .faq-cat h2{font-size:clamp(26px,3.4vw,40px);margin-bottom:18px}
@@ -79,7 +79,7 @@
 </head>
 <body>
 <header id="hdr"><div class="nav">
- <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#1a1712">&#8258;</span>Halia</a>
+ <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#1a1a1d">&#8258;</span>Halia</a>
  <nav class="nav-links"><a href="/#how">How it works</a><a href="/clienteling">Clienteling</a><span class="nav-drop"><a href="/solutions">Solutions</a><div class="nav-menu"><a href="/solutions/fashion">Fashion & apparel</a><a href="/solutions/wine">Wine & spirits</a><a href="/solutions/beauty">Beauty & fragrance</a><a href="/solutions/jewellery">Jewellery & watches</a><a href="/solutions/home">Home, furniture & interiors</a><a href="/solutions/gifting">Flowers, food & gifting</a><a href="/solutions/collectibles">Rare books & collectibles</a><a href="/solutions/electronics">Electronics & big-box</a><a class="all" href="/solutions">All solutions &rarr;</a></div></span><a href="/pricing">Pricing</a><a href="/blog">Blog</a></nav>
  <div class="right"><a class="si" href="/#demo">See a demo</a><a class="si" href="/app">Sign in</a><a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a><button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div>
 </div></header>
