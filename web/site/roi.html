@@ -233,14 +233,14 @@
   var catLbl={fashion:"Fashion",wine:"Wine",beauty:"Beauty",jewellery:"Jewellery",home:"Home",gifting:"Gifting",books:"Rare books",electronics:"Electronics",none:"None today",some:"Some",heavy:"A team"};
   function setOuts(){
     g("rcallOut").textContent=comma(val("rcall"));
-    g("rcyrOut").textContent=comma(val("rcyr"));
+    g("rcyrOut").textContent=comma(Math.min(+val("rcyr"),+val("rcall")));
     g("raOut").textContent=gbp(val("ra"));
     g("rfOut").textContent=val("rf")+(+val("rf")===1?" (once)":"");
     g("rgOut").innerHTML=catLbl[val("rg")]||"";
     g("rkOut").innerHTML=catLbl[val("rk")]||"";
   }
   function model(){
-    var TA=+val("rcall"),TY=+val("rcyr"),A=+val("ra"),F=+val("rf");
+    var TA=+val("rcall"),TY=Math.min(+val("rcyr"),TA),A=+val("ra"),F=+val("rf");
     var share=VIP_SHARE[val("rg")]||.20, gap=GAP[val("rk")]||.5;
     var R=TY*A*F;
     var vipRev=R*share, unworked=vipRev*gap;
@@ -284,7 +284,10 @@
     var st=el.querySelectorAll(".rc-step");
     st.forEach(function(s,i){setTimeout(function(){s.classList.add("in");},80*i);});
   }
-  function recompute(){ setOuts(); var m=model();
+  // active clients live inside the database: moving either slider keeps them consistent
+  function clampActive(from){ var a=g("rcall"),y=g("rcyr"); if(!a||!y)return;
+    if(+y.value>+a.value){ if(from==="rcyr") a.value=Math.ceil(+y.value/5000)*5000; else y.value=a.value; } }
+  function recompute(ev){ clampActive(ev&&ev.target?ev.target.id:""); setOuts(); var m=model();
     g("rrVips").textContent=rng(m.backLo,m.backHi,comma);
     g("rrYear").textContent=rng(m.lo,m.hi,big);
     pictogram(m); steps(m); }
