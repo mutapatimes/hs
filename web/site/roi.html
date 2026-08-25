@@ -85,14 +85,14 @@
 </div></header>
 <style>
   .phero .wrap{display:block;max-width:1180px}
-  .rcalc{display:grid;grid-template-columns:.92fr 1.08fr;gap:clamp(20px,3vw,36px);align-items:start;margin-top:4px}
+  .rcalc{display:grid;grid-template-columns:1.12fr .88fr;gap:clamp(20px,3vw,36px);align-items:start;margin-top:4px}
   @media(max-width:840px){.rcalc{grid-template-columns:1fr}}
-  .rc-in{border:1px solid var(--line);padding:clamp(20px,3vw,28px);background:var(--bg);display:grid;grid-template-columns:1fr 1fr;gap:28px 26px}
+  .rc-in{border:1px solid var(--line);padding:clamp(24px,3.4vw,36px);background:var(--bg);display:grid;grid-template-columns:1fr;gap:26px}
   @media(max-width:560px){.rc-in{grid-template-columns:1fr}}
   .rc-f{margin:0}
   .rc-f .rl{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:600 13px var(--sans);color:var(--ink)}
   .rc-f .rl output{color:var(--mute);font-weight:500;font-variant-numeric:tabular-nums}
-  .rc-f input[type=range]{width:100%;margin-top:11px;accent-color:#5E6B74}
+  .rc-f input[type=range]{width:100%;margin-top:12px;accent-color:#5E6B74;height:22px}
   .rc-f select{width:100%;margin-top:9px;padding:9px 11px;border:1px solid var(--line-strong,rgba(22,22,27,.28));border-radius:0;background:var(--bg-2);color:var(--ink);font:500 14px var(--sans);cursor:pointer}
   .rc-ns{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font:500 11.5px var(--sans);color:var(--faint);cursor:pointer;user-select:none}
   .rc-ns input{accent-color:#5E6B74;width:13px;height:13px}
@@ -178,7 +178,7 @@
 
 <section class="pad" style="padding-top:14px"><div class="wrap" style="max-width:1080px">
  <div class="rcalc">
-  <div class="rc-in"><div class="rc-f" data-fid="rcall"><div class="rl"><span>Clients you have ever had</span><output id="rcallOut"></output></div><input id="rcall" type="range" min="5000" max="2000000" step="5000" value="200000"><label class="rc-ns"><input type="checkbox" data-ns="rcall">Not sure?</label></div><div class="rc-f" data-fid="rcyr"><div class="rl"><span>Clients who bought this year</span><output id="rcyrOut"></output></div><input id="rcyr" type="range" min="1000" max="500000" step="1000" value="50000"><label class="rc-ns"><input type="checkbox" data-ns="rcyr">Not sure?</label></div><div class="rc-f" data-fid="ra"><div class="rl"><span>Average order value</span><output id="raOut"></output></div><input id="ra" type="range" min="50" max="2000" step="10" value="200"><label class="rc-ns"><input type="checkbox" data-ns="ra">Not sure?</label></div><div class="rc-f" data-fid="rf"><div class="rl"><span>Orders per client, per year</span><output id="rfOut"></output></div><input id="rf" type="range" min="1" max="12" step="1" value="2"><label class="rc-ns"><input type="checkbox" data-ns="rf">Not sure?</label></div><div class="rc-f" data-fid="rg"><div class="rl"><span>Category</span><output id="rgOut"></output></div><select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="wine">Wine &amp; spirits</option><option value="beauty">Beauty &amp; fragrance</option><option value="jewellery">Jewellery &amp; watches</option><option value="home">Home &amp; interiors</option><option value="gifting">Flowers, food &amp; gifting</option><option value="books">Rare books &amp; collectibles</option><option value="electronics">Electronics &amp; big-box</option></select><label class="rc-ns"><input type="checkbox" data-ns="rg">Not sure?</label></div><div class="rc-f" data-fid="rk"><div class="rl"><span>Clienteling you do today</span><output id="rkOut"></output></div><select id="rk"><option value="none">None, mostly mass email</option><option value="some" selected>Some, by hand</option><option value="heavy">A dedicated team</option></select><label class="rc-ns"><input type="checkbox" data-ns="rk">Not sure?</label></div></div>
+  <div class="rc-in"><div class="rc-f" data-fid="rcall"><div class="rl"><span>Clients you have ever had</span><output id="rcallOut"></output></div><input id="rcall" type="range" min="5000" max="2000000" step="5000" value="5000"><label class="rc-ns"><input type="checkbox" data-ns="rcall">Not sure?</label></div><div class="rc-f" data-fid="rcyr"><div class="rl"><span>Clients who bought this year</span><output id="rcyrOut"></output></div><input id="rcyr" type="range" min="500" max="500000" step="500" value="500"><label class="rc-ns"><input type="checkbox" data-ns="rcyr">Not sure?</label></div><div class="rc-f" data-fid="ra"><div class="rl"><span>Average order value</span><output id="raOut"></output></div><input id="ra" type="range" min="50" max="2000" step="5" value="50"><label class="rc-ns"><input type="checkbox" data-ns="ra">Not sure?</label></div><div class="rc-f" data-fid="rf"><div class="rl"><span>Orders per client, per year</span><output id="rfOut"></output></div><input id="rf" type="range" min="1" max="12" step="1" value="1"><label class="rc-ns"><input type="checkbox" data-ns="rf">Not sure?</label></div><div class="rc-f" data-fid="rg"><div class="rl"><span>Category</span><output id="rgOut"></output></div><select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="wine">Wine &amp; spirits</option><option value="beauty">Beauty &amp; fragrance</option><option value="jewellery">Jewellery &amp; watches</option><option value="home">Home &amp; interiors</option><option value="gifting">Flowers, food &amp; gifting</option><option value="books">Rare books &amp; collectibles</option><option value="electronics">Electronics &amp; big-box</option></select><label class="rc-ns"><input type="checkbox" data-ns="rg">Not sure?</label></div><div class="rc-f" data-fid="rk"><div class="rl"><span>Clienteling you do today</span><output id="rkOut"></output></div><select id="rk"><option value="none">None, mostly mass email</option><option value="some" selected>Some, by hand</option><option value="heavy">A dedicated team</option></select><label class="rc-ns"><input type="checkbox" data-ns="rk">Not sure?</label></div></div>
   <div class="rc-stage">
    <div class="sl">Back-of-the-envelope</div>
    <div class="rc-pict" id="pict"></div>
@@ -281,7 +281,7 @@
   var UPLIFT_LO=.10,UPLIFT_HI=.20;        // McKinsey: programme uplift, both ends kept
   var FORMER=.01;                          // former top clients among past buyers: floor of McKinsey's 1-10%
   var BACK_LO=.10,BACK_HI=.25;             // of those reached, how many return
-  var DEF={rcall:200000,rcyr:50000,ra:200,rf:2,rg:"fashion",rk:"some"};
+  var DEF={rcall:5000,rcyr:500,ra:50,rf:1,rg:"fashion",rk:"some"};
   var catLbl={fashion:"Fashion",wine:"Wine",beauty:"Beauty",jewellery:"Jewellery",home:"Home",gifting:"Gifting",books:"Rare books",electronics:"Electronics",none:"None today",some:"Some",heavy:"A team"};
   function setOuts(){
     g("rcallOut").textContent=comma(val("rcall"));
