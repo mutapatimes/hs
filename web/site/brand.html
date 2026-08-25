@@ -20,14 +20,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#f4f1ea;--bg-2:#ece7dc;--ink:#13110c;--mute:#5c5c61;--faint:#9896a0;--gold:#5E6B74;
+  :root{--bg:#f6f6f4;--bg-2:#edecea;--ink:#1a1a1d;--mute:#5c5c61;--faint:#9896a0;--gold:#5E6B74;
     --line:rgba(22,22,27,.14);--line-2:rgba(22,22,27,.07);
     --serif:'Cormorant Garamond',Georgia,serif;--sans:'Hanken Grotesk',-apple-system,system-ui,sans-serif}
   *{box-sizing:border-box}html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-  a{color:inherit;text-decoration:none}::selection{background:#1a1a1d;color:#f4f1ea}
+  a{color:inherit;text-decoration:none}::selection{background:#1a1a1d;color:#f6f6f4}
   .wrap{max-width:1080px;margin:0 auto;padding:0 40px}
-  .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+  .eyebrow{font:600 13px/1 var(--sans);color:var(--mute)}
   h1,h2,h3{font-family:var(--serif);font-weight:300;letter-spacing:-.01em;margin:0;line-height:1.05}
   .display{font-size:clamp(46px,7vw,88px);text-wrap:balance}.h2{font-size:clamp(30px,4.4vw,52px);text-wrap:balance}
   em{font-style:italic;color:inherit}
@@ -42,7 +42,7 @@
   .brand .g{color:var(--gold);font-size:23px}
   .nav-links{display:flex;gap:32px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
   .nav .right{display:flex;gap:20px;align-items:center}
-  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:13px 24px;border-radius:0;border:1px solid var(--ink);color:#f4f1ea;background:var(--ink);transition:.25s}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:13px 24px;border-radius:0;border:1px solid var(--ink);color:#f6f6f4;background:var(--ink);transition:.25s}
   .btn:hover{background:transparent;color:var(--ink)}
   .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
   @media(max-width:900px){.nav-links{display:none}}
@@ -68,8 +68,8 @@
   .lock.dark{background:#0a0a0b;border-color:transparent}
   .lock .mk{display:flex;align-items:center;gap:13px;font-family:var(--serif);font-size:42px;font-weight:300}
   .lock.cream .mk{color:var(--ink)}.lock.cream .mk .g{color:var(--gold)}
-  .lock.dark .mk{color:#f4f1ea}.lock.dark .mk .g{color:#D7DADE}
-  .lock .cap{font:500 12px var(--sans);letter-spacing:.14em;text-transform:uppercase}
+  .lock.dark .mk{color:#f6f6f4}.lock.dark .mk .g{color:#D7DADE}
+  .lock .cap{font:500 12px var(--sans);}
   .lock.cream .cap{color:var(--faint)}.lock.dark .cap{color:#56534d}
   /* square logos + wordmarks */
   .sq{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:6px}
@@ -77,10 +77,10 @@
   .sqcard{aspect-ratio:1/1;border-radius:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px solid var(--line);text-align:center;padding:14px}
   .sqcard .g{font-size:clamp(38px,6vw,60px)}
   .sqcard .w{font-family:var(--serif);font-weight:300;font-size:clamp(20px,2.6vw,27px);letter-spacing:.01em}
-  .sqcard .cap{font:500 10.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+  .sqcard .cap{font:500 10.5px var(--sans);;margin-top:2px}
   .sqcaption{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:10px}
   @media(max-width:760px){.sqcaption{grid-template-columns:1fr 1fr}}
-  .sqcaption div{font:500 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);text-align:center}
+  .sqcaption div{font:500 11px var(--sans);;color:var(--faint);text-align:center}
   .bigmark{font-family:var(--serif);font-size:clamp(86px,15vw,150px);color:var(--gold);line-height:1;text-align:center}
   .dl{margin-top:22px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
   .meta-line{font:500 13px ui-monospace,Menlo,monospace;color:var(--mute);letter-spacing:.02em}
@@ -95,7 +95,7 @@
   .swatch .nm{font:600 14px var(--sans);color:var(--ink)}
   .swatch .hex{font:500 12.5px ui-monospace,Menlo,monospace;color:var(--mute);margin-top:3px;letter-spacing:.02em}
   .spec{border:1px solid var(--line);border-radius:0;padding:30px 32px;margin-top:16px}
-  .spec .lab{font:500 12px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+  .spec .lab{font:500 12px var(--sans);color:var(--mute)}
   .spec .big{font-family:var(--serif);font-weight:300;font-size:clamp(40px,7vw,76px);line-height:1.02;margin:10px 0 6px}
   .spec .ital{font-style:italic;color:var(--gold)}
   .spec .scale{font-family:var(--serif);font-weight:300;margin:6px 0;line-height:1.1}
@@ -183,10 +183,10 @@
  <p>For avatars, app icons, and social, use a square. The mark sits alone as an icon, or above the wordmark as a stacked lockup. Keep generous, even padding on every side.</p>
  </div>
  <div class="sq">
- <div class="sqcard" style="background:#1a1a1d"><span class="g" style="color:#f4f1ea">&#8258;</span></div>
- <div class="sqcard" style="background:#5E6B74"><span class="g" style="color:#f4f1ea">&#8258;</span></div>
- <div class="sqcard" style="background:#f4f1ea"><span class="g" style="color:#13110c">&#8258;</span><span class="w" style="color:#13110c">Halia</span></div>
- <div class="sqcard" style="background:#0a0a0b"><span class="g" style="color:#D7DADE">&#8258;</span><span class="w" style="color:#f4f1ea">Halia</span></div>
+ <div class="sqcard" style="background:#1a1a1d"><span class="g" style="color:#f6f6f4">&#8258;</span></div>
+ <div class="sqcard" style="background:#5E6B74"><span class="g" style="color:#f6f6f4">&#8258;</span></div>
+ <div class="sqcard" style="background:#f6f6f4"><span class="g" style="color:#1a1a1d">&#8258;</span><span class="w" style="color:#1a1a1d">Halia</span></div>
+ <div class="sqcard" style="background:#0a0a0b"><span class="g" style="color:#D7DADE">&#8258;</span><span class="w" style="color:#f6f6f4">Halia</span></div>
  </div>
  <div class="sqcaption"><div>Icon · ink</div><div>Icon · slate</div><div>Stacked · cream</div><div>Stacked · dark</div></div>
 </div></section>
@@ -217,11 +217,11 @@
 <section><div class="wrap">
  <div class="sec-h">
  <div class="eyebrow">Colour</div>
- <h2 class="h2" style="margin-top:16px">Cream, ink, and a cool slate.</h2>
- <p>A quiet, editorial palette. Cream and ink do the work; the slate is an accent, used sparingly for emphasis and the mark. Near-black carries the rare dramatic, full-bleed moment.</p>
+ <h2 class="h2" style="margin-top:16px">Off-white, ink, and a cool slate.</h2>
+ <p>An editorial palette. Off-white and ink do the work; the slate is an accent, used sparingly for emphasis and the mark. Near-black carries the rare dramatic, full-bleed moment.</p>
  </div>
  <div class="sw">
- <div class="swatch"><div class="chip" style="background:#f4f1ea;border-bottom:1px solid var(--line)"></div><div class="meta"><div class="nm">Cream</div><div class="hex">#F4F1EA</div></div></div>
+ <div class="swatch"><div class="chip" style="background:#f6f6f4;border-bottom:1px solid var(--line)"></div><div class="meta"><div class="nm">Off-white</div><div class="hex">#F6F6F4</div></div></div>
  <div class="swatch"><div class="chip" style="background:#1a1a1d"></div><div class="meta"><div class="nm">Ink</div><div class="hex">#1a1a1d</div></div></div>
  <div class="swatch"><div class="chip" style="background:#5E6B74"></div><div class="meta"><div class="nm">Slate (accent)</div><div class="hex">#5E6B74</div></div></div>
  <div class="swatch"><div class="chip" style="background:#D7DADE"></div><div class="meta"><div class="nm">Silver (light)</div><div class="hex">#D7DADE</div></div></div>
@@ -235,7 +235,7 @@
  <div class="sec-h">
  <div class="eyebrow">Typography</div>
  <h2 class="h2" style="margin-top:16px">A serif for the idea, a sans for the detail.</h2>
- <p>Cormorant Garamond carries the headlines, the wordmark, and the brand voice, light and a little literary. Inter handles everything functional: labels, body, numbers, the interface.</p>
+ <p>Cormorant Garamond carries the headlines, the wordmark, and the brand voice, light and a little literary. Hanken Grotesk handles everything functional: labels, body, numbers, the interface.</p>
  </div>
  <div class="spec">
  <div class="lab">Display · Cormorant Garamond · Light 300</div>
@@ -244,9 +244,9 @@
  <div class="row"><span>Headlines</span><span>Statements</span><span>The wordmark</span><span>Italic for emphasis</span></div>
  </div>
  <div class="spec sans">
- <div class="lab">Text · Inter · 400 / 500 / 600</div>
+ <div class="lab">Text · Hanken Grotesk · 400 / 500 / 600</div>
  <div class="big">A clear read on every customer.</div>
- <p style="margin:8px 0 0;max-width:56ch">Inter keeps the product legible and calm. Use 400 for body, 500 for labels and buttons, 600 only where a number or a heading needs to hold its ground.</p>
+ <p style="margin:8px 0 0;max-width:56ch">Hanken Grotesk keeps the product legible and calm. Use 400 for body, 500 for labels and buttons, 600 only where a number or a heading needs to hold its ground.</p>
  <div class="row"><span>Body</span><span>Labels</span><span>Buttons</span><span>Tables &amp; numbers</span></div>
  </div>
 </div></section>
@@ -284,7 +284,7 @@
  <div class="eyebrow" style="justify-content:center">Press &amp; brand</div>
  <h2 class="h2" style="margin:16px 0 18px">Need something else?</h2>
  <p style="max-width:48ch;margin:0 auto 26px">For logos in other formats, a press note, or a question about using the Halia brand, get in touch.</p>
- <a class="btn" href="mailto:hello@haliascore.com">Contact us</a>
+ <a class="btn" href="/contact">Contact us</a>
 </div></section>
 
 <footer class="hfoot"><div class="hf-inner">
@@ -304,7 +304,7 @@
  <div class="hf-cols">
   <div class="hf-col"><h4>Product</h4><a href="/#engine">The engine</a><a href="/#how">How it works</a><a href="/#signals">Signals</a><a href="/#teams">For teams</a><a href="/connect">Connect a store</a><a href="/docs">Docs</a></div>
   <div class="hf-col"><h4>Solutions</h4><a href="/solutions/fashion">Fashion &amp; apparel</a><a href="/solutions/wine">Wine &amp; spirits</a><a href="/solutions/beauty">Beauty &amp; fragrance</a><a href="/solutions/jewellery">Jewellery &amp; watches</a><a href="/solutions/home">Home &amp; interiors</a><a href="/solutions">All solutions &rarr;</a></div>
-  <div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/pricing">Pricing</a><a href="/blog">Blog</a><a href="/brand">Brand</a><a href="mailto:hello@haliascore.com">Contact</a></div>
+  <div class="hf-col"><h4>Company</h4><a href="/clienteling">Clienteling</a><a href="/pricing">Pricing</a><a href="/blog">Blog</a><a href="/brand">Brand</a><a href="/contact">Contact</a></div>
   <div class="hf-col"><h4>Trust &amp; legal</h4><a href="/security">Security</a><a href="/responsible">Responsible profiling</a><a href="/status">System status</a><a href="/faq">FAQ</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
  </div>
  <div class="hf-bot">
