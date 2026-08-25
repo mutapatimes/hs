@@ -66,7 +66,9 @@ INDUSTRIES = [
         "surfaces": ["Celebrity stylists", "Prime postcodes", "Premium cards", "Company & PA orders"],
         "move": "Halia flags the tell the moment the order lands and hands your clienteling team a "
                 "ready gesture, a private appointment, early access to the drop, in Shopify and "
-                "Klaviyo, before it sells out.",
+                "Klaviyo, before it sells out. McKinsey measured a 10 to 20% revenue lift when a "
+                "retailer moved its top 1% into an exclusive programme; the lift starts with knowing "
+                "who belongs in it.",
     },
     {
         "slug": "wine", "name": "Wine & spirits", "eyebrow": "Solutions · Wine & spirits",
@@ -75,7 +77,9 @@ INDUSTRIES = [
                 "ordering modest bottles is invisible to spend-based logic, exactly wrong for the "
                 "client who should be first on the en-primeur list.",
         "problem": "One book holds £12 bottles and £12,000 cases. Spend on any single order tells you "
-                   "almost nothing about whose cellar deserves the allocation call.",
+                   "almost nothing about whose cellar deserves the allocation call. McKinsey finds the "
+                   "top 1 to 10% of customers carry 20 to 50% of revenue; in wine, most of them are "
+                   "buying midweek bottles between allocations.",
         "low": "£15 midweek bottles", "high": "£12,000 en-primeur case",
         "buyer_line": "Four £15 bottles a month, shipped to St Helier, Jersey.",
         "buyer_spend": 720, "buyer_spend_note": "per year, today",
@@ -100,7 +104,8 @@ INDUSTRIES = [
                 "customers has a five-figure skincare-and-fragrance ceiling. Entry-level luxury is how "
                 "the wealthy shop casually.",
         "problem": "Beauty runs on enormous one-time and gifting volume, clustered at low price points "
-                   "and mostly never nurtured. The casual gifter and the regular-in-waiting look the same.",
+                   "and mostly never nurtured. The casual gifter and the regular-in-waiting look the "
+                   "same, yet McKinsey values a top customer at 10 to 25 times the average one.",
         "low": "£30 first order", "high": "£8k a year in skincare & scent",
         "buyer_line": "A £34 fragrance, gift-wrapped, a legacy premium email, a Notting Hill address.",
         "buyer_spend": 34, "buyer_spend_note": "spent so far",
@@ -140,7 +145,9 @@ INDUSTRIES = [
         "surfaces": ["Family offices", "Prime residences", "Premium card BINs", "Honorifics"],
         "move": "Halia grades the wealth behind the first order and flags it for a named contact, so the "
                 "second conversation is personal and timely, routed straight to the client's Shopify "
-                "profile and your CRM for a named follow-up.",
+                "profile and your CRM for a named follow-up. The window is real: McKinsey finds about "
+                "half of top customers change brand preference in a given year, often over a single "
+                "experience.",
     },
     {
         "slug": "home", "name": "Home, furniture & interiors", "eyebrow": "Solutions · Home & interiors",
@@ -165,7 +172,8 @@ INDUSTRIES = [
                      "Prime postcodes"],
         "move": "Halia spots company billing, recurring addresses, and prime locations, so you can offer "
                 "terms and a dedicated contact, the difference between a single sale and a multi-year "
-                "trade account.",
+                "trade account. McKinsey measured a 10 to 20% revenue lift when top clients moved into "
+                "a managed programme; for interiors, trade terms are that programme.",
     },
     {
         "slug": "gifting", "name": "Flowers, food & gifting", "eyebrow": "Solutions · Flowers, food & gifting",
@@ -192,7 +200,8 @@ INDUSTRIES = [
                      "Company billing"],
         "move": "Halia flags the well-heeled, PA-placed, or company-billed subscriber and prompts the "
                 "conversation the retail order never triggers, a house account, the events and corporate "
-                "budget, before it goes somewhere else.",
+                "budget, before it goes somewhere else. McKinsey finds about half of top customers "
+                "change brand in a given year; the house-account conversation is how this one stays.",
     },
     {
         "slug": "collectibles", "name": "Rare books & collectibles", "eyebrow": "Solutions · Rare books & collectibles",
@@ -201,7 +210,8 @@ INDUSTRIES = [
                 "by instinct; nobody has systematised it.",
         "problem": "In rare books, prints, and coins, the base of modest purchases is full of serious "
                    "collectors quietly building. Any single order's value tells you almost nothing about "
-                   "who is worth a catalogue call.",
+                   "who is worth a catalogue call, and McKinsey values a top customer at 10 to 25 times "
+                   "the average one.",
         "low": "£20 reading copy", "high": "£8,000 first edition",
         "buyer_line": "A steady run of £20–£40 orders to a prime address, from a bibliophile's own domain.",
         "buyer_spend": 240, "buyer_spend_note": "per year, today",
@@ -226,7 +236,9 @@ INDUSTRIES = [
                 "buyer is lost in it.",
         "problem": "When millions of orders span every wealth level, transaction value tells you nothing "
                    "about lifetime potential. The landlord kitting out ten flats and the household "
-                   "mid-renovation both look like single small sales.",
+                   "mid-renovation both look like single small sales. Even at this scale McKinsey finds "
+                   "the top 1 to 10% of customers carry 20 to 50% of revenue; the concentration hides "
+                   "inside the volume.",
         "low": "£40 accessory", "high": "£40k multi-property / trade fit-out",
         "buyer_line": "Three £40 orders to three different postcodes, one billing address.",
         "buyer_spend": 120, "buyer_spend_note": "spent so far",
