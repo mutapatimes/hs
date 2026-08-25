@@ -124,7 +124,11 @@
   .roi-cta input{background:var(--bg-2);border:1px solid var(--line);padding:13px 18px;color:var(--ink);font:500 14px var(--sans);min-width:250px;outline:none}
   .roi-cta button{border:1px solid var(--ink);background:var(--ink);color:var(--bg);padding:13px 24px;font:500 14px var(--sans);cursor:pointer;transition:.2s}
   .roi-cta button:hover{background:transparent;color:var(--ink)}
-  .rk-research{border-top:1px solid var(--line-2)}
+  .rk-research{border-top:1px solid var(--line-2);padding-top:clamp(120px,16vh,190px)}
+  .rk-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:8px}
+  .rk-cta{display:inline-flex;align-items:center;gap:9px;font:500 14px var(--sans);color:var(--ink);border:1px solid var(--ink);padding:12px 22px;white-space:nowrap;transition:.2s;text-decoration:none}
+  .rk-cta:hover{background:var(--ink);color:var(--bg)}
+  .rk-foot{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:34px}
   .rk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin:34px 0}
   @media(max-width:820px){.rk-grid{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:520px){.rk-grid{grid-template-columns:1fr}}
@@ -134,8 +138,7 @@
   .rk-card p{color:var(--mute);font-size:13.5px;line-height:1.55;margin:0}
   .rk-quote{font-family:var(--serif);font-size:clamp(22px,2.8vw,30px);line-height:1.35;color:var(--ink);max-width:44ch;margin:38px 0 0;padding:0}
   .rk-quote cite{display:block;font-family:var(--sans);font-style:normal;font-size:13px;color:var(--faint);margin-top:14px}
-  .rk-src{display:inline-block;margin-top:26px;color:var(--mute);font:500 13px var(--sans);text-decoration:underline;text-underline-offset:3px}
-  .rk-src:hover{color:var(--ink)}
+  .rk-src{color:var(--faint);font:500 12.5px var(--sans)}
 </style>
 <section class="phero"><div class="wrap"><div class="phero-text">
  <h1 class="display">What is your hidden book worth?</h1>
@@ -179,8 +182,13 @@
 </div></section>
 
 <section class="pad rk-research"><div class="wrap" style="max-width:1000px">
- <h2 class="h2" style="max-width:22ch">The research behind the number</h2>
- <p class="lede" style="margin-top:14px;max-width:58ch">McKinsey studied what a brand&rsquo;s top customers are worth, and what it takes to keep them. Every figure above comes from their findings.</p>
+ <div class="rk-head">
+  <div>
+   <h2 class="h2" style="max-width:20ch">McKinsey&rsquo;s findings</h2>
+   <p class="lede" style="margin-top:14px;max-width:52ch">Every figure above is theirs, applied to your numbers.</p>
+  </div>
+  <a class="rk-cta" href="https://www.mckinsey.com/capabilities/growth-marketing-and-sales/our-insights/small-and-mighty-the-untapped-value-of-your-top-1-percent" target="_blank" rel="noopener">Read the McKinsey report <span class="arrow">&rarr;</span></a>
+ </div>
  <div class="rk-grid">
   <div class="rk-card"><div class="rk-n">20&ndash;50%</div><div class="rk-t">of revenue from the top 1&ndash;10%</div><p>A small group of customers drives an outsized share of the business, and most of it stays invisible on a spend-sorted list.</p></div>
   <div class="rk-card"><div class="rk-n">10&ndash;25&times;</div><div class="rk-t">the average customer</div><p>A single VIP is worth ten to twenty-five ordinary customers. One relationship can outweigh a whole segment.</p></div>
@@ -189,7 +197,10 @@
   <div class="rk-card"><div class="rk-n">5&ndash;10%</div><div class="rk-t">better VIP retention</div><p>A well-designed loyalty strategy measurably improves retention among the customers who matter most.</p></div>
  </div>
  <blockquote class="rk-quote">&ldquo;What I like about this retailer is that they know me and remember what I like.&rdquo;<cite>a VIP customer, in McKinsey&rsquo;s research</cite></blockquote>
- <a class="rk-src" href="https://ceros.mckinsey.com/vip-loyalty-a-desktop/" target="_blank" rel="noopener">McKinsey, &ldquo;Small and mighty: the untapped value of your top 1%&rdquo; (2023) &rarr;</a>
+ <div class="rk-foot">
+  <a class="rk-cta" href="https://www.mckinsey.com/capabilities/growth-marketing-and-sales/our-insights/small-and-mighty-the-untapped-value-of-your-top-1-percent" target="_blank" rel="noopener">Read the McKinsey report <span class="arrow">&rarr;</span></a>
+  <span class="rk-src">McKinsey, &ldquo;Small and mighty: the untapped value of your top 1%&rdquo; (2023)</span>
+ </div>
 </div></section>
 
 <script>
