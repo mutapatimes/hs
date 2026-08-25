@@ -30,3 +30,12 @@ document.getElementById("open").onclick = () => {
   chrome.runtime.openOptionsPage();
   window.close();
 };
+
+document.getElementById("support").onclick = (e) => {
+  e.preventDefault();
+  chrome.runtime.sendMessage({ type: "halia:config" }, (c) => {
+    const base = ((c && c.base) || "https://haliascore.com").replace(/\/$/, "");
+    chrome.tabs.create({ url: base + "/contact?chat=open" });
+    window.close();
+  });
+};

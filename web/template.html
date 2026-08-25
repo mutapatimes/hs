@@ -4998,5 +4998,20 @@ async function subscribePush(s){
   }catch(e){ /* push unavailable (e.g. embedded iframe): the in-dashboard feed still works */ }
 }
 </script>
+<script>
+// Live chat: Brevo Conversations bubble for signed-in merchants (on when configured).
+(function () {
+  fetch('/v1/chat-config').then(function (r) { return r.json(); }).then(function (c) {
+    if (!c || !c.id) return;
+    window.BrevoConversationsID = c.id;
+    window.BrevoConversations = window.BrevoConversations || function () {
+      (window.BrevoConversations.q = window.BrevoConversations.q || []).push(arguments);
+    };
+    var s = document.createElement('script');
+    s.async = true; s.src = 'https://conversations-widget.brevo.com/brevo-conversations.js';
+    document.head.appendChild(s);
+  }).catch(function () {});
+})();
+</script>
 </body>
 </html>

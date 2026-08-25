@@ -23,6 +23,8 @@ async function load() {
     ["haliaBase", "haliaToken", "haliaName", "radarOff", "lookupEverywhere"]);
   $("token").value = haliaToken || "";
   $("base").value = haliaBase || DEFAULT_BASE;
+  const sl = $("supportlink");
+  if (sl) sl.href = (haliaBase || DEFAULT_BASE).replace(/\/+$/, "") + "/contact?chat=open";
   $("name").value = haliaName || "";
   $("radar").checked = !radarOff;
   $("everywhere").checked = !!lookupEverywhere;
