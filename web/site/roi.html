@@ -3,43 +3,41 @@
 <head><link rel="stylesheet" href="/static/brand.css"><script src="/static/brand.js" defer></script><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%235E6B74'>&#8258;</text></svg>">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="canonical" href="https://haliascore.com/status">
+<link rel="canonical" href="https://haliascore.com/roi">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Halia">
-<meta property="og:title" content="System status · Halia">
-<meta property="og:description" content="Live status of the Halia service, uptime and component health. Hosted on Render.">
-<meta property="og:url" content="https://haliascore.com/status">
+<meta property="og:title" content="ROI calculator · Halia">
+<meta property="og:description" content="Estimate the revenue hiding in your customer database. See what the high-value clients behind modest spend could be worth to you.">
+<meta property="og:url" content="https://haliascore.com/roi">
 <meta property="og:image" content="https://haliascore.com/img/three_clients.jpg">
 <meta property="og:image:alt" content="Halia, private client intelligence for luxury retail">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="System status · Halia">
-<meta name="twitter:description" content="Live status of the Halia service, uptime and component health. Hosted on Render.">
+<meta name="twitter:title" content="ROI calculator · Halia">
+<meta name="twitter:description" content="Estimate the revenue hiding in your customer database. See what the high-value clients behind modest spend could be worth to you.">
 <meta name="twitter:image" content="https://haliascore.com/img/three_clients.jpg">
-<title>System status · Halia</title>
-<meta name="description" content="Live status of the Halia service, uptime and component health. Hosted on Render.">
+<title>ROI calculator · Halia</title>
+<meta name="description" content="Estimate the revenue hiding in your customer database. See what the high-value clients behind modest spend could be worth to you.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#f6f6f4;--bg-2:#edecea;--ink:#1a1a1d;--mute:#5c5c61;--faint:#9896a0;--gold:#5E6B74;
-    --line:rgba(22,22,27,.14);--line-2:rgba(22,22,27,.07);--ok:#2f9e6f;--warn:#c58a2a;
+    --line:rgba(22,22,27,.14);--line-2:rgba(22,22,27,.07);
     --serif:'Cormorant Garamond',Georgia,serif;--sans:'Hanken Grotesk',-apple-system,system-ui,sans-serif}
   *{box-sizing:border-box}html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
   a{color:inherit;text-decoration:none}::selection{background:#1a1a1d;color:#f6f6f4}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 40px}
+  .wrap{max-width:880px;margin:0 auto;padding:0 40px}.wide{max-width:1180px}
   .eyebrow{font:500 12px/1 var(--sans);;color:var(--gold)}
   h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;margin:0;line-height:1.04}
-  .display{font-size:clamp(44px,7vw,82px);text-wrap:balance}.h2{font-size:clamp(28px,4vw,48px);text-wrap:balance}
-  em{font-style:italic;color:inherit}
-  h1 em,h2 em,.display em,.h2 em,.stmt em{font-style:normal;color:inherit}
+  .display{font-size:clamp(44px,7vw,86px);text-wrap:balance}
   .lede{font-size:clamp(18px,2vw,22px);color:var(--mute);line-height:1.5}
-  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:0;border:1px solid var(--ink);color:#f6f6f4;background:var(--ink);transition:.25s;cursor:pointer}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:0;border:1px solid var(--ink);color:#f6f6f4;background:var(--ink);transition:.25s}
   .btn:hover{background:transparent;color:var(--ink)}.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{border-color:var(--ink)}
   .arrow{transition:transform .25s}.btn:hover .arrow{transform:translateX(4px)}
   header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(246,246,244,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
-  .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:78px;max-width:1180px;margin:0 auto;padding:0 40px}
   .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px}.brand svg{width:22px;height:22px}
-  .nav-links{display:flex;gap:32px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
+  .nav-links{display:flex;gap:30px}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
   .nav .right{display:flex;gap:20px;align-items:center}.nav .right .si{font:500 14px var(--sans);color:var(--mute)}
   @media(max-width:900px){.nav-links{display:none}}
   .burger{display:none;align-items:center;justify-content:center;width:42px;height:42px;border-radius:0;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;flex:none;padding:0}
@@ -53,80 +51,106 @@
   .mdrawer a.msi{color:var(--mute);font-size:15px}
   .mdrawer a.mcta{margin-top:20px;border:none;background:var(--ink);color:var(--bg);text-align:center;border-radius:0;padding:15px;font-weight:600}
   @media(max-width:900px){.burger{display:inline-flex}}
-  section{position:relative}.pad{padding:clamp(48px,7vh,84px) 0}
-  .sthero{padding:150px 0 10px}
-  /* status banner */
-  .st-banner{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border:1px solid var(--line);border-radius:0;
-    padding:26px 30px;background:var(--bg-2);margin-top:34px}
-  .st-dot{width:14px;height:14px;border-radius:0;background:var(--faint);flex:none;position:relative}
-  .st-dot.ok{background:var(--ok)}.st-dot.warn{background:var(--warn)}.st-dot.load{background:var(--faint)}
-  .st-dot.ok::after{content:"";position:absolute;inset:-6px;border-radius:0;border:2px solid var(--ok);opacity:.5;animation:pulse 2.2s ease-out infinite}
-  @keyframes pulse{0%{transform:scale(.6);opacity:.6}100%{transform:scale(1.5);opacity:0}}
-  .st-headline{font-family:var(--serif);font-size:clamp(24px,3.4vw,34px);line-height:1.1}
-  .st-sub{color:var(--mute);font-size:14px;margin-top:2px}
-  .st-banner .st-meta{margin-left:auto;text-align:right}
-  .st-banner .st-meta b{font-family:var(--serif);font-size:26px;font-weight:400;display:block}
-  .st-banner .st-meta span{color:var(--faint);font-size:12px;}
-  @media(max-width:620px){.st-banner .st-meta{margin-left:0;text-align:left}}
-  /* component rows */
-  .st-list{border:1px solid var(--line);border-radius:0;overflow:hidden;margin-top:22px}
-  .st-row{display:flex;align-items:center;gap:16px;padding:20px 26px;border-top:1px solid var(--line-2)}
-  .st-row:first-child{border-top:none}
-  .st-row .nm{font-weight:500}.st-row .nt{color:var(--faint);font-size:13px;margin-top:1px}
-  .st-row .badge{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--mute)}
-  .st-row .badge.ok{color:var(--ok)}.st-row .badge.warn{color:var(--warn)}
-  .st-mini{width:9px;height:9px;border-radius:0;background:var(--faint)}
-  .st-mini.ok{background:var(--ok)}.st-mini.warn{background:var(--warn)}
-  .st-note{color:var(--mute);font-size:14px;margin-top:20px;max-width:74ch}.st-note a{color:var(--ink);text-decoration:underline}
-  .st-foot{color:var(--faint);font-size:12.5px;margin-top:14px}
-  footer{border-top:1px solid var(--line);padding:60px 0 44px;margin-top:30px}
-  @media(max-width:520px){.st-row{padding:16px 18px;gap:12px}.st-banner{padding:22px 20px}}
+  .phero{padding:170px 0 40px}.phero h1{margin:18px 0 24px;max-width:22ch}
+  .toc{display:flex;flex-wrap:wrap;gap:10px;margin:34px 0 0}
+  .toc a{font:500 13px var(--sans);color:var(--mute);border:1px solid var(--line);border-radius:0;padding:8px 15px}
+  .toc a:hover{color:var(--ink);border-color:rgba(22,22,27,.45)}
+  .faq-cat{padding:clamp(54px,8vh,90px) 0;border-top:1px solid var(--line-2)}
+  .faq-cat .ct{font:500 12px var(--sans);;color:var(--gold);margin-bottom:10px}
+  .faq-cat h2{font-size:clamp(26px,3.4vw,40px);margin-bottom:18px}
+  details.q{border-top:1px solid var(--line)}
+  details.q:last-child{border-bottom:1px solid var(--line)}
+  details.q summary{list-style:none;cursor:pointer;padding:22px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;font:500 18px var(--sans);color:var(--ink)}
+  details.q summary::-webkit-details-marker{display:none}
+  details.q summary .pl{flex:none;color:var(--faint);font-size:24px;line-height:.9;transition:transform .25s;font-weight:300}
+  details.q[open] summary .pl{transform:rotate(45deg);color:var(--ink)}
+  details.q .a{color:var(--mute);font-size:16px;line-height:1.66;padding:2px 0 26px;max-width:66ch}
+  details.q .a a{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+  .final{text-align:center;padding:clamp(70px,10vh,120px) 0}
+  footer{border-top:1px solid var(--line);padding:60px 0 44px}
+  .foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:var(--faint);font-size:13px;max-width:1180px;margin:0 auto;padding:0 40px}
+  .legal-nav{display:flex;gap:20px;flex-wrap:wrap}.legal-nav a{color:var(--mute)}
+  /* hero with image */
+  .phero .wrap{max-width:1180px;display:grid;grid-template-columns:1.2fr .85fr;gap:clamp(36px,5vw,72px);align-items:center}
+  .phero-media{border-radius:0;overflow:hidden;aspect-ratio:4/5;margin:0}
+  .phero-media img{width:100%;height:100%;object-fit:cover;display:block}
+  @media(max-width:860px){.phero .wrap{grid-template-columns:1fr;gap:26px}.phero-media{aspect-ratio:16/11;max-height:300px}}
 </style>
 </head>
 <body>
-<header id="hdr"><div class="wrap nav">
- <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#D7DADE">&#8258;</span>Halia</a>
+<header id="hdr"><div class="nav">
+ <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#1a1a1d">&#8258;</span>Halia</a>
  <nav class="nav-links"><a href="/#how">How it works</a><a href="/clienteling">Clienteling</a><span class="nav-drop"><a href="/solutions">Solutions</a><div class="nav-menu"><a href="/solutions/fashion">Fashion & apparel</a><a href="/solutions/wine">Wine & spirits</a><a href="/solutions/beauty">Beauty & fragrance</a><a href="/solutions/jewellery">Jewellery & watches</a><a href="/solutions/home">Home, furniture & interiors</a><a href="/solutions/gifting">Flowers, food & gifting</a><a href="/solutions/collectibles">Rare books & collectibles</a><a href="/solutions/electronics">Electronics & big-box</a><a class="all" href="/solutions">All solutions &rarr;</a></div></span><a href="/pricing">Pricing</a><a href="/blog">Blog</a></nav>
  <div class="right"><a class="si" href="/#demo">See a demo</a><a class="si" href="/app">Sign in</a><a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a><button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div>
 </div></header>
+<style>
+  .phero .wrap{display:block;max-width:1180px}
+  .roi{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,48px);align-items:center;border:1px solid var(--line);padding:clamp(24px,4vw,40px);margin-top:8px}
+  @media(max-width:760px){.roi{grid-template-columns:1fr}}
+  .roi-inputs label{display:block;font:600 13.5px var(--sans);color:var(--ink);margin-bottom:28px}
+  .roi-inputs label:last-child{margin-bottom:0}
+  .roi-inputs output{float:right;color:var(--mute);font-weight:500}
+  .roi-inputs input[type=range]{width:100%;margin-top:13px;accent-color:#5E6B74}
+  .rr-lab{font:500 12px var(--sans);color:var(--faint)}
+  .rr-big{font-family:var(--serif);font-size:clamp(42px,6.4vw,66px);line-height:1;color:var(--ink);margin:10px 0}
+  .rr-big span{display:block;font-family:var(--sans);font-size:13px;color:var(--mute);margin-top:9px;font-weight:500}
+  .rr-sub{color:var(--mute);font-size:15px}
+  .rr-note{color:var(--faint);font-size:12.5px;line-height:1.55;margin-top:18px;max-width:46ch}
+  .roi-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:30px}
+  .roi-cta form{display:flex;gap:10px;flex-wrap:wrap;margin:0}
+  .roi-cta input{background:var(--bg-2);border:1px solid var(--line);padding:13px 18px;color:var(--ink);font:500 14px var(--sans);min-width:250px;outline:none}
+  .roi-cta button{border:1px solid var(--ink);background:var(--ink);color:var(--bg);padding:13px 24px;font:500 14px var(--sans);cursor:pointer;transition:.2s}
+  .roi-cta button:hover{background:transparent;color:var(--ink)}
+</style>
+<section class="phero"><div class="wrap"><div class="phero-text">
+ <h1 class="display">What is your hidden book worth?</h1>
+ <p class="lede" style="margin-top:16px;max-width:54ch">Halia surfaces the high-value clients hiding behind modest spend. Estimate the revenue you could recover by recognising and nurturing them.</p>
+</div></div></section>
 
-<div class="mscrim" id="mscrim"></div>
-<aside class="mdrawer" id="mdrawer" aria-hidden="true">
- <button class="mclose" id="mclose" aria-label="Close menu">&times;</button>
- <a href="/#how">How it works</a>
- <a href="/clienteling">Clienteling</a>
- <a href="/solutions">Solutions</a>
- <a href="/pricing">Pricing</a><a href="/blog">Blog</a>
- <a class="msi" href="/#demo">See a demo</a>
- <a class="msi" href="/app">Sign in</a>
- <a class="mcta" href="/connect">Connect your store</a>
-</aside>
-
-<section class="sthero"><div class="wrap">
- <h1 class="display" style="margin:16px 0 20px;max-width:15ch">Is Halia <em>up?</em></h1>
- <p class="lede" style="max-width:56ch">A live check of the service. This page reads the running system
- directly, component health and uptime, refreshed automatically.</p>
-
- <div class="st-banner" id="banner">
- <span class="st-dot load" id="ovDot"></span>
- <div>
- <div class="st-headline" id="ovText">Checking status…</div>
- <div class="st-sub" id="ovSub">Reading the running service</div>
+<section class="pad" style="padding-top:14px"><div class="wrap" style="max-width:920px">
+ <div class="roi">
+  <div class="roi-inputs">
+   <label>Customers in your database <output id="rcOut">50,000</output>
+    <input id="rc" type="range" min="1000" max="500000" step="1000" value="50000"></label>
+   <label>Average order value <output id="raOut">&pound;200</output>
+    <input id="ra" type="range" min="50" max="2000" step="10" value="200"></label>
+  </div>
+  <div class="roi-result">
+   <div class="rr-lab">Estimated recoverable revenue</div>
+   <div class="rr-big" id="rrYear">&pound;1.5m<span>per year</span></div>
+   <div class="rr-sub" id="rrMonth">about &pound;125k per month</div>
+   <p class="rr-note">An estimate. It assumes roughly 3% of your customers are high-value clients hiding behind modest spend, each placing a couple more orders a year at their true spending level once they are recognised and looked after. Your numbers will differ.</p>
+  </div>
  </div>
- <div class="st-meta"><b id="ovUptime">&hellip;</b><span>Current uptime</span></div>
+ <div class="roi-cta">
+  <form id="roiForm" novalidate>
+   <input id="roiEmail" type="email" placeholder="Your work email" required>
+   <button type="submit">Send me the full breakdown &rarr;</button>
+  </form>
+  <a class="btn ghost" href="/connect">See who they are, free</a>
  </div>
-
- <div class="st-list" id="list">
- <div class="st-row"><div><div class="nm">Loading components…</div></div></div>
- </div>
-
- <p class="st-note">Halia is hosted on <b>Render</b>, whose infrastructure carries
- <b>SOC&nbsp;2 Type&nbsp;2</b>, <b>ISO&nbsp;27001</b> and an annual third-party penetration test.
- Provider-level incidents are published on Render's own status page; the checks above reflect
- <em>Halia's</em> application and its dependencies. More on how we're built:
- <a href="/security">Security &amp; compliance</a>.</p>
- <p class="st-foot" id="footLine">Uptime is measured from the current server process start; it resets on each deploy.</p>
 </div></section>
+
+<script>
+(function(){
+  var rc=document.getElementById("rc"),ra=document.getElementById("ra"),
+      rcOut=document.getElementById("rcOut"),raOut=document.getElementById("raOut"),
+      rrYear=document.getElementById("rrYear"),rrMonth=document.getElementById("rrMonth");
+  function gbp(n){return "\u00a3"+Math.round(n).toLocaleString("en-GB");}
+  function big(n){return n>=1e6?"\u00a3"+(n/1e6).toFixed(1)+"m":n>=1000?"\u00a3"+Math.round(n/1000)+"k":"\u00a3"+Math.round(n);}
+  function calc(){var C=+rc.value,A=+ra.value;
+    rcOut.textContent=C.toLocaleString("en-GB");raOut.textContent=gbp(A);
+    var year=C*0.03*2*(A*2.5);
+    rrYear.innerHTML=big(year)+"<span>per year</span>";
+    rrMonth.textContent="about "+big(year/12)+" per month";}
+  if(rc&&ra){rc.oninput=calc;ra.oninput=calc;calc();}
+  var f=document.getElementById("roiForm");
+  if(f)f.addEventListener("submit",function(e){e.preventDefault();
+    var i=document.getElementById("roiEmail");if(!i.value)return;
+    fetch("/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:i.value,source:"roi"})}).catch(function(){});
+    i.value="";f.querySelector("button").textContent="Thank you \u2014 we'll be in touch";});
+})();
+</script>
 
 <footer class="hfoot"><div class="hf-inner">
  <div class="hf-news">
@@ -163,39 +187,6 @@
     function close(){d.classList.remove('show');s.classList.remove('show');d.setAttribute('aria-hidden','true');}
     if(b) b.onclick=open; if(c) c.onclick=close; if(s) s.onclick=close;
     d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',close);});
-  })();
-
-  // ── Live status: poll /status.json and render ────────────────────────────────
-  (function(){
-    var ovDot=document.getElementById('ovDot'),ovText=document.getElementById('ovText'),
-        ovSub=document.getElementById('ovSub'),ovUptime=document.getElementById('ovUptime'),
-        list=document.getElementById('list'),footLine=document.getElementById('footLine');
-    function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
-    function render(d){
-      var ok=d.status==='operational';
-      ovDot.className='st-dot '+(ok?'ok':'warn');
-      ovText.textContent=ok?'All systems operational':'Some systems degraded';
-      ovSub.textContent=ok?'Everything is running normally.':'We are aware and looking into it.';
-      ovUptime.textContent=d.uptime_human||'—';
-      list.innerHTML=(d.checks||[]).map(function(c){
-        var cok=c.status==='operational';
-        return '<div class="st-row"><span class="st-mini '+(cok?'ok':'warn')+'"></span>'+
-               '<div><div class="nm">'+esc(c.name)+'</div>'+(c.note?'<div class="nt">'+esc(c.note)+'</div>':'')+'</div>'+
-               '<span class="badge '+(cok?'ok':'warn')+'">'+(cok?'Operational':'Degraded')+'</span></div>';
-      }).join('');
-      footLine.textContent='Hosted on '+(d.host||'Render')+' · uptime measured from the current server process (resets on deploy) · last checked '+
-        new Date().toLocaleTimeString();
-    }
-    function fail(){
-      ovDot.className='st-dot warn';ovText.textContent='Status unavailable';
-      ovSub.textContent='Could not reach the status endpoint. If this page loaded, the site is at least partly up.';
-      list.innerHTML='<div class="st-row"><span class="st-mini warn"></span><div><div class="nm">/status.json</div>'+
-        '<div class="nt">No response</div></div><span class="badge warn">Unreachable</span></div>';
-    }
-    function poll(){
-      fetch('/status.json',{cache:'no-store'}).then(function(r){return r.json();}).then(render).catch(fail);
-    }
-    poll();setInterval(poll,20000);
   })();
 </script>
 </body>
