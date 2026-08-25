@@ -103,22 +103,22 @@
     background:#fbfaf6;border:1px solid #d9d6cb;box-shadow:0 1px 3px rgba(30,28,20,.07),0 12px 28px -18px rgba(30,28,20,.18);
     color:#26251f;padding:clamp(24px,3vw,34px);display:flex;flex-direction:column;position:sticky;top:96px}
   @media(max-width:840px){.rc-stage{position:static}}
-  .rc-stage .sl{font:700 12px var(--tw);letter-spacing:.1em;text-transform:uppercase;color:#8b8779}
+  .rc-stage .sl{font:700 13.5px var(--tw);letter-spacing:.1em;text-transform:uppercase;color:#807c6d}
   .rc-pict{display:flex;flex-wrap:wrap;gap:5px 4px;margin:18px 0 8px;line-height:0}
-  .rc-pict svg{width:13px;height:13px;flex:0 0 auto;fill:none;stroke:#c9c5b8;stroke-width:1.6;transition:stroke .5s}
+  .rc-pict svg{width:15px;height:15px;flex:0 0 auto;fill:none;stroke:#c2beb0;stroke-width:1.6;transition:stroke .5s}
   .rc-pict svg.found{stroke:#1f564a;stroke-width:2}
-  .rc-plegend{font:400 12px var(--tw);color:#8b8779;margin-bottom:20px}
+  .rc-plegend{font:400 13.5px var(--tw);color:#6d6a5c;margin-bottom:20px}
   .rc-plegend .pk{display:inline-block;width:8px;height:8px;border:1.5px solid #1f564a;border-radius:50%;margin:0 5px 0 2px;vertical-align:-1px}
   .rc-heads{display:flex;gap:clamp(22px,4vw,40px);flex-wrap:wrap;border-top:1px dashed #cfccc0;padding-top:20px}
   .rc-head{display:flex;flex-direction:column}
-  .rc-hn{font:700 clamp(21px,2.6vw,29px)/1.15 var(--tw);color:#1c1b16;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-  .rc-hl{font:400 12px var(--tw);color:#8b8779;margin-top:7px;max-width:20ch}
+  .rc-hn{font:700 clamp(24px,3vw,34px)/1.15 var(--tw);color:#1c1b16;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .rc-hl{font:400 13.5px var(--tw);color:#6d6a5c;margin-top:7px;max-width:20ch}
   .rc-steps{border-top:1px dashed #cfccc0;margin-top:20px;padding-top:16px;display:flex;flex-direction:column;gap:10px}
   .rc-step{opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s}
-  .rc-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:400 13px var(--tw);color:#4a483f}
+  .rc-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:400 15px var(--tw);color:#33312a;line-height:1.4}
   .rc-row .hl{font-weight:700;color:#1c1b16}
   .rc-row .v{font-weight:700;color:#1f564a;white-space:nowrap}
-  .rc-why{font:400 11.5px var(--tw);color:#a09c8d;line-height:1.5;margin:3px 0 0}
+  .rc-why{font:400 13px var(--tw);color:#807c6d;line-height:1.55;margin:4px 0 0}
   .rc-step.in{opacity:1;transform:none}
   .rc-step.sum{border-top:1px solid #26251f;padding-top:10px}
   .rc-note{color:var(--faint);font-size:12px;line-height:1.55;margin-top:18px;max-width:60ch}
@@ -182,7 +182,7 @@
   <div class="rc-stage">
    <div class="sl">Back-of-the-envelope</div>
    <div class="rc-pict" id="pict"></div>
-   <div class="rc-plegend">your clients &middot;<span class="pk"></span>the hidden few worth finding</div>
+   <div class="rc-plegend">your clients &middot;<span class="pk"></span><span id="plTxt">the hidden few worth finding</span></div>
    <div class="rc-heads">
     <div class="rc-head"><div class="rc-hn" id="rrVips">&ndash;</div><div class="rc-hl">clients won back, a year</div></div>
     <div class="rc-head"><div class="rc-hn" id="rrYear">&ndash;</div><div class="rc-hl">recoverable, low to high</div></div>
@@ -319,10 +319,12 @@
   var PERSON=function(c){return '<svg class="'+c+'" viewBox="0 0 24 24"><circle cx="12" cy="6.5" r="3.6"/><path d="M4.5 21.5c0-4.2 3.4-7.6 7.5-7.6s7.5 3.4 7.5 7.6"/></svg>';};
   function pictogram(m){ var el=g("pict"); if(!el)return;
     var n=Math.max(80,Math.min(240,Math.round(m.TA/1500)));
-    var found=Math.max(3,Math.round(n*.02));
-    var out="",gapN=Math.floor(n/found);
+    var ratio=m.TA>0?m.former/m.TA:0;                      // the model's own 1% of past clients
+    var found=Math.max(1,Math.round(n*ratio));
+    var out="",gapN=Math.max(2,Math.floor(n/found));
     for(var i=0;i<n;i++){out+=PERSON(i%gapN===Math.floor(gapN/2)?"found":"");}
-    el.innerHTML=out; }
+    el.innerHTML=out;
+    var t=g("plTxt"); if(t)t.textContent="the hidden few, about "+comma(m.former)+" in a base your size"; }
   function steps(m){
     var rows=[
       {l:"revenue this year", v:big(m.R),
