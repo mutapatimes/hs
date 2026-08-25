@@ -159,7 +159,7 @@
    <div class="rc-explain" id="rcExplain"></div>
   </div>
  </div>
- <p class="rc-note">A model, not a promise. It assumes ~2% of your customers are undetected loyal, high-value clients, and estimates how much more they would spend once recognised, from your own order value and repeat rate, adjusted by category, market and how much clienteling you do today. Benchmarks are drawn from luxury and premium retail. Your numbers will differ.</p>
+ <p class="rc-note">A model, not a promise. The benchmarks come from McKinsey, <a href="https://ceros.mckinsey.com/vip-loyalty-a-desktop/" target="_blank" rel="noopener" style="color:#5E6B74;text-decoration:underline">&ldquo;Small and mighty: the untapped value of your top 1%&rdquo;</a> (2023): the top 1&ndash;10% of customers drive 20&ndash;50% of revenue, around half switch brand preference each year when left unmanaged, and a well-run VIP programme lifts revenue 10&ndash;20% and retention 5&ndash;10%. Halia applies those ranges to your own order value, repeat rate, category and market. Your numbers will differ.</p>
  <div class="roi-cta">
   <form id="roiForm" novalidate>
    <input id="roiEmail" type="email" placeholder="Your work email" required>
@@ -171,11 +171,14 @@
 
 <script>
 (function(){
-  var HID=0.02;
-  var CAT={fashion:.55,wine:.65,beauty:.40,jewellery:.90,home:.75,gifting:.50,books:.80,electronics:.45};
+  // Economics grounded in McKinsey, "Small and mighty: the untapped value of your top 1%" (2023):
+  // the top 1-10% of customers drive 20-50% of revenue; left unmanaged ~50% change brand preference
+  // each year; a well-run VIP programme delivers a 10-20% revenue uplift and a 5-10% lift in retention.
+  var HID=0.05;   // top ~5% VIPs shown in the scan (within McKinsey's top 1-10%)
+  var VIP_SHARE={fashion:.30,wine:.36,beauty:.25,jewellery:.42,home:.38,gifting:.32,books:.40,electronics:.27}; // their share of revenue, within McKinsey 20-50%
+  var UPLIFT_KLI={none:.19,some:.15,heavy:.11};   // McKinsey 10-20% uplift; more headroom the less clienteling you do today
+  var CHURN=0.50;                                 // McKinsey: ~50% of top VIPs switch brand preference / yr
   var CAT_TAG={fashion:"The modest first order hiding a house client.",wine:"The quiet regular who is a serious collector.",beauty:"Entry-level luxury is how the wealthy shop.",jewellery:"A strap buyer hiding a collector.",home:"A cushion order fronting a whole house.",gifting:"The £50 standing order from Belgravia.",books:"Paperbacks beside first editions.",electronics:"The trade buyer lost in retail volume."};
-  var REG={uk:1,eu:1,us:1.1,gulf:1.25,asia:1.15,global:1.05};
-  var KLI={none:1.35,some:1,heavy:.75};
   var DEF={rc:50000,ra:200,rf:2,rg:"fashion",rr:"uk",rp:30,rk:"some"};
   var g=function(id){return document.getElementById(id);};
   function gbp(n){return "£"+Math.round(n).toLocaleString("en-GB");}
@@ -195,18 +198,19 @@
     g("rpOut").textContent=P+"%";
     g("rkOut").innerHTML=catLbl[val("rk")]||"";
   }
-  function retFactor(P){ return P<20?1.15:(P>50?0.9:1.0); }
-  var CONV=0.5, VHLTV_SHARE=0.5, VHLTV_MULT=2.5;   // of the 2% detected, half convert; half of those are very high LTV
+  function retGain(P){ return P<20?.10:(P>50?.055:.075); }        // McKinsey 5-10% retention lift; more to win where repeat is low
+  function regBoost(){ var r=val("rr"); return r==="gulf"?1.12:r==="us"?1.06:r==="asia"?1.08:1; }
   function model(){
     var C=+val("rc"),A=+val("ra"),F=+val("rf"),P=+val("rp");
-    var hidden=Math.round(C*HID);
-    var converted=Math.round(hidden*CONV);
-    var vhltv=Math.round(converted*VHLTV_SHARE);
-    var perClient=A*F;
-    var baseUplift=(CAT[val("rg")]||.55)*(REG[val("rr")]||1)*(KLI[val("rk")]||1)*retFactor(P);
-    var avgUplift=baseUplift*((1-VHLTV_SHARE)+VHLTV_SHARE*VHLTV_MULT);  // half standard, half very-high-LTV
-    var year=converted*perClient*avgUplift;
-    return {C:C,A:A,F:F,hidden:hidden,converted:converted,vhltv:vhltv,perClient:perClient,baseUplift:baseUplift,avgUplift:avgUplift,year:year};
+    var totalRev=C*A*F;
+    var vipShare=VIP_SHARE[val("rg")]||.30;
+    var vipRev=totalRev*vipShare;
+    var vipCount=Math.round(C*HID);
+    var upliftRate=Math.min(.20,(UPLIFT_KLI[val("rk")]||.15)*regBoost());
+    var uplift=vipRev*upliftRate;                                   // 10-20% revenue uplift on VIP revenue
+    var churnSaved=vipRev*CHURN*retGain(P);                         // 50% at risk x a 5-10% retention gain
+    var year=uplift+churnSaved;
+    return {C:C,A:A,F:F,totalRev:totalRev,vipShare:vipShare,vipRev:vipRev,vipCount:vipCount,upliftRate:upliftRate,uplift:uplift,churnSaved:churnSaved,year:year};
   }
   // animated count-up
   var tw=null,shown=0;
@@ -220,11 +224,10 @@
   function steps(m){
     var rows=[
       ["Scanning your customers","<b>"+m.C.toLocaleString("en-GB")+"</b>"],
-      ["Hidden high-value detected &middot; 2%","<span class=v>"+m.hidden.toLocaleString("en-GB")+"</span>"],
-      ["Expected to convert &middot; 50%","<span class=v>"+m.converted.toLocaleString("en-GB")+" clients</span>"],
-      ["Very high lifetime value &middot; half of those","<b>"+m.vhltv.toLocaleString("en-GB")+"</b>"],
-      ["Their spend today &middot; "+gbp(m.A)+" &times; "+m.F+"/yr","<b>"+gbp(m.perClient)+"</b> each"],
-      ["Halia uplift &middot; "+catLbl[val("rg")]+", "+catLbl[val("rr")],"<span class=v>&times;"+m.avgUplift.toFixed(2)+"</span>"],
+      ["Your top VIPs &middot; "+Math.round(m.vipShare*100)+"% of revenue","<span class=v>"+big(m.vipRev)+"/yr</span>"],
+      ["Left unmanaged &middot; 50% switch brand yearly","<b>"+big(m.vipRev*0.5)+" at risk</b>"],
+      ["Halia uplift &middot; "+Math.round(m.upliftRate*100)+"% on VIP revenue","<span class=v>+"+big(m.uplift)+"</span>"],
+      ["Retention recovered","<span class=v>+"+big(m.churnSaved)+"</span>"],
       ["Recoverable per year","<b>"+big(m.year)+"</b>"]
     ];
     var el=g("steps");el.innerHTML=rows.map(function(r){return '<div class="rc-step"><span>'+r[0]+'</span><span>'+r[1]+'</span></div>';}).join("");
@@ -254,11 +257,11 @@
     if(scan<w){ ctx.fillStyle="rgba(143,184,174,.28)";ctx.fillRect(scan-1,0,2,h); }
   }
   function loop(){ if(scan<(cv?cv.clientWidth:0)+2){scan+=Math.max(6,(cv.clientWidth||520)/34);} draw(); raf=requestAnimationFrame(loop); }
-  function rescan(m){ if(!ctx)return; layout(); pickLit(m); scan=0; g("scanlbl").textContent="found "+m.hidden.toLocaleString("en-GB")+" hidden \u00b7 "+m.vhltv.toLocaleString("en-GB")+" very high value"; }
+  function rescan(m){ if(!ctx)return; layout(); pickLit(m); scan=0; g("scanlbl").textContent=m.vipCount.toLocaleString("en-GB")+" top VIPs \u00b7 many hidden behind modest spend"; }
   var deb=null;
   function explain(m){ var e=g("rcExplain"); if(!e)return;
     var name={fashion:"fashion",wine:"wine &amp; spirits",beauty:"beauty",jewellery:"jewellery &amp; watches",home:"home &amp; interiors",gifting:"flowers, food &amp; gifting",books:"rare books &amp; collectibles",electronics:"electronics"}[val("rg")]||"your category";
-    e.innerHTML="In "+name+", "+ (CAT_TAG[val("rg")]||"") + " Realistically you would convert about half of the "+m.hidden.toLocaleString('en-GB')+" we find, and half of those become very high value \u2014 roughly <b>"+big(m.year)+"</b> a year in clients a spend-sorted list never surfaces."; }
+    e.innerHTML="In "+name+", "+ (CAT_TAG[val("rg")]||"") + " McKinsey finds your top VIPs drive about "+Math.round(m.vipShare*100)+"% of revenue, and half switch brand each year when no one looks after them. Recognise and keep them and roughly <b>"+big(m.year)+"</b> a year is in reach."; }
   function recompute(){ setOuts(); var m=model(); tweenTo(m.year); explain(m);
     g("rrMonth").innerHTML="about "+big(m.year/12)+" per month"; steps(m); rescan(m); }
   // wire
