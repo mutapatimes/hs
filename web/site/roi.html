@@ -7,16 +7,16 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Halia">
 <meta property="og:title" content="ROI calculator · Halia">
-<meta property="og:description" content="Estimate the revenue hiding in your customer database. See what the high-value clients behind modest spend could be worth to you.">
+<meta property="og:description" content="Estimate the revenue hiding in your customer database. Watch Halia model the high-value clients behind modest spend, in real time.">
 <meta property="og:url" content="https://haliascore.com/roi">
 <meta property="og:image" content="https://haliascore.com/img/three_clients.jpg">
 <meta property="og:image:alt" content="Halia, private client intelligence for luxury retail">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="ROI calculator · Halia">
-<meta name="twitter:description" content="Estimate the revenue hiding in your customer database. See what the high-value clients behind modest spend could be worth to you.">
+<meta name="twitter:description" content="Estimate the revenue hiding in your customer database. Watch Halia model the high-value clients behind modest spend, in real time.">
 <meta name="twitter:image" content="https://haliascore.com/img/three_clients.jpg">
 <title>ROI calculator · Halia</title>
-<meta name="description" content="Estimate the revenue hiding in your customer database. See what the high-value clients behind modest spend could be worth to you.">
+<meta name="description" content="Estimate the revenue hiding in your customer database. Watch Halia model the high-value clients behind modest spend, in real time.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Hanken+Grotesk:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -85,18 +85,34 @@
 </div></header>
 <style>
   .phero .wrap{display:block;max-width:1180px}
-  .roi{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,48px);align-items:center;border:1px solid var(--line);padding:clamp(24px,4vw,40px);margin-top:8px}
-  @media(max-width:760px){.roi{grid-template-columns:1fr}}
-  .roi-inputs label{display:block;font:600 13.5px var(--sans);color:var(--ink);margin-bottom:28px}
-  .roi-inputs label:last-child{margin-bottom:0}
-  .roi-inputs output{float:right;color:var(--mute);font-weight:500}
-  .roi-inputs input[type=range]{width:100%;margin-top:13px;accent-color:#5E6B74}
-  .rr-lab{font:500 12px var(--sans);color:var(--faint)}
-  .rr-big{font-family:var(--serif);font-size:clamp(42px,6.4vw,66px);line-height:1;color:var(--ink);margin:10px 0}
-  .rr-big span{display:block;font-family:var(--sans);font-size:13px;color:var(--mute);margin-top:9px;font-weight:500}
-  .rr-sub{color:var(--mute);font-size:15px}
-  .rr-note{color:var(--faint);font-size:12.5px;line-height:1.55;margin-top:18px;max-width:46ch}
-  .roi-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:30px}
+  .rcalc{display:grid;grid-template-columns:.92fr 1.08fr;gap:clamp(20px,3vw,40px);align-items:stretch;margin-top:10px}
+  @media(max-width:840px){.rcalc{grid-template-columns:1fr}}
+  .rc-in{border:1px solid var(--line);padding:clamp(20px,3vw,30px);background:var(--bg)}
+  .rc-f{margin-bottom:20px}.rc-f:last-child{margin-bottom:0}
+  .rc-f .rl{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:600 13px var(--sans);color:var(--ink)}
+  .rc-f .rl output{color:var(--mute);font-weight:500;font-variant-numeric:tabular-nums}
+  .rc-f input[type=range]{width:100%;margin-top:11px;accent-color:#5E6B74}
+  .rc-f select{width:100%;margin-top:9px;padding:9px 11px;border:1px solid var(--line-strong,rgba(22,22,27,.28));border-radius:0;background:var(--bg-2);color:var(--ink);font:500 14px var(--sans);cursor:pointer}
+  .rc-ns{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font:500 11.5px var(--sans);color:var(--faint);cursor:pointer;user-select:none}
+  .rc-ns input{accent-color:#5E6B74;width:13px;height:13px}
+  .rc-f.dk input[type=range],.rc-f.dk select{opacity:.4;pointer-events:none}
+  .rc-f.dk .rl output{color:#5E6B74}
+  /* the engine stage — a dark console that shows Halia computing */
+  .rc-stage{background:#161619;color:#f6f6f4;padding:clamp(22px,3vw,32px);display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .rc-stage .sl{font:500 11px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:#8a8b93}
+  .rc-canvas-wrap{position:relative;margin:14px 0 6px;border:1px solid rgba(255,255,255,.09);background:#101013;height:150px}
+  #dots{display:block;width:100%;height:100%}
+  .rc-scanlbl{position:absolute;left:11px;bottom:9px;font:500 11px ui-monospace,Menlo,monospace;color:#9aa;letter-spacing:.02em}
+  .rc-big{font-family:var(--serif);font-weight:300;font-size:clamp(44px,7vw,72px);line-height:1;margin:16px 0 2px;color:#fff;font-variant-numeric:tabular-nums}
+  .rc-big .yr{display:block;font-family:var(--sans);font-size:12.5px;color:#8a8b93;margin-top:9px;font-weight:500;letter-spacing:.02em}
+  .rc-month{color:#c7c8cf;font-size:14px;margin-bottom:16px}
+  .rc-steps{border-top:1px solid rgba(255,255,255,.09);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+  .rc-step{display:flex;justify-content:space-between;gap:12px;font:500 12.5px ui-monospace,Menlo,monospace;color:#a9aab2;opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s}
+  .rc-step.in{opacity:1;transform:none}
+  .rc-step b{color:#f6f6f4;font-weight:600}
+  .rc-step .v{color:#8fb8ae;font-weight:600}
+  .rc-note{color:var(--faint);font-size:12px;line-height:1.55;margin-top:18px;max-width:60ch}
+  .roi-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:28px}
   .roi-cta form{display:flex;gap:10px;flex-wrap:wrap;margin:0}
   .roi-cta input{background:var(--bg-2);border:1px solid var(--line);padding:13px 18px;color:var(--ink);font:500 14px var(--sans);min-width:250px;outline:none}
   .roi-cta button{border:1px solid var(--ink);background:var(--ink);color:var(--bg);padding:13px 24px;font:500 14px var(--sans);cursor:pointer;transition:.2s}
@@ -104,26 +120,42 @@
 </style>
 <section class="phero"><div class="wrap"><div class="phero-text">
  <h1 class="display">What is your hidden book worth?</h1>
- <p class="lede" style="margin-top:16px;max-width:54ch">Halia surfaces the high-value clients hiding behind modest spend. Estimate the revenue you could recover by recognising and nurturing them.</p>
+ <p class="lede" style="margin-top:16px;max-width:56ch">Halia surfaces the high-value clients hiding behind modest spend. Tell it what you know &mdash; leave the rest to the benchmarks &mdash; and watch it model the recoverable revenue in real time.</p>
 </div></div></section>
 
-<section class="pad" style="padding-top:14px"><div class="wrap" style="max-width:920px">
- <div class="roi">
-  <div class="roi-inputs">
-   <label>Customers in your database <output id="rcOut">50,000</output>
-    <input id="rc" type="range" min="1000" max="500000" step="1000" value="50000"></label>
-   <label>Average order value <output id="raOut">&pound;200</output>
-    <input id="ra" type="range" min="50" max="2000" step="10" value="200"></label>
-   <label>Orders per customer, per year <output id="rfOut">2</output>
-    <input id="rf" type="range" min="1" max="12" step="1" value="2"></label>
-  </div>
-  <div class="roi-result">
-   <div class="rr-lab">Estimated recoverable revenue</div>
-   <div class="rr-big" id="rrYear">&pound;600k<span>per year</span></div>
-   <div class="rr-sub" id="rrMonth">about &pound;50k per month</div>
-   <p class="rr-note">An estimate. It assumes roughly 2% of your customers are undetected loyal, high-value clients, and that recognising and looking after them lifts their spend by about half again, at your own order value and repeat rate. A product bought once repeats less, so it earns less here. Your numbers will differ.</p>
+<section class="pad" style="padding-top:14px"><div class="wrap" style="max-width:1080px">
+ <div class="rcalc">
+  <div class="rc-in"><div class="rc-f" data-fid="rc">
+   <div class="rl"><span>Customers in your database</span><output id="rcOut"></output></div>
+   <input id="rc" type="range" min="1000" max="500000" step="1000" value="50000">
+   <label class="rc-ns"><input type="checkbox" data-ns="rc">I'm not sure &mdash; use the benchmark</label></div><div class="rc-f" data-fid="ra">
+   <div class="rl"><span>Average order value</span><output id="raOut"></output></div>
+   <input id="ra" type="range" min="50" max="2000" step="10" value="200">
+   <label class="rc-ns"><input type="checkbox" data-ns="ra">I'm not sure &mdash; use the benchmark</label></div><div class="rc-f" data-fid="rf">
+   <div class="rl"><span>Orders per customer, per year</span><output id="rfOut"></output></div>
+   <input id="rf" type="range" min="1" max="12" step="1" value="2">
+   <label class="rc-ns"><input type="checkbox" data-ns="rf">I'm not sure &mdash; use the benchmark</label></div><div class="rc-f" data-fid="rg">
+   <div class="rl"><span>Category</span><output id="rgOut"></output></div>
+   <select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="jewellery">Jewellery &amp; watches</option><option value="beauty">Beauty &amp; fragrance</option><option value="wine">Wine &amp; spirits</option><option value="home">Home &amp; interiors</option><option value="general">Something else</option></select>
+   <label class="rc-ns"><input type="checkbox" data-ns="rg">I'm not sure &mdash; use the benchmark</label></div><div class="rc-f" data-fid="rr">
+   <div class="rl"><span>Where most of your clients are</span><output id="rrOut"></output></div>
+   <select id="rr"><option value="uk" selected>United Kingdom</option><option value="eu">Europe</option><option value="us">United States</option><option value="gulf">Gulf / Middle East</option><option value="asia">Asia</option><option value="global">A mix</option></select>
+   <label class="rc-ns"><input type="checkbox" data-ns="rr">I'm not sure &mdash; use the benchmark</label></div><div class="rc-f" data-fid="rp">
+   <div class="rl"><span>Share of sales from repeat customers</span><output id="rpOut"></output></div>
+   <input id="rp" type="range" min="0" max="90" step="5" value="30">
+   <label class="rc-ns"><input type="checkbox" data-ns="rp">I'm not sure &mdash; use the benchmark</label></div><div class="rc-f" data-fid="rk">
+   <div class="rl"><span>Clienteling you do today</span><output id="rkOut"></output></div>
+   <select id="rk"><option value="none">None &mdash; mostly mass email</option><option value="some" selected>Some, by hand</option><option value="heavy">A dedicated team</option></select>
+   <label class="rc-ns"><input type="checkbox" data-ns="rk">I'm not sure &mdash; use the benchmark</label></div></div>
+  <div class="rc-stage">
+   <div class="sl">Halia &middot; modelling your book</div>
+   <div class="rc-canvas-wrap"><canvas id="dots"></canvas><div class="rc-scanlbl" id="scanlbl">scanning&hellip;</div></div>
+   <div class="rc-big" id="rrYear">&pound;0<span class="yr">recoverable per year</span></div>
+   <div class="rc-month" id="rrMonth">&nbsp;</div>
+   <div class="rc-steps" id="steps"></div>
   </div>
  </div>
+ <p class="rc-note">A model, not a promise. It assumes ~2% of your customers are undetected loyal, high-value clients, and estimates how much more they would spend once recognised, from your own order value and repeat rate, adjusted by category, market and how much clienteling you do today. Benchmarks are drawn from luxury and premium retail. Your numbers will differ.</p>
  <div class="roi-cta">
   <form id="roiForm" novalidate>
    <input id="roiEmail" type="email" placeholder="Your work email" required>
@@ -135,28 +167,95 @@
 
 <script>
 (function(){
-  var rc=document.getElementById("rc"),ra=document.getElementById("ra"),rf=document.getElementById("rf"),
-      rcOut=document.getElementById("rcOut"),raOut=document.getElementById("raOut"),rfOut=document.getElementById("rfOut"),
-      rrYear=document.getElementById("rrYear"),rrMonth=document.getElementById("rrMonth");
-  function gbp(n){return "\u00a3"+Math.round(n).toLocaleString("en-GB");}
-  function big(n){return n>=1e6?"\u00a3"+(n/1e6).toFixed(1)+"m":n>=1000?"\u00a3"+Math.round(n/1000)+"k":"\u00a3"+Math.round(n);}
-  // 2% undetected loyal high-value clients, lifted ~1.5x on their spend, at your AOV and repeat rate.
-  // Frequency drives it: a one-time product (1/yr) earns far less than a repeat one.
-  function calc(){var C=+rc.value,A=+ra.value,F=+rf.value;
-    rcOut.textContent=C.toLocaleString("en-GB");raOut.textContent=gbp(A);
-    rfOut.textContent=F+(F===1?" (bought once)":"");
-    var year=C*0.02*1.5*A*F;
-    rrYear.innerHTML=big(year)+"<span>per year</span>";
-    rrMonth.textContent="about "+big(year/12)+" per month";}
-  if(rc&&ra&&rf){rc.oninput=calc;ra.oninput=calc;rf.oninput=calc;calc();}
-  var f=document.getElementById("roiForm");
-  if(f)f.addEventListener("submit",function(e){e.preventDefault();
-    var i=document.getElementById("roiEmail");if(!i.value)return;
+  var HID=0.02;
+  var CAT={fashion:.55,jewellery:.85,beauty:.40,wine:.60,home:.70,general:.55};
+  var REG={uk:1,eu:1,us:1.1,gulf:1.25,asia:1.15,global:1.05};
+  var KLI={none:1.35,some:1,heavy:.75};
+  var DEF={rc:50000,ra:200,rf:2,rg:"fashion",rr:"uk",rp:30,rk:"some"};
+  var g=function(id){return document.getElementById(id);};
+  function gbp(n){return "£"+Math.round(n).toLocaleString("en-GB");}
+  function big(n){return n>=1e6?"£"+(n/1e6).toFixed(1)+"m":n>=1000?"£"+Math.round(n/1000)+"k":"£"+Math.round(n);}
+  function nsOn(id){var f=document.querySelector('[data-ns="'+id+'"]');return f&&f.checked;}
+  function val(id){var e=g(id);if(!e)return DEF[id];return nsOn(id)?DEF[id]:(e.type==="range"?+e.value:e.value);}
+  var catLbl={fashion:"Fashion",jewellery:"Jewellery",beauty:"Beauty",wine:"Wine &amp; spirits",home:"Home",general:"General",uk:"UK",eu:"Europe",us:"US",gulf:"Gulf",asia:"Asia",global:"Mixed",none:"None today",some:"Some",heavy:"A team"};
+  // outputs shown next to each control
+  function setOuts(){
+    var C=val("rc"),A=val("ra"),F=val("rf"),P=val("rp");
+    g("rcOut").textContent=(+C).toLocaleString("en-GB");
+    g("raOut").textContent=gbp(A);
+    g("rfOut").textContent=F+(+F===1?" (once)":"");
+    g("rgOut").innerHTML=catLbl[val("rg")]||"";
+    g("rrOut").innerHTML=catLbl[val("rr")]||"";
+    g("rpOut").textContent=P+"%";
+    g("rkOut").innerHTML=catLbl[val("rk")]||"";
+  }
+  function retFactor(P){ return P<20?1.15:(P>50?0.9:1.0); }
+  function model(){
+    var C=+val("rc"),A=+val("ra"),F=+val("rf"),P=+val("rp");
+    var hidden=Math.round(C*HID);
+    var perClient=A*F;
+    var uplift=(CAT[val("rg")]||.55)*(REG[val("rr")]||1)*(KLI[val("rk")]||1)*retFactor(P);
+    var year=hidden*perClient*uplift;
+    return {C:C,A:A,F:F,hidden:hidden,perClient:perClient,uplift:uplift,year:year};
+  }
+  // animated count-up
+  var tw=null,shown=0;
+  function tweenTo(target){
+    if(tw)cancelAnimationFrame(tw);var from=shown,t0=performance.now(),dur=650;
+    (function step(now){var k=Math.min(1,(now-t0)/dur);var e=1-Math.pow(1-k,3);shown=from+(target-from)*e;
+      g("rrYear").innerHTML=big(shown)+'<span class="yr">recoverable per year</span>';
+      if(k<1)tw=requestAnimationFrame(step);else shown=target;})(t0);
+  }
+  // the visible working
+  function steps(m){
+    var rows=[
+      ["Scanning your customers","<b>"+m.C.toLocaleString("en-GB")+"</b>"],
+      ["Hidden high-value detected &middot; 2%","<span class=v>"+m.hidden.toLocaleString("en-GB")+" clients</span>"],
+      ["Their spend today &middot; "+gbp(m.A)+" &times; "+m.F+"/yr","<b>"+gbp(m.perClient)+"</b> each"],
+      ["Halia uplift &middot; "+catLbl[val("rg")]+", "+catLbl[val("rr")],"<span class=v>&times;"+m.uplift.toFixed(2)+"</span>"],
+      ["Recoverable per year","<b>"+big(m.year)+"</b>"]
+    ];
+    var el=g("steps");el.innerHTML=rows.map(function(r){return '<div class="rc-step"><span>'+r[0]+'</span><span>'+r[1]+'</span></div>';}).join("");
+    var st=el.querySelectorAll(".rc-step");
+    st.forEach(function(s,i){setTimeout(function(){s.classList.add("in");},90*i);});
+  }
+  // canvas: a grid of customers; the hidden ~2% glow as they are found, with a scan sweep
+  var cv=g("dots"),ctx=cv&&cv.getContext&&cv.getContext("2d"),lit=[],cols=0,rows=0,scan=0,raf=null;
+  function layout(){ if(!cv)return; var dpr=window.devicePixelRatio||1; var w=cv.clientWidth||520,h=cv.clientHeight||150;
+    cv.width=w*dpr;cv.height=h*dpr;if(ctx)ctx.setTransform(dpr,0,0,dpr,0,0);
+    cols=Math.max(20,Math.floor(w/15));rows=Math.max(6,Math.floor(h/15)); }
+  function pickLit(m){ var total=cols*rows; var n=Math.max(3,Math.round(total*HID)); lit=[];
+    var stepN=total/n; for(var i=0;i<n;i++){lit.push(Math.floor(i*stepN+stepN*0.5*((i*37%7)/7)));} }
+  function draw(){ if(!ctx)return; var w=cv.clientWidth,h=cv.clientHeight; ctx.clearRect(0,0,w,h);
+    var gx=w/cols,gy=h/rows; var t=performance.now()/600;
+    for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
+      var idx=r*cols+c, x=c*gx+gx/2, y=r*gy+gy/2, revealed=x<=scan;
+      var isLit=lit.indexOf(idx)>=0;
+      if(isLit&&revealed){ var pulse=0.6+0.4*Math.sin(t+idx); ctx.beginPath();ctx.arc(x,y,3.1,0,6.28);
+        ctx.fillStyle="rgba(143,184,174,"+pulse+")";ctx.fill();
+        ctx.beginPath();ctx.arc(x,y,6.2,0,6.28);ctx.fillStyle="rgba(94,107,116,"+(0.14*pulse)+")";ctx.fill(); }
+      else { ctx.beginPath();ctx.arc(x,y,1.15,0,6.28); ctx.fillStyle= revealed?"rgba(255,255,255,.16)":"rgba(255,255,255,.05)"; ctx.fill(); }
+    }
+    if(scan<w){ ctx.fillStyle="rgba(143,184,174,.28)";ctx.fillRect(scan-1,0,2,h); }
+  }
+  function loop(){ if(scan<(cv?cv.clientWidth:0)+2){scan+=Math.max(6,(cv.clientWidth||520)/34);} draw(); raf=requestAnimationFrame(loop); }
+  function rescan(m){ if(!ctx)return; layout(); pickLit(m); scan=0; g("scanlbl").textContent="found "+m.hidden.toLocaleString("en-GB")+" hidden clients"; }
+  var deb=null;
+  function recompute(){ setOuts(); var m=model(); tweenTo(m.year);
+    g("rrMonth").innerHTML="about "+big(m.year/12)+" per month"; steps(m); rescan(m); }
+  // wire
+  ["rc","ra","rf","rg","rr","rp","rk"].forEach(function(id){var e=g(id);if(e)e.addEventListener("input",recompute);});
+  document.querySelectorAll("[data-ns]").forEach(function(cb){cb.addEventListener("change",function(){
+    var row=cb.closest(".rc-f"); if(row)row.classList.toggle("dk",cb.checked); recompute(); });});
+  window.addEventListener("resize",function(){layout();var m=model();pickLit(m);});
+  if(ctx){layout();loop();}
+  recompute();
+  var f=g("roiForm");
+  if(f)f.addEventListener("submit",function(e){e.preventDefault();var i=g("roiEmail");if(!i.value)return;
     fetch("/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:i.value,source:"roi"})}).catch(function(){});
-    i.value="";f.querySelector("button").textContent="Thank you \u2014 we'll be in touch";});
+    i.value="";f.querySelector("button").textContent="Thank you — we'll be in touch";});
 })();
 </script>
-
 <footer class="hfoot"><div class="hf-inner">
  <div class="hf-news">
   <h3>The edge in luxury retail, in your inbox.</h3>
