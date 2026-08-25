@@ -559,6 +559,7 @@ private struct HomeView: View {
     let onReconnect: () -> Void
     let onSignedOut: () -> Void
     @State private var showOpeners = false
+    @Environment(\.openURL) private var openURL
 
     private var syncLine: String {
         if model.busy { return "Syncing your templates…" }
@@ -581,6 +582,12 @@ private struct HomeView: View {
                 hairline
                 row(model.busy ? "Syncing…" : "Sync now", "Refresh your templates and clients") {
                     Task { await model.sync() }
+                }
+                hairline
+                row("Support", "Live chat with us") {
+                    let base = Credentials.baseURL.hasSuffix("/")
+                        ? String(Credentials.baseURL.dropLast()) : Credentials.baseURL
+                    if let url = URL(string: base + "/contact?chat=open") { openURL(url) }
                 }
             }
             .padding(.horizontal, 24).padding(.top, 6)

@@ -473,6 +473,13 @@ def status_json() -> dict:
     return system_status()
 
 
+@app.get("/v1/chat-config", include_in_schema=False)
+def chat_config() -> dict:
+    """Brevo Conversations widget id for the live-chat bubble. Empty until configured at launch."""
+    import os
+    return {"id": os.environ.get("HALIA_BREVO_CHAT_ID", "")}
+
+
 @app.post("/subscribe", include_in_schema=False)
 def subscribe(payload: Any = Body(...)) -> dict:
     """Marketing-site email capture. Stores the email; demo requests also start the Brevo journey."""

@@ -76,3 +76,21 @@
     init();
   }
 })();
+
+// Live chat: the Brevo Conversations bubble, on when HALIA_BREVO_CHAT_ID is configured.
+// A ?chat=open in the URL opens the conversation straight away (used by the extension and iOS app).
+(function () {
+  fetch('/v1/chat-config').then(function (r) { return r.json(); }).then(function (c) {
+    if (!c || !c.id) return;
+    window.BrevoConversationsID = c.id;
+    window.BrevoConversations = window.BrevoConversations || function () {
+      (window.BrevoConversations.q = window.BrevoConversations.q || []).push(arguments);
+    };
+    if (new URLSearchParams(location.search).get('chat') === 'open') {
+      window.BrevoConversations('openChat', true);
+    }
+    var s = document.createElement('script');
+    s.async = true; s.src = 'https://conversations-widget.brevo.com/brevo-conversations.js';
+    document.head.appendChild(s);
+  }).catch(function () {});
+})();
