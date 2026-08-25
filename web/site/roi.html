@@ -157,7 +157,7 @@
 
 <section class="pad" style="padding-top:14px"><div class="wrap" style="max-width:1080px">
  <div class="rcalc">
-  <div class="rc-in"><div class="rc-f" data-fid="rcall"><div class="rl"><span>Total database of customers</span><output id="rcallOut"></output></div><input id="rcall" type="range" min="5000" max="500000" step="5000" value="5000"><label class="rc-ns"><input type="checkbox" data-ns="rcall">Not sure?</label></div><div class="rc-f" data-fid="rcyr"><div class="rl"><span>Active clients this year</span><output id="rcyrOut"></output></div><input id="rcyr" type="range" min="100" max="100000" step="100" value="100"><label class="rc-ns"><input type="checkbox" data-ns="rcyr">Not sure?</label></div><div class="rc-f" data-fid="ra"><div class="rl"><span>Average order value</span><output id="raOut"></output></div><input id="ra" type="range" min="50" max="2000" step="5" value="50"><label class="rc-ns"><input type="checkbox" data-ns="ra">Not sure?</label></div><div class="rc-f" data-fid="rf"><div class="rl"><span>Orders per client, per year</span><output id="rfOut"></output></div><input id="rf" type="range" min="1" max="12" step="1" value="1"><label class="rc-ns"><input type="checkbox" data-ns="rf">Not sure?</label></div><div class="rc-f" data-fid="rg"><div class="rl"><span>Category</span><output id="rgOut"></output></div><select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="wine">Wine &amp; spirits</option><option value="beauty">Beauty &amp; fragrance</option><option value="jewellery">Jewellery &amp; watches</option><option value="home">Home &amp; interiors</option><option value="gifting">Flowers, food &amp; gifting</option><option value="books">Rare books &amp; collectibles</option><option value="electronics">Electronics &amp; big-box</option></select><label class="rc-ns"><input type="checkbox" data-ns="rg">Not sure?</label></div><div class="rc-f" data-fid="rk"><div class="rl"><span>Clienteling you do today</span><output id="rkOut"></output></div><select id="rk"><option value="none">None, mostly mass email</option><option value="some" selected>Some, by hand</option><option value="heavy">A dedicated team</option></select><label class="rc-ns"><input type="checkbox" data-ns="rk">Not sure?</label></div></div>
+  <div class="rc-in"><div class="rc-f" data-fid="rcall"><div class="rl"><span>Total database of customers</span><output id="rcallOut"></output></div><input id="rcall" type="range" min="5000" max="500000" step="5000" value="5000"><label class="rc-ns"><input type="checkbox" data-ns="rcall">Not sure?</label></div><div class="rc-f" data-fid="rcyr"><div class="rl"><span>Avg active clients a year</span><output id="rcyrOut"></output></div><input id="rcyr" type="range" min="100" max="100000" step="100" value="100"><label class="rc-ns"><input type="checkbox" data-ns="rcyr">Not sure?</label></div><div class="rc-f" data-fid="ra"><div class="rl"><span>Average order value</span><output id="raOut"></output></div><input id="ra" type="range" min="50" max="2000" step="5" value="50"><label class="rc-ns"><input type="checkbox" data-ns="ra">Not sure?</label></div><div class="rc-f" data-fid="rf"><div class="rl"><span>Orders per client, per year</span><output id="rfOut"></output></div><input id="rf" type="range" min="1" max="12" step="1" value="1"><label class="rc-ns"><input type="checkbox" data-ns="rf">Not sure?</label></div><div class="rc-f" data-fid="rg"><div class="rl"><span>Category</span><output id="rgOut"></output></div><select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="wine">Wine &amp; spirits</option><option value="beauty">Beauty &amp; fragrance</option><option value="jewellery">Jewellery &amp; watches</option><option value="home">Home &amp; interiors</option><option value="gifting">Flowers, food &amp; gifting</option><option value="books">Rare books &amp; collectibles</option><option value="electronics">Electronics &amp; big-box</option></select><label class="rc-ns"><input type="checkbox" data-ns="rg">Not sure?</label></div><div class="rc-f" data-fid="rk"><div class="rl"><span>Clienteling you do today</span><output id="rkOut"></output></div><select id="rk"><option value="none">None, mostly mass email</option><option value="some" selected>Some, by hand</option><option value="heavy">A dedicated team</option></select><label class="rc-ns"><input type="checkbox" data-ns="rk">Not sure?</label></div></div>
   <div class="rc-stage">
    <div class="sl">Back-of-the-envelope</div>
    <div class="rc-pict" id="pict"></div>
@@ -249,9 +249,11 @@
     var backLo=former*BACK_LO, backHi=former*BACK_HI;
     var avgVal=A*F;
     var lapLo=backLo*avgVal, lapHi=backHi*avgVal;
+    var lo=upLo+lapLo, hi=upHi+lapHi;
+    if(lo<2000){lo=2000;if(hi<4000)hi=4000;}   // even the smallest book carries at least this much headroom
     return {TA:TA,TY:TY,A:A,F:F,share:share,gap:gap,R:R,vipRev:vipRev,unworked:unworked,
       upLo:upLo,upHi:upHi,past:past,former:former,backLo:backLo,backHi:backHi,avgVal:avgVal,
-      lapLo:lapLo,lapHi:lapHi,lo:upLo+lapLo,hi:upHi+lapHi};
+      lapLo:lapLo,lapHi:lapHi,lo:lo,hi:hi};
   }
   // outlined people: the crowd is your book; the few in green are the hidden ones
   var PERSON=function(c){return '<svg class="'+c+'" viewBox="0 0 24 24"><circle cx="12" cy="6.5" r="3.6"/><path d="M4.5 21.5c0-4.2 3.4-7.6 7.5-7.6s7.5 3.4 7.5 7.6"/></svg>';};
@@ -295,7 +297,7 @@
     document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},800);}
   function csvDownload(){ var m=model(); var pc=function(x){return Math.round(x*100)+"%";};
     var rows=[["The model","Low","High"],
-      ["Clients who bought this year",m.TY,m.TY],
+      ["Avg active clients a year",m.TY,m.TY],
       ["Average order value",m.A,m.A],
       ["Orders per client, per year",m.F,m.F],
       ["Revenue this year",Math.round(m.R),Math.round(m.R)],
