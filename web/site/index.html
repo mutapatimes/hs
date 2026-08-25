@@ -1028,7 +1028,7 @@
     var host=document.getElementById('pareto'); if(!host) return;
     var W=560,H=300,padL=14,padR=20,padT=26,padB=34,pw=W-padL-padR,ph=H-padT-padB,base=H-padB;
     var N=25,vals=[],v=180;                       // two years, compounding as the relationship builds
-    for(var i=0;i<N;i++){vals.push(v);v*=1.253;}  // cumulative spend, £180 -> ~£38k
+    for(var i=0;i<N;i++){vals.push(v);v*=1.25;}   // cumulative spend, £180 -> ~£38k
     var max=vals[N-1]*1.04,pts=[],xy=[];
     for(i=0;i<N;i++){var x=padL+i*pw/(N-1),y=base-(vals[i]/max)*ph;xy.push([x,y]);pts.push(x.toFixed(1)+','+y.toFixed(1));}
     function lbl(n){return n>=1000?"£"+Math.round(n/1000)+"k":"£"+Math.round(n);}
