@@ -782,6 +782,7 @@ def render(ind: dict) -> str:
   <h2 class="h2">See who you have been missing.</h2>
   <p class="lede" style="max-width:36ch;margin:14px auto 32px">Connect your store and Halia surfaces your hidden VICs, usually within the hour.</p>
   <a class="btn" href="/connect">Connect your store <span class="arrow">&rarr;</span></a>
+  <a class="btn ghost" href="/roi">Calculate your ROI</a>
 </div></section>
 """
     origin = "https://haliascore.com"
