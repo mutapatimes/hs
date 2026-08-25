@@ -725,11 +725,19 @@ def render(ind: dict) -> str:
     signals = "".join(f'<span class="chip">{s}</span>' for s in ind["buyer_signals"])
     tags = "".join(f'<span class="tag">{t}</span>' for t in ind["surfaces"])
     hero_img, hero_cap, img2, img2_cap = IMG[ind["slug"]]
+    MCK_URL = ("https://www.mckinsey.com/capabilities/growth-marketing-and-sales/our-insights/"
+               "small-and-mighty-the-untapped-value-of-your-top-1-percent")
+    mck_src = (f'<p class="reveal d1" style="font:500 12px var(--sans);color:var(--faint);margin-top:10px">'
+               f'<a href="{MCK_URL}" target="_blank" rel="noopener" style="color:inherit">'
+               f'McKinsey, &ldquo;Small and mighty: the untapped value of your top 1%&rdquo; (2023)</a></p>')
+    mck_in = {"fashion": "move", "wine": "problem", "beauty": "problem", "jewellery": "move",
+              "home": "move", "gifting": "move", "collectibles": "problem", "electronics": "problem"}[ind["slug"]]
 
     surfaces_block = (
         f'<div class="surfaces reveal d1"><div class="sl">Signals it reads, from data you already hold</div>'
         f'<div class="tags">{tags}</div></div>'
-        f'<p class="p reveal d1" style="margin-top:26px">{ind["move"]}</p>')
+        f'<p class="p reveal d1" style="margin-top:26px">{ind["move"]}</p>'
+        + (mck_src if mck_in == "move" else ""))
     if img2:
         do_inner = (
             f'<div class="do-grid"><div>{surfaces_block}</div>'
@@ -755,6 +763,7 @@ def render(ind: dict) -> str:
 <section class="sec"><div class="wrap">
   <div class="k reveal">The problem</div>
   <p class="p reveal" style="font-size:19px;color:var(--ink);max-width:52ch">{ind["problem"]}</p>
+  {mck_src if mck_in == "problem" else ""}
   <div class="pc reveal d1">
     <div><div class="l">A transaction that looks like</div><div class="v">{ind["low"]}</div></div>
     <div class="hi"><div class="l">From a client who could be worth</div><div class="v">{ind["high"]}</div></div>
