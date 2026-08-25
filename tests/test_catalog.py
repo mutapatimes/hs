@@ -106,7 +106,8 @@ def test_save_generate_serve_and_active_url(client, monkeypatch):
     assert store.get_catalog(cid)["active"] == 1
     # active -> {catalog_link} resolves to the interactive form link at once (no PDF needed)
     from halia.api.catalog import catalog_url_for
-    assert catalog_url_for(SHOP).endswith(f"/catalog/{cid}")
+    url = catalog_url_for(SHOP)
+    assert f"/catalog/{cid}?" in url and "utm_campaign=halia-catalogue" in url
     assert not catalog_url_for(SHOP).endswith(".pdf")
     # generate -> pdf stored, pdf url returned
     gen = c.post(f"/v1/catalog/{cid}/generate")
