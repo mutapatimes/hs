@@ -218,7 +218,8 @@ def test_cart_link_builds_a_permalink_from_resolved_variants(env, monkeypatch):
     monkeypatch.setattr(extension, "_cart_base", lambda shop: "https://shopx.example")
     d = client.post("/v1/extension/cart_link", json={"product_ids": ["100", "101"]},
                     headers={"X-Halia-Ext-Token": _ext(client, tok)}).json()
-    assert d["url"] == "https://shopx.example/cart/v0:1,v1:1"
+    assert d["url"].startswith("https://shopx.example/cart/v0:1,v1:1?")
+    assert "utm_campaign=halia-cart" in d["url"]
 
 
 def test_cart_link_skips_products_without_a_buyable_variant(env, monkeypatch):
@@ -229,7 +230,8 @@ def test_cart_link_skips_products_without_a_buyable_variant(env, monkeypatch):
                         lambda shop, title: {"id": "v0"} if title.endswith("0") else None)
     d = client.post("/v1/extension/cart_link", json={"product_ids": ["100", "101"]},
                     headers={"X-Halia-Ext-Token": _ext(client, tok)}).json()
-    assert d["url"] == "https://shopx.example/cart/v0:1"
+    assert d["url"].startswith("https://shopx.example/cart/v0:1?")
+    assert "utm_campaign=halia-cart" in d["url"]
 
 
 def test_cart_link_422_when_nothing_is_buyable(env, monkeypatch):
