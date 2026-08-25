@@ -122,7 +122,6 @@
   .rc-step.in{opacity:1;transform:none}
   .rc-step.sum{border-top:1px solid #26251f;padding-top:10px}
   .rc-note{color:var(--faint);font-size:12px;line-height:1.55;margin-top:18px;max-width:60ch}
-  .roi-dl{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px}
   .dlb{border:1px solid var(--line-strong,rgba(22,22,27,.28));background:transparent;color:var(--ink);padding:11px 18px;font:500 13.5px var(--sans);cursor:pointer;transition:.2s}
   .dlb:hover{border-color:var(--ink)}
   .dl-hint{font:500 12.5px var(--sans);color:#1f564a;opacity:0;transition:opacity .3s}
@@ -191,18 +190,14 @@
    <div class="rc-steps" id="steps"></div>
   </div>
  </div>
- <p class="rc-note">These are estimates, so the result is a range: McKinsey&rsquo;s low end to their high end, with every assumption written out in the model below. Your year will land where your team takes it.</p>
+ <p class="rc-note">These are estimates, so the result is a range: McKinsey&rsquo;s low end to their high end, every assumption written out below.</p>
  <div class="roi-cta">
   <form id="roiForm" novalidate>
    <input id="roiEmail" type="email" placeholder="Your work email" required>
    <button type="submit">Get your full ROI analysis &rarr;</button>
   </form>
-  <a class="btn ghost" href="/connect">See who they are, free</a>
- </div>
- <div class="roi-dl">
-  <button class="dlb" id="dlCsv" type="button">Download the model for Excel</button>
-  <button class="dlb" id="dlPng" type="button">Save the working as an image</button>
-  <span class="dl-hint" id="dlHint">Enter your email above and your download starts.</span>
+  <button class="dlb" id="dlAll" type="button">Download the working, Excel and image</button>
+  <span class="dl-hint" id="dlHint">Enter your email and both downloads start.</span>
  </div>
  <div class="gloss">
   <h3>Terms in the model</h3>
@@ -213,8 +208,6 @@
    <div><dt>Programme uplift</dt><dd>The extra spend top clients show once they are clienteled. McKinsey measured 10 to 20% at a specialty retailer; the model keeps both ends, which is why the answer is a range.</dd></div>
    <div><dt>Lapsed client</dt><dd>Someone who bought from you before but sat out this year. McKinsey finds about half of top customers change brand preference in a given year, often over a single experience.</dd></div>
    <div><dt>Win-back rate</dt><dd>Of the lapsed clients you reach, the share who buy again: held at 10 to 25%. Reaching them at all depends on knowing who they were, which is the finding step.</dd></div>
-   <div><dt>Average annual value</dt><dd>Your average order value times orders per year. Returning clients are counted at this figure, never at an imagined VIP figure, which keeps the low end honest.</dd></div>
-   <div><dt>Recoverable per year</dt><dd>Uplift on newly clienteled top clients plus the spend of returning lapsed clients, quoted low end to high. An estimate to size the opportunity, and a starting point for a real conversation.</dd></div>
   </dl>
  </div>
 </div></section>
@@ -423,19 +416,18 @@
     x.fillText("haliascore.com/roi",pad,y);y+=30;
     x.fillText("on McKinsey, “Small and mighty: the untapped value of your top 1%” (2023)",pad,y);
     cv.toBlob(function(bl){if(bl)dlBlob(bl,"halia-roi.png");},"image/png"); }
-  function runDl(kind){ if(kind==="csv")csvDownload(); else pngDownload(); }
-  function askEmail(kind){ pendingDl=kind; g("dlHint").classList.add("on");
+  function runDl(){ csvDownload(); pngDownload(); }
+  function askEmail(){ pendingDl=true; g("dlHint").classList.add("on");
     var i=g("roiEmail"); i.focus(); i.scrollIntoView({behavior:"smooth",block:"center"}); }
-  ["dlCsv","dlPng"].forEach(function(id){var b=g(id);if(b)b.addEventListener("click",function(){
-    var kind=id==="dlCsv"?"csv":"png";
-    if(unlocked)runDl(kind); else askEmail(kind); });});
+  var dlBtn=g("dlAll");
+  if(dlBtn)dlBtn.addEventListener("click",function(){ if(unlocked)runDl(); else askEmail(); });
   var f=g("roiForm");
   if(f)f.addEventListener("submit",function(e){e.preventDefault();var i=g("roiEmail");if(!i.value)return;
     fetch("/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:i.value,source:pendingDl?"roi-download":"roi"})}).catch(function(){});
     unlocked=true; try{localStorage.setItem("haliaRoiOk","1");}catch(_){ }
     g("dlHint").classList.remove("on");
     i.value="";f.querySelector("button").textContent="Thank you, we'll be in touch";
-    if(pendingDl){var k=pendingDl;pendingDl=null;setTimeout(function(){runDl(k);},150);}});
+    if(pendingDl){pendingDl=null;setTimeout(runDl,150);}});
 })();
 </script>
 <footer class="hfoot"><div class="hf-inner">
