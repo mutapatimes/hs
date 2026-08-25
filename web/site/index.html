@@ -268,9 +268,9 @@
   /* pareto chart */
   .chartwrap{display:grid;grid-template-columns:1.25fr 1fr;gap:clamp(40px,6vw,80px);align-items:center;margin-top:20px}
   .pareto{position:relative;width:100%}.pareto svg{width:100%;height:auto;display:block;overflow:visible}
-  .pbar{transform-box:fill-box;transform-origin:bottom;transform:scaleY(0);transition:transform .9s cubic-bezier(.2,.7,.2,1)}
-  .pareto.in .pbar{transform:scaleY(1)}
-  .pline{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-dasharray:1;stroke-dashoffset:1}
+  .parea{fill:var(--ink);opacity:0}.pareto.in .parea{opacity:.05;transition:opacity 1.1s ease .9s}
+  .pline{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+  .pmoney{font:600 12.5px var(--sans);fill:var(--ink);opacity:0}.pareto.in .pmoney{opacity:1;transition:opacity .5s ease}
   .pareto.in .pline{transition:stroke-dashoffset 1.7s ease .35s;stroke-dashoffset:0}
   .pdash{stroke:var(--faint);stroke-width:1;stroke-dasharray:3 4;opacity:0}.pareto.in .pdash{opacity:1;transition:opacity .6s ease .9s}
   .plabel{font:500 10px var(--sans);fill:var(--faint);letter-spacing:.08em}
@@ -1023,22 +1023,27 @@
     });
   })();
 
-  // Pareto chart (80/20): decile revenue bars + cumulative line, top 20% highlighted.
+  // Spend line: a clienteled client's cumulative spend rising from a £180 first order.
   (function(){
     var host=document.getElementById('pareto'); if(!host) return;
-    var share=[55,25,8,5,3,2,1,0.6,0.3,0.1],cum=[],run=0; share.forEach(function(s){run+=s;cum.push(run);});
-    var W=560,H=300,padL=14,padR=14,padT=16,padB=34,pw=W-padL-padR,ph=H-padT-padB,n=share.length,base=H-padB,max=55*1.06,bw=pw/n*0.6;
-    var bars="",dots="",pts=[];
-    for(var i=0;i<n;i++){var cx=padL+(i+0.5)*pw/n,bh=share[i]/max*ph,top=base-bh,hot=i<2;
-      bars+='<rect class="pbar" x="'+(cx-bw/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="2" fill="'+(hot?'#f4f1ea':'rgba(255,255,255,.14)')+'" style="transition-delay:'+(i*0.05).toFixed(2)+'s"><title>Decile '+(i+1)+': '+share[i]+'% of revenue</title></rect>';
-      var ly=base-cum[i]/100*ph; dots+='<circle class="pdot" cx="'+cx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="2.4"/>'; pts.push(cx.toFixed(1)+','+ly.toFixed(1));}
-    var y80=base-0.8*ph;
-    host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Pareto chart: 20% of clients drive 80% of revenue">'
-      +'<line class="pdash" x1="'+padL+'" y1="'+y80.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y80.toFixed(1)+'"/>'
-      +'<text class="plabel" x="'+(W-padR)+'" y="'+(y80-7).toFixed(1)+'" text-anchor="end">80% of revenue</text>'
-      +bars+'<polyline class="pline" points="'+pts.join(' ')+'" pathLength="1"/>'+dots
-      +'<text class="plabel" x="'+(padL+pw*0.1).toFixed(0)+'" y="'+(base+22)+'" text-anchor="middle" style="fill:var(--mute)">Top 20%</text>'
-      +'<text class="plabel" x="'+(padL+pw*0.6).toFixed(0)+'" y="'+(base+22)+'" text-anchor="middle">Everyone else, ranked by value →</text></svg>';
+    var W=560,H=300,padL=14,padR=20,padT=26,padB=34,pw=W-padL-padR,ph=H-padT-padB,base=H-padB;
+    var N=25,vals=[],v=180;                       // two years, compounding as the relationship builds
+    for(var i=0;i<N;i++){vals.push(v);v*=1.253;}  // cumulative spend, £180 -> ~£38k
+    var max=vals[N-1]*1.04,pts=[],xy=[];
+    for(i=0;i<N;i++){var x=padL+i*pw/(N-1),y=base-(vals[i]/max)*ph;xy.push([x,y]);pts.push(x.toFixed(1)+','+y.toFixed(1));}
+    function lbl(n){return n>=1000?"£"+Math.round(n/1000)+"k":"£"+Math.round(n);}
+    var marks=[0,12,18,24],dots="",labels="";
+    marks.forEach(function(mi,k){var m=xy[mi];
+      dots+='<circle class="pdot" cx="'+m[0].toFixed(1)+'" cy="'+m[1].toFixed(1)+'" r="3"/>';
+      var anch=mi===0?"start":(mi===N-1?"end":"middle");
+      labels+='<text class="pmoney" x="'+m[0].toFixed(1)+'" y="'+(m[1]-12).toFixed(1)+'" text-anchor="'+anch+'" style="transition-delay:'+(1.1+k*0.25)+'s">'+lbl(vals[mi])+'</text>';});
+    var area=pts.join(' ')+' '+(padL+pw).toFixed(1)+','+base+' '+padL+','+base;
+    host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="A clienteled client&#39;s spend rising from a £180 first order to £38k over two years">'
+      +'<line class="pdash" x1="'+padL+'" y1="'+base+'" x2="'+(W-padR)+'" y2="'+base+'"/>'
+      +'<polygon class="parea" points="'+area+'"/>'
+      +'<polyline class="pline" points="'+pts.join(' ')+'" pathLength="1"/>'+dots+labels
+      +'<text class="plabel" x="'+padL+'" y="'+(base+22)+'">The first order</text>'
+      +'<text class="plabel" x="'+(W-padR)+'" y="'+(base+22)+'" text-anchor="end">Two years clienteled →</text></svg>';
   })();
 
   // count-up the knowledge-base stats on scroll
