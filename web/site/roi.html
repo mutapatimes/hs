@@ -87,7 +87,7 @@
   .phero .wrap{display:block;max-width:1180px}
   .rcalc{display:grid;grid-template-columns:.92fr 1.08fr;gap:clamp(20px,3vw,36px);align-items:start;margin-top:4px}
   @media(max-width:840px){.rcalc{grid-template-columns:1fr}}
-  .rc-in{border:1px solid var(--line);padding:clamp(20px,3vw,28px);background:var(--bg);display:grid;grid-template-columns:1fr 1fr;gap:20px 22px}
+  .rc-in{border:1px solid var(--line);padding:clamp(20px,3vw,28px);background:var(--bg);display:grid;grid-template-columns:1fr 1fr;gap:28px 26px}
   @media(max-width:560px){.rc-in{grid-template-columns:1fr}}
   .rc-f{margin:0}
   .rc-f .rl{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:600 13px var(--sans);color:var(--ink)}
@@ -156,14 +156,7 @@
    <label class="rc-ns"><input type="checkbox" data-ns="rf">Not sure?</label></div><div class="rc-f" data-fid="rg">
    <div class="rl"><span>Category</span><output id="rgOut"></output></div>
    <select id="rg"><option value="fashion" selected>Fashion &amp; apparel</option><option value="wine">Wine &amp; spirits</option><option value="beauty">Beauty &amp; fragrance</option><option value="jewellery">Jewellery &amp; watches</option><option value="home">Home &amp; interiors</option><option value="gifting">Flowers, food &amp; gifting</option><option value="books">Rare books &amp; collectibles</option><option value="electronics">Electronics &amp; big-box</option></select>
-   <div id="rgTag" style="font-size:12.5px;color:var(--mute);margin-top:7px;font-style:normal"></div>
-   <label class="rc-ns"><input type="checkbox" data-ns="rg">Not sure?</label></div><div class="rc-f" data-fid="rr">
-   <div class="rl"><span>Where most of your clients are</span><output id="rrOut"></output></div>
-   <select id="rr"><option value="uk" selected>United Kingdom</option><option value="eu">Europe</option><option value="us">United States</option><option value="gulf">Gulf / Middle East</option><option value="asia">Asia</option><option value="global">A mix</option></select>
-   <label class="rc-ns"><input type="checkbox" data-ns="rr">Not sure?</label></div><div class="rc-f" data-fid="rp">
-   <div class="rl"><span>Share of sales from repeat customers</span><output id="rpOut"></output></div>
-   <input id="rp" type="range" min="0" max="90" step="5" value="30">
-   <label class="rc-ns"><input type="checkbox" data-ns="rp">Not sure?</label></div><div class="rc-f" data-fid="rk">
+   <label class="rc-ns"><input type="checkbox" data-ns="rg">Not sure?</label></div><div class="rc-f" data-fid="rk">
    <div class="rl"><span>Clienteling you do today</span><output id="rkOut"></output></div>
    <select id="rk"><option value="none">None, mostly mass email</option><option value="some" selected>Some, by hand</option><option value="heavy">A dedicated team</option></select>
    <label class="rc-ns"><input type="checkbox" data-ns="rk">Not sure?</label></div></div>
@@ -208,7 +201,6 @@
   // Deliberately conservative: the LOW end of every McKinsey range, so the number is defensible.
   var VIP_SHARE={fashion:.20,wine:.24,beauty:.18,jewellery:.28,home:.25,gifting:.22,books:.26,electronics:.18}; // their share of revenue (McKinsey: 20-50%; we take the floor)
   var UPLIFT_KLI={none:.12,some:.10,heavy:.08};   // uplift on VIP revenue (McKinsey: 10-20%; we take the low end)
-  var CAT_TAG={fashion:"The modest first order hiding a house client.",wine:"The quiet regular who is a serious collector.",beauty:"Entry-level luxury is how the wealthy shop.",jewellery:"A strap buyer hiding a collector.",home:"A cushion order fronting a whole house.",gifting:"The £50 standing order from Belgravia.",books:"Paperbacks beside first editions.",electronics:"The trade buyer lost in retail volume."};
   var DEF={rc:50000,ra:200,rf:2,rg:"fashion",rr:"uk",rp:30,rk:"some"};
   var g=function(id){return document.getElementById(id);};
   function gbp(n){return "£"+Math.round(n).toLocaleString("en-GB");}
@@ -218,28 +210,21 @@
   var catLbl={fashion:"Fashion",wine:"Wine",beauty:"Beauty",jewellery:"Jewellery",home:"Home",gifting:"Gifting",books:"Rare books",electronics:"Electronics",uk:"UK",eu:"Europe",us:"US",gulf:"Gulf",asia:"Asia",global:"Mixed",none:"None today",some:"Some",heavy:"A team"};
   // outputs shown next to each control
   function setOuts(){
-    var C=val("rc"),A=val("ra"),F=val("rf"),P=val("rp");
-    g("rcOut").textContent=(+C).toLocaleString("en-GB");
-    g("raOut").textContent=gbp(A);
-    g("rfOut").textContent=F+(+F===1?" (once)":"");
+    g("rcOut").textContent=(+val("rc")).toLocaleString("en-GB");
+    g("raOut").textContent=gbp(val("ra"));
+    g("rfOut").textContent=val("rf")+(+val("rf")===1?" (once)":"");
     g("rgOut").innerHTML=catLbl[val("rg")]||"";
-    var tg=g("rgTag");if(tg)tg.textContent=CAT_TAG[val("rg")]||"";
-    g("rrOut").innerHTML=catLbl[val("rr")]||"";
-    g("rpOut").textContent=P+"%";
     g("rkOut").innerHTML=catLbl[val("rk")]||"";
   }
-  function regBoost(){ var r=val("rr"); return r==="gulf"?1.08:r==="us"?1.04:r==="asia"?1.04:1; }
-  function repeatAdj(P){ return P<20?1.05:(P>50?0.95:1); }
   // Two clean stages: your top VIPs' share of revenue, then the uplift Halia unlocks on it.
   function model(){
-    var C=+val("rc"),A=+val("ra"),F=+val("rf"),P=+val("rp");
+    var C=+val("rc"),A=+val("ra"),F=+val("rf");
     var totalRev=C*A*F;
     var vipShare=VIP_SHARE[val("rg")]||.20;
     var vipRev=totalRev*vipShare;
-    var upliftRate=(UPLIFT_KLI[val("rk")]||.10)*regBoost()*repeatAdj(P);
+    var upliftRate=UPLIFT_KLI[val("rk")]||.10;
     var year=vipRev*upliftRate;
-    var vipCount=Math.round(C*HID);
-    return {C:C,A:A,F:F,totalRev:totalRev,vipShare:vipShare,vipRev:vipRev,upliftRate:upliftRate,year:year,vipCount:vipCount};
+    return {C:C,A:A,F:F,totalRev:totalRev,vipShare:vipShare,vipRev:vipRev,upliftRate:upliftRate,year:year,vipCount:Math.round(C*HID)};
   }
   // animated count-up
   var tw=null,shown=0;
@@ -263,23 +248,20 @@
     st.forEach(function(s,i){setTimeout(function(){s.classList.add("in");},90*i);});
   }
   // canvas: a grid of customers; the hidden ~2% glow as they are found, with a scan sweep
-  var cv=g("dots"),ctx=cv&&cv.getContext&&cv.getContext("2d"),lit=[],vh={},cols=0,rows=0,scan=0,raf=null;
+  var cv=g("dots"),ctx=cv&&cv.getContext&&cv.getContext("2d"),lit=[],cols=0,rows=0,scan=0,raf=null;
   function layout(){ if(!cv)return; var dpr=window.devicePixelRatio||1; var w=cv.clientWidth||520,h=cv.clientHeight||150;
     cv.width=w*dpr;cv.height=h*dpr;if(ctx)ctx.setTransform(dpr,0,0,dpr,0,0);
     cols=Math.max(20,Math.floor(w/15));rows=Math.max(6,Math.floor(h/15)); }
   function pickLit(m){ var total=cols*rows; var n=Math.max(3,Math.round(total*HID)); lit=[];vh={};
-    var stepN=total/n; for(var i=0;i<n;i++){var idx=Math.floor(i*stepN+stepN*0.5*((i*37%7)/7));lit.push(idx);
-      if(i%4===0)vh[idx]=1;} }   // ~a quarter of the hidden (2% x 50% x 50%) are the very-high-LTV ones
+    var stepN=total/n; for(var i=0;i<n;i++){lit.push(Math.floor(i*stepN+stepN*0.5*((i*37%7)/7)));} }
   function draw(){ if(!ctx)return; var w=cv.clientWidth,h=cv.clientHeight; ctx.clearRect(0,0,w,h);
     var gx=w/cols,gy=h/rows; var t=performance.now()/600;
     for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
       var idx=r*cols+c, x=c*gx+gx/2, y=r*gy+gy/2, revealed=x<=scan;
       var isLit=lit.indexOf(idx)>=0;
       if(isLit&&revealed){ var pulse=0.6+0.4*Math.sin(t+idx);
-        if(vh[idx]){ ctx.beginPath();ctx.arc(x,y,3.6,0,6.28);ctx.fillStyle="rgba(214,196,138,"+pulse+")";ctx.fill();
-          ctx.beginPath();ctx.arc(x,y,8,0,6.28);ctx.fillStyle="rgba(214,196,138,"+(0.16*pulse)+")";ctx.fill(); }
-        else { ctx.beginPath();ctx.arc(x,y,3.1,0,6.28);ctx.fillStyle="rgba(143,184,174,"+pulse+")";ctx.fill();
-          ctx.beginPath();ctx.arc(x,y,6.2,0,6.28);ctx.fillStyle="rgba(94,107,116,"+(0.14*pulse)+")";ctx.fill(); } }
+        ctx.beginPath();ctx.arc(x,y,3.1,0,6.28);ctx.fillStyle="rgba(143,184,174,"+pulse+")";ctx.fill();
+        ctx.beginPath();ctx.arc(x,y,6.2,0,6.28);ctx.fillStyle="rgba(94,107,116,"+(0.14*pulse)+")";ctx.fill(); }
       else { ctx.beginPath();ctx.arc(x,y,1.15,0,6.28); ctx.fillStyle= revealed?"rgba(255,255,255,.16)":"rgba(255,255,255,.05)"; ctx.fill(); }
     }
     if(scan<w){ ctx.fillStyle="rgba(143,184,174,.28)";ctx.fillRect(scan-1,0,2,h); }
@@ -290,7 +272,7 @@
   function recompute(){ setOuts(); var m=model(); tweenTo(m.year);
     g("rrMonth").innerHTML="about "+big(m.year/12)+" per month"; steps(m); rescan(m); }
   // wire
-  ["rc","ra","rf","rg","rr","rp","rk"].forEach(function(id){var e=g(id);if(e)e.addEventListener("input",recompute);});
+  ["rc","ra","rf","rg","rk"].forEach(function(id){var e=g(id);if(e)e.addEventListener("input",recompute);});
   document.querySelectorAll("[data-ns]").forEach(function(cb){cb.addEventListener("change",function(){
     var row=cb.closest(".rc-f"); if(row)row.classList.toggle("dk",cb.checked); recompute(); });});
   window.addEventListener("resize",function(){layout();var m=model();pickLit(m);});
