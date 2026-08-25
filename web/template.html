@@ -3341,6 +3341,15 @@ function openDrawer(id){
           : `<div style="padding:12px 14px;color:var(--faint);font-size:13px">No orders on record.</div>`}
         ${c.orders&&c.orders.length>12?`<div style="padding:9px 14px;color:var(--faint);font-size:12.5px">+${c.orders.length-12} earlier orders</div>`:""}
       </div></details>
+      ${PLATFORM==="shopify"?`<details class="dfold"><summary>Send a cart<span>one-tap checkout link</span></summary>
+        <div id="cartb" style="padding-bottom:6px">
+          <div style="display:flex;gap:6px;margin-bottom:8px">
+            <input id="cbSearch" placeholder="Search your products" style="flex:1;padding:8px 11px;border:1px solid var(--line-strong);border-radius:8px;font:13px system-ui;background:var(--card);color:var(--ink)">
+            <button class="dbtn" id="cbGo">Search</button>
+          </div>
+          <div id="cbResults" style="max-height:190px;overflow:auto"></div>
+          <div id="cbCart"></div>
+        </div></details>`:""}
       </div>
     </div>
     <div class="dactions">
@@ -3357,6 +3366,7 @@ function openDrawer(id){
     </div>`;
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   wireDrawerCtl();
+  wireCartBuilder();     // "Send a cart" -> one-tap Shopify checkout link (Shopify only)
   renderDrawerPipe(c);   // outreach-pipeline section (stage / owner / activity)
   // Associate feedback loop: one tap records an anonymous per-signal tally (Halia) + tags the
   // client in the merchant's own store. This is the label that later fixes calibration direction.
@@ -3439,6 +3449,52 @@ function toggleDrawerWide(){
   if(b){b.innerHTML=w?COMPRESS_ICON:EXPAND_ICON;b.title=w?"Show less":"Show the full record";}
 }
 function wireDrawerCtl(){const c=document.getElementById("dclose");if(c)c.onclick=closeDrawer;const e=document.getElementById("dexpand");if(e)e.onclick=toggleDrawerWide;}
+// "Send a cart": search products, pick quantities, and build a one-tap Shopify checkout link the
+// client pays themselves (read-only cart permalink; creates nothing on the store). Shopify only.
+function wireCartBuilder(){
+  const root=document.getElementById("cartb"); if(!root) return;
+  const inp=document.getElementById("cbSearch"), go=document.getElementById("cbGo"),
+        resEl=document.getElementById("cbResults"), cartEl=document.getElementById("cbCart");
+  let cart=[];   // [{id,title,qty}]
+  const bt="border:1px solid var(--line-strong);background:var(--card);color:var(--ink);border-radius:6px;cursor:pointer;font:13px system-ui;line-height:1";
+  function renderCart(){
+    if(!cart.length){ cartEl.innerHTML=""; return; }
+    const n=cart.reduce((s,i)=>s+i.qty,0);
+    cartEl.innerHTML=`<div style="border-top:1px solid var(--line);margin-top:8px;padding-top:8px">
+      ${cart.map(it=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px">
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.title)}</span>
+        <button data-q="${esc(it.id)}" data-s="-1" style="${bt};width:24px;height:24px">−</button>
+        <span style="min-width:16px;text-align:center">${it.qty}</span>
+        <button data-q="${esc(it.id)}" data-s="1" style="${bt};width:24px;height:24px">+</button>
+        <button data-rm="${esc(it.id)}" style="${bt};width:24px;height:24px;color:#9A3838">×</button></div>`).join("")}
+      <button class="dbtn primary" id="cbLink" style="margin-top:8px;width:100%">Copy checkout link · ${n} item${n===1?"":"s"}</button>
+      <div style="font-size:11.5px;color:var(--faint);margin-top:6px">A cart link on your own store. Nothing is charged until the client checks out.</div></div>`;
+    cartEl.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{const it=cart.find(x=>x.id===b.dataset.q); if(it){it.qty=Math.max(1,it.qty+(+b.dataset.s)); renderCart();}});
+    cartEl.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{cart=cart.filter(x=>x.id!==b.dataset.rm); renderCart();});
+    const lk=document.getElementById("cbLink");
+    if(lk) lk.onclick=()=>{ lk.disabled=true; lk.textContent="Building link…";
+      fetch("/v1/cart-link",{method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({items:cart.map(i=>({id:i.id,qty:i.qty}))})})
+        .then(r=>r.ok?r.json():r.json().then(d=>Promise.reject(d.detail||"Couldn't build the link")))
+        .then(d=>navigator.clipboard.writeText(d.url).then(()=>toast("Checkout link copied — paste it to your client."),()=>toast(d.url)))
+        .catch(e=>toast("Cart: "+(typeof e==="string"?e:"couldn't build the link")))
+        .finally(()=>renderCart()); };
+  }
+  function add(p){ const id=String(p.id); const ex=cart.find(x=>x.id===id); if(ex)ex.qty++; else cart.push({id,title:p.title||"Product",qty:1}); renderCart(); }
+  function search(){
+    const q=inp.value.trim();
+    resEl.innerHTML=`<div style="color:var(--faint);font-size:12.5px;padding:6px 0">Searching…</div>`;
+    fetch("/v1/catalog/products?search="+encodeURIComponent(q)).then(r=>r.json()).then(d=>{
+      const items=(d.items||[]).slice(0,20);
+      resEl.innerHTML=items.length?items.map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;border-top:${i?'1px solid var(--line-2)':'0'}">
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.title)}${p.price?` <span style="color:var(--faint)">· ${esc(String(p.price))}</span>`:""}</span>
+        <button class="cbadd" data-i="${i}" style="${bt};padding:4px 11px">Add</button></div>`).join("")
+        :`<div style="color:var(--faint);font-size:12.5px;padding:6px 0">No products found.</div>`;
+      resEl.querySelectorAll(".cbadd").forEach(b=>b.onclick=()=>add(items[+b.dataset.i]));
+    }).catch(()=>{resEl.innerHTML=`<div style="color:#9A3838;font-size:12.5px;padding:6px 0">Couldn't load products. Reconnect Shopify in Settings if this persists.</div>`;});
+  }
+  go.onclick=search; inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();search();}};
+}
 scrim.onclick=()=>{closeDrawer();closeSettings();};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeDrawer();closeSettings();}});
 

@@ -475,6 +475,47 @@ def _do_enquire(catalog_id: str, payload) -> dict:
 
 def register(app) -> None:
 
+    @app.post("/v1/cart-link")
+    def cart_link(shop: str = Depends(require_shop), payload: Any = Body(default=None)) -> dict:
+        """A Shopify cart permalink for the selected products, so a client can check out in one tap.
+
+        The dashboard equivalent of the extension/keyboard "Pay in chat": it resolves each product
+        to a buyable variant and builds a /cart/<variant>:<qty> link on the merchant's own domain.
+        READ-ONLY, no new scope, creates nothing on the store; the client pays it themselves. Items
+        with no buyable variant are skipped. Zero-retention: the selection is used in-flight only."""
+        from halia.api import data as _data
+        from halia.api.extension import _cart_base, _variant_of
+
+        body = payload or {}
+        items = body.get("items")
+        if not items and body.get("product_ids"):
+            items = [{"id": p, "qty": 1} for p in body["product_ids"]]
+        items = [it for it in (items or []) if str((it or {}).get("id") or "").strip()][:20]
+        if not items:
+            raise HTTPException(422, "Select at least one product.")
+        try:
+            products = _products(shop)
+        except Exception:  # noqa: BLE001 — no products, no link; never a broken panel
+            products = []
+        by_id = {str(p.get("id")): p for p in products}
+        parts = []
+        for it in items:
+            prod = by_id.get(str(it.get("id")))
+            if not prod:
+                continue
+            try:
+                qty = max(1, min(int(it.get("qty") or 1), 99))
+            except (TypeError, ValueError):
+                qty = 1
+            variant = _variant_of(shop, prod.get("title") or "")
+            vid = (variant or {}).get("id")
+            if vid:
+                parts.append(f"{vid}:{qty}")
+        if not parts:
+            raise HTTPException(422, "None of those products have a buyable variant.")
+        _data.record_activity(shop, "cart_link")
+        return {"url": f"{_cart_base(shop)}/cart/{','.join(parts)}"}
+
     @app.get("/v1/catalog/products")
     def catalog_products(request: Request, shop: str = Depends(require_shop)) -> dict:
         from scoring.shopify_fetch import ShopifyAuthError
