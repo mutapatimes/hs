@@ -71,19 +71,19 @@ def _tags(post: dict) -> list[str]:
 
 # ── page shell ───────────────────────────────────────────────────────────────────
 _BLOG_CSS = """
-  :root{--bg:#f5f2ea;--bg-2:#efeadd;--ink:#1a1712;--mute:#615b50;--faint:#9a9385;--accent:#5E6B74;
-    --line:rgba(20,18,12,.14);--line-2:rgba(20,18,12,.07);
+  :root{--bg:#f6f6f4;--bg-2:#edecea;--ink:#1a1a1d;--mute:#5c5c61;--faint:#9896a0;--accent:#5E6B74;
+    --line:rgba(22,22,27,.14);--line-2:rgba(22,22,27,.07);
     --serif:'Cormorant Garamond',Georgia,serif;--sans:'Hanken Grotesk',-apple-system,system-ui,sans-serif}
   *{box-sizing:border-box}html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-  a{color:inherit;text-decoration:none}::selection{background:#1a1712;color:#f5f2ea}
+  a{color:inherit;text-decoration:none}::selection{background:#1a1a1d;color:#f6f6f4}
   .wrap{max-width:1120px;margin:0 auto;padding:0 40px}.narrow{max-width:760px}
   h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;margin:0;line-height:1.08}
   .display{font-size:clamp(38px,5.4vw,66px)}
   em{font-style:italic}
-  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:3px;border:1px solid var(--ink);color:#f5f2ea;background:var(--ink);transition:.25s;cursor:pointer}
+  .btn{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);padding:14px 26px;border-radius:3px;border:1px solid var(--ink);color:#f6f6f4;background:var(--ink);transition:.25s;cursor:pointer}
   .btn:hover{background:transparent;color:var(--ink)}.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
-  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(245,242,234,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  header{position:fixed;inset:0 0 auto;z-index:40;transition:.3s}header.solid{background:rgba(246,246,244,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
   .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
   .brand{display:flex;align-items:center;gap:11px;font-family:var(--serif);font-size:26px}
   .nav-links{display:flex;gap:32px;align-items:center;height:100%}.nav-links a{font:500 14px var(--sans);color:var(--mute)}.nav-links a:hover{color:var(--ink)}
@@ -112,7 +112,7 @@ _BLOG_CSS = """
   @media(max-width:900px){.bgrid{grid-template-columns:1fr}}
   .bcard{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--bg-2);transition:.25s}
   .bcard:hover{transform:translateY(-3px);border-color:var(--ink)}
-  .bcard .cover{aspect-ratio:16/10;object-fit:cover;width:100%;display:block;background:#e7e0d2}
+  .bcard .cover{aspect-ratio:16/10;object-fit:cover;width:100%;display:block;background:#e8e8e5}
   .bcard .bc-in{padding:20px 22px 24px;display:flex;flex-direction:column;gap:10px;flex:1}
   .bcard .bc-meta{font:500 12px var(--sans);color:var(--faint)}
   .bcard h3{font-size:24px}
@@ -129,8 +129,8 @@ _BLOG_CSS = """
   .art h1{font-size:clamp(32px,4.6vw,54px);max-width:20ch}
   .art .byline{display:flex;gap:12px;flex-wrap:wrap;color:var(--faint);font:500 13.5px var(--sans);margin:20px 0 6px}
   .art .dek{font-size:clamp(18px,1.6vw,20px);color:var(--mute);max-width:60ch;margin-top:14px;line-height:1.5}
-  .art .cover{width:100%;aspect-ratio:16/8;object-fit:cover;border-radius:4px;margin:34px 0 10px;background:#e7e0d2}
-  .prose{max-width:720px;margin:30px auto 0;font-size:17.5px;line-height:1.72;color:#2b2820}
+  .art .cover{width:100%;aspect-ratio:16/8;object-fit:cover;border-radius:4px;margin:34px 0 10px;background:#e8e8e5}
+  .prose{max-width:720px;margin:30px auto 0;font-size:17.5px;line-height:1.72;color:#2a2a2d}
   .prose h2{font-size:clamp(26px,3vw,34px);margin:44px 0 14px}
   .prose h3{font-size:22px;margin:32px 0 10px}
   .prose p{margin:0 0 20px}.prose ul,.prose ol{margin:0 0 20px;padding-left:22px}.prose li{margin:6px 0}
