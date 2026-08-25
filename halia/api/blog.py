@@ -510,7 +510,6 @@ that move your numbers.</p>
 regular earns you revenue. If your goal is growth on the bottom line rather than a moment on social,
 that distinction is what matters.</p>
 
-<p><img src="/img/blog/outersignal.png" alt="OuterSignal influencer-identification screenshot"></p>
 <h2>Where the data comes from, and whether it stays</h2>
 <p>OuterSignal and Mercana enrich each customer by calling external people-data APIs and then keep the
 enriched profiles on file. That depth is real, and so is the trade-off: you are building a retained
@@ -743,7 +742,8 @@ _SEED_POSTS = [
      "title": "Influence, or net worth: how Halia compares to OuterSignal and Mercana",
      "dek": "All three find VIPs. The difference is which ones, and whether they grow your "
             "revenue or your reach.",
-     "body": _COMPARISON_BODY, "tags": "comparison, luxury, positioning"},
+     "body": _COMPARISON_BODY, "tags": "comparison, luxury, positioning",
+     "cover": "/img/blog/outersignal.jpg"},
     {"slug": ALTRATA_SLUG, "published_at": "2026-07-05T09:00:00+00:00",
      "title": "Stored, or scored: how Halia compares to Altrata's Salesforce app",
      "dek": "Altrata pours executive and wealth data into your CRM and keeps it current. "
