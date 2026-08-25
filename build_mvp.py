@@ -630,11 +630,12 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     html = html.replace("__WORLD__", _safe((ROOT / "web" / "world_map.json").read_text(encoding="utf-8").strip()))
     html = html.replace("__ORDERS__", _safe(json.dumps(payload.get("orders", []))))
     html = html.replace("__LANDSCAPE__", _safe(json.dumps(payload.get("landscape", {}))))
-    # The demo line only ever appears on the local sample build; a live tenant's footer
-    # explains latent value and nothing else.
-    html = html.replace("__FOOT_DEMO__",
-                        "Real output from the Halia engine on <b>sample data</b>, a fictional "
-                        "store; scores are provisional. " if payload.get("demo") else "")
+    # The footer only ever carries the sample-data disclaimer on the local demo build; a live
+    # tenant gets no footer (the "Est. latent value" stat already carries its own hint).
+    html = html.replace("__FOOT_NOTE__",
+                        '<div class="foot">Real output from the Halia engine on <b>sample data</b>, '
+                        'a fictional store; scores are provisional.</div>'
+                        if payload.get("demo") else "")
     html = html.replace("__STAT_SCORED__", payload["stat_scored"])
     html = html.replace("__STAT_LATENT__", payload["stat_latent"])
     html = html.replace("__STAT_COUNT__", payload["stat_count"])

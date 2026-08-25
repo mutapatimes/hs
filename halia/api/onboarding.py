@@ -1102,7 +1102,6 @@ summary::-webkit-details-marker{display:none}
     <input id="label" placeholder="e.g. Glen Norah" autocomplete="organization">
     <label>Store web address</label>
     <input id="store_url" placeholder="https://yourstore.com" inputmode="url" autocomplete="url">
-    <div class="hint">The address your customers visit. Halia connects read-only and never changes a thing.</div>
     <div id="err1" class="err" style="display:none"></div>
     <div class="row"><button class="back" data-back>Back</button><button class="btn" data-next>Continue &rarr;</button></div>
   </section>
