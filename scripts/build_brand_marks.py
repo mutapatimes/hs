@@ -1,6 +1,6 @@
 """The Halia asterism, drawn once, emitted everywhere.
 
-The mark is the typographic asterism ⁂ (U+2042): three six-armed asterisks in a triangle,
+The mark is the typographic asterism ⁂ (U+2042): three FIVE-armed asterisks in a triangle,
 apex up. Everything below is generated from the same geometry so the favicon, the app icons,
 the extension icons, the listing icons and the inline nav mark are identical.
 
@@ -36,9 +36,13 @@ def _arm(cx, cy, angle_deg, length, w_center, w_tip):
     ]
 
 
+ARMS = 5   # the house asterisk has FIVE arms, like the typographic ⁂ in a serif face. Enforced below.
+
+
 def asterisk_polys(cx, cy, r):
-    """Six arms, one pointing straight up (the typographic ✱ orientation)."""
-    return [_arm(cx, cy, ang, r, r * 0.30, r * 0.42) for ang in (-90, -30, 30, 90, 150, 210)]
+    """Five arms, one pointing straight up (the typographic ✱ orientation)."""
+    assert ARMS == 5, "The Halia asterisk is five-armed; do not change this without a brand decision."
+    return [_arm(cx, cy, -90 + k * (360 / ARMS), r, r * 0.30, r * 0.44) for k in range(ARMS)]
 
 
 def asterism_polys(scale=1.0, cx=0.5, cy=0.5):
