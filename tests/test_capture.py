@@ -52,7 +52,7 @@ def env(tmp_path, monkeypatch):
     ext = new_token()
     store.set_extension_token(SHOP, hash_token(ext))
     monkeypatch.setattr(capture_mod, "get_valid_token", lambda shop: "shptoken")
-    yield TestClient(app), store, ext, monkeypatch
+    yield TestClient(app), store, ext, tok
 
 
 def _post(client, ext, body):
@@ -145,3 +145,107 @@ def test_qr_unknown_slug_404(env):
     assert client.get("/c/nope").status_code == 404
     assert client.post("/c/nope", json={"email": "a@b.com"}).status_code == 404
 
+
+# ── clean capture + alerts + the settings-preservation fix ───────────────────
+
+def test_capture_normalises_email_and_postcode(env, monkeypatch):
+    client, _, ext, _ = env
+    fake = FakeShopify()
+    monkeypatch.setattr(capture_mod, "_gql", fake)
+    r = _post(client, ext, {"email": "  Grace@GMAIL.com ", "postcode": "sw1a1aa",
+                            "country": "UK", "first_name": "Grace"})
+    assert r.status_code == 200
+    create_vars = next(v for q, v in fake.calls if "customerCreate" in q)
+    assert create_vars["input"]["email"] == "grace@gmail.com"
+    assert create_vars["input"]["addresses"][0]["zip"] == "SW1A 1AA"
+
+
+def test_check_endpoints_suggest_fixes(env, monkeypatch):
+    client, _, ext, _ = env
+    from halia import capture_quality as cq
+    monkeypatch.setattr(cq, "_domain_resolves", lambda d: True)
+    capture_mod._SLUG_CACHE.clear()
+    slug = capture_mod._slug_for(SHOP)
+    d = client.post(f"/c/{slug}/check", json={"email": "a@gamil.com", "postcode": "w1j7bu"}).json()
+    assert d["email_suggestion"] == "a@gmail.com" and d["postcode"] == "W1J 7BU"
+    # seat-authed twin for the iOS handover form
+    d = client.post("/v1/capture/check", json={"email": "a@hotmial.com"},
+                    headers={"X-Halia-Ext-Token": ext}).json()
+    assert d["email_suggestion"] == "a@hotmail.com"
+    assert client.post("/v1/capture/check", json={"email": "x@y.com"}).status_code == 401
+
+
+def test_qr_capture_alerts_team_on_high_grade(env, monkeypatch):
+    client, store, ext, _ = env
+    from halia.api import capture_alerts
+    monkeypatch.setattr(capture_mod, "_gql", FakeShopify())
+    sent = []
+    monkeypatch.setattr(capture_alerts.notify, "send_email", lambda *a, **k: sent.append(("email", a)) or True)
+    monkeypatch.setattr(capture_alerts.notify, "email_configured", lambda: True)
+    monkeypatch.setattr(capture_alerts.notify, "send_web_push", lambda *a, **k: sent.append(("push", a)) or 1)
+    store.save_settings(SHOP, '{"capture_alerts": true, "notify_grades": ["A*", "A"], '
+                              '"notify_emails": ["team@shopx.com"]}')
+    # a high-signal record: prime-postcode capture grades A-band via the real engine
+    monkeypatch.setattr(capture_mod, "_score_capture",
+                        lambda cid, body, email, phone: {"grade": "A*", "signals": ["Prime postcode"]})
+    capture_mod._SLUG_CACHE.clear()
+    slug = capture_mod._slug_for(SHOP)
+    r = client.post(f"/c/{slug}", json={"email": "vic@x.com", "first_name": "Grace"})
+    assert r.status_code == 200 and r.json() == {"ok": True}
+    assert any(k == "email" for k, _ in sent)
+
+
+def test_qr_capture_low_grade_stays_quiet(env, monkeypatch):
+    client, store, ext, _ = env
+    from halia.api import capture_alerts
+    monkeypatch.setattr(capture_mod, "_gql", FakeShopify())
+    sent = []
+    monkeypatch.setattr(capture_alerts.notify, "send_email", lambda *a, **k: sent.append(1) or True)
+    monkeypatch.setattr(capture_alerts.notify, "email_configured", lambda: True)
+    store.save_settings(SHOP, '{"notify_emails": ["team@shopx.com"]}')
+    monkeypatch.setattr(capture_mod, "_score_capture",
+                        lambda cid, body, email, phone: {"grade": "C", "signals": []})
+    capture_mod._SLUG_CACHE.clear()
+    slug = capture_mod._slug_for(SHOP)
+    client.post(f"/c/{slug}", json={"email": "someone@x.com"})
+    assert sent == []
+
+
+def test_repeat_capture_never_realerts(env, monkeypatch):
+    client, store, ext, _ = env
+    from halia.api import capture_alerts
+    monkeypatch.setattr(capture_mod, "_gql", FakeShopify(
+        existing={"id": "gid://shopify/Customer/5", "email": "vic@x.com", "phone": "", "tags": []}))
+    sent = []
+    monkeypatch.setattr(capture_alerts.notify, "send_email", lambda *a, **k: sent.append(1) or True)
+    monkeypatch.setattr(capture_alerts.notify, "email_configured", lambda: True)
+    store.save_settings(SHOP, '{"notify_emails": ["team@shopx.com"]}')
+    monkeypatch.setattr(capture_mod, "_score_capture",
+                        lambda cid, body, email, phone: {"grade": "A*", "signals": []})
+    capture_mod._SLUG_CACHE.clear()
+    slug = capture_mod._slug_for(SHOP)
+    client.post(f"/c/{slug}", json={"email": "vic@x.com"})   # created=False
+    assert sent == []
+
+
+def test_settings_save_preserves_capture_slug_and_brand(env):
+    """The settings save rebuilds the blob from a whitelist; slug and brand must survive
+    (before the fix, a routine save silently destroyed them, breaking printed QRs)."""
+    import json as _json
+
+    from halia.api.tenant_auth import COOKIE
+
+    client, store, _, tok = env
+    capture_mod._SLUG_CACHE.clear()
+    slug = capture_mod._slug_for(SHOP)
+    raw = _json.loads(store.get_settings_raw(SHOP))
+    raw["brand"] = "storeconcierge"
+    store.save_settings(SHOP, _json.dumps(raw))
+
+    r = client.post("/v1/settings", json={"vic_threshold": 500}, cookies={COOKIE: tok})
+    assert r.status_code == 200
+
+    saved = _json.loads(store.get_settings_raw(SHOP))
+    assert saved["capture_slug"] == slug
+    assert saved["brand"] == "storeconcierge"
+    assert saved["capture_alerts"] is True      # default carried into the blob

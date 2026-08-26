@@ -772,6 +772,8 @@ private struct CaptureView: View {
     @State private var smsUpdates = false
     @State private var saving = false
     @State private var errorText: String?
+    @State private var emailSuggestion: String?
+    @State private var checkedOnce = false
     @State private var handBack = false     // saved (or cancelled): show the hand-back screen
     @State private var savedGrade: String?
 
@@ -804,6 +806,15 @@ private struct CaptureView: View {
                 TextField("Email", text: $email)
                     .textContentType(.emailAddress).keyboardType(.emailAddress)
                     .autocapitalization(.none)
+                    .onChange(of: email) { _ in emailSuggestion = nil; checkedOnce = false }
+                if let sug = emailSuggestion {
+                    Button {
+                        email = sug; emailSuggestion = nil
+                    } label: {
+                        Label("Use \(sug)", systemImage: "wand.and.stars")
+                            .font(.footnote.weight(.semibold))
+                    }
+                }
                 TextField("Birthday", text: $birthday)
             } footer: {
                 Text("The birthday is for a treat on the day.")
@@ -874,6 +885,22 @@ private struct CaptureView: View {
 
     private func save() async {
         saving = true; errorText = nil
+        // One hygiene pass before the write: a typo like gamil.com gets offered as a fix
+        // while the client is still holding the phone. Best-effort; declining saves as typed.
+        if !checkedOnce {
+            checkedOnce = true
+            let trimmedEmail = email.trimmingCharacters(in: .whitespaces)
+            if let check = try? await HaliaAPI.current.checkCapture(
+                email: trimmedEmail.isEmpty ? nil : trimmedEmail,
+                postcode: postcode.trimmingCharacters(in: .whitespaces)) {
+                if let pc = check.postcode, !pc.isEmpty { postcode = pc }
+                if let sug = check.email_suggestion, !sug.isEmpty {
+                    emailSuggestion = sug
+                    saving = false
+                    return          // surface the fix; the next Done saves either way
+                }
+            }
+        }
         var fields: [String: Any] = ["channel": "handover"]
         for (k, v) in [("first_name", first), ("last_name", last), ("company", company),
                        ("phone", phone), ("email", email), ("birthday", birthday),

@@ -106,10 +106,16 @@ def perform_capture(shop: str, body: dict, channel: str,
                     associate: str = "", seat_id: str = "") -> dict:
     """The shared pipeline: dedupe -> write -> consent -> tags -> score. Used by the seat-authed
     endpoint (handover, keyboard, vcard) and the public QR self-capture form alike."""
-    email = _clean(body.get("email")).lower()
+    from halia.capture_quality import clean_email, clean_postcode
+
+    email, _, _ = clean_email(body.get("email"), check_dns=False)
     phone = _clean(body.get("phone"))
     if not email and not phone:
         raise HTTPException(422, "Capture needs at least an email or a phone number")
+    # A tidied postcode both stores better and scores better (the property signals read it).
+    pc, _ = clean_postcode(body.get("postcode"), body.get("country"))
+    if pc:
+        body = {**body, "postcode": pc}
 
     token = get_valid_token(shop)
     if not token:
@@ -286,12 +292,29 @@ _QR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
   <input name="postcode" placeholder="Postcode" autocomplete="postal-code" style="margin-bottom:8px">
   <input name="city" placeholder="City" autocomplete="address-level2">
   <label>Sizes, likes, occasions (optional)</label><input name="preferences">
+  <div id="sug" style="display:none;margin-top:7px;font-size:13.5px;color:#1f564a;cursor:pointer;font-weight:600"></div>
   <label class="tgl"><input type="checkbox" name="em">Email me about new arrivals and events</label>
   <label class="tgl"><input type="checkbox" name="sm">Text me occasionally</label>
   <p class="foot">Kept by {store} for personal service.</p>
   <button type="submit">Save my details</button>
  </form>
 </div><script>
+var F=document.getElementById('f'),SG=document.getElementById('sug');
+function check(fields){{return fetch(location.pathname+'/check',{{method:'POST',
+  headers:{{'Content-Type':'application/json'}},body:JSON.stringify(fields)}})
+  .then(function(r){{return r.json();}});}}
+F.email.addEventListener('blur',function(){{var v=F.email.value.trim();
+  SG.style.display='none';
+  if(!v)return;
+  check({{email:v}}).then(function(d){{
+    if(d.email_suggestion){{SG.textContent='Did you mean '+d.email_suggestion+'?';
+      SG.style.display='block';
+      SG.onclick=function(){{F.email.value=d.email_suggestion;SG.style.display='none';}};}}
+  }}).catch(function(){{}});}});
+F.postcode.addEventListener('blur',function(){{var v=F.postcode.value.trim();
+  if(!v)return;
+  check({{postcode:v}}).then(function(d){{if(d.postcode)F.postcode.value=d.postcode;}})
+  .catch(function(){{}});}});
 document.getElementById('f').addEventListener('submit',function(e){{e.preventDefault();
   var f=e.target,b={{channel:'qr',by:new URLSearchParams(location.search).get('by')||''}};
   ['first_name','last_name','phone','email','birthday','address','postcode','city','preferences'].forEach(function(k){{
@@ -307,6 +330,20 @@ document.getElementById('f').addEventListener('submit',function(e){{e.preventDef
     alert('Could not save just now. Please try again.');}});
 }});
 </script></body></html>"""
+
+
+def _check_fields(body: dict) -> dict:
+    """{email_ok, email_suggestion, postcode_ok, postcode} for whatever fields were sent."""
+    from halia.capture_quality import clean_email, clean_postcode
+
+    out: dict = {}
+    if _clean(body.get("email")):
+        email, suggestion, ok = clean_email(body.get("email"))
+        out.update({"email_ok": bool(ok), "email_suggestion": suggestion})
+    if _clean(body.get("postcode")):
+        pc, ok = clean_postcode(body.get("postcode"), body.get("country"))
+        out.update({"postcode_ok": bool(ok), "postcode": pc})
+    return out
 
 
 def register(app) -> None:
@@ -337,6 +374,22 @@ def register(app) -> None:
             url += "?by=" + quote(auth.seat_name)
         return {"url": url}
 
+    @app.post("/c/{slug}/check", include_in_schema=False)
+    def capture_check(slug: str, body: Any = Body(...)) -> dict:
+        """Live field hygiene for the self-capture form: a typo suggestion the client can
+        accept while still present. Validates only what was sent; returns nothing else."""
+        if not _shop_for_slug(slug):
+            raise HTTPException(404, "Unknown link")
+        return _check_fields(body if isinstance(body, dict) else {})
+
+    @app.post("/v1/capture/check")
+    def capture_check_seat(body: Any = Body(...),
+                           x_halia_ext_token: Optional[str] = Header(None)) -> dict:
+        from halia.api.extension import _resolve_ext
+
+        _resolve_ext(x_halia_ext_token)
+        return _check_fields(body if isinstance(body, dict) else {})
+
     @app.get("/c/{slug}", include_in_schema=False)
     def capture_page(slug: str):
         from fastapi.responses import HTMLResponse
@@ -357,6 +410,10 @@ def register(app) -> None:
             raise HTTPException(404, "Unknown link")
         if not isinstance(body, dict):
             raise HTTPException(422, "Body must be a JSON object")
-        perform_capture(shop, body, "qr", associate=_clean(body.get("by")))
+        out = perform_capture(shop, body, "qr", associate=_clean(body.get("by")))
+        # Unattended capture: a qualifying new client pings the team (best-effort).
+        from halia.api.capture_alerts import dispatch_capture_alert
+
+        dispatch_capture_alert(shop, out, body, "qr")
         # The public form gets a plain thank-you: no grade, no customer id.
         return {"ok": True}

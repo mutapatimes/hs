@@ -294,6 +294,11 @@ def _clean_domain(v) -> str:
     return s if ok else ""
 
 
+# Keys owned by other features that live in the same settings blob. save_settings rebuilds the
+# blob from its whitelist, so anything here must be carried forward from the existing row.
+PRESERVED_SETTINGS_KEYS = ("capture_slug", "brand", "basket_alert_min")
+
+
 def settings_for(shop: str) -> dict:
     """The shop's settings, with defaults filled in."""
     raw = shop_store().get_settings_raw(shop)
@@ -334,6 +339,7 @@ def settings_for(shop: str) -> dict:
         "notify_email": emails[0] if emails else "",  # back-compat (first recipient)
         # High-value open-basket alerts (Slack/email), on by default when a channel is connected.
         "basket_alerts": bool(d.get("basket_alerts", True)),
+        "capture_alerts": bool(d.get("capture_alerts", True)),
         # Shopify Flow integration: write grade/play tags back on every sync (off by default;
         # writing into the merchant's store must be an explicit choice).
         "shopify_auto_push": bool(d.get("shopify_auto_push", False)),
@@ -423,6 +429,7 @@ def register(app) -> None:
         # The tenant key, so per-shop client state (e.g. the ask-once questionnaire flag) can be
         # scoped to THIS store rather than the whole browser.
         s["shop"] = shop
+        s["store_name"] = str(dict(store.get_tenant(shop) or {}).get("label") or shop)
         # Whether a browser-extension token has been generated (the raw token is shown once, at mint).
         s["extension_enabled"] = bool(store.get_extension_token_hash(shop))
         # Whether AI drafting ("Draft with Halia") is live: an LLM key is configured on the server.
@@ -439,6 +446,11 @@ def register(app) -> None:
         token = store.ensure_webhook_token(shop, secrets.token_urlsafe(24))
         base = (config.HALIA_APP_URL or "").rstrip("/")
         s["webhook_url"] = f"{base}/webhooks/orders/{token}"
+        # The in-store self-capture link (QR till cards); minted on first read like the webhook token.
+        from halia.api.capture import _slug_for
+        from halia.api.seats import _connect_qr
+        s["capture_url"] = f"{base}/c/{_slug_for(shop)}"
+        s["capture_qr"] = _connect_qr(s["capture_url"])
         s["vapid_public"] = notify.vapid_public()
         # The active catalog's public URL, resolved by the {catalog_link} email token.
         from halia.api.catalog import catalog_url_for
@@ -478,7 +490,15 @@ def register(app) -> None:
             # Preserve calibrated weights the settings UI doesn't send; only change if provided.
             "signal_weights": (_clean_signal_weights(payload["signal_weights"])
                                if "signal_weights" in payload else existing.get("signal_weights")),
+            "capture_alerts": bool(payload.get("capture_alerts",
+                                               existing.get("capture_alerts", True))),
         }
+        # Settings the UI never sends but other features persist in this blob: carry them
+        # forward, or a routine settings save silently destroys them (capture_slug would break
+        # every printed QR; brand would revert a StoreConcierge tenant to the Halia dashboard).
+        for key in PRESERVED_SETTINGS_KEYS:
+            if key in existing and key not in data:
+                data[key] = existing[key]
         emails = clean_emails(payload.get("notify_emails")
                               if payload.get("notify_emails") is not None
                               else payload.get("notify_email"))
