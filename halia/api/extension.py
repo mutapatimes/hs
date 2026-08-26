@@ -413,6 +413,8 @@ def _draft_context(shop: str, resp: dict, channel: str, thread: list[dict], inst
     voice = vip.tone_line(s.get("vip_profile"))
     if voice:
         lines.append(voice)
+    from halia.voice import voice_brief
+    lines.append(voice_brief(s.get("voice")))
     if channel:
         lines.append(f"Channel: {channel}")
     if brand and brand.lower() != "halia":

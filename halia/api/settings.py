@@ -296,6 +296,8 @@ def _clean_domain(v) -> str:
 
 # Keys owned by other features that live in the same settings blob. save_settings rebuilds the
 # blob from its whitelist, so anything here must be carried forward from the existing row.
+from halia import voice as _voice  # noqa: E402
+
 PRESERVED_SETTINGS_KEYS = ("capture_slug", "brand", "basket_alert_min")
 
 
@@ -323,6 +325,8 @@ def settings_for(shop: str) -> dict:
         "catalog_message": d.get("catalog_message") or DEFAULT_CATALOG_MESSAGE,   # "Send catalogue" body
         "catalog_logo": d.get("catalog_logo", ""),   # store-wide default logo new catalogues inherit
         "catalog_domain": d.get("catalog_domain", ""),   # white-label host for catalogue links (CNAME)
+        # The house voice: four sliders + a language, applied to AI drafting and template rewrites.
+        "voice": _voice.clean_voice(d.get("voice")),
         # Latent-value benchmarks (merchant's own numbers; 0 = not set → fallback heuristic).
         "aov": d.get("aov", 0),
         "max_orders": d.get("max_orders", 0),
@@ -475,6 +479,8 @@ def register(app) -> None:
                                 or DEFAULT_CATALOG_MESSAGE),
             "catalog_logo": _clean_logo(payload.get("catalog_logo")),
             "catalog_domain": _clean_domain(payload.get("catalog_domain")),
+            "voice": (_voice.clean_voice(payload["voice"]) if "voice" in payload
+                      else _voice.clean_voice(existing.get("voice"))),
             "aov": _num(payload.get("aov")),
             "max_orders": int(_num(payload.get("max_orders"))),
             "highest_lt": _num(payload.get("highest_lt")),

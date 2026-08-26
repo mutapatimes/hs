@@ -3572,6 +3572,7 @@ function toast(msg){
 
 // ---- Settings (Klaviyo, VIC threshold, sign-off, email templates) ----
 let SETTINGS={vic_threshold:5000,sender_name:"",email_templates:EMAIL_TEMPLATES,klaviyo_connected:false};
+const VOICE_LANGS=[["en","English"],["fr","French"],["it","Italian"],["de","German"],["es","Spanish"],["pt","Portuguese"],["nl","Dutch"],["ar","Arabic"],["ja","Japanese"],["zh","Chinese"],["ko","Korean"],["ru","Russian"]];
 let SET_LOGO="";   // store-wide default catalogue logo, edited in Settings → Templates
 function loadSettings(){
   return Promise.all([
@@ -3928,6 +3929,34 @@ function openSettings(page){
 
         <div class="spage" data-page="templates" style="display:${spage==='templates'?'':'none'}">
         <div style="${C}">
+          <div style="${H}">House voice</div>
+          <p style="${P}">How your house sounds, in every message Halia drafts. Move the sliders and the sample letter follows. The same voice guides Draft with Halia in the extension and the keyboard.</p>
+          <div style="display:grid;grid-template-columns:minmax(260px,1fr) minmax(280px,1.2fr);gap:22px;align-items:start" class="voicegrid">
+            <div>
+              ${[["formality","Relaxed","Formal"],["exclusivity","Open to all","Exclusive"],["attentiveness","Light touch","Attentive"],["polish","Casual","Suited and booted"]].map(([k,lo,hi])=>`
+              <div style="margin-bottom:16px">
+                <div style="display:flex;justify-content:space-between;font:600 12px system-ui;color:#616161;margin-bottom:5px"><span>${lo}</span><span>${hi}</span></div>
+                <input type="range" min="0" max="100" value="${(SETTINGS.voice||{})[k]??60}" data-voice="${k}" style="width:100%;accent-color:#1f564a">
+              </div>`).join("")}
+              <div style="margin-top:6px">
+                <div style="${LBL}">Language</div>
+                <select id="voiceLang" style="${I};margin-top:6px;max-width:260px">${VOICE_LANGS.map(([c,n])=>`<option value="${c}" ${((SETTINGS.voice||{}).language||"en")===c?"selected":""}>${n}</option>`).join("")}</select>
+              </div>
+            </div>
+            <div>
+              <div style="${LBL}">Sample, in this voice</div>
+              <pre id="voiceSample" style="white-space:pre-wrap;font:14px/1.6 Georgia,serif;color:var(--ink);background:#faf9f6;border:1px solid #ece9e1;border-radius:10px;padding:16px 18px;margin:6px 0 0;min-height:180px"></pre>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">
+                ${SETTINGS.ai_drafting?`<button type="button" id="voiceAi" style="${BS}">Preview with AI</button>
+                <button type="button" id="voiceRewrite" style="${BS}">Rewrite my templates in this voice</button>`:`<span style="font:12px system-ui;color:#8a8a8a">AI previews and rewrites switch on once drafting is configured.</span>`}
+                <span id="voiceStatus" style="font:12px system-ui;color:#1f564a"></span>
+              </div>
+              <pre id="voiceAiOut" style="display:none;white-space:pre-wrap;font:14px/1.6 Georgia,serif;color:var(--ink);background:#fff;border:1px dashed #cfcac0;border-radius:10px;padding:16px 18px;margin:10px 0 0"></pre>
+            </div>
+          </div>
+        </div>
+
+        <div style="${C}">
           <div style="${H}">Email sign-off name</div>
           <p style="${P}">Inserted wherever a template uses {sender}.</p>
           <input id="setSender" value="${esc(SETTINGS.sender_name)}" placeholder="e.g. The Aubin London team" style="width:100%;max-width:440px;${I}">
@@ -4052,6 +4081,39 @@ function openSettings(page){
     const delBtn=document.getElementById("delTmpl");
     if(delBtn) delBtn.onclick=()=>{collect();currentList().splice(tsel,1);if(tsel>0)tsel--;render();};
     settingsEl.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{collect();tab=b.dataset.tab;tsel=0;render();});
+    // ── house voice: sliders → instant sample; AI preview; AI template rewrite ──
+    const voiceNow=()=>{const v={};settingsEl.querySelectorAll("[data-voice]").forEach(r=>v[r.dataset.voice]=+r.value);
+      v.language=(document.getElementById("voiceLang")||{}).value||"en";return v;};
+    let voiceT=null;
+    const voicePreview=()=>{clearTimeout(voiceT);voiceT=setTimeout(()=>{
+      SETTINGS.voice=voiceNow();
+      fetch("/v1/voice/preview",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({voice:SETTINGS.voice})})
+        .then(r=>r.json()).then(d=>{const el=document.getElementById("voiceSample");if(el&&d.sample)el.textContent=d.sample;}).catch(()=>{});
+    },120);};
+    settingsEl.querySelectorAll("[data-voice]").forEach(r=>r.oninput=voicePreview);
+    const vl=document.getElementById("voiceLang"); if(vl){vl.onchange=voicePreview; voicePreview();}
+    const vai=document.getElementById("voiceAi"); if(vai) vai.onclick=()=>{
+      const st=document.getElementById("voiceStatus"),out=document.getElementById("voiceAiOut");
+      vai.disabled=true;st.textContent="Writing…";
+      fetch("/v1/voice/preview",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({voice:voiceNow(),ai:true})})
+        .then(r=>r.json()).then(d=>{vai.disabled=false;st.textContent="";
+          if(d.ai){out.textContent=d.ai;out.style.display="";}else{st.textContent="AI is unavailable right now.";}})
+        .catch(()=>{vai.disabled=false;st.textContent="Could not reach AI.";});
+    };
+    const vrw=document.getElementById("voiceRewrite"); if(vrw) vrw.onclick=()=>{
+      const st=document.getElementById("voiceStatus");
+      collect();
+      if(!confirm("Rewrite all "+tmpl.length+" client templates in this voice? You can still edit each one, and nothing is saved until you press Save."))return;
+      vrw.disabled=true;st.textContent="Rewriting "+tmpl.length+" templates…";
+      fetch("/v1/voice/rewrite",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({voice:voiceNow(),templates:tmpl})})
+        .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{vrw.disabled=false;
+          if(!ok){st.textContent=d.detail||"The rewrite failed.";return;}
+          (d.templates||[]).forEach((t,i)=>{if(tmpl[i]){tmpl[i].subject=t.subject;tmpl[i].body=t.body;}});
+          SETTINGS.voice=voiceNow();tab="client";tsel=0;render();
+          const st2=document.getElementById("voiceStatus");if(st2)st2.textContent=d.count+" templates rewritten. Review them below, then Save.";
+          toast(d.count+" templates rewritten in the new voice. Press Save to keep them.");})
+        .catch(()=>{vrw.disabled=false;st.textContent="Could not reach AI.";});
+    };
     settingsEl.querySelectorAll("[data-ost]").forEach(b=>b.onclick=()=>{collect();ostatus=b.dataset.ost;tsel=0;render();});
     settingsEl.querySelectorAll("[data-integ]").forEach(b=>b.onclick=()=>{integ=b.dataset.integ;render();});
     settingsEl.querySelectorAll("[data-chip]").forEach(b=>b.onclick=()=>insertToken(b.dataset.chip));
@@ -4451,6 +4513,7 @@ function openSettings(page){
         catalog_message:(document.getElementById("setCatMsg")||{}).value||"",
         catalog_logo:SET_LOGO,
         catalog_domain:(document.getElementById("setCatDomain")||{}).value||"",
+        ...(document.querySelector("[data-voice]")?{voice:(function(){const v={};document.querySelectorAll("[data-voice]").forEach(r=>v[r.dataset.voice]=+r.value);v.language=(document.getElementById("voiceLang")||{}).value||"en";return v;})()}:(SETTINGS.voice?{voice:SETTINGS.voice}:{})),
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),
         order_templates:Object.fromEntries(OSTAT.map(st=>[st,(otmpl[st]||[]).filter(t=>(t.name||"").trim()&&(t.body||"").trim())]))};
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";
