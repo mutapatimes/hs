@@ -676,7 +676,7 @@ from halia.api import (  # noqa: E402
     billing, billing_shopify, blog, board, campaigns, capture, catalog, content, embedded,
     endear_integration, extension, feedback, fulfilment, hubspot_integration, insight, integrations,
     lifecycle, mailchimp_integration, onboarding, console, realtime, seats, settings, shopify_push,
-    shopify_segments, slack_integration, webhooks,
+    shopify_segments, slack_integration, voice, webhooks,
 )
 
 embedded.register(app)
@@ -685,6 +685,7 @@ blog.register(app)
 campaigns.register(app)
 catalog.register(app)
 capture.register(app)
+voice.register(app)
 board.register(app)
 console.register(app)
 onboarding.register(app)
