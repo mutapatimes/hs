@@ -567,7 +567,7 @@ _CSS = """
   @media(prefers-reduced-motion:reduce){.act{opacity:1;transform:none}.composer.sending .plane{animation:none}}
 """
 
-_ASTER = "&#8258;"
+_ASTER = '<svg viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true" style="vertical-align:-.12em"><path fill="currentColor" d="M52.33,23.44 53.25,7.94 46.75,7.94 47.67,23.44ZM51.16,25.46 65.05,18.51 61.80,12.87 48.84,21.43ZM48.84,25.46 61.80,34.01 65.05,28.37 51.16,21.43ZM47.67,23.44 46.75,38.94 53.25,38.94 52.33,23.44ZM48.84,21.43 34.95,28.37 38.20,34.01 51.16,25.46ZM51.16,21.43 38.20,12.87 34.95,18.51 48.84,25.46ZM29.33,63.28 30.25,47.78 23.75,47.78 24.68,63.28ZM28.16,65.29 42.05,58.35 38.80,52.71 25.84,61.27ZM25.84,65.29 38.80,73.85 42.05,68.21 28.16,61.27ZM24.68,63.28 23.75,78.78 30.25,78.78 29.33,63.28ZM25.84,61.27 11.95,68.21 15.20,73.85 28.16,65.29ZM28.16,61.27 15.20,52.71 11.95,58.35 25.84,65.29ZM75.33,63.28 76.25,47.78 69.75,47.78 70.67,63.28ZM74.16,65.29 88.05,58.35 84.80,52.71 71.84,61.27ZM71.84,65.29 84.80,73.85 88.05,68.21 74.16,61.27ZM70.67,63.28 69.75,78.78 76.25,78.78 75.33,63.28ZM71.84,61.27 57.95,68.21 61.20,73.85 74.16,65.29ZM74.16,61.27 61.20,52.71 57.95,58.35 71.84,65.29Z"/></svg>'
 
 
 def _nav() -> str:
@@ -817,7 +817,7 @@ def render(ind: dict) -> str:
     return (
         "<!doctype html><html lang=\"en\"><head>"
         "<link rel=\"stylesheet\" href=\"/static/brand.css\"><script src=\"/static/brand.js\" defer></script>"
-        f"<link rel=\"icon\" href=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='16' font-family='Georgia,serif' font-size='30' text-anchor='middle' dominant-baseline='central' fill='%235E6B74'>{_ASTER}</text></svg>\">"
+        f"<link rel=\"icon\" href=\"/img/favicon.svg\" type=\"image/svg+xml\"><link rel=\"icon\" href=\"/img/favicon-32.png\" sizes=\"32x32\" type=\"image/png\"><link rel=\"apple-touch-icon\" href=\"/img/apple-touch-icon.png\">"
         "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"<title>{e(title)}</title>"
         f"<meta name=\"description\" content=\"{e(desc)}\">"
