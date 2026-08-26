@@ -263,6 +263,7 @@ def _shop_for_slug(slug: str):
 
 _QR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
 <title>{store}</title><style>
   *{{box-sizing:border-box}} body{{margin:0;background:#f8f7f5;color:#1a1a1d;
     font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
