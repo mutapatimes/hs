@@ -333,7 +333,7 @@ _SITE_ORIGIN = _os.environ.get("HALIA_SITE_URL", "https://haliascore.com").rstri
 # noindex legal pages (which already carry X-Robots-Tag: noindex).
 _INDEXABLE_PATHS = [
     "/", "/brand", "/clienteling", "/concierge", "/faq", "/pricing", "/responsible",
-    "/security", "/solutions", "/demo", "/status", "/blog",
+    "/roi", "/security", "/solutions", "/demo", "/status", "/blog", "/features", "/contact",
     "/docs", "/docs/connect-your-store", "/docs/crm-and-email",   # public connection guides
 ] + [f"/solutions/{_i}" for _i in
      ("fashion", "wine", "beauty", "jewellery", "home", "gifting",

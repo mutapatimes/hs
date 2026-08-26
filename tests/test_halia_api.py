@@ -211,7 +211,7 @@ def test_docs_public_guides_open_but_playbook_gated():
     from halia.api.tenant_auth import make_session, SESSION_COOKIE
 
     out = TestClient(app)
-    assert "Up and running" in out.get("/docs").text                    # docs hub, public
+    assert "<h1>Docs</h1>" in out.get("/docs").text                     # docs hub, public
     assert "What happens next" in out.get("/docs/connect-your-store").text  # guide, public
     gated = out.get("/docs/using-halia")
     assert gated.status_code == 200

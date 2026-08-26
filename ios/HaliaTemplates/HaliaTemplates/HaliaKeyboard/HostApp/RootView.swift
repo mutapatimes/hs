@@ -321,6 +321,11 @@ private struct WizardView: View {
             navBar
         }
         .background(PaperBackground())
+        .onAppear {
+            // A fresh wizard never opens with yesterday's error on it; step-level messages
+            // (a failed sync, the finish guard) still appear when they actually happen.
+            if !model.signedIn { model.status = ""; model.isError = false }
+        }
     }
 
     private var header: some View {
