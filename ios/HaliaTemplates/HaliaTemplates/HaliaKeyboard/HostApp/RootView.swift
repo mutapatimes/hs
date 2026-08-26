@@ -571,43 +571,68 @@ private struct HomeView: View {
         return n == 0 ? "No templates yet" : "\(n) template\(n == 1 ? "" : "s") ready"
     }
 
-    // The desk has genuinely nothing to report yet: not mid-sync, not erroring, just empty. The
-    // masthead gets a living field instead of a flat gradient here, so waiting doesn't feel inert.
-    private var isEmptyDesk: Bool { !model.busy && !model.isError && model.templates.isEmpty }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            masthead
-            VStack(spacing: 0) {
-                row("Add a client", "Capture their details, straight into your book") { showCapture = true }
-                hairline
-                row("Capture tools", "QR codes and your card, for the shop floor") { showCaptureTools = true }
-                hairline
-                row("Message openers", "The angles you send from Share") { showOpeners = true }
-                hairline
-                row("Reconnect", "Scan a new code or paste a token", action: onReconnect)
-                hairline
-                row(model.busy ? "Syncing…" : "Sync now", "Refresh your templates and clients") {
-                    Task { await model.sync() }
+        NavigationStack {
+            List {
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: model.isError ? "exclamationmark.circle.fill"
+                                                        : "checkmark.seal.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(model.isError ? Color.orange : Palette.brand)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(syncLine).font(.body.weight(.medium))
+                            if !model.seatName.isEmpty {
+                                Text("Signed in as \(model.seatName)")
+                                    .font(.subheadline).foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        if model.busy { ProgressView() }
+                    }
+                    .padding(.vertical, 4)
                 }
-                hairline
-                row("Support", "Live chat with us") {
-                    let base = Credentials.baseURL.hasSuffix("/")
-                        ? String(Credentials.baseURL.dropLast()) : Credentials.baseURL
-                    if let url = URL(string: base + "/contact?chat=open") { openURL(url) }
-                }
-            }
-            .padding(.horizontal, 24).padding(.top, 6)
 
-            Spacer(minLength: 24)
-            Button(action: { Task { await model.signOut(); onSignedOut() } }) {
-                Text("Sign out").font(.system(size: 14, weight: .semibold)).foregroundColor(Palette.soft)
+                Section("Clients") {
+                    navRow("Add a client", "Capture their details, straight into your book",
+                           icon: "person.crop.circle.badge.plus", tint: Palette.brand) { showCapture = true }
+                    navRow("Capture tools", "QR codes and your card, for the shop floor",
+                           icon: "qrcode", tint: Palette.brandDeep) { showCaptureTools = true }
+                }
+
+                Section("Messaging") {
+                    navRow("Message openers", "The angles you send from Share",
+                           icon: "bubble.left.and.text.bubble.right.fill", tint: .indigo) { showOpeners = true }
+                    navRow(model.busy ? "Syncing\u{2026}" : "Sync now",
+                           "Refresh your templates and clients",
+                           icon: "arrow.triangle.2.circlepath", tint: .teal) {
+                        Task { await model.sync() }
+                    }
+                }
+
+                Section {
+                    navRow("Reconnect", "Scan a new code or paste a token",
+                           icon: "qrcode.viewfinder", tint: .gray, action: onReconnect)
+                    navRow("Support", "Live chat with us",
+                           icon: "questionmark.circle.fill", tint: .blue) {
+                        let base = Credentials.baseURL.hasSuffix("/")
+                            ? String(Credentials.baseURL.dropLast()) : Credentials.baseURL
+                        if let url = URL(string: base + "/contact?chat=open") { openURL(url) }
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        Task { await model.signOut(); onSignedOut() }
+                    } label: {
+                        Text("Sign out").frame(maxWidth: .infinity, alignment: .center)
+                    }
+                }
             }
-            .buttonStyle(.plain).padding(.horizontal, 24).padding(.bottom, 24)
+            .listStyle(.insetGrouped)
+            .navigationTitle("Halia")
+            .tint(Palette.brand)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(PaperBackground())
-        .ignoresSafeArea(edges: .top)
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
         .fullScreenCover(isPresented: $showCapture) {
             CaptureView { note in captureNote = note }
@@ -619,109 +644,42 @@ private struct HomeView: View {
                     .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(Capsule().fill(Palette.brandDeep))
-                    .padding(.bottom, 70)
+                    .padding(.bottom, 40)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                     .onAppear {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                            withAnimation { captureNote = nil }
+                            withAnimation(.spring(duration: 0.4)) { captureNote = nil }
                         }
                     }
             }
         }
     }
 
-    // A deep-green masthead that anchors the screen and reads like a private-client desk, not a
-    // settings pane. The asterism stays small and letterspaced here, where it reads as a mark.
-    private var masthead: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("\(mark)  HALIA")
-                .font(.system(size: 12.5, weight: .semibold)).kerning(3)
-                .foregroundColor(.white.opacity(0.65))
-            Text("Your desk").font(serif(44)).foregroundColor(.white)
-            HStack(spacing: 8) {
-                Circle().fill(model.isError ? Color(red: 0.90, green: 0.68, blue: 0.42)
-                                             : Color(red: 0.56, green: 0.80, blue: 0.63))
-                    .frame(width: 7, height: 7)
-                Text(syncLine).font(.system(size: 14)).foregroundColor(.white.opacity(0.85))
-                if model.busy { ProgressView().tint(.white).scaleEffect(0.7) }
-            }
-            .padding(.top, 2)
-            if !model.seatName.isEmpty {
-                Text("Signed in as \(model.seatName)")
-                    .font(.system(size: 13)).foregroundColor(.white.opacity(0.5))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
-        .padding(.top, 76)
-        .padding(.bottom, 32)
-        .background {
-            if isEmptyDesk {
-                LivingGradient()
-            } else {
-                LinearGradient(colors: [Palette.brandDeep, Palette.brand],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-            }
-        }
-    }
-
-    private var hairline: some View { Rectangle().fill(Palette.line).frame(height: 1) }
-
-    private func row(_ title: String, _ sub: String, action: @escaping () -> Void) -> some View {
+    /// A Settings-style row: tinted icon tile, title, subtitle, chevron via List.
+    private func navRow(_ title: String, _ sub: String, icon: String, tint: Color,
+                        action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.system(size: 16, weight: .medium)).foregroundColor(Palette.ink)
-                    Text(sub).font(.system(size: 12.5)).foregroundColor(Palette.faint)
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(tint))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).foregroundStyle(.primary)
+                    Text(sub).font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundColor(Palette.faint)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.tertiary)
             }
-            .padding(.vertical, 16)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// A slow-breathing mesh of the house greens for the empty "no templates yet" desk. The four corners
-// stay anchored in the same two tones the ordinary masthead uses, so the white type above keeps its
-// contrast; three interior points drift and shift between brand and sage, each on its own long,
-// unsynchronised cycle, so it reads as alive rather than a moving wallpaper.
-private struct LivingGradient: View {
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            MeshGradient(
-                width: 3, height: 3,
-                points: [
-                    SIMD2(0, 0),                                  SIMD2(0.5, 0),                                SIMD2(1, 0),
-                    drift(0, 0.5, t, period: 19, seed: 0),        drift(0.5, 0.5, t, period: 23, seed: 7),      drift(1, 0.5, t, period: 17, seed: 3),
-                    SIMD2(0, 1),                                  SIMD2(0.5, 1),                                SIMD2(1, 1),
-                ],
-                colors: [
-                    Palette.brandDeep, Palette.brand,                    Palette.brandDeep,
-                    glow(t, period: 14, seed: 1), glow(t, period: 18, seed: 5), glow(t, period: 12, seed: 9),
-                    Palette.brandDeep, Palette.brand,                    Palette.brandDeep,
-                ]
-            )
         }
     }
 
-    private func drift(_ x: Double, _ y: Double, _ t: Double, period: Double, seed: Double) -> SIMD2<Float> {
-        let a = (t / period + seed) * 2 * .pi
-        return SIMD2(Float(x + 0.07 * sin(a)), Float(y + 0.05 * cos(a * 0.8)))
-    }
 
-    private let brandRGB: (Double, Double, Double) = (0.122, 0.337, 0.290)
-    private let sageRGB: (Double, Double, Double) = (0.365, 0.475, 0.435)
-
-    private func glow(_ t: Double, period: Double, seed: Double) -> Color {
-        let m = (sin((t / period + seed) * 2 * .pi) + 1) / 2   // eases 0...1...0, never snaps
-        return Color(red: brandRGB.0 + (sageRGB.0 - brandRGB.0) * m,
-                     green: brandRGB.1 + (sageRGB.1 - brandRGB.1) * m,
-                     blue: brandRGB.2 + (sageRGB.2 - brandRGB.2) * m)
-    }
 }
+
 
 // MARK: - Openers editor
 
