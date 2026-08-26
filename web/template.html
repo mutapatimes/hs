@@ -3829,6 +3829,19 @@ function openSettings(page){
           <div style="font:12px system-ui;color:#8a8a8a;margin-top:12px">A new token replaces the old one everywhere.</div>
         </div>
 
+        <div style="${C}">
+          <div style="${H}">Client capture</div>
+          <p style="${P}">A client scans this and leaves their details on their own phone: straight into your store, graded, with a typo-checked email and a tidy postcode. Print it for the till, or show it from the iPhone app&rsquo;s Capture tools.</p>
+          ${SETTINGS.capture_qr?`<img src="${SETTINGS.capture_qr}" alt="Client capture QR" style="width:164px;height:164px;image-rendering:pixelated;background:#fff;padding:8px;border:1px solid var(--line)">`:""}
+          <div style="${LBL};margin-top:12px">The link behind the code</div>
+          <code style="display:block;font:12px ui-monospace,SFMono-Regular,monospace;color:var(--ink);background:var(--rowhover);border-radius:8px;padding:11px 13px;word-break:break-all;margin-top:6px">${esc(SETTINGS.capture_url||"")}</code>
+          <div style="margin-top:12px;display:flex;gap:14px;align-items:center">
+            <button id="setCapPrint" style="${BS}">Print a till card</button>
+            <label style="font:600 13px system-ui;color:var(--ink);display:inline-flex;gap:7px;align-items:center;cursor:pointer"><input type="checkbox" id="setCapAlerts" ${SETTINGS.capture_alerts!==false?"checked":""} style="accent-color:#1f564a">Alert the team when a high-grade client joins</label>
+          </div>
+          <div style="font:12px system-ui;color:#8a8a8a;margin-top:10px">Alerts use the recipients and grades from the Alerts page. Captures made by an associate in the app stay quiet; the associate already sees the grade.</div>
+        </div>
+
         </div><!-- /integrations -->
 
         <div class="spage" data-page="scoring" style="display:${spage==='scoring'?'':'none'}">
@@ -4131,6 +4144,23 @@ function openSettings(page){
         extGen.disabled=false;extGen.textContent="Generate a new token";
       }).catch(e=>{toast("Could not generate a token: "+e.message);extGen.disabled=false;extGen.textContent="Generate token";});
     };
+    const capPrint=document.getElementById("setCapPrint"); if(capPrint) capPrint.onclick=()=>{
+      const qr=SETTINGS.capture_qr||"", url=esc(SETTINGS.capture_url||""), store=esc(SETTINGS.store_name||SETTINGS.shop||"");
+      const w=window.open("","_blank","width=480,height=640"); if(!w){toast("Allow pop-ups to print the card.");return;}
+      w.document.write(`<!doctype html><html><head><title>Till card</title><style>
+        body{margin:0;font-family:Georgia,serif;color:#1c1b18;display:flex;align-items:center;justify-content:center;min-height:100vh}
+        .card{width:105mm;height:148mm;border:1px solid #ddd;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12mm;box-sizing:border-box}
+        h1{font-weight:400;font-size:21px;margin:0 0 4px}
+        p{font-family:-apple-system,Segoe UI,sans-serif;font-size:12.5px;color:#6b675e;margin:0 0 10mm;max-width:60mm}
+        img{width:52mm;height:52mm;image-rendering:pixelated}
+        @media print{.card{border:none}}
+      </style></head><body><div class="card">
+        <h1>${store}</h1>
+        <p>Leave your details and we&rsquo;ll look after you.</p>
+        ${qr?`<img src="${qr}">`:`<div>${url}</div>`}
+      </div><script>setTimeout(function(){window.print();},300)<\/script></body></html>`);
+      w.document.close();
+    };
     const extCopy=document.getElementById("setExtCopy"); if(extCopy) extCopy.onclick=()=>{
       const t=(document.getElementById("setExtTok")||{}).textContent||"";
       if(t)navigator.clipboard.writeText(t).then(()=>toast("Token copied."),()=>toast("Copy failed."));
@@ -4408,7 +4438,9 @@ function openSettings(page){
     document.getElementById("saveSettings").onclick=()=>{
       collect();
       const num=id=>parseFloat(document.getElementById(id).value)||0;
-      const body={vic_threshold:num("setThreshold"),sender_name:document.getElementById("setSender").value,
+      const capAl=document.getElementById("setCapAlerts");
+        const body={vic_threshold:num("setThreshold"),sender_name:document.getElementById("setSender").value,
+        ...(capAl?{capture_alerts:capAl.checked}:{}),
         aov:num("setAov"),max_orders:num("setMaxOrders"),highest_lt:num("setHighestLt"),
         notify_enabled:document.getElementById("setNotify").checked,
         notify_grades:document.getElementById("setNotifyGrades").value.split(","),

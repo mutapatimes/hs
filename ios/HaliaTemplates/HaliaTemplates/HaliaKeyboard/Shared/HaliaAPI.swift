@@ -379,6 +379,21 @@ struct HaliaAPI {
         return u
     }
 
+    struct FieldCheck: Decodable {
+        let email_ok: Bool?
+        let email_suggestion: String?
+        let postcode_ok: Bool?
+        let postcode: String?
+    }
+
+    /// Live field hygiene for capture: a typo suggestion to offer before saving.
+    func checkCapture(email: String?, postcode: String?) async throws -> FieldCheck {
+        var body: [String: Any] = [:]
+        if let e = email, !e.isEmpty { body["email"] = e }
+        if let p = postcode, !p.isEmpty { body["postcode"] = p }
+        return try await postAny("/v1/capture/check", body: body)
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {
