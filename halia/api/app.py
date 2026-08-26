@@ -246,21 +246,22 @@ def _deck_token() -> str:
 
 
 def _deck_gate(path: str, wrong: bool = False) -> str:
-    note = ('<p style="color:#b96a5a;font:500 13px Inter,system-ui,sans-serif;margin:0 0 14px">'
+    note = ('<p style="color:#b96a5a;font:500 13px Hanken Grotesk,system-ui,sans-serif;margin:0 0 14px">'
             "That password was declined. Try again.</p>") if wrong else ""
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/img/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
 <title>Private briefing &middot; Halia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-</head><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0a0b;color:#f4f1ea;font-family:Inter,system-ui,sans-serif">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Hanken+Grotesk:wght@400;500&display=swap" rel="stylesheet">
+</head><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0a0b;color:#f4f1ea;font-family:Hanken Grotesk,system-ui,sans-serif">
 <form method="post" action="{path}" style="text-align:center;padding:32px;max-width:420px">
-  <div style="font:500 12px Inter,system-ui,sans-serif;letter-spacing:.32em;text-transform:uppercase;color:#d8d2c6;margin-bottom:22px">&#8258; Halia</div>
+  <div style="font:500 12px Hanken Grotesk,system-ui,sans-serif;letter-spacing:.32em;text-transform:uppercase;color:#d8d2c6;margin-bottom:22px"><svg viewBox="0 0 100 100" width="1em" height="1em" aria-hidden="true" style="vertical-align:-.12em"><path fill="currentColor" d="M52.33,23.44 53.25,7.94 46.75,7.94 47.67,23.44ZM51.16,25.46 65.05,18.51 61.80,12.87 48.84,21.43ZM48.84,25.46 61.80,34.01 65.05,28.37 51.16,21.43ZM47.67,23.44 46.75,38.94 53.25,38.94 52.33,23.44ZM48.84,21.43 34.95,28.37 38.20,34.01 51.16,25.46ZM51.16,21.43 38.20,12.87 34.95,18.51 48.84,25.46ZM29.33,63.28 30.25,47.78 23.75,47.78 24.68,63.28ZM28.16,65.29 42.05,58.35 38.80,52.71 25.84,61.27ZM25.84,65.29 38.80,73.85 42.05,68.21 28.16,61.27ZM24.68,63.28 23.75,78.78 30.25,78.78 29.33,63.28ZM25.84,61.27 11.95,68.21 15.20,73.85 28.16,65.29ZM28.16,61.27 15.20,52.71 11.95,58.35 25.84,65.29ZM75.33,63.28 76.25,47.78 69.75,47.78 70.67,63.28ZM74.16,65.29 88.05,58.35 84.80,52.71 71.84,61.27ZM71.84,65.29 84.80,73.85 88.05,68.21 74.16,61.27ZM70.67,63.28 69.75,78.78 76.25,78.78 75.33,63.28ZM71.84,61.27 57.95,68.21 61.20,73.85 74.16,65.29ZM74.16,61.27 61.20,52.71 57.95,58.35 71.84,65.29Z"/></svg> Halia</div>
   <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-weight:300;font-size:clamp(30px,6vw,44px);margin:0 0 26px;line-height:1.05">This briefing is private.</h1>
   {note}
   <input type="password" name="pw" placeholder="Password" autofocus autocomplete="current-password"
-    style="width:100%;box-sizing:border-box;background:#141416;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:14px 22px;color:#f4f1ea;font:500 15px Inter,system-ui,sans-serif;outline:none;text-align:center">
-  <button style="margin-top:14px;width:100%;background:#d8d2c6;color:#141410;border:0;border-radius:999px;padding:14px 22px;font:600 14px Inter,system-ui,sans-serif;letter-spacing:.04em;cursor:pointer">Enter</button>
+    style="width:100%;box-sizing:border-box;background:#141416;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:14px 22px;color:#f4f1ea;font:500 15px Hanken Grotesk,system-ui,sans-serif;outline:none;text-align:center">
+  <button style="margin-top:14px;width:100%;background:#d8d2c6;color:#141410;border:0;border-radius:999px;padding:14px 22px;font:600 14px Hanken Grotesk,system-ui,sans-serif;letter-spacing:.04em;cursor:pointer">Enter</button>
 </form></body></html>"""
 
 
