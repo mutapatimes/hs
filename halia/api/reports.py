@@ -97,8 +97,9 @@ def _build_report(shop: str, days: int) -> dict:
         sink = _sink(shop)
     except HTTPException:
         return {"available": False, "days": days, "seats": [], "totals": {}}
-    from halia.api.board import pipeline_cards as _cards
-    cards = _cards(sink)
+    # A Woo sink reads its own cards; a Shopify sink goes through the GraphQL fetch (kept as this
+    # module's name so tests can stand it in).
+    cards = sink.pipeline_cards() if hasattr(sink, "pipeline_cards") else fetch_pipeline_cards(sink._transport())
     entry = data.results_for(shop) or {}
     payload = entry.get("payload") or {}
     grade_of = {str(r.get("cid")): (r.get("grade") or "") for r in (payload.get("data") or [])}
