@@ -1256,6 +1256,7 @@ function playOf(c){
   if(!c.known && (c.band==="active"||c.band==="new")) return "fresh";
   return "";
 }
+const SYNC_RUNNING = __SYNC_RUNNING__;   // true when the embedded entry kicked a background score
 const PLATFORM = "__PLATFORM__";         // shopify | woocommerce | bigcommerce | centra | scayle
 const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce:"BigCommerce",centra:"Centra",scayle:"SCAYLE"})[PLATFORM] || "your store";
 // Embedded (Shopify admin) only: keep the admin sidebar nav (ui-nav-menu) and the app in sync
@@ -4954,6 +4955,30 @@ function showFirstRun(){
 }
 
 if(!DATA.length){ showFirstRun(); }
+// First load inside Shopify: the server is already scoring the book in the background. Show the
+// loader straight away and poll until it is ready, then reload into the real dashboard. The
+// button stays as the fallback if the background run reports an error.
+if(!DATA.length && SYNC_RUNNING){
+  const btn=document.getElementById("firstRunSync");
+  if(btn){
+    const t0=Date.now(); btn.style.display="none";
+    const cells=[90,180,270,0,90,180,90,180,270].map(d=>`<i style="animation-delay:${d}ms"></i>`).join("");
+    const load=document.createElement("div"); load.className="loadrow"; load.style.cssText="margin-top:22px";
+    load.innerHTML=`<span class="pxgrid" aria-hidden="true">${cells}</span>`+
+      `<span class="shim" style="font:600 14px system-ui">Scoring your customers</span>`+
+      `<span class="elapsed" id="scoreClock">0.0s</span>`;
+    btn.parentNode.insertBefore(load,btn.nextSibling);
+    const clk=load.querySelector("#scoreClock");
+    const iv=setInterval(()=>{const s=(Date.now()-t0)/1000;
+      clk.textContent=s<60?s.toFixed(1)+"s":Math.floor(s/60)+"m "+(s%60).toFixed(1)+"s";},100);
+    const poll=()=>fetch("/v1/sync/state").then(r=>r.json()).then(d=>{
+      if(d.ready||d.state==="done"){ clearInterval(iv); location.reload(); return; }
+      if(d.state==="error"){ clearInterval(iv); load.remove(); btn.style.display=""; btn.textContent="Scoring stalled, try again"; return; }
+      setTimeout(poll,2000);
+    }).catch(()=>setTimeout(poll,3000));
+    setTimeout(poll,1500);
+  }
+}
 else { renderChips();renderRows();wireRescore();
   bumpOpens();                                       // once per app load: feeds the adaptive landing
   const r0=routeFromUrl();
