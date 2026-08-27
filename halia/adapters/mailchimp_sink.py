@@ -118,6 +118,15 @@ class MailchimpSink:
         self.list_id = list_id
         self._transport = transport
 
+    def add_member(self, email: str, first: str = "", last: str = "", tags: list[str] | None = None) -> bool:
+        """Subscribe one opted-in client to the audience (idempotent PUT by email hash)."""
+        body = {"email_address": email, "status_if_new": "subscribed", "status": "subscribed",
+                "merge_fields": {k: v for k, v in {"FNAME": first, "LNAME": last}.items() if v}}
+        if tags:
+            body["tags"] = list(tags)
+        status, _ = self._send("PUT", f"lists/{self.list_id}/members/{subscriber_hash(email)}", body)
+        return 200 <= int(status) < 300
+
     def _send(self, method: str, path: str, body: dict | None = None) -> tuple[int, dict]:
         if self._transport is None:
             self._transport = _http_transport(self.api_key)

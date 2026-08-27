@@ -70,6 +70,20 @@ def _gql(shop: str, query: str, variables: dict) -> dict:
 
 def fetch_birthdays(shop: str) -> list[dict]:
     """[{cid, name, month, day, source}] for captured clients and the surfaced book."""
+    from halia.api.shopify_auth import shop_store as _ss
+    tenant = dict(_ss().get_tenant(shop) or {})
+    if tenant.get("kind") == "woocommerce":
+        from halia.api.board import woo_sink
+        out = []
+        try:
+            for rec in woo_sink(shop).captures():
+                bday = parse_birthday((rec.get("preferences") or {}).get("birthday"))
+                if bday:
+                    out.append({"cid": rec["cid"], "name": rec.get("name") or "A client",
+                                "month": bday[0], "day": bday[1], "source": "captured"})
+        except Exception:  # noqa: BLE001
+            return []
+        return out
     if not get_valid_token(shop):
         return []
     found: dict[str, dict] = {}

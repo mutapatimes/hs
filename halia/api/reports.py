@@ -97,7 +97,8 @@ def _build_report(shop: str, days: int) -> dict:
         sink = _sink(shop)
     except HTTPException:
         return {"available": False, "days": days, "seats": [], "totals": {}}
-    cards = fetch_pipeline_cards(sink._transport())
+    from halia.api.board import pipeline_cards as _cards
+    cards = _cards(sink)
     entry = data.results_for(shop) or {}
     payload = entry.get("payload") or {}
     grade_of = {str(r.get("cid")): (r.get("grade") or "") for r in (payload.get("data") or [])}
@@ -153,7 +154,7 @@ def _build_report(shop: str, days: int) -> dict:
 
     # Captures: the clients each associate brought into the book (the handover form, QR, vCard).
     try:
-        captures = fetch_captures(sink._transport())
+        captures = sink.captures() if hasattr(sink, "captures") else fetch_captures(sink._transport())
     except Exception:  # noqa: BLE001 — the rest of the report still renders
         captures = []
     for rec in captures:
