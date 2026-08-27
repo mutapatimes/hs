@@ -32,11 +32,15 @@ class Halia_Webhooks {
         return $found;
     }
 
-    public static function ensure() {
+    public static function ensure( $force = false ) {
         $c = Halia_Connect::connection();
         if ( empty( $c['webhook_url'] ) || ! class_exists( 'WC_Webhook' ) ) {
             return;
         }
+        if ( ! $force && get_transient( 'halia_webhooks_checked' ) ) {
+            return; // once an hour is plenty for a repair pass
+        }
+        set_transient( 'halia_webhooks_checked', 1, HOUR_IN_SECONDS );
         $have = self::ours();
         foreach ( self::TOPICS as $topic ) {
             $wh = $have[ $topic ] ?? new WC_Webhook();
