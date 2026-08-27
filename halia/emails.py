@@ -48,6 +48,7 @@ _EYEBROW = {
     "demo": "An introduction",
     "client": "Welcome to Halia",
     "weekly": "Your week with Halia",
+    "assoc": "Your Halia seat",
 }
 
 
@@ -265,14 +266,6 @@ def wrap(subject: str, body_html: str, *, greeting: str = "Hello,",
     return _layout(subject, greeting, body_html, unsub_url, eyebrow)
 
 
-_TEMPLATES = {
-    "demo_intro": demo_intro, "demo_hidden": demo_hidden, "demo_how": demo_how,
-    "demo_ready": demo_ready,
-    "client_welcome": client_welcome, "client_action": client_action,
-    "client_feedback": client_feedback,
-    "weekly_vics": weekly_vics, "weekly_feedback": weekly_feedback,
-    "weekly_refresh": weekly_refresh,
-}
 
 
 def render(template_key: str, data: dict, unsub_url: str) -> tuple[str, str, str]:
@@ -282,3 +275,81 @@ def render(template_key: str, data: dict, unsub_url: str) -> tuple[str, str, str
     eyebrow = _EYEBROW.get(template_key.split("_", 1)[0], "Halia")
     html = _layout(subject, _greeting(data or {}), body_html, unsub_url, eyebrow)
     return subject, html, body_text
+
+
+# ── associate onboarding (a teammate given a seat) ─────────────────────────────
+def _store(d: dict) -> str:
+    return _html.escape(str(d.get("store_name") or "your store"))
+
+
+def assoc_welcome(d):
+    connect = str(d.get("connect") or "")
+    body = (
+        _p(f"You have a seat on Halia at {_store(d)}. Halia shows you who a client is, why they "
+           "matter, and what to say next, wherever you talk to clients.")
+        + _p("Two things to set up, five minutes in all:")
+        + _p("<b>On your iPhone</b>: install the Halia app from the App Store, then tap the link "
+             "below on your phone to sign in. Turn on the Halia keyboard in Settings, so client "
+             "context and your templates are one tap away in WhatsApp and Messages.")
+        + _p("<b>On your computer</b>: add the Halia extension to Chrome and sign in with the same "
+             "link. It appears beside WhatsApp Web, Gmail and your store admin.")
+        + (_btn("Sign in to Halia", connect) if connect else "")
+        + _p("Keep this email: the link is yours alone and signs you in on any device."))
+    return (f"Your Halia seat at {_store(d)}", body,
+            f"You have a seat on Halia at {d.get('store_name') or 'your store'}. Install the Halia "
+            f"app on your iPhone and the Chrome extension on your computer, then sign in with your "
+            f"link: {connect}")
+
+
+def assoc_first_moves(d):
+    body = (
+        _p("The first thing to try: open a client, anywhere. In WhatsApp Web or Gmail the Halia "
+           "card appears in the corner with their grade, why they surfaced, and a note ready to send.")
+        + _p("On the keyboard, tap the Halia key in any chat to look someone up by name, email or "
+             "number, and drop in a template or a drafted reply in the house voice.")
+        + _p("Grades run from A&#42; to C. An A&#42; is a client who deserves your best; a C is "
+             "someone to serve well and move on. The reasons are always listed, so you can trust them.")
+        + _btn("Open Halia", _app(d)))
+    return ("Your first moves in Halia", body,
+            "Open a client anywhere: the Halia card shows their grade, why, and a note ready to send. "
+            "On the keyboard, tap the Halia key to look someone up and drop in a template.")
+
+
+def assoc_capture(d):
+    body = (
+        _p("Clients you meet at the counter are the ones most tools never capture. In the Halia app, "
+           "tap <b>Add a client</b>, hand over your phone, and they leave their details themselves: "
+           "email, phone, birthday, the delivery address for gifts and invitations.")
+        + _p("It lands straight in the store's customer book, typo-checked, and graded on the spot. "
+             "Capture tools also give you a QR for the till and a WhatsApp code: the client scans, "
+             "you have their number.")
+        + _p("An address is the strongest signal you can capture. Ask for it as a delivery address; "
+             "people give it gladly."))
+    return ("Capture the clients you meet in store", body,
+            "In the Halia app, tap Add a client and hand over your phone: their details land in the "
+            "store's book, typo-checked and graded. Capture tools give you a till QR and a WhatsApp code.")
+
+
+def assoc_habits(d):
+    body = (
+        _p("A rhythm that works: each morning, check <b>Reach today</b> for the clients worth a note. "
+           "When a VIC order alert arrives, reply within the hour; it lands differently.")
+        + _p("Before a client comes in, look them up so you greet them knowing what they love. After "
+             "they leave, log the contact so the team knows who is looking after whom.")
+        + _p("That is the whole job Halia does for you: the right client, the right moment, in your "
+             "own voice."))
+    return ("The weekly rhythm with Halia", body,
+            "Each morning check Reach today; reply to VIC order alerts within the hour; look a client "
+            "up before they come in; log the contact after.")
+
+
+_TEMPLATES = {
+    "demo_intro": demo_intro, "demo_hidden": demo_hidden, "demo_how": demo_how,
+    "demo_ready": demo_ready,
+    "client_welcome": client_welcome, "client_action": client_action,
+    "client_feedback": client_feedback,
+    "weekly_vics": weekly_vics, "weekly_feedback": weekly_feedback,
+    "weekly_refresh": weekly_refresh,
+    "assoc_welcome": assoc_welcome, "assoc_first_moves": assoc_first_moves,
+    "assoc_capture": assoc_capture, "assoc_habits": assoc_habits,
+}

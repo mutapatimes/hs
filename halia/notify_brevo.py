@@ -91,3 +91,16 @@ def add_client(email: str, attributes: dict | None = None) -> bool:
     """A tenant onboarded -> add to the Clients list, unlink Demo (stop the demo drip)."""
     return sync_contact(email, list_ids=[_clients_list()], unlink=[_demo_list()],
                         attributes=attributes)
+
+
+def _associates_list() -> int:
+    try:
+        return int(config.BREVO_LIST_ASSOCIATES)
+    except (TypeError, ValueError):
+        return 5
+
+
+def add_associate(email: str, attributes: dict | None = None) -> bool:
+    """A teammate who was given a seat: on the Associates list, for the usage journey."""
+    return sync_contact(email, list_ids=[_associates_list()], attributes=attributes)
+
