@@ -784,7 +784,7 @@ def register(app) -> None:
         auth = _resolve_ext(x_halia_ext_token)
         if not auth.seat_id:
             return {"available": False, "me": None, "team": {}, "days": days}
-        return seat_week(auth.shop, auth.seat_id, max(1, min(int(days or 7), 90)))
+        return seat_week(auth.shop, auth.seat_id, max(1, min(int(days or 365), 365)))
 
     @app.get("/v1/extension/profile")
     def extension_profile(x_halia_ext_token: Optional[str] = Header(None)) -> dict:

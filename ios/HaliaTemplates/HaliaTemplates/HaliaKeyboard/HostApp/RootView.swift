@@ -593,6 +593,7 @@ private struct HomeView: View {
     @State private var showCaptureTools = false
     @State private var captureNote: String?
     @State private var week: HaliaAPI.Week?
+    @State private var weekDays = 365          // all by default; the picker narrows it
     @Environment(\.openURL) private var openURL
 
     private var syncLine: String {
@@ -626,6 +627,11 @@ private struct HomeView: View {
 
                 if let me = week?.me, week?.available == true {
                     Section {
+                        Picker("Period", selection: $weekDays) {
+                            Text("All").tag(365); Text("Month").tag(30); Text("Week").tag(7)
+                        }
+                        .pickerStyle(.segmented)
+                        .onChange(of: weekDays) { _ in Task { week = try? await HaliaAPI.current.myWeek(days: weekDays) } }
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
                                   spacing: 14) {
                             weekStat("\(me.contacts ?? 0)", "contacts")
@@ -638,10 +644,10 @@ private struct HomeView: View {
                                  + "\(Int(((me.rate ?? 0) * 100).rounded()))% converted within two weeks.")
                                 .font(.footnote).foregroundStyle(.secondary)
                         } else {
-                            Text("Nothing logged yet this week. Contacts you log and clients you capture show here.")
+                            Text("Nothing logged yet. Contacts you log and clients you capture show here.")
                                 .font(.footnote).foregroundStyle(.secondary)
                         }
-                    } header: { Text("Your week") }
+                    } header: { Text("Your results") }
                 }
 
                 Section("Clients") {
@@ -683,8 +689,8 @@ private struct HomeView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("Halia")
             .tint(Palette.brand)
-            .task { week = try? await HaliaAPI.current.myWeek() }
-            .refreshable { await model.sync(); week = try? await HaliaAPI.current.myWeek() }
+            .task { week = try? await HaliaAPI.current.myWeek(days: weekDays) }
+            .refreshable { await model.sync(); week = try? await HaliaAPI.current.myWeek(days: weekDays) }
         }
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
         .fullScreenCover(isPresented: $showCapture) {
