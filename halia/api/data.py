@@ -256,9 +256,59 @@ def sync_shop_authed(shop: str, session_token: str) -> dict:
         return sync_shop(shop, token)
 
 
+def _woo_carts(shop: str) -> dict:
+    """CUST_ID -> open basket for a WooCommerce store, best-effort. Two sources: unpaid
+    checkouts (pending / failed orders, with the order's own pay link so the client can finish
+    in one tap) and, when the optional helper is installed, live carts of signed-in customers."""
+    try:
+        from scoring.woocommerce_fetch import endpoint, fetch_orders, http_transport
+        creds = shop_store().get_woocommerce(shop)
+        if not creds:
+            return {}
+        transport = http_transport(creds["store_url"], creds["consumer_key"], creds["consumer_secret"])
+        base = creds["store_url"].rstrip("/")
+        by: dict[str, dict] = {}
+        for o in fetch_orders(transport, status="pending,failed", max_pages=3):
+            cust = o.get("billing") or {}
+            cid = str(o.get("customer_id") or cust.get("email") or "").strip()
+            if not cid or cid == "0":
+                cid = str(cust.get("email") or "").strip()
+            items = [{"title": li.get("name") or "Item", "qty": int(li.get("quantity") or 0)}
+                     for li in (o.get("line_items") or [])]
+            count = sum(i["qty"] for i in items)
+            if not cid or count <= 0:
+                continue
+            key = o.get("order_key") or ""
+            by.setdefault(cid, {
+                "id": str(o.get("id")), "cid": cid, "email": cust.get("email"),
+                "value": int(round(float(o.get("total") or 0))), "count": count, "items": items,
+                "started": str(o.get("date_created") or "")[:10],
+                "url": f"{base}/checkout/order-pay/{o.get('id')}/?pay_for_order=true&key={key}" if key else f"{base}/checkout/",
+            })
+        # live carts via the helper, only where it is installed (any error just means none)
+        try:
+            import requests
+            r = requests.get(endpoint(creds["store_url"], "carts", version="wc-halia/v1"),
+                             auth=(creds["consumer_key"], creds["consumer_secret"]), timeout=15)
+            if r.ok:
+                for c in r.json() or []:
+                    cid = str(c.get("customer_id") or c.get("email") or "").strip()
+                    if cid and int(c.get("count") or 0) > 0 and cid not in by:
+                        by[cid] = {"id": f"live-{cid}", "cid": cid, "email": c.get("email"),
+                                   "value": int(round(float(c.get("value") or 0))),
+                                   "count": int(c.get("count") or 0), "items": c.get("items") or [],
+                                   "started": str(c.get("updated") or "")[:10], "url": c.get("url") or f"{base}/cart/"}
+        except Exception:  # noqa: BLE001
+            pass
+        return by
+    except Exception:  # noqa: BLE001 — baskets are an enrichment, never load-bearing
+        return {}
+
+
 def sync_woo(shop: str) -> dict:
     """WooCommerce pull → score → cache in RAM. Returns the cache entry."""
-    return _finalize(shop, *score_woo(shop))
+    scored, orders = score_woo(shop)
+    return _finalize(shop, scored, orders, carts=_woo_carts(shop))
 
 
 def score_bigc(shop: str):

@@ -125,8 +125,33 @@ def _todos(shop: str) -> list[dict]:
     return out[:15]
 
 
+def _woo_store(shop: str) -> Optional[str]:
+    """The WooCommerce storefront origin for a tenant on Woo, else None."""
+    try:
+        tenant = dict(shop_store().get_tenant(shop) or {})
+        if tenant.get("kind") != "woocommerce":
+            return None
+        creds = shop_store().get_woocommerce(shop)
+        return (creds or {}).get("store_url", "").rstrip("/") or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def woo_cart_url(store: str, items: list[tuple[str, int]]) -> tuple[str, bool]:
+    """A WooCommerce cart link. One item uses core's add-to-cart; several need the optional
+    helper (halia-cart=). Returns (url, needs_helper)."""
+    items = [(str(pid), max(1, int(q or 1))) for pid, q in items if str(pid).strip()]
+    if len(items) == 1:
+        pid, q = items[0]
+        return f"{store}/?add-to-cart={pid}&quantity={q}", False
+    return f"{store}/?halia-cart=" + ",".join(f"{pid}:{q}" for pid, q in items), True
+
+
 def _cart_base(shop: str) -> str:
     """The storefront origin for a Shopify /cart permalink: the primary domain, else myshopify."""
+    woo = _woo_store(shop)
+    if woo:
+        return woo
     dom = ""
     try:
         from halia.api.catalog import _primary_domain
@@ -1185,6 +1210,13 @@ def register(app) -> None:
         except Exception:  # noqa: BLE001 — no products, no link; never a broken panel
             products = []
         by_id = {str(p.get("id")): p for p in products}
+        from halia.api.catalog import _with_utm
+        woo = _woo_store(shop)
+        if woo:
+            chosen = [(pid, 1) for pid in ids if str(pid) in by_id] or [(pid, 1) for pid in ids]
+            url, needs_helper = woo_cart_url(woo, chosen)
+            data.record_activity(shop, "extension_cart_link")
+            return {"url": _with_utm(url, "halia-cart"), "needs_helper": needs_helper}
         parts = []
         for pid in ids:
             prod = by_id.get(str(pid))
@@ -1197,7 +1229,6 @@ def register(app) -> None:
         if not parts:
             raise HTTPException(422, "No buyable variants for those products")
         data.record_activity(shop, "extension_cart_link")
-        from halia.api.catalog import _with_utm
         return {"url": _with_utm(f"{_cart_base(shop)}/cart/{','.join(parts)}", "halia-cart")}
 
     @app.get("/v1/extension/events")
@@ -1240,6 +1271,24 @@ def register(app) -> None:
         Products are the merchant's own catalogue, not customer data."""
         auth = _resolve_ext(x_halia_ext_token)
         shop = auth.shop
+        woo = _woo_store(shop)
+        if woo:
+            # WooCommerce: the catalogue the builder already reads, filtered here. A product is its
+            # own "variant" for the cart link (add-to-cart takes the product id).
+            from halia.api import catalog
+            try:
+                prods = catalog._products(shop)
+            except Exception:  # noqa: BLE001
+                prods = []
+            term = (q or "").strip().lower()
+            n = max(1, min(int(limit or 20), 30))
+            hits = [p for p in prods if not term or term in (p.get("title") or "").lower()
+                    or term in (p.get("sku") or "").lower()][:n]
+            return {"products": [{"id": str(p.get("id")), "title": p.get("title") or "",
+                                  "handle": p.get("handle") or "", "image": p.get("image_url"),
+                                  "variants": [{"id": str(p.get("id")), "title": "", "price": p.get("price")}]}
+                                 for p in hits],
+                    "cart_base": woo}
         token = get_valid_token(shop)
         if not token:                                # non-Shopify or read-only: no cart builder
             return {"products": [], "cart_base": None}
