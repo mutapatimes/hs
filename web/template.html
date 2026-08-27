@@ -937,7 +937,6 @@
         </div>
         <div id="ovTeamCard" class="card" style="display:none;margin-bottom:16px">
           <div class="ch"><h3>Your team</h3>
-            <span class="hint">what each associate did, and what came of it, counted from your own book</span>
             <select id="ovTeamDays" style="margin-left:auto;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:13px system-ui;color:var(--ink);background:#fff">
               <option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option>
             </select>
@@ -945,24 +944,24 @@
           <div class="cb"><div id="ovTeam"></div></div>
         </div>
         <div id="ovBirthdaysCard" class="card" style="display:none;margin-bottom:16px">
-          <div class="ch"><h3>Birthdays</h3><span class="hint">in the next fortnight, from the details your team captured</span></div>
+          <div class="ch"><h3>Birthdays</h3><span class="hint">next fortnight</span></div>
           <div class="cb"><div id="ovBirthdays"></div></div>
         </div>
         <div id="setupGuide" class="card" style="display:none;margin-bottom:16px"></div>
         <div id="ovDigestCard" class="card" style="display:none;margin-bottom:16px">
-          <div class="ch"><h3>This week</h3><span class="hint">what deserves your attention, counted from your own book</span></div>
+          <div class="ch"><h3>This week</h3></div>
           <div class="cb"><div id="ovDigest" class="digest"></div></div>
         </div>
         <div id="ovBasketsCard" class="card" style="display:none;margin-bottom:16px">
-          <div class="ch"><h3>Open baskets</h3><span class="hint">clients with an unpaid checkout, act while it's warm</span></div>
+          <div class="ch"><h3>Open baskets</h3><span class="hint">unpaid checkouts</span></div>
           <div class="cb"><div id="ovBaskets" class="toplist"></div></div>
         </div>
         <div id="ovQuietCard" class="card" style="display:none;margin-bottom:16px">
-          <div class="ch"><h3>Gone quiet</h3><span class="hint">proven clients with strong wealth signals whose orders stopped. A quiet note brings them back</span></div>
+          <div class="ch"><h3>Gone quiet</h3></div>
           <div class="cb"><div id="ovQuiet" class="toplist"></div></div>
         </div>
         <div class="card" style="margin-bottom:16px">
-          <div class="ch"><h3>Client landscape</h3><span class="hint">wealth and activity across your whole book</span></div>
+          <div class="ch"><h3>Client landscape</h3></div>
           <div class="cb"><div class="lsgrid" id="ovLandscape"></div></div>
         </div>
         <div class="grid ov-two" style="margin-bottom:16px">
@@ -2521,7 +2520,7 @@ function renderTeamReport(){
       </tbody>
       <tfoot><tr>${td("All","left",true)}${td(d.totals.contacts,null,true)}${td(d.totals.clients,null,true)}${td("")}${td(d.totals.captures,null,true)}${td("")}${td(d.totals.conversions,null,true)}${td(pct(d.totals.rate),null,true)}${td(money(d.totals.revenue),null,true)}</tr></tfoot>
     </table></div>
-    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:10px"><div style="font:12px system-ui;color:#8a8a8a">Converted = the client ordered within ${d.window} days of a contact, credited to the latest contact before the order. "Shared sign-in" is activity from a browser with no seat. Captured counts the clients each associate added, with how many graded A or above.</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px">
     <button id="ovTeamCsv" style="flex:none;background:none;border:1px solid var(--line);border-radius:8px;padding:6px 11px;font:600 12px system-ui;color:var(--ink);cursor:pointer">Export CSV</button></div>`;
     const csvBtn=document.getElementById("ovTeamCsv"); if(csvBtn) csvBtn.onclick=()=>{
       const cols=["name","title","contacts","clients","topShare","captures","captured_top","owned","conversions","rate","revenue"];
