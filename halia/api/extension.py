@@ -58,11 +58,12 @@ def _fill(text: str, first, sender: str, catalog) -> str:
     return t
 
 
-def _templates(shop: str, first_name, catalog=None) -> list[dict]:
-    """The merchant's own editable outreach templates, with placeholders filled for this client."""
+def _templates(shop: str, first_name, catalog=None, sender: str | None = None) -> list[dict]:
+    """The merchant's own editable outreach templates, with placeholders filled for this client.
+    ``sender`` overrides the store sign-off with the signed-in associate's own."""
     from halia.api.settings import settings_for
     s = settings_for(shop)
-    sender = s.get("sender_name") or ""
+    sender = sender if sender else (s.get("sender_name") or "")
     cat = catalog if catalog is not None else _catalog_link(shop)
     out = []
     for t in (s.get("email_templates") or [])[:60]:
@@ -299,6 +300,25 @@ def _resolve_ext(x_halia_ext_token: Optional[str]) -> ExtAuth:
     raise HTTPException(401, "Invalid or missing extension token")
 
 
+def _seat_profile(auth: "ExtAuth") -> dict:
+    """{name, email, title, signoff} for the caller's seat; a shared-token caller gets the store
+    sender only. The sign-off defaults to name + position + store when the associate set none."""
+    from halia.api.settings import settings_for
+    s = settings_for(auth.shop)
+    store_name = str(dict(shop_store().get_tenant(auth.shop) or {}).get("label") or "").strip()
+    prof = shop_store().seat_profile(auth.seat_id) if auth.seat_id else None
+    if not prof:
+        return {"name": auth.seat_name or "", "email": "", "title": "",
+                "signoff": (s.get("sender_name") or "").strip(), "default_signoff": True}
+    name = (prof.get("name") or "").strip()
+    title = (prof.get("title") or "").strip()
+    custom = (prof.get("signoff") or "").strip()
+    default = name + (f"\n{title}" if title else "") + (f", {store_name}" if store_name and title else
+                                                         (f"\n{store_name}" if store_name else ""))
+    return {"name": name, "email": (prof.get("email") or ""), "title": title,
+            "signoff": custom or default, "default_signoff": not custom}
+
+
 def _best(rows: list, pred) -> Optional[dict]:
     best = None
     for r in rows:
@@ -396,7 +416,8 @@ def _standing(resp: dict) -> str:
 
 
 def _draft_context(shop: str, resp: dict, channel: str, thread: list[dict], instruction: str,
-                   closing: str = "\nDraft the associate's next message now.") -> str:
+                   closing: str = "\nDraft the associate's next message now.",
+                   writer: dict | None = None) -> str:
     """Assemble the user prompt: the client's live standing plus the visible conversation.
     ``closing`` is the instruction that ends the prompt; the brief passes its own."""
     from halia.api.settings import settings_for
@@ -419,7 +440,14 @@ def _draft_context(shop: str, resp: dict, channel: str, thread: list[dict], inst
         lines.append(f"Channel: {channel}")
     if brand and brand.lower() != "halia":
         lines.append(f"Boutique / brand: {brand}")
-    if sender:
+    if writer and (writer.get("name") or writer.get("signoff")):
+        who = writer.get("name") or sender
+        if writer.get("title"):
+            who += f", {writer['title']}"
+        lines.append(f"You are writing as: {who}")
+        if writer.get("signoff"):
+            lines.append("Sign off exactly as:\n" + writer["signoff"])
+    elif sender:
         lines.append(f"You are writing as: {sender}")
     if resp.get("found"):
         lines.append(f"Client: {resp.get('name') or 'the client'}")
@@ -584,9 +612,9 @@ def _suggested_actions(resp: dict, campaign: Optional[dict],
 
 
 def _brief_context(shop: str, resp: dict, channel: str, thread: list[dict], instruction: str,
-                   campaign: Optional[dict], last_contact: Optional[dict]) -> str:
+                   campaign: Optional[dict], last_contact: Optional[dict], writer: dict | None = None) -> str:
     """The user prompt for the brief: the client's live standing plus the visible conversation."""
-    lines = [_draft_context(shop, resp, channel, thread, instruction, closing="")]
+    lines = [_draft_context(shop, resp, channel, thread, instruction, closing="", writer=writer)]
     if campaign:
         lines.append(f"Campaign running now: {campaign['name']}")
     if last_contact:
@@ -747,6 +775,42 @@ def register(app) -> None:
             shop_store().signout_seat(auth.seat_id)
         return {"ok": True}
 
+    @app.get("/v1/extension/profile")
+    def extension_profile(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
+        """The signed-in associate's own details (name, email, position, sign-off)."""
+        auth = _resolve_ext(x_halia_ext_token)
+        return {"profile": _seat_profile(auth), "seat": bool(auth.seat_id)}
+
+    @app.post("/v1/extension/profile")
+    def extension_profile_save(x_halia_ext_token: Optional[str] = Header(None),
+                               payload: Any = Body(default=None)) -> dict:
+        """Update the signed-in associate's details from the extension or the iPhone app. The
+        email stays unique per shop; the sign-off is what drafts and templates sign with."""
+        from halia.capture_quality import clean_email
+
+        auth = _resolve_ext(x_halia_ext_token)
+        if not auth.seat_id:
+            raise HTTPException(400, "Sign in with your own seat to set your details.")
+        body = payload or {}
+        fields: dict = {}
+        for key in ("name", "title", "signoff"):
+            if key in body:
+                fields[key] = str(body.get(key) or "")
+        if "email" in body:
+            raw = str(body.get("email") or "").strip()
+            if raw:
+                email, _, ok = clean_email(raw, check_dns=False)
+                if not ok:
+                    raise HTTPException(422, "That email address does not look right.")
+                other = shop_store().seat_by_email(auth.shop, email)
+                if other and other["id"] != auth.seat_id:
+                    raise HTTPException(409, "A teammate already uses that email.")
+                fields["email"] = email
+            else:
+                fields["email"] = ""
+        shop_store().update_seat_profile(auth.seat_id, **fields)
+        return {"ok": True, "profile": _seat_profile(auth)}
+
     @app.get("/v1/extension/context")
     def extension_context(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
         """The toolbar's standing context, independent of any one client: the merchant's templates,
@@ -784,7 +848,8 @@ def register(app) -> None:
             "brand": s.get("brand") or "halia",
             "catalog": catalog,
             "dashboard": _dashboard_link(),
-            "templates": _templates(shop, None, catalog),
+            "templates": _templates(shop, None, catalog, sender=_seat_profile(auth).get("signoff")),
+            "profile": _seat_profile(auth),
             "campaigns": campaigns,
             "todos": _todos(shop),
             "seat": auth.seat_name,                       # who is signed in (None on the legacy token)
@@ -836,7 +901,8 @@ def register(app) -> None:
         used = shop_store().shop_metric(shop, "extension_draft_ai") if cap else 0
         if llm.available() and (not cap or used < cap):
             model = llm.model_for(resp.get("tier"))
-            text = llm.complete(_DRAFT_SYSTEM, _draft_context(shop, resp, channel, thread, instruction),
+            text = llm.complete(_DRAFT_SYSTEM, _draft_context(shop, resp, channel, thread, instruction,
+                                                              writer=_seat_profile(auth)),
                                 model=model, max_tokens=600)
             if text:
                 draft, source = text, "ai"
@@ -890,7 +956,7 @@ def register(app) -> None:
         if llm.available() and (not cap or used < cap):
             got = llm.structured(
                 _BRIEF_SYSTEM,
-                _brief_context(shop, resp, channel, thread, instruction, campaign, last_contact),
+                _brief_context(shop, resp, channel, thread, instruction, campaign, last_contact, writer=_seat_profile(auth)),
                 _BRIEF_SCHEMA, model=llm.model_for(resp.get("tier")))
             if got and got.get("reply"):
                 out, source = got, "ai"
@@ -1186,7 +1252,9 @@ def register(app) -> None:
                 from halia.api.board import _sink, _write_soft, append_activity, load_pipe
                 sink = _sink(shop)
                 pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
-                append_activity(pipe, "contacted", None, who, note=reason or None)
+                # The seat id rides the activity log so per-associate reporting can be derived
+                # later from the merchant's own metafields (Halia stores nothing itself).
+                append_activity(pipe, "contacted", auth.seat_id, who, note=reason or None)
                 recorded = not _write_soft(sink, cid, pipe)
             except Exception:
                 recorded = False                     # non-Shopify tenant or write hiccup

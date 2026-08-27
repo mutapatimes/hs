@@ -394,6 +394,27 @@ struct HaliaAPI {
         return try await postAny("/v1/capture/check", body: body)
     }
 
+    // MARK: The associate's profile (name, email, position, sign-off) — lives on their seat.
+
+    struct Profile: Decodable {
+        let name: String?
+        let email: String?
+        let title: String?
+        let signoff: String?
+        let default_signoff: Bool?
+    }
+    private struct ProfileEnvelope: Decodable { let profile: Profile? }
+
+    func fetchProfile() async throws -> Profile? {
+        let (data, _) = try await send("/v1/extension/profile", method: "GET", body: nil)
+        return (try? JSONDecoder().decode(ProfileEnvelope.self, from: data))?.profile
+    }
+
+    func saveProfile(name: String, email: String, title: String, signoff: String) async throws {
+        let _: ProfileEnvelope = try await postAny("/v1/extension/profile",
+            body: ["name": name, "email": email, "title": title, "signoff": signoff])
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {

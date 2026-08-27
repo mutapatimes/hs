@@ -26,6 +26,7 @@ async function load() {
   const sl = $("supportlink");
   if (sl) sl.href = (haliaBase || DEFAULT_BASE).replace(/\/+$/, "") + "/contact?chat=open";
   $("name").value = haliaName || "";
+  loadProfile(haliaBase || DEFAULT_BASE, haliaToken);
   $("radar").checked = !radarOff;
   $("everywhere").checked = !!lookupEverywhere;
   renderStores();
@@ -113,7 +114,40 @@ async function signOut() {
 $("test").onclick = test;
 $("signout").onclick = signOut;
 $("base").onchange = persist;
-$("name").onchange = persist;
+$("name").onchange = () => { persist(); saveProfile(); };
+["pemail", "ptitle", "psignoff"].forEach((id) => { const el = $(id); if (el) el.onchange = saveProfile; });
+
+// ── the associate's profile lives on their seat (server); the extension edits it ──
+async function profileHeaders() {
+  const { haliaBase, haliaToken } = await chrome.storage.sync.get(["haliaBase", "haliaToken"]);
+  const base = (haliaBase || DEFAULT_BASE).replace(/\/+$/, "");
+  return { base, headers: { "X-Halia-Ext-Token": haliaToken || "", "Content-Type": "application/json" } };
+}
+async function loadProfile(base, token) {
+  if (!token) return;
+  try {
+    const r = await fetch(base.replace(/\/+$/, "") + "/v1/extension/profile", { headers: { "X-Halia-Ext-Token": token } });
+    if (!r.ok) return;
+    const d = await r.json(); const p = (d && d.profile) || {};
+    if (p.name && !$("name").value) $("name").value = p.name;
+    if ($("pemail")) $("pemail").value = p.email || "";
+    if ($("ptitle")) $("ptitle").value = p.title || "";
+    if ($("psignoff")) $("psignoff").value = p.default_signoff ? "" : (p.signoff || "");
+    if ($("psignoff") && !$("psignoff").value) $("psignoff").placeholder = p.signoff || $("psignoff").placeholder;
+  } catch (_) { /* offline: keep what is on screen */ }
+}
+async function saveProfile() {
+  const { base, headers } = await profileHeaders();
+  if (!headers["X-Halia-Ext-Token"]) return;
+  const body = { name: $("name").value.trim(), email: ($("pemail") || {}).value || "",
+                 title: ($("ptitle") || {}).value || "", signoff: ($("psignoff") || {}).value || "" };
+  try {
+    const r = await fetch(base + "/v1/extension/profile", { method: "POST", headers, body: JSON.stringify(body) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return setStatus($("pstatus"), d.detail || "Could not save your details.", false);
+    setStatus($("pstatus"), "Saved", true);
+  } catch (_) { setStatus($("pstatus"), "Could not reach Halia.", false); }
+}
 $("radar").onchange = persist;
 
 // ── look up on any page: needs a broad host grant, so it is a deliberate opt-in ──

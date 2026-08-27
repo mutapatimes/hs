@@ -305,15 +305,16 @@ private struct WizardView: View {
     let onFinish: () -> Void
 
     @State private var step = 0
-    private let total = 3
+    private let total = 4
 
     var body: some View {
         VStack(spacing: 0) {
             header
             TabView(selection: $step) {
                 ConnectStep(model: model).tag(0)
-                KeyboardStep().tag(1)
-                ExtensionsStep().tag(2)
+                DetailsStep().tag(1)
+                KeyboardStep().tag(2)
+                ExtensionsStep().tag(3)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeInOut(duration: 0.35), value: step)
@@ -478,6 +479,30 @@ private struct ConnectStep: View {
                 onCode: { code in showScanner = false; model.connect(scanned: code) },
                 onCancel: { showScanner = false })
         }
+    }
+}
+
+/// Who you are: signs every draft and template, and identifies your seat to the team.
+private struct DetailsStep: View {
+    @State private var card = MyCard.load()
+
+    var body: some View {
+        StepScaffold("Your details", "Your name and position sign every message Halia drafts for you.") {
+            Card {
+                LuxeField(label: "Your name", text: $card.name)
+                LuxeField(label: "Work email", text: $card.email)
+                LuxeField(label: "Position, e.g. Client Advisor", text: $card.title)
+                LuxeField(label: "Sign-off (optional)", text: $card.signoff)
+                Text("Leave the sign-off blank to sign with your name, position and the store.")
+                    .font(.system(size: 12.5)).foregroundColor(Palette.faint)
+            }
+        }
+        .task { await MyCard.prefillFromServer(); card = MyCard.load() }
+        .onChange(of: card.name) { _ in card.save() }
+        .onChange(of: card.email) { _ in card.save() }
+        .onChange(of: card.title) { _ in card.save() }
+        .onChange(of: card.signoff) { _ in card.save() }
+        .onDisappear { card.syncToServer() }
     }
 }
 
@@ -939,6 +964,7 @@ private struct MyCard: Codable {
     var title = ""
     var phone = ""
     var email = ""
+    var signoff = ""
 
     static let key = "halia.mycard.json"
 
@@ -954,6 +980,25 @@ private struct MyCard: Codable {
 
     func save() {
         if let d = try? JSONEncoder().encode(self) { AppGroup.defaults.set(d, forKey: Self.key) }
+    }
+
+    /// Push the card to the seat on the server (best-effort): drafts and templates then sign
+    /// with it everywhere, and the manager's Team panel shows the right email.
+    func syncToServer() {
+        let c = self
+        Task { try? await HaliaAPI.current.saveProfile(name: c.name, email: c.email,
+                                                        title: c.title, signoff: c.signoff) }
+    }
+
+    /// Fill empty fields from the seat's server profile (the manager may have set them).
+    static func prefillFromServer() async {
+        guard let p = try? await HaliaAPI.current.fetchProfile() else { return }
+        var c = load(); var changed = false
+        if c.name.isEmpty, let v = p.name, !v.isEmpty { c.name = v; changed = true }
+        if c.email.isEmpty, let v = p.email, !v.isEmpty { c.email = v; changed = true }
+        if c.title.isEmpty, let v = p.title, !v.isEmpty { c.title = v; changed = true }
+        if c.signoff.isEmpty, p.default_signoff == false, let v = p.signoff, !v.isEmpty { c.signoff = v; changed = true }
+        if changed { c.save() }
     }
 
     var firstName: String { name.split(separator: " ").first.map(String.init) ?? name }
@@ -1059,8 +1104,10 @@ private struct CaptureToolsView: View {
                     TextField("Phone", text: $card.phone).keyboardType(.phonePad)
                     TextField("Email", text: $card.email)
                         .keyboardType(.emailAddress).autocapitalization(.none)
+                    TextField("Sign-off, e.g. Warm regards, Sarah", text: $card.signoff, axis: .vertical)
+                        .lineLimit(1...3)
                 } header: { Text("Your details") } footer: {
-                    Text("Kept on this device. They power the card and the WhatsApp QR.")
+                    Text("Your name and position sign every draft. Kept with your seat, and on this device for the card and the WhatsApp QR.")
                 }
             }
             .navigationTitle("Capture tools")
@@ -1074,6 +1121,8 @@ private struct CaptureToolsView: View {
             .onChange(of: card.title) { _ in card.save(); writeVcard() }
             .onChange(of: card.phone) { _ in card.save(); writeVcard() }
             .onChange(of: card.email) { _ in card.save(); writeVcard() }
+            .onChange(of: card.signoff) { _ in card.save() }
+            .onDisappear { card.syncToServer() }
             .task {
                 writeVcard()
                 captureURL = try? await HaliaAPI.current.captureLink()

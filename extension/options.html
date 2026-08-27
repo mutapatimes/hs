@@ -105,9 +105,17 @@
 
     <!-- 2 · Name -->
     <section class="step card" data-step="2">
-      <h2>Your name</h2>
-      <p class="sub">Everything you do carries your name, so the team can see who reached out to a client.</p>
-      <div class="row"><input id="name" type="text" placeholder="e.g. Sarah" autocomplete="off" /></div>
+      <h2>Your details</h2>
+      <p class="sub">Your name and position sign every draft, and the team can see who reached out to a client.</p>
+      <div class="row"><input id="name" type="text" placeholder="Your name, e.g. Sarah Bloom" autocomplete="off" /></div>
+      <div class="row" style="margin-top:8px"><input id="pemail" type="email" placeholder="Your work email" autocomplete="off" /></div>
+      <div class="row" style="margin-top:8px"><input id="ptitle" type="text" placeholder="Your position, e.g. Client Advisor" autocomplete="off" /></div>
+      <div class="row" style="margin-top:8px">
+        <label for="psignoff">Sign-off</label>
+        <textarea id="psignoff" rows="3" placeholder="How your messages end, e.g.&#10;Warm regards,&#10;Sarah Bloom, Client Advisor" style="width:100%;box-sizing:border-box;font:inherit;padding:9px 11px;border:1px solid #e3e3e3;border-radius:8px;resize:vertical"></textarea>
+        <div class="hint">Leave blank to sign with your name, position and the store.</div>
+      </div>
+      <div id="pstatus" class="status"></div>
       <div class="wiznav"><span class="sp"></span>
         <button class="plain" data-skip>Skip</button>
         <button data-next>Continue →</button></div>
