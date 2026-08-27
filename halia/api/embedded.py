@@ -102,6 +102,14 @@ def _head(shop: str = "") -> str:
     return _HEAD.format(key=key or "")
 
 
+def _pending_payload() -> dict:
+    """An empty dashboard payload flagged sync_running, so the SPA shows the scoring screen."""
+    return {"segments": {}, "data": [], "orders": [], "landscape": {}, "platform": "shopify",
+            "stat_scored": "", "stat_latent": "", "stat_count": "", "stat_avgspend": "",
+            "stat_toptier": "", "full_history": True, "locked_count": 0, "locked_latent": "",
+            "sync_running": True}
+
+
 def _error_page(head: str) -> str:
     # Generic — never echoes exception text (which could contain customer data).
     return (
@@ -131,8 +139,20 @@ def register(app) -> None:
 
         head = _head(shop)
         try:
-            entry = cache.get(shop) or data.sync_shop_authed(shop, session_token)
-            body = render_payload(entry["payload"], head_extra=head, body_extra=_NAV_MENU)
+            entry = cache.get(shop)
+            if entry is None:
+                # First load (or a cold process): never run the full fetch + score inside the
+                # install navigation. A large book takes longer than the edge proxy will wait and
+                # the merchant sees a 502 instead of the app. Exchange the token now (fast), score
+                # in the background, and render the "scoring your customers" screen, which polls
+                # /v1/sync/state and reloads itself the moment the book is ready.
+                from halia.api.onboarding import _start_sync
+                from halia.api.shopify_auth import ensure_offline_token
+                ensure_offline_token(shop, session_token)
+                _start_sync(shop)
+                body = render_payload(_pending_payload(), head_extra=head, body_extra=_NAV_MENU)
+            else:
+                body = render_payload(entry["payload"], head_extra=head, body_extra=_NAV_MENU)
         except Exception as exc:
             # Log the exception TYPE only (safe — never customer data) so the operator can tell
             # which stage failed: ShopifyAuthError=token/scopes, ShopifyError=fetch, HTTPException
@@ -158,6 +178,15 @@ def register(app) -> None:
     @app.get("/view/{section}", response_class=HTMLResponse)
     def app_section(section: str, request: Request):
         return _serve_dashboard(request)
+
+    @app.get("/v1/sync/state")
+    def sync_state(shop: str = Depends(require_shop)) -> dict:
+        """Where the background scoring got to: running / done / error, plus whether the book
+        is in memory now (the SPA polls this on first load and reloads on ready)."""
+        from halia.api.onboarding import sync_status
+        st = sync_status(shop)
+        return {"state": st.get("state"), "error": st.get("error", ""),
+                "ready": cache.get(shop) is not None}
 
     @app.post("/v1/sync")
     def sync_now(request: Request, shop: str = Depends(require_shop)):

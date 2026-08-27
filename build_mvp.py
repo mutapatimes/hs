@@ -645,6 +645,7 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     html = html.replace("__FULL_HISTORY__", "true" if payload.get("full_history", True) else "false")
     html = html.replace("__LOCKED_COUNT__", str(payload.get("locked_count", 0)))
     html = html.replace("__LOCKED_LATENT__", _safe(json.dumps(payload.get("locked_latent", ""))))
+    html = html.replace("__SYNC_RUNNING__", "true" if payload.get("sync_running") else "false")
     return html
 
 
