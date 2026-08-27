@@ -592,6 +592,9 @@ private struct HomeView: View {
     @State private var showCapture = false
     @State private var showCaptureTools = false
     @State private var captureNote: String?
+    @State private var captureId: String?
+    @State private var followedUp = false
+    @State private var birthdays: [HaliaAPI.Birthday] = []
     @State private var week: HaliaAPI.Week?
     @State private var weekDays = 365          // all by default; the picker narrows it
     @Environment(\.openURL) private var openURL
@@ -650,6 +653,29 @@ private struct HomeView: View {
                     } header: { Text("Your results") }
                 }
 
+                if !birthdays.isEmpty {
+                    Section {
+                        ForEach(Array(birthdays.prefix(5).enumerated()), id: \.offset) { _, b in
+                            HStack(spacing: 10) {
+                                Image(systemName: "gift").foregroundStyle(Palette.brand)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(b.name ?? "A client").font(.body)
+                                    Text(weekdayLine(b)).font(.footnote).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if let g = b.grade, !g.isEmpty {
+                                    Text(g).font(.caption.weight(.semibold))
+                                        .padding(.horizontal, 7).padding(.vertical, 3)
+                                        .background(Capsule().fill(Palette.brand.opacity(0.12)))
+                                        .foregroundStyle(Palette.brandDeep)
+                                }
+                            }
+                        }
+                    } header: { Text("Birthdays") } footer: {
+                        Text("The birthday note is in your templates, ready to send.")
+                    }
+                }
+
                 Section("Clients") {
                     navRow("Add a client", "Capture their details, straight into your book",
                            icon: "person.crop.circle.badge.plus", tint: Palette.brand) { showCapture = true }
@@ -689,29 +715,53 @@ private struct HomeView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("Halia")
             .tint(Palette.brand)
-            .task { week = try? await HaliaAPI.current.myWeek(days: weekDays) }
-            .refreshable { await model.sync(); week = try? await HaliaAPI.current.myWeek(days: weekDays) }
+            .task { week = try? await HaliaAPI.current.myWeek(days: weekDays)
+                    birthdays = (try? await HaliaAPI.current.birthdays()) ?? [] }
+            .refreshable { await model.sync(); week = try? await HaliaAPI.current.myWeek(days: weekDays)
+                           birthdays = (try? await HaliaAPI.current.birthdays()) ?? [] }
         }
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
         .fullScreenCover(isPresented: $showCapture) {
-            CaptureView { note in captureNote = note }
+            CaptureView { note, cid in captureNote = note; captureId = cid; followedUp = false }
         }
         .sheet(isPresented: $showCaptureTools) { CaptureToolsView() }
         .overlay(alignment: .bottom) {
             if let note = captureNote {
-                Text(note)
-                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(Capsule().fill(Palette.brandDeep))
-                    .padding(.bottom, 40)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                            withAnimation(.spring(duration: 0.4)) { captureNote = nil }
+                HStack(spacing: 12) {
+                    Text(note).font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                    if let cid = captureId, !followedUp {
+                        Button {
+                            followedUp = true
+                            Task { try? await HaliaAPI.current.captureFollowUp(
+                                customerId: cid, note: "Met in store, follow up today") }
+                        } label: {
+                            Text("Follow up today")
+                                .font(.system(size: 13, weight: .semibold))
+                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(Capsule().fill(Color.white.opacity(0.18)))
+                                .foregroundColor(.white)
                         }
+                    } else if followedUp {
+                        Text("On your list").font(.system(size: 12)).foregroundColor(.white.opacity(0.8))
                     }
+                }
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(Capsule().fill(Palette.brandDeep))
+                .padding(.bottom, 40)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                        withAnimation(.spring(duration: 0.4)) { captureNote = nil; captureId = nil }
+                    }
+                }
             }
         }
+    }
+
+    private func weekdayLine(_ b: HaliaAPI.Birthday) -> String {
+        let n = b.in_days ?? 0
+        let when = n == 0 ? "Today" : (n == 1 ? "Tomorrow" : "In \(n) days")
+        return when + (b.date.map { " \u{00b7} " + String($0.suffix(5)).replacingOccurrences(of: "-", with: "/") } ?? "")
     }
 
     private func weekStat(_ value: String, _ label: String) -> some View {
@@ -820,7 +870,7 @@ private struct OpenersEditor: View {
 // open the rest of the app is unreachable; leaving it goes through a hand-back screen so the
 // desk is never the first thing a client sees.
 private struct CaptureView: View {
-    let onDone: (String?) -> Void
+    let onDone: (String?, String?) -> Void      // (note for the toast, saved customer id)
     @Environment(\.dismiss) private var dismiss
 
     @State private var first = ""
@@ -844,6 +894,7 @@ private struct CaptureView: View {
     @State private var checkedOnce = false
     @State private var handBack = false     // saved (or cancelled): show the hand-back screen
     @State private var savedGrade: String?
+    @State private var savedId: String?
 
     private var canSave: Bool {
         !saving && (!email.trimmingCharacters(in: .whitespaces).isEmpty
@@ -944,7 +995,7 @@ private struct CaptureView: View {
                 .padding(.vertical, 14).padding(.horizontal, 36)
                 .background(Capsule().stroke(Color.secondary.opacity(0.4)))
                 .onLongPressGesture(minimumDuration: 1.2) {
-                    onDone(savedGrade.map { "Saved \u{00b7} Grade " + $0 })
+                    onDone(savedGrade.map { "Saved \u{00b7} Grade " + $0 } ?? (savedId != nil ? "Saved" : nil), savedId)
                     dismiss()
                 }
                 .padding(.bottom, 40)
@@ -981,6 +1032,7 @@ private struct CaptureView: View {
         do {
             let result = try await HaliaAPI.current.captureClient(fields)
             savedGrade = result.grade
+            savedId = result.customer_id
             saving = false
             handBack = true
         } catch {

@@ -219,8 +219,9 @@ def perform_capture(shop: str, body: dict, channel: str,
     out = {"ok": True, "created": created, "customer_id": cid}
     out.update(_score_capture(cid, body, email, phone))
     try:
-        from halia.api import reports
+        from halia.api import birthdays, reports
         reports.invalidate(shop)
+        birthdays.invalidate(shop)
     except Exception:  # noqa: BLE001
         pass
     return out
@@ -364,6 +365,36 @@ def register(app) -> None:
         channel = _clean(body.get("channel")) or "handover"
         return perform_capture(auth.shop, body, channel,
                                associate=auth.seat_name or "", seat_id=auth.seat_id or "")
+
+    @app.post("/v1/capture/followup")
+    def capture_followup(body: Any = Body(...),
+                         x_halia_ext_token: Optional[str] = Header(None)) -> dict:
+        """After a capture: put the client on the pipeline's first column with the associate's
+        note, so the follow-up happens the same day instead of never."""
+        from halia.api.board import _sink, _write_soft, append_activity, load_pipe
+        from halia.api.extension import _resolve_ext
+        from scoring.shopify_pipeline import STAGES, stage_tag
+
+        auth = _resolve_ext(x_halia_ext_token)
+        cid = _clean((body or {}).get("customer_id")).rsplit("/", 1)[-1]
+        if not cid:
+            raise HTTPException(422, "customer_id is required")
+        note = _clean((body or {}).get("note"))[:2000]
+        sink = _sink(auth.shop)
+        pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
+        stage = STAGES[0]
+        pipe["stage"] = stage
+        append_activity(pipe, "added", auth.seat_id, auth.seat_name or "A team member",
+                        note=note or "Met in store, follow up today")
+        sink.untag_customer(cid, [stage_tag(s) for s in STAGES if s != stage])
+        sink.tag_customer(cid, [stage_tag(stage)])
+        _write_soft(sink, cid, pipe)
+        try:
+            from halia.api import reports
+            reports.invalidate(auth.shop)
+        except Exception:  # noqa: BLE001
+            pass
+        return {"ok": True, "stage": stage}
 
     @app.get("/v1/capture/link")
     def capture_link(x_halia_ext_token: Optional[str] = Header(None)) -> dict:

@@ -112,7 +112,16 @@ def _todos(shop: str) -> list[dict]:
         elif _play_of(r) == "sleeping":
             out.append({"kind": "gone_quiet", "cid": r.get("cid"), "name": name, "grade": grade,
                         "text": f"Gone quiet · {name} ({grade}) · reach out"})
-    out.sort(key=lambda t: 0 if t["kind"] == "new_order" else 1)
+    # Birthdays in the next week ride the same queue: the easiest note of the year to send.
+    try:
+        from halia.api.birthdays import upcoming
+        for b in upcoming(shop, 7)[:5]:
+            when = "today" if b["in_days"] == 0 else ("tomorrow" if b["in_days"] == 1 else f"in {b['in_days']} days")
+            out.append({"kind": "birthday", "cid": b["cid"], "name": b["name"], "grade": b.get("grade") or "",
+                        "why": f"Birthday {when}", "reason": f"Birthday {when}", "template": "A birthday note"})
+    except Exception:  # noqa: BLE001 — birthdays are a bonus on this queue
+        pass
+    out.sort(key=lambda t: {"new_order": 0, "birthday": 1}.get(t["kind"], 2))
     return out[:15]
 
 
@@ -774,6 +783,15 @@ def register(app) -> None:
         if auth.seat_id:
             shop_store().signout_seat(auth.seat_id)
         return {"ok": True}
+
+    @app.get("/v1/extension/birthdays")
+    def extension_birthdays(x_halia_ext_token: Optional[str] = Header(None), days: int = 14) -> dict:
+        """Birthdays coming up, for the desk: name, date, grade, with the note one tap away."""
+        from halia.api.birthdays import upcoming
+
+        auth = _resolve_ext(x_halia_ext_token)
+        rows = upcoming(auth.shop, max(1, min(int(days or 14), 90)))
+        return {"count": len(rows), "birthdays": rows}
 
     @app.get("/v1/extension/week")
     def extension_week(x_halia_ext_token: Optional[str] = Header(None), days: int = 7) -> dict:

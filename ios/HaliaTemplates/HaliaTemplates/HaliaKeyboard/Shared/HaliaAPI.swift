@@ -438,6 +438,30 @@ struct HaliaAPI {
         return w
     }
 
+    // MARK: After a capture: the same-day follow-up, and birthdays coming up
+
+    private struct OkOnly: Decodable { let ok: Bool? }
+
+    /// Put a just-captured client on the pipeline's first column with a note.
+    func captureFollowUp(customerId: String, note: String) async throws {
+        let _: OkOnly = try await postAny("/v1/capture/followup",
+                                          body: ["customer_id": customerId, "note": note])
+    }
+
+    struct Birthday: Decodable {
+        let cid: String?
+        let name: String?
+        let grade: String?
+        let date: String?
+        let in_days: Int?
+    }
+    private struct BirthdaysEnvelope: Decodable { let birthdays: [Birthday]? }
+
+    func birthdays(days: Int = 14) async throws -> [Birthday] {
+        let (data, _) = try await send("/v1/extension/birthdays?days=\(days)", method: "GET", body: nil)
+        return (try? JSONDecoder().decode(BirthdaysEnvelope.self, from: data))?.birthdays ?? []
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {
