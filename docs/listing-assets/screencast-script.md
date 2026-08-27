@@ -18,13 +18,13 @@ one matters. Here's how a merchant uses it, start to finish."
 
 ## SCENE 2 — Onboarding (0:20–1:05)
 ON SCREEN: Shopify App Store listing page for Halia → click "Add app" → the install/permissions
-screen → approve → the app opens embedded inside Shopify admin → the first-run sync runs and
-the Overview populates.
+screen → approve → the app opens embedded inside Shopify admin → the "Scoring your customers"
+screen with its timer → it reloads by itself into the Overview.
 VOICEOVER:
-"Install is one click from the App Store. Halia uses Shopify's managed install, so there are no
-tokens to copy and no setup wizard. You approve access to customers, orders and products, and it
-opens right inside your Shopify admin. On first load it scores your customer base. Within a
-moment, the Overview fills in."
+"Install is one click from the App Store. Halia uses Shopify's managed install: you approve
+access to customers, orders and products, and it opens right inside your Shopify admin. On first
+open it reads your order history and scores your customer base in the background. You see this
+screen for a few seconds, then the Overview loads on its own. That is the whole setup."
 
 ## SCENE 3 — Overview: the headline (1:05–1:45)
 ON SCREEN: Slowly pass over the Overview: total latent value, number of potential VICs, grade
@@ -86,3 +86,19 @@ lets you do what only you can do, which is have the conversation."
 - No Shopify logo close-ups needed; showing the app embedded in admin is expected and fine here
   (the logo rule is for static listing images, not the demo video).
 - Upload to YouTube (Unlisted) or Vimeo, paste that link in the Screencast URL field.
+
+## SCENE 8 — Billing, on Shopify (add before the close)
+ON SCREEN: Settings → Billing. All plans visible: Free scan, Discovery, Signal, Atelier, Maison.
+Click "Choose Signal" → Shopify's subscription approval page opens → Approve (test charge) →
+the app reloads with Signal marked "Current plan". Then scroll to Maison and show "Talk to us".
+VOICEOVER:
+"Plans are billed through Shopify. Every plan is listed here. Choosing one takes you to
+Shopify's own approval page, and you land back in the app on the new plan. Maison is custom
+pricing for groups and the largest houses; that one starts with a conversation. Switching to
+Free cancels through Shopify, from the same screen."
+
+## REVIEWER NOTE
+Record on a dev store with HALIA_SHOPIFY_BILLING_TEST=true so the approval creates a test
+subscription. Show every step the reviewer will repeat: install, first load, the Clients tab, one
+client, Settings, Billing. Under 8 minutes, English voiceover.
+
