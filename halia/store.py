@@ -320,6 +320,7 @@ class _DB:
         # IF NOT EXISTS won't add new columns to them).
         for col in ("access_expires_at", "refresh_token", "refresh_expires_at"):
             self._add_column("shops", col, "TEXT")
+        self._add_column("seats", "email", "TEXT")   # seats gained an email identity (2026-08)
 
     def _add_column(self, table: str, col: str, decl: str) -> None:
         """Add a column if it isn't already there (idempotent, both backends)."""
@@ -548,15 +549,30 @@ class ShopStore(_DB):
         return row["shop"] if row else None
 
     # ── Seats (per-employee sign-in credentials) ────────────────────────────────
-    def create_seat(self, shop: str, name: str, token_hash: str) -> str:
-        """Provision one seat under a shop with its (already hashed) sign-in token. Returns the seat id."""
+    def create_seat(self, shop: str, name: str, token_hash: str, email: str = "") -> str:
+        """Provision one seat under a shop with its (already hashed) sign-in token. Returns the seat id.
+        The email, when given, is the seat's identity: one live seat per email per shop."""
+        self._add_column("seats", "email", "TEXT")
         seat_id = secrets.token_hex(8)
         self._run(
-            """INSERT INTO seats (id, shop, name, token_hash, created_at)
-               VALUES (:id, :shop, :name, :th, :at)""",
+            """INSERT INTO seats (id, shop, name, token_hash, created_at, email)
+               VALUES (:id, :shop, :name, :th, :at, :em)""",
             {"id": seat_id, "shop": shop, "name": (name or "Teammate")[:80],
-             "th": token_hash, "at": _now()})
+             "th": token_hash, "at": _now(), "em": (email or "").strip().lower()[:200] or None})
         return seat_id
+
+    def seat_by_email(self, shop: str, email: str) -> dict | None:
+        """The live seat already held by this email under the shop, if any."""
+        self._add_column("seats", "email", "TEXT")
+        row = self._run(
+            "SELECT id, shop, name, email FROM seats WHERE shop = :shop AND email = :em "
+            "AND revoked_at IS NULL", {"shop": shop, "em": (email or "").strip().lower()}, fetch="one")
+        return dict(row) if row else None
+
+    def rotate_seat_token(self, seat_id: str, token_hash: str, name: str = "") -> None:
+        """Re-issue a seat's sign-in token (a lost phone, a new laptop). The old token dies."""
+        self._run("UPDATE seats SET token_hash = :th, name = COALESCE(NULLIF(:nm, ''), name) "
+                  "WHERE id = :id", {"th": token_hash, "nm": (name or "")[:80], "id": seat_id})
 
     def seat_for_token(self, token_hash: str) -> dict | None:
         """Resolve a seat token to {shop, seat_id, name}, excluding revoked seats."""
@@ -566,8 +582,9 @@ class ShopStore(_DB):
         return {"shop": row["shop"], "seat_id": row["id"], "name": row["name"]} if row else None
 
     def list_seats(self, shop: str) -> list[dict]:
+        self._add_column("seats", "email", "TEXT")
         rows = self._run(
-            "SELECT id, name, created_at, last_seen_at, revoked_at FROM seats "
+            "SELECT id, name, email, created_at, last_seen_at, revoked_at FROM seats "
             "WHERE shop = :shop AND revoked_at IS NULL ORDER BY created_at",
             {"shop": shop}, fetch="all") or []
         return [dict(r) for r in rows]

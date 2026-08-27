@@ -65,6 +65,7 @@ PROXY_SUBPATH = os.environ.get("HALIA_PROXY_SUBPATH", "catalogue").strip("/")
 # Demo (#3) / Clients (#4) lists. Sync is best-effort and no-ops when the API key is unset.
 BREVO_LIST_DEMO = os.environ.get("HALIA_BREVO_LIST_DEMO", "3")
 BREVO_LIST_CLIENTS = os.environ.get("HALIA_BREVO_LIST_CLIENTS", "4")
+BREVO_LIST_ASSOCIATES = os.environ.get("HALIA_BREVO_LIST_ASSOCIATES", "5")   # teammates with a seat
 
 # Shared secret for the lifecycle-email scheduler. A Render Cron Job POSTs /internal/cron/run
 # with this in the X-Cron-Key header to fire due journey emails. Unset -> the endpoint is disabled.

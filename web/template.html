@@ -3795,6 +3795,7 @@ function openSettings(page){
           </div>
           <div id="seatList" style="margin:6px 0 14px"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input id="seatEmail" type="email" placeholder="Their work email" style="flex:1;min-width:200px;border:1px solid var(--line-strong);border-radius:8px;padding:9px 11px;font:14px system-ui;color:var(--ink)">
             <input id="seatName" placeholder="Teammate's name" style="flex:1;min-width:180px;border:1px solid var(--line-strong);border-radius:8px;padding:9px 11px;font:14px system-ui;color:var(--ink);background:var(--card)">
             <button id="seatAdd" style="${BS}">Add teammate</button>
           </div>
@@ -4270,6 +4271,7 @@ function openSettings(page){
         list.innerHTML=seats.map(s=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)">
           <span style="width:8px;height:8px;border-radius:50%;background:${s.active?'#1f564a':'#c9cdcf'};flex:none"></span>
           <span style="font:600 14px system-ui;color:var(--ink)">${esc(s.name)}</span>
+          ${s.email?`<span style="font:12px system-ui;color:#8a8a8a">${esc(s.email)}</span>`:``}
           <span style="font:12px system-ui;color:#8a8a8a">${s.active?'active':(s.lastSeen?'idle':'not signed in yet')}</span>
           <button data-revoke="${s.id}" style="margin-left:auto;background:none;border:none;color:#9a3838;font:600 13px system-ui;cursor:pointer;padding:0">Revoke</button>
         </div>`).join("");
@@ -4282,13 +4284,17 @@ function openSettings(page){
     renderSeats();
     const seatAdd=document.getElementById("seatAdd"); if(seatAdd) seatAdd.onclick=()=>{
       const nm=((document.getElementById("seatName")||{}).value||"").trim();
+      const em=((document.getElementById("seatEmail")||{}).value||"").trim();
       if(!nm){toast("Enter a name");return;}
+      if(!em||em.indexOf("@")<0){toast("Enter their work email; it is how their seat is identified and where their setup guide goes.");return;}
       seatAdd.disabled=true;seatAdd.textContent="Adding…";
-      fetch("/v1/seats",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:nm})})
+      fetch("/v1/seats",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({name:nm,email:em})})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
           seatAdd.disabled=false;seatAdd.textContent="Add teammate";
           if(!ok)throw new Error((d&&d.detail)||"failed");
-          document.getElementById("seatName").value="";
+          document.getElementById("seatName").value=""; const se=document.getElementById("seatEmail"); if(se) se.value="";
+          if(d.reissued) toast("That email already had a seat: a fresh sign-in was issued and the old one stopped.");
+          else toast("Seat created. Their setup guide is on its way by email.");
           const out=document.getElementById("seatOut");
           document.getElementById("seatOutName").textContent=d.name;
           document.getElementById("seatTok").textContent=d.token;

@@ -14,7 +14,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import Body, Depends
+from fastapi import HTTPException, Body, Depends
 
 from halia import config
 from halia.api.shopify_auth import require_shop, shop_store
@@ -38,6 +38,25 @@ def _connect_qr(connect: str) -> Optional[str]:
         return None
 
 
+def _welcome_associate(shop: str, email: str, name: str, connect: str) -> None:
+    """A new seat starts the associate journey (how to sign in, the first moves, capture) and
+    joins the Brevo associates list. Best-effort: a mail hiccup never blocks the seat."""
+    try:
+        from halia import journeys
+        from halia.api.shopify_auth import shop_store as _ss
+        tenant = dict(_ss().get_tenant(shop) or {})
+        journeys.enroll_associate(email, first=name.split(" ")[0] if name else "",
+                                  shop=shop, store_name=tenant.get("label") or shop,
+                                  connect=connect)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from halia import notify_brevo
+        notify_brevo.add_associate(email, {"SEAT_NAME": name, "SHOP": shop})
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def register(app) -> None:
     @app.get("/v1/seats")
     def list_seats(shop: str = Depends(require_shop)) -> dict:
@@ -46,20 +65,37 @@ def register(app) -> None:
         seats = []
         for s in shop_store().list_seats(shop):
             last = s.get("last_seen_at")
-            seats.append({"id": s["id"], "name": s["name"], "lastSeen": last,
-                          "active": bool(last and last >= cutoff)})
+            seats.append({"id": s["id"], "name": s["name"], "email": s.get("email") or "",
+                          "lastSeen": last, "active": bool(last and last >= cutoff)})
         return {"seats": seats, "count": shop_store().active_seat_count(shop, days=_ACTIVE_DAYS)}
 
     @app.post("/v1/seats")
     def create_seat(shop: str = Depends(require_shop), payload: dict = Body(default={})) -> dict:
         """Provision a seat and return its one-time join token + QR (the raw token is shown only here)."""
+        from halia.capture_quality import clean_email
+
         name = str((payload or {}).get("name") or "").strip()[:80] or "Teammate"
+        raw_email = str((payload or {}).get("email") or "").strip()
+        email, _, ok = clean_email(raw_email, check_dns=False) if raw_email else ("", None, True)
+        if raw_email and not ok:
+            raise HTTPException(422, "That email address does not look right.")
         token = new_token()
-        seat_id = shop_store().create_seat(shop, name, hash_token(token))
         base = (config.HALIA_APP_URL or "").rstrip("/")
+        store = shop_store()
+        reissued = False
+        existing = store.seat_by_email(shop, email) if email else None
+        if existing:
+            # The email is the identity: a second "add" re-issues that seat's token rather
+            # than creating a twin (a lost phone, a new laptop). The old token stops working.
+            store.rotate_seat_token(existing["id"], hash_token(token), name)
+            seat_id, reissued = existing["id"], True
+        else:
+            seat_id = store.create_seat(shop, name, hash_token(token), email)
         connect = f"halia://connect?t={token}&b={base}"
-        return {"seat_id": seat_id, "name": name, "token": token, "base": base,
-                "connect": connect, "qr": _connect_qr(connect)}
+        if email and not reissued:
+            _welcome_associate(shop, email, name, connect)
+        return {"seat_id": seat_id, "name": name, "email": email, "token": token, "base": base,
+                "connect": connect, "qr": _connect_qr(connect), "reissued": reissued}
 
     @app.post("/v1/seats/{seat_id}/revoke")
     def revoke_seat(seat_id: str, shop: str = Depends(require_shop)) -> dict:

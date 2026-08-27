@@ -26,6 +26,9 @@ from halia.api.tenant_auth import _secret
 _SEQUENCES: dict[str, list[tuple[str, int]]] = {
     "demo": [("demo_intro", 0), ("demo_hidden", 4), ("demo_how", 4), ("demo_ready", 4)],
     "client": [("client_welcome", 0), ("client_action", 3), ("client_feedback", 4)],
+    # A teammate given a seat: sign in, first moves, capture at the counter, the weekly habit.
+    "associate": [("assoc_welcome", 0), ("assoc_first_moves", 2), ("assoc_capture", 3),
+                  ("assoc_habits", 4)],
 }
 _WEEKLY = ["weekly_vics", "weekly_feedback", "weekly_refresh"]
 _WEEKLY_EVERY_DAYS = 7
@@ -80,6 +83,14 @@ def enroll(email: str, journey: str, data: dict | None = None,
 
 def enroll_demo(email: str, store=None) -> bool:
     return enroll(email, "demo", store=store)
+
+
+def enroll_associate(email: str, first: str = "", shop: str = "", store_name: str = "",
+                     connect: str = "", store=None) -> bool:
+    """Start the associate onboarding for a newly issued seat. The join link rides the first
+    email so signing in is one tap from the inbox."""
+    return enroll(email, "associate", {"first": first, "shop": shop, "store_name": store_name,
+                                       "connect": connect}, store=store)
 
 
 def enroll_client(email: str, first: str = "", shop: str = "", store=None) -> None:
