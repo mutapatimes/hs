@@ -19,6 +19,14 @@ from scoring.shopify_pipeline import fetch_pipeline_cards
 
 CONVERSION_WINDOW_DAYS = 14          # an order within this many days of a contact counts
 UNATTRIBUTED = "unattributed"
+_TTL_SECONDS = 600                   # a built report lives in RAM this long (never on disk)
+_REPORT_CACHE: dict[tuple, tuple[float, dict]] = {}
+
+
+def invalidate(shop: str) -> None:
+    """Drop cached reports for a shop (a pipeline move, a contact log, a capture)."""
+    for key in [k for k in _REPORT_CACHE if k[0] == shop]:
+        _REPORT_CACHE.pop(key, None)
 
 _CAPTURES_QUERY = """
 query HaliaCaptures($cursor: String) {
@@ -69,10 +77,21 @@ def _parse(s: Any) -> datetime | None:
         return None
 
 
-def build_report(shop: str, days: int = 30) -> dict:
-    from halia.api.board import _sink
+def build_report(shop: str, days: int = 30, fresh: bool = False) -> dict:
+    import time as _time
 
     days = max(1, min(int(days or 30), 365))
+    hit = _REPORT_CACHE.get((shop, days))
+    if hit and not fresh and _time.time() - hit[0] < _TTL_SECONDS:
+        return hit[1]
+    rep = _build_report(shop, days)
+    _REPORT_CACHE[(shop, days)] = (_time.time(), rep)
+    return rep
+
+
+def _build_report(shop: str, days: int) -> dict:
+    from halia.api.board import _sink
+
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     try:
         sink = _sink(shop)
@@ -86,8 +105,14 @@ def build_report(shop: str, days: int = 30) -> dict:
     for o in payload.get("orders") or []:
         orders_by_cid.setdefault(str(o.get("cid")), []).append(o)
 
-    seats = {s["id"]: {"id": s["id"], "name": s["name"], "title": s.get("title") or "",
-                       "email": s.get("email") or ""} for s in shop_store().list_seats(shop)}
+    seats, former = {}, set()
+    for s in shop_store().list_seats(shop, include_revoked=True):
+        gone = bool(s.get("revoked_at"))
+        if gone:
+            former.add(s["id"])
+        seats[s["id"]] = {"id": s["id"], "name": s["name"] + (" (former)" if gone else ""),
+                          "title": s.get("title") or "", "email": s.get("email") or "",
+                          "former": gone}
 
     def bucket(actor_id):
         key = actor_id if actor_id in seats else UNATTRIBUTED
@@ -99,8 +124,9 @@ def build_report(shop: str, days: int = 30) -> dict:
         return rows[key]
 
     rows: dict[str, dict] = {}
-    for sid in seats:                     # every teammate appears, even with a quiet month
-        bucket(sid)
+    for sid in seats:                     # every current teammate appears, even with a quiet month
+        if sid not in former:
+            bucket(sid)
     contacts: list[tuple[str, datetime, str]] = []   # (cid, when, actor bucket key)
 
     for card in cards.values():
@@ -167,7 +193,7 @@ def build_report(shop: str, days: int = 30) -> dict:
         r["rate"] = round(r["conversions"] / r["contacts"], 2) if r["contacts"] else 0.0
         out.append(r)
     seat_rows = sorted([r for r in out if r["id"] != UNATTRIBUTED],
-                       key=lambda r: (-r["contacts"], r["name"]))
+                       key=lambda r: (r.get("former", False), -r["contacts"], r["name"]))
     unatt = next((r for r in out if r["id"] == UNATTRIBUTED), None)
     if unatt and not any(unatt[k] for k in ("contacts", "moves", "assigns", "notes", "conversions", "captures")):
         unatt = None

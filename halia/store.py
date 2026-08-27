@@ -624,12 +624,13 @@ class ShopStore(_DB):
             {"th": token_hash}, fetch="one")
         return {"shop": row["shop"], "seat_id": row["id"], "name": row["name"]} if row else None
 
-    def list_seats(self, shop: str) -> list[dict]:
+    def list_seats(self, shop: str, include_revoked: bool = False) -> list[dict]:
         for col in ("email", "title", "signoff"):
             self._add_column("seats", col, "TEXT")
         rows = self._run(
             "SELECT id, name, email, title, created_at, last_seen_at, revoked_at FROM seats "
-            "WHERE shop = :shop AND revoked_at IS NULL ORDER BY created_at",
+            "WHERE shop = :shop " + ("" if include_revoked else "AND revoked_at IS NULL ")
+            + "ORDER BY created_at",
             {"shop": shop}, fetch="all") or []
         return [dict(r) for r in rows]
 

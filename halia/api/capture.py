@@ -218,6 +218,11 @@ def perform_capture(shop: str, body: dict, channel: str,
 
     out = {"ok": True, "created": created, "customer_id": cid}
     out.update(_score_capture(cid, body, email, phone))
+    try:
+        from halia.api import reports
+        reports.invalidate(shop)
+    except Exception:  # noqa: BLE001
+        pass
     return out
 
 

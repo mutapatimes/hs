@@ -2517,7 +2517,14 @@ function renderTeamReport(){
       </tbody>
       <tfoot><tr>${td("All","left",true)}${td(d.totals.contacts,null,true)}${td(d.totals.clients,null,true)}${td("")}${td(d.totals.captures,null,true)}${td("")}${td(d.totals.conversions,null,true)}${td(pct(d.totals.rate),null,true)}${td(money(d.totals.revenue),null,true)}</tr></tfoot>
     </table></div>
-    <div style="font:12px system-ui;color:#8a8a8a;margin-top:10px">Converted = the client ordered within ${d.window} days of a contact, credited to the latest contact before the order. "Shared sign-in" is activity from a browser with no seat. Captured counts the clients each associate added, with how many graded A or above.</div>`;
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:10px"><div style="font:12px system-ui;color:#8a8a8a">Converted = the client ordered within ${d.window} days of a contact, credited to the latest contact before the order. "Shared sign-in" is activity from a browser with no seat. Captured counts the clients each associate added, with how many graded A or above.</div>
+    <button id="ovTeamCsv" style="flex:none;background:none;border:1px solid var(--line);border-radius:8px;padding:6px 11px;font:600 12px system-ui;color:var(--ink);cursor:pointer">Export CSV</button></div>`;
+    const csvBtn=document.getElementById("ovTeamCsv"); if(csvBtn) csvBtn.onclick=()=>{
+      const cols=["name","title","contacts","clients","topShare","captures","captured_top","owned","conversions","rate","revenue"];
+      const lines=[cols.join(",")].concat(rows.map(r=>cols.map(c=>{const v=r[c]==null?"":String(r[c]);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(",")));
+      const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"}));
+      a.download="halia-team-"+days+"d.csv"; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+    };`;
     const ms=document.getElementById("ovTeamMetric");
     if(ms) ms.onchange=()=>{ try{localStorage.setItem("halia_team_metric",ms.value);}catch(e){} renderTeamReport(); };
   }).catch(()=>{ box.innerHTML='<div style="font:13.5px system-ui;color:var(--soft)">Could not load the team report just now.</div>'; });
