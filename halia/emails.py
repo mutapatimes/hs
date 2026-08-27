@@ -224,6 +224,24 @@ def weekly_vics(d):
             "A quiet reminder to check Halia this week. " + lead + f" {_app(d)}/app")
 
 
+def weekly_team(d):
+    t = (d.get("team") or {}).get("totals") or {}
+    top = (d.get("team") or {}).get("top") or []
+    money = lambda n: "£" + f"{int(n or 0):,}"
+    lead = (f"Last week your team logged {int(t.get('contacts') or 0)} contacts with "
+            f"{int(t.get('clients') or 0)} clients, captured {int(t.get('captures') or 0)} new ones, and "
+            f"{int(t.get('conversions') or 0)} of those contacts led to an order: {money(t.get('revenue'))}.")
+    names = "; ".join(f"{_html.escape(r.get('name',''))}: {money(r.get('revenue'))} from "
+                      f"{int(r.get('contacts') or 0)} contact{'s' if r.get('contacts') != 1 else ''}"
+                      for r in top)
+    body = (_p(_html.escape(lead))
+            + (_p("Leading the week: " + names + ".") if names else "")
+            + _btn("See the team report", f"{_app(d)}/app")
+            + _p("Switch on Team performance at the top of the Overview for the full table."))
+    return ("Your team, last week", body,
+            lead + (" Leading the week: " + names + "." if names else "") + f" {_app(d)}/app")
+
+
 def weekly_feedback(d):
     body = (
         _p("If you have a moment in Halia this week, mark a few grades as good call or not a fit.")
@@ -348,7 +366,7 @@ _TEMPLATES = {
     "demo_ready": demo_ready,
     "client_welcome": client_welcome, "client_action": client_action,
     "client_feedback": client_feedback,
-    "weekly_vics": weekly_vics, "weekly_feedback": weekly_feedback,
+    "weekly_vics": weekly_vics, "weekly_team": weekly_team, "weekly_feedback": weekly_feedback,
     "weekly_refresh": weekly_refresh,
     "assoc_welcome": assoc_welcome, "assoc_first_moves": assoc_first_moves,
     "assoc_capture": assoc_capture, "assoc_habits": assoc_habits,

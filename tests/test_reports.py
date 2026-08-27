@@ -45,6 +45,7 @@ def env(tmp_path, monkeypatch):
                "activity": [{"action": "contacted", "actor_id": None, "at": _iso(2)},
                             {"action": "contacted", "actor_id": sarah, "at": _iso(60)}]},   # outside 30d
     }
+    reports._REPORT_CACHE.clear()          # the RAM cache is module-level: isolate every test
     monkeypatch.setattr(reports, "fetch_pipeline_cards", lambda transport: cards)
     monkeypatch.setattr(reports, "fetch_captures", lambda transport: [
         {"cid": "c1", "channel": "handover", "seat_id": sarah, "at": _iso(6)},
@@ -60,7 +61,7 @@ def env(tmp_path, monkeypatch):
             {"orderId": "#3", "cid": "c1", "date": _day(40), "amount": 100},   # outside window
         ]}, orders=[])
     yield TestClient(app, cookies={COOKIE: tok}), store, sarah, omar
-    cache.clear()
+    cache.clear(); reports._REPORT_CACHE.clear()
 
 
 def test_report_folds_activity_orders_and_seats(env):
@@ -89,6 +90,7 @@ def test_window_and_non_shopify(env, monkeypatch):
     assert by[sarah]["contacts"] == 1 and by[omar]["contacts"] == 0
     from fastapi import HTTPException
     monkeypatch.setattr(board, "_sink", lambda shop: (_ for _ in ()).throw(HTTPException(400, "no")))
+    reports.invalidate(SHOP)
     assert client.get("/v1/reports/associates").json()["available"] is False
 
 
@@ -101,4 +103,38 @@ def test_seat_week_for_the_iphone_desk(env):
     assert d["me"]["captures"] == 1 and d["team"]["contacts"] == 4
     shared = _n(); store.set_extension_token(SHOP, _h(shared))
     assert client.get("/v1/extension/week", headers={"X-Halia-Ext-Token": shared}).json()["me"] is None
+
+
+def test_report_is_cached_and_invalidated(env, monkeypatch):
+    client, store, sarah, omar = env
+    calls = []
+    monkeypatch.setattr(reports, "fetch_captures", lambda transport: calls.append(1) or [])
+    reports.invalidate(SHOP)
+    client.get("/v1/reports/associates?days=30"); client.get("/v1/reports/associates?days=30")
+    assert len(calls) == 1                       # second read served from RAM
+    reports.invalidate(SHOP)
+    client.get("/v1/reports/associates?days=30")
+    assert len(calls) == 2
+
+
+def test_former_teammates_keep_their_history(env):
+    client, store, sarah, omar = env
+    reports.invalidate(SHOP)
+    store.revoke_seat(SHOP, omar)
+    d = client.get("/v1/reports/associates?days=30").json()
+    names = [r["name"] for r in d["seats"]]
+    assert "Omar Haddad (former)" in names and names[-1].endswith("(former)")
+    assert d["unattributed"]["contacts"] == 1     # Omar's contact did not fall into shared sign-in
+
+
+def test_weekly_team_digest_renders_and_falls_back(env, monkeypatch):
+    client, store, sarah, omar = env
+    from halia import emails, journeys
+    reports.invalidate(SHOP)
+    team = journeys._team_summary(SHOP)
+    # a 7-day digest: the contacts at 10 days out fall away, three remain
+    assert team and team["totals"]["contacts"] == 3 and team["top"][0]["name"] == "Sarah Bloom"
+    subject, html, text = emails.render("weekly_team", {"first": "Val", "team": team}, "https://x/u")
+    assert "logged 3 contacts" in text and "Sarah Bloom" in html
+    assert journeys._team_summary("nobody.myshopify.com") is None
 

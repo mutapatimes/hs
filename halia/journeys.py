@@ -30,7 +30,7 @@ _SEQUENCES: dict[str, list[tuple[str, int]]] = {
     "associate": [("assoc_welcome", 0), ("assoc_first_moves", 2), ("assoc_capture", 3),
                   ("assoc_habits", 4)],
 }
-_WEEKLY = ["weekly_vics", "weekly_feedback", "weekly_refresh"]
+_WEEKLY = ["weekly_vics", "weekly_team", "weekly_feedback", "weekly_refresh"]
 _WEEKLY_EVERY_DAYS = 7
 
 
@@ -109,6 +109,21 @@ def _send_one(email: str, template_key: str, data: dict, send) -> bool:
         return False
 
 
+def _team_summary(shop: str) -> dict | None:
+    """Last week's team numbers for the digest, or None when there is nothing to say."""
+    try:
+        from halia.api.reports import build_report
+        rep = build_report(shop, 7)
+    except Exception:  # noqa: BLE001
+        return None
+    if not rep.get("available") or not rep.get("seats"):
+        return None
+    if not (rep["totals"].get("contacts") or rep["totals"].get("captures")):
+        return None
+    top = sorted(rep["seats"], key=lambda r: (-r.get("revenue", 0), -r.get("contacts", 0)))[:3]
+    return {"totals": rep["totals"], "top": top}
+
+
 def _weekly_enrich(data: dict, store) -> dict:
     """Best-effort: fold last-fortnight hidden-VIC count into the weekly copy."""
     shop = data.get("shop")
@@ -154,7 +169,14 @@ def run_due(now: datetime | None = None, send=None, store=None) -> dict:
 
         elif journey == "weekly":
             tkey = _WEEKLY[step % len(_WEEKLY)]
-            if _send_one(email, tkey, _weekly_enrich(data, st), send):
+            payload = _weekly_enrich(data, st)
+            if tkey == "weekly_team":
+                team = _team_summary(str(data.get("shop") or "")) if data.get("shop") else None
+                if team:
+                    payload = {**payload, "team": team}
+                else:
+                    tkey = "weekly_vics"          # nothing to report yet: the usual nudge instead
+            if _send_one(email, tkey, payload, send):
                 sent += 1
             st.advance_journey(email, journey, step + 1,
                                _iso(now + timedelta(days=_WEEKLY_EVERY_DAYS)))

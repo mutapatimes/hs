@@ -85,6 +85,14 @@ def _actor(request: Request, payload: dict) -> tuple[str | None, str | None]:
     return staff, (str(payload.get("actor") or "").strip()[:80] or None)
 
 
+def _reports_invalidate(shop: str) -> None:
+    try:
+        from halia.api import reports
+        reports.invalidate(shop)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _shop_of(request: Request) -> str | None:
     try:
         from halia.api.shopify_auth import require_shop
@@ -133,6 +141,7 @@ def register(app) -> None:
         sink.untag_customer(cid, [stage_tag(s) for s in STAGES if s != stage])
         sink.tag_customer(cid, [stage_tag(stage)])
         warn = _write_soft(sink, cid, pipe)
+        _reports_invalidate(shop)
         return {"ok": True, "pipeline": pipe, "warning": warn}
 
     @app.post("/v1/board/move")
@@ -150,6 +159,7 @@ def register(app) -> None:
         sink.untag_customer(cid, [stage_tag(s) for s in STAGES if s != stage])
         sink.tag_customer(cid, [stage_tag(stage)])
         warn = _write_soft(sink, cid, pipe)
+        _reports_invalidate(shop)
         return {"ok": True, "pipeline": pipe, "warning": warn}
 
     @app.get("/v1/me")
@@ -202,6 +212,7 @@ def register(app) -> None:
         pipe["assignee"] = None if not (assignee["id"] or assignee["name"]) else assignee
         label = (assignee["name"] or "unassigned") if pipe["assignee"] else "unassigned"
         append_activity(pipe, f"assigned:{label}", actor_id, actor_name)
+        _reports_invalidate(shop)
         if _write_soft(sink, cid, pipe):
             raise HTTPException(502, "Could not save to Shopify just now. Please try again.")
         return {"ok": True, "pipeline": pipe}
@@ -217,6 +228,7 @@ def register(app) -> None:
         actor_id, actor_name = _actor(request, p)
         pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
         append_activity(pipe, "note", actor_id, actor_name, note=note)
+        _reports_invalidate(shop)
         if _write_soft(sink, cid, pipe):
             raise HTTPException(502, "Could not save to Shopify just now. Please try again.")
         return {"ok": True, "pipeline": pipe}
