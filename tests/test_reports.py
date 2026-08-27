@@ -46,6 +46,11 @@ def env(tmp_path, monkeypatch):
                             {"action": "contacted", "actor_id": sarah, "at": _iso(60)}]},   # outside 30d
     }
     monkeypatch.setattr(reports, "fetch_pipeline_cards", lambda transport: cards)
+    monkeypatch.setattr(reports, "fetch_captures", lambda transport: [
+        {"cid": "c1", "channel": "handover", "seat_id": sarah, "at": _iso(6)},
+        {"cid": "c9", "channel": "qr", "seat_id": "", "at": _iso(4)},          # unattended QR
+        {"cid": "c3", "channel": "handover", "seat_id": omar, "at": _iso(50)},  # outside 30d
+    ])
     cache.clear()
     cache.set(SHOP, results=[], payload={
         "data": [{"cid": "c1", "grade": "A*"}, {"cid": "c2", "grade": "B"}, {"cid": "c3", "grade": "A"}],
@@ -72,6 +77,9 @@ def test_report_folds_activity_orders_and_seats(env):
     assert d["unattributed"]["contacts"] == 1         # the shared sign-in contact on c3
     assert d["totals"]["contacts"] == 4 and d["totals"]["revenue"] == 1300
     assert d["seats"][0]["id"] == sarah                # sorted by contacts
+    assert s["captures"] == 1 and s["captured_top"] == 1   # c1 is A*
+    assert o["captures"] == 0 and d["unattributed"]["captures"] == 1
+    assert d["totals"]["captures"] == 2
 
 
 def test_window_and_non_shopify(env, monkeypatch):
@@ -82,3 +90,15 @@ def test_window_and_non_shopify(env, monkeypatch):
     from fastapi import HTTPException
     monkeypatch.setattr(board, "_sink", lambda shop: (_ for _ in ()).throw(HTTPException(400, "no")))
     assert client.get("/v1/reports/associates").json()["available"] is False
+
+
+def test_seat_week_for_the_iphone_desk(env):
+    client, store, sarah, omar = env
+    from halia.api.tenant_auth import hash_token as _h, new_token as _n
+    tok = _n(); store.rotate_seat_token(sarah, _h(tok))
+    d = client.get("/v1/extension/week?days=30", headers={"X-Halia-Ext-Token": tok}).json()
+    assert d["available"] and d["me"]["name"] == "Sarah Bloom" and d["me"]["contacts"] == 2
+    assert d["me"]["captures"] == 1 and d["team"]["contacts"] == 4
+    shared = _n(); store.set_extension_token(SHOP, _h(shared))
+    assert client.get("/v1/extension/week", headers={"X-Halia-Ext-Token": shared}).json()["me"] is None
+

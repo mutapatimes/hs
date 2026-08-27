@@ -592,6 +592,7 @@ private struct HomeView: View {
     @State private var showCapture = false
     @State private var showCaptureTools = false
     @State private var captureNote: String?
+    @State private var week: HaliaAPI.Week?
     @Environment(\.openURL) private var openURL
 
     private var syncLine: String {
@@ -621,6 +622,26 @@ private struct HomeView: View {
                         if model.busy { ProgressView() }
                     }
                     .padding(.vertical, 4)
+                }
+
+                if let me = week?.me, week?.available == true {
+                    Section {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
+                                  spacing: 14) {
+                            weekStat("\(me.contacts ?? 0)", "contacts")
+                            weekStat("\(me.captures ?? 0)", "captured")
+                            weekStat("\(me.conversions ?? 0)", "converted")
+                        }
+                        .padding(.vertical, 6)
+                        if (me.revenue ?? 0) > 0 || (me.contacts ?? 0) > 0 {
+                            Text("£\(me.revenue ?? 0) from clients you contacted, "
+                                 + "\(Int(((me.rate ?? 0) * 100).rounded()))% converted within two weeks.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        } else {
+                            Text("Nothing logged yet this week. Contacts you log and clients you capture show here.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    } header: { Text("Your week") }
                 }
 
                 Section("Clients") {
@@ -662,6 +683,8 @@ private struct HomeView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("Halia")
             .tint(Palette.brand)
+            .task { week = try? await HaliaAPI.current.myWeek() }
+            .refreshable { await model.sync(); week = try? await HaliaAPI.current.myWeek() }
         }
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
         .fullScreenCover(isPresented: $showCapture) {
@@ -683,6 +706,15 @@ private struct HomeView: View {
                     }
             }
         }
+    }
+
+    private func weekStat(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 3) {
+            Text(value).font(.system(size: 24, weight: .semibold, design: .rounded))
+                .foregroundStyle(.primary)
+            Text(label).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     /// A Settings-style row: tinted icon tile, title, subtitle, chevron via List.
