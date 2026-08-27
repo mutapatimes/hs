@@ -415,6 +415,29 @@ struct HaliaAPI {
             body: ["name": name, "email": email, "title": title, "signoff": signoff])
     }
 
+    // MARK: Your week (the desk's own numbers)
+
+    struct WeekRow: Decodable {
+        let contacts: Int?
+        let clients: Int?
+        let captures: Int?
+        let conversions: Int?
+        let revenue: Int?
+        let rate: Double?
+    }
+    struct Week: Decodable {
+        let available: Bool?
+        let days: Int?
+        let me: WeekRow?
+        let team: WeekRow?
+    }
+
+    func myWeek(days: Int = 7) async throws -> Week {
+        let (data, _) = try await send("/v1/extension/week?days=\(days)", method: "GET", body: nil)
+        guard let w = try? JSONDecoder().decode(Week.self, from: data) else { throw HaliaAPIError.decode }
+        return w
+    }
+
     // MARK: Transport
 
     private func postJSON<T: Decodable>(_ path: String, body: [String: String]) async throws -> T {

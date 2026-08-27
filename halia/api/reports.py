@@ -20,6 +20,43 @@ from scoring.shopify_pipeline import fetch_pipeline_cards
 CONVERSION_WINDOW_DAYS = 14          # an order within this many days of a contact counts
 UNATTRIBUTED = "unattributed"
 
+_CAPTURES_QUERY = """
+query HaliaCaptures($cursor: String) {
+  customers(first: 100, after: $cursor, query: "tag:halia-captured") {
+    pageInfo { hasNextPage endCursor }
+    nodes { id metafield(namespace: "halia", key: "capture") { value } }
+  }
+}"""
+
+
+def fetch_captures(transport, retries: int = 5, max_pages: int = 20) -> list[dict]:
+    """Every captured client's consent record ({channel, at, seat_id, associate, ...}) plus the
+    customer id, read from the merchant's own metafields. Nothing is stored."""
+    import json as _json
+
+    from scoring.shopify_fetch import _run
+
+    if transport is None:
+        return []
+    out, cursor = [], None
+    for _ in range(max_pages):
+        data_ = _run(transport, _CAPTURES_QUERY, {"cursor": cursor}, retries)
+        conn = (data_ or {}).get("customers") or {}
+        for node in conn.get("nodes") or []:
+            raw = ((node.get("metafield") or {}).get("value")) or ""
+            try:
+                rec = _json.loads(raw) if raw else {}
+            except (TypeError, ValueError):
+                rec = {}
+            if isinstance(rec, dict):
+                rec["cid"] = str(node.get("id") or "").rsplit("/", 1)[-1]
+                out.append(rec)
+        info = conn.get("pageInfo") or {}
+        if not info.get("hasNextPage"):
+            break
+        cursor = info.get("endCursor")
+    return out
+
 
 def _day(s: Any) -> str:
     return str(s or "")[:10]
@@ -57,7 +94,8 @@ def build_report(shop: str, days: int = 30) -> dict:
         if key not in rows:
             base = seats.get(key) or {"id": UNATTRIBUTED, "name": "Shared sign-in", "title": "", "email": ""}
             rows[key] = {**base, "contacts": 0, "moves": 0, "assigns": 0, "notes": 0,
-                         "clients": set(), "owned": 0, "conversions": 0, "revenue": 0}
+                         "clients": set(), "owned": 0, "conversions": 0, "revenue": 0,
+                         "captures": 0, "captured_top": 0}
         return rows[key]
 
     rows: dict[str, dict] = {}
@@ -87,9 +125,21 @@ def build_report(shop: str, days: int = 30) -> dict:
             elif action == "note":
                 b["notes"] += 1
 
+    # Captures: the clients each associate brought into the book (the handover form, QR, vCard).
+    try:
+        captures = fetch_captures(sink._transport())
+    except Exception:  # noqa: BLE001 — the rest of the report still renders
+        captures = []
+    for rec in captures:
+        when = _parse(rec.get("at"))
+        if not when or when < cutoff:
+            continue
+        b = bucket(rec.get("seat_id") or None)
+        b["captures"] += 1
+        if grade_of.get(str(rec.get("cid"))) in ("A*", "A"):
+            b["captured_top"] += 1
+
     # Conversions: each order goes to the latest contact that preceded it within the window.
-    for cid, when, key in contacts:
-        pass
     credited: set = set()
     for cid, olist in orders_by_cid.items():
         mine = [(when, key) for (c, when, key) in contacts if c == cid]
@@ -119,9 +169,10 @@ def build_report(shop: str, days: int = 30) -> dict:
     seat_rows = sorted([r for r in out if r["id"] != UNATTRIBUTED],
                        key=lambda r: (-r["contacts"], r["name"]))
     unatt = next((r for r in out if r["id"] == UNATTRIBUTED), None)
-    if unatt and not any(unatt[k] for k in ("contacts", "moves", "assigns", "notes", "conversions")):
+    if unatt and not any(unatt[k] for k in ("contacts", "moves", "assigns", "notes", "conversions", "captures")):
         unatt = None
-    totals = {k: sum(r[k] for r in out) for k in ("contacts", "clients", "moves", "conversions", "revenue")}
+    totals = {k: sum(r[k] for r in out)
+              for k in ("contacts", "clients", "moves", "conversions", "revenue", "captures", "captured_top")}
     totals["rate"] = round(totals["conversions"] / totals["contacts"], 2) if totals["contacts"] else 0.0
     return {"available": True, "days": days, "window": CONVERSION_WINDOW_DAYS,
             "seats": seat_rows, "unattributed": unatt, "totals": totals}
@@ -131,3 +182,13 @@ def register(app) -> None:
     @app.get("/v1/reports/associates")
     def associates(shop: str = Depends(require_shop), days: int = Query(30)) -> dict:
         return build_report(shop, days)
+
+
+def seat_week(shop: str, seat_id: str, days: int = 7) -> dict:
+    """One associate's own numbers for the period (the iPhone desk's "Your week")."""
+    rep = build_report(shop, days)
+    mine = next((r for r in rep.get("seats") or [] if r.get("id") == seat_id), None)
+    return {"available": bool(rep.get("available")), "days": rep.get("days", days),
+            "window": rep.get("window", CONVERSION_WINDOW_DAYS),
+            "me": mine, "team": rep.get("totals") or {}}
+

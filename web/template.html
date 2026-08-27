@@ -2488,14 +2488,14 @@ function renderTeamReport(){
     const th=(t,align)=>`<th style="text-align:${align||'right'};font:600 11.5px system-ui;color:#8a8a8a;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap">${t}</th>`;
     const td=(v,align,strong)=>`<td style="text-align:${align||'right'};font:${strong?'600':'400'} 13.5px system-ui;color:var(--ink);padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums">${v}</td>`;
     box.innerHTML=`<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%">
-      <thead><tr>${th("Teammate","left")}${th("Contacts")}${th("Clients")}${th("A*/A share")}${th("Owned")}${th("Converted")}${th("Rate")}${th("Revenue")}</tr></thead>
+      <thead><tr>${th("Teammate","left")}${th("Contacts")}${th("Clients")}${th("A*/A share")}${th("Captured")}${th("Owned")}${th("Converted")}${th("Rate")}${th("Revenue")}</tr></thead>
       <tbody>${rows.map(r=>`<tr>
         ${td(`${esc(r.name)}${r.title?`<span style="color:#8a8a8a;font-weight:400"> · ${esc(r.title)}</span>`:""}`,"left",true)}
-        ${td(r.contacts)}${td(r.clients)}${td(pct(r.topShare))}${td(r.owned)}${td(r.conversions)}${td(pct(r.rate))}${td(money(r.revenue))}</tr>`).join("")}
+        ${td(r.contacts)}${td(r.clients)}${td(pct(r.topShare))}${td(r.captures+(r.captured_top?`<span style="color:#8a8a8a;font-weight:400"> · ${r.captured_top} A</span>`:""))}${td(r.owned)}${td(r.conversions)}${td(pct(r.rate))}${td(money(r.revenue))}</tr>`).join("")}
       </tbody>
-      <tfoot><tr>${td("All","left",true)}${td(d.totals.contacts,null,true)}${td(d.totals.clients,null,true)}${td("")}${td("")}${td(d.totals.conversions,null,true)}${td(pct(d.totals.rate),null,true)}${td(money(d.totals.revenue),null,true)}</tr></tfoot>
+      <tfoot><tr>${td("All","left",true)}${td(d.totals.contacts,null,true)}${td(d.totals.clients,null,true)}${td("")}${td(d.totals.captures,null,true)}${td("")}${td(d.totals.conversions,null,true)}${td(pct(d.totals.rate),null,true)}${td(money(d.totals.revenue),null,true)}</tr></tfoot>
     </table></div>
-    <div style="font:12px system-ui;color:#8a8a8a;margin-top:10px">Converted = the client ordered within ${d.window} days of a contact, credited to the latest contact before the order. "Shared sign-in" is activity from a browser with no seat.</div>`;
+    <div style="font:12px system-ui;color:#8a8a8a;margin-top:10px">Converted = the client ordered within ${d.window} days of a contact, credited to the latest contact before the order. "Shared sign-in" is activity from a browser with no seat. Captured counts the clients each associate added, with how many graded A or above.</div>`;
   }).catch(()=>{ box.innerHTML='<div style="font:13.5px system-ui;color:var(--soft)">Could not load the team report just now.</div>'; });
 }
 (function(){

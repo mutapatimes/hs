@@ -775,6 +775,17 @@ def register(app) -> None:
             shop_store().signout_seat(auth.seat_id)
         return {"ok": True}
 
+    @app.get("/v1/extension/week")
+    def extension_week(x_halia_ext_token: Optional[str] = Header(None), days: int = 7) -> dict:
+        """The signed-in associate's own week: contacts, clients, captures, conversions, revenue,
+        beside the team's totals. Seat-authed; a shared-token caller has no row."""
+        from halia.api.reports import seat_week
+
+        auth = _resolve_ext(x_halia_ext_token)
+        if not auth.seat_id:
+            return {"available": False, "me": None, "team": {}, "days": days}
+        return seat_week(auth.shop, auth.seat_id, max(1, min(int(days or 7), 90)))
+
     @app.get("/v1/extension/profile")
     def extension_profile(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
         """The signed-in associate's own details (name, email, position, sign-off)."""
