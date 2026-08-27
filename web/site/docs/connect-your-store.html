@@ -197,11 +197,17 @@
  <h2>WooCommerce</h2>
  <div class="platform">
  <div class="ph"><span class="mk" style="background:#7F54B3">W</span><span class="name">WooCommerce</span><span class="role">A few minutes</span></div>
+ <h3>The Halia plugin</h3>
+ <p>The fastest route. The plugin creates the key for Halia, sends order updates as they happen, handles basket links and shows your client-capture QR in wp-admin.</p>
+ <ol class="steps"><li><strong>Download the plugin</strong><p><a class="inl" href="/static/halia-plugin.zip" download>halia-plugin.zip</a></p></li>
+ <li><strong>Install it</strong><p>In WordPress, go to <strong>Plugins &rarr; Add New &rarr; Upload Plugin</strong>, choose the file and activate it.</p></li>
+ <li><strong>Connect</strong><p>Open <strong>Halia</strong> in the admin menu and press <strong>Connect to Halia</strong>. Your dashboard opens in a new tab and a sign-in link is emailed to you.</p></li></ol>
+ <h3 style="margin-top:28px">Connecting by hand</h3>
  <p>WooCommerce needs a read-only “key”, think of it as a look-but-don't-touch password you create for Halia.</p>
  <ol class="steps"><li><strong>Open your API keys</strong><p>In your WordPress admin, go to <strong>WooCommerce &rarr; Settings &rarr; Advanced &rarr; REST API</strong>.</p></li><li><strong>Add a key for Halia</strong><p>Click <strong>Add key</strong>, name it “Halia”, and set the permission to <strong>Read</strong>. Save.</p></li><li><strong>Copy the two codes</strong><p>WooCommerce shows a <strong>key</strong> and a <strong>secret</strong>. Copy both, they're only shown once.</p></li><li><strong>Paste them into Halia</strong><p>Go to <a class="inl" href="/connect">haliascore.com/connect</a>, choose WooCommerce, and paste your store address and the two codes.</p></li></ol>
  <div class="callout"><strong>One thing to check:</strong> your store needs to run on a secure (https) address. Almost every store already does.</div>
  <h3 style="margin-top:28px">Optional: one-tap carts and live baskets</h3>
- <p>WooCommerce has no cart links or basket feed of its own, so Halia offers a small helper file. With it, your team can send a client a link that fills their basket and opens checkout, and the dashboard shows baskets clients have left open. Without it, Halia still shows unpaid checkouts and single-item links.</p>
+ <p>The plugin above includes this. If you connected by hand instead, Halia offers a small helper file. With it, your team can send a client a link that fills their basket and opens checkout, and the dashboard shows baskets clients have left open. Without it, Halia still shows unpaid checkouts and single-item links.</p>
  <ol class="steps"><li><strong>Download the helper</strong><p><a class="inl" href="/static/halia-woocommerce.php" download>halia-woocommerce.php</a>, a single file you can read in full.</p></li>
  <li><strong>Upload it to your site</strong><p>Place it in <code>wp-content/mu-plugins/</code> (create the folder if it is missing). Must-use plugins load automatically; there is nothing to activate.</p></li>
  <li><strong>Use a read/write key</strong><p>Capture, the pipeline and cart links write to your own customer records, so the Halia key needs <strong>Read/Write</strong> permissions. Scoring alone works read-only.</p></li></ol>

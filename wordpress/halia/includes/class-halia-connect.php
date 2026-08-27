@@ -65,7 +65,17 @@ class Halia_Connect {
                 <h2 style="font-weight:500;margin-top:32px">Order updates</h2>
                 <p>Every new or updated order is sent to Halia so scores stay current. Webhook: <code><?php echo esc_html( Halia_Webhooks::status() ); ?></code></p>
                 <h2 style="font-weight:500;margin-top:32px">Basket links</h2>
-                <p>Associates can send a client a link that fills their basket and opens checkout. This plugin handles those links at <code>/?halia-cart=…</code>.</p>
+                <p>Associates can send a client a link that fills their basket and opens checkout. This plugin handles those links at <code>/?halia-cart=…</code>. In a page or post, <code>[halia_basket items="12:1,15:2" label="Add these to my basket"]</code> renders the same link.</p>
+                <?php if ( ! empty( $c['capture_url'] ) ) : ?>
+                <h2 style="font-weight:500;margin-top:32px">Client capture</h2>
+                <p>Clients can leave their details at the till or online. The page is in your store's name; Halia never appears on it.</p>
+                <p><a target="_blank" rel="noopener" href="<?php echo esc_url( $c['capture_url'] ); ?>"><?php echo esc_html( $c['capture_url'] ); ?></a></p>
+                <?php if ( ! empty( $c['capture_qr'] ) ) : ?>
+                    <p><img src="<?php echo esc_attr( $c['capture_qr'] ); ?>" alt="Client capture QR" width="180" height="180" style="border:1px solid #dcdcde;padding:8px;background:#fff"></p>
+                    <p><button class="button" onclick="var w=window.open('','_blank','width=480,height=640');w.document.write('<title>Leave your details</title><div style=\'font-family:Georgia,serif;text-align:center;padding:40px\'><h1 style=\'font-weight:400\'><?php echo esc_js( $c['label'] ); ?></h1><p>Leave your details and we will look after you.</p><img width=260 src=\'<?php echo esc_js( $c['capture_qr'] ); ?>\'></div>');w.document.close();w.print();">Print a till card</button></p>
+                <?php endif; ?>
+                <p>In a page or post, <code>[halia_capture label="Join our client book"]</code> renders a button to the capture page.</p>
+                <?php endif; ?>
                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:40px">
                     <?php wp_nonce_field( 'halia_disconnect' ); ?>
                     <input type="hidden" name="action" value="halia_disconnect">
@@ -149,6 +159,8 @@ class Halia_Connect {
             'dashboard'    => $body['dashboard'] ?? HALIA_APP_URL . '/app',
             'open_url'     => $body['open_url'] ?? '',
             'webhook_url'  => $body['webhook_url'] ?? '',
+            'capture_url'  => $body['capture_url'] ?? '',
+            'capture_qr'   => $body['capture_qr'] ?? '',
             'key_id'       => $key['id'],
             'connected_at' => time(),
         ], false );

@@ -15,6 +15,29 @@ class Halia_Cart {
     public static function init() {
         add_action( 'wp_loaded', [ __CLASS__, 'handle_cart_link' ], 20 );
         add_action( 'rest_api_init', [ __CLASS__, 'routes' ] );
+        add_shortcode( 'halia_basket', [ __CLASS__, 'basket_shortcode' ] );
+        add_shortcode( 'halia_capture', [ __CLASS__, 'capture_shortcode' ] );
+    }
+
+    /** [halia_basket items="12:1,15:2" label="Add these to my basket"] */
+    public static function basket_shortcode( $atts ) {
+        $a = shortcode_atts( [ 'items' => '', 'label' => 'Add to my basket', 'class' => 'button' ], $atts, 'halia_basket' );
+        $items = preg_replace( '/[^0-9:,]/', '', (string) $a['items'] );
+        if ( ! $items ) {
+            return '';
+        }
+        $url = add_query_arg( 'halia-cart', $items, home_url( '/' ) );
+        return '<a class="' . esc_attr( $a['class'] ) . '" href="' . esc_url( $url ) . '">' . esc_html( $a['label'] ) . '</a>';
+    }
+
+    /** [halia_capture label="Join our client book"] */
+    public static function capture_shortcode( $atts ) {
+        $a = shortcode_atts( [ 'label' => 'Join our client book', 'class' => 'button' ], $atts, 'halia_capture' );
+        $c = Halia_Connect::connection();
+        if ( empty( $c['capture_url'] ) ) {
+            return '';
+        }
+        return '<a class="' . esc_attr( $a['class'] ) . '" href="' . esc_url( $c['capture_url'] ) . '" rel="noopener">' . esc_html( $a['label'] ) . '</a>';
     }
 
     public static function handle_cart_link() {
