@@ -19,6 +19,7 @@ This plugin does three things:
 * Connects your store to Halia with one click (it creates a WooCommerce API key for Halia; no keys to copy).
 * Sends new and updated orders to Halia so scores stay current.
 * Handles basket links associates send to clients, so a link fills the basket and opens checkout.
+* Shows your client-capture QR (a store-branded page where clients leave their details) with a printable till card, plus the [halia_capture] and [halia_basket] shortcodes.
 
 Halia does not store your clients' data. Scores are computed in memory from the store you connect and written back to your own customer records as tags and metadata.
 
@@ -42,4 +43,4 @@ Yes. Disconnect on the Halia page removes the API key and the webhooks.
 == Changelog ==
 
 = 0.1.0 =
-* First release: connect flow, order webhooks, basket links.
+* First release: connect flow, order webhooks, basket links, client capture QR and shortcodes.

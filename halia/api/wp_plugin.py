@@ -58,6 +58,14 @@ def register(app) -> None:
                 ob._send_welcome_signin_email(email, f"/app?t={link_token}", label or shop)
             except Exception:  # noqa: BLE001
                 pass
-        return {"ok": True, "shop": shop, "label": label or shop, "reconnected": existing is not None,
+        capture_url, capture_qr = "", None
+        try:
+            from halia.api.capture import _slug_for
+            from halia.api.seats import _connect_qr
+            capture_url = f"{base}/c/{_slug_for(shop)}"
+            capture_qr = _connect_qr(capture_url)
+        except Exception:  # noqa: BLE001
+            pass
+        return {"ok": True, "shop": shop, "capture_url": capture_url, "capture_qr": capture_qr, "label": label or shop, "reconnected": existing is not None,
                 "open_url": open_url, "dashboard": f"{base}/app",
                 "webhook_url": f"{base}/webhooks/orders/{webhook_token}"}

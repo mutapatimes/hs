@@ -28,6 +28,7 @@ def test_plugin_connect_creates_tenant_and_returns_links(env):
     assert d["shop"] == "maison-example" and d["reconnected"] is False
     assert d["open_url"].endswith("/app?t=" + d["open_url"].rsplit("t=", 1)[1]) and len(d["open_url"].rsplit("t=", 1)[1]) > 20
     assert "/webhooks/orders/" in d["webhook_url"]
+    assert "/c/" in d["capture_url"]  # the QR self-capture page, for the wp-admin till card
     assert dict(store.get_tenant("maison-example"))["kind"] == "woocommerce"
     assert store.get_woocommerce("maison-example")["consumer_key"] == "ck_1"
     assert sent and sent[0][0] == "owner@maison.example"
