@@ -148,7 +148,10 @@ def register(app) -> None:
                 # /v1/sync/state and reloads itself the moment the book is ready.
                 from halia.api.onboarding import _start_sync
                 from halia.api.shopify_auth import ensure_offline_token
-                ensure_offline_token(shop, session_token)
+                # Always exchange afresh here: a cold load is exactly when a stored token may be
+                # dead (the app was uninstalled and reinstalled, as the review store did), and the
+                # background sync has no session token of its own to self-heal with. One fast call.
+                ensure_offline_token(shop, session_token, force=True)
                 _start_sync(shop)
                 body = render_payload(_pending_payload(), head_extra=head, body_extra=_NAV_MENU)
             else:
