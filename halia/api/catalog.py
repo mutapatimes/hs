@@ -508,6 +508,21 @@ def register(app) -> None:
         except Exception:  # noqa: BLE001 — no products, no link; never a broken panel
             products = []
         by_id = {str(p.get("id")): p for p in products}
+        from halia.api.extension import _woo_store, woo_cart_url
+        woo = _woo_store(shop)
+        if woo:
+            chosen = []
+            for it in items:
+                if str(it.get("id")) in by_id:
+                    try:
+                        chosen.append((str(it.get("id")), max(1, min(int(it.get("qty") or 1), 99))))
+                    except (TypeError, ValueError):
+                        chosen.append((str(it.get("id")), 1))
+            if not chosen:
+                raise HTTPException(422, "Pick products from your catalogue.")
+            url, needs_helper = woo_cart_url(woo, chosen)
+            _data.record_activity(shop, "cart_link")
+            return {"url": _with_utm(url, "halia-cart"), "needs_helper": needs_helper}
         parts = []
         for it in items:
             prod = by_id.get(str(it.get("id")))
