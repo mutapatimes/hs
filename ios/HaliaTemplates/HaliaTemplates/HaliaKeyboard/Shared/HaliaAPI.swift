@@ -361,7 +361,7 @@ struct HaliaAPI {
 
     // MARK: Client capture (handover)
 
-    struct CaptureResult: Decodable { let ok: Bool?; let created: Bool?; let grade: String? }
+    struct CaptureResult: Decodable { let ok: Bool?; let created: Bool?; let grade: String?; let customer_id: String? }
 
     /// Save a captured client straight into the store's Shopify (deduped, consent recorded,
     /// scored on the way through). Fields mirror POST /v1/capture.
