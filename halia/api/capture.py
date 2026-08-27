@@ -16,7 +16,7 @@ from typing import Any, Optional
 
 from fastapi import Body, Header, HTTPException
 
-from halia.api.shopify_auth import get_valid_token
+from halia.api.shopify_auth import get_valid_token, shop_store as _ss
 from halia.engine import engine
 
 CAPTURE_TAG = "halia-captured"
@@ -102,6 +102,69 @@ def _score_capture(cid: str, body: dict, email: str, phone: str) -> dict:
         return {}
 
 
+def _perform_capture_woo(shop: str, body: dict, channel: str, email: str, phone: str,
+                         associate: str, seat_id: str) -> dict:
+    """The WooCommerce path: the customer record plus Halia's capture record and preferences in
+    the customer's meta, in the merchant's own store. Marketing consent has no native home in WC,
+    so it lives in the capture record and, when Mailchimp is connected, the opted-in client joins
+    the store's audience."""
+    from halia.api.board import woo_sink
+
+    sink = woo_sink(shop)
+    first, last = _clean(body.get("first_name")), _clean(body.get("last_name"))
+    consent = body.get("consent") or {}
+    wants_email = bool(consent.get("email_marketing")) and bool(email)
+    wants_sms = bool(consent.get("sms_marketing")) and bool(phone)
+    now = datetime.now(timezone.utc).isoformat()
+    record = {"channel": channel, "at": now, "associate": associate, "seat_id": seat_id,
+              "consent_text": _clean(body.get("consent_text")) or "Saved to look after you as a client",
+              "email_marketing": wants_email, "sms_marketing": wants_sms,
+              "location": _clean(body.get("location"))}
+    prefs = {k: _clean(body.get(k)) for k in ("sizes", "preferences", "occasion", "birthday") if _clean(body.get(k))}
+    fields = {"first_name": first, "last_name": last, "email": email, "phone": phone,
+              "address": _clean(body.get("address")), "city": _clean(body.get("city")),
+              "postcode": _clean(body.get("postcode"))}
+    existing = sink.find_customer(email, phone)
+    created = existing is None
+    tags = [CAPTURE_TAG, f"halia-capture-{channel}"]
+    meta = {"halia_capture": json.dumps(record), "halia_tags": json.dumps(tags)}
+    if prefs:
+        meta["halia_preferences"] = json.dumps(prefs)
+    if created:
+        cust = sink.create_customer({**fields, "meta": meta})
+        wid = str(cust["id"])
+    else:
+        wid = str(existing["id"])
+        cur = existing.get("meta_data") or []
+        old_tags = next((m.get("value") for m in cur if m.get("key") == "halia_tags"), None)
+        try:
+            old_tags = json.loads(old_tags) if isinstance(old_tags, str) else (old_tags or [])
+        except (TypeError, ValueError):
+            old_tags = []
+        meta["halia_tags"] = json.dumps(list(dict.fromkeys(list(old_tags) + tags)))
+        keep = {k: v for k, v in fields.items() if v and not (k == "email" and existing.get("email"))}
+        sink.update_customer(wid, {**keep, "meta": meta})
+    sink.index_add("captured", wid)
+    if wants_email:
+        try:
+            conn = _ss().get_mailchimp(shop)
+            if conn and conn.get("api_key") and conn.get("list_id"):
+                from halia.adapters.mailchimp_sink import MailchimpSink
+                MailchimpSink(conn["api_key"], conn["list_id"]).add_member(
+                    email, first, last, tags=["Halia captured"])
+        except Exception:  # noqa: BLE001 — the audience is a bonus, the capture is the point
+            pass
+    out = {"ok": True, "created": created, "customer_id": wid}
+    out.update(_score_capture(wid, body, email, phone))
+    try:
+        from halia.api import birthdays, reports
+        reports.invalidate(shop)
+        birthdays.invalidate(shop)
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
 def perform_capture(shop: str, body: dict, channel: str,
                     associate: str = "", seat_id: str = "") -> dict:
     """The shared pipeline: dedupe -> write -> consent -> tags -> score. Used by the seat-authed
@@ -116,6 +179,11 @@ def perform_capture(shop: str, body: dict, channel: str,
     pc, _ = clean_postcode(body.get("postcode"), body.get("country"))
     if pc:
         body = {**body, "postcode": pc}
+
+    from halia.api.shopify_auth import shop_store as _ss
+    tenant = dict(_ss().get_tenant(shop) or {})
+    if tenant.get("kind") == "woocommerce":
+        return _perform_capture_woo(shop, body, channel, email, phone, associate, seat_id)
 
     token = get_valid_token(shop)
     if not token:

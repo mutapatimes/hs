@@ -58,14 +58,39 @@ def append_activity(pipe: dict, action: str, actor_id: str | None, actor_name: s
 
 
 def _sink(shop: str):
-    """A ShopifySink for this shop, or a 400 if it isn't a write-back-capable Shopify tenant."""
-    tenant = shop_store().get_tenant(shop)
+    """The write-back sink for this shop: Shopify (tags + metafields) or WooCommerce (customer
+    meta + an opaque-id index). 400 for platforms without write-back yet."""
+    tenant = dict(shop_store().get_tenant(shop) or {})
+    kind = tenant.get("kind")
+    if kind == "woocommerce":
+        return woo_sink(shop)
     token = get_valid_token(shop)
-    if not token or (tenant and tenant["kind"] in ("woocommerce", "bigcommerce", "centra", "scayle")):
-        raise HTTPException(400, "The pipeline is available for Shopify stores with write-back enabled.")
+    if not token or kind in ("bigcommerce", "centra", "scayle"):
+        raise HTTPException(400, "The pipeline is available for Shopify and WooCommerce stores with write-back enabled.")
     from halia.adapters.shopify_sink import ShopifySink
     from scoring.shopify_fetch import http_transport
     return ShopifySink(transport=http_transport(shop, token))
+
+
+def woo_sink(shop: str):
+    """A WooSink bound to this tenant's stored REST credentials and its id index."""
+    from halia.adapters.woo_sink import WooClient, WooSink
+    creds = shop_store().get_woocommerce(shop)
+    if not creds:
+        raise HTTPException(400, "Connect WooCommerce with a read/write key to use the pipeline.")
+    st = shop_store()
+    return WooSink(WooClient(creds["store_url"], creds["consumer_key"], creds["consumer_secret"]),
+                   index_add=lambda kind, cid: st.woo_index_add(shop, kind, cid),
+                   index_remove=lambda kind, cid: st.woo_index_remove(shop, kind, cid),
+                   index_list=lambda kind: st.woo_index_list(shop, kind))
+
+
+def pipeline_cards(sink) -> dict:
+    """Every carded customer, whichever platform the sink speaks."""
+    if hasattr(sink, "pipeline_cards"):
+        return sink.pipeline_cards()
+    from scoring.shopify_pipeline import fetch_pipeline_cards
+    return fetch_pipeline_cards(sink._transport())
 
 
 def _actor(request: Request, payload: dict) -> tuple[str | None, str | None]:
@@ -248,10 +273,9 @@ def register(app) -> None:
 
     @app.get("/v1/board")
     def board_get(shop: str = Depends(require_shop)) -> dict:
-        from scoring.shopify_pipeline import fetch_pipeline_cards
         try:
             sink = _sink(shop)
         except HTTPException:
             return {"available": False, "stages": STAGES, "cards": []}
-        cards = fetch_pipeline_cards(sink._transport())
+        cards = pipeline_cards(sink)
         return {"available": True, "stages": STAGES, "cards": list(cards.values())}

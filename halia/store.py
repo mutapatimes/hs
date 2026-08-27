@@ -321,6 +321,9 @@ class _DB:
         for col in ("access_expires_at", "refresh_token", "refresh_expires_at"):
             self._add_column("shops", col, "TEXT")
         self._add_column("seats", "email", "TEXT")   # seats gained an email identity (2026-08)
+        self._run("""CREATE TABLE IF NOT EXISTS woo_index (
+            shop TEXT NOT NULL, cid TEXT NOT NULL, kind TEXT NOT NULL, updated_at TEXT,
+            PRIMARY KEY (shop, cid, kind))""")
         self._run("""CREATE TABLE IF NOT EXISTS staff_seats (
             shop TEXT NOT NULL, staff_id TEXT NOT NULL, seat_id TEXT NOT NULL, updated_at TEXT,
             PRIMARY KEY (shop, staff_id))""")
@@ -573,6 +576,21 @@ class ShopStore(_DB):
             "SELECT id, shop, name, email FROM seats WHERE shop = :shop AND email = :em "
             "AND revoked_at IS NULL", {"shop": shop, "em": (email or "").strip().lower()}, fetch="one")
         return dict(row) if row else None
+
+    # ── WooCommerce: which customers carry a pipeline card or a capture record (ids only) ──
+    def woo_index_add(self, shop: str, kind: str, cid: str) -> None:
+        self._run("""INSERT INTO woo_index (shop, cid, kind, updated_at) VALUES (:shop, :cid, :kind, :at)
+                     ON CONFLICT(shop, cid, kind) DO UPDATE SET updated_at=excluded.updated_at""",
+                  {"shop": shop, "cid": str(cid), "kind": kind, "at": _now()})
+
+    def woo_index_remove(self, shop: str, kind: str, cid: str) -> None:
+        self._run("DELETE FROM woo_index WHERE shop = :shop AND cid = :cid AND kind = :kind",
+                  {"shop": shop, "cid": str(cid), "kind": kind})
+
+    def woo_index_list(self, shop: str, kind: str) -> list[str]:
+        rows = self._run("SELECT cid FROM woo_index WHERE shop = :shop AND kind = :kind ORDER BY updated_at DESC",
+                         {"shop": shop, "kind": kind}, fetch="all") or []
+        return [r["cid"] for r in rows]
 
     def map_staff_seat(self, shop: str, staff_id: str, seat_id: str) -> None:
         """Remember which seat a Shopify staff user is, so the dashboard never asks again."""
