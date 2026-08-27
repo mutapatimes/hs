@@ -321,6 +321,8 @@ class _DB:
         for col in ("access_expires_at", "refresh_token", "refresh_expires_at"):
             self._add_column("shops", col, "TEXT")
         self._add_column("seats", "email", "TEXT")   # seats gained an email identity (2026-08)
+        for col in ("title", "signoff"):             # ... and a profile for sign-offs (2026-08)
+            self._add_column("seats", col, "TEXT")
 
     def _add_column(self, table: str, col: str, decl: str) -> None:
         """Add a column if it isn't already there (idempotent, both backends)."""
@@ -568,6 +570,28 @@ class ShopStore(_DB):
             "SELECT id, shop, name, email FROM seats WHERE shop = :shop AND email = :em "
             "AND revoked_at IS NULL", {"shop": shop, "em": (email or "").strip().lower()}, fetch="one")
         return dict(row) if row else None
+
+    def seat_profile(self, seat_id: str) -> dict | None:
+        """The seat's own details: name, email, title, sign-off (what a draft signs with)."""
+        for col in ("title", "signoff"):
+            self._add_column("seats", col, "TEXT")
+        row = self._run("SELECT id, shop, name, email, title, signoff FROM seats WHERE id = :id "
+                        "AND revoked_at IS NULL", {"id": seat_id}, fetch="one")
+        return dict(row) if row else None
+
+    def update_seat_profile(self, seat_id: str, *, name: str | None = None, email: str | None = None,
+                            title: str | None = None, signoff: str | None = None) -> None:
+        """Update whichever profile fields were given (None = leave alone)."""
+        for col in ("title", "signoff"):
+            self._add_column("seats", col, "TEXT")
+        sets, params = [], {"id": seat_id}
+        for col, val, cap in (("name", name, 80), ("email", email, 200), ("title", title, 80),
+                              ("signoff", signoff, 300)):
+            if val is not None:
+                sets.append(f"{col} = :{col}")
+                params[col] = (val.strip().lower() if col == "email" else val.strip())[:cap] or None
+        if sets:
+            self._run(f"UPDATE seats SET {', '.join(sets)} WHERE id = :id", params)
 
     def rotate_seat_token(self, seat_id: str, token_hash: str, name: str = "") -> None:
         """Re-issue a seat's sign-in token (a lost phone, a new laptop). The old token dies."""
