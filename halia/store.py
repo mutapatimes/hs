@@ -321,6 +321,9 @@ class _DB:
         for col in ("access_expires_at", "refresh_token", "refresh_expires_at"):
             self._add_column("shops", col, "TEXT")
         self._add_column("seats", "email", "TEXT")   # seats gained an email identity (2026-08)
+        self._run("""CREATE TABLE IF NOT EXISTS staff_seats (
+            shop TEXT NOT NULL, staff_id TEXT NOT NULL, seat_id TEXT NOT NULL, updated_at TEXT,
+            PRIMARY KEY (shop, staff_id))""")
         for col in ("title", "signoff"):             # ... and a profile for sign-offs (2026-08)
             self._add_column("seats", col, "TEXT")
 
@@ -569,6 +572,22 @@ class ShopStore(_DB):
         row = self._run(
             "SELECT id, shop, name, email FROM seats WHERE shop = :shop AND email = :em "
             "AND revoked_at IS NULL", {"shop": shop, "em": (email or "").strip().lower()}, fetch="one")
+        return dict(row) if row else None
+
+    def map_staff_seat(self, shop: str, staff_id: str, seat_id: str) -> None:
+        """Remember which seat a Shopify staff user is, so the dashboard never asks again."""
+        self._run(
+            """INSERT INTO staff_seats (shop, staff_id, seat_id, updated_at)
+               VALUES (:shop, :sid, :seat, :at)
+               ON CONFLICT(shop, staff_id) DO UPDATE SET seat_id=excluded.seat_id,
+                updated_at=excluded.updated_at""",
+            {"shop": shop, "sid": staff_id, "seat": seat_id, "at": _now()})
+
+    def seat_for_staff(self, shop: str, staff_id: str) -> dict | None:
+        row = self._run(
+            """SELECT s.id, s.name, s.email, s.title FROM staff_seats m JOIN seats s ON s.id = m.seat_id
+               WHERE m.shop = :shop AND m.staff_id = :sid AND s.revoked_at IS NULL""",
+            {"shop": shop, "sid": staff_id}, fetch="one")
         return dict(row) if row else None
 
     def seat_profile(self, seat_id: str) -> dict | None:

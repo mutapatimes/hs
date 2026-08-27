@@ -3014,9 +3014,39 @@ document.querySelectorAll(".vtab").forEach(t=>t.onclick=()=>showView(t.dataset.v
 const PIPE_STAGES=["To reach out","Contacted","In conversation","Actioned","Parked"];
 const STAGE_BG={"To reach out":"#5E6B74","Contacted":"#26695b","In conversation":"#1f564a","Actioned":"#143a32","Parked":"#8C9098"};
 const BOARD={loaded:false,available:false,stages:PIPE_STAGES,cards:{}};
-function actorName(){let n="";try{n=localStorage.getItem("halia_actor")||"";}catch(e){}
-  if(!n){n=(prompt("Your name (shown on pipeline actions):")||"").trim();if(n){try{localStorage.setItem("halia_actor",n);}catch(e){}}}
+// Who is acting: a seat, known once. Shopify staff users are remembered on the server; a hosted
+// dashboard keeps the chosen seat in this browser. Only a store with no seats at all falls back to
+// typing a name.
+const ME={seat:null,seats:[],loaded:false};
+function meLoad(cb){
+  let chosen="";try{chosen=localStorage.getItem("halia_seat")||"";}catch(e){}
+  fetch("/v1/me"+(chosen?"?seat_id="+encodeURIComponent(chosen):"")).then(r=>r.json()).then(d=>{
+    ME.seat=d.seat||null; ME.seats=d.seats||[]; ME.loaded=true; if(cb)cb();
+  }).catch(()=>{ME.loaded=true;if(cb)cb();});
+}
+function mePick(cb){
+  if(!ME.seats.length){ if(cb)cb(); return; }
+  const wrap=document.createElement("div");
+  wrap.style.cssText="position:fixed;inset:0;background:rgba(20,20,22,.45);display:grid;place-items:center;z-index:9999";
+  wrap.innerHTML=`<div style="background:var(--card);border-radius:12px;padding:26px 28px;width:min(420px,92vw);box-shadow:var(--shadow)">
+    <div style="font:600 16px system-ui;color:var(--ink)">Who is using Halia here?</div>
+    <p style="font:13.5px system-ui;color:var(--soft);margin:8px 0 14px">Pipeline moves and contact logs carry your name. Asked once.</p>
+    <div id="mePickList" style="display:flex;flex-direction:column;gap:6px">${ME.seats.map(s=>`<button data-seat="${esc(s.id)}" style="text-align:left;padding:11px 13px;border:1px solid var(--line);border-radius:9px;background:#fff;font:14px system-ui;color:var(--ink);cursor:pointer">${esc(s.name)}${s.title?` <span style="color:#8a8a8a">· ${esc(s.title)}</span>`:""}</button>`).join("")}</div>
+  </div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelectorAll("[data-seat]").forEach(b=>b.onclick=()=>{
+    fetch("/v1/me",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({seat_id:b.dataset.seat})})
+      .then(r=>r.json()).then(d=>{ if(d&&d.seat){ ME.seat=d.seat; try{localStorage.setItem("halia_seat",d.seat.id);}catch(e){} } wrap.remove(); if(cb)cb(); })
+      .catch(()=>{wrap.remove(); if(cb)cb();});
+  });
+}
+function actorName(){
+  if(ME.seat&&ME.seat.name) return ME.seat.name;
+  let n="";try{n=localStorage.getItem("halia_actor")||"";}catch(e){}
+  if(!n&&!ME.seats.length){n=(prompt("Your name (shown on pipeline actions):")||"").trim();if(n){try{localStorage.setItem("halia_actor",n);}catch(e){}}}
   return n||"Someone";}
+function actorBody(){ return ME.seat?{actor:ME.seat.name,seat_id:ME.seat.id}:{actor:actorName()}; }
+meLoad();
 function clientByCid(cid){return DATA.find(x=>x.cid===cid);}
 function gradeColor(t){return t==="A1"?"#143a32":t==="A"?"#1f564a":t==="B"?"#5E6B74":"#8C9098";}
 function boardLoad(force,cb){
@@ -3070,8 +3100,9 @@ function kbCard(c){
 // board mutations: POST, then merge the returned pipeline back into BOARD + refresh open surfaces
 function bPost(path,body,cb){
   markActed();   // a pipeline action means this user is working the app -> Orders becomes home
+  if(ME.loaded&&!ME.seat&&ME.seats.length){ return new Promise(res=>mePick(()=>res(bPost(path,body,cb)))); }
   return fetch("/v1/board/"+path,{method:"POST",headers:{"content-type":"application/json"},
-      body:JSON.stringify(Object.assign({actor:actorName()},body))})
+      body:JSON.stringify(Object.assign(actorBody(),body))})
     .then(r=>r.text().then(t=>{let d={};try{d=t?JSON.parse(t):{};}catch(_){d={detail:(t||"").replace(/<[^>]*>/g,"").trim().slice(0,140)||("Error "+r.status)};}return {ok:r.ok,d};}))
     .then(({ok,d})=>{
       if(!ok)throw new Error(d.detail||"failed");
@@ -3087,7 +3118,7 @@ function bMove(cid,stage){bPost("move",{cid:cid,stage:stage},()=>{ _renderBoardN
 function bAdd(c){bPost("add",{cid:c.cid},()=>{ if(!BOARD.cards[c.cid])BOARD.cards[c.cid]={cid:c.cid,name:c.name,email:c.email,stage:"To reach out",activity:[]}; renderDrawerPipe(c); toast("Added to pipeline.");});}
 function bRemove(c){if(!confirm("Remove "+(c.name||"this client")+" from the pipeline?"))return;bPost("remove",{cid:c.cid},()=>{delete BOARD.cards[c.cid];renderDrawerPipe(c);toast("Removed from pipeline.");});}
 function bNote(c,note){bPost("note",{cid:c.cid,note:note},()=>renderDrawerPipe(c));}
-function bAssign(c,name){bPost("assign",{cid:c.cid,assignee_name:name},()=>{renderDrawerPipe(c);if(document.getElementById("viewBoard").style.display!=="none")_renderBoardNow();});}
+function bAssign(c,name){const seat=ME.seats.find(s=>s.id===name);bPost("assign",seat?{cid:c.cid,assignee_seat:seat.id}:{cid:c.cid,assignee_name:name},()=>{renderDrawerPipe(c);if(document.getElementById("viewBoard").style.display!=="none")_renderBoardNow();});}
 // drawer pipeline section — lazy-loads the board once, then renders for this client
 function renderDrawerPipe(c){
   const el=document.getElementById("drawerPipe");if(!el)return;
@@ -3104,7 +3135,7 @@ function renderDrawerPipe(c){
       <div class="row"><label style="font-size:12px;color:var(--faint)">Stage</label>
         <select id="pipeStage">${opts}</select>
         <label style="font-size:12px;color:var(--faint);margin-left:6px">Owner</label>
-        <input id="pipeAsg" placeholder="Assign to…" value="${esc((card.assignee&&card.assignee.name)||'')}" style="width:120px">
+        ${ME.seats.length?`<select id="pipeAsg" style="width:150px"><option value="">Unassigned</option>${ME.seats.map(sd=>`<option value="${esc(sd.id)}" ${card.assignee&&(card.assignee.id===sd.id||card.assignee.name===sd.name)?"selected":""}>${esc(sd.name)}</option>`).join("")}</select>`:`<input id="pipeAsg" placeholder="Assign to…" value="${esc((card.assignee&&card.assignee.name)||'')}" style="width:120px">`}
         <button class="dbtn" id="pipeRemove" style="margin-left:auto;color:#9A3838;padding:6px 10px">Remove</button></div>
       <div class="row"><input id="pipeNote" placeholder="Add a note…" style="flex:1"><button class="dbtn" id="pipeNoteBtn" style="padding:6px 12px">Log</button></div>
       <div class="tl${evs.length?'':' empty'}">${acts||'<div class="ev w">No activity yet.</div>'}</div></div>`;

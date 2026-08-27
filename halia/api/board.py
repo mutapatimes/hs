@@ -69,7 +69,28 @@ def _sink(shop: str):
 
 
 def _actor(request: Request, payload: dict) -> tuple[str | None, str | None]:
-    return current_staff_id(request), (str(payload.get("actor") or "").strip()[:80] or None)
+    """Who is acting, as a seat when we know one: the Shopify staff user's mapped seat, else the
+    seat this browser chose (hosted dashboards), else the typed name from before seats existed."""
+    staff = current_staff_id(request)
+    shop = _shop_of(request)
+    seat = None
+    if staff and shop:
+        seat = shop_store().seat_for_staff(shop, staff)
+    if not seat and shop and str(payload.get("seat_id") or "").strip():
+        seat = shop_store().seat_profile(str(payload.get("seat_id")).strip())
+        if seat and seat.get("shop") != shop:
+            seat = None
+    if seat:
+        return seat["id"], (seat.get("name") or None)
+    return staff, (str(payload.get("actor") or "").strip()[:80] or None)
+
+
+def _shop_of(request: Request) -> str | None:
+    try:
+        from halia.api.shopify_auth import require_shop
+        return require_shop(request)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _cid(payload: dict) -> str:
@@ -131,12 +152,50 @@ def register(app) -> None:
         warn = _write_soft(sink, cid, pipe)
         return {"ok": True, "pipeline": pipe, "warning": warn}
 
+    @app.get("/v1/me")
+    def me(request: Request, shop: str = Depends(require_shop)) -> dict:
+        """Who this dashboard user is (as a seat), plus the seats to choose from. A Shopify staff
+        user is remembered server-side; a hosted dashboard keeps its choice in the browser and
+        passes ?seat_id= to confirm it."""
+        staff = current_staff_id(request)
+        seat = shop_store().seat_for_staff(shop, staff) if staff else None
+        chosen = str(request.query_params.get("seat_id") or "").strip()
+        if not seat and chosen:
+            prof = shop_store().seat_profile(chosen)
+            if prof and prof.get("shop") == shop:
+                seat = {k: prof.get(k) for k in ("id", "name", "email", "title")}
+        seats = [{"id": s["id"], "name": s["name"], "email": s.get("email") or "",
+                  "title": s.get("title") or ""} for s in shop_store().list_seats(shop)]
+        return {"staff_id": staff, "seat": seat, "seats": seats}
+
+    @app.post("/v1/me")
+    def me_choose(request: Request, shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
+        """This user is that seat. Remembered per Shopify staff user; hosted dashboards just get
+        the validated seat back to keep in the browser."""
+        seat_id = str((payload or {}).get("seat_id") or "").strip()
+        prof = shop_store().seat_profile(seat_id) if seat_id else None
+        if not prof or prof.get("shop") != shop:
+            raise HTTPException(422, "Pick a teammate with a live seat.")
+        staff = current_staff_id(request)
+        if staff:
+            shop_store().map_staff_seat(shop, staff, seat_id)
+        return {"ok": True, "seat": {k: prof.get(k) for k in ("id", "name", "email", "title")},
+                "remembered": bool(staff)}
+
     @app.post("/v1/board/assign")
     def board_assign(request: Request, shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
         p = payload or {}
         cid = _cid(p)
         assignee = {"id": str(p.get("assignee_id") or "").strip() or None,
                     "name": str(p.get("assignee_name") or "").strip()[:80] or None}
+        # Assigning to a seat: the id and name come from the seat record, so the card and the
+        # future per-associate report agree on who owns the client.
+        seat_id = str(p.get("assignee_seat") or "").strip()
+        if seat_id:
+            seat = shop_store().seat_profile(seat_id)
+            if not seat or seat.get("shop") != shop:
+                raise HTTPException(422, "That teammate has no live seat here.")
+            assignee = {"id": seat["id"], "name": seat.get("name") or None}
         sink = _sink(shop)
         actor_id, actor_name = _actor(request, p)
         pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
