@@ -35,6 +35,46 @@ TEMPLATE_CATEGORIES = [
 # Seed templates the merchant starts with (they can edit/add/delete). Placeholders:
 # {first_name} = the client's first name, {sender} = the merchant's sign-off, {catalog_link} = the
 # active catalogue link. Brand voice: warm and personal, no em dashes.
+# The season, in the house voice: previews and gifting rather than sales. Appended to the
+# defaults; "Rewrite my templates in this voice" carries them into the merchant's own tone.
+SEASON_TEMPLATES = [
+    {"category": "Season", "name": "Private preview of the festive collection",
+     "subject": "A first look, before the doors open",
+     "body": "Dear {first_name},\n\nThe festive collection has arrived, and I would like you to see it "
+             "before it goes on the floor. I am holding a private view over the coming week and would "
+             "be delighted to set a time that suits you.\n\nWarm regards,\n{sender}"},
+    {"category": "Season", "name": "Gifting appointment",
+     "subject": "Your gifts, taken care of",
+     "body": "Dear {first_name},\n\nIf the season's gifts are still on your list, I would be glad to "
+             "take them off it. A short appointment, a few pieces chosen with the people in mind, "
+             "wrapped and ready. Shall I hold a time for you?\n\nWarm regards,\n{sender}"},
+    {"category": "Season", "name": "Set aside before the rush",
+     "subject": "Kept for you",
+     "body": "Dear {first_name},\n\nThe piece you admired is one I would rather not see go to someone "
+             "else. I have set it aside in your size for the week. Do let me know if you would like me "
+             "to keep it longer, or to send it on.\n\nWarm regards,\n{sender}"},
+    {"category": "Season", "name": "Last day for bespoke and engraving",
+     "subject": "A gentle note on timing",
+     "body": "Dear {first_name},\n\nA gentle note that bespoke orders and engraving close on {date} "
+             "to arrive in good time. If there is something you have in mind, I will make sure it is "
+             "handled personally.\n\nWarm regards,\n{sender}"},
+    {"category": "Season", "name": "Between the years",
+     "subject": "With thanks, from all of us",
+     "body": "Dear {first_name},\n\nA quiet note between the years, simply to say thank you for the "
+             "year we have shared. It has been a pleasure to look after you. I hope the season has been "
+             "restful, and I look forward to seeing you in the new one.\n\nWarm regards,\n{sender}"},
+    {"category": "Season", "name": "First look at the new season",
+     "subject": "The new season, first",
+     "body": "Dear {first_name},\n\nThe new season is arriving and I have already noted a few pieces "
+             "I believe are yours. Would you like a first look before they reach the floor? I can send "
+             "photographs, or hold a private moment in store.\n\nWarm regards,\n{sender}"},
+    {"category": "Occasions", "name": "A birthday note",
+     "subject": "Many happy returns",
+     "body": "Dear {first_name},\n\nMany happy returns of the day. I hope it is spent well and with "
+             "the people you love. There is a small something waiting for you in store whenever you "
+             "next pass by, no occasion needed.\n\nWarm regards,\n{sender}"},
+]
+
 DEFAULT_TEMPLATES = [
     {"category": "Welcome", "name": "Personal welcome", "subject": "A personal note",
      "body": "Dear {first_name},\n\nThank you for being one of our valued clients. I wanted to "
@@ -174,6 +214,7 @@ DEFAULT_TEMPLATES = [
              "experience with us, and whether there is anything we could do better for you next "
              "time. Your thoughts mean a great deal.\n\nWith thanks,\n{sender}"},
 ]
+DEFAULT_TEMPLATES = DEFAULT_TEMPLATES + SEASON_TEMPLATES
 
 # Order-action templates power the Orders view (status-aware). Keyed by order status.
 # Placeholders: {first_name}, {sender}, plus {order_number} and {order_total} in the body.

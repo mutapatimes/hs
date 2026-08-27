@@ -944,6 +944,10 @@
           </div>
           <div class="cb"><div id="ovTeam"></div></div>
         </div>
+        <div id="ovBirthdaysCard" class="card" style="display:none;margin-bottom:16px">
+          <div class="ch"><h3>Birthdays</h3><span class="hint">in the next fortnight, from the details your team captured</span></div>
+          <div class="cb"><div id="ovBirthdays"></div></div>
+        </div>
         <div id="setupGuide" class="card" style="display:none;margin-bottom:16px"></div>
         <div id="ovDigestCard" class="card" style="display:none;margin-bottom:16px">
           <div class="ch"><h3>This week</h3><span class="hint">what deserves your attention, counted from your own book</span></div>
@@ -2534,8 +2538,24 @@ function renderTeamReport(){
   if(sw) sw.onchange=()=>{ try{localStorage.setItem("halia_team_view",sw.checked?"1":"0");}catch(e){} renderTeamReport(); };
   if(sel) sel.onchange=renderTeamReport;
 })();
+function renderBirthdays(){
+  const card=document.getElementById("ovBirthdaysCard"), box=document.getElementById("ovBirthdays"); if(!card||!box) return;
+  fetch("/v1/birthdays?days=14").then(r=>r.json()).then(d=>{
+    const rows=d.birthdays||[]; if(!rows.length){card.style.display="none";return;}
+    card.style.display="";
+    const when=n=>n===0?"today":n===1?"tomorrow":`in ${n} days`;
+    box.innerHTML=rows.map(b=>`<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)">
+      <span style="font:600 14px system-ui;color:var(--ink)">${esc(b.name)}</span>
+      ${b.grade?`<span style="font:600 11px system-ui;color:#fff;background:${b.grade==="A*"||b.grade==="A"?"var(--brand-deep)":"#8C9098"};border-radius:6px;padding:2px 7px">${esc(b.grade)}</span>`:""}
+      <span style="font:13px system-ui;color:#8a8a8a">${when(b.in_days)} · ${esc(b.date.slice(5).replace("-","/"))}</span>
+      <button data-bday="${esc(b.cid)}" style="margin-left:auto;background:none;border:1px solid var(--line);border-radius:8px;padding:5px 11px;font:600 12px system-ui;color:var(--ink);cursor:pointer">Send a note</button>
+    </div>`).join("");
+    box.querySelectorAll("[data-bday]").forEach(b=>b.onclick=()=>openDrawer(b.dataset.bday));
+  }).catch(()=>{ card.style.display="none"; });
+}
 function renderOverview(){
   renderTeamReport();
+  renderBirthdays();
   const rv=REVEAL_ACTIVE;
   if(rv) revealStats();                       // headline KPIs tabulate up from the data
   const donut=document.getElementById("ovDonut");
@@ -2851,7 +2871,8 @@ function campInit(force){
   // Always render the create form (and a slot for the list) so a campaign can be created even
   // before/without the list loading. The list then fills in when the API answers.
   root.innerHTML=`<div id="campList" class="camplist">${haliaLoader("Loading campaigns")}</div>
-    <div class="campnew"><div class="clbl" style="margin-bottom:10px">New campaign</div>${campForm()}</div>`;
+    <div class="campnew"><div id="campSeason" style="margin-bottom:16px"></div><div class="clbl" style="margin-bottom:10px">New campaign</div>${campForm()}</div>`;
+  campSeasonLoad();
   campWireForm();
   fetch("/v1/campaigns").then(r=>r.json()).then(d=>{
     CAMP_CACHE=d.campaigns||[];                         // keep the drawer's picker in step
@@ -3009,6 +3030,23 @@ function campWireList(camps){
     const c=camps.find(x=>x.id===b.dataset.edit); if(!c)return;
     document.querySelector(".campnew").innerHTML='<div class="clbl" style="margin-bottom:10px">Edit campaign</div>'+campForm(c);
     campWireForm();});
+}
+// The season as a luxury house runs it: one tap fills the form with a moment and its dates.
+function campSeasonLoad(){
+  const box=document.getElementById("campSeason"); if(!box) return;
+  fetch("/v1/campaigns/presets").then(r=>r.json()).then(d=>{
+    const ps=d.presets||[]; if(!ps.length){box.innerHTML="";return;}
+    box.innerHTML=`<div class="clbl" style="margin-bottom:8px">Season ${esc(d.season||"")} · moments worth a campaign</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${ps.map(p=>`<button data-preset="${esc(p.key)}" title="${esc(p.note)}" style="border:1px solid var(--line);border-radius:999px;background:#fff;padding:7px 13px;font:600 12.5px system-ui;color:var(--ink);cursor:pointer">${esc(p.name)}<span style="color:#8a8a8a;font-weight:400"> · ${p.starts.slice(5).replace("-","/")}</span></button>`).join("")}</div>
+      <div style="font:12px system-ui;color:#8a8a8a;margin-top:8px">Previews and gifting, a bespoke cut-off, a thank-you between the years, the new season first. Pick one, adjust the dates, save; then add clients from the Clients tab.</div>`;
+    box.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{
+      const p=ps.find(x=>x.key===b.dataset.preset); if(!p) return;
+      const n=document.getElementById("cName"), st=document.getElementById("cStart"), en=document.getElementById("cEnd");
+      if(n) n.value=p.name; if(st) st.value=p.starts; if(en) en.value=p.ends;
+      toast(`${p.name}: suggest ${p.grades.join(", ")} clients and the "${p.template}" template.`);
+      if(n) n.focus();
+    });
+  }).catch(()=>{ box.innerHTML=""; });
 }
 function campWireForm(){
   const save=document.getElementById("cSave"); if(!save)return;
