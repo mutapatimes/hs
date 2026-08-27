@@ -164,7 +164,7 @@ class Halia_Connect {
             'key_id'       => $key['id'],
             'connected_at' => time(),
         ], false );
-        Halia_Webhooks::ensure();
+        Halia_Webhooks::ensure( true );
 
         // The private sign-in link is used once, in a new tab, and not kept around.
         if ( ! empty( $body['open_url'] ) && empty( $body['reconnected'] ) ) {
