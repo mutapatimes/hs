@@ -30,7 +30,7 @@ _SEQUENCES: dict[str, list[tuple[str, int]]] = {
     "associate": [("assoc_welcome", 0), ("assoc_first_moves", 2), ("assoc_capture", 3),
                   ("assoc_habits", 4)],
 }
-_WEEKLY = ["weekly_vics", "weekly_team", "weekly_feedback", "weekly_refresh"]
+_WEEKLY = ["weekly_vics", "weekly_feedback", "weekly_refresh", "weekly_team"]
 _WEEKLY_EVERY_DAYS = 7
 
 
