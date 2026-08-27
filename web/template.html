@@ -2485,9 +2485,31 @@ function renderTeamReport(){
     const rows=(d.seats||[]).concat(d.unattributed?[d.unattributed]:[]);
     if(!rows.length){ box.innerHTML='<div style="font:13.5px system-ui;color:var(--soft)">Add teammates in Settings → Team; their contacts, assignments and conversions show here.</div>'; return; }
     const pct=x=>Math.round((x||0)*100)+"%", money=n=>"£"+Number(n||0).toLocaleString("en-GB");
+    // Leaderboard (managers only: this card is the manager's view): top three by the chosen measure.
+    let metric="revenue"; try{metric=localStorage.getItem("halia_team_metric")||"revenue";}catch(e){}
+    const M={revenue:["Revenue",r=>r.revenue,v=>"£"+Number(v||0).toLocaleString("en-GB")],
+             conversions:["Converted",r=>r.conversions,v=>v],
+             contacts:["Contacts",r=>r.contacts,v=>v],
+             captures:["Captured",r=>r.captures,v=>v]};
+    const m=M[metric]||M.revenue;
+    const ranked=(d.seats||[]).filter(r=>m[1](r)>0).sort((a,b)=>m[1](b)-m[1](a)).slice(0,3);
+    const board=ranked.length?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin-bottom:16px">
+      ${ranked.map((r,i)=>`<div style="flex:1;min-width:160px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:${i===0?'var(--brand-tint)':'#fff'}">
+        <div style="font:600 11px system-ui;color:#8a8a8a;letter-spacing:.04em">${i+1}${i===0?' · leading':''}</div>
+        <div style="font:600 15px system-ui;color:var(--ink);margin-top:3px">${esc(r.name)}</div>
+        <div style="font:600 20px system-ui;color:var(--brand-deep);margin-top:4px;font-variant-numeric:tabular-nums">${m[2](m[1](r))}</div>
+        <div style="font:12px system-ui;color:#8a8a8a">${m[0].toLowerCase()} · ${r.contacts} contact${r.contacts===1?"":"s"}</div>
+      </div>`).join("")}
+      <div style="flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:6px">
+        <span style="font:600 11px system-ui;color:#8a8a8a">Rank by</span>
+        <select id="ovTeamMetric" style="border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:13px system-ui;color:var(--ink);background:#fff">
+          ${Object.keys(M).map(k=>`<option value="${k}" ${k===metric?"selected":""}>${M[k][0]}</option>`).join("")}
+        </select>
+      </div>
+    </div>`:"";
     const th=(t,align)=>`<th style="text-align:${align||'right'};font:600 11.5px system-ui;color:#8a8a8a;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap">${t}</th>`;
     const td=(v,align,strong)=>`<td style="text-align:${align||'right'};font:${strong?'600':'400'} 13.5px system-ui;color:var(--ink);padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums">${v}</td>`;
-    box.innerHTML=`<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%">
+    box.innerHTML=board+`<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%">
       <thead><tr>${th("Teammate","left")}${th("Contacts")}${th("Clients")}${th("A*/A share")}${th("Captured")}${th("Owned")}${th("Converted")}${th("Rate")}${th("Revenue")}</tr></thead>
       <tbody>${rows.map(r=>`<tr>
         ${td(`${esc(r.name)}${r.title?`<span style="color:#8a8a8a;font-weight:400"> · ${esc(r.title)}</span>`:""}`,"left",true)}
@@ -2496,6 +2518,8 @@ function renderTeamReport(){
       <tfoot><tr>${td("All","left",true)}${td(d.totals.contacts,null,true)}${td(d.totals.clients,null,true)}${td("")}${td(d.totals.captures,null,true)}${td("")}${td(d.totals.conversions,null,true)}${td(pct(d.totals.rate),null,true)}${td(money(d.totals.revenue),null,true)}</tr></tfoot>
     </table></div>
     <div style="font:12px system-ui;color:#8a8a8a;margin-top:10px">Converted = the client ordered within ${d.window} days of a contact, credited to the latest contact before the order. "Shared sign-in" is activity from a browser with no seat. Captured counts the clients each associate added, with how many graded A or above.</div>`;
+    const ms=document.getElementById("ovTeamMetric");
+    if(ms) ms.onchange=()=>{ try{localStorage.setItem("halia_team_metric",ms.value);}catch(e){} renderTeamReport(); };
   }).catch(()=>{ box.innerHTML='<div style="font:13.5px system-ui;color:var(--soft)">Could not load the team report just now.</div>'; });
 }
 (function(){
