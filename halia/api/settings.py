@@ -298,7 +298,7 @@ def _clean_domain(v) -> str:
 # blob from its whitelist, so anything here must be carried forward from the existing row.
 from halia import voice as _voice  # noqa: E402
 
-PRESERVED_SETTINGS_KEYS = ("capture_slug", "brand", "basket_alert_min")
+PRESERVED_SETTINGS_KEYS = ("capture_slug", "brand", "basket_alert_min", "seat_billing")
 
 
 def settings_for(shop: str) -> dict:

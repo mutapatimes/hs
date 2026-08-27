@@ -4327,6 +4327,12 @@ function openSettings(page){
         const curPlan=(d.plans||[]).find(p=>p.key===cur)||{name:"Free"};
         let h=`<div style="font:600 13px system-ui;color:${cur!=="free"?'#0f7b4f':'var(--soft)'};margin-bottom:12px">● Plan: ${esc(curPlan.name||"Free")}</div>`;
         h+=`<p style="${P2}">Billing is handled securely by Shopify. Choose a plan below; approval and payment happen in your Shopify admin.</p>`;
+        if(d.seatsIncluded!=null){
+          const extra=d.extraSeats||0, sb=d.seatBilling||{};
+          h+=`<p style="${P2}">Seats: <b>${d.seatsInUse||0}</b> in use, <b>${d.seatsIncluded}</b> included with ${esc(curPlan.name)}. `+
+             (extra?`${extra} extra seat${extra===1?"":"s"} at £${d.seatPrice} each per 30 days, billed through Shopify`+(sb.charged?` (${sb.charged} charged this period)`:``)+`.`
+                   :`Each seat beyond that is £${d.seatPrice} per 30 days, billed through Shopify.`)+`</p>`;
+        }
         h+=`<div id="billPlans" style="margin-top:16px"></div>`;
         if(d.test) h+=`<div style="${P2};color:var(--faint);font-size:12px;margin-top:6px">Test mode: approvals run without a charge.</div>`;
         box.innerHTML=h;

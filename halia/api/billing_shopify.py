@@ -36,7 +36,17 @@ mutation CancelSub($id:ID!){
   appSubscriptionCancel(id:$id){ userErrors{ field message } appSubscription{ id status } }
 }"""
 
-_ACTIVE_SUBS = "{ currentAppInstallation { activeSubscriptions { id name status } } }"
+_ACTIVE_SUBS = """{ currentAppInstallation { activeSubscriptions {
+  id name status currentPeriodEnd
+  lineItems { id plan { pricingDetails { __typename } } } } } }"""
+
+_USAGE_CREATE = """
+mutation Usage($lineItemId:ID!,$description:String!,$price:MoneyInput!){
+  appUsageRecordCreate(subscriptionLineItemId:$lineItemId, description:$description, price:$price){
+    userErrors{ field message }
+    appUsageRecord{ id }
+  }
+}"""
 
 
 def _token(shop: str) -> str | None:
@@ -87,6 +97,95 @@ def _current_plan_key(shop: str) -> str:
     return "free"
 
 
+def _line_items(key: str) -> list[dict]:
+    """The recurring plan, plus a capped usage line for extra seats on metered plans. The
+    merchant approves both once; seats beyond the bundle are then posted as usage records."""
+    items = [{"plan": {"appRecurringPricingDetails": {
+        "price": {"amount": plans.amount(key), "currencyCode": plans.CURRENCY},
+        "interval": plans.INTERVAL}}}]
+    if plans.included_seats(key) is not None:
+        items.append({"plan": {"appUsagePricingDetails": {
+            "cappedAmount": {"amount": plans.SEAT_PRICE * plans.SEAT_CAP,
+                             "currencyCode": plans.CURRENCY},
+            "terms": plans.seat_terms(key)}}})
+    return items
+
+
+def _usage_line_id(sub: dict | None) -> str | None:
+    for li in ((sub or {}).get("lineItems") or []):
+        if ((li.get("plan") or {}).get("pricingDetails") or {}).get("__typename") == "AppUsagePricing":
+            return li.get("id")
+    return None
+
+
+def _seat_state(shop: str) -> dict:
+    import json
+    raw = shop_store().get_settings_raw(shop)
+    d = json.loads(raw) if raw else {}
+    return dict(d.get("seat_billing") or {})
+
+
+def _save_seat_state(shop: str, state: dict) -> None:
+    import json
+    raw = shop_store().get_settings_raw(shop)
+    d = json.loads(raw) if raw else {}
+    d["seat_billing"] = state
+    shop_store().save_settings(shop, json.dumps(d))
+
+
+def bill_seats(shop: str) -> dict:
+    """Post a usage record for seats beyond the plan's bundle, once per billing period, plus a
+    top-up when the team grows mid-period. Idempotent; safe to run hourly. Returns what happened."""
+    if _stripe_billed(shop) or not _token(shop):
+        return {"shop": shop, "skipped": "not shopify-billed"}
+    sub = active_subscription(shop)
+    if not sub or sub.get("status") != "ACTIVE":
+        return {"shop": shop, "skipped": "no active subscription"}
+    key = _current_plan_key(shop)
+    if plans.included_seats(key) is None:
+        return {"shop": shop, "skipped": "seats not metered"}
+    line = _usage_line_id(sub)
+    if not line:
+        return {"shop": shop, "skipped": "subscription predates seat billing"}
+    period = str(sub.get("currentPeriodEnd") or "")
+    extra = min(plans.extra_seats(key, shop_store().active_seat_count(shop)), plans.SEAT_CAP)
+    state = _seat_state(shop)
+    charged = int(state.get("charged") or 0) if state.get("period") == period else 0
+    delta = extra - charged
+    if delta <= 0:
+        return {"shop": shop, "period": period, "extra": extra, "charged": charged, "posted": 0}
+    amount = delta * plans.SEAT_PRICE
+    data = _gql(shop, _USAGE_CREATE, {
+        "lineItemId": line,
+        "description": f"{delta} additional associate seat{'s' if delta != 1 else ''} · Halia {plans.plan(key)['name']}",
+        "price": {"amount": amount, "currencyCode": plans.CURRENCY}})
+    _user_errors(data, "appUsageRecordCreate")
+    _save_seat_state(shop, {"period": period, "charged": extra,
+                            "last_record": ((data.get("appUsageRecordCreate") or {})
+                                            .get("appUsageRecord") or {}).get("id")})
+    return {"shop": shop, "period": period, "extra": extra, "charged": extra, "posted": delta,
+            "amount": amount}
+
+
+def run_seat_billing() -> dict:
+    """Hourly sweep over Shopify-billed tenants. Best-effort per shop; never raises."""
+    out = {"checked": 0, "posted": 0, "errors": 0}
+    for t in shop_store().all_tenants():
+        t = dict(t)
+        if t.get("kind") not in (None, "", "shopify"):
+            continue
+        bill = shop_store().get_billing(t["shop"])
+        if not bill or dict(bill).get("status") != "active":
+            continue
+        out["checked"] += 1
+        try:
+            r = bill_seats(t["shop"])
+            out["posted"] += int(r.get("posted") or 0)
+        except Exception:  # noqa: BLE001 — one shop's hiccup must not stop the sweep
+            out["errors"] += 1
+    return out
+
+
 def _admin_app_url(shop: str) -> str:
     """Deep link back into the embedded app inside Shopify admin (top-level, re-embeds the app)."""
     handle = config.SHOPIFY_APP_HANDLE or config.SHOPIFY_API_KEY
@@ -124,6 +223,8 @@ def register(app) -> None:
             "seatsIncluded": plans.included_seats(current),
             "extraSeats": plans.extra_seats(current, in_use),
             "seatOverage": plans.seat_overage(current, in_use),
+            "seatCap": plans.SEAT_CAP,
+            "seatBilling": _seat_state(shop) if shopify else {},
         }
 
     @app.post("/v1/plans/subscribe")
@@ -145,9 +246,7 @@ def register(app) -> None:
             "name": p["name"],
             "returnUrl": return_url,
             "test": bool(config.SHOPIFY_BILLING_TEST),
-            "lineItems": [{"plan": {"appRecurringPricingDetails": {
-                "price": {"amount": plans.amount(key), "currencyCode": plans.CURRENCY},
-                "interval": plans.INTERVAL}}}],
+            "lineItems": _line_items(key),
         }
         data = _gql(shop, _CREATE, variables)
         _user_errors(data, "appSubscriptionCreate")

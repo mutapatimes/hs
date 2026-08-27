@@ -18,6 +18,14 @@ INTERVAL = "EVERY_30_DAYS"            # Shopify appRecurringPricingDetails inter
 # associates actually use them, so a seat must never be the reason a manager holds one back. The base
 # tier is the engine; seats are how an account grows without capping its own adoption.
 SEAT_PRICE = 15                      # GBP / month per seat above the plan's bundle
+SEAT_CAP = 40                        # most extra seats billable per 30 days (Shopify usage cap = SEAT_CAP × SEAT_PRICE)
+
+
+def seat_terms(key: str) -> str:
+    """The usage-charge terms a merchant approves once, alongside the recurring plan."""
+    inc = included_seats(key) or 0
+    return (f"£{SEAT_PRICE} per additional associate seat per 30 days, beyond the {inc} seats "
+            f"included in {plan(key)['name']}. Seats are counted from the team you create in Halia.")
 
 # The feature ladder, in the order shown on a plan card. Each plan lists the same ladder with the
 # ones it includes ticked and the rest struck through, so the jump between tiers reads at a glance.
