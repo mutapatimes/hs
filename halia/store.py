@@ -625,9 +625,10 @@ class ShopStore(_DB):
         return {"shop": row["shop"], "seat_id": row["id"], "name": row["name"]} if row else None
 
     def list_seats(self, shop: str) -> list[dict]:
-        self._add_column("seats", "email", "TEXT")
+        for col in ("email", "title", "signoff"):
+            self._add_column("seats", col, "TEXT")
         rows = self._run(
-            "SELECT id, name, email, created_at, last_seen_at, revoked_at FROM seats "
+            "SELECT id, name, email, title, created_at, last_seen_at, revoked_at FROM seats "
             "WHERE shop = :shop AND revoked_at IS NULL ORDER BY created_at",
             {"shop": shop}, fetch="all") or []
         return [dict(r) for r in rows]

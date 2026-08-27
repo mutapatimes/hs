@@ -931,6 +931,18 @@
             <input id="ovq" placeholder="Search any client by name, email, location…" autocomplete="off">
           </div>
           <div id="ovResults" class="ovres" style="display:none"></div>
+          <label id="ovTeamToggle" style="margin-left:auto;display:inline-flex;align-items:center;gap:8px;font:600 13px system-ui;color:var(--soft);cursor:pointer;user-select:none">
+            <input type="checkbox" id="ovTeamSwitch" style="accent-color:#1f564a;width:15px;height:15px">Team performance
+          </label>
+        </div>
+        <div id="ovTeamCard" class="card" style="display:none;margin-bottom:16px">
+          <div class="ch"><h3>Your team</h3>
+            <span class="hint">what each associate did, and what came of it, counted from your own book</span>
+            <select id="ovTeamDays" style="margin-left:auto;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:13px system-ui;color:var(--ink);background:#fff">
+              <option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option>
+            </select>
+          </div>
+          <div class="cb"><div id="ovTeam"></div></div>
         </div>
         <div id="setupGuide" class="card" style="display:none;margin-bottom:16px"></div>
         <div id="ovDigestCard" class="card" style="display:none;margin-bottom:16px">
@@ -2459,7 +2471,40 @@ function updateAreaBanner(){
   document.getElementById("areaClear").onclick=()=>{areaFilter="";page=1;updateAreaBanner();renderRows();};
 }
 
+// ── Team performance: an Overview toggle, remembered per browser. Folded on the server from the
+//    pipeline activity each seat leaves in Shopify plus the orders in the book; nothing stored. ──
+function teamOn(){ try{return localStorage.getItem("halia_team_view")==="1";}catch(e){return false;} }
+function renderTeamReport(){
+  const card=document.getElementById("ovTeamCard"), box=document.getElementById("ovTeam"); if(!card||!box) return;
+  const sw=document.getElementById("ovTeamSwitch"); if(sw) sw.checked=teamOn();
+  if(!teamOn()){ card.style.display="none"; return; }
+  card.style.display=""; box.innerHTML=haliaLoader("Counting the month");
+  const days=(document.getElementById("ovTeamDays")||{}).value||"30";
+  fetch("/v1/reports/associates?days="+days).then(r=>r.json()).then(d=>{
+    if(!d.available){ box.innerHTML='<div style="font:13.5px system-ui;color:var(--soft)">Team reporting reads the pipeline your team keeps in Shopify. It switches on once the store is connected with write-back.</div>'; return; }
+    const rows=(d.seats||[]).concat(d.unattributed?[d.unattributed]:[]);
+    if(!rows.length){ box.innerHTML='<div style="font:13.5px system-ui;color:var(--soft)">Add teammates in Settings → Team; their contacts, assignments and conversions show here.</div>'; return; }
+    const pct=x=>Math.round((x||0)*100)+"%", money=n=>"£"+Number(n||0).toLocaleString("en-GB");
+    const th=(t,align)=>`<th style="text-align:${align||'right'};font:600 11.5px system-ui;color:#8a8a8a;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap">${t}</th>`;
+    const td=(v,align,strong)=>`<td style="text-align:${align||'right'};font:${strong?'600':'400'} 13.5px system-ui;color:var(--ink);padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums">${v}</td>`;
+    box.innerHTML=`<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%">
+      <thead><tr>${th("Teammate","left")}${th("Contacts")}${th("Clients")}${th("A*/A share")}${th("Owned")}${th("Converted")}${th("Rate")}${th("Revenue")}</tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        ${td(`${esc(r.name)}${r.title?`<span style="color:#8a8a8a;font-weight:400"> · ${esc(r.title)}</span>`:""}`,"left",true)}
+        ${td(r.contacts)}${td(r.clients)}${td(pct(r.topShare))}${td(r.owned)}${td(r.conversions)}${td(pct(r.rate))}${td(money(r.revenue))}</tr>`).join("")}
+      </tbody>
+      <tfoot><tr>${td("All","left",true)}${td(d.totals.contacts,null,true)}${td(d.totals.clients,null,true)}${td("")}${td("")}${td(d.totals.conversions,null,true)}${td(pct(d.totals.rate),null,true)}${td(money(d.totals.revenue),null,true)}</tr></tfoot>
+    </table></div>
+    <div style="font:12px system-ui;color:#8a8a8a;margin-top:10px">Converted = the client ordered within ${d.window} days of a contact, credited to the latest contact before the order. "Shared sign-in" is activity from a browser with no seat.</div>`;
+  }).catch(()=>{ box.innerHTML='<div style="font:13.5px system-ui;color:var(--soft)">Could not load the team report just now.</div>'; });
+}
+(function(){
+  const sw=document.getElementById("ovTeamSwitch"), sel=document.getElementById("ovTeamDays");
+  if(sw) sw.onchange=()=>{ try{localStorage.setItem("halia_team_view",sw.checked?"1":"0");}catch(e){} renderTeamReport(); };
+  if(sel) sel.onchange=renderTeamReport;
+})();
 function renderOverview(){
+  renderTeamReport();
   const rv=REVEAL_ACTIVE;
   if(rv) revealStats();                       // headline KPIs tabulate up from the data
   const donut=document.getElementById("ovDonut");

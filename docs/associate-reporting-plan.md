@@ -1,4 +1,6 @@
-# Associate performance reporting (planned)
+# Associate performance reporting (built 2026-08-27)
+
+**Shipped**: `GET /v1/reports/associates?days=` (halia/api/reports.py) and the Overview "Team performance" toggle (remembered per browser) with a 7/30/90-day table: contacts, clients, A*/A share, owned, converted, rate, revenue, plus a "Shared sign-in" row for unattributed activity. Captures per seat and the weekly manager digest remain future work.
 
 The ask (2026-08-27): a dashboard that tracks each sales associate's performance: how many
 messages they send, to whom, and their conversion rate.
