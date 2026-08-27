@@ -78,7 +78,8 @@ struct HaliaAPI {
         let action: String?
         let phone: String?           // the matched client's number, so a name lookup can still send
         let email: String?
-        private enum K: String, CodingKey { case found, name, cid, cart, grade, reasons, latent, action, reco, phone, email }
+        let suggested: [String]?     // template names ranked for this client (server-side)
+        private enum K: String, CodingKey { case found, name, cid, cart, grade, reasons, latent, action, reco, phone, email, suggested }
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: K.self)
             found = (try? c.decodeIfPresent(Bool.self, forKey: .found)) ?? nil
@@ -87,6 +88,7 @@ struct HaliaAPI {
             cart  = (try? c.decodeIfPresent(Cart.self, forKey: .cart)) ?? nil
             phone = (try? c.decodeIfPresent(String.self, forKey: .phone)) ?? nil
             email = (try? c.decodeIfPresent(String.self, forKey: .email)) ?? nil
+            suggested = (try? c.decodeIfPresent([String].self, forKey: .suggested)) ?? nil
             grade   = (try? c.decodeIfPresent(String.self, forKey: .grade)) ?? nil
             reasons = (try? c.decodeIfPresent([String].self, forKey: .reasons)) ?? nil
             latent  = (try? c.decodeIfPresent(Scalar.self, forKey: .latent))?.text

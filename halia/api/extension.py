@@ -183,6 +183,7 @@ def _resp_from_row(shop: str, row: dict) -> dict:
         "dashboard": _dashboard_link(),
         "catalog": _catalog_link(shop),
         "templates": _templates(shop, first),
+        "suggested": _suggest_templates(shop, {**{"cid": row.get("cid"), "found": True, "play": play, "grade": row.get("grade"), "ordersCount": row.get("ordersCount"), "cart": _cart(row)}}, _templates(shop, first)),
     }
 
 
@@ -214,6 +215,7 @@ def _resp_from_result(shop: str, r) -> dict:
         "dashboard": _dashboard_link(),
         "catalog": _catalog_link(shop),
         "templates": _templates(shop, ""),
+        "suggested": _suggest_templates(shop, {"found": False}, _templates(shop, "")),
     }
 
 
@@ -486,6 +488,46 @@ def _draft_context(shop: str, resp: dict, channel: str, thread: list[dict], inst
     if closing:
         lines.append(closing)
     return "\n".join(lines)
+
+
+def _suggest_templates(shop: str, resp: dict, templates: list[dict], limit: int = 3) -> list[str]:
+    """The three templates most likely right for THIS client, by name, so the associate never
+    scrolls: birthday soon, an open basket, gone quiet, a first order, a live season moment, then
+    the top-client staples. Purely a ranking over the merchant's own templates."""
+    names = [t.get("name") or "" for t in templates]
+    def find(pred):
+        for t in templates:
+            if pred((t.get("name") or "").lower(), (t.get("category") or "").lower()):
+                return t.get("name")
+        return None
+    picks: list[str] = []
+    def add(n):
+        if n and n not in picks and len(picks) < limit:
+            picks.append(n)
+    cid = str(resp.get("cid") or "")
+    if cid:
+        try:
+            from halia.api.birthdays import upcoming
+            if any(str(b.get("cid")) == cid.rsplit("/", 1)[-1] for b in upcoming(shop, 7)):
+                add(find(lambda n, c: "birthday" in n))
+        except Exception:  # noqa: BLE001
+            pass
+    if (resp.get("cart") or {}).get("count"):
+        add(find(lambda n, c: "set aside" in n or "basket" in n or "checkout" in n))
+    play = resp.get("play") or ""
+    if play == "sleeping":
+        add(find(lambda n, c: "win" in c or "win-back" in n or "missed" in n))
+    if not resp.get("found") or play == "fresh" or (resp.get("ordersCount") or 0) <= 1:
+        add(find(lambda n, c: "welcome" in c))
+    camp = _running_campaign(shop)
+    if camp:
+        cname = (camp.get("name") or "").lower()
+        add(find(lambda n, c: c == "season" and (n in cname or cname in n)))
+    if (resp.get("grade") or "") in ("A*", "A"):
+        add(find(lambda n, c: "appointment" in c))
+    add(find(lambda n, c: "preview" in c or "arrival" in c))
+    add(find(lambda n, c: c == "season"))
+    return [n for n in picks if n in names]
 
 
 def _fallback_draft(shop: str, resp: dict) -> str:
@@ -879,6 +921,8 @@ def register(app) -> None:
             "dashboard": _dashboard_link(),
             "templates": _templates(shop, None, catalog, sender=_seat_profile(auth).get("signoff")),
             "profile": _seat_profile(auth),
+            "suggested": _suggest_templates(shop, {"found": False, "ordersCount": 0},
+                                            _templates(shop, None, catalog)),
             "campaigns": campaigns,
             "todos": _todos(shop),
             "seat": auth.seat_name,                       # who is signed in (None on the legacy token)

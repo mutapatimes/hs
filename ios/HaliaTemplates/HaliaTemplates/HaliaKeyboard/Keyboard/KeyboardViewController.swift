@@ -121,7 +121,24 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var filtered: [Template] {
         guard let c = selectedCategory else { return templates }
         if c == Self.recentCat { return recentTemplates }
+        if c == Self.forThemCat { return suggestedTemplates }
         return templates.filter { $0.category == c }
+    }
+
+    // "For them": the server ranks the merchant's templates for the client just looked up
+    // (a birthday this week, an open basket, gone quiet, a first order, a live season moment).
+    // Shown first and selected automatically, so the right note is one tap, never a scroll.
+    private static let forThemCat = "\u{2726} For them"
+    private var suggestedNames: [String] = []
+    private var suggestedTemplates: [Template] {
+        suggestedNames.compactMap { n in templates.first { $0.name == n } }
+    }
+    private func applySuggestions(_ names: [String]?) {
+        suggestedNames = names ?? []
+        if !suggestedNames.isEmpty, mode == .templates { selectedCategory = Self.forThemCat }
+        else if selectedCategory == Self.forThemCat { selectedCategory = nil }
+        rebuildChips()
+        table.reloadData()
     }
 
     // Recent templates: the associate's go-to messages, one tap away (on-device recency, App Group).
@@ -308,6 +325,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             do {
                 let res = try await HaliaAPI.current.lookup(ref)
                 if let n = res.name, !n.isEmpty { clientName = n }
+                applySuggestions(res.suggested)
                 clientCid = res.cid
                 if let u = res.cart?.url, !u.isEmpty { cartUrl = u; cartCount = res.cart?.count }
             } catch { /* keep the copied ref; personalisation still works by name */ }
@@ -317,6 +335,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func clearClient() {
         currentRef = nil; clientName = nil; clientCid = nil; cartUrl = nil; cartCount = nil
+        applySuggestions(nil)
         mode = .templates; suggestions = []; draftText = ""; pendingCartUrl = nil
         setStatus(nil); reload()
     }
@@ -714,6 +733,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         chipsScroll.isHidden = !show
         guard show else { return }
         chipsStack.addArrangedSubview(pillButton("🔍 Products", filled: true) { [weak self] in self?.enterProducts() })
+        if !suggestedTemplates.isEmpty {
+            chipsStack.addArrangedSubview(chip(title: Self.forThemCat, value: Self.forThemCat))
+        }
         if !recentTemplates.isEmpty {
             chipsStack.addArrangedSubview(chip(title: Self.recentCat, value: Self.recentCat))
         }

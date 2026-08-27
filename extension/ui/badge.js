@@ -249,6 +249,7 @@
   let mediaResults = [], mediaQuery = "";   // the Media panel's own product search (send product photos)
   let tplQuery = "", tplSel = null;   // template search text + selected index
   let tplGreeting = true, tplSignoff = true;   // include the salutation / the closing when inserting
+  let tplRecent = [];   // the associate's last-used template names (chrome.storage.sync)
   let threadReader = null;            // surface-supplied () => [{from,text}] of the visible chat
   let draftInstr = "";                // the associate's optional "what to say" note
   let draft = null;                   // { text, source, busy, error, aiAvailable }
@@ -1057,6 +1058,17 @@
       if (!(c in idx)) { idx[c] = groups.length; groups.push({ cat: c, items: [] }); }
       groups[idx[c]].items.push({ t, i });
     });
+    // With no search: the right ones first. "For this client" is the server's ranking for the
+    // client on screen (birthday soon, open basket, gone quiet, first order, a live moment);
+    // "Recent" is what this associate reaches for. Nobody scrolls forty templates.
+    if (!q) {
+      const byName = (names) => (names || []).map((n) => list.findIndex((t) => (t.name || "") === n))
+        .filter((i) => i >= 0).map((i) => ({ t: list[i], i }));
+      const sugg = byName((client && client.data && client.data.suggested) || (ctx && ctx.suggested) || []);
+      const rec = byName(tplRecent).filter(({ i }) => !sugg.some((x) => x.i === i)).slice(0, 4);
+      if (rec.length) groups.unshift({ cat: "Recent", items: rec });
+      if (sugg.length) groups.unshift({ cat: client && client.data && client.data.found ? "For this client" : "Start here", items: sugg });
+    }
     const sel = (tplSel != null && list[tplSel]) ? list[tplSel] : null;
     el.innerHTML = draftBoxHtml() + `
       <div class="sh">Templates <span class="n">${list.length}</span></div>
@@ -1086,8 +1098,11 @@
     const tg = el.querySelector('[data-a="tg"]'); if (tg) tg.onchange = () => { tplGreeting = tg.checked; saveTog(); renderTemplates(); };
     const tso = el.querySelector('[data-a="tso"]'); if (tso) tso.onchange = () => { tplSignoff = tso.checked; saveTog(); renderTemplates(); };
     const body = () => withToggles(fill((list[tplSel] || {}).body));
-    const ins = el.querySelector('[data-a="tins"]'); if (ins) ins.onclick = () => place(body());
-    const cp = el.querySelector('[data-a="tcopy"]'); if (cp) cp.onclick = () => copy(body(), "Message copied");
+    const used = () => { const t = list[tplSel]; if (!t) return;
+      tplRecent = [t.name].concat(tplRecent.filter((n) => n !== t.name)).slice(0, 6);
+      try { chrome.storage.sync.set({ tplRecent }); } catch (e) { /* ignore */ } };
+    const ins = el.querySelector('[data-a="tins"]'); if (ins) ins.onclick = () => { used(); place(body()); };
+    const cp = el.querySelector('[data-a="tcopy"]'); if (cp) cp.onclick = () => { used(); copy(body(), "Message copied"); };
     const cs = el.querySelector('[data-a="tcopys"]'); if (cs) cs.onclick = () => copy(fill((list[tplSel] || {}).subject), "Subject copied");
     wireDraft(el);
   }
@@ -1432,7 +1447,8 @@
           if (r && r.haliaView && !sharePinned) setView(r.haliaView);   // don't knock a storefront off Share
           if (r && Array.isArray(r.folded)) { r.folded.forEach((n) => folded.add(n)); applyFolds(); }
         });
-        chrome.storage.sync.get(["tplGreeting", "tplSignoff"], (r) => {
+        chrome.storage.sync.get(["tplGreeting", "tplSignoff", "tplRecent"], (r) => {
+          if (Array.isArray(r.tplRecent)) tplRecent = r.tplRecent;
           if (r && typeof r.tplGreeting === "boolean") tplGreeting = r.tplGreeting;
           if (r && typeof r.tplSignoff === "boolean") tplSignoff = r.tplSignoff;
           if (root) renderTemplates();

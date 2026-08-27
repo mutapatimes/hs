@@ -107,3 +107,26 @@ def test_capture_followup_puts_the_client_on_the_pipeline(env):
     act = pipe["activity"][-1]
     assert act["actor_id"] == seat and act["actor_name"] == "Sarah Bloom" and "camel coat" in act["note"]
     assert any("reach" in t.lower() for t in sink.tags["77"])
+
+
+def test_suggested_templates_follow_the_client(env):
+    client, store, seat_tok, seat, mp = env
+    from halia.api.extension import _suggest_templates, _templates
+    tpls = _templates(SHOP, "Grace")
+    names = _suggest_templates(SHOP, {"found": True, "cid": "c1", "play": "sleeping", "grade": "A*",
+                                      "ordersCount": 4, "cart": {"count": 2}}, tpls)
+    assert len(names) == 3
+    assert any("aside" in n.lower() for n in names)            # the open basket
+    assert any("win" in n.lower() or "missed" in n.lower() for n in names)   # gone quiet
+    fresh = _suggest_templates(SHOP, {"found": False}, tpls)
+    assert fresh and "welcome" in fresh[0].lower()
+    # a birthday within the week outranks everything
+    from datetime import timedelta
+    soon = date.today() + timedelta(days=2)
+    bd.invalidate(SHOP)
+    mp.setattr(bd, "fetch_birthdays", lambda shop: [{"cid": "c1", "name": "Grace", "month": soon.month, "day": soon.day, "source": "captured"}])
+    first = _suggest_templates(SHOP, {"found": True, "cid": "c1", "play": "fresh", "ordersCount": 1}, tpls)[0]
+    assert "birthday" in first.lower()          # whichever birthday template the store keeps
+    # and the context carries a default set for the no-client panel
+    d = client.get("/v1/extension/context", headers={"X-Halia-Ext-Token": seat_tok}).json()
+    assert d["suggested"] and len(d["suggested"]) <= 3
