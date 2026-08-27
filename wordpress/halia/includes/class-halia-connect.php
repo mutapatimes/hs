@@ -49,49 +49,101 @@ class Halia_Connect {
         $c      = self::connection();
         $notice = isset( $_GET['halia_error'] ) ? sanitize_text_field( wp_unslash( $_GET['halia_error'] ) ) : '';
         ?>
-        <div class="wrap" style="max-width:720px">
-            <h1 style="font-weight:500">Halia</h1>
+        <style>
+            .halia-wrap{max-width:880px;margin:24px 20px 0 0;color:#1a1a1d;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+            .halia-wrap h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;font-size:34px;letter-spacing:.01em;margin:0 0 4px;color:#1a1a1d}
+            .halia-wrap .halia-lede{color:#5b5b60;font-size:14px;margin:0 0 22px}
+            .halia-head{display:flex;justify-content:space-between;align-items:center;gap:16px;background:#fff;border:1px solid #E4E2DB;border-radius:10px;padding:20px 24px;margin-bottom:16px}
+            .halia-head strong{font-weight:600}
+            .halia-status{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#5b5b60}
+            .halia-status i{width:8px;height:8px;border-radius:50%;background:#7fae9d;display:inline-block}
+            .halia-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+            @media (max-width:900px){.halia-grid{grid-template-columns:1fr}}
+            .halia-card{background:#fff;border:1px solid #E4E2DB;border-radius:10px;padding:20px 24px}
+            .halia-card.wide{grid-column:1/-1}
+            .halia-card h2{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;font-size:22px;margin:0 0 8px;color:#1a1a1d}
+            .halia-card p{margin:0 0 10px;font-size:14px;line-height:1.55;color:#3a3a3f}
+            .halia-card p:last-child{margin-bottom:0}
+            .halia-card code{background:#f6f6f4;border:1px solid #E4E2DB;border-radius:4px;padding:2px 6px;font-size:12.5px;color:#1a1a1d}
+            .halia-btn{display:inline-block;background:#1a1a1d;color:#fff !important;border:1px solid #1a1a1d;border-radius:6px;padding:9px 16px;font-size:14px;text-decoration:none;cursor:pointer;line-height:1.2}
+            .halia-btn:hover{background:#2e2e33}
+            .halia-btn.ghost{background:#fff;color:#1a1a1d !important;border-color:#c9c7bf}
+            .halia-btn.ghost:hover{background:#f6f6f4}
+            .halia-capture{display:flex;gap:24px;align-items:flex-start}
+            .halia-capture img{width:168px;height:168px;border:1px solid #E4E2DB;border-radius:8px;padding:8px;background:#fff;flex:none}
+            .halia-capture a.lnk{color:#1a1a1d;word-break:break-all}
+            .halia-foot{margin-top:24px;font-size:13px;color:#8a8a90}
+            .halia-foot button{background:none;border:0;padding:0;color:#8a8a90;text-decoration:underline;cursor:pointer;font-size:13px}
+            .halia-foot button:hover{color:#1a1a1d}
+            .halia-field{margin:14px 0 18px}
+            .halia-field label{display:block;font-size:13px;color:#5b5b60;margin-bottom:6px}
+            .halia-field input{width:100%;max-width:380px;border:1px solid #c9c7bf;border-radius:6px;padding:8px 10px;font-size:14px}
+            .halia-err{background:#fff;border:1px solid #E4E2DB;border-radius:10px;padding:14px 18px;margin-bottom:16px;color:#8a2f2f;font-size:14px}
+        </style>
+        <div class="wrap halia-wrap">
+            <h1>Halia</h1>
+            <p class="halia-lede">Private client intelligence for luxury retail.</p>
             <?php if ( $notice ) : ?>
-                <div class="notice notice-error"><p><?php echo esc_html( $notice ); ?></p></div>
+                <div class="halia-err"><?php echo esc_html( $notice ); ?></div>
             <?php endif; ?>
             <?php if ( self::connected() ) : ?>
-                <p>Connected as <strong><?php echo esc_html( $c['label'] ); ?></strong>. Halia scores your client book from your own orders and keeps none of it.</p>
-                <p>
-                    <a class="button button-primary" target="_blank" rel="noopener" href="<?php echo esc_url( $c['dashboard'] ); ?>">Open Halia</a>
-                    <?php if ( ! empty( $c['open_url'] ) ) : ?>
-                        <span style="margin-left:8px;color:#646970">A sign-in link was also emailed to you.</span>
+                <div class="halia-head">
+                    <div>
+                        <div><strong><?php echo esc_html( $c['label'] ); ?></strong></div>
+                        <div class="halia-status"><i></i>Connected. Halia scores your client book from your own orders and keeps none of it.</div>
+                    </div>
+                    <a class="halia-btn" target="_blank" rel="noopener" href="<?php echo esc_url( $c['dashboard'] ); ?>">Open Halia</a>
+                </div>
+                <div class="halia-grid">
+                    <div class="halia-card">
+                        <h2>Order updates</h2>
+                        <p>Every new or updated order reaches Halia as it happens, so scores stay current.</p>
+                        <p><code><?php echo esc_html( Halia_Webhooks::status() ); ?></code></p>
+                    </div>
+                    <div class="halia-card">
+                        <h2>Basket links</h2>
+                        <p>Associates send a client a link that fills their basket and opens checkout. In a page or post:</p>
+                        <p><code>[halia_basket items="12:1,15:2" label="Add these to my basket"]</code></p>
+                    </div>
+                    <?php if ( ! empty( $c['capture_url'] ) ) : ?>
+                    <div class="halia-card wide">
+                        <h2>Client capture</h2>
+                        <div class="halia-capture">
+                            <?php if ( ! empty( $c['capture_qr'] ) ) : ?>
+                                <img src="<?php echo esc_attr( $c['capture_qr'] ); ?>" alt="Client capture QR">
+                            <?php endif; ?>
+                            <div>
+                                <p>Clients leave their details at the till or online. The page carries your store's name; Halia never appears on it.</p>
+                                <p><a class="lnk" target="_blank" rel="noopener" href="<?php echo esc_url( $c['capture_url'] ); ?>"><?php echo esc_html( $c['capture_url'] ); ?></a></p>
+                                <p>In a page or post: <code>[halia_capture label="Join our client book"]</code></p>
+                                <?php if ( ! empty( $c['capture_qr'] ) ) : ?>
+                                <p><button type="button" class="halia-btn ghost" onclick="var w=window.open('','_blank','width=480,height=640');w.document.write('<title>Leave your details</title><div style=\'font-family:Georgia,serif;text-align:center;padding:40px\'><h1 style=\'font-weight:400\'><?php echo esc_js( $c['label'] ); ?></h1><p>Leave your details and we will look after you.</p><img width=260 src=\'<?php echo esc_js( $c['capture_qr'] ); ?>\'></div>');w.document.close();w.print();">Print a till card</button></p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
                     <?php endif; ?>
-                </p>
-                <h2 style="font-weight:500;margin-top:32px">Order updates</h2>
-                <p>Every new or updated order is sent to Halia so scores stay current. Webhook: <code><?php echo esc_html( Halia_Webhooks::status() ); ?></code></p>
-                <h2 style="font-weight:500;margin-top:32px">Basket links</h2>
-                <p>Associates can send a client a link that fills their basket and opens checkout. This plugin handles those links at <code>/?halia-cart=…</code>. In a page or post, <code>[halia_basket items="12:1,15:2" label="Add these to my basket"]</code> renders the same link.</p>
-                <?php if ( ! empty( $c['capture_url'] ) ) : ?>
-                <h2 style="font-weight:500;margin-top:32px">Client capture</h2>
-                <p>Clients can leave their details at the till or online. The page is in your store's name; Halia never appears on it.</p>
-                <p><a target="_blank" rel="noopener" href="<?php echo esc_url( $c['capture_url'] ); ?>"><?php echo esc_html( $c['capture_url'] ); ?></a></p>
-                <?php if ( ! empty( $c['capture_qr'] ) ) : ?>
-                    <p><img src="<?php echo esc_attr( $c['capture_qr'] ); ?>" alt="Client capture QR" width="180" height="180" style="border:1px solid #dcdcde;padding:8px;background:#fff"></p>
-                    <p><button class="button" onclick="var w=window.open('','_blank','width=480,height=640');w.document.write('<title>Leave your details</title><div style=\'font-family:Georgia,serif;text-align:center;padding:40px\'><h1 style=\'font-weight:400\'><?php echo esc_js( $c['label'] ); ?></h1><p>Leave your details and we will look after you.</p><img width=260 src=\'<?php echo esc_js( $c['capture_qr'] ); ?>\'></div>');w.document.close();w.print();">Print a till card</button></p>
-                <?php endif; ?>
-                <p>In a page or post, <code>[halia_capture label="Join our client book"]</code> renders a button to the capture page.</p>
-                <?php endif; ?>
-                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top:40px">
+                </div>
+                <form class="halia-foot" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                     <?php wp_nonce_field( 'halia_disconnect' ); ?>
                     <input type="hidden" name="action" value="halia_disconnect">
-                    <button class="button" onclick="return confirm('Disconnect this store from Halia? The REST key and webhooks will be removed.')">Disconnect</button>
+                    Connected <?php echo esc_html( date_i18n( get_option( 'date_format' ), (int) ( $c['connected_at'] ?? time() ) ) ); ?>.
+                    <button type="submit" onclick="return confirm('Disconnect this store from Halia? The API key and webhooks will be removed.')">Disconnect</button>
                 </form>
             <?php else : ?>
-                <p>Halia reads your orders and customers through the WooCommerce API and grades every client by capacity to spend. Connecting creates a read/write API key for Halia and starts the first scoring run. Nothing changes in your store.</p>
-                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-                    <?php wp_nonce_field( 'halia_connect' ); ?>
-                    <input type="hidden" name="action" value="halia_connect">
-                    <p>
-                        <label for="halia_email">Your email (for the sign-in link)</label><br>
-                        <input type="email" id="halia_email" name="email" class="regular-text" value="<?php echo esc_attr( wp_get_current_user()->user_email ); ?>">
-                    </p>
-                    <p><button class="button button-primary">Connect to Halia</button></p>
-                </form>
+                <div class="halia-card">
+                    <h2>Connect your store</h2>
+                    <p>Halia reads your orders and customers through the WooCommerce API and grades every client by capacity to spend. Connecting creates an API key for Halia and starts the first scoring run. Nothing changes in your store.</p>
+                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                        <?php wp_nonce_field( 'halia_connect' ); ?>
+                        <input type="hidden" name="action" value="halia_connect">
+                        <div class="halia-field">
+                            <label for="halia_email">Your email, for the sign-in link</label>
+                            <input type="email" id="halia_email" name="email" value="<?php echo esc_attr( wp_get_current_user()->user_email ); ?>">
+                        </div>
+                        <button type="submit" class="halia-btn">Connect to Halia</button>
+                    </form>
+                </div>
             <?php endif; ?>
         </div>
         <?php
