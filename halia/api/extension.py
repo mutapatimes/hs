@@ -583,6 +583,61 @@ def _fallback_draft(shop: str, resp: dict) -> str:
     return f"Hi {first or 'there'}, just checking in from our side. Is there anything I can help you with?"
 
 
+# ── polish what the associate typed (house voice, typos, greeting and sign-off) ────────
+_POLISH_SYSTEM = (
+    "You are a clienteling assistant for a luxury retailer. You are given a message the sales "
+    "associate has typed themselves. Rewrite it in the house voice described below: fix typos, "
+    "spelling and punctuation, tidy the phrasing, and keep it short. Keep every fact, name, number, "
+    "price, date and link exactly as given. Keep the same language as the text you were given. Add "
+    "nothing that is not in the text. Plain text only: no markdown, no emoji unless the text already "
+    "uses them. Do not use em dashes; use commas, colons or periods. Return only the message itself, "
+    "with no preamble or surrounding quotes."
+)
+
+_TYPO_MAP = {
+    "teh": "the", "adn": "and", "recieve": "receive", "recieved": "received", "definately": "definitely",
+    "seperate": "separate", "occassion": "occasion", "occured": "occurred", "untill": "until",
+    "tommorow": "tomorrow", "tomorow": "tomorrow", "wich": "which", "thier": "their", "beleive": "believe",
+    "accomodate": "accommodate", "adress": "address", "availble": "available", "avaliable": "available",
+    "appointmnet": "appointment", "apointment": "appointment", "collecton": "collection",
+    "colection": "collection", "recomend": "recommend", "reccomend": "recommend", "truely": "truly",
+    "sincerly": "sincerely", "wonderfull": "wonderful", "beautifull": "beautiful", "peice": "piece",
+    "peices": "pieces", "jewelery": "jewellery", "cashmire": "cashmere", "lenght": "length",
+    "arrivied": "arrived", "arrvied": "arrived", "gratefull": "grateful", "pleasent": "pleasant",
+    "loose": "lose", "alot": "a lot", "dont": "don't", "cant": "can't", "wont": "won't", "im": "I'm",
+    "ive": "I've", "id": "I'd", "ill": "I'll", "i": "I",
+}
+_GREETING_RE = re.compile(r"^\s*(dear|hi|hello|hey|good (morning|afternoon|evening))\b[^\n]*\n+", re.I)
+_SIGNOFF_RE = re.compile(r"\n+\s*(warmly|warm regards|kind regards|best regards|best wishes|best|regards|"
+                         r"sincerely|yours|with warm wishes|all the best|many thanks|thank you)[,.!]?"
+                         r"(\n.*)?\s*$", re.I | re.S)
+
+
+def _rules_polish(text: str, first: str, signoff_text: str, greeting: bool, signoff: bool) -> str:
+    """Polish without AI: common slips corrected, spacing tidied, sentences capitalised, and the
+    greeting and sign-off applied the way the keyboard toggles ask."""
+    body = text.strip()
+    body = _GREETING_RE.sub("", body) if not greeting else body
+    body = _SIGNOFF_RE.sub("", body).rstrip() if not signoff else body
+
+    def fix(m):
+        w = m.group(0)
+        low = w.lower()
+        if low in _TYPO_MAP:
+            rep = _TYPO_MAP[low]
+            return rep if (w.islower() or low in ("i", "im", "ive", "id", "ill")) else rep.capitalize()
+        return w
+    body = re.sub(r"[A-Za-z']+", fix, body)
+    body = re.sub(r"[ \t]+", " ", body)
+    body = re.sub(r" +([,.!?])", r"\1", body)
+    body = re.sub(r"(^|[.!?]\s+)([a-z])", lambda m: m.group(1) + m.group(2).upper(), body)
+    if greeting and not _GREETING_RE.match(body + "\n"):
+        body = f"Dear {first}," + "\n\n" + body if first else "Hello," + "\n\n" + body
+    if signoff and signoff_text and not _SIGNOFF_RE.search("\n" + body):
+        body = body.rstrip() + "\n\n" + signoff_text.strip()
+    return body.strip()
+
+
 # ── the conversation brief (read the thread, recommend a reply and the next moves) ───
 _BRIEF_SYSTEM = (
     "You are the clienteling desk behind a luxury retailer's sales associate. You are given one "
@@ -1018,6 +1073,57 @@ def register(app) -> None:
         return {"draft": draft, "source": source, "model": model,
                 "found": bool(resp.get("found")), "name": resp.get("name"),
                 "grade": resp.get("grade"), "ai_available": llm.available()}
+
+    @app.post("/v1/extension/polish")
+    def extension_polish(x_halia_ext_token: Optional[str] = Header(None),
+                         payload: Any = Body(default=None)) -> dict:
+        """Rewrite the message the associate typed themselves: house voice, typos fixed, the
+        greeting and sign-off applied per the keyboard's toggles. Facts, names, numbers and links
+        stay exactly as typed and the language stays the client's. Without AI (no key, weekly
+        cap, model failure) a rules pass does the typos, spacing and sign-off. Nothing is stored."""
+        from halia import llm
+
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
+        body = payload or {}
+        text = str(body.get("text") or "").strip()[:4000]
+        if not text:
+            raise HTTPException(422, "text is required")
+        email = (str(body.get("email") or "").strip()) or None
+        cid = (str(body.get("cid") or body.get("customer_id") or "").strip()) or None
+        phone = (str(body.get("phone") or "").strip()) or None
+        name = (str(body.get("name") or "").strip()) or None
+        channel = str(body.get("channel") or "").strip()[:24]
+        greeting = bool(body.get("greeting", False))
+        signoff = bool(body.get("signoff", True))
+        resp = _lookup(shop, email, cid, phone, name) if (email or cid or phone or name) \
+            else {"found": False}
+        writer = _seat_profile(auth)
+        first = ((resp.get("name") or "").split(" ")[0]) if resp.get("found") else ""
+
+        polished, source, model = None, "rules", None
+        cap = config.LLM_WEEKLY_CAP
+        used = shop_store().shop_metric(shop, "extension_polish_ai") if cap else 0
+        if llm.available() and (not cap or used < cap):
+            model = llm.model_for(resp.get("tier"))
+            rules = []
+            rules.append("Open with a greeting to the client by first name." if greeting and first
+                         else ("Open with a greeting." if greeting else "No salutation line at the start."))
+            if signoff and writer.get("signoff"):
+                rules.append("End with the sign-off given above, exactly.")
+            elif not signoff:
+                rules.append("No sign-off at the end.")
+            ctx = _draft_context(shop, resp, channel, [], "", closing="", writer=writer)
+            user = ctx.rstrip() + "\n\n" + "\n".join(rules) + "\n\nText to polish:\n" + text
+            out = llm.complete(_POLISH_SYSTEM, user, model=model, max_tokens=700)
+            if out:
+                polished, source = out.strip(), "ai"
+                data.record_activity(shop, "extension_polish_ai")
+        if polished is None:
+            polished, model = _rules_polish(text, first, writer.get("signoff") or "", greeting, signoff), None
+        data.record_activity(shop, "extension_polish")
+        return {"text": polished, "source": source, "model": model, "found": bool(resp.get("found")),
+                "name": resp.get("name"), "ai_available": llm.available()}
 
     @app.post("/v1/extension/brief")
     def extension_brief(x_halia_ext_token: Optional[str] = Header(None),
