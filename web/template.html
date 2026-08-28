@@ -4407,18 +4407,60 @@ function openSettings(page){
       };
     })();
     // Team seats: list, add (with a per-seat token + QR), revoke.
+    function showSeatOut(d){
+      const out=document.getElementById("seatOut"); if(!out) return;
+      document.getElementById("seatOutName").textContent=d.name;
+      document.getElementById("seatTok").textContent=d.token;
+      out.dataset.token=d.token; out.dataset.name=d.name;
+      const qr=document.getElementById("seatQr"),qrw=document.getElementById("seatQrWrap");
+      if(d.qr&&qr&&qrw){qr.src=d.qr;qrw.style.display="";}
+      const st=document.getElementById("seatConnStatus"); if(st) st.textContent="";
+      out.style.display=""; out.scrollIntoView({block:"nearest",behavior:"smooth"});
+    }
     function renderSeats(){
       const list=document.getElementById("seatList"); if(!list) return;
       fetch("/v1/seats").then(r=>r.json()).then(d=>{
         const seats=(d&&d.seats)||[];
         if(!seats.length){ list.innerHTML='<div style="font:13px system-ui;color:#8a8a8a">No teammates yet. Add one below.</div>'; return; }
-        list.innerHTML=seats.map(s=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)">
-          <span style="width:8px;height:8px;border-radius:50%;background:${s.active?'#1f564a':'#c9cdcf'};flex:none"></span>
-          <span style="font:600 14px system-ui;color:var(--ink)">${esc(s.name)}</span>
-          ${s.email?`<span style="font:12px system-ui;color:#8a8a8a">${esc(s.email)}</span>`:``}
-          <span style="font:12px system-ui;color:#8a8a8a">${s.active?'active':(s.lastSeen?'idle':'not signed in yet')}</span>
-          <button data-revoke="${s.id}" style="margin-left:auto;background:none;border:none;color:#9a3838;font:600 13px system-ui;cursor:pointer;padding:0">Revoke</button>
+        const IN='border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px;font:13px system-ui;color:var(--ink);background:var(--card);min-width:0';
+        const LK='background:none;border:none;font:600 13px system-ui;cursor:pointer;padding:0';
+        list.innerHTML=seats.map(s=>`<div data-seat="${s.id}" style="padding:9px 0;border-top:1px solid var(--line)">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="width:8px;height:8px;border-radius:50%;background:${s.active?'#1f564a':'#c9cdcf'};flex:none"></span>
+            <span style="font:600 14px system-ui;color:var(--ink)">${esc(s.name)}</span>
+            ${s.title?`<span style="font:12px system-ui;color:#8a8a8a">${esc(s.title)}</span>`:``}
+            ${s.email?`<span style="font:12px system-ui;color:#8a8a8a">${esc(s.email)}</span>`:``}
+            <span style="font:12px system-ui;color:#8a8a8a">${s.active?'active':(s.lastSeen?'idle':'not signed in yet')}</span>
+            <span style="margin-left:auto;display:flex;gap:14px">
+              <button data-edit="${s.id}" style="${LK};color:var(--ink)">Edit</button>
+              <button data-reissue="${s.id}" style="${LK};color:#1f564a">New sign-in</button>
+              <button data-revoke="${s.id}" style="${LK};color:#9a3838">Revoke</button>
+            </span>
+          </div>
+          <form data-editform="${s.id}" style="display:none;margin:10px 0 4px 18px;gap:8px;grid-template-columns:1fr 1fr">
+            <input name="name" value="${esc(s.name)}" placeholder="Name" style="${IN}">
+            <input name="email" type="email" value="${esc(s.email||'')}" placeholder="Work email" style="${IN}">
+            <input name="title" value="${esc(s.title||'')}" placeholder="Position, e.g. Client Advisor" style="${IN}">
+            <input name="signoff" value="${esc(s.signoff||'')}" placeholder="Sign-off, e.g. Warmly, Sarah" style="${IN}">
+            <div style="grid-column:1/-1;display:flex;gap:14px;align-items:center"><button type="submit" style="${BS}">Save</button><button type="button" data-cancel="${s.id}" style="${LK};color:#8a8a8a">Cancel</button></div>
+          </form>
         </div>`).join("");
+        list.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{
+          const f=list.querySelector(`[data-editform="${b.dataset.edit}"]`); if(!f) return;
+          f.style.display=f.style.display==="none"?"grid":"none";
+        });
+        list.querySelectorAll("[data-cancel]").forEach(b=>b.onclick=()=>{ const f=list.querySelector(`[data-editform="${b.dataset.cancel}"]`); if(f) f.style.display="none"; });
+        list.querySelectorAll("[data-editform]").forEach(f=>f.onsubmit=e=>{
+          e.preventDefault();
+          const body={name:f.name.value.trim(),email:f.email.value.trim(),title:f.title.value.trim(),signoff:f.signoff.value.trim()};
+          fetch("/v1/seats/"+f.dataset.editform,{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
+            .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{ if(!ok) throw new Error((d&&d.detail)||"failed"); toast("Saved."); renderSeats(); })
+            .catch(err=>toast("Could not save: "+err.message));
+        });
+        list.querySelectorAll("[data-reissue]").forEach(b=>b.onclick=()=>{
+          if(!confirm("Issue a fresh sign-in for this teammate? Their current sign-in stops working."))return;
+          fetch("/v1/seats/"+b.dataset.reissue+"/reissue",{method:"POST"}).then(r=>r.json()).then(d=>{ if(d&&d.token){ showSeatOut(d); renderSeats(); } });
+        });
         list.querySelectorAll("[data-revoke]").forEach(b=>b.onclick=()=>{
           if(!confirm("Revoke this teammate's access? Their extension and keyboard will stop working."))return;
           fetch("/v1/seats/"+b.dataset.revoke+"/revoke",{method:"POST"}).then(()=>renderSeats());
@@ -4439,13 +4481,7 @@ function openSettings(page){
           document.getElementById("seatName").value=""; const se=document.getElementById("seatEmail"); if(se) se.value="";
           if(d.reissued) toast("That email already had a seat: a fresh sign-in was issued and the old one stopped.");
           else toast("Seat created. Their setup guide is on its way by email.");
-          const out=document.getElementById("seatOut");
-          document.getElementById("seatOutName").textContent=d.name;
-          document.getElementById("seatTok").textContent=d.token;
-          out.dataset.token=d.token; out.dataset.name=d.name;
-          const qr=document.getElementById("seatQr"),qrw=document.getElementById("seatQrWrap");
-          if(d.qr&&qr&&qrw){qr.src=d.qr;qrw.style.display="";}
-          out.style.display="";
+          showSeatOut(d);
           renderSeats();
         }).catch(e=>{seatAdd.disabled=false;seatAdd.textContent="Add teammate";toast("Could not add teammate: "+e.message);});
     };

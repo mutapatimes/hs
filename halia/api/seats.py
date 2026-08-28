@@ -66,6 +66,7 @@ def register(app) -> None:
         for s in shop_store().list_seats(shop):
             last = s.get("last_seen_at")
             seats.append({"id": s["id"], "name": s["name"], "email": s.get("email") or "",
+                          "title": s.get("title") or "", "signoff": s.get("signoff") or "",
                           "lastSeen": last, "active": bool(last and last >= cutoff)})
         return {"seats": seats, "count": shop_store().active_seat_count(shop, days=_ACTIVE_DAYS)}
 
@@ -96,6 +97,50 @@ def register(app) -> None:
             _welcome_associate(shop, email, name, connect)
         return {"seat_id": seat_id, "name": name, "email": email, "token": token, "base": base,
                 "connect": connect, "qr": _connect_qr(connect), "reissued": reissued}
+
+    def _own_seat(shop: str, seat_id: str) -> dict:
+        for s in shop_store().list_seats(shop):
+            if s["id"] == seat_id:
+                return s
+        raise HTTPException(404, "No such seat.")
+
+    @app.patch("/v1/seats/{seat_id}")
+    def edit_seat(seat_id: str, shop: str = Depends(require_shop), payload: dict = Body(default={})) -> dict:
+        """Edit a teammate's details from the dashboard: name, email, position, sign-off."""
+        from halia.capture_quality import clean_email
+
+        _own_seat(shop, seat_id)
+        p = payload or {}
+        fields: dict = {}
+        if "name" in p:
+            fields["name"] = str(p.get("name") or "").strip()[:80] or "Teammate"
+        if "email" in p:
+            raw = str(p.get("email") or "").strip()
+            email, _, ok = clean_email(raw, check_dns=False) if raw else ("", None, True)
+            if raw and not ok:
+                raise HTTPException(422, "That email address does not look right.")
+            other = shop_store().seat_by_email(shop, email) if email else None
+            if other and other["id"] != seat_id:
+                raise HTTPException(409, "Another teammate already uses that email.")
+            fields["email"] = email
+        for key in ("title", "signoff"):
+            if key in p:
+                fields[key] = str(p.get(key) or "").strip()[:80]
+        if fields:
+            shop_store().update_seat_profile(seat_id, **fields)
+        return {"ok": True, "seat": {"id": seat_id, **(shop_store().seat_profile(seat_id) or {})}}
+
+    @app.post("/v1/seats/{seat_id}/reissue")
+    def reissue_seat(seat_id: str, shop: str = Depends(require_shop)) -> dict:
+        """A fresh sign-in for an existing teammate (new phone, new laptop). The old token stops."""
+        seat = _own_seat(shop, seat_id)
+        token = new_token()
+        base = (config.HALIA_APP_URL or "").rstrip("/")
+        shop_store().rotate_seat_token(seat_id, hash_token(token))
+        connect = f"halia://connect?t={token}&b={base}"
+        return {"seat_id": seat_id, "name": seat["name"], "email": seat.get("email") or "",
+                "token": token, "base": base, "connect": connect, "qr": _connect_qr(connect),
+                "reissued": True}
 
     @app.post("/v1/seats/{seat_id}/revoke")
     def revoke_seat(seat_id: str, shop: str = Depends(require_shop)) -> dict:
