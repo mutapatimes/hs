@@ -7,6 +7,9 @@ stores nothing and introduces no booking tool of its own.
 """
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import json
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -15,7 +18,11 @@ from urllib.parse import quote, urlencode
 
 from fastapi import Body, Depends, HTTPException, Query, Request
 
+from fastapi.responses import HTMLResponse, Response
+
+from halia import config
 from halia.api.shopify_auth import require_shop, shop_store
+from halia.api.tenant_auth import _secret
 
 DEFAULT_MINUTES = 45
 KEEP_DAYS = 90            # past appointments older than this fall off the record
@@ -34,6 +41,37 @@ def _parse_when(raw: Any) -> datetime:
 
 def _label(when: datetime, minutes: int) -> str:
     return when.strftime("%a %d %b, %H:%M") + f" ({minutes} min)"
+
+
+def invite_token(appt: dict, store_name: str) -> str:
+    """A signed, self-contained invite for the client: when, how long, where, the store. No
+    client detail travels in it and nothing is stored; the signature stops tampering."""
+    raw = json.dumps({"w": appt["when"], "m": int(appt.get("minutes") or DEFAULT_MINUTES),
+                      "p": appt.get("place") or "", "s": store_name or ""}, separators=(",", ":")).encode()
+    body = base64.urlsafe_b64encode(raw).decode().rstrip("=")
+    sig = hmac.new(_secret(), body.encode(), hashlib.sha256).hexdigest()[:24]
+    return f"{body}.{sig}"
+
+
+def parse_invite(token: str) -> Optional[dict]:
+    try:
+        body, sig = token.split(".", 1)
+        if not hmac.compare_digest(sig, hmac.new(_secret(), body.encode(), hashlib.sha256).hexdigest()[:24]):
+            return None
+        d = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
+        datetime.fromisoformat(d["w"])
+        return {"when": d["w"], "minutes": int(d.get("m") or DEFAULT_MINUTES), "place": d.get("p") or "",
+                "store": d.get("s") or ""}
+    except Exception:  # noqa: BLE001 — any malformed token is simply not an invite
+        return None
+
+
+def client_message(appt: dict, store_name: str, invite_url: str) -> str:
+    """The line an associate sends the client, ready to paste."""
+    start = datetime.fromisoformat(appt["when"])
+    when = start.strftime("%A %d %B at %H:%M")
+    where = f" at {appt['place']}" if appt.get("place") else (f" at {store_name}" if store_name else "")
+    return f"Your appointment is set for {when}{where}. Add it to your calendar here: {invite_url}"
 
 
 def calendar_links(appt: dict, client_name: str, store_name: str) -> dict:
@@ -57,8 +95,30 @@ def calendar_links(appt: dict, client_name: str, store_name: str) -> dict:
         f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}", f"SUMMARY:{_ics_escape(title)}",
         f"LOCATION:{_ics_escape(place)}", f"DESCRIPTION:{_ics_escape(details)}",
         "END:VEVENT", "END:VCALENDAR", ""])
+    base = (config.HALIA_APP_URL or "https://haliascore.com").rstrip("/")
+    invite = f"{base}/i/{invite_token(appt, store_name)}"
     return {"google": google, "outlook": outlook, "ics": ics,
-            "ics_data": "data:text/calendar;charset=utf-8," + quote(ics)}
+            "ics_data": "data:text/calendar;charset=utf-8," + quote(ics),
+            "invite": invite, "message": client_message(appt, store_name, invite)}
+
+
+_INVITE_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>{store}</title><style>
+  *{{box-sizing:border-box}} body{{margin:0;background:#f8f7f5;color:#1a1a1d;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
+  .wrap{{max-width:430px;margin:0 auto;padding:40px 22px 60px}}
+  h1{{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:27px;margin:0 0 6px}}
+  .sub{{color:#6b6b70;font-size:14px;margin:0 0 28px}}
+  .when{{font-family:Georgia,serif;font-size:24px;margin:0 0 4px}} .where{{color:#3d3d40;margin:0 0 30px}}
+  a.b{{display:block;text-align:center;margin-top:10px;padding:14px;border:1px solid #1a1a1d;border-radius:12px;color:#1a1a1d;text-decoration:none;font-weight:600}}
+  a.b.p{{background:#1a1a1d;color:#fff}}
+</style></head><body><div class="wrap">
+ <h1>{store}</h1><p class="sub">Your appointment</p>
+ <p class="when">{when}</p><p class="where">{where}</p>
+ <a class="b p" href="{ics}">Add to my calendar</a>
+ <a class="b" href="{google}" rel="noopener">Google Calendar</a>
+ <a class="b" href="{outlook}" rel="noopener">Outlook</a>
+</div></body></html>"""
 
 
 def _ics_escape(s: str) -> str:
@@ -168,6 +228,41 @@ def register(app) -> None:
         actor_id, actor_name = _actor(request, p)
         ok = cancel(shop, str(p.get("cid") or "").strip(), str(p.get("id") or "").strip(), actor_id, actor_name)
         return {"ok": ok}
+
+    @app.get("/i/{token}", include_in_schema=False)
+    def invite_page(token: str):
+        """The client's side of an appointment: a store-voiced page with the time, the place and
+        one tap into their own calendar. Everything it shows is in the signed link; nothing is read
+        or stored. Halia is not named on it."""
+        import html as _html
+        ics_wanted = token.endswith(".ics")
+        inv = parse_invite(token[:-4] if ics_wanted else token)
+        if not inv:
+            raise HTTPException(404, "Not found")
+        appt = {"id": hashlib.sha1(token.encode()).hexdigest()[:12], "when": inv["when"],
+                "minutes": inv["minutes"], "place": inv["place"], "note": ""}
+        start = datetime.fromisoformat(inv["when"])
+        end = start + timedelta(minutes=inv["minutes"])
+        fmt = lambda d: d.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        title = f"Appointment at {inv['store']}" if inv["store"] else "Appointment"
+        place = inv["place"] or inv["store"]
+        if ics_wanted:
+            ics = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halia//Appointments//EN", "BEGIN:VEVENT",
+                                f"UID:{appt['id']}@haliascore.com", f"DTSTAMP:{fmt(datetime.now(timezone.utc))}",
+                                f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}", f"SUMMARY:{_ics_escape(title)}",
+                                f"LOCATION:{_ics_escape(place)}", "END:VEVENT", "END:VCALENDAR", ""])
+            return Response(ics, media_type="text/calendar; charset=utf-8",
+                            headers={"Content-Disposition": 'attachment; filename="appointment.ics"'})
+        google = "https://calendar.google.com/calendar/render?" + urlencode({
+            "action": "TEMPLATE", "text": title, "dates": f"{fmt(start)}/{fmt(end)}", "location": place})
+        outlook = "https://outlook.office.com/calendar/0/deeplink/compose?" + urlencode({
+            "subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
+            "enddt": end.astimezone(timezone.utc).isoformat(), "location": place, "path": "/calendar/action/compose"})
+        html = _INVITE_PAGE.format(store=_html.escape(inv["store"] or "Your appointment"),
+                                   when=_html.escape(start.strftime("%A %d %B, %H:%M")),
+                                   where=_html.escape(place), ics=f"/i/{token}.ics",
+                                   google=_html.escape(google), outlook=_html.escape(outlook))
+        return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
     @app.get("/v1/appointments")
     def list_appointments(shop: str = Depends(require_shop), days: int = Query(14)) -> dict:

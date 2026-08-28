@@ -109,3 +109,23 @@ def test_ics_escapes_commas_and_newlines():
     appt = {"id": "abc", "when": "2026-09-14T15:00:00+00:00", "minutes": 30, "place": "Mount St, Mayfair", "note": "Ring\nsizes"}
     ics = appointments.calendar_links(appt, "Grace", "Maison")["ics"]
     assert "LOCATION:Mount St\\, Mayfair" in ics and "DESCRIPTION:Ring\\nsizes" in ics and "DTEND:20260914T153000Z" in ics
+
+
+# ── the client's invite ───────────────────────────────────────────────────────
+def test_invite_link_is_signed_store_voiced_and_carries_no_client_detail(env):
+    client, store, sink = env
+    d = client.post("/v1/board/appointment", json={"cid": "c1", "when": _soon(4, 11).isoformat(), "place": "Mount Street",
+                                                   "client_name": "Grace Ladoja"}).json()
+    links = d["links"]
+    assert links["invite"].startswith("http") and "/i/" in links["invite"]
+    assert links["message"].startswith("Your appointment is set for ") and "Mount Street" in links["message"] and links["invite"] in links["message"]
+    token = links["invite"].rsplit("/i/", 1)[1]
+    assert "Grace" not in token and "Ladoja" not in appointments.parse_invite(token).__repr__()
+    page = client.get(f"/i/{token}")
+    assert page.status_code == 200 and "Maison" in page.text and "Mount Street" in page.text
+    assert "Grace" not in page.text and "Halia" not in page.text.replace("haliascore", "")
+    ics = client.get(f"/i/{token}.ics")
+    assert ics.status_code == 200 and ics.headers["content-type"].startswith("text/calendar")
+    assert "SUMMARY:Appointment at Maison" in ics.text and "LOCATION:Mount Street" in ics.text
+    assert client.get(f"/i/{token[:-3]}xyz").status_code == 404
+    assert client.get("/i/garbage").status_code == 404

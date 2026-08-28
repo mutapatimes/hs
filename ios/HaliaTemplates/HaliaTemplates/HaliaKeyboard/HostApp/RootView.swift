@@ -687,6 +687,10 @@ private struct HomeView: View {
                                     Text(apptLine(a)).font(.footnote).foregroundStyle(.secondary)
                                 }
                                 Spacer()
+                                if let msg = a.links?.message, !msg.isEmpty {
+                                    ShareLink(item: msg) { Image(systemName: "paperplane") }
+                                        .foregroundStyle(Palette.brandDeep)
+                                }
                                 if let ics = a.links?.ics, let file = icsFile(ics, id: a.id ?? "appt") {
                                     ShareLink(item: file) { Image(systemName: "calendar.badge.plus") }
                                         .foregroundStyle(Palette.brandDeep)
