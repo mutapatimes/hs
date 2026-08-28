@@ -474,9 +474,22 @@ struct HaliaAPI {
     private struct OkOnly: Decodable { let ok: Bool? }
 
     /// Put a just-captured client on the pipeline's first column with a note.
-    func captureFollowUp(customerId: String, note: String) async throws {
-        let _: OkOnly = try await postAny("/v1/capture/followup",
-                                          body: ["customer_id": customerId, "note": note])
+    func captureFollowUp(customerId: String, note: String, due: String? = nil) async throws {
+        var body: [String: Any] = ["customer_id": customerId, "note": note]
+        if let due = due, !due.isEmpty { body["due"] = due }
+        let _: OkOnly = try await postAny("/v1/capture/followup", body: body)
+    }
+
+    // MARK: Remember (keyboard) — what the client said about themselves, into their record in the store.
+
+    struct Occasion: Decodable { let label: String?; let date: String? }
+    struct RememberResult: Decodable { let summary: String?; let occasion: Occasion?; let cid: String?; let saved: AnyDecodable? }
+    struct AnyDecodable: Decodable { init(from decoder: Decoder) throws {} }
+
+    func remember(text: String, ref: ClientRef) async throws -> RememberResult {
+        var body: [String: Any] = ref.body
+        body["text"] = text
+        return try await postAny("/v1/extension/remember", body: body)
     }
 
     struct Birthday: Decodable {

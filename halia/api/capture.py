@@ -448,10 +448,20 @@ def register(app) -> None:
         if not cid:
             raise HTTPException(422, "customer_id is required")
         note = _clean((body or {}).get("note"))[:2000]
+        due = _clean((body or {}).get("due"))[:10] or None
+        if due:
+            import datetime as _dt
+            try:
+                _dt.date.fromisoformat(due)
+            except ValueError:
+                raise HTTPException(422, "due must be a date, YYYY-MM-DD")
+            note = f"Follow up week of {due}: {note}" if note else f"Follow up week of {due}"
         sink = _sink(auth.shop)
         pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
         stage = STAGES[0]
         pipe["stage"] = stage
+        if due:
+            pipe["due"] = due
         append_activity(pipe, "added", auth.seat_id, auth.seat_name or "A team member",
                         note=note or "Met in store, follow up today")
         sink.untag_customer(cid, [stage_tag(s) for s in STAGES if s != stage])
@@ -462,7 +472,7 @@ def register(app) -> None:
             reports.invalidate(auth.shop)
         except Exception:  # noqa: BLE001
             pass
-        return {"ok": True, "stage": stage}
+        return {"ok": True, "stage": stage, "due": due}
 
     @app.get("/v1/capture/link")
     def capture_link(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
