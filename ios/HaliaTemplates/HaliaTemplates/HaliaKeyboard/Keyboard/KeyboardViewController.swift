@@ -60,6 +60,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private weak var elapsedLabel: UILabel?
     private var draftShownAnimated = false
     private var lastInserted: String?
+    private var lastReplacement: (original: String, polished: String)?   // Polish: Undo restores what was typed
+    private var polishedText: String?                                     // last polished message, for Adjust
     private var undoClearTask: Task<Void, Never>?
 
     // Whether an inserted template carries its greeting ("Dear …,") and sign-off ("Warm regards, …").
@@ -388,7 +390,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             let clientShow = (currentRef != nil) && base
             let savedN = SavedItemsStore.count
             let showToggles = base && audience == .client && !templates.isEmpty
-            let show = showToggles || clientShow || (savedN > 0 && base)
+            let show = showToggles || clientShow || (savedN > 0 && base) || (base && audience == .client)
             actionHeight.constant = show ? 46 : 0; actionScroll.isHidden = !show
             guard show else { return }
             // Greeting / sign-off switches: once you are mid-chat you rarely want either.
@@ -399,6 +401,13 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 actionStack.addArrangedSubview(togglePill("Sign-off", on: includeSignoff) { [weak self] in
                     guard let self else { return }; self.includeSignoff.toggle(); self.rebuildActionRow()
                 })
+            }
+            // Polish what the associate typed, with or without a client on the bar.
+            if base && audience == .client {
+                actionStack.addArrangedSubview(pillButton("Polish", filled: false) { [weak self] in self?.polishTyped() })
+                if polishedText != nil {
+                    actionStack.addArrangedSubview(pillButton("Adjust", filled: false) { [weak self] in self?.adjustPolished() })
+                }
             }
             // The keyboard is the hub: products saved while browsing (via App Intents) land here.
             if savedN > 0 && hasFullAccess {
@@ -1178,9 +1187,74 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func undoInsert() {
         guard let t = lastInserted else { return }
         for _ in 0..<t.count { textDocumentProxy.deleteBackward() }
+        if let r = lastReplacement, r.polished == t {
+            textDocumentProxy.insertText(r.original)   // Polish undone: what they typed comes back
+            lastReplacement = nil; polishedText = nil
+            lastInserted = nil; undoClearTask?.cancel(); rebuildClientBar(); rebuildActionRow()
+            flash("Restored")
+            return
+        }
         lastInserted = nil
         undoClearTask?.cancel()
         flash("Removed")
+    }
+
+    // MARK: - Polish (the associate's own typed message, rewritten in the house voice)
+
+    /// The whole text field, not just the part iOS hands us. documentContextBeforeInput is
+    /// truncated for long text, so walk the cursor to the end, then back in chunks, then forward again.
+    private func readWholeField() -> String {
+        let proxy = textDocumentProxy
+        var guardCount = 0
+        while let after = proxy.documentContextAfterInput, !after.isEmpty, guardCount < 40 {
+            proxy.adjustTextPosition(byCharacterOffset: after.count); guardCount += 1
+        }
+        var text = ""
+        var moved = 0
+        guardCount = 0
+        while let before = proxy.documentContextBeforeInput, !before.isEmpty, text.count < 4000, guardCount < 40 {
+            text = before + text
+            proxy.adjustTextPosition(byCharacterOffset: -before.count); moved += before.count; guardCount += 1
+        }
+        if moved > 0 { proxy.adjustTextPosition(byCharacterOffset: moved) }
+        return text
+    }
+
+    private func polishTyped() {
+        guard hasFullAccess else { flash("Turn on Full Access in Settings"); return }
+        guard !busy else { return }
+        let original = readWholeField()
+        guard !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { flash("Type a message first"); return }
+        busy = true; setStatus("Polishing…", loading: true)
+        Task {
+            do {
+                let res = try await HaliaAPI.current.polish(text: original, ref: currentRef,
+                                                            greeting: includeGreeting, signoff: includeSignoff)
+                if let t = res.text, !t.isEmpty {
+                    replaceUndoable(original: original, with: t)
+                    polishedText = t
+                    setStatus(nil); flash("Polished")
+                } else { setStatus("Nothing came back") }
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
+
+    /// Replace the field's content and keep the original for Undo.
+    private func replaceUndoable(original: String, with polished: String) {
+        _ = readWholeField()   // leaves the cursor at the end
+        for _ in 0..<min(original.count, 4000) { textDocumentProxy.deleteBackward() }
+        lastReplacement = (original, polished)
+        insertUndoable(polished)
+    }
+
+    /// Warmer / Shorter / More formal on the polished message, through the draft screen.
+    private func adjustPolished() {
+        guard let t = polishedText, !t.isEmpty else { return }
+        draftText = t; lastThread = nil; pendingCartUrl = nil; draftIsHandoff = false
+        mode = .draft; reload()
     }
 
     private func mutedLabel(_ text: String) -> UILabel {

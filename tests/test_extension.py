@@ -806,3 +806,67 @@ def test_signout_makes_seat_inactive(env):
     assert client.post("/v1/extension/signout",
                        headers={"X-Halia-Ext-Token": ivy["token"]}).status_code == 200
     assert client.get("/v1/seats", cookies={COOKIE: tok}).json()["count"] == 0
+
+
+# ── polish what the associate typed ─────────────────────────────────────────
+def _polish(client, ext, body):
+    return client.post("/v1/extension/polish", json=body, headers={"X-Halia-Ext-Token": ext})
+
+
+def test_polish_requires_token_and_text(env):
+    client, store, tok = env
+    assert client.post("/v1/extension/polish", json={"text": "hi"}).status_code == 401
+    ext = _ext_token(client, tok)
+    assert _polish(client, ext, {"text": "  "}).status_code == 422
+
+
+def test_polish_uses_ai_with_house_voice_and_language_rule(env, monkeypatch):
+    from halia import llm
+    seen = {}
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "complete", lambda s, u, **k: seen.update(system=s, user=u) or "Dear Grace, the coat is back.")
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _polish(client, ext, {"text": "hi grace teh coat is back", "email": "grace@x.com",
+                              "greeting": True, "signoff": True}).json()
+    assert d["source"] == "ai" and d["text"] == "Dear Grace, the coat is back."
+    assert "same language" in seen["system"] and "Text to polish:\nhi grace teh coat is back" in seen["user"]
+    assert "greeting to the client by first name" in seen["user"]
+    assert store.shop_metric(SHOP, "extension_polish_ai") == 1
+
+
+def test_polish_rules_fallback_fixes_typos_and_applies_signoff(env, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: False)
+    monkeypatch.setattr(extension, "_seat_profile", lambda auth: {"name": "Sarah", "signoff": "Warmly, Sarah"})
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _polish(client, ext, {"text": "teh coat has arrvied  , i can hold it untill friday", "email": "grace@x.com",
+                              "greeting": True, "signoff": True}).json()
+    assert d["source"] == "rules"
+    assert d["text"] == "Dear Grace,\n\nThe coat has arrived, I can hold it until friday\n\nWarmly, Sarah"
+
+
+def test_polish_signoff_off_strips_the_closing(env, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: False)
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    d = _polish(client, ext, {"text": "Hi there\nthe coat is here\n\nKind regards,\nSarah",
+                              "greeting": False, "signoff": False}).json()
+    assert d["text"] == "The coat is here"
+
+
+def test_polish_respects_weekly_cap(env, monkeypatch):
+    from halia import config, llm
+    called = {"n": 0}
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: called.__setitem__("n", called["n"] + 1) or "AI")
+    monkeypatch.setattr(config, "LLM_WEEKLY_CAP", 1)
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    assert _polish(client, ext, {"text": "hello"}).json()["source"] == "ai"
+    assert _polish(client, ext, {"text": "hello"}).json()["source"] == "rules"
+    assert called["n"] == 1

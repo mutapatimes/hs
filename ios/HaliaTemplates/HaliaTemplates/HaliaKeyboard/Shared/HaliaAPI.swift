@@ -115,6 +115,19 @@ struct HaliaAPI {
         return try await postAny("/v1/extension/draft", body: body)
     }
 
+    // MARK: Polish (keyboard) — the associate's own typed message, in the house voice.
+
+    struct PolishResult: Decodable { let text: String?; let source: String? }
+
+    func polish(text: String, ref: ClientRef?, greeting: Bool, signoff: Bool) async throws -> PolishResult {
+        var body: [String: Any] = ref?.body ?? [:]
+        body["text"] = text
+        body["channel"] = "whatsapp"
+        body["greeting"] = greeting
+        body["signoff"] = signoff
+        return try await postAny("/v1/extension/polish", body: body)
+    }
+
     // MARK: Log contacted (keyboard) — write to the shared pipeline so the team is in the loop.
 
     private struct ActionResponse: Decodable { let recorded: Bool? }
