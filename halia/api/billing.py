@@ -357,6 +357,85 @@ def stripe_plans_payload(shop: str) -> dict:
     return {"plans": cards, "recommended": (plan_for_shop(shop) or {}).get("name"), **common}
 
 
+def stripe_plan_key(shop: str) -> str:
+    """The plan a Stripe-billed tenant is on, as a catalogue key. Read from the subscription's
+    tier price when tiers are configured; else the size-recommended tier; 'free' when unpaid."""
+    from halia import plans as plancat
+
+    if not billing_enabled() or shop in _free_shops():
+        return "maison"       # billing off or comped = everything open, seats not metered
+    b = shop_store().get_billing(shop)
+    if not (b and b.get("status") in _ACTIVE):
+        return "free"
+    by_key = {p["name"].strip().lower(): p["key"] for p in plancat.public_catalogue()}
+    tier_names = {pid: _TIER_NAMES[i] for i, (_, pid) in enumerate(_parse_tiers()) if i < len(_TIER_NAMES)}
+    sub = _subscription(shop) or {}
+    for item in ((sub.get("items") or {}).get("data") or []):
+        name = tier_names.get(((item.get("price") or {}).get("id")) or "")
+        if name and name.lower() in by_key:
+            return by_key[name.lower()]
+    rec = (plan_for_shop(shop) or {}).get("name") or ""
+    return by_key.get(rec.lower(), "signal")
+
+
+def sync_seat_quantity(shop: str) -> dict:
+    """Keep the seat add-on line on this tenant's Stripe subscription at quantity = seats beyond
+    the bundle. Stripe prorates the change itself. Idempotent; safe to run hourly."""
+    from halia import plans as plancat
+
+    if not (billing_enabled() and config.STRIPE_SEAT_PRICE_ID):
+        return {"shop": shop, "skipped": "seat price not configured"}
+    if shop in _free_shops():
+        return {"shop": shop, "skipped": "comped"}
+    key = stripe_plan_key(shop)
+    if plancat.included_seats(key) is None:
+        return {"shop": shop, "skipped": "seats not metered"}
+    sub = _subscription(shop)
+    if not sub or sub.get("status") not in ("active", "trialing", "past_due"):
+        return {"shop": shop, "skipped": "no active subscription"}
+    extra = min(plancat.extra_seats(key, shop_store().active_seat_count(shop)), plancat.SEAT_CAP)
+    item = next((i for i in ((sub.get("items") or {}).get("data") or [])
+                 if ((i.get("price") or {}).get("id")) == config.STRIPE_SEAT_PRICE_ID), None)
+    have = int(item.get("quantity") or 0) if item else 0
+    if have == extra:
+        return {"shop": shop, "plan": key, "extra": extra, "posted": 0}
+    if item and extra == 0:
+        _stripe("DELETE", f"subscription_items/{item['id']}", {"proration_behavior": "create_prorations"})
+    elif item:
+        _stripe("POST", f"subscription_items/{item['id']}",
+                {"quantity": extra, "proration_behavior": "create_prorations"})
+    else:
+        _stripe("POST", "subscription_items", {"subscription": sub["id"], "price": config.STRIPE_SEAT_PRICE_ID,
+                                                "quantity": extra, "proration_behavior": "create_prorations"})
+    if extra > have:
+        from halia.api.billing_shopify import overage_email
+        overage_email(shop, key, extra - have, extra)
+    return {"shop": shop, "plan": key, "extra": extra, "posted": extra - have}
+
+
+def run_stripe_seat_billing() -> dict:
+    """Hourly sweep over Stripe-billed tenants (hosted stores and bridge-app Shopify stores)."""
+    from halia.api.billing_shopify import _stripe_billed
+
+    out = {"checked": 0, "posted": 0, "errors": 0}
+    if not (billing_enabled() and config.STRIPE_SEAT_PRICE_ID):
+        return out
+    for t in shop_store().all_tenants():
+        t = dict(t)
+        if t.get("kind") in (None, "", "shopify") and not _stripe_billed(t["shop"]):
+            continue                              # the Shopify usage-record sweep owns these
+        bill = shop_store().get_billing(t["shop"])
+        if not bill or dict(bill).get("status") not in _ACTIVE:
+            continue
+        out["checked"] += 1
+        try:
+            r = sync_seat_quantity(t["shop"])
+            out["posted"] += max(0, int(r.get("posted") or 0))
+        except Exception:  # noqa: BLE001 — one shop's hiccup must not stop the sweep
+            out["errors"] += 1
+    return out
+
+
 def _verify_sig(body: bytes, sig_header: str, secret: str, tolerance: int = 300) -> bool:
     """Verify a Stripe webhook signature (HMAC-SHA256 over `t.payload`), rejecting stale events.
 

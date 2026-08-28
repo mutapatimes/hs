@@ -97,6 +97,37 @@ def _current_plan_key(shop: str) -> str:
     return "free"
 
 
+def plan_key_for(shop: str) -> str:
+    """The tenant's current plan key whichever way they pay: Shopify Billing, Stripe, or nothing."""
+    if _stripe_billed(shop) or not _token(shop):
+        from halia.api.billing import stripe_plan_key
+        return stripe_plan_key(shop)
+    return _current_plan_key(shop)
+
+
+def overage_email(shop: str, key: str, added: int, total_extra: int) -> bool:
+    """Tell the store's contacts that additional seats were added to the invoice. Best-effort."""
+    try:
+        from halia import notify
+        from halia.api.settings import settings_for
+        s = settings_for(shop)
+        emails = s.get("notify_emails") or ([s["notify_email"]] if s.get("notify_email") else [])
+        if not (emails and notify.email_configured()):
+            return False
+        name = plans.plan(key)["name"]
+        inc = plans.included_seats(key) or 0
+        subject = f"{added} additional seat{'s' if added != 1 else ''} added to your Halia plan"
+        text = (f"Your team now uses {inc + total_extra} seats. {name} includes {inc}; the "
+                f"{total_extra} beyond that are £{plans.SEAT_PRICE} a month each and appear on your "
+                f"next invoice. Revoke a seat in Settings, Team, and it stops the following period.")
+        html = f"<p style=\"font:15px/1.6 Georgia,serif\">{text}</p>"
+        for to in emails:
+            notify.send_email(to, subject, html, text)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _line_items(key: str) -> list[dict]:
     """The recurring plan, plus a capped usage line for extra seats on metered plans. The
     merchant approves both once; seats beyond the bundle are then posted as usage records."""
@@ -163,6 +194,7 @@ def bill_seats(shop: str) -> dict:
     _save_seat_state(shop, {"period": period, "charged": extra,
                             "last_record": ((data.get("appUsageRecordCreate") or {})
                                             .get("appUsageRecord") or {}).get("id")})
+    overage_email(shop, key, delta, extra)
     return {"shop": shop, "period": period, "extra": extra, "charged": extra, "posted": delta,
             "amount": amount}
 
