@@ -104,7 +104,10 @@ struct HaliaAPI {
     // MARK: Draft (keyboard) — a personal message for the client, in the house voice. An optional
     // thread (the client's copied message) makes the reply responsive.
 
-    struct DraftResult: Decodable { let draft: String?; let name: String?; let found: Bool? }
+    struct DraftResult: Decodable {
+        let draft: String?; let name: String?; let found: Bool?
+        let language: String?; let english: String?
+    }
 
     func draft(_ ref: ClientRef, channel: String, instruction: String,
                thread: [[String: String]]? = nil) async throws -> DraftResult {

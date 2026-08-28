@@ -429,8 +429,19 @@ _DRAFT_SYSTEM = (
     "Do not invent facts you were not given (no fake order numbers, dates, prices or product "
     "names). Leave no placeholders such as [name]. Do not use em dashes; use commas, colons or "
     "periods. Return only the message itself, with no preamble or surrounding quotes. Add a "
-    "sign-off only if a sender name is provided."
+    "sign-off only if a sender name is provided. Reply in the language the client wrote in; the "
+    "house language applies only when the client writes in it or there is no client message."
 )
+_DRAFT_LANG_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "draft": {"type": "string"},
+        "language": {"type": "string"},
+        "english": {"type": "string"},
+    },
+    "required": ["draft", "language", "english"],
+    "additionalProperties": False,
+}
 
 
 _LANG_STOPWORDS = {
@@ -513,6 +524,9 @@ def _draft_context(shop: str, resp: dict, channel: str, thread: list[dict], inst
         lines.append(voice)
     from halia.voice import voice_brief
     lines.append(voice_brief(s.get("voice")))
+    if any((m.get("from") or "them") == "them" for m in thread):
+        lines.append("If the client writes in a different language from the house language, reply "
+                     "in the client's language.")
     if channel:
         lines.append(f"Channel: {channel}")
     if brand and brand.lower() != "halia":
@@ -1223,20 +1237,32 @@ def register(app) -> None:
             else {"found": False}
 
         draft, source, model = None, "template", None
+        language, english = None, None
         cap = config.LLM_WEEKLY_CAP
         used = shop_store().shop_metric(shop, "extension_draft_ai") if cap else 0
         if llm.available() and (not cap or used < cap):
             model = llm.model_for(resp.get("tier"))
-            text = llm.complete(_DRAFT_SYSTEM, _draft_context(shop, resp, channel, thread, instruction,
-                                                              writer=_seat_profile(auth)),
-                                model=model, max_tokens=600)
-            if text:
-                draft, source = text, "ai"
+            ctx = _draft_context(shop, resp, channel, thread, instruction, writer=_seat_profile(auth))
+            # With the client's own words on screen the reply follows their language, and comes
+            # back with an English rendering for the associate; a plain draft is one text call.
+            if any(m.get("from") == "them" for m in thread):
+                got = llm.structured(_DRAFT_SYSTEM, ctx, _DRAFT_LANG_SCHEMA, model=model)
+                if got and got.get("draft"):
+                    draft, source = got["draft"].strip(), "ai"
+                    language = (got.get("language") or "").strip().lower()[:8] or None
+                    english = (got.get("english") or "").strip() or None
+            if draft is None:
+                text = llm.complete(_DRAFT_SYSTEM, ctx, model=model, max_tokens=600)
+                if text:
+                    draft, source = text, "ai"
+            if draft is not None:
                 data.record_activity(shop, "extension_draft_ai")
         if draft is None:
             draft, model = _fallback_draft(shop, resp), None
+        if language is None:
+            language = _detect_language(thread) if thread else "en"
         data.record_activity(shop, "extension_draft")
-        return {"draft": draft, "source": source, "model": model,
+        return {"draft": draft, "source": source, "model": model, "language": language, "english": english,
                 "found": bool(resp.get("found")), "name": resp.get("name"),
                 "grade": resp.get("grade"), "ai_available": llm.available()}
 
