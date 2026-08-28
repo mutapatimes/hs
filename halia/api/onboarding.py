@@ -1931,16 +1931,7 @@ def register(app) -> None:
             resp.headers["Cache-Control"] = "no-store"
             return resp
 
-        # Free tier: until they subscribe, show the teaser (count + latent value), not the dashboard.
-        from halia.api import billing
-        if not billing.is_paid(shop):
-            tenant = shop_store().get_tenant(shop)
-            label = (tenant["label"] if tenant else None) or shop
-            p = entry["payload"]
-            resp = HTMLResponse(_teaser_page(label, p.get("stat_count", "0"),
-                                             p.get("stat_latent", ""), p.get("stat_toptier", "0")))
-            resp.headers["Cache-Control"] = "no-store"
-            return resp
+        # The free scan gets the same dashboard with identities masked (see mask_payload).
         try:
             from halia.api.content import with_chat_widget
             tenant = shop_store().get_tenant(shop)

@@ -106,8 +106,8 @@ def _pending_payload() -> dict:
     """An empty dashboard payload flagged sync_running, so the SPA shows the scoring screen."""
     return {"segments": {}, "data": [], "orders": [], "landscape": {}, "platform": "shopify",
             "stat_scored": "", "stat_latent": "", "stat_count": "", "stat_avgspend": "",
-            "stat_toptier": "", "full_history": True, "locked_count": 0, "locked_latent": "",
-            "sync_running": True}
+            "stat_toptier": "", "full_history": True, "masked": False, "locked_count": 0,
+            "locked_latent": "", "sync_running": True}
 
 
 def _error_page(head: str) -> str:
