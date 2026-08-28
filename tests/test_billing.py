@@ -333,17 +333,21 @@ def test_cancel_records_reason_and_schedules(client, monkeypatch):
     assert s["cancel_reason"] == "Too expensive" and s["cancel_detail"] == "tight month"
 
 
-def test_app_shows_teaser_when_unpaid(client, monkeypatch):
+def test_app_shows_masked_dashboard_when_unpaid(client, monkeypatch):
     c, store = client
     _enable(monkeypatch)
     tok = _tenant(store)
-    cache.set("shopx", [], {"stat_count": "7", "stat_latent": "£42,000", "stat_toptier": "3"}, {})
+    from build_mvp import mask_payload
+    payload = mask_payload({"segments": {}, "data": [{"id": "C-0001", "name": "Zelda Quantock", "grade": "A*", "latent": 5}],
+                            "orders": [], "stat_scored": "1", "stat_latent": "£42,000", "stat_count": "7",
+                            "stat_avgspend": "£1", "stat_toptier": "3"})
+    cache.set("shopx", [], payload, {})
     try:
         c.cookies.set(COOKIE, tok)
         r = c.get("/app")
         assert r.status_code == 200
-        assert "See who they are" in r.text
-        assert "£42,000" in r.text and "7" in r.text
+        assert "const MASKED = true" in r.text and "Zelda Quantock" not in r.text
+        assert "£42,000" in r.text
     finally:
         cache.evict("shopx")
 

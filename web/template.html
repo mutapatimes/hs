@@ -210,8 +210,13 @@
   .drcustom input[type=date].set{border-color:var(--brand-deep)}
   /* full-history upgrade teaser */
   .histbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px;padding:12px 16px;
-    border:1px solid #e6dcc2;border-radius:8px;background:linear-gradient(180deg,#fbf7ec,#f7f1e2);
+    border:1px solid var(--line);border-radius:8px;background:var(--card);
     font-size:13.5px;color:var(--ink)}
+  .row.masked .cname,.row.masked .cmeta{filter:blur(5px);user-select:none;pointer-events:none}
+  .row.masked .cname::after{content:"Hidden client"}
+  .row.masked .cmeta::after{content:"name and contact withheld on the free scan"}
+  .row.masked .ava{color:transparent}
+  .row.masked .csignals{display:none}
   .histbar b{color:var(--brand-deep);font-weight:700}
   .histbar .histup{margin-left:auto;border:0;background:var(--brand-deep);color:#fff;font:600 13px system-ui;
     padding:8px 15px;border-radius:8px;cursor:pointer;white-space:nowrap}
@@ -1319,7 +1324,8 @@ function applyRoute(r){                    // react to App Bridge / back-forward
 }
 const FULL_HISTORY = __FULL_HISTORY__;   // false -> un-upgraded tenant, lock date ranges beyond 30 days
 const DR_LOCKED = new Set(["ytd","1y","all"]);   // presets that require the paid full-history unlock
-const LOCKED_COUNT = __LOCKED_COUNT__;   // clients held back by the 30-day paywall
+const MASKED = __MASKED__;               // true -> free scan: identities withheld server-side, rows blurred
+const LOCKED_COUNT = __LOCKED_COUNT__;   // clients held back (masked, or the old 30-day cap)
 const LOCKED_LATENT = __LOCKED_LATENT__; // their latent value (formatted), for the upgrade teaser
 // Date-range filter state, declared up here (before the wireDate("c", CDATE, …) wiring below) so
 // it isn't in the temporal dead zone when that call runs. drLoad is a hoisted fn defined lower down.
@@ -1558,12 +1564,17 @@ function drMatch(state, ms){
   return fl ? ms>=fl.getTime() : true;
 }
 function upgradePrompt(){
+  if(MASKED){ openSettings("billing"); return; }
   toast("Full client history is on the paid plan.");
   fetch("/v1/checkout",{method:"POST"}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.url)location.href=d.url;}).catch(()=>{});
 }
 function renderHistBanner(){
-  if(FULL_HISTORY || !LOCKED_COUNT) return;
-  const html='Showing the last 30 days. <b>'+LOCKED_COUNT.toLocaleString("en-GB")+' more client'+(LOCKED_COUNT===1?'':'s')+'</b>'
+  if(!MASKED && (FULL_HISTORY || !LOCKED_COUNT)) return;
+  const html = MASKED
+    ? '<b>'+LOCKED_COUNT.toLocaleString("en-GB")+' hidden VIC'+(LOCKED_COUNT===1?'':'s')+'</b>'
+      +(LOCKED_LATENT?(' worth <b>'+LOCKED_LATENT+'</b> in latent value'):'')
+      +', scored from your own orders. Names, contact details and the evidence are on a plan. <button class="histup">Unmask who they are &rarr;</button>'
+    : 'Showing the last 30 days. <b>'+LOCKED_COUNT.toLocaleString("en-GB")+' more client'+(LOCKED_COUNT===1?'':'s')+'</b>'
     +(LOCKED_LATENT?(' worth <b>'+LOCKED_LATENT+'</b> in latent value'):'')
     +' are behind the full-history plan. <button class="histup">See full history &rarr;</button>';
   ["cHist","oHist"].forEach(id=>{const el=document.getElementById(id);if(el){el.innerHTML=html;el.style.display="";const b=el.querySelector(".histup");if(b)b.onclick=upgradePrompt;}});
@@ -1691,7 +1702,7 @@ function renderRows(){
   }
   rowsEl.innerHTML = list.map((c,i)=>{
     const sigChips = catChips(c.signals);
-    return `<div class="row ${selected.has(c.id)?'sel':''}" data-id="${c.id}"${rv?` style="animation:rowin var(--dur) var(--ease) ${i*22}ms both"`:""}>
+    return `<div class="row ${selected.has(c.id)?'sel':''}${MASKED?' masked':''}" data-id="${c.id}"${rv?` style="animation:rowin var(--dur) var(--ease) ${i*22}ms both"`:""}>
       <div class="cbx ${selected.has(c.id)?'on':''}" data-cbx="${c.id}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></div>
       <div class="rank">${String(start+i+1).padStart(2,"0")}</div>
       <div class="client">
@@ -1712,7 +1723,7 @@ function renderRows(){
   }).join("");
 
   rowsEl.querySelectorAll(".row").forEach(r=>{
-    r.onclick=e=>{ if(e.target.closest("[data-cbx]")) return; openDrawer(r.dataset.id); };
+    r.onclick=e=>{ if(e.target.closest("[data-cbx]")) return; if(MASKED){ upgradePrompt(); return; } openDrawer(r.dataset.id); };
   });
   rowsEl.querySelectorAll("[data-cbx]").forEach(b=>{
     b.onclick=e=>{e.stopPropagation();toggleSel(b.dataset.cbx);};
@@ -3398,6 +3409,7 @@ function evidenceHTML(signals){
 }
 
 function openDrawer(id){
+  if(MASKED){ upgradePrompt(); return; }
   const c=DATA.find(x=>x.id===id);
   drawer.innerHTML=`
     <div class="dhead">
@@ -4424,7 +4436,7 @@ function openSettings(page){
         const seats=(d&&d.seats)||[];
         const pl=document.getElementById("seatPlanLine"), t=(d&&d.plan)||{};
         if(pl){
-          if(t.free) pl.innerHTML=`The free scan includes one sign-in. <a href="#" data-goto="settings-billing" style="color:var(--ink)">Choose a plan</a> to add teammates.`;
+          if(t.free) pl.innerHTML=`The free scan includes one sign-in. <a href="#" id="seatPlanLink" style="color:var(--ink)">Choose a plan</a> to add teammates.`; const spl=document.getElementById("seatPlanLink"); if(spl) spl.onclick=e=>{e.preventDefault();openSettings("billing");};
           else if(t.metered){ const n=seats.length, inc=t.included||0;
             pl.textContent = n<inc ? `${n} of ${inc} seats included with ${t.name}.`
               : `${n} seats in use, ${inc} included with ${t.name}. The next teammate is £${t.seatPrice} a month.`; }

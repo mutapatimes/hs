@@ -194,11 +194,12 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None) 
         store_url = (creds or {}).get("store_url") or ""
     payload = dashboard_payload(scored, _history(orders), shop, benchmarks, raw_orders=orders,
                                 carts_by_customer=carts, platform=platform, store_url=store_url)
-    # Full client/order history is a paid feature: un-upgraded tenants only see the last 30 days.
+    # The free scan shows the whole book scored but not who anyone is: identities are withheld
+    # server-side until the tenant is on a plan.
     from halia.api import billing
     if not billing.is_paid(shop):
-        from build_mvp import cap_payload_recent
-        payload = cap_payload_recent(payload, 30)
+        from build_mvp import mask_payload
+        payload = mask_payload(payload)
     # Store Concierge desk: the clienteling view (pure RFM, no scoring) rides along in the same
     # RAM cache. Computed from the customer frame we already built, so no extra fetch. The hosted
     # route serves this instead of the wealth dashboard for storeconcierge-brand tenants.

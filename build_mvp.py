@@ -578,9 +578,33 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
         "stat_scored": f"{len(scored):,}", "stat_latent": _fmt_money(latent_total),
         "stat_count": str(hidden_count), "stat_avgspend": _fmt_money(avg_spend),
         "stat_toptier": str(top_tier),
-        "full_history": True,   # capped to a recent window for un-upgraded tenants (see cap_payload_recent)
+        "full_history": True,
+        "masked": False,        # True for un-upgraded tenants: identities hidden, aggregates kept (see mask_payload)
         "engine": config_fingerprint(),   # version + config hash — audit trail for every payload
     }
+
+
+def mask_payload(payload: dict) -> dict:
+    """Server-side entitlement gate for the free scan: the whole book stays scored, so every
+    aggregate (count, latent value, grade mix, signals, landscape, map) is real, but each client's
+    identity and the evidence about them are withheld. Names, contact details, order lines, open
+    baskets and admin links are blanked before the payload leaves the server; the UI blurs the
+    rows and offers to unmask. Orders keep their amounts and dates (search is free) but not who."""
+    data = []
+    for c in payload.get("data") or []:
+        m = dict(c)
+        m.update({"name": "", "init": "", "email": "", "phone": "", "cid": "", "adminUrl": "",
+                  "orders": [], "cart": None, "signals": [], "reco": ""})
+        data.append(m)
+    orders = []
+    for o in payload.get("orders") or []:
+        m = dict(o)
+        m.update({"name": "", "first": "", "email": "", "phone": "", "cid": ""})
+        orders.append(m)
+    out = dict(payload)
+    out.update({"data": data, "orders": orders, "masked": True,
+                "locked_count": len(data), "locked_latent": payload.get("stat_latent", "")})
+    return out
 
 
 def cap_payload_recent(payload: dict, days: int = 30) -> dict:
@@ -643,6 +667,7 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     html = html.replace("__STAT_TOPTIER__", payload["stat_toptier"])
     html = html.replace("__PLATFORM__", str(payload.get("platform", "shopify")))
     html = html.replace("__FULL_HISTORY__", "true" if payload.get("full_history", True) else "false")
+    html = html.replace("__MASKED__", "true" if payload.get("masked") else "false")
     html = html.replace("__LOCKED_COUNT__", str(payload.get("locked_count", 0)))
     html = html.replace("__LOCKED_LATENT__", _safe(json.dumps(payload.get("locked_latent", ""))))
     html = html.replace("__SYNC_RUNNING__", "true" if payload.get("sync_running") else "false")

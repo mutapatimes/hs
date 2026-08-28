@@ -325,15 +325,22 @@ def _resolve_ext(x_halia_ext_token: Optional[str]) -> ExtAuth:
     """Authenticate an extension/keyboard request. Prefers a per-employee seat token (refreshing its
     last-seen), then falls back to the legacy shared per-shop token (seat stays None). Raises 401."""
     token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
+    auth = None
     if token_hash:
         seat = shop_store().seat_for_token(token_hash)
         if seat:
             shop_store().touch_seat(seat["seat_id"])
-            return ExtAuth(shop=seat["shop"], seat_id=seat["seat_id"], seat_name=seat["name"])
-        shop = shop_store().shop_for_extension_token(token_hash)
-        if shop:
-            return ExtAuth(shop=shop)
-    raise HTTPException(401, "Invalid or missing extension token")
+            auth = ExtAuth(shop=seat["shop"], seat_id=seat["seat_id"], seat_name=seat["name"])
+        else:
+            shop = shop_store().shop_for_extension_token(token_hash)
+            if shop:
+                auth = ExtAuth(shop=shop)
+    if auth is None:
+        raise HTTPException(401, "Invalid or missing extension token")
+    from halia.api import billing
+    if not billing.is_paid(auth.shop):   # the free scan is the dashboard only, names withheld
+        raise HTTPException(402, "Choose a plan in Halia to use the extension and keyboard.")
+    return auth
 
 
 def _seat_profile(auth: "ExtAuth") -> dict:
