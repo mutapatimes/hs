@@ -190,6 +190,13 @@ _TABLES = [
     # These hold Halia's OWN business contacts (leads/clients), not merchant customers — same
     # footing as `subscribers`. `journey` in {demo, client, weekly}; `step` is the next index to
     # send; `next_at` is when it's due; `data` is a small JSON blob (first name, shop).
+    """CREATE TABLE IF NOT EXISTS seat_metrics (
+        seat_id TEXT,
+        month   TEXT,
+        metric  TEXT,
+        count   INTEGER DEFAULT 0,
+        PRIMARY KEY (seat_id, month, metric)
+    )""",
     """CREATE TABLE IF NOT EXISTS email_journeys (
         email      TEXT,
         journey    TEXT,
@@ -269,6 +276,12 @@ _DROP_LEGACY = [
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def month_key(when: datetime | None = None) -> str:
+    """Calendar month bucket, 'YYYY-MM' in UTC."""
+    when = when or datetime.now(timezone.utc)
+    return when.strftime("%Y-%m")
 
 
 def _iso_week(when: datetime | None = None) -> str:
@@ -713,6 +726,11 @@ class ShopStore(_DB):
                ON CONFLICT(email, journey) DO NOTHING""",
             {"e": email.strip().lower(), "j": journey, "n": next_at, "d": data_json, "at": _now()})
 
+    def journey_exists(self, email: str, journey: str) -> bool:
+        row = self._run("SELECT 1 FROM email_journeys WHERE email = :e AND journey = :j",
+                        {"e": email.strip().lower(), "j": journey}, fetch="one")
+        return row is not None
+
     def due_journeys(self, now_iso: str) -> list[dict]:
         """Enrolments whose next step is due and not done, excluding unsubscribed emails."""
         rows = self._run(
@@ -1048,6 +1066,21 @@ class ShopStore(_DB):
         return {r["shop"]: {"fit": int(r["fit"] or 0), "nofit": int(r["nofit"] or 0)} for r in rows}
 
     # ── console-dashboard activity counters (aggregate, per shop + ISO week) ───────
+    def bump_seat_metric(self, seat_id: str, metric: str, n: int = 1, month: str | None = None) -> None:
+        """Count one associate's use of a tool this month (drafts, links, remembered). Aggregate
+        numbers only; nothing about any client. Feeds the end-of-month recap."""
+        if not seat_id or n <= 0:
+            return
+        self._run(
+            """INSERT INTO seat_metrics (seat_id, month, metric, count) VALUES (:sid, :m, :k, :n)
+               ON CONFLICT(seat_id, month, metric) DO UPDATE SET count = seat_metrics.count + :n""",
+            {"sid": seat_id, "m": month or month_key(), "k": metric, "n": int(n)})
+
+    def seat_month_metrics(self, seat_id: str, month: str | None = None) -> dict:
+        rows = self._run("SELECT metric, count FROM seat_metrics WHERE seat_id = :sid AND month = :m",
+                         {"sid": seat_id, "m": month or month_key()}, fetch="all") or []
+        return {r["metric"]: int(r["count"]) for r in rows}
+
     def bump_metric(self, shop: str, metric: str, n: int = 1, week: str | None = None) -> None:
         """Increment a per-shop, per-week activity counter. Never raises on a zero/negative n."""
         if n <= 0:

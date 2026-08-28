@@ -344,6 +344,15 @@ def _resolve_ext(x_halia_ext_token: Optional[str]) -> ExtAuth:
     return auth
 
 
+def _seat_hit(auth: "ExtAuth", metric: str) -> None:
+    """One more use of a tool by this seat this month, for their end-of-month recap."""
+    try:
+        if auth.seat_id:
+            shop_store().bump_seat_metric(auth.seat_id, metric)
+    except Exception:  # noqa: BLE001 — a counter must never break a request
+        pass
+
+
 def _seat_profile(auth: "ExtAuth") -> dict:
     """{name, email, title, signoff} for the caller's seat; a shared-token caller gets the store
     sender only. The sign-off defaults to name + position + store when the associate set none."""
@@ -1223,6 +1232,7 @@ def register(app) -> None:
         from halia import llm
 
         auth = _resolve_ext(x_halia_ext_token)
+        _seat_hit(auth, "drafts")
         shop = auth.shop
         body = payload or {}
         email = (str(body.get("email") or "").strip()) or None
@@ -1276,6 +1286,7 @@ def register(app) -> None:
         from halia import llm
 
         auth = _resolve_ext(x_halia_ext_token)
+        _seat_hit(auth, "drafts")
         shop = auth.shop
         body = payload or {}
         text = str(body.get("text") or "").strip()[:4000]
@@ -1329,6 +1340,7 @@ def register(app) -> None:
         from halia import llm
 
         auth = _resolve_ext(x_halia_ext_token)
+        _seat_hit(auth, "remembered")
         shop = auth.shop
         body = payload or {}
         text = str(body.get("text") or "").strip()[:4000]
@@ -1383,6 +1395,7 @@ def register(app) -> None:
         from halia import llm
 
         auth = _resolve_ext(x_halia_ext_token)
+        _seat_hit(auth, "drafts")
         shop = auth.shop
         body = payload or {}
         email = (str(body.get("email") or "").strip()) or None
@@ -1456,6 +1469,7 @@ def register(app) -> None:
         from halia.cache import cache
 
         auth = _resolve_ext(x_halia_ext_token)
+        _seat_hit(auth, "suggestions")
         shop = auth.shop
         body = payload or {}
         email = (str(body.get("email") or "").strip()) or None
@@ -1539,6 +1553,7 @@ def register(app) -> None:
         from halia.api.catalog import adhoc_url
 
         auth = _resolve_ext(x_halia_ext_token)
+        _seat_hit(auth, "links")
         shop = auth.shop
         body = payload or {}
         ids = [str(p).strip() for p in (body.get("product_ids") or []) if str(p).strip()][:40]
@@ -1560,6 +1575,7 @@ def register(app) -> None:
         from halia.api import catalog
 
         auth = _resolve_ext(x_halia_ext_token)
+        _seat_hit(auth, "links")
         shop = auth.shop
         body = payload or {}
         ids = [str(p).strip() for p in (body.get("product_ids") or []) if str(p).strip()][:20]
@@ -1877,6 +1893,7 @@ def register(app) -> None:
         from halia.api.catalog import adhoc_url
 
         auth = _resolve_ext(x_halia_ext_token)
+        _seat_hit(auth, "links")
         shop = auth.shop
         body = payload or {}
         urls = [str(u) for u in (body.get("urls") or []) if str(u).strip()][:40]
@@ -1926,6 +1943,7 @@ def register(app) -> None:
         new scope, it creates nothing on the store. Products with no buyable variant are skipped;
         nothing is stored (the selection lives in the link)."""
         auth = _resolve_ext(x_halia_ext_token)
+        _seat_hit(auth, "links")
         shop = auth.shop
         body = payload or {}
         urls = [str(u) for u in (body.get("urls") or []) if str(u).strip()][:40]
