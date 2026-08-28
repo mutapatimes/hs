@@ -534,7 +534,7 @@
           <section class="sec" data-s="media"></section>
           <section class="sec" data-s="cat"></section>
         </div>
-        <div class="foot" data-a="foot"><span class="m live" style="color:#1F564A">⁂</span> Read live from your book. Nothing stored.</div>
+        <div class="foot" data-a="foot"><span class="m live" style="color:#1F564A">⁂</span> Read live from your book.</div>
       </aside>
       <div class="toast">Copied</div>`;
     root.appendChild(dock);
@@ -775,7 +775,7 @@
         try { window.dispatchEvent(new CustomEvent("halia:refresh")); } catch (e) { /* ignore */ }
       });
     } else {
-      el.innerHTML = mark + "Read live from your book. Nothing stored.";
+      el.innerHTML = mark + "Read live from your book.";
     }
   }
 
