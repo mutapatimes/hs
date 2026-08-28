@@ -534,7 +534,7 @@
           <section class="sec" data-s="media"></section>
           <section class="sec" data-s="cat"></section>
         </div>
-        <div class="foot" data-a="foot"><span class="m live" style="color:#1F564A">⁂</span> Read live from your book.</div>
+        <div class="foot" data-a="foot"><span class="m live" style="color:#1F564A">⁂</span></div>
       </aside>
       <div class="toast">Copied</div>`;
     root.appendChild(dock);
@@ -762,7 +762,7 @@
     }
   }
 
-  // The footer shows who is signed in (the seat) with a one-click sign out, else the zero-retention note.
+  // The footer shows who is signed in (the seat) with a one-click sign out; otherwise just the mark.
   function renderFoot() {
     const el = root && root.querySelector('[data-a="foot"]'); if (!el) return;
     const mark = '<span class="m live" style="color:#1F564A">⁂</span> ';
@@ -775,7 +775,7 @@
         try { window.dispatchEvent(new CustomEvent("halia:refresh")); } catch (e) { /* ignore */ }
       });
     } else {
-      el.innerHTML = mark + "Read live from your book.";
+      el.innerHTML = mark.trim();
     }
   }
 
