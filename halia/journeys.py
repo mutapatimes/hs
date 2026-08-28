@@ -100,6 +100,85 @@ def enroll_client(email: str, first: str = "", shop: str = "", store=None) -> No
     enroll(email, "weekly", data, store=store)  # first weekly fires in _WEEKLY_EVERY_DAYS
 
 
+# ── the end-of-month recap, one per seat holder ──────────────────────────────────
+MONTHLY = "monthly"
+_MONTHLY_HOUR = 6   # UTC, on the 1st: the previous calendar month is complete
+
+
+def _first_of_next_month(now: datetime) -> datetime:
+    y, m = (now.year + 1, 1) if now.month == 12 else (now.year, now.month + 1)
+    return now.replace(year=y, month=m, day=1, hour=_MONTHLY_HOUR, minute=0, second=0, microsecond=0)
+
+
+def _previous_month(now: datetime) -> tuple[str, int, str]:
+    """('YYYY-MM', days in it, 'August') for the month before ``now``."""
+    import calendar
+    y, m = (now.year - 1, 12) if now.month == 1 else (now.year, now.month - 1)
+    return f"{y:04d}-{m:02d}", calendar.monthrange(y, m)[1], calendar.month_name[m]
+
+
+def enroll_monthly(email: str, seat_id: str, shop: str, store_name: str = "", first: str = "",
+                   store=None) -> bool:
+    """A seat holder gets their own numbers at the end of every calendar month."""
+    email = (email or "").strip().lower()
+    if "@" not in email:
+        return False
+    st = store or _store()
+    if st.is_suppressed(email):
+        return False
+    st.enroll_journey(email, MONTHLY, _iso(_first_of_next_month(_now())),
+                      json.dumps({"seat_id": seat_id, "shop": shop, "store_name": store_name,
+                                  "first": first}))
+    return True
+
+
+def ensure_monthly_enrolments(store=None) -> int:
+    """Every live seat with an email is on the monthly recap (idempotent; new seats join at
+    creation, this catches the ones that predate it). Returns how many were added."""
+    st = store or _store()
+    added = 0
+    for t in st.all_tenants():
+        t = dict(t)
+        for seat in st.list_seats(t["shop"]):
+            email = (seat.get("email") or "").strip().lower()
+            if "@" not in email or st.is_suppressed(email):
+                continue
+            before = st.journey_exists(email, MONTHLY) if hasattr(st, "journey_exists") else False
+            if enroll_monthly(email, seat["id"], t["shop"], t.get("label") or t["shop"],
+                              (seat.get("name") or "").split(" ")[0], store=st) and not before:
+                added += 1
+    return added
+
+
+def _seat_month(shop: str, seat_id: str, now: datetime, store=None) -> dict | None:
+    """One associate's numbers for the month just ended, plus where they stand on the team.
+    None when the seat is gone, so the recap stops."""
+    st = store or _store()
+    month, days, month_name = _previous_month(now)
+    seat = next((x for x in st.list_seats(shop) if x["id"] == seat_id), None)
+    if not seat:
+        return None
+    try:
+        from halia.api.reports import build_report
+        rep = build_report(shop, days)
+    except Exception:  # noqa: BLE001
+        rep = {"available": False, "seats": [], "totals": {}}
+    rows = rep.get("seats") or []
+    mine = next((r for r in rows if r.get("id") == seat_id), None) or {}
+    ranked = sorted(rows, key=lambda r: (-(r.get("revenue") or 0), -(r.get("contacts") or 0)))
+    rank = next((i + 1 for i, r in enumerate(ranked) if r.get("id") == seat_id), None)
+    tools = st.seat_month_metrics(seat_id, month)
+    return {"month": month, "month_name": month_name, "days": days,
+            "contacts": int(mine.get("contacts") or 0), "clients": int(mine.get("clients") or 0),
+            "captures": int(mine.get("captures") or 0), "captured_top": int(mine.get("captured_top") or 0),
+            "conversions": int(mine.get("conversions") or 0), "revenue": int(mine.get("revenue") or 0),
+            "top_share": float(mine.get("topShare") or 0.0),
+            "drafts": int(tools.get("drafts") or 0), "links": int(tools.get("links") or 0),
+            "remembered": int(tools.get("remembered") or 0),
+            "rank": rank, "team_size": len([r for r in rows if not r.get("former")]),
+            "team": rep.get("totals") or {}}
+
+
 # ── scheduler ────────────────────────────────────────────────────────────────────
 def _send_one(email: str, template_key: str, data: dict, send) -> bool:
     subject, html, text = emails.render(template_key, data, unsub_url(email))
@@ -180,6 +259,16 @@ def run_due(now: datetime | None = None, send=None, store=None) -> dict:
                 sent += 1
             st.advance_journey(email, journey, step + 1,
                                _iso(now + timedelta(days=_WEEKLY_EVERY_DAYS)))
+        elif journey == MONTHLY:
+            shop, seat_id = str(data.get("shop") or ""), str(data.get("seat_id") or "")
+            month = _seat_month(shop, seat_id, now, store=st) if (shop and seat_id) else None
+            if month is None:                     # seat revoked: the recap ends with it
+                st.finish_journey(email, journey)
+                continue
+            if _send_one(email, "monthly_seat", {**data, "recap": month}, send):
+                sent += 1
+            st.advance_journey(email, journey, step + 1, _iso(_first_of_next_month(now)))
+
         else:  # unknown journey — close it so it stops being due
             st.finish_journey(email, journey)
 

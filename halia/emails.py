@@ -49,6 +49,7 @@ _EYEBROW = {
     "client": "Welcome to Halia",
     "weekly": "Your week with Halia",
     "assoc": "Your Halia seat",
+    "monthly": "Your month with Halia",
 }
 
 
@@ -361,6 +362,46 @@ def assoc_habits(d):
             "up before they come in; log the contact after.")
 
 
+def monthly_seat(d):
+    r = d.get("recap") or {}
+    money = lambda n: "£" + f"{int(n or 0):,}"
+    mn = _html.escape(str(r.get("month_name") or "last month"))
+    store = _store(d)
+    contacts, clients = int(r.get("contacts") or 0), int(r.get("clients") or 0)
+    captures, conv, rev = int(r.get("captures") or 0), int(r.get("conversions") or 0), int(r.get("revenue") or 0)
+    drafts, links, remembered = int(r.get("drafts") or 0), int(r.get("links") or 0), int(r.get("remembered") or 0)
+    quiet = not any((contacts, captures, drafts, links, remembered))
+
+    def row(label, value):
+        return (f"<tr><td style='padding:9px 0;border-bottom:1px solid #E4E2DB;font:15px {_SERIF};color:{_INK}'>{label}</td>"
+                f"<td align=right style='padding:9px 0;border-bottom:1px solid #E4E2DB;font:600 15px {_SERIF};color:{_INK}'>{value}</td></tr>")
+    if quiet:
+        body = (_p(f"{mn} was quiet on Halia. Two moves that take a minute each: look up the next client "
+                   "who messages you, and capture one new client at the till.")
+                + _btn("Open Halia", f"{_app(d)}/app"))
+        text = f"{r.get('month_name') or 'Last month'} was quiet on Halia. Look up the next client who messages you, and capture one new client at the till. {_app(d)}/app"
+        return (f"Your {r.get('month_name') or 'month'} with Halia at {d.get('store_name') or 'the store'}", body, text)
+
+    lead = (f"In {mn} you reached {contacts} contact{'s' if contacts != 1 else ''} with {clients} client"
+            f"{'s' if clients != 1 else ''}"
+            + (f", captured {captures} new" if captures else "")
+            + (f", and {conv} of your contacts led to an order: {money(rev)}." if conv else "."))
+    table = ("<table role=presentation width=100% cellpadding=0 cellspacing=0 style='margin:6px 0 18px'>"
+             + row("Contacts logged", contacts) + row("Clients reached", clients)
+             + (row("Top-grade share", f"{int(round(float(r.get('top_share') or 0) * 100))}%") if clients else "")
+             + row("Clients captured", captures)
+             + row("Messages drafted with Halia", drafts) + row("Catalogue and basket links sent", links)
+             + (row("Details remembered", remembered) if remembered else "")
+             + row("Orders after a contact", conv) + row("Revenue credited", money(rev))
+             + "</table>")
+    rank, size = r.get("rank"), int(r.get("team_size") or 0)
+    standing = (_p(f"You were number {rank} of {size} on the team at {store}.") if rank and size > 1 else "")
+    body = _p(_html.escape(lead)) + table + standing + _btn("Open Halia", f"{_app(d)}/app")
+    text = (lead + f" Drafted with Halia: {drafts}. Links sent: {links}."
+            + (f" Number {rank} of {size} on the team." if rank and size > 1 else "") + f" {_app(d)}/app")
+    return (f"Your {r.get('month_name') or 'month'} with Halia at {d.get('store_name') or 'the store'}", body, text)
+
+
 _TEMPLATES = {
     "demo_intro": demo_intro, "demo_hidden": demo_hidden, "demo_how": demo_how,
     "demo_ready": demo_ready,
@@ -370,4 +411,5 @@ _TEMPLATES = {
     "weekly_refresh": weekly_refresh,
     "assoc_welcome": assoc_welcome, "assoc_first_moves": assoc_first_moves,
     "assoc_capture": assoc_capture, "assoc_habits": assoc_habits,
+    "monthly_seat": monthly_seat,
 }

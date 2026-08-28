@@ -47,6 +47,10 @@ def register(app) -> None:
     def cron_run(request: Request, x_cron_key: str = Header(default="")):
         if not config.CRON_KEY or not hmac.compare_digest(x_cron_key, config.CRON_KEY):
             raise HTTPException(403, "Not authorised.")
+        try:
+            journeys.ensure_monthly_enrolments()
+        except Exception:  # noqa: BLE001 — the recap must never block the run
+            pass
         out = journeys.run_due()
         try:
             from halia.api import billing_shopify

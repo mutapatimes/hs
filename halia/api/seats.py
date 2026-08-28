@@ -38,7 +38,7 @@ def _connect_qr(connect: str) -> Optional[str]:
         return None
 
 
-def _welcome_associate(shop: str, email: str, name: str, connect: str) -> None:
+def _welcome_associate(shop: str, email: str, name: str, connect: str, seat_id: str = "") -> None:
     """A new seat starts the associate journey (how to sign in, the first moves, capture) and
     joins the Brevo associates list. Best-effort: a mail hiccup never blocks the seat."""
     try:
@@ -48,6 +48,9 @@ def _welcome_associate(shop: str, email: str, name: str, connect: str) -> None:
         journeys.enroll_associate(email, first=name.split(" ")[0] if name else "",
                                   shop=shop, store_name=tenant.get("label") or shop,
                                   connect=connect)
+        if seat_id:
+            journeys.enroll_monthly(email, seat_id, shop, tenant.get("label") or shop,
+                                    name.split(" ")[0] if name else "")
     except Exception:  # noqa: BLE001
         pass
     try:
@@ -121,7 +124,7 @@ def register(app) -> None:
             seat_id = store.create_seat(shop, name, hash_token(token), email)
         connect = f"halia://connect?t={token}&b={base}"
         if email and not reissued:
-            _welcome_associate(shop, email, name, connect)
+            _welcome_associate(shop, email, name, connect, seat_id)
         return {"seat_id": seat_id, "name": name, "email": email, "token": token, "base": base,
                 "connect": connect, "qr": _connect_qr(connect), "reissued": reissued}
 
