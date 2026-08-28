@@ -19,7 +19,7 @@ SHOP = "brand.myshopify.com"
 
 # ── pure helpers ──
 def test_load_pipe_normalises():
-    assert load_pipe(None) == {"stage": None, "assignee": None, "activity": []}
+    assert load_pipe(None) == {"stage": None, "assignee": None, "activity": [], "due": None}
     assert load_pipe("not json")["activity"] == []
     p = load_pipe(json.dumps({"stage": "Contacted", "activity": [{"a": 1}]}))
     assert p["stage"] == "Contacted" and p["assignee"] is None

@@ -906,3 +906,93 @@ def test_detect_language_heuristic():
     assert dl([{"from": "them", "text": "مرحبا، هل المعطف متوفر"}]) == "ar"
     assert dl([{"from": "them", "text": "请问外套有货吗"}]) == "zh"
     assert dl([]) == "en"
+
+
+# ── remember this ────────────────────────────────────────────────────────────
+class _FakeSink:
+    def __init__(self, prefs=None):
+        self.meta = {("c1", "preferences"): prefs} if prefs else {}
+        self.tags = []
+
+    def get_metafield(self, cid, key, namespace="halia"):
+        return self.meta.get((cid, key))
+
+    def set_metafield(self, cid, key, value, *a, **k):
+        self.meta[(cid, key)] = value
+
+    def tag_customer(self, cid, tags): self.tags.append(("+", tags))
+    def untag_customer(self, cid, tags): self.tags.append(("-", tags))
+
+
+def _remember(client, ext, body):
+    return client.post("/v1/extension/remember", json=body, headers={"X-Halia-Ext-Token": ext})
+
+
+def test_remember_ai_merges_into_the_clients_preferences(env, monkeypatch):
+    import json
+    from halia import llm
+    from halia.api import board
+    sink = _FakeSink(prefs=json.dumps({"sizes": "IT 40", "colours": ["navy"], "notes": ["buys for his wife"]}))
+    monkeypatch.setattr(board, "_sink", lambda shop: sink)
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "structured", lambda *a, **k: {
+        "sizes": {"shoes": "IT 38"}, "colours": ["camel"], "materials": ["cashmere"],
+        "occasions": [{"label": "daughter's wedding", "date": "2027-06-12"}], "notes": []})
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _remember(client, ext, {"email": "grace@x.com", "text": "I'm a 38 in shoes, love camel cashmere, my daughter's wedding is 12 June"}).json()
+    assert d["source"] == "ai" and d["cid"] == "c1"
+    assert d["summary"].startswith("IT 38, camel, cashmere, daughter's wedding June")
+    assert d["occasion"] == {"label": "daughter's wedding", "date": "2027-06-12"}
+    saved = json.loads(sink.meta[("c1", "preferences")])
+    assert saved["sizes"] == {"size": "IT 40", "shoes": "IT 38"}
+    assert saved["colours"] == ["navy", "camel"] and saved["materials"] == ["cashmere"]
+    assert saved["occasions"] == [{"label": "daughter's wedding", "date": "2027-06-12"}]
+    assert "buys for his wife" in saved["notes"]
+    assert store.shop_metric(SHOP, "extension_remember_ai") == 1
+
+
+def test_remember_rules_fallback_extracts_size_colour_and_month(env, monkeypatch):
+    import json
+    from halia import llm
+    from halia.api import board
+    sink = _FakeSink()
+    monkeypatch.setattr(board, "_sink", lambda shop: sink)
+    monkeypatch.setattr(llm, "available", lambda: False)
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _remember(client, ext, {"email": "grace@x.com", "text": "I wear IT 38, I love camel, and the wedding is in June"}).json()
+    assert d["source"] == "rules"
+    saved = json.loads(sink.meta[("c1", "preferences")])
+    assert saved["sizes"] == {"size": "IT 38"} and saved["colours"] == ["camel"]
+    assert saved["occasions"][0]["label"] == "wedding" and saved["occasions"][0]["date"].endswith("-06-01")
+    assert d["occasion"]["date"].endswith("-06-01")
+
+
+def test_remember_needs_text_and_an_identity(env, monkeypatch):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    assert _remember(client, ext, {"text": "IT 38"}).status_code == 422
+    assert _remember(client, ext, {"email": "a@b.com"}).status_code == 422
+    _seed([])
+    monkeypatch.setattr(extension, "_lookup", lambda *a, **k: {"found": False})
+    assert _remember(client, ext, {"email": "nobody@x.com", "text": "IT 38"}).json() == {"saved": False, "reason": "not_found"}
+
+
+def test_remember_respects_weekly_cap(env, monkeypatch):
+    from halia import config, llm
+    from halia.api import board
+    monkeypatch.setattr(board, "_sink", lambda shop: _FakeSink())
+    called = {"n": 0}
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "structured", lambda *a, **k: called.__setitem__("n", called["n"] + 1) or
+                        {"sizes": {}, "colours": [], "materials": [], "occasions": [], "notes": ["x"]})
+    monkeypatch.setattr(config, "LLM_WEEKLY_CAP", 1)
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    assert _remember(client, ext, {"email": "grace@x.com", "text": "hello"}).json()["source"] == "ai"
+    assert _remember(client, ext, {"email": "grace@x.com", "text": "hello"}).json()["source"] == "rules"
+    assert called["n"] == 1

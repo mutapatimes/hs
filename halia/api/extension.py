@@ -15,6 +15,7 @@ Only the sha256 hash of the token is persisted, exactly like the self-service te
 """
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 from typing import Any, Optional
@@ -671,6 +672,132 @@ def _rules_polish(text: str, first: str, signoff_text: str, greeting: bool, sign
     return body.strip()
 
 
+# ── remember this (sizes, tastes and occasions from a copied message, into the store) ──
+_REMEMBER_SYSTEM = (
+    "You are a clienteling assistant for a luxury retailer. You are given a message from a client, "
+    "copied by the sales associate. Extract only what the client states about themselves: sizes "
+    "(keyed by what they are for, e.g. shoes, dress, jacket, ring), colours they like, materials they "
+    "like, occasions coming up (with the date as YYYY-MM-DD when the message gives enough to resolve "
+    "it against today's date, else null), and short notes worth keeping (allergies, who they buy for, "
+    "how they like to be contacted). Never infer or guess; leave out anything the message does not "
+    "say. Keep each value short. Do not use em dashes."
+)
+_REMEMBER_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "sizes": {"type": "object", "additionalProperties": {"type": "string"}},
+        "colours": {"type": "array", "items": {"type": "string"}},
+        "materials": {"type": "array", "items": {"type": "string"}},
+        "occasions": {"type": "array", "items": {
+            "type": "object",
+            "properties": {"label": {"type": "string"}, "date": {"type": ["string", "null"]}},
+            "required": ["label", "date"], "additionalProperties": False}},
+        "notes": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["sizes", "colours", "materials", "occasions", "notes"],
+    "additionalProperties": False,
+}
+_COLOURS = ["black", "white", "ivory", "cream", "camel", "beige", "tan", "brown", "chocolate", "navy",
+            "blue", "cobalt", "sky", "green", "olive", "sage", "emerald", "red", "burgundy", "bordeaux",
+            "pink", "blush", "rose", "purple", "lilac", "grey", "gray", "charcoal", "silver", "gold",
+            "yellow", "mustard", "orange", "coral", "teal", "turquoise"]
+_OCCASIONS = ["wedding", "birthday", "anniversary", "gala", "honeymoon", "graduation", "christening",
+              "engagement", "party", "holiday", "trip", "travel", "christmas", "eid", "diwali",
+              "hanukkah", "new year", "valentine", "mother's day", "father's day"]
+_MONTHS = {m: i + 1 for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july",
+                                            "august", "september", "october", "november", "december"])}
+_MONTHS.update({m[:3]: v for m, v in list(_MONTHS.items())})
+
+
+def _rules_remember(text: str, today=None) -> dict:
+    """Without AI: sizes, colours, occasions and months by pattern. Nothing guessed."""
+    import datetime as _dt
+    today = today or _dt.date.today()
+    low = text.lower()
+    sizes: dict = {}
+    for m in re.finditer(r"\b(it|fr|uk|eu|us)\s?(\d{2}(?:\.5)?)\b", low):
+        sizes.setdefault("size", f"{m.group(1).upper()} {m.group(2)}")
+    m = re.search(r"\b(xxs|xs|s|m|l|xl|xxl)\b(?=\s*(size|in|for|please|,|\.|$))", low)
+    if m and "size" not in sizes:
+        sizes["size"] = m.group(1).upper()
+    colours = [c for c in _COLOURS if re.search(r"\b" + re.escape(c) + r"\b", low)]
+    occasions = []
+    month = None
+    mm = re.search(r"\b(" + "|".join(sorted(_MONTHS, key=len, reverse=True)) + r")\b", low)
+    if mm:
+        month = _MONTHS[mm.group(1)]
+        dm = re.search(r"\b(\d{1,2})(st|nd|rd|th)?\s+(?:of\s+)?" + mm.group(1), low) or \
+             re.search(mm.group(1) + r"\s+(\d{1,2})(st|nd|rd|th)?\b", low)
+        day = int(dm.group(1)) if dm else 1
+        year = today.year if (month, day) >= (today.month, today.day) else today.year + 1
+        try:
+            date = _dt.date(year, month, min(day, 28)).isoformat()
+        except ValueError:
+            date = None
+    else:
+        date = None
+    for o in _OCCASIONS:
+        if o in low:
+            occasions.append({"label": o, "date": date})
+            break
+    if not occasions and date:
+        occasions.append({"label": "date mentioned", "date": date})
+    return {"sizes": sizes, "colours": colours, "materials": [], "occasions": occasions, "notes": []}
+
+
+def _merge_prefs(cur: dict, new: dict) -> dict:
+    """Fold freshly extracted preferences into the client's existing halia.preferences JSON,
+    keeping what the capture form wrote (its string fields move under notes)."""
+    out: dict = {}
+    notes: list = []
+    for k, v in (cur or {}).items():
+        if k in ("sizes", "colours", "materials", "occasions", "notes"):
+            continue
+        if isinstance(v, str) and v.strip():
+            notes.append(f"{k}: {v.strip()}")
+        else:
+            out[k] = v
+    sizes = dict(cur.get("sizes") or {}) if isinstance(cur.get("sizes"), dict) else (
+        {"size": cur["sizes"]} if isinstance(cur.get("sizes"), str) and cur["sizes"] else {})
+    sizes.update({str(k): str(v) for k, v in (new.get("sizes") or {}).items() if v})
+
+    def union(a, b):
+        seen, res = set(), []
+        for x in list(a or []) + list(b or []):
+            x = str(x).strip()
+            if x and x.lower() not in seen:
+                seen.add(x.lower()); res.append(x)
+        return res
+    occ: dict = {}
+    for o in list(cur.get("occasions") or []) + list(new.get("occasions") or []):
+        if isinstance(o, dict) and o.get("label"):
+            key = o["label"].strip().lower()
+            occ[key] = {"label": o["label"].strip(), "date": o.get("date") or occ.get(key, {}).get("date")}
+    out.update({"sizes": sizes, "colours": union(cur.get("colours"), new.get("colours")),
+                "materials": union(cur.get("materials"), new.get("materials")),
+                "occasions": list(occ.values()),
+                "notes": union(list(cur.get("notes") or []) + notes, new.get("notes"))[-20:]})
+    return out
+
+
+def _prefs_summary(saved: dict) -> str:
+    bits = list((saved.get("sizes") or {}).values()) + list(saved.get("colours") or []) \
+        + list(saved.get("materials") or [])
+    for o in saved.get("occasions") or []:
+        d = o.get("date")
+        bits.append(o["label"] + (f" {_month_word(d)}" if d else ""))
+    bits += list(saved.get("notes") or [])[:2]
+    return ", ".join(b for b in bits if b)[:140]
+
+
+def _month_word(iso: str) -> str:
+    try:
+        import datetime as _dt
+        return _dt.date.fromisoformat(iso).strftime("%B")
+    except Exception:  # noqa: BLE001
+        return iso
+
+
 # ── the conversation brief (read the thread, recommend a reply and the next moves) ───
 _BRIEF_SYSTEM = (
     "You are the clienteling desk behind a luxury retailer's sales associate. You are given one "
@@ -1163,6 +1290,58 @@ def register(app) -> None:
         data.record_activity(shop, "extension_polish")
         return {"text": polished, "source": source, "model": model, "found": bool(resp.get("found")),
                 "name": resp.get("name"), "ai_available": llm.available()}
+
+    @app.post("/v1/extension/remember")
+    def extension_remember(x_halia_ext_token: Optional[str] = Header(None),
+                           payload: Any = Body(default=None)) -> dict:
+        """Remember what a client said about themselves. Sizes, colours, materials, occasions and
+        notes are pulled from the copied message and merged into the client's own record in the
+        merchant's store (the halia.preferences field), where drafts and suggestions read them.
+        Halia keeps none of it. Without AI a pattern pass catches sizes, colours and dates."""
+        import datetime as _dt
+
+        from halia import llm
+
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
+        body = payload or {}
+        text = str(body.get("text") or "").strip()[:4000]
+        email = (str(body.get("email") or "").strip()) or None
+        cid = (str(body.get("cid") or body.get("customer_id") or "").strip()) or None
+        phone = (str(body.get("phone") or "").strip()) or None
+        name = (str(body.get("name") or "").strip()) or None
+        if not text:
+            raise HTTPException(422, "text is required")
+        if not (email or cid or phone or name):
+            raise HTTPException(422, "Say who the client is")
+        resp = _lookup(shop, email, cid, phone, name)
+        target = resp.get("cid") or cid
+        if not target:
+            return {"saved": False, "reason": "not_found"}
+
+        got, source = None, "rules"
+        cap = config.LLM_WEEKLY_CAP
+        used = shop_store().shop_metric(shop, "extension_remember_ai") if cap else 0
+        if llm.available() and (not cap or used < cap):
+            user = f"Today is {_dt.date.today().isoformat()}.\n\nThe client's message:\n{text}"
+            got = llm.structured(_REMEMBER_SYSTEM, user, _REMEMBER_SCHEMA, model=llm.model_for(resp.get("tier")))
+            if got:
+                source = "ai"
+                data.record_activity(shop, "extension_remember_ai")
+        if not got:
+            got = _rules_remember(text)
+        from halia.api.board import _sink
+        sink = _sink(shop)
+        try:
+            cur = json.loads(sink.get_metafield(target, "preferences") or "{}")
+        except (ValueError, TypeError):
+            cur = {}
+        merged = _merge_prefs(cur if isinstance(cur, dict) else {}, got)
+        sink.set_metafield(target, "preferences", json.dumps(merged))
+        data.record_activity(shop, "extension_remember")
+        occasion = next((o for o in got.get("occasions") or [] if o.get("date")), None)
+        return {"saved": got, "summary": _prefs_summary(got), "occasion": occasion,
+                "cid": target, "source": source, "name": resp.get("name")}
 
     @app.post("/v1/extension/brief")
     def extension_brief(x_halia_ext_token: Optional[str] = Header(None),

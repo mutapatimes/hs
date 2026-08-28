@@ -249,3 +249,35 @@ def test_settings_save_preserves_capture_slug_and_brand(env):
     assert saved["capture_slug"] == slug
     assert saved["brand"] == "storeconcierge"
     assert saved["capture_alerts"] is True      # default carried into the blob
+
+
+# ── follow-up with a date ────────────────────────────────────────────────────
+class _PipeSink:
+    def __init__(self): self.meta, self.tags = {}, []
+    def get_metafield(self, cid, key, namespace="halia"): return self.meta.get((cid, key))
+    def set_metafield(self, cid, key, value, *a, **k): self.meta[(cid, key)] = value
+    def tag_customer(self, cid, tags): self.tags.append(("+", tags))
+    def untag_customer(self, cid, tags): self.tags.append(("-", tags))
+
+
+def test_followup_accepts_a_due_date_and_stores_it(env, monkeypatch):
+    import json
+    from halia.api import board
+    sink = _PipeSink()
+    monkeypatch.setattr(board, "_sink", lambda shop: sink)
+    client, store, ext, _ = env
+    r = client.post("/v1/capture/followup", json={"customer_id": "gid://shopify/Customer/9", "note": "Wedding on 12 June", "due": "2027-06-07"},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 200 and r.json()["due"] == "2027-06-07"
+    pipe = json.loads(sink.meta[("9", "pipeline")])
+    assert pipe["due"] == "2027-06-07"
+    assert pipe["activity"][-1]["note"].startswith("Follow up week of 2027-06-07: Wedding on 12 June")
+
+
+def test_followup_rejects_a_bad_due(env, monkeypatch):
+    from halia.api import board
+    monkeypatch.setattr(board, "_sink", lambda shop: _PipeSink())
+    client, store, ext, _ = env
+    r = client.post("/v1/capture/followup", json={"customer_id": "9", "note": "x", "due": "next june"},
+                    headers={"X-Halia-Ext-Token": ext})
+    assert r.status_code == 422

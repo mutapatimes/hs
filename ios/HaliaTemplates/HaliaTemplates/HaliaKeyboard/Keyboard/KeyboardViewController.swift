@@ -62,6 +62,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var lastInserted: String?
     private var lastReplacement: (original: String, polished: String)?   // Polish: Undo restores what was typed
     private var polishedText: String?                                     // last polished message, for Adjust
+    private var pendingOccasion: (label: String, date: String, cid: String)?   // Remember found a date
     private var undoClearTask: Task<Void, Never>?
 
     // Whether an inserted template carries its greeting ("Dear …,") and sign-off ("Warm regards, …").
@@ -435,6 +436,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             }
             actionStack.addArrangedSubview(pillButton("✦ Suggest pieces", filled: true) { [weak self] in self?.suggestPieces() })
             actionStack.addArrangedSubview(pillButton("↩ Reply", filled: false) { [weak self] in self?.replyToCopied() })
+            actionStack.addArrangedSubview(pillButton("Remember", filled: false) { [weak self] in self?.rememberCopied() })
+            if let occ = pendingOccasion {
+                actionStack.addArrangedSubview(pillButton("Follow up that week", filled: true) { [weak self] in self?.followUpOccasion(occ) })
+            }
             if clientCid != nil {
                 actionStack.addArrangedSubview(pillButton("Mark contacted", filled: false) { [weak self] in self?.markContacted() })
             }
@@ -545,6 +550,50 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
             busy = false; reload()
+        }
+    }
+
+    // MARK: - Remember (what the client said about themselves, into their record in the store)
+
+    private func rememberCopied() {
+        guard hasFullAccess else { flash("Turn on Full Access in Settings"); return }
+        guard let ref = currentRef, !busy else { return }
+        let msg = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !msg.isEmpty else { flash("Copy the client's message, then tap Remember"); return }
+        busy = true; setStatus("Saving…", loading: true)
+        Task {
+            do {
+                let res = try await HaliaAPI.current.remember(text: msg, ref: ref)
+                if let sum = res.summary, !sum.isEmpty {
+                    setStatus(nil); flash("Saved: " + sum)
+                    if let occ = res.occasion, let d = occ.date, !d.isEmpty, let cid = res.cid ?? clientCid {
+                        pendingOccasion = (occ.label ?? "occasion", d, cid)
+                    }
+                } else { setStatus("Nothing to remember in that message") }
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
+
+    /// Monday of the week before the occasion, as YYYY-MM-DD.
+    private func weekBefore(_ iso: String) -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
+        guard let d = f.date(from: iso) else { return iso }
+        var cal = Calendar(identifier: .iso8601); cal.firstWeekday = 2
+        let monday = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: d)) ?? d
+        let target = cal.date(byAdding: .day, value: -7, to: monday) ?? monday
+        return f.string(from: max(target, Date()))
+    }
+
+    private func followUpOccasion(_ occ: (label: String, date: String, cid: String)) {
+        let due = weekBefore(occ.date)
+        Task {
+            do {
+                try await HaliaAPI.current.captureFollowUp(customerId: occ.cid, note: "\(occ.label) on \(occ.date)", due: due)
+                pendingOccasion = nil; flash("Follow-up set"); reload()
+            } catch { flash("Could not reach Halia") }
         }
     }
 
