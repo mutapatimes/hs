@@ -115,6 +115,22 @@ struct HaliaAPI {
         return try await postAny("/v1/extension/draft", body: body)
     }
 
+    // MARK: Brief (keyboard) — the client's copied message, read: what they want, a reply, next moves.
+
+    struct BriefAction: Decodable { let kind: String?; let label: String? }
+    struct BriefResult: Decodable {
+        let summary: String?; let reply: String?; let urgency: String?
+        let language: String?; let english: String?
+        let actions: [BriefAction]?; let cid: String?; let name: String?
+    }
+
+    func brief(_ ref: ClientRef, channel: String, thread: [[String: String]]) async throws -> BriefResult {
+        var body: [String: Any] = ref.body
+        body["channel"] = channel
+        body["thread"] = thread
+        return try await postAny("/v1/extension/brief", body: body)
+    }
+
     // MARK: Polish (keyboard) — the associate's own typed message, in the house voice.
 
     struct PolishResult: Decodable { let text: String?; let source: String? }
