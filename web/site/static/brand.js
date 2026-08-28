@@ -134,8 +134,7 @@
   var bot = document.querySelector('.hf-bot');
   if (!bot) return;
   fetch('/status.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
-    var ok = d && (d.ok === true || d.status === 'ok' || d.overall === 'ok' ||
-      (Array.isArray(d.checks) && d.checks.length > 0 && d.checks.every(function (c) { return c.ok !== false && c.status !== 'down'; })));
+    var ok = !!d && d.status === 'operational';
     var a = document.createElement('a');
     a.href = '/status';
     a.style.cssText = 'display:inline-flex;align-items:center;gap:8px;margin-left:18px;color:inherit;text-decoration:none';
