@@ -917,7 +917,10 @@
           toast("Booked");
           if (done && r.links) {
             done.style.display = "";
-            done.innerHTML = `Add to your calendar: <a href="${esc(r.links.google)}" target="_blank" rel="noopener">Google</a> · <a href="${esc(r.links.outlook)}" target="_blank" rel="noopener">Outlook</a> · <a href="${esc(r.links.ics_data)}" download="appointment.ics">Apple / .ics</a>`;
+            done.innerHTML = `Add to your calendar: <a href="${esc(r.links.google)}" target="_blank" rel="noopener">Google</a> · <a href="${esc(r.links.outlook)}" target="_blank" rel="noopener">Outlook</a> · <a href="${esc(r.links.ics_data)}" download="appointment.ics">Apple / .ics</a>
+              <div style="margin-top:6px"><button class="mini" data-a="apsend">${inserter ? "Send to client" : "Copy for the client"}</button></div>`;
+            const sb = done.querySelector('[data-a="apsend"]');
+            if (sb) sb.onclick = () => { if (inserter) place(r.links.message); else copy(r.links.message, "Copied"); };
           }
           if (w) w.value = ""; if (pl) pl.value = "";
         });

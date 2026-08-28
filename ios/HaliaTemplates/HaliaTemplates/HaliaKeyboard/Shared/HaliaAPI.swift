@@ -504,7 +504,7 @@ struct HaliaAPI {
     }
     private struct BirthdaysEnvelope: Decodable { let birthdays: [Birthday]? }
 
-    struct ApptLinks: Decodable { let google: String?; let outlook: String?; let ics: String? }
+    struct ApptLinks: Decodable { let google: String?; let outlook: String?; let ics: String?; let invite: String?; let message: String? }
     struct Appointment: Decodable {
         let id: String?; let cid: String?; let name: String?; let when: String?; let minutes: Int?
         let place: String?; let seat_name: String?; let in_days: Int?; let mine: Bool?; let links: ApptLinks?

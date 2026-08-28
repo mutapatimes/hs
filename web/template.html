@@ -2553,7 +2553,8 @@ function renderTeamReport(){
   if(sel) sel.onchange=renderTeamReport;
 })();
 function apptWhen(iso){const d=new Date(iso);return d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})+", "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});}
-function apptLinks(a){return `<a href="${esc(a.links.google)}" target="_blank" rel="noopener" style="font:600 12px system-ui;color:var(--ink)">Google</a><a href="${esc(a.links.outlook)}" target="_blank" rel="noopener" style="font:600 12px system-ui;color:var(--ink)">Outlook</a><a href="${esc(a.links.ics_data)}" download="appointment.ics" style="font:600 12px system-ui;color:var(--ink)">Apple / .ics</a>`;}
+function apptLinks(a){return `<a href="${esc(a.links.google)}" target="_blank" rel="noopener" style="font:600 12px system-ui;color:var(--ink)">Google</a><a href="${esc(a.links.outlook)}" target="_blank" rel="noopener" style="font:600 12px system-ui;color:var(--ink)">Outlook</a><a href="${esc(a.links.ics_data)}" download="appointment.ics" style="font:600 12px system-ui;color:var(--ink)">Apple / .ics</a>${a.links.message?`<button data-apptsend="${esc(a.links.message)}" style="background:none;border:none;padding:0;font:600 12px system-ui;color:var(--brand-deep);cursor:pointer">Send to client</button>`:""}`;}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-apptsend]");if(!b)return;navigator.clipboard.writeText(b.dataset.apptsend).then(()=>toast("Copied. Paste it into your message to them."),()=>toast("Copy failed."));});
 function renderAppointments(){
   const card=document.getElementById("ovApptCard"), box=document.getElementById("ovAppts"); if(!card||!box) return;
   fetch("/v1/appointments?days=14").then(r=>r.json()).then(d=>{
