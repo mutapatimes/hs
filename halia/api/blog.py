@@ -287,6 +287,43 @@ def _card(post: dict) -> str:
         f'<div class="bc-dek">{_html.escape(post.get("dek") or "")}</div></div></a>')
 
 
+JOURNAL_MARK = "<!--halia:journal-->"
+
+
+def latest_posts_html(store, n: int = 3) -> str:
+    """The newest published posts as cards for the landing page. Empty string when there are none."""
+    try:
+        posts = store.list_posts(published_only=True, sort="newest", limit=n, offset=0)
+    except Exception:  # noqa: BLE001
+        return ""
+    cards = []
+    for post in posts:
+        cover = (f'<img src="{_html.escape(_img_src(post["cover_image_id"]))}" alt="" loading="lazy">'
+                 if post.get("cover_image_id") else "")
+        meta = _html.escape(" · ".join(x for x in (
+            _date_label(post.get("published_at") or post.get("updated_at")),
+            f"{_read_min(post.get('body_html', ''))} min read") if x))
+        cards.append(f'<a class="jcard reveal" href="/blog/{_html.escape(post["slug"])}">{cover}'
+                     f'<div class="jin"><div class="jmeta">{meta}</div>'
+                     f'<h3>{_html.escape(post.get("title") or "Untitled")}</h3>'
+                     + (f'<p>{_html.escape(post["dek"])}</p>' if post.get("dek") else "")
+                     + '</div></a>')
+    return "".join(cards)
+
+
+def with_journal(html: str, store) -> str:
+    """Fill the landing page's journal section with the latest posts, or drop the section."""
+    if JOURNAL_MARK not in html:
+        return html
+    cards = latest_posts_html(store)
+    if cards:
+        return html.replace(JOURNAL_MARK, cards)
+    start, end = html.find("<!--journal:start-->"), html.find("<!--journal:end-->")
+    if start >= 0 and end > start:
+        return html[:start] + html[end + len("<!--journal:end-->"):]
+    return html.replace(JOURNAL_MARK, "")
+
+
 def _pager(page: int, pages: int, sort: str, tag: str | None) -> str:
     if pages <= 1:
         return ""

@@ -85,8 +85,10 @@ def _marketing(host: str = "") -> str:
     except OSError:
         return _OPEN_FROM_ADMIN
     if b.key == "halia":
+        from halia.api.blog import with_journal
         from halia.api.content import apply_overrides, with_site_scripts
-        html = with_site_scripts(apply_overrides(html))
+        from halia.api.shopify_auth import shop_store
+        html = with_site_scripts(apply_overrides(with_journal(html, shop_store())))
     return html
 
 
