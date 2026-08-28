@@ -57,6 +57,28 @@ def _welcome_associate(shop: str, email: str, name: str, connect: str) -> None:
         pass
 
 
+FREE_SEATS = 1   # the free scan comes with one sign-in; teammates need a plan
+
+
+def seat_terms(shop: str) -> dict:
+    """What adding a seat means for this tenant: plan, bundle, price, and the live count."""
+    from halia import plans
+    from halia.api.billing import _free_shops
+    from halia.api.billing_shopify import plan_key_for
+
+    try:
+        key = plan_key_for(shop)
+    except Exception:  # noqa: BLE001 — billing lookups must never block the Team card
+        key = "free"
+    comped = shop in _free_shops()
+    p = plans.plan(key) or {}
+    inc = plans.included_seats(key)
+    return {"key": key, "name": p.get("name") or key, "comped": comped,
+            "metered": inc is not None and not comped, "included": inc,
+            "free": key == "free" and not comped, "freeSeats": FREE_SEATS,
+            "seatPrice": plans.SEAT_PRICE, "seats": len(shop_store().list_seats(shop))}
+
+
 def register(app) -> None:
     @app.get("/v1/seats")
     def list_seats(shop: str = Depends(require_shop)) -> dict:
@@ -68,7 +90,8 @@ def register(app) -> None:
             seats.append({"id": s["id"], "name": s["name"], "email": s.get("email") or "",
                           "title": s.get("title") or "", "signoff": s.get("signoff") or "",
                           "lastSeen": last, "active": bool(last and last >= cutoff)})
-        return {"seats": seats, "count": shop_store().active_seat_count(shop, days=_ACTIVE_DAYS)}
+        return {"seats": seats, "count": shop_store().active_seat_count(shop, days=_ACTIVE_DAYS),
+                "plan": seat_terms(shop)}
 
     @app.post("/v1/seats")
     def create_seat(shop: str = Depends(require_shop), payload: dict = Body(default={})) -> dict:
@@ -85,6 +108,10 @@ def register(app) -> None:
         store = shop_store()
         reissued = False
         existing = store.seat_by_email(shop, email) if email else None
+        if not existing:
+            terms = seat_terms(shop)
+            if terms["free"] and terms["seats"] >= terms["freeSeats"]:
+                raise HTTPException(402, "The free scan includes one sign-in. Choose a plan in Billing to add teammates.")
         if existing:
             # The email is the identity: a second "add" re-issues that seat's token rather
             # than creating a twin (a lost phone, a new laptop). The old token stops working.

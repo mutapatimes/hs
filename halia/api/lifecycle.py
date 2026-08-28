@@ -53,4 +53,9 @@ def register(app) -> None:
             out["seat_billing"] = billing_shopify.run_seat_billing()
         except Exception:  # noqa: BLE001 — billing must never break the journeys run
             out["seat_billing"] = {"error": True}
+        try:
+            from halia.api import billing
+            out["seat_billing_stripe"] = billing.run_stripe_seat_billing()
+        except Exception:  # noqa: BLE001
+            out["seat_billing_stripe"] = {"error": True}
         return JSONResponse(out)
