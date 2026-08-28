@@ -4174,8 +4174,8 @@ function openSettings(page){
         </div>
 
         <div style="${C}">
-          <div style="${H}">Catalogue link domain</div>
-          <p style="${P}">Catalogue links can carry your own domain instead of Halia's. Shopify stores get this automatically; on any other platform, enter a subdomain of your site here.</p>
+          <div style="${H}">Client pages</div>
+          <p style="${P}">Catalogue links, appointment invites and the capture form on your own domain. Shopify stores have this already; on any other platform, enter a subdomain of your site.</p>
           <input id="setCatDomain" value="${esc(SETTINGS.catalog_domain||'')}" placeholder="catalogue.yourbrand.com" style="width:100%;max-width:440px;${I}">
           <details style="${DET}"><summary style="${SUM}">${SUMARR}Pointing your subdomain at Halia</summary>
             <p style="${P};margin-top:6px;font-size:12.5px">In your domain provider, add a DNS record for the subdomain (for example <code>catalogue.yourbrand.com</code>): type <b>CNAME</b>, pointing to <code>haliascore.com</code>. It usually takes effect within an hour.</p></details>

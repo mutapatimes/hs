@@ -337,7 +337,6 @@ def _shop_for_slug(slug: str):
 
 _QR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
-<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
 <title>{store}</title><style>
   *{{box-sizing:border-box}} body{{margin:0;background:#f8f7f5;color:#1a1a1d;
     font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
@@ -375,7 +374,8 @@ _QR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
  </form>
 </div><script>
 var F=document.getElementById('f'),SG=document.getElementById('sug');
-function check(fields){{return fetch(location.pathname+'/check',{{method:'POST',
+function EP(p){{var q=new URLSearchParams(location.search).get('halia-page');return q?location.pathname+'?halia-page='+q+p:location.pathname+p;}}
+function check(fields){{return fetch(EP('/check'),{{method:'POST',
   headers:{{'Content-Type':'application/json'}},body:JSON.stringify(fields)}})
   .then(function(r){{return r.json();}});}}
 F.email.addEventListener('blur',function(){{var v=F.email.value.trim();
@@ -397,7 +397,7 @@ document.getElementById('f').addEventListener('submit',function(e){{e.preventDef
   if(!b.phone&&!b.email){{alert('A phone number or email is needed.');return;}}
   b.consent={{email_marketing:f.em.checked,sms_marketing:f.sm.checked}};
   var btn=f.querySelector('button');btn.disabled=true;btn.textContent='Saving\u2026';
-  fetch(location.pathname,{{method:'POST',headers:{{'Content-Type':'application/json'}},
+  fetch(EP(''),{{method:'POST',headers:{{'Content-Type':'application/json'}},
     body:JSON.stringify(b)}}).then(function(r){{if(!r.ok)throw 0;
     document.getElementById('w').innerHTML='<div class="done"><h1>Thank you</h1>'+
       '<p class="sub">You are in good hands.</p></div>';}})
@@ -419,6 +419,43 @@ def _check_fields(body: dict) -> dict:
         pc, ok = clean_postcode(body.get("postcode"), body.get("country"))
         out.update({"postcode_ok": bool(ok), "postcode": pc})
     return out
+
+
+def render_capture(slug: str):
+    """The store-voiced self-capture form. Served on the store's own domain wherever possible."""
+    from fastapi.responses import HTMLResponse
+
+    from halia.api.shopify_auth import shop_store
+
+    shop = _shop_for_slug(slug)
+    if not shop:
+        raise HTTPException(404, "Unknown link")
+    tenant = dict(shop_store().get_tenant(shop) or {})
+    store = (tenant.get("label") or shop).strip()
+    return HTMLResponse(_QR_PAGE.format(store=store))
+
+
+def submit_public(slug: str, body: Any) -> dict:
+    shop = _shop_for_slug(slug)
+    if not shop:
+        raise HTTPException(404, "Unknown link")
+    if not isinstance(body, dict):
+        raise HTTPException(422, "Body must be a JSON object")
+    out = perform_capture(shop, body, "qr", associate=_clean(body.get("by")))
+    # Unattended capture: a qualifying new client pings the team (best-effort).
+    from halia.api.capture_alerts import dispatch_capture_alert
+
+    dispatch_capture_alert(shop, out, body, "qr")
+    # The public form gets a plain thank-you: no grade, no customer id.
+    return {"ok": True}
+
+
+def check_public(slug: str, body: Any) -> dict:
+    """Live field hygiene for the self-capture form: a typo suggestion the client can
+    accept while still present. Validates only what was sent; returns nothing else."""
+    if not _shop_for_slug(slug):
+        raise HTTPException(404, "Unknown link")
+    return _check_fields(body if isinstance(body, dict) else {})
 
 
 def register(app) -> None:
@@ -482,20 +519,15 @@ def register(app) -> None:
         from halia import config
         from halia.api.extension import _resolve_ext
 
+        from halia.api.client_host import client_url
+
         auth = _resolve_ext(x_halia_ext_token)
-        base = (config.HALIA_APP_URL or "https://haliascore.com").rstrip("/")
-        url = f"{base}/c/{_slug_for(auth.shop)}"
-        if auth.seat_name:
-            url += "?by=" + quote(auth.seat_name)
-        return {"url": url}
+        path = f"c/{_slug_for(auth.shop)}" + (("?by=" + quote(auth.seat_name)) if auth.seat_name else "")
+        return {"url": client_url(auth.shop, path)}
 
     @app.post("/c/{slug}/check", include_in_schema=False)
     def capture_check(slug: str, body: Any = Body(...)) -> dict:
-        """Live field hygiene for the self-capture form: a typo suggestion the client can
-        accept while still present. Validates only what was sent; returns nothing else."""
-        if not _shop_for_slug(slug):
-            raise HTTPException(404, "Unknown link")
-        return _check_fields(body if isinstance(body, dict) else {})
+        return check_public(slug, body)
 
     @app.post("/v1/capture/check")
     def capture_check_seat(body: Any = Body(...),
@@ -507,28 +539,8 @@ def register(app) -> None:
 
     @app.get("/c/{slug}", include_in_schema=False)
     def capture_page(slug: str):
-        from fastapi.responses import HTMLResponse
-
-        from halia.api.shopify_auth import shop_store
-
-        shop = _shop_for_slug(slug)
-        if not shop:
-            raise HTTPException(404, "Unknown link")
-        tenant = dict(shop_store().get_tenant(shop) or {})
-        store = (tenant.get("label") or shop).strip()
-        return HTMLResponse(_QR_PAGE.format(store=store))
+        return render_capture(slug)
 
     @app.post("/c/{slug}", include_in_schema=False)
     def capture_submit(slug: str, body: Any = Body(...)) -> dict:
-        shop = _shop_for_slug(slug)
-        if not shop:
-            raise HTTPException(404, "Unknown link")
-        if not isinstance(body, dict):
-            raise HTTPException(422, "Body must be a JSON object")
-        out = perform_capture(shop, body, "qr", associate=_clean(body.get("by")))
-        # Unattended capture: a qualifying new client pings the team (best-effort).
-        from halia.api.capture_alerts import dispatch_capture_alert
-
-        dispatch_capture_alert(shop, out, body, "qr")
-        # The public form gets a plain thank-you: no grade, no customer id.
-        return {"ok": True}
+        return submit_public(slug, body)

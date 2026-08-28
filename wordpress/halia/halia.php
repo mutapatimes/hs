@@ -3,7 +3,7 @@
  * Plugin Name: Halia
  * Plugin URI:  https://haliascore.com
  * Description: Private client intelligence for luxury retail. Connects your WooCommerce store to Halia with one click.
- * Version:     0.1.0
+ * Version:     0.2.0
  * Author:      Halia
  * Author URI:  https://haliascore.com
  * License:     GPL-2.0-or-later
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'HALIA_VERSION', '0.1.0' );
+define( 'HALIA_VERSION', '0.2.0' );
 define( 'HALIA_FILE', __FILE__ );
 define( 'HALIA_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -29,6 +29,7 @@ if ( ! defined( 'HALIA_APP_URL' ) ) {
 require_once HALIA_DIR . 'includes/class-halia-connect.php';
 require_once HALIA_DIR . 'includes/class-halia-cart.php';
 require_once HALIA_DIR . 'includes/class-halia-webhooks.php';
+require_once HALIA_DIR . 'includes/class-halia-pages.php';
 
 add_action( 'before_woocommerce_init', function () {
     if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
@@ -46,4 +47,5 @@ add_action( 'plugins_loaded', function () {
     Halia_Connect::init();
     Halia_Cart::init();
     Halia_Webhooks::init();
+    Halia_Pages::init();
 } );

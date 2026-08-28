@@ -61,8 +61,10 @@ def register(app) -> None:
         capture_url, capture_qr = "", None
         try:
             from halia.api.capture import _slug_for
+            from halia.api.client_host import client_url, invalidate
             from halia.api.seats import _connect_qr
-            capture_url = f"{base}/c/{_slug_for(shop)}"
+            invalidate(shop)
+            capture_url = client_url(shop, f"c/{_slug_for(shop)}")
             capture_qr = _connect_qr(capture_url)
         except Exception:  # noqa: BLE001
             pass

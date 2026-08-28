@@ -74,7 +74,7 @@ def client_message(appt: dict, store_name: str, invite_url: str) -> str:
     return f"Your appointment is set for {when}{where}. Add it to your calendar here: {invite_url}"
 
 
-def calendar_links(appt: dict, client_name: str, store_name: str) -> dict:
+def calendar_links(appt: dict, client_name: str, store_name: str, shop: str = "") -> dict:
     """Links into the associate's own calendar. Google and Outlook open prefilled; the .ics text
     is for Apple Calendar and anything else (served as a download by the callers)."""
     start = datetime.fromisoformat(appt["when"])
@@ -95,8 +95,12 @@ def calendar_links(appt: dict, client_name: str, store_name: str) -> dict:
         f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}", f"SUMMARY:{_ics_escape(title)}",
         f"LOCATION:{_ics_escape(place)}", f"DESCRIPTION:{_ics_escape(details)}",
         "END:VEVENT", "END:VCALENDAR", ""])
-    base = (config.HALIA_APP_URL or "https://haliascore.com").rstrip("/")
-    invite = f"{base}/i/{invite_token(appt, store_name)}"
+    token = invite_token(appt, store_name)
+    if shop:
+        from halia.api.client_host import client_url
+        invite = client_url(shop, f"i/{token}")
+    else:
+        invite = (config.HALIA_APP_URL or "https://haliascore.com").rstrip("/") + f"/i/{token}"
     return {"google": google, "outlook": outlook, "ics": ics,
             "ics_data": "data:text/calendar;charset=utf-8," + quote(ics),
             "invite": invite, "message": client_message(appt, store_name, invite)}
@@ -115,10 +119,11 @@ _INVITE_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 </style></head><body><div class="wrap">
  <h1>{store}</h1><p class="sub">Your appointment</p>
  <p class="when">{when}</p><p class="where">{where}</p>
- <a class="b p" href="{ics}">Add to my calendar</a>
+ <a class="b p" id="ics" href="{ics}">Add to my calendar</a>
  <a class="b" href="{google}" rel="noopener">Google Calendar</a>
  <a class="b" href="{outlook}" rel="noopener">Outlook</a>
-</div></body></html>"""
+</div><script>(function(){{var q=new URLSearchParams(location.search).get('halia-page');
+if(q)document.getElementById('ics').href=location.pathname+'?halia-page='+q+'.ics';}})();</script></body></html>"""
 
 
 def _ics_escape(s: str) -> str:
@@ -208,6 +213,41 @@ def _store_name(shop: str) -> str:
     return str(dict(shop_store().get_tenant(shop) or {}).get("label") or "")
 
 
+def render_invite(token: str):
+    """The client's side of an appointment: a store-voiced page with the time, the place and
+    one tap into their own calendar. Everything it shows is in the signed link; nothing is read
+    or stored. Halia is not named on it. Served on the store's own domain wherever possible."""
+    import html as _html
+    ics_wanted = token.endswith(".ics")
+    inv = parse_invite(token[:-4] if ics_wanted else token)
+    if not inv:
+        raise HTTPException(404, "Not found")
+    appt = {"id": hashlib.sha1(token.encode()).hexdigest()[:12], "when": inv["when"],
+            "minutes": inv["minutes"], "place": inv["place"], "note": ""}
+    start = datetime.fromisoformat(inv["when"])
+    end = start + timedelta(minutes=inv["minutes"])
+    fmt = lambda d: d.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    title = f"Appointment at {inv['store']}" if inv["store"] else "Appointment"
+    place = inv["place"] or inv["store"]
+    if ics_wanted:
+        ics = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halia//Appointments//EN", "BEGIN:VEVENT",
+                            f"UID:{appt['id']}@haliascore.com", f"DTSTAMP:{fmt(datetime.now(timezone.utc))}",
+                            f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}", f"SUMMARY:{_ics_escape(title)}",
+                            f"LOCATION:{_ics_escape(place)}", "END:VEVENT", "END:VCALENDAR", ""])
+        return Response(ics, media_type="text/calendar; charset=utf-8",
+                        headers={"Content-Disposition": 'attachment; filename="appointment.ics"'})
+    google = "https://calendar.google.com/calendar/render?" + urlencode({
+        "action": "TEMPLATE", "text": title, "dates": f"{fmt(start)}/{fmt(end)}", "location": place})
+    outlook = "https://outlook.office.com/calendar/0/deeplink/compose?" + urlencode({
+        "subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
+        "enddt": end.astimezone(timezone.utc).isoformat(), "location": place, "path": "/calendar/action/compose"})
+    html = _INVITE_PAGE.format(store=_html.escape(inv["store"] or "Your appointment"),
+                               when=_html.escape(start.strftime("%A %d %B, %H:%M")),
+                               where=_html.escape(place), ics=f"{token}.ics",
+                               google=_html.escape(google), outlook=_html.escape(outlook))
+    return HTMLResponse(html, headers={"Cache-Control": "no-store"})
+
+
 def register(app) -> None:
     from halia.api.board import _actor
 
@@ -220,7 +260,7 @@ def register(app) -> None:
         actor_id, actor_name = _actor(request, p)
         appt = book(shop, cid, p.get("when"), p.get("minutes"), p.get("place"), p.get("note"), actor_id, actor_name)
         return {"ok": True, "appointment": appt,
-                "links": calendar_links(appt, str(p.get("client_name") or ""), _store_name(shop))}
+                "links": calendar_links(appt, str(p.get("client_name") or ""), _store_name(shop), shop)}
 
     @app.post("/v1/board/appointment/cancel")
     def board_appointment_cancel(request: Request, shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
@@ -231,41 +271,10 @@ def register(app) -> None:
 
     @app.get("/i/{token}", include_in_schema=False)
     def invite_page(token: str):
-        """The client's side of an appointment: a store-voiced page with the time, the place and
-        one tap into their own calendar. Everything it shows is in the signed link; nothing is read
-        or stored. Halia is not named on it."""
-        import html as _html
-        ics_wanted = token.endswith(".ics")
-        inv = parse_invite(token[:-4] if ics_wanted else token)
-        if not inv:
-            raise HTTPException(404, "Not found")
-        appt = {"id": hashlib.sha1(token.encode()).hexdigest()[:12], "when": inv["when"],
-                "minutes": inv["minutes"], "place": inv["place"], "note": ""}
-        start = datetime.fromisoformat(inv["when"])
-        end = start + timedelta(minutes=inv["minutes"])
-        fmt = lambda d: d.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        title = f"Appointment at {inv['store']}" if inv["store"] else "Appointment"
-        place = inv["place"] or inv["store"]
-        if ics_wanted:
-            ics = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halia//Appointments//EN", "BEGIN:VEVENT",
-                                f"UID:{appt['id']}@haliascore.com", f"DTSTAMP:{fmt(datetime.now(timezone.utc))}",
-                                f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}", f"SUMMARY:{_ics_escape(title)}",
-                                f"LOCATION:{_ics_escape(place)}", "END:VEVENT", "END:VCALENDAR", ""])
-            return Response(ics, media_type="text/calendar; charset=utf-8",
-                            headers={"Content-Disposition": 'attachment; filename="appointment.ics"'})
-        google = "https://calendar.google.com/calendar/render?" + urlencode({
-            "action": "TEMPLATE", "text": title, "dates": f"{fmt(start)}/{fmt(end)}", "location": place})
-        outlook = "https://outlook.office.com/calendar/0/deeplink/compose?" + urlencode({
-            "subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
-            "enddt": end.astimezone(timezone.utc).isoformat(), "location": place, "path": "/calendar/action/compose"})
-        html = _INVITE_PAGE.format(store=_html.escape(inv["store"] or "Your appointment"),
-                                   when=_html.escape(start.strftime("%A %d %B, %H:%M")),
-                                   where=_html.escape(place), ics=f"/i/{token}.ics",
-                                   google=_html.escape(google), outlook=_html.escape(outlook))
-        return HTMLResponse(html, headers={"Cache-Control": "no-store"})
+        return render_invite(token)
 
     @app.get("/v1/appointments")
     def list_appointments(shop: str = Depends(require_shop), days: int = Query(14)) -> dict:
         rows = upcoming(shop, days)
         store = _store_name(shop)
-        return {"appointments": [{**a, "links": calendar_links(a, a.get("name") or "", store)} for a in rows]}
+        return {"appointments": [{**a, "links": calendar_links(a, a.get("name") or "", store, shop)} for a in rows]}

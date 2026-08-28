@@ -1646,7 +1646,7 @@ def register(app) -> None:
         auth = _resolve_ext(x_halia_ext_token)
         rows = appts.upcoming(auth.shop, days, seat_id=auth.seat_id)
         store = appts._store_name(auth.shop)
-        return {"appointments": [{**a, "links": appts.calendar_links(a, a.get("name") or "", store)} for a in rows]}
+        return {"appointments": [{**a, "links": appts.calendar_links(a, a.get("name") or "", store, auth.shop)} for a in rows]}
 
     @app.get("/v1/extension/products")
     def extension_products(x_halia_ext_token: Optional[str] = Header(None),
@@ -1813,7 +1813,7 @@ def register(app) -> None:
                 _seat_hit(auth, "appointments")
                 data.record_activity(shop, "extension_appointment")
                 return {"ok": True, "appointment": appt,
-                        "links": appts.calendar_links(appt, str(body.get("client_name") or ""), appts._store_name(shop))}
+                        "links": appts.calendar_links(appt, str(body.get("client_name") or ""), appts._store_name(shop), shop)}
             ok = appts.cancel(shop, cid, str(body.get("id") or ""), auth.seat_id, who)
             return {"ok": ok}
 

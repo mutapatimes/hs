@@ -4,7 +4,7 @@ Tags: woocommerce, clienteling, luxury, crm, customers
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -41,6 +41,9 @@ In your WooCommerce store. Halia reads it with the API key created at connection
 Yes. Disconnect on the Halia page removes the API key and the webhooks.
 
 == Changelog ==
+
+= 0.2.0 =
+* Client pages (appointment invites, the capture form) served on your own domain.
 
 = 0.1.0 =
 * First release: connect flow, order webhooks, basket links, client capture QR and shortcodes.

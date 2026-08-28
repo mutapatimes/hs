@@ -281,3 +281,35 @@ def test_followup_rejects_a_bad_due(env, monkeypatch):
     r = client.post("/v1/capture/followup", json={"customer_id": "9", "note": "x", "due": "next june"},
                     headers={"X-Halia-Ext-Token": ext})
     assert r.status_code == 422
+
+
+def test_capture_form_serves_and_posts_through_the_shopify_proxy(env, monkeypatch):
+    import halia.config as hcfg
+    from tests.test_catalog import _proxy_sig
+    monkeypatch.setattr(hcfg, "SHOPIFY_API_SECRET", "sekret")
+    client, store, ext, _ = env
+    monkeypatch.setattr(capture_mod, "_gql", FakeShopify())
+    capture_mod._SLUG_CACHE.clear()
+    slug = capture_mod._slug_for(SHOP)
+    params = {"shop": SHOP, "path_prefix": "/a/catalogue", "timestamp": "1"}
+    q = "&".join(f"{k}={v}" for k, v in params.items()) + "&signature=" + _proxy_sig(params, "sekret")
+    page = client.get(f"/proxy/catalogue/c/{slug}?{q}")
+    assert page.status_code == 200 and "Shop X" in page.text and "EP(" in page.text and "/img/favicon" not in page.text
+    assert client.post(f"/proxy/catalogue/c/{slug}/check?{q}", json={"email": "a@gamil.com"}).status_code == 200
+    r = client.post(f"/proxy/catalogue/c/{slug}?{q}", json={"email": "new@x.com", "channel": "qr"})
+    assert r.status_code == 200 and r.json() == {"ok": True}
+    assert client.get(f"/proxy/catalogue/c/{slug}").status_code == 403
+
+
+def test_capture_link_and_settings_follow_the_client_host(env, monkeypatch):
+    from halia.api import client_host
+    client, store, ext, tok = env
+    monkeypatch.setattr("halia.api.catalog._primary_domain", lambda shop: "shopx.com")
+    client_host._CACHE.clear()
+    capture_mod._SLUG_CACHE.clear()
+    url = client.get("/v1/capture/link", headers={"X-Halia-Ext-Token": ext}).json()["url"]
+    assert url.startswith("https://shopx.com/a/catalogue/c/")
+    from halia.api.tenant_auth import COOKIE
+    s = client.get("/v1/settings", cookies={COOKIE: tok}).json()
+    assert s["capture_url"].startswith("https://shopx.com/a/catalogue/c/") and s["client_cname_target"]
+    client_host._CACHE.clear()
