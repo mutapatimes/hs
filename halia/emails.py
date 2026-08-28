@@ -294,11 +294,36 @@ def wrap(subject: str, body_html: str, *, greeting: str = "Hello,",
 
 
 
+# One line at the foot of every journey email: what clienteling is worth, on the record.
+# McKinsey & Company, "Small and mighty: the untapped value of your top 1%" (2023).
+_FYI = [
+    "the top 1 to 10% of a retailer's customers carry 20 to 50% of its revenue",
+    "a well-run programme for top clients lifts their spend by 10 to 20%",
+    "about half of top customers change brand preference in a given year, often over a single experience",
+    "looking after top clients well lifts retention by 5 to 10%",
+]
+
+
+def _fyi(template_key: str) -> tuple[str, str]:
+    """A different figure on each step of a sequence, the same one on repeat sends."""
+    keys = list(_TEMPLATES)
+    fact = _FYI[(keys.index(template_key) if template_key in keys else 0) % len(_FYI)]
+    html = (f"<p style='margin:24px 0 0;padding-top:16px;border-top:1px solid {_LINE};"
+            f"font:italic 13px/1.6 {_SERIF};color:{_MUT}'>Worth knowing: {_html.escape(fact)}. "
+            f"McKinsey &amp; Company, 2023.</p>")
+    return html, f"Worth knowing: {fact}. McKinsey & Company, 2023."
+
+
 def render(template_key: str, data: dict, unsub_url: str) -> tuple[str, str, str]:
-    """Return (subject, html, text) for a template, wrapped in the shared branded layout."""
+    """Return (subject, html, text) for a template, wrapped in the shared branded layout.
+    Journey emails (the ones with an unsubscribe link) end with one clienteling figure."""
     builder = _TEMPLATES[template_key]
     subject, body_html, body_text = builder(data or {})
     eyebrow = _EYEBROW.get(template_key.split("_", 1)[0], "Halia")
+    if unsub_url:
+        fyi_html, fyi_text = _fyi(template_key)
+        body_html += fyi_html
+        body_text = body_text.rstrip() + "\n\n" + fyi_text
     html = _layout(subject, _greeting(data or {}), body_html, unsub_url, eyebrow)
     return subject, html, body_text
 
