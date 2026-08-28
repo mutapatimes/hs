@@ -238,8 +238,29 @@ def set_cancel(shop: str, cancel: bool) -> dict:
         raise HTTPException(400, "No active subscription to change.")
     sub = _stripe("POST", f"subscriptions/{sub_id}",
                   {"cancel_at_period_end": "true" if cancel else "false"})
+    try:
+        from halia import journeys
+        if sub.get("cancel_at_period_end"):
+            journeys.enroll_cancel_ending(shop, sub.get("current_period_end"))
+        else:
+            journeys.cancel_cancel_ending(shop)
+    except Exception:  # noqa: BLE001
+        pass
     return {"cancel_at_period_end": bool(sub.get("cancel_at_period_end")),
             "current_period_end": sub.get("current_period_end")}
+
+
+def on_billing_change(shop: str, status: str) -> None:
+    """Journeys follow the plan: active starts the client series and stops the free-scan and
+    win-back mail; canceled starts the win-back. Best-effort."""
+    try:
+        from halia import journeys
+        if status == "active":
+            journeys.on_subscribed(shop)
+        elif status == "canceled":
+            journeys.enroll_winback(shop)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def cancel_now(shop: str) -> None:
@@ -328,6 +349,7 @@ def confirm_session(shop: str, session_id: str) -> bool:
         return is_paid(shop)
     if sess.get("payment_status") == "paid" or sess.get("status") == "complete":
         shop_store().set_billing(shop, "active", sess.get("customer"), sess.get("subscription"))
+        on_billing_change(shop, "active")
         return True
     return is_paid(shop)
 
@@ -539,8 +561,11 @@ def register(app) -> None:
             return {"received": True}
         if typ == "checkout.session.completed":
             store.set_billing(shop, "active", obj.get("customer"), obj.get("subscription"))
+            on_billing_change(shop, "active")
         elif typ == "customer.subscription.deleted":
             store.set_billing(shop, "canceled")
+            on_billing_change(shop, "canceled")
         elif typ == "customer.subscription.updated":
             store.set_billing(shop, obj.get("status") or "active")
+            on_billing_change(shop, obj.get("status") or "active")
         return {"received": True}

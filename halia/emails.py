@@ -9,6 +9,7 @@ The journey engine (halia/journeys.py) owns timing, suppression, and sending via
 from __future__ import annotations
 
 import html as _html
+import re
 
 from halia import config
 
@@ -50,6 +51,12 @@ _EYEBROW = {
     "weekly": "Your week with Halia",
     "assoc": "Your Halia seat",
     "monthly": "Your month with Halia",
+    "free": "Your book, scored",
+    "merchant": "Your book with Halia",
+    "cancel": "Your Halia plan",
+    "winback": "Your Halia plan",
+    "season": "The season",
+    "birthdays": "Birthdays",
 }
 
 
@@ -402,6 +409,139 @@ def monthly_seat(d):
     return (f"Your {r.get('month_name') or 'month'} with Halia at {d.get('store_name') or 'the store'}", body, text)
 
 
+# ── the free scan: scored and counted, names on a plan ──────────────────────────
+def _book(d):
+    return d.get("book") or {}
+
+
+def _count_line(d):
+    b = _book(d)
+    n = str(b.get("count") or "").strip()
+    lat = str(b.get("latent") or "").strip()
+    if not n:
+        return "Your book is scored."
+    return (f"Your book is scored: <b>{_html.escape(n)}</b> hidden VIC{'s' if n != '1' else ''}"
+            + (f" worth about <b>{_html.escape(lat)}</b> in latent value" if lat else "") + ".")
+
+
+def free_scored(d):
+    body = (_p(_count_line(d))
+            + _p("Every customer in your history is graded from your own orders. Names, contact "
+                 "details and the reasons are on a plan; the counts, the grade mix and the map are yours now.")
+            + _btn("See your book", f"{_app(d)}/app"))
+    return ("Your book, scored", body,
+            "Your book is scored. The counts, grade mix and map are yours now; names and reasons are on a plan. " + f"{_app(d)}/app")
+
+
+def free_reveal(d):
+    b = _book(d)
+    top = int(b.get("top") or 0)
+    body = (_p((f"<b>{top}</b> of your hidden VICs grade A or A*. " if top else "")
+               + "Discovery unmasks each one: who they are, the signals behind the grade, and what to say first. "
+                 "Your team sees them beside WhatsApp, Gmail and the till.")
+            + _btn("Unmask who they are", f"{_app(d)}/app")
+            + _p("Plans start at £150 a month and stop whenever you like."))
+    return ("Who is behind the grades", body,
+            f"{top} of your hidden VICs grade A or A*. Discovery unmasks who they are and why. {_app(d)}/app")
+
+
+def free_moved(d):
+    body = (_p(_count_line(d))
+            + _p("The book moves every week: new orders, clients going quiet, baskets left open. "
+                 "Halia keeps scoring; the names wait behind the mask until you choose a plan.")
+            + _btn("Choose a plan", f"{_app(d)}/app"))
+    return ("Your book, this week", body, "Your book keeps moving; the names wait behind the mask. " + f"{_app(d)}/app")
+
+
+def free_last(d):
+    body = (_p("One last note from us on this. Your book stays scored for free, and your masked "
+               "dashboard stays open.")
+            + _p("Whenever a name would help, a plan reveals all of them in the same minute.")
+            + _btn("Open Halia", f"{_app(d)}/app")
+            + _p("Reply to this email if you would like a walkthrough with your own numbers."))
+    return ("Whenever you are ready", body, "Your book stays scored for free. A plan reveals the names whenever you are ready. " + f"{_app(d)}/app")
+
+
+# ── the merchant who has gone quiet ─────────────────────────────────────────────
+def merchant_quiet(d):
+    b = _book(d)
+    bits = []
+    if b.get("count"):
+        bits.append(f"<b>{_html.escape(str(b['count']))}</b> hidden VICs in the book")
+    if b.get("quiet"):
+        bits.append(f"<b>{int(b['quiet'])}</b> proven clients gone quiet")
+    if b.get("baskets"):
+        bits.append(f"<b>{int(b['baskets'])}</b> open basket{'s' if int(b['baskets']) != 1 else ''}"
+                    + (f" holding £{int(b.get('basket_value') or 0):,}" if b.get("basket_value") else ""))
+    lead = "Since you last opened Halia: " + ", ".join(bits) + "." if bits else "Your book has moved since you last opened Halia."
+    body = (_p(lead) + _p("Ten minutes on the Overview is usually enough to pick the three people worth a note this week.")
+            + _btn("Open Halia", f"{_app(d)}/app"))
+    return ("Your book has moved", body, re.sub(r"<[^>]+>", "", lead) + f" {_app(d)}/app")
+
+
+# ── cancellation and win-back ───────────────────────────────────────────────────
+def cancel_ending(d):
+    b = _book(d)
+    ends = _html.escape(str(d.get("ends") or "soon"))
+    n = _html.escape(str(b.get("count") or ""))
+    body = (_p(f"Your plan ends on {ends}. From then the names"
+               + (f" of your {n} hidden VICs" if n else "") + " go back behind the mask; the counts and grades stay free.")
+            + _p("If that was not the intention, one click keeps everything as it is.")
+            + _btn("Keep my plan", f"{_app(d)}/app")
+            + _p("If it was, thank you for the time with us. Reply if there is anything we should have done better."))
+    return (f"Your plan ends on {d.get('ends') or 'soon'}", body,
+            f"Your plan ends on {d.get('ends') or 'soon'}; names go back behind the mask, counts stay free. Keep it: {_app(d)}/app")
+
+
+def winback_30(d):
+    body = (_p(_count_line(d).replace("Your book is scored", "A month on, your book still scores"))
+            + _p("The masked dashboard is open and current. A plan reveals the names again in the same minute, "
+                 "with everything your team set up still in place.")
+            + _btn("Come back to Halia", f"{_app(d)}/app"))
+    return ("Your book, a month on", body, "A month on, your book still scores. A plan reveals the names again. " + f"{_app(d)}/app")
+
+
+def winback_90(d):
+    body = (_p(_count_line(d).replace("Your book is scored", "Three months on, your book still scores"))
+            + _p("If the fit was not right the first time, reply and say why; a walkthrough with your own numbers is on us.")
+            + _btn("Open Halia", f"{_app(d)}/app"))
+    return ("Three months on", body, "Three months on, your book still scores. Reply for a walkthrough with your own numbers. " + f"{_app(d)}/app")
+
+
+# ── the season calendar and birthdays, to each seat holder ───────────────────────
+def season_moment(d):
+    m = d.get("moment") or {}
+    name = _html.escape(str(m.get("name") or "A season moment"))
+    starts = _html.escape(str(m.get("starts") or ""))
+    fit = int(m.get("fit") or 0)
+    grades = ", ".join(m.get("grades") or [])
+    body = (_p(f"<b>{name}</b> starts on {starts}. {_html.escape(str(m.get('note') or ''))}")
+            + (_p(f"{fit} clients in the book fit it (grades {grades}). The template is ready under "
+                  f"<b>{_html.escape(str(m.get('template') or ''))}</b>, in the keyboard and the extension.") if fit else
+               _p(f"The template is ready under <b>{_html.escape(str(m.get('template') or ''))}</b>, in the keyboard and the extension."))
+            + _btn("See who fits", f"{_app(d)}/app"))
+    return (f"{m.get('name') or 'A season moment'}, two weeks out", body,
+            f"{m.get('name')} starts on {m.get('starts')}. {fit} clients fit it. Template: {m.get('template')}. {_app(d)}/app")
+
+
+def birthdays_week(d):
+    bd = d.get("birthdays") or {}
+    rows = bd.get("rows") or []
+    lines = "".join(f"<tr><td style='padding:7px 0;border-bottom:1px solid #E4E2DB;font:15px {_SERIF};color:{_INK}'>"
+                    f"{_html.escape(str(r.get('name')))}"
+                    + (f" <span style='color:{_MUT}'>{_html.escape(str(r.get('grade')))}</span>" if r.get("grade") else "")
+                    + f"</td><td align=right style='padding:7px 0;border-bottom:1px solid #E4E2DB;font:15px {_SERIF};color:{_MUT}'>"
+                    + ("today" if r.get("in_days") == 0 else f"in {r.get('in_days')} day{'s' if r.get('in_days') != 1 else ''}")
+                    + "</td></tr>" for r in rows)
+    n = int(bd.get("count") or len(rows))
+    body = (_p(f"{n} client{'s' if n != 1 else ''} with a birthday in the next fortnight.")
+            + f"<table role=presentation width=100% cellpadding=0 cellspacing=0 style='margin:6px 0 18px'>{lines}</table>"
+            + _p("The birthday template is in the keyboard and the extension.")
+            + _btn("Open Halia", f"{_app(d)}/app"))
+    return (f"{n} birthday{'s' if n != 1 else ''} in the next fortnight", body,
+            f"{n} clients with a birthday in the next fortnight: " + "; ".join(f"{r.get('name')} in {r.get('in_days')} days" for r in rows) + f" {_app(d)}/app")
+
+
 _TEMPLATES = {
     "demo_intro": demo_intro, "demo_hidden": demo_hidden, "demo_how": demo_how,
     "demo_ready": demo_ready,
@@ -412,4 +552,8 @@ _TEMPLATES = {
     "assoc_welcome": assoc_welcome, "assoc_first_moves": assoc_first_moves,
     "assoc_capture": assoc_capture, "assoc_habits": assoc_habits,
     "monthly_seat": monthly_seat,
+    "free_scored": free_scored, "free_reveal": free_reveal, "free_moved": free_moved, "free_last": free_last,
+    "merchant_quiet": merchant_quiet, "cancel_ending": cancel_ending,
+    "winback_30": winback_30, "winback_90": winback_90,
+    "season_moment": season_moment, "birthdays_week": birthdays_week,
 }

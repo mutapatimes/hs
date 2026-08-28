@@ -1688,7 +1688,12 @@ def register(app) -> None:
             import halia.notify_brevo as notify_brevo
             notify_brevo.add_client(acct, attributes={"FIRSTNAME": label} if label else None)
             from halia import journeys
-            journeys.enroll_client(acct, first=label, shop=shop)  # welcome series + weekly nudge
+            from halia.api import billing as _billing
+            if _billing.is_paid(shop):
+                journeys.enroll_client(acct, first=label, shop=shop)  # welcome series + weekly nudge
+            else:
+                journeys.enroll_freescan(shop)                     # the masked book, then what a plan reveals
+                journeys.enroll(acct, "weekly", {"first": label, "shop": shop})
         except Exception:  # noqa: BLE001
             pass
         resp = JSONResponse({"ok": True, "app_url": "/app", "emailed": emailed, "email": acct,
@@ -1914,6 +1919,10 @@ def register(app) -> None:
             billing.confirm_session(shop, request.query_params["session_id"])
             return RedirectResponse("/app", status_code=303)
 
+        try:
+            shop_store().touch_tenant(shop)
+        except Exception:  # noqa: BLE001
+            pass
         entry = cache.get(shop)
         if entry is None:
             _start_sync(shop, notify=True)

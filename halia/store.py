@@ -726,6 +726,20 @@ class ShopStore(_DB):
                ON CONFLICT(email, journey) DO NOTHING""",
             {"e": email.strip().lower(), "j": journey, "n": next_at, "d": data_json, "at": _now()})
 
+    def touch_tenant(self, shop: str) -> None:
+        """The merchant opened their dashboard (feeds the gone-quiet nudge)."""
+        self._add_column("tenants", "last_open_at", "TEXT")
+        self._run("UPDATE tenants SET last_open_at = :at WHERE shop = :shop", {"at": _now(), "shop": shop})
+
+    def tenant_last_open(self, shop: str) -> str | None:
+        self._add_column("tenants", "last_open_at", "TEXT")
+        row = self._run("SELECT last_open_at FROM tenants WHERE shop = :shop", {"shop": shop}, fetch="one")
+        return (dict(row).get("last_open_at") if row else None) or None
+
+    def delete_journey(self, email: str, journey: str) -> None:
+        self._run("DELETE FROM email_journeys WHERE email = :e AND journey = :j",
+                  {"e": (email or "").strip().lower(), "j": journey})
+
     def journey_exists(self, email: str, journey: str) -> bool:
         row = self._run("SELECT 1 FROM email_journeys WHERE email = :e AND journey = :j",
                         {"e": email.strip().lower(), "j": journey}, fetch="one")

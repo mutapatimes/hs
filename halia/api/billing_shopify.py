@@ -294,8 +294,10 @@ def register(app) -> None:
         shop = (request.query_params.get("shop") or "").strip()
         if shop and _token(shop):
             sub = active_subscription(shop)
+            from halia.api.billing import on_billing_change
             if sub and sub.get("status") == "ACTIVE":
                 shop_store().set_billing(shop, "active", None, sub.get("id"))
+                on_billing_change(shop, "active")
             else:
                 shop_store().set_billing(shop, "canceled")
         dest = _admin_app_url(shop) if shop else ((config.HALIA_APP_URL or "") + "/app")
@@ -316,4 +318,6 @@ def register(app) -> None:
         data = _gql(shop, _CANCEL, {"id": sub["id"]})
         _user_errors(data, "appSubscriptionCancel")
         shop_store().set_billing(shop, "canceled")
+        from halia.api.billing import on_billing_change
+        on_billing_change(shop, "canceled")
         return {"ok": True, "current": "free"}
