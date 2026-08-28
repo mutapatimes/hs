@@ -56,6 +56,41 @@ def _campaign_dict(row: dict) -> dict:
             "ends": row["ends"], "config": cfg, "updated_at": row.get("updated_at")}
 
 
+def presets_for(today) -> dict:
+    """The luxury season calendar with dates for the season ``today`` sits in (Nov to Jan)."""
+    from datetime import date
+
+    y = today.year if today.month >= 2 else today.year - 1     # the season spans Nov to Jan
+    def d(m, dd, yy=y): return date(yy, m, dd).isoformat()
+    presets = [
+        {"key": "preview", "name": "Private preview of the festive collection",
+         "starts": d(11, 3), "ends": d(11, 16), "grades": ["A*", "A"],
+         "template": "Private preview of the festive collection",
+         "note": "Top clients see the collection before the floor does."},
+        {"key": "gifting", "name": "Gifting appointments",
+         "starts": d(11, 17), "ends": d(12, 20), "grades": ["A*", "A", "B"],
+         "template": "Gifting appointment",
+         "note": "Take the gift list off their hands, by appointment."},
+        {"key": "bespoke", "name": "Last day for bespoke and engraving",
+         "starts": d(12, 1), "ends": d(12, 10), "grades": ["A*", "A"],
+         "template": "Last day for bespoke and engraving",
+         "note": "A gentle cut-off note for personalised orders."},
+        {"key": "courier", "name": "Last day for courier delivery",
+         "starts": d(12, 15), "ends": d(12, 21), "grades": ["A*", "A", "B"],
+         "template": "Set aside before the rush",
+         "note": "Pieces set aside, then delivered in time."},
+        {"key": "between", "name": "Between the years",
+         "starts": d(12, 27), "ends": d(1, 5, y + 1), "grades": ["A*", "A"],
+         "template": "Between the years",
+         "note": "A thank-you with nothing to sell. The note clients remember."},
+        {"key": "newseason", "name": "First look at the new season",
+         "starts": d(1, 12, y + 1), "ends": d(1, 31, y + 1), "grades": ["A*", "A"],
+         "template": "First look at the new season",
+         "note": "The new season before it reaches the floor."},
+    ]
+    return {"presets": presets, "season": f"{y}/{str(y + 1)[-2:]}"}
+
+
 def register(app) -> None:
 
     @app.get("/v1/campaigns")
@@ -67,37 +102,7 @@ def register(app) -> None:
         """The season as a luxury house runs it: previews, gifting, bespoke cut-offs, a thank-you
         between the years, the new season first. Dates computed for the coming season."""
         from datetime import date
-
-        today = date.today()
-        y = today.year if today.month >= 2 else today.year - 1     # the season spans Nov to Jan
-        def d(m, dd, yy=y): return date(yy, m, dd).isoformat()
-        presets = [
-            {"key": "preview", "name": "Private preview of the festive collection",
-             "starts": d(11, 3), "ends": d(11, 16), "grades": ["A*", "A"],
-             "template": "Private preview of the festive collection",
-             "note": "Top clients see the collection before the floor does."},
-            {"key": "gifting", "name": "Gifting appointments",
-             "starts": d(11, 17), "ends": d(12, 20), "grades": ["A*", "A", "B"],
-             "template": "Gifting appointment",
-             "note": "Take the gift list off their hands, by appointment."},
-            {"key": "bespoke", "name": "Last day for bespoke and engraving",
-             "starts": d(12, 1), "ends": d(12, 10), "grades": ["A*", "A"],
-             "template": "Last day for bespoke and engraving",
-             "note": "A gentle cut-off note for personalised orders."},
-            {"key": "courier", "name": "Last day for courier delivery",
-             "starts": d(12, 15), "ends": d(12, 21), "grades": ["A*", "A", "B"],
-             "template": "Set aside before the rush",
-             "note": "Pieces set aside, then delivered in time."},
-            {"key": "between", "name": "Between the years",
-             "starts": d(12, 27), "ends": d(1, 5, y + 1), "grades": ["A*", "A"],
-             "template": "Between the years",
-             "note": "A thank-you with nothing to sell. The note clients remember."},
-            {"key": "newseason", "name": "First look at the new season",
-             "starts": d(1, 12, y + 1), "ends": d(1, 31, y + 1), "grades": ["A*", "A"],
-             "template": "First look at the new season",
-             "note": "The new season before it reaches the floor."},
-        ]
-        return {"presets": presets, "season": f"{y}/{str(y + 1)[-2:]}"}
+        return presets_for(date.today())
 
     @app.post("/v1/campaigns")
     def save_campaign(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:

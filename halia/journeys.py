@@ -29,7 +29,14 @@ _SEQUENCES: dict[str, list[tuple[str, int]]] = {
     # A teammate given a seat: sign in, first moves, capture at the counter, the weekly habit.
     "associate": [("assoc_welcome", 0), ("assoc_first_moves", 2), ("assoc_capture", 3),
                   ("assoc_habits", 4)],
+    # The free scan: the book is scored and counted, names are on a plan. Ends on subscription.
+    "freescan": [("free_scored", 0), ("free_reveal", 3), ("free_moved", 7), ("free_last", 11)],
+    # After a cancellation: a fresh count at 30 and 90 days. Ends if they come back.
+    "winback": [("winback_30", 30), ("winback_90", 60)],
 }
+DORMANT, CANCEL_ENDING, SEASON, BIRTHDAYS = "dormant", "cancel_ending", "season", "birthdays"
+_DORMANT_DAYS = 14
+_SEASON_LEAD_DAYS = 14
 _WEEKLY = ["weekly_vics", "weekly_feedback", "weekly_refresh", "weekly_team"]
 _WEEKLY_EVERY_DAYS = 7
 
@@ -179,6 +186,243 @@ def _seat_month(shop: str, seat_id: str, now: datetime, store=None) -> dict | No
             "team": rep.get("totals") or {}}
 
 
+# ── merchant journeys (the owner of a store) ─────────────────────────────────────
+def _owner_email(shop: str) -> str:
+    """The store's own contact: the account email, else the first alert address."""
+    try:
+        from halia.api.settings import settings_for
+        st = settings_for(shop)
+        for e in [st.get("account_email") or ""] + list(st.get("notify_emails") or []):
+            if "@" in (e or ""):
+                return e.strip().lower()
+    except Exception:  # noqa: BLE001
+        pass
+    return ""
+
+
+def _owner_data(shop: str, store=None) -> dict:
+    st = store or _store()
+    tenant = dict(st.get_tenant(shop) or {})
+    label = tenant.get("label") or shop
+    return {"shop": shop, "store_name": label, "first": label}
+
+
+def _paid(shop: str) -> bool:
+    try:
+        from halia.api import billing
+        return bool(billing.is_paid(shop))
+    except Exception:  # noqa: BLE001
+        return True
+
+
+def _book_numbers(shop: str) -> dict | None:
+    """Live counts from the warm book, for a merchant email. None when the book is not in
+    memory (the cron never triggers a fetch just to write an email)."""
+    try:
+        from halia.cache import cache
+        entry = cache.get(shop)
+    except Exception:  # noqa: BLE001
+        entry = None
+    if not entry:
+        return None
+    payload = entry.get("payload") or {}
+    rows = payload.get("data") or []
+    quiet = sum(1 for r in rows if r.get("band") == "lapsed" and r.get("known"))
+    baskets = sum(1 for r in rows if r.get("cart"))
+    basket_value = sum(int(((r.get("cart") or {}).get("value")) or 0) for r in rows if r.get("cart"))
+    top = sum(1 for r in rows if r.get("grade") in ("A*", "A") and not r.get("known"))
+    return {"count": payload.get("stat_count") or str(len(rows)), "latent": payload.get("stat_latent") or "",
+            "top": top, "quiet": quiet, "baskets": baskets, "basket_value": basket_value,
+            "scored": payload.get("stat_scored") or ""}
+
+
+def enroll_freescan(shop: str, store=None) -> bool:
+    """A store on the free scan: what is in their book, then what a plan reveals."""
+    email = _owner_email(shop)
+    if not email or _paid(shop):
+        return False
+    return enroll(email, "freescan", _owner_data(shop, store), store=store)
+
+
+def enroll_winback(shop: str, store=None) -> bool:
+    email = _owner_email(shop)
+    if not email:
+        return False
+    st = store or _store()
+    st.delete_journey(email, CANCEL_ENDING)
+    st.delete_journey(email, "winback")           # a second cancellation restarts the clock
+    return enroll(email, "winback", _owner_data(shop, store), store=store)
+
+
+def enroll_cancel_ending(shop: str, period_end_ts: int | float | None, store=None) -> bool:
+    """Five days before a cancelled plan ends: what goes back behind the mask."""
+    email = _owner_email(shop)
+    if not email or not period_end_ts:
+        return False
+    st = store or _store()
+    st.delete_journey(email, CANCEL_ENDING)
+    if st.is_suppressed(email):
+        return False
+    end = datetime.fromtimestamp(float(period_end_ts), tz=timezone.utc)
+    due = max(end - timedelta(days=5), _now())
+    st.enroll_journey(email, CANCEL_ENDING, _iso(due),
+                      json.dumps({**_owner_data(shop, store), "ends": end.date().isoformat()}))
+    return True
+
+
+def cancel_cancel_ending(shop: str, store=None) -> None:
+    email = _owner_email(shop)
+    if email:
+        (store or _store()).delete_journey(email, CANCEL_ENDING)
+
+
+def on_subscribed(shop: str, store=None) -> None:
+    """A plan is live: the free-scan and win-back sequences stop, the client series starts."""
+    email = _owner_email(shop)
+    if not email:
+        return
+    st = store or _store()
+    for j in ("freescan", "winback", CANCEL_ENDING):
+        st.delete_journey(email, j)
+    d = _owner_data(shop, st)
+    enroll(email, "client", d, store=st)
+    enroll(email, "weekly", d, store=st)
+
+
+def enroll_dormant(shop: str, store=None) -> bool:
+    email = _owner_email(shop)
+    if not email:
+        return False
+    st = store or _store()
+    if st.journey_exists(email, DORMANT) or st.is_suppressed(email):
+        return False
+    st.enroll_journey(email, DORMANT, _iso(_now()), json.dumps(_owner_data(shop, st)))
+    return True
+
+
+def _opened_recently(shop: str, now: datetime, store) -> bool:
+    last = store.tenant_last_open(shop)
+    if not last:
+        return False
+    try:
+        return datetime.fromisoformat(last.replace("Z", "+00:00")) >= now - timedelta(days=_DORMANT_DAYS)
+    except ValueError:
+        return False
+
+
+# ── seat journeys beyond the monthly recap: the season calendar and birthdays ────
+def _next_season_due(now: datetime):
+    """(due datetime, preset) for the next season moment whose lead window is ahead of now."""
+    from halia.api.campaigns import presets_for
+    from datetime import date as _date
+    best = None
+    for yr_shift in (0, 1):
+        probe = _date(now.year + yr_shift, now.month, min(now.day, 28))
+        for pr in presets_for(probe)["presets"]:
+            starts = datetime.fromisoformat(pr["starts"]).replace(tzinfo=timezone.utc, hour=_MONTHLY_HOUR)
+            due = starts - timedelta(days=_SEASON_LEAD_DAYS)
+            if due > now and (best is None or due < best[0]):
+                best = (due, pr)
+    return best
+
+
+def enroll_season(email: str, seat_id: str, shop: str, store_name: str = "", first: str = "",
+                  store=None) -> bool:
+    email = (email or "").strip().lower()
+    st = store or _store()
+    if "@" not in email or st.is_suppressed(email):
+        return False
+    nxt = _next_season_due(_now())
+    if not nxt:
+        return False
+    st.enroll_journey(email, SEASON, _iso(nxt[0]),
+                      json.dumps({"seat_id": seat_id, "shop": shop, "store_name": store_name, "first": first}))
+    return True
+
+
+def enroll_birthdays(email: str, seat_id: str, shop: str, store_name: str = "", first: str = "",
+                     store=None) -> bool:
+    email = (email or "").strip().lower()
+    st = store or _store()
+    if "@" not in email or st.is_suppressed(email):
+        return False
+    now = _now()
+    monday = (now + timedelta(days=(7 - now.weekday()) % 7 or 7)).replace(hour=_MONTHLY_HOUR, minute=0, second=0, microsecond=0)
+    st.enroll_journey(email, BIRTHDAYS, _iso(monday),
+                      json.dumps({"seat_id": seat_id, "shop": shop, "store_name": store_name, "first": first}))
+    return True
+
+
+def _season_payload(shop: str, now: datetime) -> dict | None:
+    """The preset whose lead window we are in, with how many clients in the book fit it."""
+    from halia.api.campaigns import presets_for
+    from datetime import date as _date
+    today = now.date()
+    cands = []
+    for yr_shift in (0, 1):
+        probe = _date(now.year + yr_shift, now.month, min(now.day, 28))
+        cands += presets_for(probe)["presets"]
+    # The moment about two weeks out, not one starting today (a fortnight before 3 November
+    # is the preview; on 3 November itself the next one, gifting, is the moment to prepare).
+    window = [(abs((_date.fromisoformat(pr["starts"]) - today).days - _SEASON_LEAD_DAYS), pr) for pr in cands
+              if 0 <= (_date.fromisoformat(pr["starts"]) - today).days <= _SEASON_LEAD_DAYS + 1]
+    if not window:
+        return None
+    pick = min(window, key=lambda x: x[0])[1]
+    n = 0
+    try:
+        from halia.cache import cache
+        entry = cache.get(shop) or {}
+        n = sum(1 for r in ((entry.get("payload") or {}).get("data") or []) if r.get("grade") in pick["grades"])
+    except Exception:  # noqa: BLE001
+        n = 0
+    return {**pick, "fit": n}
+
+
+def _birthdays_payload(shop: str) -> dict | None:
+    try:
+        from halia.api.birthdays import upcoming
+        rows = upcoming(shop, 14)
+    except Exception:  # noqa: BLE001
+        return None
+    if not rows:
+        return None
+    return {"count": len(rows), "rows": [{"name": r.get("name") or "A client", "date": r.get("date"),
+                                          "in_days": r.get("in_days"), "grade": r.get("grade") or ""}
+                                         for r in rows[:6]]}
+
+
+def ensure_journeys(store=None) -> dict:
+    """Hourly: every live seat with an email is on the monthly recap, the season calendar and the
+    birthdays note; unpaid stores with an owner email are on the free-scan series; paid stores
+    that have not opened Halia in two weeks are on the gone-quiet nudge. All idempotent."""
+    st = store or _store()
+    out = {"monthly": 0, "season": 0, "birthdays": 0, "freescan": 0, "dormant": 0}
+    now = _now()
+    for t in st.all_tenants():
+        t = dict(t)
+        shop, label = t["shop"], t.get("label") or t["shop"]
+        for seat in st.list_seats(shop):
+            email = (seat.get("email") or "").strip().lower()
+            if "@" not in email or st.is_suppressed(email):
+                continue
+            first = (seat.get("name") or "").split(" ")[0]
+            for key, fn in ((MONTHLY, enroll_monthly), (SEASON, enroll_season), (BIRTHDAYS, enroll_birthdays)):
+                if not st.journey_exists(email, key) and fn(email, seat["id"], shop, label, first, store=st):
+                    out[key] += 1
+        email = _owner_email(shop)
+        if not email:
+            continue
+        if not _paid(shop):
+            if not st.journey_exists(email, "freescan") and enroll_freescan(shop, store=st):
+                out["freescan"] += 1
+        else:
+            last = st.tenant_last_open(shop)
+            if last and not _opened_recently(shop, now, st) and enroll_dormant(shop, store=st):
+                out["dormant"] += 1
+    return out
+
+
 # ── scheduler ────────────────────────────────────────────────────────────────────
 def _send_one(email: str, template_key: str, data: dict, send) -> bool:
     subject, html, text = emails.render(template_key, data, unsub_url(email))
@@ -238,7 +482,15 @@ def run_due(now: datetime | None = None, send=None, store=None) -> dict:
             if step >= len(seq):
                 st.finish_journey(email, journey)
                 continue
-            if _send_one(email, seq[step][0], data, send):
+            payload = data
+            if journey in ("freescan", "winback"):
+                shop = str(data.get("shop") or "")
+                if shop and _paid(shop):              # they subscribed: this series is over
+                    st.finish_journey(email, journey)
+                    continue
+                numbers = _book_numbers(shop) if shop else None
+                payload = {**data, "book": numbers or {}}
+            if _send_one(email, seq[step][0], payload, send):
                 sent += 1
             nxt = step + 1
             if nxt < len(seq):
@@ -259,6 +511,54 @@ def run_due(now: datetime | None = None, send=None, store=None) -> dict:
                 sent += 1
             st.advance_journey(email, journey, step + 1,
                                _iso(now + timedelta(days=_WEEKLY_EVERY_DAYS)))
+        elif journey == DORMANT:
+            shop = str(data.get("shop") or "")
+            if not shop or not _paid(shop) or _opened_recently(shop, now, st):
+                st.delete_journey(email, journey)     # back in the app, or gone: re-enrol later if needed
+                continue
+            numbers = _book_numbers(shop)
+            if numbers and _send_one(email, "merchant_quiet", {**data, "book": numbers}, send):
+                sent += 1
+            st.advance_journey(email, journey, step + 1, _iso(now + timedelta(days=_DORMANT_DAYS)))
+
+        elif journey == CANCEL_ENDING:
+            shop = str(data.get("shop") or "")
+            still = False
+            try:
+                from halia.api import billing
+                still = bool(billing.billing_state(shop).get("cancel_at_period_end")) if shop else False
+            except Exception:  # noqa: BLE001
+                still = True
+            if still and _send_one(email, "cancel_ending", {**data, "book": _book_numbers(shop) or {}}, send):
+                sent += 1
+            st.finish_journey(email, journey)
+
+        elif journey == SEASON:
+            shop, seat_id = str(data.get("shop") or ""), str(data.get("seat_id") or "")
+            alive = seat_id and any(x["id"] == seat_id for x in st.list_seats(shop))
+            if not alive or not _paid(shop):
+                st.finish_journey(email, journey)
+                continue
+            moment = _season_payload(shop, now)
+            if moment and _send_one(email, "season_moment", {**data, "moment": moment}, send):
+                sent += 1
+            nxt = _next_season_due(now + timedelta(days=1))
+            if nxt:
+                st.advance_journey(email, journey, step + 1, _iso(nxt[0]))
+            else:
+                st.finish_journey(email, journey)
+
+        elif journey == BIRTHDAYS:
+            shop, seat_id = str(data.get("shop") or ""), str(data.get("seat_id") or "")
+            alive = seat_id and any(x["id"] == seat_id for x in st.list_seats(shop))
+            if not alive or not _paid(shop):
+                st.finish_journey(email, journey)
+                continue
+            bd = _birthdays_payload(shop)
+            if bd and _send_one(email, "birthdays_week", {**data, "birthdays": bd}, send):
+                sent += 1
+            st.advance_journey(email, journey, step + 1, _iso(now + timedelta(days=7)))
+
         elif journey == MONTHLY:
             shop, seat_id = str(data.get("shop") or ""), str(data.get("seat_id") or "")
             month = _seat_month(shop, seat_id, now, store=st) if (shop and seat_id) else None

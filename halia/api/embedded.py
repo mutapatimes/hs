@@ -102,6 +102,41 @@ def _head(shop: str = "") -> str:
     return _HEAD.format(key=key or "")
 
 
+def _note_open(shop: str) -> None:
+    """The merchant opened Halia: remember when (for the gone-quiet nudge), learn the store's
+    contact email once, and start the free-scan series for an unpaid store. All best-effort."""
+    from halia.api.shopify_auth import shop_store
+    try:
+        st = shop_store()
+        st.touch_tenant(shop)
+        from halia.api.settings import settings_for
+        s = settings_for(shop)
+        if not s.get("account_email"):
+            _learn_shop_email(shop, st)
+        from halia.api import billing
+        if not billing.is_paid(shop):
+            from halia import journeys
+            journeys.enroll_freescan(shop, store=st)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _learn_shop_email(shop: str, st) -> None:
+    """One Admin API read of the shop's contact email into settings.account_email."""
+    import json as _json
+    from halia.api.billing_shopify import _gql, _token
+    if not _token(shop):
+        return
+    d = _gql(shop, "{ shop { email contactEmail } }", {}) or {}
+    email = ((d.get("shop") or {}).get("contactEmail") or (d.get("shop") or {}).get("email") or "").strip().lower()
+    if "@" not in email:
+        return
+    raw = st.get_settings_raw(shop)
+    blob = _json.loads(raw) if raw else {}
+    blob["account_email"] = email
+    st.save_settings(shop, _json.dumps(blob))
+
+
 def _pending_payload() -> dict:
     """An empty dashboard payload flagged sync_running, so the SPA shows the scoring screen."""
     return {"segments": {}, "data": [], "orders": [], "landscape": {}, "platform": "shopify",
@@ -138,6 +173,7 @@ def register(app) -> None:
             return HTMLResponse(_marketing(request.headers.get("host", "")))
 
         head = _head(shop)
+        _note_open(shop)
         try:
             entry = cache.get(shop)
             if entry is None:
