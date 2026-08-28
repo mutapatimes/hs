@@ -36,6 +36,8 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET    # whsec_… from the Stripe webhook endpoint (/webhooks/stripe)
         sync: false
+      - key: STRIPE_SEAT_PRICE_ID     # price_… of the £15/month "Additional associate seat" price
+        sync: false
       - key: HALIA_FREE_SHOPS         # comma-separated tenant keys to comp (e.g. your first client)
         sync: false
       - key: SENTRY_DSN               # error tracking (sentry.io project DSN); idle when unset
