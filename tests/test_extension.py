@@ -359,10 +359,11 @@ def test_draft_uses_ai_when_available(env, monkeypatch):
     seen = {}
     monkeypatch.setattr(llm, "available", lambda: True)
 
-    def fake_complete(system, user, **kw):
+    def fake_structured(system, user, schema, **kw):
         seen["system"], seen["user"], seen["model"] = system, user, kw.get("model")
-        return "Dear Grace, lovely to hear from you."
-    monkeypatch.setattr(llm, "complete", fake_complete)
+        return {"draft": "Dear Grace, lovely to hear from you.", "language": "en", "english": ""}
+    monkeypatch.setattr(llm, "structured", fake_structured)
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: (_ for _ in ()).throw(AssertionError("complete not expected with a thread")))
 
     client, store, tok = env
     ext = _ext_token(client, tok)
@@ -371,6 +372,8 @@ def test_draft_uses_ai_when_available(env, monkeypatch):
                              "thread": [{"from": "them", "text": "Is the coat back in stock?"}]}).json()
     assert d["source"] == "ai"
     assert d["draft"] == "Dear Grace, lovely to hear from you."
+    assert d["language"] == "en" and d["english"] is None
+    assert "reply in the client's language" in seen["user"]
     assert d["found"] is True and d["grade"] == "A*"
     # the client's live standing and the visible thread are both in the prompt
     assert "Goldman Sachs" in seen["user"] and "coat back in stock" in seen["user"]
@@ -996,3 +999,43 @@ def test_remember_respects_weekly_cap(env, monkeypatch):
     assert _remember(client, ext, {"email": "grace@x.com", "text": "hello"}).json()["source"] == "ai"
     assert _remember(client, ext, {"email": "grace@x.com", "text": "hello"}).json()["source"] == "rules"
     assert called["n"] == 1
+
+
+# ── drafts in the client's language ─────────────────────────────────────────
+def test_draft_reply_comes_back_in_the_clients_language_with_english(env, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "structured", lambda *a, **k: {"draft": "Bonjour Grace, le manteau est de retour.",
+                                                            "language": "fr", "english": "Hello Grace, the coat is back."})
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _draft(client, ext, {"email": "grace@x.com", "thread": [{"from": "them", "text": "Bonjour, le manteau est revenu?"}]}).json()
+    assert d["draft"].startswith("Bonjour") and d["language"] == "fr" and d["english"] == "Hello Grace, the coat is back."
+
+
+def test_draft_without_a_thread_uses_one_text_call(env, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "structured", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no structured call without a thread")))
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: "Dear Grace, a note from us.")
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _draft(client, ext, {"email": "grace@x.com", "instruction": "Say hello"}).json()
+    assert d["draft"] == "Dear Grace, a note from us." and d["language"] == "en" and d["english"] is None
+
+
+def test_draft_structured_failure_falls_back_to_text_then_template(env, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "structured", lambda *a, **k: None)
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: "Plain reply")
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = _draft(client, ext, {"email": "grace@x.com", "thread": [{"from": "them", "text": "Grazie, vorrei il cappotto"}]}).json()
+    assert d["draft"] == "Plain reply" and d["source"] == "ai" and d["language"] == "it"
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: None)
+    d = _draft(client, ext, {"email": "grace@x.com", "thread": [{"from": "them", "text": "Grazie, vorrei il cappotto"}]}).json()
+    assert d["source"] == "template" and d["language"] == "it"

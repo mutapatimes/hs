@@ -509,6 +509,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 if let d = res.draft, !d.isEmpty {
                     clearBrief()
                     draftText = handoff ? scrubInternal(d) : d
+                    draftEnglish = handoff ? nil : res.english
                     lastThread = thread; mode = .draft; setStatus(nil)
                 } else { setStatus("No draft came back") }
             } catch {
