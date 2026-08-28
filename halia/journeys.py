@@ -179,6 +179,7 @@ def _seat_month(shop: str, seat_id: str, now: datetime, store=None) -> dict | No
             "contacts": int(mine.get("contacts") or 0), "clients": int(mine.get("clients") or 0),
             "captures": int(mine.get("captures") or 0), "captured_top": int(mine.get("captured_top") or 0),
             "conversions": int(mine.get("conversions") or 0), "revenue": int(mine.get("revenue") or 0),
+            "appointments": int(mine.get("appointments") or 0),
             "top_share": float(mine.get("topShare") or 0.0),
             "drafts": int(tools.get("drafts") or 0), "links": int(tools.get("links") or 0),
             "remembered": int(tools.get("remembered") or 0),

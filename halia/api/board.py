@@ -43,6 +43,7 @@ def load_pipe(raw: str | None) -> dict:
     pipe.setdefault("assignee", None)
     pipe.setdefault("activity", [])
     pipe.setdefault("due", None)
+    pipe.setdefault("appointments", [])
     return pipe
 
 

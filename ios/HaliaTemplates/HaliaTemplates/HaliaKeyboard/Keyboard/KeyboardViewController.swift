@@ -437,6 +437,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             actionStack.addArrangedSubview(pillButton("✦ Suggest pieces", filled: true) { [weak self] in self?.suggestPieces() })
             actionStack.addArrangedSubview(pillButton("↩ Reply", filled: false) { [weak self] in self?.replyToCopied() })
             actionStack.addArrangedSubview(pillButton("Remember", filled: false) { [weak self] in self?.rememberCopied() })
+            actionStack.addArrangedSubview(pillButton("Offer a time", filled: false) { [weak self] in
+                self?.startDraft(instruction: "Offer a private appointment at the boutique this week. Ask which day and "
+                                 + "time would suit them. Do not name specific times or dates yourself.", thread: nil)
+            })
             if let occ = pendingOccasion {
                 actionStack.addArrangedSubview(pillButton("Follow up that week", filled: true) { [weak self] in self?.followUpOccasion(occ) })
             }

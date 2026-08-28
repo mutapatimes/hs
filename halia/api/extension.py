@@ -1638,6 +1638,16 @@ def register(app) -> None:
             return {"last_contact": None}            # non-Shopify tenant, or no metafield yet
         return {"last_contact": _last_outreach(pipe.get("activity"))}
 
+    @app.get("/v1/extension/appointments")
+    def extension_appointments(x_halia_ext_token: Optional[str] = Header(None),
+                               days: int = Query(14)) -> dict:
+        """Upcoming appointments across the team, the caller's own flagged, with calendar links."""
+        from halia.api import appointments as appts
+        auth = _resolve_ext(x_halia_ext_token)
+        rows = appts.upcoming(auth.shop, days, seat_id=auth.seat_id)
+        store = appts._store_name(auth.shop)
+        return {"appointments": [{**a, "links": appts.calendar_links(a, a.get("name") or "", store)} for a in rows]}
+
     @app.get("/v1/extension/products")
     def extension_products(x_halia_ext_token: Optional[str] = Header(None),
                            q: Optional[str] = Query(None),
@@ -1794,6 +1804,18 @@ def register(app) -> None:
             _write_soft(sink, cid, pipe)
             data.record_activity(shop, "extension_pipeline_add")
             return {"ok": True, "stage": stage}
+
+        if action in ("appointment", "appointment_cancel"):
+            from halia.api import appointments as appts
+            if action == "appointment":
+                appt = appts.book(shop, cid, body.get("when"), body.get("minutes"), body.get("place"),
+                                  body.get("note"), auth.seat_id, who)
+                _seat_hit(auth, "appointments")
+                data.record_activity(shop, "extension_appointment")
+                return {"ok": True, "appointment": appt,
+                        "links": appts.calendar_links(appt, str(body.get("client_name") or ""), appts._store_name(shop))}
+            ok = appts.cancel(shop, cid, str(body.get("id") or ""), auth.seat_id, who)
+            return {"ok": ok}
 
         if action == "campaign_add":
             from halia.api.campaigns import _clean_config
