@@ -476,9 +476,14 @@ def status_json() -> dict:
 
 @app.get("/v1/chat-config", include_in_schema=False)
 def chat_config() -> dict:
-    """Brevo Conversations widget id for the live-chat bubble. Empty until configured at launch."""
+    """What the site's contact surfaces need: the Brevo Conversations widget id, the Cal.com
+    booking link (e.g. "halia/walkthrough"), and the WhatsApp sales number (digits, with country
+    code). Each is empty until configured, and the site shows nothing for it until then."""
     import os
-    return {"id": os.environ.get("HALIA_BREVO_CHAT_ID", "")}
+    import re as _re
+    return {"id": os.environ.get("HALIA_BREVO_CHAT_ID", ""),
+            "cal": os.environ.get("HALIA_CAL_LINK", "").strip().strip("/"),
+            "whatsapp": _re.sub(r"\D", "", os.environ.get("HALIA_WHATSAPP", ""))}
 
 
 @app.post("/subscribe", include_in_schema=False)
