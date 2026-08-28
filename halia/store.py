@@ -646,7 +646,7 @@ class ShopStore(_DB):
         for col in ("email", "title", "signoff"):
             self._add_column("seats", col, "TEXT")
         rows = self._run(
-            "SELECT id, name, email, title, created_at, last_seen_at, revoked_at FROM seats "
+            "SELECT id, name, email, title, signoff, created_at, last_seen_at, revoked_at FROM seats "
             "WHERE shop = :shop " + ("" if include_revoked else "AND revoked_at IS NULL ")
             + "ORDER BY created_at",
             {"shop": shop}, fetch="all") or []
