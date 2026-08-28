@@ -564,7 +564,7 @@ private struct ExtensionsStep: View {
                     text: "Share a product or a page into Halia, and send it straight to the right client.")
                 Divider().overlay(Palette.line)
                 FeatureRow(icon: "phone.fill", title: "Know who's calling",
-                    text: "A client's name and grade show up when they call, not just a number.")
+                    text: "A client's name and grade appear on the screen when they call.")
             }
             Button(action: openSettings) {
                 HStack(spacing: 10) {
