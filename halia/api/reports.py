@@ -122,7 +122,7 @@ def _build_report(shop: str, days: int) -> dict:
             base = seats.get(key) or {"id": UNATTRIBUTED, "name": "Shared sign-in", "title": "", "email": ""}
             rows[key] = {**base, "contacts": 0, "moves": 0, "assigns": 0, "notes": 0,
                          "clients": set(), "owned": 0, "conversions": 0, "revenue": 0,
-                         "captures": 0, "captured_top": 0}
+                         "captures": 0, "captured_top": 0, "appointments": 0}
         return rows[key]
 
     rows: dict[str, dict] = {}
@@ -152,6 +152,8 @@ def _build_report(shop: str, days: int) -> dict:
                 b["assigns"] += 1
             elif action == "note":
                 b["notes"] += 1
+            elif action == "appointment":
+                b["appointments"] += 1
 
     # Captures: the clients each associate brought into the book (the handover form, QR, vCard).
     try:
@@ -200,7 +202,7 @@ def _build_report(shop: str, days: int) -> dict:
     if unatt and not any(unatt[k] for k in ("contacts", "moves", "assigns", "notes", "conversions", "captures")):
         unatt = None
     totals = {k: sum(r[k] for r in out)
-              for k in ("contacts", "clients", "moves", "conversions", "revenue", "captures", "captured_top")}
+              for k in ("contacts", "clients", "moves", "conversions", "revenue", "captures", "captured_top", "appointments")}
     totals["rate"] = round(totals["conversions"] / totals["contacts"], 2) if totals["contacts"] else 0.0
     return {"available": True, "days": days, "window": CONVERSION_WINDOW_DAYS,
             "seats": seat_rows, "unattributed": unatt, "totals": totals}

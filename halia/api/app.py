@@ -695,6 +695,8 @@ voice.register(app)
 reports.register(app)
 birthdays.register(app)
 wp_plugin.register(app)
+from halia.api import appointments as _appointments  # noqa: E402
+_appointments.register(app)
 board.register(app)
 console.register(app)
 onboarding.register(app)

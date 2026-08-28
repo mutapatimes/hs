@@ -402,7 +402,8 @@ def monthly_seat(d):
     contacts, clients = int(r.get("contacts") or 0), int(r.get("clients") or 0)
     captures, conv, rev = int(r.get("captures") or 0), int(r.get("conversions") or 0), int(r.get("revenue") or 0)
     drafts, links, remembered = int(r.get("drafts") or 0), int(r.get("links") or 0), int(r.get("remembered") or 0)
-    quiet = not any((contacts, captures, drafts, links, remembered))
+    appts = int(r.get("appointments") or 0)
+    quiet = not any((contacts, captures, drafts, links, remembered, appts))
 
     def row(label, value):
         return (f"<tr><td style='padding:9px 0;border-bottom:1px solid #E4E2DB;font:15px {_SERIF};color:{_INK}'>{label}</td>"
@@ -424,6 +425,7 @@ def monthly_seat(d):
              + row("Clients captured", captures)
              + row("Messages drafted with Halia", drafts) + row("Catalogue and basket links sent", links)
              + (row("Details remembered", remembered) if remembered else "")
+             + (row("Appointments booked", appts) if appts else "")
              + row("Orders after a contact", conv) + row("Revenue credited", money(rev))
              + "</table>")
     rank, size = r.get("rank"), int(r.get("team_size") or 0)

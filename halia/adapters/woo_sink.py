@@ -195,7 +195,8 @@ class WooSink:
             cards[wid] = {"cid": wid, "stage": stage,
                           "name": " ".join(x for x in (c.get("first_name"), c.get("last_name")) if x).strip(),
                           "email": c.get("email") or "", "assignee": pipe.get("assignee"),
-                          "activity": pipe.get("activity") or []}
+                          "activity": pipe.get("activity") or [],
+                          "appointments": pipe.get("appointments") or []}
         return cards
 
     def captures(self) -> list[dict]:

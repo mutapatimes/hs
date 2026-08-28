@@ -882,6 +882,13 @@
           <input data-a="lreason" placeholder="Reason (optional)" value="${esc(briefLogReason())}" style="flex:1;padding:7px 9px;border:1px solid #cccccc;font-size:12.5px;color:#303030;background:#fff">
           <button class="btn primary" data-a="logc">Log</button>
         </div>` : ""}
+      ${activeCid() ? `<div class="lbl">Book a visit</div>
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <input data-a="apwhen" type="datetime-local" style="padding:6px 8px;border:1px solid #cccccc;font-size:12.5px;color:#303030;background:#fff">
+          <input data-a="applace" placeholder="Where (optional)" style="flex:1;padding:7px 9px;border:1px solid #cccccc;font-size:12.5px;color:#303030;background:#fff">
+          <button class="btn primary" data-a="apbook">Book</button>
+        </div>
+        <div data-a="apdone" class="muted" style="display:none;margin-bottom:13px"></div>` : ""}
       <div class="lbl">Message the team</div>
       <div style="margin-bottom:13px">${_TEAM_MSGS.map((m, i) => `<div class="row" style="display:flex;gap:6px;align-items:center">
         <span style="flex:1">${esc(fill(m))}</span>
@@ -898,6 +905,23 @@
       const inp = el.querySelector('[data-a="lreason"]');
       logContact(activeCid(), cname, (inp && inp.value) || "");
       if (inp) inp.value = "";
+    };
+    const apb = el.querySelector('[data-a="apbook"]');
+    if (apb) apb.onclick = () => {
+      const w = el.querySelector('[data-a="apwhen"]'), pl = el.querySelector('[data-a="applace"]'), done = el.querySelector('[data-a="apdone"]');
+      if (!w || !w.value) { toast("Pick a date and time"); return; }
+      const body = { action: "appointment", cid: activeCid(), when: new Date(w.value).toISOString(), place: (pl && pl.value) || "", client_name: cname };
+      try {
+        chrome.runtime.sendMessage({ type: "halia:action", body }, (r) => {
+          if (chrome.runtime.lastError || !r || r.error) { toast((r && r.detail) || "Couldn't book that"); return; }
+          toast("Booked");
+          if (done && r.links) {
+            done.style.display = "";
+            done.innerHTML = `Add to your calendar: <a href="${esc(r.links.google)}" target="_blank" rel="noopener">Google</a> · <a href="${esc(r.links.outlook)}" target="_blank" rel="noopener">Outlook</a> · <a href="${esc(r.links.ics_data)}" download="appointment.ics">Apple / .ics</a>`;
+          }
+          if (w) w.value = ""; if (pl) pl.value = "";
+        });
+      } catch (e) { toast("Couldn't book that"); }
     };
     _TEAM_MSGS.forEach((m, i) => {
       const ins = el.querySelector(`[data-tmi="${i}"]`); if (ins) ins.onclick = () => place(fill(m));

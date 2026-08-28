@@ -595,6 +595,7 @@ private struct HomeView: View {
     @State private var captureId: String?
     @State private var followedUp = false
     @State private var birthdays: [HaliaAPI.Birthday] = []
+    @State private var appointments: [HaliaAPI.Appointment] = []
     @State private var week: HaliaAPI.Week?
     @State private var weekDays = 365          // all by default; the picker narrows it
     @Environment(\.openURL) private var openURL
@@ -676,6 +677,25 @@ private struct HomeView: View {
                     }
                 }
 
+                if !appointments.isEmpty {
+                    Section {
+                        ForEach(Array(appointments.enumerated()), id: \.offset) { _, a in
+                            HStack(spacing: 12) {
+                                Image(systemName: "calendar").foregroundStyle(Palette.brand)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(a.name ?? "A client").font(.body)
+                                    Text(apptLine(a)).font(.footnote).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if let ics = a.links?.ics, let file = icsFile(ics, id: a.id ?? "appt") {
+                                    ShareLink(item: file) { Image(systemName: "calendar.badge.plus") }
+                                        .foregroundStyle(Palette.brandDeep)
+                                }
+                            }
+                        }
+                    } header: { Text("Appointments") }
+                }
+
                 Section("Clients") {
                     navRow("Add a client", "Capture their details, straight into your book",
                            icon: "person.crop.circle.badge.plus", tint: Palette.brand) { showCapture = true }
@@ -716,9 +736,11 @@ private struct HomeView: View {
             .navigationTitle("Halia")
             .tint(Palette.brand)
             .task { week = try? await HaliaAPI.current.myWeek(days: weekDays)
-                    birthdays = (try? await HaliaAPI.current.birthdays()) ?? [] }
+                    birthdays = (try? await HaliaAPI.current.birthdays()) ?? []
+                    appointments = (try? await HaliaAPI.current.appointments()) ?? [] }
             .refreshable { await model.sync(); week = try? await HaliaAPI.current.myWeek(days: weekDays)
-                           birthdays = (try? await HaliaAPI.current.birthdays()) ?? [] }
+                           birthdays = (try? await HaliaAPI.current.birthdays()) ?? []
+                           appointments = (try? await HaliaAPI.current.appointments()) ?? [] }
         }
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
         .fullScreenCover(isPresented: $showCapture) {
@@ -756,6 +778,34 @@ private struct HomeView: View {
                 }
             }
         }
+    }
+
+    private func apptLine(_ a: HaliaAPI.Appointment) -> String {
+
+        let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime]
+
+        let g = ISO8601DateFormatter(); g.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let d = f.date(from: a.when ?? "") ?? g.date(from: a.when ?? "")
+
+        let df = DateFormatter(); df.dateFormat = "EEE d MMM, HH:mm"
+
+        var s = d.map { df.string(from: $0) } ?? (a.when ?? "")
+
+        if let p = a.place, !p.isEmpty { s += " · " + p }
+
+        if let n = a.seat_name, !n.isEmpty { s += " · " + n }
+
+        return s
+
+    }
+
+    private func icsFile(_ ics: String, id: String) -> URL? {
+
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("halia-\(id).ics")
+
+        return (try? ics.data(using: .utf8)?.write(to: url)) != nil ? url : nil
+
     }
 
     private func weekdayLine(_ b: HaliaAPI.Birthday) -> String {

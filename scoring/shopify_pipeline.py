@@ -62,6 +62,7 @@ def fetch_pipeline_cards(transport, retries: int = 5) -> dict:
                     "email": n.get("email") or "",
                     "assignee": pipe.get("assignee"),
                     "activity": pipe.get("activity") or [],
+                    "appointments": pipe.get("appointments") or [],
                 }
             info = conn["pageInfo"]
             if not info["hasNextPage"]:

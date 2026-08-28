@@ -948,6 +948,10 @@
           </div>
           <div class="cb"><div id="ovTeam"></div></div>
         </div>
+        <div id="ovApptCard" class="card" style="display:none;margin-bottom:16px">
+          <div class="ch"><h3>Appointments</h3><span class="hint">next fortnight</span></div>
+          <div class="cb"><div id="ovAppts"></div></div>
+        </div>
         <div id="ovBirthdaysCard" class="card" style="display:none;margin-bottom:16px">
           <div class="ch"><h3>Birthdays</h3><span class="hint">next fortnight</span></div>
           <div class="cb"><div id="ovBirthdays"></div></div>
@@ -2548,6 +2552,21 @@ function renderTeamReport(){
   if(sw) sw.onchange=()=>{ try{localStorage.setItem("halia_team_view",sw.checked?"1":"0");}catch(e){} renderTeamReport(); };
   if(sel) sel.onchange=renderTeamReport;
 })();
+function apptWhen(iso){const d=new Date(iso);return d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})+", "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});}
+function apptLinks(a){return `<a href="${esc(a.links.google)}" target="_blank" rel="noopener" style="font:600 12px system-ui;color:var(--ink)">Google</a><a href="${esc(a.links.outlook)}" target="_blank" rel="noopener" style="font:600 12px system-ui;color:var(--ink)">Outlook</a><a href="${esc(a.links.ics_data)}" download="appointment.ics" style="font:600 12px system-ui;color:var(--ink)">Apple / .ics</a>`;}
+function renderAppointments(){
+  const card=document.getElementById("ovApptCard"), box=document.getElementById("ovAppts"); if(!card||!box) return;
+  fetch("/v1/appointments?days=14").then(r=>r.json()).then(d=>{
+    const rows=d.appointments||[]; if(!rows.length){card.style.display="none";return;}
+    card.style.display="";
+    box.innerHTML=rows.map(a=>`<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line);flex-wrap:wrap">
+      <span style="font:600 14px system-ui;color:var(--ink)">${esc(a.name||"A client")}</span>
+      <span style="font:13px system-ui;color:#8a8a8a">${esc(apptWhen(a.when))}${a.place?` · ${esc(a.place)}`:""}${a.seat_name?` · ${esc(a.seat_name)}`:""}</span>
+      <span style="margin-left:auto;display:flex;gap:12px">${apptLinks(a)}<button data-appt="${esc(a.cid)}" style="background:none;border:1px solid var(--line);border-radius:8px;padding:5px 11px;font:600 12px system-ui;color:var(--ink);cursor:pointer">Open</button></span>
+    </div>`).join("");
+    box.querySelectorAll("[data-appt]").forEach(b=>b.onclick=()=>openDrawer(DATA.find(x=>String(x.cid)===String(b.dataset.appt))?.id||b.dataset.appt));
+  }).catch(()=>{ card.style.display="none"; });
+}
 function renderBirthdays(){
   const card=document.getElementById("ovBirthdaysCard"), box=document.getElementById("ovBirthdays"); if(!card||!box) return;
   fetch("/v1/birthdays?days=14").then(r=>r.json()).then(d=>{
@@ -2566,6 +2585,7 @@ function renderBirthdays(){
 function renderOverview(){
   renderTeamReport();
   renderBirthdays();
+  renderAppointments();
   const rv=REVEAL_ACTIVE;
   if(rv) revealStats();                       // headline KPIs tabulate up from the data
   const donut=document.getElementById("ovDonut");
@@ -3262,16 +3282,28 @@ function renderDrawerPipe(c){
         ${ME.seats.length?`<select id="pipeAsg" style="width:150px"><option value="">Unassigned</option>${ME.seats.map(sd=>`<option value="${esc(sd.id)}" ${card.assignee&&(card.assignee.id===sd.id||card.assignee.name===sd.name)?"selected":""}>${esc(sd.name)}</option>`).join("")}</select>`:`<input id="pipeAsg" placeholder="Assign to…" value="${esc((card.assignee&&card.assignee.name)||'')}" style="width:120px">`}
         <button class="dbtn" id="pipeRemove" style="margin-left:auto;color:#9A3838;padding:6px 10px">Remove</button></div>
       <div class="row"><input id="pipeNote" placeholder="Add a note…" style="flex:1"><button class="dbtn" id="pipeNoteBtn" style="padding:6px 12px">Log</button></div>
+      ${(card.appointments||[]).filter(x=>new Date(x.when)>=new Date(Date.now()-2*3600e3)).map(x=>`<div class="row" style="gap:10px;flex-wrap:wrap"><span style="font:600 13px system-ui">${esc(apptWhen(x.when))}</span>${x.place?`<span style="font:12.5px system-ui;color:var(--faint)">${esc(x.place)}</span>`:""}${x.seat_name?`<span style="font:12.5px system-ui;color:var(--faint)">${esc(x.seat_name)}</span>`:""}<span style="margin-left:auto;display:flex;gap:10px" data-apptlinks="${esc(x.id)}"></span><button class="dbtn" data-apptcancel="${esc(x.id)}" style="padding:4px 9px;color:#9A3838">Cancel</button></div>`).join("")}
+      <div class="row"><input id="pipeWhen" type="datetime-local" style="flex:none"><input id="pipePlace" placeholder="Where (optional)" style="flex:1"><button class="dbtn" id="pipeBook" style="padding:6px 12px">Book a visit</button></div>
+      <div id="pipeBooked" style="display:none;font:12.5px system-ui;color:var(--soft);gap:12px;align-items:center;flex-wrap:wrap"></div>
       <div class="tl${evs.length?'':' empty'}">${acts||'<div class="ev w">No activity yet.</div>'}</div></div>`;
     document.getElementById("pipeStage").onchange=e=>bMove(c.cid,e.target.value);
     document.getElementById("pipeRemove").onclick=()=>bRemove(c);
     const asg=document.getElementById("pipeAsg");asg.onchange=()=>bAssign(c,asg.value.trim());
+    const bk=document.getElementById("pipeBook"),bw=document.getElementById("pipeWhen"),bp=document.getElementById("pipePlace"),bo=document.getElementById("pipeBooked");
+    if(bk) bk.onclick=()=>{ if(!bw.value){toast("Pick a date and time");return;}
+      const when=new Date(bw.value).toISOString();
+      bPost("appointment",{cid:c.cid,when:when,place:bp.value.trim(),client_name:c.name||""},d=>{
+        toast("Booked."); if(d&&d.links&&bo){bo.style.display="flex";bo.innerHTML="Add to your calendar: "+apptLinks({links:d.links});}
+        boardLoad(true,()=>renderDrawerPipe(c));
+      }); };
+    box.querySelectorAll("[data-apptcancel]").forEach(b=>b.onclick=()=>{ if(!confirm("Cancel this appointment?"))return;
+      bPost("appointment/cancel",{cid:c.cid,id:b.dataset.apptcancel},()=>{toast("Cancelled.");boardLoad(true,()=>renderDrawerPipe(c));}); });
     const nb=document.getElementById("pipeNoteBtn"),ni=document.getElementById("pipeNote");
     nb.onclick=()=>{const v=ni.value.trim();if(v){bNote(c,v);ni.value="";}};
     ni.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();nb.onclick();}};
   });
 }
-function actLabel(e){const a=e.action||"";if(a==="added")return"added to pipeline";if(a==="removed")return"removed";if(a==="note")return"noted";
+function actLabel(e){const a=e.action||"";if(a==="added")return"added to pipeline";if(a==="removed")return"removed";if(a==="note")return"noted";if(a==="appointment")return"booked an appointment";if(a==="appointment_cancelled")return"cancelled an appointment";
   if(a.indexOf("moved:")===0)return"moved to "+a.slice(6);if(a.indexOf("assigned:")===0)return"assigned "+a.slice(9);return a;}
 
 /* ---- Evidence, grouped by what each signal actually tells you ----

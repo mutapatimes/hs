@@ -504,6 +504,18 @@ struct HaliaAPI {
     }
     private struct BirthdaysEnvelope: Decodable { let birthdays: [Birthday]? }
 
+    struct ApptLinks: Decodable { let google: String?; let outlook: String?; let ics: String? }
+    struct Appointment: Decodable {
+        let id: String?; let cid: String?; let name: String?; let when: String?; let minutes: Int?
+        let place: String?; let seat_name: String?; let in_days: Int?; let mine: Bool?; let links: ApptLinks?
+    }
+    private struct AppointmentsEnvelope: Decodable { let appointments: [Appointment]? }
+
+    func appointments(days: Int = 14) async throws -> [Appointment] {
+        let (data, _) = try await send("/v1/extension/appointments?days=\(days)", method: "GET", body: nil)
+        return (try? JSONDecoder().decode(AppointmentsEnvelope.self, from: data))?.appointments ?? []
+    }
+
     func birthdays(days: Int = 14) async throws -> [Birthday] {
         let (data, _) = try await send("/v1/extension/birthdays?days=\(days)", method: "GET", body: nil)
         return (try? JSONDecoder().decode(BirthdaysEnvelope.self, from: data))?.birthdays ?? []
