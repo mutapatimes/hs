@@ -94,3 +94,53 @@
     document.head.appendChild(s);
   }).catch(function () {});
 })();
+
+// Book a walkthrough (Cal.com) and a WhatsApp line: both appear only once configured.
+(function () {
+  fetch('/v1/chat-config').then(function (r) { return r.json(); }).then(function (c) {
+    var cals = document.querySelectorAll('[data-cal]');
+    if (c && c.cal) {
+      var link = 'https://cal.com/' + c.cal;
+      cals.forEach(function (el) {
+        el.hidden = false; el.removeAttribute('hidden'); el.style.display = '';
+        if (el.tagName === 'A') { el.href = link; el.target = '_blank'; el.rel = 'noopener'; }
+        el.setAttribute('data-cal-link', c.cal);
+        el.setAttribute('data-cal-config', '{"layout":"month_view","theme":"light"}');
+      });
+      (function (C, A, L) { var p = function (a, ar) { a.q.push(ar); }; var d = C.document;
+        C.Cal = C.Cal || function () { var cal = C.Cal, ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || [];
+          d.head.appendChild(d.createElement('script')).src = A; cal.loaded = true; }
+          if (ar[0] === L) { var api = function () { p(api, arguments); }; var ns = ar[1]; api.q = api.q || [];
+            typeof ns === 'string' ? (cal.ns[ns] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })
+        (window, 'https://app.cal.com/embed/embed.js', 'init');
+      window.Cal('init', { origin: 'https://cal.com' });
+      window.Cal('ui', { theme: 'light', hideEventTypeDetails: false, layout: 'month_view' });
+    } else {
+      cals.forEach(function (el) { el.style.display = 'none'; });
+    }
+    if (c && c.whatsapp) {
+      var a = document.createElement('a');
+      a.href = 'https://wa.me/' + c.whatsapp + '?text=' + encodeURIComponent('Hello Halia, ');
+      a.target = '_blank'; a.rel = 'noopener'; a.setAttribute('aria-label', 'Message us on WhatsApp');
+      a.style.cssText = 'position:fixed;right:22px;bottom:' + (c.id ? '96px' : '22px') + ';z-index:2147483000;width:52px;height:52px;border-radius:50%;background:#1a1a1d;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.18);text-decoration:none';
+      a.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 12 12 0 0 0 4.6 4c.6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.5-.3z"/></svg>';
+      document.body.appendChild(a);
+    }
+  }).catch(function () {});
+})();
+
+// System status in the footer, read from the same checks the status page shows.
+(function () {
+  var bot = document.querySelector('.hf-bot');
+  if (!bot) return;
+  fetch('/status.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+    var ok = d && (d.ok === true || d.status === 'ok' || d.overall === 'ok' ||
+      (Array.isArray(d.checks) && d.checks.length > 0 && d.checks.every(function (c) { return c.ok !== false && c.status !== 'down'; })));
+    var a = document.createElement('a');
+    a.href = '/status';
+    a.style.cssText = 'display:inline-flex;align-items:center;gap:8px;margin-left:18px;color:inherit;text-decoration:none';
+    a.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:' + (ok ? '#7fae9d' : '#b8a56a') + ';display:inline-block"></span>' +
+      (ok ? 'All systems normal' : 'Some systems degraded');
+    bot.appendChild(a);
+  }).catch(function () {});
+})();

@@ -38,6 +38,10 @@ services:
         sync: false
       - key: STRIPE_SEAT_PRICE_ID     # price_… of the £15/month "Additional associate seat" price
         sync: false
+      - key: HALIA_CAL_LINK           # Cal.com booking link, e.g. halia/walkthrough (site shows "Book a walkthrough")
+        sync: false
+      - key: HALIA_WHATSAPP           # WhatsApp sales number with country code, digits only (site shows a wa.me button)
+        sync: false
       - key: HALIA_FREE_SHOPS         # comma-separated tenant keys to comp (e.g. your first client)
         sync: false
       - key: SENTRY_DSN               # error tracking (sentry.io project DSN); idle when unset
