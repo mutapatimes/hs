@@ -26,6 +26,7 @@ function set_transient( $k, $v, $e = 0 ) { $GLOBALS['options'][ 't_' . $k ] = $v
 require __DIR__ . '/../halia/includes/class-halia-connect.php';
 require __DIR__ . '/../halia/includes/class-halia-cart.php';
 require __DIR__ . '/../halia/includes/class-halia-webhooks.php';
+require __DIR__ . '/../halia/includes/class-halia-pages.php';
 
 $fail = 0;
 function check( $name, $ok ) { global $fail; echo ( $ok ? 'ok   ' : 'FAIL ' ) . $name . "\n"; if ( ! $ok ) { $fail++; } }
@@ -45,5 +46,12 @@ check( 'connected() reads the option', Halia_Connect::connected() );
 // webhook ensure is a no-op without WooCommerce classes and never throws
 Halia_Webhooks::ensure( true );
 check( 'webhooks ensure tolerates no WooCommerce', true );
+
+// client pages: only invite and capture paths are ever fetched
+check( 'pages accept invite', Halia_Pages::valid( 'i/abc.DEF-1' ) );
+check( 'pages accept invite ics', Halia_Pages::valid( 'i/abc.ics' ) );
+check( 'pages accept capture check', Halia_Pages::valid( 'c/x4PtofO230wfxiuc/check' ) );
+check( 'pages reject traversal', ! Halia_Pages::valid( '../wp-config.php' ) && ! Halia_Pages::valid( 'i/../x' ) );
+check( 'pages reject other paths', ! Halia_Pages::valid( 'app' ) && ! Halia_Pages::valid( 'v1/seats' ) );
 
 exit( $fail ? 1 : 0 );

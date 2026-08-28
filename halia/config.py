@@ -110,6 +110,9 @@ STRIPE_RETENTION_COUPON = os.environ.get("STRIPE_RETENTION_COUPON") or None
 # A recurring £15/month price for one additional associate seat. When set, the hourly sweep keeps a
 # seat line on every Stripe-billed subscription at quantity = seats beyond the plan's bundle.
 STRIPE_SEAT_PRICE_ID = os.environ.get("STRIPE_SEAT_PRICE_ID") or None
+# A neutral, Halia-owned domain with no marketing site on it, for the pages a client opens
+# (appointment invites, the capture form) when a store has neither the app proxy nor a CNAME.
+HALIA_CLIENT_URL = (os.environ.get("HALIA_CLIENT_URL") or "").strip().rstrip("/")
 # Shopify Billing (the embedded app's Plans screen subscribes via Shopify's own recurring charges,
 # not Stripe). Test mode creates the real approval flow but never charges the merchant — keep it on
 # until the App Store listing is live, then set HALIA_SHOPIFY_BILLING_TEST=false to bill for real.

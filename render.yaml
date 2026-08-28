@@ -38,6 +38,8 @@ services:
         sync: false
       - key: STRIPE_SEAT_PRICE_ID     # price_… of the £15/month "Additional associate seat" price
         sync: false
+      - key: HALIA_CLIENT_URL         # https://<neutral domain> for client-facing pages (invites, capture); blank home page there
+        sync: false
       - key: HALIA_CAL_LINK           # Cal.com booking link, e.g. halia/walkthrough (site shows "Book a walkthrough")
         sync: false
       - key: HALIA_WHATSAPP           # WhatsApp sales number with country code, digits only (site shows a wa.me button)

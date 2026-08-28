@@ -70,7 +70,16 @@ from fastapi.responses import JSONResponse as _JSONResponse  # noqa: E402
 _RL_WINDOW = 60.0
 _RL_MAX = {"r": 120, "w": 30}   # requests per IP per window: reads (GET/HEAD) vs writes
 _RL_HITS: dict = {}
-_RL_PATHS = ("/v1/", "/app", "/c/", "/i/", "/connect", "/subscribe", "/webhooks")
+_RL_PATHS = ("/v1/", "/app", "/c/", "/i/", "/proxy/", "/connect", "/subscribe", "/webhooks")
+
+
+def _rl_key(request) -> str:
+    """Proxied storefront traffic arrives from Shopify's own addresses, so it is keyed by the
+    store instead of the IP; everything else by IP."""
+    ip = request.client.host if request.client else "?"
+    if request.url.path.startswith("/proxy/"):
+        return "shop:" + (request.query_params.get("shop") or ip)
+    return ip
 
 
 def _rate_limited(ip: str, write: bool, now: float | None = None) -> bool:
@@ -96,7 +105,7 @@ async def _rate_limit_mw(request, call_next):
         return await call_next(request)
     path = request.url.path
     if any(path.startswith(p) for p in _RL_PATHS):
-        ip = request.client.host if request.client else "?"
+        ip = _rl_key(request)
         if _rate_limited(ip, request.method not in ("GET", "HEAD")):
             return _JSONResponse({"detail": "Too many requests — please slow down."},
                                  status_code=429, headers={"Retry-After": "60"})
@@ -689,6 +698,8 @@ embedded.register(app)
 content.register(app)
 blog.register(app)
 campaigns.register(app)
+from halia.api import proxy_pages as _proxy_pages  # noqa: E402
+_proxy_pages.register(app)
 catalog.register(app)
 capture.register(app)
 voice.register(app)

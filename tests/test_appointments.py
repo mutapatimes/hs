@@ -129,3 +129,23 @@ def test_invite_link_is_signed_store_voiced_and_carries_no_client_detail(env):
     assert "SUMMARY:Appointment at Maison" in ics.text and "LOCATION:Mount Street" in ics.text
     assert client.get(f"/i/{token[:-3]}xyz").status_code == 404
     assert client.get("/i/garbage").status_code == 404
+
+
+def test_invite_and_capture_serve_on_the_store_domain_through_the_proxy(env, monkeypatch):
+    import halia.config as hcfg
+    from tests.test_catalog import _proxy_sig
+    monkeypatch.setattr(hcfg, "SHOPIFY_API_SECRET", "sekret")
+    monkeypatch.setattr("halia.api.catalog._primary_domain", lambda shop: "maison.com")
+    from halia.api import client_host
+    client_host._CACHE.clear()
+    client, store, sink = env
+    d = client.post("/v1/board/appointment", json={"cid": "c1", "when": _soon(2).isoformat(), "client_name": "Grace"}).json()
+    assert d["links"]["invite"].startswith("https://maison.com/a/catalogue/i/")
+    token = d["links"]["invite"].rsplit("/i/", 1)[1]
+    params = {"shop": SHOP, "path_prefix": "/a/catalogue", "timestamp": "1"}
+    q = "&".join(f"{k}={v}" for k, v in params.items()) + "&signature=" + _proxy_sig(params, "sekret")
+    page = client.get(f"/proxy/catalogue/i/{token}?{q}")
+    assert page.status_code == 200 and 'href="' + token + '.ics"' in page.text and 'href="/i/' not in page.text
+    assert client.get(f"/proxy/catalogue/i/{token}.ics?{q}").headers["content-type"].startswith("text/calendar")
+    assert client.get(f"/proxy/catalogue/i/{token}").status_code == 403
+    client_host._CACHE.clear()

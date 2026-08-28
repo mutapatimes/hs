@@ -493,9 +493,11 @@ def register(app) -> None:
         s["webhook_url"] = f"{base}/webhooks/orders/{token}"
         # The in-store self-capture link (QR till cards); minted on first read like the webhook token.
         from halia.api.capture import _slug_for
+        from halia.api.client_host import client_url, cname_target
         from halia.api.seats import _connect_qr
-        s["capture_url"] = f"{base}/c/{_slug_for(shop)}"
+        s["capture_url"] = client_url(shop, f"c/{_slug_for(shop)}")
         s["capture_qr"] = _connect_qr(s["capture_url"])
+        s["client_cname_target"] = cname_target()
         s["vapid_public"] = notify.vapid_public()
         # The active catalog's public URL, resolved by the {catalog_link} email token.
         from halia.api.catalog import catalog_url_for
@@ -552,6 +554,8 @@ def register(app) -> None:
         data["notify_emails"] = emails
         data["notify_email"] = emails[0] if emails else ""  # back-compat
         shop_store().save_settings(shop, json.dumps(data))
+        from halia.api.client_host import invalidate as _ch_inv
+        _ch_inv(shop)
         cache.evict(shop)  # a changed threshold must re-score on next load
         return {"ok": True}
 

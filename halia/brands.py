@@ -96,3 +96,25 @@ def brand_for_host(host: str | None) -> Brand:
         if token in h:
             return b
     return DEFAULT
+
+
+def is_known_host(host: str | None) -> bool:
+    """True for hosts that should see a Halia-branded front door: the app host, the brand hosts,
+    and local development. A store's CNAME or the neutral client domain is not one."""
+    from halia import config
+    h = (host or "").split(":")[0].strip().lower()
+    if not h or h in ("localhost", "127.0.0.1", "testserver", "0.0.0.0"):
+        return True
+    app_host = (config.HALIA_APP_URL or "").replace("https://", "").replace("http://", "").split("/")[0].lower()
+    if h == app_host:
+        return True
+    for b in BRANDS.values():
+        if h in b.hosts:
+            return True
+    for token, _b in _BUILTIN_TOKENS:
+        if token in h:
+            return True
+    client_host = (config.HALIA_CLIENT_URL or "").replace("https://", "").replace("http://", "").split("/")[0].lower()
+    if client_host and h == client_host:
+        return False
+    return h.endswith(".onrender.com") or h == "haliascore.com" or h.endswith(".haliascore.com")

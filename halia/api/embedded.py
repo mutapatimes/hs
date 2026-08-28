@@ -171,8 +171,13 @@ def register(app) -> None:
             session_token = token_for_request(request)
             shop = verify_session_token(session_token)
         except Exception:
-            # public visitor → the marketing site for whichever brand this host serves
-            return HTMLResponse(_marketing(request.headers.get("host", "")))
+            # public visitor → the marketing site for whichever brand this host serves; a store's
+            # own client domain shows nothing at its root, so a client never meets Halia there.
+            from halia.brands import is_known_host
+            host = request.headers.get("host", "")
+            if not is_known_host(host):
+                return HTMLResponse("<!doctype html><title></title>", headers={"Cache-Control": "no-store"})
+            return HTMLResponse(_marketing(host))
 
         head = _head(shop)
         _note_open(shop)
