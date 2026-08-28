@@ -432,6 +432,39 @@ _DRAFT_SYSTEM = (
 )
 
 
+_LANG_STOPWORDS = {
+    "fr": {"le", "la", "les", "est", "je", "vous", "pour", "avec", "bonjour", "merci", "une", "des", "pas", "nous"},
+    "it": {"il", "la", "che", "per", "con", "sono", "grazie", "buongiorno", "una", "del", "della", "vorrei", "non"},
+    "es": {"el", "la", "que", "por", "con", "gracias", "hola", "una", "del", "para", "quiero", "está", "muy"},
+    "de": {"der", "die", "das", "und", "ich", "nicht", "danke", "hallo", "eine", "mit", "für", "ist", "bitte"},
+    "pt": {"o", "a", "que", "com", "obrigado", "obrigada", "olá", "uma", "para", "não", "você", "está"},
+    "en": {"the", "and", "you", "for", "with", "thanks", "hello", "please", "is", "are", "have", "would", "could"},
+}
+
+
+def _detect_language(thread: list[dict]) -> str:
+    """A cheap guess at the client's language from their turns: stopword hits per language,
+    plus script checks for Arabic, Chinese, Japanese and Cyrillic. 'en' when unsure."""
+    text = " ".join(t.get("text") or "" for t in thread if (t.get("from") or "them") == "them").strip()
+    if not text:
+        return "en"
+    if re.search(r"[\u0600-\u06FF]", text):
+        return "ar"
+    if re.search(r"[\u4E00-\u9FFF]", text):
+        return "zh"
+    if re.search(r"[\u3040-\u30FF]", text):
+        return "ja"
+    if re.search(r"[\u0400-\u04FF]", text):
+        return "ru"
+    words = re.findall(r"[a-zà-ÿ']+", text.lower())
+    best, hits = "en", 0
+    for lang, stop in _LANG_STOPWORDS.items():
+        n = sum(1 for w in words if w in stop)
+        if n > hits:
+            best, hits = lang, n
+    return best if hits else "en"
+
+
 def _clean_thread(raw: Any) -> list[dict]:
     """The last few turns of the on-screen conversation, normalised. Capped hard, both to bound
     LLM cost and to keep the model focused on the live exchange. Read in-flight, never stored."""
@@ -658,7 +691,11 @@ _BRIEF_SYSTEM = (
     "actions: up to four concrete next moves, most useful first, each with a short label and a one "
     "line reason. Only suggest an action the context actually supports. Use kind 'advice' for "
     "anything that is not one of the wired actions.\n\n"
-    "urgency: how soon the associate should act."
+    "urgency: how soon the associate should act.\n\n"
+    "language: the BCP-47 code of the language the client writes in (en, fr, it, ar, zh...). Write "
+    "the reply in that language even if the house language differs; the house language applies only "
+    "when the client writes in it or there is no client message. english: when the reply is not in "
+    "English, a plain English rendering of it for the associate; otherwise an empty string."
 )
 
 _BRIEF_SCHEMA = {
@@ -667,6 +704,8 @@ _BRIEF_SCHEMA = {
         "summary": {"type": "string"},
         "reply": {"type": "string"},
         "urgency": {"type": "string", "enum": ["now", "today", "this week", "no rush"]},
+        "language": {"type": "string"},
+        "english": {"type": "string"},
         "actions": {
             "type": "array",
             "items": {
@@ -683,7 +722,7 @@ _BRIEF_SCHEMA = {
             },
         },
     },
-    "required": ["summary", "reply", "urgency", "actions"],
+    "required": ["summary", "reply", "urgency", "language", "english", "actions"],
     "additionalProperties": False,
 }
 
@@ -1176,12 +1215,15 @@ def register(app) -> None:
             out = {"summary": _summary_of(resp, last_contact),
                    "reply": _fallback_draft(shop, resp),
                    "urgency": "today" if resp.get("play") == "sleeping" else "no rush",
+                   "language": _detect_language(thread), "english": "",
                    "actions": _suggested_actions(resp, campaign, last_contact)}
         data.record_activity(shop, "extension_brief")
         return {
             "summary": out.get("summary") or "",
             "reply": out.get("reply") or "",
             "urgency": out.get("urgency") or "",
+            "language": (out.get("language") or "en").strip().lower()[:8],
+            "english": (out.get("english") or "").strip() or None,
             "actions": [a for a in (out.get("actions") or []) if a.get("label")][:4],
             "source": source,
             "found": bool(resp.get("found")),

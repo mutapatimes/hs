@@ -81,6 +81,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var searchQuery = ""              // the live product-search text, typed on the in-keyboard keys
     private var searchWork: DispatchWorkItem? // debounces live search as you type
     private var draftText = ""
+    private var draftEnglish: String?                 // the reply in English when it is in the client's language
+    private var briefSummary: String?                 // one line on where things stand (brief only)
+    private var briefUrgency: String?
+    private var briefActions: [HaliaAPI.BriefAction] = []
     private var lastThread: [[String: String]]?
     private var cartUrl: String?         // the client's open basket (recovery link), if any
     private var cartCount: Int?
@@ -207,7 +211,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         let showTemplateList = (mode == .templates && audience == .client)
         let showGrid = ((mode == .products || mode == .saved) && !products.isEmpty)
         draftView.isHidden = !showDraft
-        draftView.text = draftText
+        draftView.attributedText = draftAttributed()
         if showDraft && !draftShownAnimated {
             draftShownAnimated = true
             if !UIAccessibility.isReduceMotionEnabled {
@@ -468,6 +472,22 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         return out
     }
 
+    /// The draft as shown: an optional muted summary line above, the reply, and when the reply is
+    /// in the client's language, its English underneath. Only the reply is ever inserted.
+    private func draftAttributed() -> NSAttributedString {
+        let body: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 15), .foregroundColor: UIColor.label]
+        let muted: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 13), .foregroundColor: UIColor.secondaryLabel]
+        let out = NSMutableAttributedString()
+        if let sum = briefSummary, !sum.isEmpty {
+            out.append(NSAttributedString(string: sum + "\n\n", attributes: muted))
+        }
+        out.append(NSAttributedString(string: draftText, attributes: body))
+        if let en = draftEnglish, !en.isEmpty {
+            out.append(NSAttributedString(string: "\n\nIn English: " + en, attributes: muted))
+        }
+        return out
+    }
+
     // MARK: - Draft (personal message, previewed before it goes in)
 
     private func startDraft(instruction: String, thread: [[String: String]]?,
@@ -482,6 +502,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                                                            instruction: instruction, thread: thread)
                 if let n = res.name, !n.isEmpty { clientName = n }
                 if let d = res.draft, !d.isEmpty {
+                    clearBrief()
                     draftText = handoff ? scrubInternal(d) : d
                     lastThread = thread; mode = .draft; setStatus(nil)
                 } else { setStatus("No draft came back") }
@@ -504,8 +525,62 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         guard hasFullAccess else { flash("Turn on Full Access in Settings"); return }
         let msg = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !msg.isEmpty else { flash("Copy the client's message, then tap Reply"); return }
-        startDraft(instruction: "Reply warmly and personally to their latest message.",
-                   thread: [["from": "them", "text": msg]])
+        let thread = [["from": "them", "text": msg]]
+        guard let ref = currentRef, !busy else {
+            startDraft(instruction: "Reply warmly and personally to their latest message.", thread: thread)
+            return
+        }
+        busy = true; setStatus("Reading…", loading: true)
+        Task {
+            do {
+                let res = try await HaliaAPI.current.brief(ref, channel: "whatsapp", thread: thread)
+                if let n = res.name, !n.isEmpty { clientName = n }
+                if let r = res.reply, !r.isEmpty {
+                    draftText = r; draftEnglish = res.english
+                    briefSummary = res.summary; briefUrgency = res.urgency; briefActions = res.actions ?? []
+                    lastThread = thread; pendingCartUrl = nil; draftIsHandoff = false
+                    mode = .draft; setStatus(nil)
+                } else { setStatus("No reply came back") }
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
+
+    private func clearBrief() {
+        briefSummary = nil; briefUrgency = nil; briefActions = []; draftEnglish = nil
+    }
+
+    /// The brief's next moves, mapped onto what the keyboard can already do.
+    private func briefPills() -> [UIButton] {
+        var out: [UIButton] = []
+        if let u = briefUrgency, !u.isEmpty { out.append(togglePill(u.capitalized, on: true) {}) }
+        var seen = Set<String>()
+        for a in briefActions {
+            let kind = a.kind ?? "", label = (a.label ?? "").lowercased()
+            var pill: UIButton?
+            if kind == "contacted", clientCid != nil, seen.insert("contacted").inserted {
+                pill = pillButton("Mark contacted", filled: false) { [weak self] in self?.markContacted() }
+            } else if kind == "catalogue", seen.insert("catalogue").inserted {
+                pill = pillButton("Send catalogue", filled: false) { [weak self] in self?.suggestPieces() }
+            } else if kind == "pipeline", let cid = clientCid, seen.insert("pipeline").inserted {
+                let note = a.label ?? "Follow up"
+                pill = pillButton("Follow up", filled: false) { [weak self] in self?.followUp(cid: cid, note: note) }
+            } else if kind == "advice", label.contains("basket") || label.contains("checkout"), cartUrl != nil,
+                      seen.insert("basket").inserted {
+                pill = pillButton("Nudge basket", filled: false) { [weak self] in self?.nudgeBasket() }
+            }
+            if let p = pill { out.append(p) }
+        }
+        return out
+    }
+
+    private func followUp(cid: String, note: String) {
+        Task {
+            do { try await HaliaAPI.current.captureFollowUp(customerId: cid, note: note); flash("Follow-up set") }
+            catch { flash("Could not reach Halia") }
+        }
     }
 
     private func refine(_ modifier: String) {
@@ -519,7 +594,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         var text = draftText
         if let url = pendingCartUrl, !url.isEmpty { text += "\n\n" + url }   // a basket nudge carries the recovery link
         insertUndoable(text)
-        mode = .templates; draftText = ""; lastThread = nil; pendingCartUrl = nil; reload()
+        mode = .templates; draftText = ""; lastThread = nil; pendingCartUrl = nil; clearBrief(); reload()
     }
 
     // MARK: - Suggestions
@@ -576,6 +651,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     private func backToTemplates() {
+        clearBrief()
         mode = .templates; suggestions = []; products = []; draftText = ""; pendingCartUrl = nil
         searchQuery = ""; searchWork?.cancel(); reload()
     }
@@ -737,6 +813,13 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func rebuildChips() {
         chipsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        if mode == .draft {                                      // a brief shows its moves here
+            let pills = briefPills()
+            chipsHeight.constant = pills.isEmpty ? 0 : 44
+            chipsScroll.isHidden = pills.isEmpty
+            pills.forEach { chipsStack.addArrangedSubview($0) }
+            return
+        }
         let show = (mode == .templates && audience == .client)   // categories are for client templates
         chipsHeight.constant = show ? 44 : 0
         chipsScroll.isHidden = !show

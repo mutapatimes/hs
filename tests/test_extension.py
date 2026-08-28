@@ -470,7 +470,7 @@ def _brief(client, ext, body):
 
 _AI_BRIEF = {"summary": "She asked about the tan coat and has gone quiet since March.",
              "reply": "Hello Grace, the tan coat is back in your size.",
-             "urgency": "today",
+             "urgency": "today", "language": "en", "english": "",
              "actions": [{"kind": "pipeline", "label": "Add to your list", "why": "Proven, quiet."},
                          {"kind": "advice", "label": "Mention the trunk show", "why": "She attends."}]}
 
@@ -502,7 +502,8 @@ def test_brief_uses_ai_and_reads_the_thread(env, monkeypatch):
     assert d["read_thread"] == 2 and d["found"] is True and d["grade"] == "A*"
     # the client's standing and both sides of the conversation reach the prompt
     assert "Goldman Sachs" in seen["user"] and "tan coat" in seen["user"] and "Let me check" in seen["user"]
-    assert seen["schema"]["required"] == ["summary", "reply", "urgency", "actions"]
+    assert seen["schema"]["required"] == ["summary", "reply", "urgency", "language", "english", "actions"]
+    assert d["language"] == "en" and d["english"] is None
     assert store.shop_metric(SHOP, "extension_brief_ai") == 1
 
 
@@ -870,3 +871,38 @@ def test_polish_respects_weekly_cap(env, monkeypatch):
     assert _polish(client, ext, {"text": "hello"}).json()["source"] == "ai"
     assert _polish(client, ext, {"text": "hello"}).json()["source"] == "rules"
     assert called["n"] == 1
+
+
+# ── the client's language ────────────────────────────────────────────────────
+def test_brief_returns_the_clients_language_and_an_english_gloss(env, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: True)
+    monkeypatch.setattr(llm, "structured", lambda *a, **k: {**_AI_BRIEF, "reply": "Buongiorno Grace, il cappotto è tornato.",
+                                                            "language": "it", "english": "Good morning Grace, the coat is back."})
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = client.post("/v1/extension/brief", json={"email": "grace@x.com", "thread": [{"from": "them", "text": "Il cappotto è tornato?"}]},
+                    headers={"X-Halia-Ext-Token": ext}).json()
+    assert d["language"] == "it" and d["english"] == "Good morning Grace, the coat is back."
+
+
+def test_brief_fallback_guesses_the_language(env, monkeypatch):
+    from halia import llm
+    monkeypatch.setattr(llm, "available", lambda: False)
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    d = client.post("/v1/extension/brief", json={"email": "grace@x.com",
+                                                  "thread": [{"from": "them", "text": "Bonjour, je voudrais le manteau pour vendredi merci"}]},
+                    headers={"X-Halia-Ext-Token": ext}).json()
+    assert d["language"] == "fr" and d["english"] is None
+
+
+def test_detect_language_heuristic():
+    dl = extension._detect_language
+    assert dl([{"from": "them", "text": "Hello, could you hold the coat for me please"}]) == "en"
+    assert dl([{"from": "them", "text": "Grazie, vorrei il cappotto per sabato"}]) == "it"
+    assert dl([{"from": "them", "text": "مرحبا، هل المعطف متوفر"}]) == "ar"
+    assert dl([{"from": "them", "text": "请问外套有货吗"}]) == "zh"
+    assert dl([]) == "en"
