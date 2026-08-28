@@ -335,6 +335,16 @@
   /* solutions */
   .sol-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:52px;gap:30px;flex-wrap:wrap}
   .sol-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  /* journal */
+  .jhead{display:flex;align-items:baseline;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:36px}
+  .jgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .jcard{display:block;background:var(--bg);border:1px solid var(--line);color:var(--ink);text-decoration:none;overflow:hidden}
+  .jcard img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;filter:saturate(.92)}
+  .jin{padding:22px 24px 26px}
+  .jmeta{font:12px var(--sans);color:var(--mute);letter-spacing:.02em;margin-bottom:10px}
+  .jcard h3{font-family:var(--serif);font-weight:400;font-size:22px;line-height:1.25;margin:0 0 10px}
+  .jcard p{font-size:14px;line-height:1.55;color:var(--mute);margin:0}
+  .jcard:hover h3{text-decoration:underline;text-underline-offset:4px}
   .sol-carousel{overflow:hidden}
   .sol-track{display:flex;gap:18px;will-change:transform}
   .sol{flex:0 0 clamp(232px,26vw,300px);position:relative;border-radius:0;overflow:hidden;aspect-ratio:4/5;display:block;text-decoration:none}
@@ -370,7 +380,7 @@
 
   @media(max-width:900px){
     .wrap{padding:0 24px}
-    .split,.sol-grid,.dept-grid,.sec-points{grid-template-columns:1fr}
+    .split,.sol-grid,.dept-grid,.sec-points,.jgrid{grid-template-columns:1fr}
     .split.rev .media{order:0}.sgrid,.sol-grid{grid-template-columns:1fr}
     .dept-grid,.sol-grid{grid-template-columns:1fr 1fr}
     /* flow the hero from the top instead of splitting top/bottom, so the buttons
@@ -719,6 +729,14 @@
  <div class="media pxmedia reveal d1"><img src="img/we_keep_nothing.jpg" alt="We keep nothing" loading="lazy" data-parallax></div>
  </div>
 </div></section>
+
+<!--journal:start-->
+<!-- JOURNAL (latest posts, filled at serve time) -->
+<section id="journal" class="pad light"><div class="wrap">
+ <div class="jhead reveal"><h2 class="h2">The Journal</h2><a class="btn ghost" href="/blog">All posts <span class="arrow">→</span></a></div>
+ <div class="jgrid"><!--halia:journal--></div>
+</div></section>
+<!--journal:end-->
 
 <!-- FINAL / DEMO -->
 <section id="demo" class="pad final" style="overflow:hidden">
