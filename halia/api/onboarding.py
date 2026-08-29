@@ -1962,10 +1962,12 @@ def register(app) -> None:
             # The hosted dashboard (merchant's own URL) gets the support chat bubble; the
             # Shopify-embedded view stays clean — a floating widget fights the admin chrome.
             body = with_chat_widget(render_payload(entry["payload"], head_extra=_hosted_head(label)))
-        except Exception:
+        except Exception as exc:
             traceback.print_exc()
+            from halia.api.embedded import _error_reason
             return HTMLResponse(_page("Halia", "<h1>Couldn't load your scores</h1>"
-                                      "<p class=sub>Hit refresh in a moment.</p>"), 500)
+                                      "<p class=sub>Refresh in a moment.</p>"
+                                      f"<p class=sub style='color:#8e1f0b;font-family:ui-monospace,Menlo,monospace;font-size:13px'>{_error_reason(exc)}</p>"), 500)
         resp = HTMLResponse(body)
         resp.headers["Cache-Control"] = "no-store"
         return resp
