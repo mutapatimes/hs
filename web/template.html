@@ -4036,7 +4036,7 @@ function openSettings(page){
           <div style="font:12px system-ui;color:#8a8a8a;margin-top:10px">Alerts use the recipients and grades from the Alerts page. Captures made by an associate in the app stay quiet; the associate already sees the grade.</div>
         </div>
 
-        </div><!-- /integrations -->
+        </div>
 
         <div class="spage" data-page="scoring" style="display:${spage==='scoring'?'':'none'}">
         <div style="${C}">
@@ -4075,7 +4075,7 @@ function openSettings(page){
           <div id="fbResult" style="margin-top:14px"></div>
         </div>
 
-        </div><!-- /scoring -->
+        </div>
 
         <div class="spage" data-page="alerts" style="display:${spage==='alerts'?'':'none'}">
         <div style="${C}">
@@ -4118,7 +4118,7 @@ function openSettings(page){
           ${sl?`<div style="margin-top:12px;display:flex;gap:16px"><button id="setSlackTest" style="background:none;border:none;color:#1f564a;font:600 13px system-ui;cursor:pointer;padding:0">Send test alert</button><button id="setSlackDisc" style="background:none;border:none;color:#8e1f0b;font:600 13px system-ui;cursor:pointer;padding:0">Disconnect Slack</button></div>`:""}
         </div>
 
-        </div><!-- /alerts -->
+        </div>
 
         <div class="spage" data-page="templates" style="display:${spage==='templates'?'':'none'}">
         <div style="${C}">
@@ -4196,14 +4196,14 @@ function openSettings(page){
           </div>
         </div>
 
-        </div><!-- /templates -->
+        </div>
 
         <div class="spage" data-page="billing" style="display:${spage==='billing'?'':'none'}">
         <div style="${C}">
           <div style="${H}">Billing</div>
           <div id="billingBox">${haliaLoader("Loading")}</div>
         </div>
-        </div><!-- /billing -->
+        </div>
 
         <div class="spage" data-page="privacy" style="display:${spage==='privacy'?'':'none'}">
         <div style="${C}">
@@ -4221,7 +4221,7 @@ function openSettings(page){
           <button id="delAccount" disabled style="background:var(--danger);color:#fff;border:none;border-radius:8px;padding:11px 20px;font:600 13px ${SF};cursor:pointer;opacity:.5">Delete account</button>
         </div>
 
-        </div><!-- /privacy -->
+        </div>
 
         <div class="spage" data-page="support" style="display:${spage==='support'?'':'none'}">
         <div style="${C}">
@@ -4251,7 +4251,7 @@ function openSettings(page){
             </div>
           </div>
         </div>
-        </div><!-- /support -->
+        </div>
 
         <div id="saveBar" style="display:${['scoring','alerts','templates'].includes(spage)?'':'none'};position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:14px 0 18px;margin-top:10px">
           <button id="saveSettings" style="${BP}">Save changes</button>
@@ -4413,8 +4413,9 @@ function openSettings(page){
         <h1>${store}</h1>
         <p>Leave your details and we&rsquo;ll look after you.</p>
         ${qr?`<img src="${qr}">`:`<div>${url}</div>`}
-      </div><script>setTimeout(function(){window.print();},300)<\/script></body></html>`);
+      </div></body></html>`);
       w.document.close();
+      setTimeout(function(){ try{ w.focus(); w.print(); }catch(_){} }, 400);
     };
     const extCopy=document.getElementById("setExtCopy"); if(extCopy) extCopy.onclick=()=>{
       const t=(document.getElementById("setExtTok")||{}).textContent||"";
