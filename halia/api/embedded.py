@@ -144,7 +144,7 @@ def _pending_payload() -> dict:
     return {"segments": {}, "data": [], "orders": [], "landscape": {}, "platform": "shopify",
             "stat_scored": "", "stat_latent": "", "stat_count": "", "stat_avgspend": "",
             "stat_toptier": "", "full_history": True, "masked": False, "locked_count": 0,
-            "locked_latent": "", "sync_running": True, "order_window": None}
+            "locked_latent": "", "sync_running": True, "order_window": None, "sync_diag": {}}
 
 
 def _error_page(head: str) -> str:

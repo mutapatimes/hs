@@ -1282,6 +1282,7 @@ function playOf(c){
 }
 const SYNC_RUNNING = __SYNC_RUNNING__;   // true when the embedded entry kicked a background score
 const ORDER_WINDOW = __ORDER_WINDOW__;   // 60 when Shopify shares only recent orders (scope pending); 0 otherwise
+const SYNC_DIAG = __SYNC_DIAG__;         // what Shopify shared on the last empty sync: orders_recent, guest_orders, customers
 const PLATFORM = "__PLATFORM__";         // shopify | woocommerce | bigcommerce | centra | scayle
 const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce:"BigCommerce",centra:"Centra",scayle:"SCAYLE"})[PLATFORM] || "your store";
 // Embedded (Shopify admin) only: keep the admin sidebar nav (ui-nav-menu) and the app in sync
@@ -5174,10 +5175,15 @@ function showFirstRun(){
     wrap.appendChild(box);
     const up=document.getElementById("firstRunUpgrade");
     if(up) up.onclick=upgradePrompt;
-  } else if(ORDER_WINDOW && !SYNC_RUNNING){
+  } else if((ORDER_WINDOW || (SYNC_DIAG&&SYNC_DIAG.orders_recent!=null)) && !SYNC_RUNNING){
+    const dg=SYNC_DIAG||{}, n=dg.orders_recent||0, g=dg.guest_orders||0;
+    let title="Shopify returned no orders", body="";
+    if(n>0 && g>=n){ title="Orders without a customer"; body=`Shopify shared ${n} order${n===1?"":"s"} from the last 60 days, and none is attached to a customer. Halia scores customers, so an order needs one: add the customer on each order, or place orders through the storefront.`; }
+    else if(n>0){ title="Orders came through, nothing scored"; body=`Shopify shared ${n} order${n===1?"":"s"} from the last 60 days, ${n-g} with a customer, and none could be scored. The last sync error, if any, is below.`; }
+    else { body=`Halia scores from order history.${ORDER_WINDOW?` Until Shopify approves full order history for this app it shares only the last ${ORDER_WINDOW} days, and`:""} this store has no orders in the last 60 days${dg.customers!=null?` (${dg.customers} customer${dg.customers===1?"":"s"} on record)`:""}.`; }
     box.innerHTML=shell(`
-      <h2 style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;font-weight:650;font-size:16px;letter-spacing:-.01em">Shopify returned no orders</h2>
-      <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">Halia scores from order history. Until Shopify approves full order history for this app it shares only the last ${ORDER_WINDOW} days, and this store has no orders in that window.</p>
+      <h2 style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;font-weight:650;font-size:16px;letter-spacing:-.01em">${title}</h2>
+      <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">${body}</p>
       <button id="firstRunSync" style="margin-top:22px;padding:11px 22px;border-radius:8px;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">Re-score</button>
       <p id="firstRunErr" style="color:#8e1f0b;font-size:12.5px;margin-top:14px;display:none"></p>`);
     wrap.appendChild(box);

@@ -38,13 +38,23 @@ def test_render_injects_the_order_window():
     assert "const ORDER_WINDOW = 60" in render_payload({**_payload(), "order_window": 60})
 
 
-def test_order_window_reads_the_granted_scopes(monkeypatch):
+def test_shopify_diagnosis_reads_scopes_orders_and_guests(monkeypatch):
     from halia.api import data
     from scoring import shopify_fetch
     monkeypatch.setattr(shopify_fetch, "http_transport", lambda shop, token: None)
-    monkeypatch.setattr(shopify_fetch, "_run", lambda t, q, v, r: {"currentAppInstallation": {"accessScopes": [{"handle": "read_orders"}]}})
+    monkeypatch.setattr(shopify_fetch, "_run", lambda t, q, v, r: {
+        "currentAppInstallation": {"accessScopes": [{"handle": "read_orders"}]},
+        "customersCount": {"count": 12},
+        "orders": {"nodes": [{"id": "1", "customer": None}, {"id": "2", "customer": None}, {"id": "3", "customer": {"id": "c"}}]}})
+    d = data.shopify_diagnosis("s.myshopify.com", "tok")
+    assert d == {"window": 60, "orders_recent": 3, "guest_orders": 2, "customers": 12}
     assert data.order_window_days("s.myshopify.com", "tok") == 60
-    monkeypatch.setattr(shopify_fetch, "_run", lambda t, q, v, r: {"currentAppInstallation": {"accessScopes": [{"handle": "read_orders"}, {"handle": "read_all_orders"}]}})
+    monkeypatch.setattr(shopify_fetch, "_run", lambda t, q, v, r: {"currentAppInstallation": {"accessScopes": [{"handle": "read_all_orders"}]}})
     assert data.order_window_days("s.myshopify.com", "tok") is None
     monkeypatch.setattr(shopify_fetch, "_run", lambda t, q, v, r: (_ for _ in ()).throw(RuntimeError("down")))
-    assert data.order_window_days("s.myshopify.com", "tok") is None
+    assert data.shopify_diagnosis("s.myshopify.com", "tok")["window"] is None
+
+
+def test_render_injects_the_diagnosis():
+    assert 'const SYNC_DIAG = {}' in render_payload(_payload())
+    assert '"guest_orders": 8' in render_payload({**_payload(), "sync_diag": {"orders_recent": 8, "guest_orders": 8}})

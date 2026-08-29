@@ -172,7 +172,7 @@ def _shopify_carts(shop: str, token: str) -> dict:
         return {}
 
 
-def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None, order_window=None) -> dict:
+def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None, order_window=None, sync_diag=None) -> dict:
     """Score frame + orders -> RAM cache entry (never persisted). Shared by all sources.
 
     ``carts`` (CUST_ID -> open basket) is Shopify-only for now; other sources pass None.
@@ -207,6 +207,7 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None, 
         from halia.storeconcierge.clienteling import clienteling_payload
         payload["desk"] = clienteling_payload(scored)
     payload["order_window"] = order_window   # 60 when Shopify only shares recent orders (scope not granted)
+    payload["sync_diag"] = sync_diag or {}
     cache.set(shop, results, payload, _order_index(orders))
     entry = cache.get(shop)
 
@@ -227,28 +228,43 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None, 
     return entry
 
 
-def order_window_days(shop: str, token: str) -> int | None:
-    """60 when the app lacks read_all_orders (Shopify then shares only the last 60 days of orders,
-    so a book whose orders are older scores as empty); None when full history is available or the
-    check cannot be made. One small Admin API call, best-effort."""
+def shopify_diagnosis(shop: str, token: str) -> dict:
+    """What Shopify is actually sharing with this app, for the empty-book screen: whether the
+    read_all_orders scope is granted (without it only the last 60 days of orders are visible),
+    how many orders exist in that window, and how many of those carry no customer record (an
+    order without a customer cannot be scored). One small Admin API call, best-effort."""
+    from datetime import datetime, timedelta, timezone
+    out = {"window": None, "orders_recent": None, "guest_orders": None, "customers": None}
     try:
         from scoring.shopify_fetch import _run, http_transport
-        d = _run(http_transport(shop, token),
-                 "{ currentAppInstallation { accessScopes { handle } } }", {}, 2)
+        since = (datetime.now(timezone.utc) - timedelta(days=60)).strftime("%Y-%m-%d")
+        q = ("{ currentAppInstallation { accessScopes { handle } } "
+             "customersCount { count } "
+             f'orders(first: 50, query: "created_at:>={since}") {{ nodes {{ id customer {{ id }} }} }} }}')
+        d = _run(http_transport(shop, token), q, {}, 2)
         handles = {x.get("handle") for x in ((d.get("currentAppInstallation") or {}).get("accessScopes") or [])}
         if handles and "read_all_orders" not in handles:
-            return 60
+            out["window"] = 60
+        nodes = ((d.get("orders") or {}).get("nodes")) or []
+        out["orders_recent"] = len(nodes)
+        out["guest_orders"] = sum(1 for n in nodes if not n.get("customer"))
+        out["customers"] = ((d.get("customersCount") or {}).get("count"))
     except Exception:  # noqa: BLE001
-        return None
-    return None
+        pass
+    return out
+
+
+def order_window_days(shop: str, token: str) -> int | None:
+    return shopify_diagnosis(shop, token).get("window")
 
 
 def sync_shop(shop: str, token: str) -> dict:
     """Pull → score → cache in RAM (never persisted). Returns the cache entry."""
     prev = cache.get(shop)   # the pre-sync entry: the baseline the tag auto-push diffs against
     scored, orders = score_shop(shop, token)
+    diag = shopify_diagnosis(shop, token) if len(scored) == 0 else {"window": None}
     entry = _finalize(shop, scored, orders, carts=_shopify_carts(shop, token),
-                      order_window=order_window_days(shop, token))
+                      order_window=diag.get("window"), sync_diag=diag)
     # Shopify Flow integration: opt-in, best-effort write-back of grade/play tags, so the
     # merchant's Flow automations fire the moment a play is detected. Never fails the sync.
     from halia.api.shopify_push import maybe_auto_push
