@@ -147,14 +147,29 @@ def _pending_payload() -> dict:
             "locked_latent": "", "sync_running": True, "order_window": None, "sync_diag": {}}
 
 
-def _error_page(head: str) -> str:
-    # Generic — never echoes exception text (which could contain customer data).
+def _error_reason(exc: BaseException) -> str:
+    """A safe one-liner for the merchant: the failure's type, plus the message when it is one of
+    our own or Shopify's (never a stack, never customer data)."""
+    import html as _html
+    from fastapi import HTTPException as _HTTPExc
+    kind = type(exc).__name__
+    detail = ""
+    if isinstance(exc, _HTTPExc):
+        detail = str(exc.detail)
+    elif kind in ("ShopifyAuthError", "ShopifyError"):
+        detail = str(exc)
+    return _html.escape((kind + (": " + detail if detail else ""))[:240])
+
+
+def _error_page(head: str, why: str = "") -> str:
     return (
         "<!doctype html><html><head>" + head + "</head>"
         "<body style='font:15px system-ui;padding:40px;color:#1c1b18'>"
         "<h2>Couldn't load your scores</h2>"
-        "<p style='color:#6b675e;max-width:540px'>Halia hit a snag fetching from Shopify — "
-        "usually transient. Hit <b>Refresh scores</b> (top right) to try again.</p></body></html>"
+        "<p style='color:#6b675e;max-width:540px'>Halia could not fetch from Shopify just now. "
+        "Press <b>Refresh scores</b> (top right) to try again.</p>"
+        + (f"<p style='color:#8e1f0b;font:13px ui-monospace,Menlo,monospace;max-width:640px'>{why}</p>" if why else "")
+        + "</body></html>"
     )
 
 
@@ -211,7 +226,7 @@ def register(app) -> None:
             print(f"[halia] dashboard load failed for {shop}: "
                   f"{type(exc).__module__}.{type(exc).__name__}")
             traceback.print_exc()  # stack only — no customer payloads are logged
-            body = _error_page(head)
+            body = _error_page(head, _error_reason(exc))
 
         resp = HTMLResponse(body)
         resp.headers["Content-Security-Policy"] = _csp(shop)
