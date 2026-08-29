@@ -172,7 +172,7 @@ def _shopify_carts(shop: str, token: str) -> dict:
         return {}
 
 
-def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None) -> dict:
+def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None, order_window=None) -> dict:
     """Score frame + orders -> RAM cache entry (never persisted). Shared by all sources.
 
     ``carts`` (CUST_ID -> open basket) is Shopify-only for now; other sources pass None.
@@ -206,6 +206,7 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None) 
     if s.get("brand") == "storeconcierge":
         from halia.storeconcierge.clienteling import clienteling_payload
         payload["desk"] = clienteling_payload(scored)
+    payload["order_window"] = order_window   # 60 when Shopify only shares recent orders (scope not granted)
     cache.set(shop, results, payload, _order_index(orders))
     entry = cache.get(shop)
 
@@ -226,11 +227,28 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None) 
     return entry
 
 
+def order_window_days(shop: str, token: str) -> int | None:
+    """60 when the app lacks read_all_orders (Shopify then shares only the last 60 days of orders,
+    so a book whose orders are older scores as empty); None when full history is available or the
+    check cannot be made. One small Admin API call, best-effort."""
+    try:
+        from scoring.shopify_fetch import _run, http_transport
+        d = _run(http_transport(shop, token),
+                 "{ currentAppInstallation { accessScopes { handle } } }", {}, 2)
+        handles = {x.get("handle") for x in ((d.get("currentAppInstallation") or {}).get("accessScopes") or [])}
+        if handles and "read_all_orders" not in handles:
+            return 60
+    except Exception:  # noqa: BLE001
+        return None
+    return None
+
+
 def sync_shop(shop: str, token: str) -> dict:
     """Pull → score → cache in RAM (never persisted). Returns the cache entry."""
     prev = cache.get(shop)   # the pre-sync entry: the baseline the tag auto-push diffs against
     scored, orders = score_shop(shop, token)
-    entry = _finalize(shop, scored, orders, carts=_shopify_carts(shop, token))
+    entry = _finalize(shop, scored, orders, carts=_shopify_carts(shop, token),
+                      order_window=order_window_days(shop, token))
     # Shopify Flow integration: opt-in, best-effort write-back of grade/play tags, so the
     # merchant's Flow automations fire the moment a play is detected. Never fails the sync.
     from halia.api.shopify_push import maybe_auto_push

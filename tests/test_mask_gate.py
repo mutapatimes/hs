@@ -31,3 +31,20 @@ def test_mask_withholds_identity_and_evidence_but_keeps_the_numbers():
 def test_render_injects_the_masked_flag():
     assert "const MASKED = false" in render_payload(_payload())
     assert "const MASKED = true" in render_payload(mask_payload(_payload()))
+
+
+def test_render_injects_the_order_window():
+    assert "const ORDER_WINDOW = 0" in render_payload(_payload())
+    assert "const ORDER_WINDOW = 60" in render_payload({**_payload(), "order_window": 60})
+
+
+def test_order_window_reads_the_granted_scopes(monkeypatch):
+    from halia.api import data
+    from scoring import shopify_fetch
+    monkeypatch.setattr(shopify_fetch, "http_transport", lambda shop, token: None)
+    monkeypatch.setattr(shopify_fetch, "_run", lambda t, q, v, r: {"currentAppInstallation": {"accessScopes": [{"handle": "read_orders"}]}})
+    assert data.order_window_days("s.myshopify.com", "tok") == 60
+    monkeypatch.setattr(shopify_fetch, "_run", lambda t, q, v, r: {"currentAppInstallation": {"accessScopes": [{"handle": "read_orders"}, {"handle": "read_all_orders"}]}})
+    assert data.order_window_days("s.myshopify.com", "tok") is None
+    monkeypatch.setattr(shopify_fetch, "_run", lambda t, q, v, r: (_ for _ in ()).throw(RuntimeError("down")))
+    assert data.order_window_days("s.myshopify.com", "tok") is None

@@ -1281,6 +1281,7 @@ function playOf(c){
   return "";
 }
 const SYNC_RUNNING = __SYNC_RUNNING__;   // true when the embedded entry kicked a background score
+const ORDER_WINDOW = __ORDER_WINDOW__;   // 60 when Shopify shares only recent orders (scope pending); 0 otherwise
 const PLATFORM = "__PLATFORM__";         // shopify | woocommerce | bigcommerce | centra | scayle
 const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce:"BigCommerce",centra:"Centra",scayle:"SCAYLE"})[PLATFORM] || "your store";
 // Embedded (Shopify admin) only: keep the admin sidebar nav (ui-nav-menu) and the app in sync
@@ -5153,9 +5154,8 @@ function catActivate(id){fetch("/v1/catalog/"+id+"/active",{method:"POST"}).then
 // with data, so this branch is embedded-app only.)
 function showFirstRun(){
   const wrap=document.querySelector(".wrap");
-  const views=document.querySelector(".views"), stats=document.querySelector(".stats");
-  if(views) views.style.display="none";
-  if(stats) stats.style.display="none";
+  const stats=document.querySelector(".stats");
+  if(stats) stats.style.display="none";          // the tab row stays: Orders and Settings still work
   ["viewOverview","viewClients","viewOrders","viewMap","viewBoard","viewCatalogs"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
   // Two very different empty states share this screen: a genuine first run (never scored), and a
   // scored tenant whose clients are all held back by the 30-day paywall. Do not tell someone who
@@ -5173,13 +5173,25 @@ function showFirstRun(){
     wrap.appendChild(box);
     const up=document.getElementById("firstRunUpgrade");
     if(up) up.onclick=upgradePrompt;
+  } else if(ORDER_WINDOW && !SYNC_RUNNING){
+    box.innerHTML=shell(`
+      <h2 style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;font-weight:650;font-size:16px;letter-spacing:-.01em">Shopify returned no orders</h2>
+      <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">Halia scores from order history. Until Shopify approves full order history for this app it shares only the last ${ORDER_WINDOW} days, and this store has no orders in that window.</p>
+      <button id="firstRunSync" style="margin-top:22px;padding:11px 22px;border-radius:8px;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">Re-score</button>
+      <p id="firstRunErr" style="color:#8e1f0b;font-size:12.5px;margin-top:14px;display:none"></p>`);
+    wrap.appendChild(box);
+    const btn=document.getElementById("firstRunSync");
+    if(btn) btn.onclick=()=>{btn.disabled=true;btn.textContent="Scoring…";fetch("/v1/sync",{method:"POST"}).then(r=>r.json()).then(()=>location.reload()).catch(()=>{btn.disabled=false;btn.textContent="Re-score";});};
+    fetch("/v1/sync/state").then(r=>r.json()).then(d=>{const e=document.getElementById("firstRunErr");if(e&&d&&d.error){e.textContent=d.error;e.style.display="";}}).catch(()=>{});
   } else {
     box.innerHTML=shell(`
       <h2 style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;font-weight:650;font-size:16px;letter-spacing:-.01em">No potential VICs surfaced yet</h2>
       <p style="color:var(--soft);font-size:14px;margin:11px auto 0;max-width:410px;line-height:1.55">Halia hasn't scored your customers yet. Run a sync to pull your orders from Shopify and surface the high-potential clients your spend thresholds miss.</p>
       <button id="firstRunSync" style="margin-top:22px;padding:11px 22px;border-radius:8px;border:0;background:var(--brand-deep);color:#fff;font:600 14px system-ui;cursor:pointer">Score my customers</button>
-      <p style="color:var(--faint);font-size:12px;margin-top:14px">This usually takes under a minute.</p>`);
+      <p style="color:var(--faint);font-size:12px;margin-top:14px">This usually takes under a minute.</p>
+      <p id="firstRunErr" style="color:#8e1f0b;font-size:12.5px;margin-top:10px;display:none"></p>`);
     wrap.appendChild(box);
+    fetch("/v1/sync/state").then(r=>r.json()).then(d=>{const e=document.getElementById("firstRunErr");if(e&&d&&d.error){e.textContent="Last sync: "+d.error;e.style.display="";}}).catch(()=>{});
     const btn=document.getElementById("firstRunSync");
     if(btn) btn.onclick=()=>{
       const t0=Date.now();
