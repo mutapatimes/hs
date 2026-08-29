@@ -79,3 +79,35 @@ def test_dashboard_script_never_contains_html_comment_or_script_openers():
     for m in re.finditer(r"<script>(.*?)</script>", html, re.S):
         assert "<!--" not in m.group(1), "HTML comment inside a script block"
         assert "<script" not in m.group(1), "script opener inside a script block"
+
+
+def test_injected_snippets_land_after_the_app_script(monkeypatch):
+    """The chat widget and the admin nav are inserted before the document's LAST </body>, never
+    at a "</body>" that appears inside the app's own script text (which split the script in two
+    and rendered the rest of the app as page text)."""
+    from halia.api.content import _before_body
+    page = "<html><body><script>var s = '</body>';</script><p>x</p></body></html>"
+    out = _before_body(page, "<script>w()</script>")
+    assert out.index("w()") > out.index("<p>x</p>")
+    html = render_payload(_payload(), body_extra="<ui-nav-menu></ui-nav-menu>")
+    assert html.rindex("<ui-nav-menu>") > html.rindex("</script>") - 200 and "</body>" not in html.split("<ui-nav-menu>")[0].split("\n<script>\n",1)[1].split("</script>")[0]
+
+
+def test_hosted_page_with_chat_widget_never_leaks_script_as_text(monkeypatch):
+    import html5lib
+    monkeypatch.setenv("HALIA_BREVO_CHAT_ID", "abc")
+    from halia.api.content import with_chat_widget
+    h = with_chat_widget(render_payload(_payload()))
+    doc = html5lib.parse(h, namespaceHTMLElements=False)
+    leaked = []
+    def walk(el):
+        if el.tag in ("script", "style"):
+            return
+        if el.text and "getElementById" in el.text:
+            leaked.append(el.text[:60])
+        for c in el:
+            walk(c)
+            if c.tail and "getElementById" in c.tail:
+                leaked.append(c.tail[:60])
+    walk(doc.find("body"))
+    assert leaked == []
