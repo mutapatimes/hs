@@ -183,6 +183,11 @@ def register(app) -> None:
         _note_open(shop)
         try:
             entry = cache.get(shop)
+            from halia.api.onboarding import _stale_mask
+            if entry is not None and _stale_mask(shop, entry):
+                from halia.api.onboarding import _start_sync as _resync
+                _resync(shop)                    # comped or paid since scoring: score again unmasked
+                entry = None
             if entry is None:
                 # First load (or a cold process): never run the full fetch + score inside the
                 # install navigation. A large book takes longer than the edge proxy will wait and

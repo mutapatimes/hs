@@ -876,6 +876,17 @@ setTimeout(poll,1500);
 </body></html>'''
 
 
+def _stale_mask(shop: str, entry: dict) -> bool:
+    """True when the cached book is masked but the store is now paid or comped (the mask is
+    applied at scoring time, so a plan change or a comp needs one more scoring run)."""
+    try:
+        from halia.api import billing
+        payload = (entry or {}).get("payload") or {}
+        return bool(payload.get("masked")) and billing.is_paid(shop)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _preparing_page(shop: str | None = None) -> HTMLResponse:
     from halia import notify as _notify
 
@@ -1924,6 +1935,9 @@ def register(app) -> None:
         except Exception:  # noqa: BLE001
             pass
         entry = cache.get(shop)
+        if entry is not None and _stale_mask(shop, entry):
+            _start_sync(shop)                   # comped or paid since this book was scored: rescore unmasked
+            entry = None
         if entry is None:
             _start_sync(shop, notify=True)
             return _preparing_page(shop)

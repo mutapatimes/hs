@@ -136,6 +136,7 @@ def _norm_key(v: str) -> str:
     """A tenant key however it was typed: 'https://glennorah.co.uk/' and 'glennorah-co-uk' match."""
     import re as _re
     s = _re.sub(r"^https?://", "", str(v or "").strip().lower()).strip("/")
+    s = _re.sub(r"^www[.-]", "", s)
     return _re.sub(r"[^a-z0-9.]+", "-", s).strip("-")
 
 
@@ -159,7 +160,7 @@ def is_paid(shop: str) -> bool:
     if not billing_enabled():
         return True
     free = _free_shops()
-    if shop in free or shop.lower() in free or _norm_key(shop) in free:
+    if shop in free or shop.lower() in free or _norm_key(shop) in free or _norm_key(shop).replace(".", "-") in free:
         return True
     b = shop_store().get_billing(shop)
     return bool(b and b.get("status") in _ACTIVE)

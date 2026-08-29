@@ -463,3 +463,34 @@ def test_empty_console_comp_box_keeps_the_env_list(client, monkeypatch):
     assert billing.is_paid("glennorah-co-uk") is True
     console_config.save_console_settings({"free_shops": ["someone-else"]})
     assert billing.is_paid("glennorah-co-uk") is False
+
+
+def test_www_and_dotted_forms_comp_the_same_tenant(client, monkeypatch):
+    import halia.config as hcfg
+    from halia.api import billing
+    _enable(monkeypatch)
+    monkeypatch.setattr(hcfg, "HALIA_FREE_SHOPS", {"glennorah-co-uk"})
+    monkeypatch.setattr("halia.console_config.console_setting", lambda key, env=None: env)
+    assert billing.is_paid("www-glennorah-co-uk") is True
+    assert billing.is_paid("glennorah.co.uk") is True
+
+
+def test_masked_book_rescoring_once_the_store_is_comped(client, monkeypatch):
+    import halia.config as hcfg
+    from halia.api import onboarding
+    from build_mvp import mask_payload
+    c, store = client
+    _enable(monkeypatch)
+    tok = _tenant(store)
+    cache.set("shopx", [], mask_payload({"segments": {}, "data": [{"id": "C-1", "name": "Zed", "grade": "A", "latent": 1}], "orders": [],
+                                         "stat_scored": "1", "stat_latent": "£1", "stat_count": "1", "stat_avgspend": "£1", "stat_toptier": "1"}), {})
+    started = []
+    monkeypatch.setattr(onboarding, "_start_sync", lambda shop, notify=False: started.append(shop))
+    monkeypatch.setattr(hcfg, "HALIA_FREE_SHOPS", {"shopx"})
+    monkeypatch.setattr("halia.console_config.console_setting", lambda key, env=None: env)
+    try:
+        c.cookies.set(COOKIE, tok)
+        r = c.get("/app")
+        assert r.status_code == 200 and started == ["shopx", "shopx"] and "Scoring your book" in r.text
+    finally:
+        cache.evict("shopx")
