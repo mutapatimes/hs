@@ -68,3 +68,14 @@ def test_dashboard_script_runs_and_renders(tmp_path):
     # 2) the Overview and Clients views actually rendered content
     assert res["ovDonut"] > 0, "Overview grade-mix donut did not render"
     assert res["rows"] > 0, "Clients table did not render"
+
+
+def test_dashboard_script_never_contains_html_comment_or_script_openers():
+    """Inside a <script>, an HTML comment opener puts the tokenizer into its escaped state; a later
+    <script> in any string then ends the element early and the rest of the app renders as text."""
+    import re
+    from pathlib import Path
+    html = Path("web/template.html").read_text()
+    for m in re.finditer(r"<script>(.*?)</script>", html, re.S):
+        assert "<!--" not in m.group(1), "HTML comment inside a script block"
+        assert "<script" not in m.group(1), "script opener inside a script block"
