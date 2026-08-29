@@ -995,13 +995,16 @@ def _render_settings(tab: str, saved: bool = False) -> str:
                      "Overrides the Stripe price for MRR display. Leave blank to use Stripe."))
         body = form(inner)
     elif tab == "access":
-        free = "\n".join(st.get("free_shops") or []) if isinstance(st.get("free_shops"), list) else ""
+        from halia import config as _cfg
+        saved = st.get("free_shops")
+        free = "\n".join(saved) if isinstance(saved, list) and saved else "\n".join(sorted(_cfg.HALIA_FREE_SHOPS))
         inner = (
             _field("Self-serve signup code", "signup_code", st.get("signup_code") or "", "text",
                    "Required on the /connect page. Blank = open onboarding.")
             + "<div class=f><label>Comped clients (one shop per line)</label>"
             f"<textarea name=free_shops placeholder='acme.myshopify.com'>{_html.escape(free)}</textarea>"
-            "<div class=hint>These clients bypass billing and see the full dashboard.</div></div>")
+            "<div class=hint>These clients bypass billing and see the full dashboard. A store address, its slug "
+            "or its myshopify domain all work. Blank keeps the HALIA_FREE_SHOPS list from the environment.</div></div>")
         body = form(inner)
     elif tab == "revenue":
         overrides = st.get("revenue_overrides") or {}
@@ -1080,7 +1083,8 @@ def _apply_settings(tab: str, form: dict) -> None:
     elif tab == "access":
         code = str(g("signup_code")).strip()
         shops = [x.strip() for x in re.split(r"[\s,]+", str(g("free_shops"))) if x.strip()]
-        save_console_settings({"signup_code": code or None, "free_shops": shops})
+        # An empty box defers to the environment list rather than comping nobody.
+        save_console_settings({"signup_code": code or None, "free_shops": shops or None})
     elif tab == "revenue":
         overrides = {}
         for key in form:

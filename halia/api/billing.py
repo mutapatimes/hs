@@ -132,17 +132,34 @@ def link_with_ref(url: str, shop: str) -> str:
     return f"{url}{sep}client_reference_id={urllib.parse.quote(shop, safe='')}"
 
 
+def _norm_key(v: str) -> str:
+    """A tenant key however it was typed: 'https://glennorah.co.uk/' and 'glennorah-co-uk' match."""
+    import re as _re
+    s = _re.sub(r"^https?://", "", str(v or "").strip().lower()).strip("/")
+    return _re.sub(r"[^a-z0-9.]+", "-", s).strip("-")
+
+
 def _free_shops():
-    """Comped tenant keys: the console's dashboard override, else env HALIA_FREE_SHOPS."""
+    """Comped tenant keys: the console's dashboard override, else env HALIA_FREE_SHOPS. Every
+    entry is kept both as typed and normalised, so a store URL, a slug or a myshopify domain all
+    comp the same tenant."""
     from halia.console_config import console_setting
-    return console_setting("free_shops", config.HALIA_FREE_SHOPS)
+    raw = console_setting("free_shops", config.HALIA_FREE_SHOPS) or []
+    out = set()
+    for v in raw:
+        v = str(v or "").strip()
+        if not v:
+            continue
+        out.add(v); out.add(v.lower()); out.add(_norm_key(v)); out.add(_norm_key(v).replace(".", "-"))
+    return out
 
 
 def is_paid(shop: str) -> bool:
     """True if this tenant may see the full dashboard. Open when billing is off or comped."""
     if not billing_enabled():
         return True
-    if shop in _free_shops():
+    free = _free_shops()
+    if shop in free or shop.lower() in free or _norm_key(shop) in free:
         return True
     b = shop_store().get_billing(shop)
     return bool(b and b.get("status") in _ACTIVE)

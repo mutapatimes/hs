@@ -439,3 +439,27 @@ def test_webhook_marks_paid_with_valid_signature(monkeypatch):
                              headers={"stripe-signature": f"t={t},v1={sig}",
                                       "content-type": "application/json"})
     assert r.status_code == 200 and recorded == {"shop": "acme.myshopify.com", "status": "active"}
+
+
+def test_comp_list_accepts_a_store_url_or_slug(client, monkeypatch):
+    import halia.config as hcfg
+    from halia.api import billing
+    _enable(monkeypatch)
+    monkeypatch.setattr(hcfg, "HALIA_FREE_SHOPS", {"https://glennorah.co.uk/"})
+    monkeypatch.setattr("halia.console_config.console_setting", lambda key, env=None: env)
+    assert billing.is_paid("glennorah-co-uk") is True
+    assert billing.is_paid("GLENNORAH-CO-UK") is True
+    assert billing.is_paid("other-shop") is False
+
+
+def test_empty_console_comp_box_keeps_the_env_list(client, monkeypatch):
+    import halia.config as hcfg
+    from halia import console_config
+    from halia.api import billing
+    c, store = client
+    _enable(monkeypatch)
+    monkeypatch.setattr(hcfg, "HALIA_FREE_SHOPS", {"glennorah-co-uk"})
+    console_config.save_console_settings({"free_shops": None})
+    assert billing.is_paid("glennorah-co-uk") is True
+    console_config.save_console_settings({"free_shops": ["someone-else"]})
+    assert billing.is_paid("glennorah-co-uk") is False
