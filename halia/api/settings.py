@@ -361,7 +361,7 @@ def settings_for(shop: str) -> dict:
         "brand": (d.get("brand") or "halia"),
         "vic_threshold": d.get("vic_threshold", default_threshold),
         "sender_name": d.get("sender_name", ""),
-        "email_templates": d.get("email_templates") or (DEFAULT_TEMPLATES + vip.visit_templates(d.get("vip_profile"))),
+        "email_templates": _with_new_defaults(d.get("email_templates"), d.get("vip_profile")),
         "order_templates": d.get("order_templates") or DEFAULT_ORDER_TEMPLATES,
         "catalog_message": d.get("catalog_message") or DEFAULT_CATALOG_MESSAGE,   # "Send catalogue" body
         "catalog_logo": d.get("catalog_logo", ""),   # store-wide default logo new catalogues inherit
@@ -432,6 +432,18 @@ def _num(v, default=0.0):
         return max(0.0, float(v))
     except (TypeError, ValueError):
         return default
+
+
+def _with_new_defaults(saved, vip_profile) -> list[dict]:
+    """A tenant's own templates, plus any default the house has added since they last saved
+    (the season pack, the appointment invitation) that they do not already have by name. Their
+    edits win; new defaults join at the end."""
+    from halia import vip
+    defaults = DEFAULT_TEMPLATES + vip.visit_templates(vip_profile)
+    if not saved:
+        return defaults
+    have = {str(t.get("name") or "").strip().lower() for t in saved if isinstance(t, dict)}
+    return list(saved) + [t for t in defaults if str(t.get("name") or "").strip().lower() not in have]
 
 
 def _clean_templates(raw) -> list[dict]:

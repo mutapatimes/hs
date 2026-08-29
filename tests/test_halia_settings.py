@@ -56,7 +56,7 @@ def test_save_and_reload(client):
     s = c.get("/v1/settings", headers=_auth()).json()
     assert s["vic_threshold"] == 8000 and s["sender_name"] == "The Team"
     assert s["aov"] == 1800 and s["max_orders"] == 22 and s["highest_lt"] == 95000
-    assert len(s["email_templates"]) == 1 and s["email_templates"][0]["name"] == "Hi"
+    assert s["email_templates"][0]["name"] == "Hi" and [t["name"] for t in s["email_templates"]].count("Hi") == 1
 
 
 def test_catalog_message_default_and_save(client):
@@ -127,3 +127,14 @@ def test_klaviyo_disconnect(client):
 def test_requires_session_token(client):
     c, _ = client
     assert c.get("/v1/settings").status_code == 401
+
+
+def test_saved_templates_gain_new_defaults_without_losing_edits(client):
+    c, _ = client
+    mine = [{"name": "Personal welcome", "subject": "Mine", "body": "My own words {first_name}", "category": "Welcome"}]
+    c.post("/v1/settings", headers=_auth(), json={"vic_threshold": 5000, "email_templates": mine})
+    got = c.get("/v1/settings", headers=_auth()).json()["email_templates"]
+    names = [t["name"] for t in got]
+    assert got[0]["body"] == "My own words {first_name}"            # the edit wins
+    assert names.count("Personal welcome") == 1
+    assert "Appointment invitation" in names and any("festive" in n.lower() or "season" in n.lower() for n in names)
