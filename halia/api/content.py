@@ -114,9 +114,15 @@ def analytics_snippet() -> str:
 
 
 def _before_body(html_text: str, snippet: str) -> str:
-    if not snippet or "</body>" not in html_text:
+    """Insert before the document's closing body tag: the LAST one. A page's own scripts may
+    carry the text "</body>" inside a string (a print window, a template), and injecting there
+    would drop a <script> into the middle of the app's code."""
+    if not snippet:
         return html_text
-    return html_text.replace("</body>", snippet + "\n</body>", 1)
+    k = html_text.rfind("</body>")
+    if k < 0:
+        return html_text
+    return html_text[:k] + snippet + "\n" + html_text[k:]
 
 
 def with_chat_widget(html_text: str) -> str:

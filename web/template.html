@@ -4413,7 +4413,7 @@ function openSettings(page){
         <h1>${store}</h1>
         <p>Leave your details and we&rsquo;ll look after you.</p>
         ${qr?`<img src="${qr}">`:`<div>${url}</div>`}
-      </div></body></html>`);
+      </div>`);
       w.document.close();
       setTimeout(function(){ try{ w.focus(); w.print(); }catch(_){} }, 400);
     };

@@ -646,7 +646,8 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     if head_extra:
         html = html.replace("<head>", "<head>\n" + head_extra, 1)
     if body_extra:
-        html = html.replace("</body>", body_extra + "\n</body>", 1)
+        k = html.rfind("</body>")          # the document's own close, never a "</body>" inside a script string
+        html = html[:k] + body_extra + "\n" + html[k:] if k >= 0 else html
     html = html.replace("__SEGMENTS__", _safe(json.dumps(payload["segments"])))
     html = html.replace("__DATA__", _safe(json.dumps(payload["data"])))
     # World-map geometry (land outlines + US ZIP3 centroids) — committed open-data geometry,
