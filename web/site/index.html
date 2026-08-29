@@ -434,7 +434,7 @@
  <a href="/pricing">Pricing</a><a href="/blog">Blog</a>
  </nav>
  <div class="right">
- <a class="si" href="#demo">See a demo</a>
+ <a class="si" href="/demo">Book a demo</a>
  <a class="si" href="/app">Sign in</a>
  <a class="btn" href="/connect">Connect your store <span class="arrow">→</span></a>
  <button class="burger" id="burger" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
@@ -448,7 +448,7 @@
  <a href="/clienteling">Clienteling</a>
  <a href="/solutions">Solutions</a>
  <a href="/pricing">Pricing</a><a href="/blog">Blog</a>
- <a class="msi" href="#demo">See a demo</a>
+ <a class="msi" href="/demo">Book a demo</a>
  <a class="msi" href="/app">Sign in</a>
  <a class="mcta" href="/connect">Connect your store</a>
 </aside>
@@ -744,15 +744,17 @@
  style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.20">
  <div style="position:absolute;inset:0;background:radial-gradient(75% 80% at 50% 45%,transparent,var(--bg) 88%)"></div>
  <div class="wrap reveal" style="position:relative;z-index:2">
- <h2>Step inside a live Halia dashboard.</h2>
- <p class="lede" style="margin-bottom:30px">Enter your email and walk straight into a working dashboard, hidden VICs and all. Ready in seconds.</p>
+ <h2>Book a demo.</h2>
+ <p class="lede" style="margin-bottom:30px">Thirty minutes, on your own numbers where we can.</p>
  <form id="demoForm" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
  <input id="demoEmail" type="email" placeholder="Your work email" required
  style="background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:0;padding:14px 22px;color:var(--ink);font:500 15px var(--sans);min-width:280px;outline:none">
- <button class="btn" type="submit">See demo now <span class="arrow">→</span></button>
+ <button class="btn" type="submit">Pick a time <span class="arrow">→</span></button>
  </form>
  <div id="demoErr" style="display:none;color:#d9a79f;font-size:13.5px;margin-top:14px"></div>
- <div style="margin-top:16px;display:flex;gap:22px;justify-content:center;flex-wrap:wrap"><a href="/connect" style="color:var(--mute);font-size:14px">Or connect your store →</a><a data-cal href="#" style="display:none;color:var(--mute);font-size:14px">Book a walkthrough →</a></div>
+ <div id="demoDone" style="display:none;margin-top:18px" class="lede">Thank you. A time slot is on its way to your inbox.</div>
+ <div id="demoCal" style="display:none;margin:28px auto 0;max-width:900px;border:1px solid var(--line);background:#fff;min-height:620px;text-align:left"></div>
+ <div style="margin-top:16px"><a href="/connect" style="color:var(--mute);font-size:14px">Or connect your store →</a></div>
  </div>
 </section>
 
@@ -815,9 +817,14 @@
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){showErr('Please enter a valid email address.');document.getElementById('demoEmail').focus();return;}
     if(FREE_EMAIL.has(em.split('@')[1])){showErr('Please use your work email. Personal addresses (Gmail, Yahoo, iCloud, etc.) are not accepted.');document.getElementById('demoEmail').focus();return;}
     if(de)de.style.display='none';
-    var b=df.querySelector('button');b.disabled=true;b.textContent='Loading…';
+    var b=df.querySelector('button');b.disabled=true;b.textContent='One moment…';
     fetch('/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:em,source:'demo'})})
-      .finally(function(){window.location.href='/demo';});
+      .catch(function(){}).finally(function(){
+        df.style.display='none';
+        var cal=document.getElementById('demoCal'),done=document.getElementById('demoDone');
+        if(window.HALIA_CAL&&window.Cal){cal.style.display='block';window.Cal('inline',{elementOrSelector:'#demoCal',calLink:window.HALIA_CAL,config:{email:em,layout:'month_view'}});}
+        else{done.style.display='block';}
+      });
   });
 
   // newsletter subscribe — handled by the shared /static/brand.js on every page
