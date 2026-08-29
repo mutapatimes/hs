@@ -3630,7 +3630,7 @@ function closeDrawer(){drawer.classList.remove("show","wide");scrim.classList.re
 // Enlarge / shrink the open drawer (works for both the client and order drawers).
 const EXPAND_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H4a1 1 0 00-1 1v5M15 3h5a1 1 0 011 1v5M9 21H4a1 1 0 01-1-1v-5M15 21h5a1 1 0 001-1v-5"/></svg>';
 const COMPRESS_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/></svg>';
-function drawerCtl(){return `<div class="dctl"><button class="dexpand" id="dexpand" title="Show the full record">${EXPAND_ICON}</button><button class="dclose" id="dclose">&times;</button></div>`;}
+function drawerCtl(){return `<div class="dctl"><button class="dbtn" id="dbook" style="padding:5px 11px;font-size:12px;margin-right:6px">Book a visit</button><button class="dexpand" id="dexpand" title="Show the full record">${EXPAND_ICON}</button><button class="dclose" id="dclose">&times;</button></div>`;}
 // Enlarging is a request for more, not just wider: it opens the folded record and brings each
 // tell's explanation inline. Shrinking puts it away again, so the narrow drawer stays the
 // who / why / what-to-do view it is meant to be.
@@ -3640,7 +3640,8 @@ function toggleDrawerWide(){
   const b=document.getElementById("dexpand");
   if(b){b.innerHTML=w?COMPRESS_ICON:EXPAND_ICON;b.title=w?"Show less":"Show the full record";}
 }
-function wireDrawerCtl(){const c=document.getElementById("dclose");if(c)c.onclick=closeDrawer;const e=document.getElementById("dexpand");if(e)e.onclick=toggleDrawerWide;}
+function wireDrawerCtl(){const c=document.getElementById("dclose");if(c)c.onclick=closeDrawer;const e=document.getElementById("dexpand");if(e)e.onclick=toggleDrawerWide;
+  const b=document.getElementById("dbook");if(b)b.onclick=()=>{const w=document.getElementById("pipeWhen");if(w){w.scrollIntoView({block:"center",behavior:"smooth"});try{w.showPicker&&w.showPicker();}catch(_){}w.focus();}else{const p=document.getElementById("pipeAdd");if(p){p.scrollIntoView({block:"center",behavior:"smooth"});toast("Add them to the pipeline first, then book.");}}};}
 // "Send a cart": search products, pick quantities, and build a one-tap Shopify checkout link the
 // client pays themselves (read-only cart permalink; creates nothing on the store). Shopify only.
 function wireCartBuilder(c){
