@@ -507,6 +507,7 @@ def register(app) -> None:
         from halia.api.capture import _slug_for
         from halia.api.client_host import client_url, cname_target
         from halia.api.seats import _connect_qr
+        s["shop"] = shop                       # the tenant key, shown on the Billing card
         s["capture_url"] = client_url(shop, f"c/{_slug_for(shop)}")
         s["capture_qr"] = _connect_qr(s["capture_url"])
         s["client_cname_target"] = cname_target()

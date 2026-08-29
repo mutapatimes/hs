@@ -4569,7 +4569,7 @@ function openSettings(page){
         d.shopify=true; PLANS_CACHE=d;
         const cur=d.current||"free";
         const curPlan=(d.plans||[]).find(p=>p.key===cur)||{name:"Free"};
-        let h=`<div style="font:600 13px system-ui;color:${cur!=="free"?'#0f7b4f':'var(--soft)'};margin-bottom:12px">● Plan: ${esc(curPlan.name||"Free")}</div>`;
+        let h=`<div style="font:600 13px system-ui;color:${cur!=="free"?'#0f7b4f':'var(--soft)'};margin-bottom:12px">● Plan: ${esc(curPlan.name||"Free")}${SETTINGS.shop?` <span style="font:12px system-ui;color:#8a8a8a;margin-left:8px">store key <code>${esc(SETTINGS.shop)}</code></span>`:""}</div>`;
         h+=`<p style="${P2}">Billing is handled securely by Shopify. Choose a plan below; approval and payment happen in your Shopify admin.</p>`;
         if(d.seatsIncluded!=null){
           const extra=d.extraSeats||0, sb=d.seatBilling||{};
@@ -4592,7 +4592,7 @@ function openSettings(page){
       const label=LBLMAP[b.status]||b.status;
       const dot=b.paid?'#0f7b4f':'#8a6d3b';
       const fmt=ts=>ts?new Date(ts*1000).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}):"";
-      let h=`<div style="font:600 13px system-ui;color:${dot};margin-bottom:12px">● Plan: ${label}</div>`;
+      let h=`<div style="font:600 13px system-ui;color:${dot};margin-bottom:12px">● Plan: ${label}${SETTINGS.shop?` <span style="font:12px system-ui;color:#8a8a8a;margin-left:8px">store key <code>${esc(SETTINGS.shop)}</code></span>`:""}</div>`;
       if(b.comped){box.innerHTML=h+`<p style="${P};margin:0">Your access is complimentary. There is nothing to manage.</p>`;return;}
       if(b.manageable){
         if(b.cancel_at_period_end){
