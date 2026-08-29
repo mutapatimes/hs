@@ -95,7 +95,7 @@ def test_injected_snippets_land_after_the_app_script(monkeypatch):
 
 def test_hosted_page_with_chat_widget_never_leaks_script_as_text(monkeypatch):
     import html5lib
-    monkeypatch.setenv("HALIA_BREVO_CHAT_ID", "abc")
+    monkeypatch.setenv("HALIA_CHAT_WIDGET_ID", "abc")
     from halia.api.content import with_chat_widget
     h = with_chat_widget(render_payload(_payload()))
     doc = html5lib.parse(h, namespaceHTMLElements=False)
