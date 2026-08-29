@@ -156,7 +156,7 @@ def test_app_shows_preparing_without_cache(client):
     tok = _make_tenant(store)
     c.cookies.set(COOKIE, tok)
     r = c.get("/app")
-    assert r.status_code == 200 and "Setting up your Halia account" in r.text
+    assert r.status_code == 200 and "Scoring your book" in r.text
 
 
 def test_notify_me_adds_email_to_recipients(client):
