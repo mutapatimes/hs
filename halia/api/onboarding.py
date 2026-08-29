@@ -749,16 +749,16 @@ a{color:inherit;text-decoration:none}
 <canvas id="fx" aria-hidden="true"></canvas>
 <header class="hd">
   <a class="brand" href="/"><span aria-hidden="true" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;line-height:1;color:#7a7363">&#8258;</span>Halia</a>
-  <div class="who"><div class="w1">Welcome, __STORE__</div><div class="w2">Setting up your Halia account</div></div>
+  <div class="who"><div class="w1">Welcome, __STORE__</div><div class="w2">Scoring your book</div></div>
 </header>
 <main class="wrap">
   <section class="panel prog">
-    <div class="prow"><span class="dot"></span><span id="phase">Analysing your customers</span><span class="eta" id="eta">this usually takes a minute or two</span></div>
+    <div class="prow"><span class="dot"></span><span id="phase">Reading your orders</span><span class="eta" id="eta">a minute or two</span></div>
     <h1 id="head">Finding your <em>hidden VICs</em></h1>
     <p class="lede" id="msg">Reading every order in your store&hellip;</p>
     <div class="track"><i id="bar"></i></div>
     <p class="fine" id="leave">__LEAVE__</p>
-    <p class="nprompt" id="nprompt">Prefer to step away? Add an email and we&rsquo;ll tell you the moment your results are ready.</p>
+    <p class="nprompt" id="nprompt">Add an email and we will tell you when it is ready.</p>
     <form class="notify" id="nform" novalidate>
       <input id="nemail" type="email" autocomplete="email" placeholder="you@example.com" aria-label="Email to notify">
       <button type="submit">Notify me</button>
@@ -769,24 +769,24 @@ a{color:inherit;text-decoration:none}
   <section class="panel deck">
     <div class="slides">
       <div class="slide on">
-        <h2>Welcome. You&rsquo;re in good hands.</h2>
-        <p>Halia reads your orders and finds the high-value clients hiding in them &mdash; the quiet big spenders and VIPs you&rsquo;re not treating like VIPs yet. It&rsquo;s zero-retention: every customer is scored in the moment and never stored.</p>
+        <h2>Welcome.</h2>
+        <p>Halia reads your orders and finds the high-value clients hiding in them: the people who buy like your best clients and have yet to be treated that way. Halia does not store any of your client data, because it works inside the tools you already use.</p>
       </div>
       <div class="slide">
         <h2>What Halia does</h2>
         <div class="acc" id="acc">
-          <div class="it op"><div class="q">Identify your hidden VICs<span class="c">+</span></div><div class="a"><p>High-value buyers, collectors, trade and B2B accounts, and the quietly wealthy &mdash; graded, ranked, and explained by the signals behind each one.</p></div></div>
-          <div class="it"><div class="q">Get notified the moment they order<span class="c">+</span></div><div class="a"><p>A web push and an email reach your team when a hidden VIC places an order &mdash; so you can act while you&rsquo;re top of mind.</p></div></div>
-          <div class="it"><div class="q">You choose how to reach out<span class="c">+</span></div><div class="a"><p>Pick a ready template and send &mdash; a welcome, an invitation, early access. Halia never emails your customers for you.</p></div></div>
-          <div class="it"><div class="q">Segment to your tools<span class="c">+</span></div><div class="a"><p>Push hidden-VIC segments to Mailchimp, Klaviyo and more, so the right people get the right sequence.</p></div></div>
+          <div class="it op"><div class="q">Your hidden VICs<span class="c">+</span></div><div class="a"><p>High-value buyers, collectors, trade accounts and the discreetly wealthy, graded, ranked and explained by the signals behind each one.</p></div></div>
+          <div class="it"><div class="q">A word when they order<span class="c">+</span></div><div class="a"><p>A push and an email reach your team when a hidden VIC places an order, so you can act while you are top of mind.</p></div></div>
+          <div class="it"><div class="q">Your outreach, your voice<span class="c">+</span></div><div class="a"><p>Pick a ready template and send it yourself: a welcome, an invitation, early access.</p></div></div>
+          <div class="it"><div class="q">Segments to your tools<span class="c">+</span></div><div class="a"><p>Hidden-VIC segments go to Klaviyo, Mailchimp and HubSpot, so the right people get the right sequence.</p></div></div>
         </div>
       </div>
       <div class="slide">
         <h2>How it works</h2>
         <div class="steps">
-          <div class="step"><div class="n">1</div><div><div class="t">Your orders sync automatically</div><div class="d">Halia looks, but never touches. It reads your orders to score customers, and never changes your products, prices or orders, or contacts your customers.</div></div></div>
-          <div class="step"><div class="n">2</div><div><div class="t">Halia scores every customer in seconds</div><div class="d">Wealth and intent signals, weighed together &mdash; and nothing about your customers is kept.</div></div></div>
-          <div class="step"><div class="n">3</div><div><div class="t">You&rsquo;re notified, and you act</div><div class="d">Notifications, one-tap outreach, and segments to your email tools.</div></div></div>
+          <div class="step"><div class="n">1</div><div><div class="t">Your orders sync on their own</div><div class="d">Halia reads them to score your customers. Your products, prices and orders stay exactly as they arer customers.</div></div></div>
+          <div class="step"><div class="n">2</div><div><div class="t">Every customer scored in seconds</div><div class="d">Wealth and intent signals, weighed together.</div></div></div>
+          <div class="step"><div class="n">3</div><div><div class="t">You hear, then you act</div><div class="d">Alerts, one-tap outreach, and segments to your email tools.</div></div></div>
         </div>
       </div>
     </div>
@@ -804,7 +804,7 @@ a{color:inherit;text-decoration:none}
   </section>
 </main>
 <script>
-var MSGS=["Reading every order in your store…","Matching customers to the signals behind them…","Spotting the quiet big spenders…","Weighing wealth and intent signals together…","Separating your hidden VICs from the crowd…","Estimating the revenue waiting in your list…","Ranking your clients by what they could be worth…","Almost there…"];
+var MSGS=["Reading every order in your store…","Matching customers to the signals behind them…","Weighing wealth and intent together…","Grading every customer…","Estimating the value waiting in your book…","Ranking your clients by what they could be worth…","Almost there…"];
 var msg=document.getElementById('msg'),bar=document.getElementById('bar'),mi=0,prog=8;
 var cyc=setInterval(function(){mi=(mi+1)%MSGS.length;msg.style.opacity=0;setTimeout(function(){msg.textContent=MSGS[mi];msg.style.opacity=1;},250);},2600);
 var creep=setInterval(function(){prog=Math.min(92,prog+Math.random()*7+1.5);bar.style.width=prog+'%';},1300);
@@ -817,7 +817,7 @@ document.getElementById('acc').addEventListener('click',function(e){var q=e.targ
 var nform=document.getElementById('nform'),nemail=document.getElementById('nemail'),nok=document.getElementById('nok');
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 if(nform)nform.addEventListener('submit',function(e){e.preventDefault();var em=(nemail.value||'').trim();if(em.indexOf('@')<1){nemail.focus();return;}var b=nform.querySelector('button');b.disabled=true;b.textContent='Saving…';nok.hidden=true;nok.style.color='';
-fetch('/app/notify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:em})}).then(function(r){return r.ok?r.json():Promise.reject();}).then(function(d){nform.style.display='none';document.getElementById('nprompt').style.display='none';nok.hidden=false;nok.innerHTML='✓ We’ll email you at <b>'+esc(d.email||em)+'</b> when it’s ready.';}).catch(function(){b.disabled=false;b.textContent='Notify me';nok.hidden=false;nok.style.color='#8e1f0b';nok.textContent='Could not save that just now — please try again.';});});
+fetch('/app/notify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:em})}).then(function(r){return r.ok?r.json():Promise.reject();}).then(function(d){nform.style.display='none';document.getElementById('nprompt').style.display='none';nok.hidden=false;nok.innerHTML='We will email <b>'+esc(d.email||em)+'</b> when it is ready.';}).catch(function(){b.disabled=false;b.textContent='Notify me';nok.hidden=false;nok.style.color='#8e1f0b';nok.textContent='Could not save that just now. Please try again.';});});
 function done(d){
   clearInterval(cyc);clearInterval(creep);bar.style.width='100%';
   document.getElementById('phase').textContent='Ready';document.getElementById('eta').textContent='';
@@ -888,9 +888,9 @@ def _preparing_page(shop: str | None = None) -> HTMLResponse:
             plan = "Active" if billing.is_paid(shop) else "Free"
         except Exception:  # noqa: BLE001
             pass
-    leave = ("You can close this tab &mdash; we'll email you the moment your VICs are ready."
+    leave = ("You can close this tab. We will email you when your VICs are ready."
              if _notify.email_configured() else
-             "Keep this tab open &mdash; it opens your dashboard automatically the second it's ready.")
+             "Keep this tab open. Your dashboard opens the moment it is ready.")
     body = (_PREPARING.replace("__LEAVE__", leave)
                       .replace("__STORE__", html.escape(store_label))
                       .replace("__PLAN__", html.escape(plan)))
