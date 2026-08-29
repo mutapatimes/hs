@@ -19,5 +19,16 @@ def test_chat_config_cleans_the_values(monkeypatch):
 
 def test_pages_carry_the_booking_hook():
     from pathlib import Path
-    for page in ("web/site/index.html", "web/site/contact.html"):
-        assert "data-cal" in Path(page).read_text()
+    assert "data-cal" in Path("web/site/contact.html").read_text()
+    assert "window.HALIA_CAL" in Path("web/site/static/brand.js").read_text()
+
+
+def test_demo_is_a_booking_page_not_a_sample_dashboard():
+    from pathlib import Path
+    demo = Path("web/site/demo.html").read_text()
+    assert "Book a demo." in demo and 'id="bookForm"' in demo and "source:'demo'" in demo
+    assert "Hidden VICs" not in demo and "__STAT_" not in demo
+    home = Path("web/site/index.html").read_text()
+    assert "location.href='/demo'" not in home and "Pick a time" in home
+    r = TestClient(app).get("/demo")
+    assert r.status_code == 200 and "Book a demo." in r.text

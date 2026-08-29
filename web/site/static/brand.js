@@ -100,6 +100,7 @@
   fetch('/v1/chat-config').then(function (r) { return r.json(); }).then(function (c) {
     var cals = document.querySelectorAll('[data-cal]');
     if (c && c.cal) {
+      window.HALIA_CAL = c.cal;
       var link = 'https://cal.com/' + c.cal;
       cals.forEach(function (el) {
         el.hidden = false; el.removeAttribute('hidden'); el.style.display = '';
