@@ -230,13 +230,19 @@
     .tgl { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #303030; cursor: pointer;
       margin-top: 9px; user-select: none; }
     .tgl input { width: 15px; height: 15px; }
+    .orow { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; border-top: 1px solid #f0f0f0; }
+    .orow:first-of-type { border-top: 0; }
+    .orow .od { font-size: 12px; color: #616161; white-space: nowrap; }
+    .orow .oa { font-size: 12.5px; font-weight: 600; color: #303030; white-space: nowrap; }
+    .orow .ot { font-size: 12px; color: #8a8a8a; flex: 1; min-width: 0; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; }
 
     /* radius harmonisation with the dashboard: 8px controls, 12px cards */
     .btn, .mini, .chip, .modebtn, .ochip, .who, input.psearch, select, textarea, .pill,
     .grade, .cg, .hg, .urg, .lnkbtn, .titem { border-radius: 8px; }
     .todo, .box, .dbox, .shpage, .tlist, .clist, .mcard, .prev, .warn, .chosen, .row,
     .toast, .bact { border-radius: 12px; }
-    .tlist, .clist { overflow: hidden; }
+    .tlist, .clist { overflow-x: hidden; }   /* keep the scroll: overflow:hidden here froze both lists */
   `;
 
   let host = null, root = null, open = true, inserter = null, channel = "email";
@@ -779,6 +785,63 @@
     }
   }
 
+  // What they have bought, newest first. Concrete beside a live chat in a way a latent-value
+  // figure is not, and it is what an associate reaches for before replying.
+  // Book a visit: a real date and time, into the client's own record, then the line they get.
+  function bookHtml() {
+    if (!activeCid()) return "";
+    return `<div class="box"><div class="k">Book a visit</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+        <input data-a="apwhen" type="datetime-local" style="flex:1;min-width:190px;padding:7px 9px;border:1px solid #cccccc;font-size:12.5px;color:#303030;background:#fff">
+        <input data-a="applace" placeholder="Where (optional)" style="flex:1;min-width:150px;padding:7px 9px;border:1px solid #cccccc;font-size:12.5px;color:#303030;background:#fff">
+      </div>
+      <div class="acts"><button class="btn primary" data-a="apbook">Book</button></div>
+      <div data-a="apdone" class="muted" style="display:none;margin-top:7px"></div></div>`;
+  }
+
+  function wireBook(el) {
+    const apb = el.querySelector('[data-a="apbook"]');
+    if (!apb) return;
+    apb.onclick = () => {
+      const w = el.querySelector('[data-a="apwhen"]'), pl = el.querySelector('[data-a="applace"]'), done = el.querySelector('[data-a="apdone"]');
+      if (!w || !w.value) { toast("Pick a date and time"); return; }
+      const body = { action: "appointment", cid: activeCid(), when: new Date(w.value).toISOString(),
+        place: (pl && pl.value) || "", client_name: activeName() };
+      apb.disabled = true; apb.textContent = "Booking…";
+      try {
+        chrome.runtime.sendMessage({ type: "halia:action", body }, (r) => {
+          apb.disabled = false; apb.textContent = "Book";
+          if (chrome.runtime.lastError || !r || r.error) { toast((r && r.detail) || "Couldn't book that"); return; }
+          toast("Booked");
+          if (done && r.links) {
+            done.style.display = "";
+            done.innerHTML = `Add to your calendar: <a href="${esc(r.links.google)}" target="_blank" rel="noopener">Google</a> · <a href="${esc(r.links.outlook)}" target="_blank" rel="noopener">Outlook</a> · <a href="${esc(r.links.ics_data)}" download="appointment.ics">Apple / .ics</a>
+              <div style="margin-top:6px"><button class="mini" data-a="apsend">${inserter ? "Send to client" : "Copy for the client"}</button></div>`;
+            const sb = done.querySelector('[data-a="apsend"]');
+            if (sb) sb.onclick = () => { if (inserter) place(r.links.message); else copy(r.links.message, "Copied"); };
+          }
+          if (w) w.value = ""; if (pl) pl.value = "";
+        });
+      } catch (e) { apb.disabled = false; apb.textContent = "Book"; toast("Couldn't book that"); }
+    };
+  }
+
+  function ordersHtml(d) {
+    const rows = (d && d.orders) || [];
+    if (!rows.length) return "";
+    const money = (n) => (n || n === 0) ? "£" + Number(n).toLocaleString("en-GB", { maximumFractionDigits: 0 }) : "";
+    const when = (iso) => {
+      const t = Date.parse((iso || "") + "T00:00:00");
+      return isNaN(t) ? esc(iso || "") : new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    };
+    return `<div class="box"><div class="k">Previous orders</div>
+      ${rows.map((o) => `<div class="orow">
+        <span class="od">${when(o.date)}</span>
+        <span class="oa">${money(o.amount)}</span>
+        ${o.titles && o.titles.length ? `<span class="ot">${esc(o.titles.join(", "))}</span>` : ""}
+      </div>`).join("")}</div>`;
+  }
+
   function renderClient() {
     updateThinking();
     const el = sec("client"); if (!el) return;
@@ -832,13 +895,14 @@
         </div>
       </div>
       ${cue}
-      ${d.latent ? `<div class="box"><div class="k">Latent value</div><div class="v" data-a="latentv">${esc(d.latent)}</div></div>` : ""}
+      ${ordersHtml(d)}
       ${cart ? `<div class="box basket"><div class="k">Open basket</div>
         <div class="v">${money(cart.value)}${cart.count ? ` <span style="font-weight:400;font-size:11px;color:#616161">${esc(cart.count)} item${cart.count === 1 ? "" : "s"}</span>` : ""}</div>
         ${cart.url ? `<a class="link" href="${esc(cart.url)}" target="_blank" rel="noopener">Open checkout</a>` : ""}</div>` : ""}
       ${d.action ? `<div class="lbl">Next move</div><div class="reco">${esc(d.action)}</div>` : ""}
       ${allReasons.length ? `<div class="lbl">Why</div><ul class="reasons">${reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>${allReasons.length > 3 && !whyAll ? `<button class="lnkbtn" data-a="whymore">＋${allReasons.length - 3} more</button>` : ""}` : ""}
       <div class="acts">${acts.join("")}</div>
+      ${bookHtml()}
       ${d.cid && ctx && ctx.platform === "shopify" ? (noteOpen ? `<div class="lbl">Note</div>
         <textarea data-a="note" rows="2" placeholder="Jot a note — saved to this customer in your Shopify"></textarea>
         <div class="acts"><button class="btn" data-a="notesave">Save note</button></div>`
@@ -860,7 +924,7 @@
     if (wm) wm.onclick = () => { whyAll = true; renderClient(); };
     const no = el.querySelector('[data-a="noteopen"]');
     if (no) no.onclick = () => { noteOpen = true; renderClient(); };
-    if (anim) { const lv = el.querySelector('[data-a="latentv"]'); if (lv) countUp(lv); }  // a new client → the number counts up
+    wireBook(el);
   }
 
   // ── TEAM (internal mode) ──────────────────────────────────────────────────
@@ -882,13 +946,6 @@
           <input data-a="lreason" placeholder="Reason (optional)" value="${esc(briefLogReason())}" style="flex:1;padding:7px 9px;border:1px solid #cccccc;font-size:12.5px;color:#303030;background:#fff">
           <button class="btn primary" data-a="logc">Log</button>
         </div>` : ""}
-      ${activeCid() ? `<div class="lbl">Book a visit</div>
-        <div style="display:flex;gap:6px;margin-bottom:6px">
-          <input data-a="apwhen" type="datetime-local" style="padding:6px 8px;border:1px solid #cccccc;font-size:12.5px;color:#303030;background:#fff">
-          <input data-a="applace" placeholder="Where (optional)" style="flex:1;padding:7px 9px;border:1px solid #cccccc;font-size:12.5px;color:#303030;background:#fff">
-          <button class="btn primary" data-a="apbook">Book</button>
-        </div>
-        <div data-a="apdone" class="muted" style="display:none;margin-bottom:13px"></div>` : ""}
       <div class="lbl">Message the team</div>
       <div style="margin-bottom:13px">${_TEAM_MSGS.map((m, i) => `<div class="row" style="display:flex;gap:6px;align-items:center">
         <span style="flex:1">${esc(fill(m))}</span>
@@ -905,26 +962,6 @@
       const inp = el.querySelector('[data-a="lreason"]');
       logContact(activeCid(), cname, (inp && inp.value) || "");
       if (inp) inp.value = "";
-    };
-    const apb = el.querySelector('[data-a="apbook"]');
-    if (apb) apb.onclick = () => {
-      const w = el.querySelector('[data-a="apwhen"]'), pl = el.querySelector('[data-a="applace"]'), done = el.querySelector('[data-a="apdone"]');
-      if (!w || !w.value) { toast("Pick a date and time"); return; }
-      const body = { action: "appointment", cid: activeCid(), when: new Date(w.value).toISOString(), place: (pl && pl.value) || "", client_name: cname };
-      try {
-        chrome.runtime.sendMessage({ type: "halia:action", body }, (r) => {
-          if (chrome.runtime.lastError || !r || r.error) { toast((r && r.detail) || "Couldn't book that"); return; }
-          toast("Booked");
-          if (done && r.links) {
-            done.style.display = "";
-            done.innerHTML = `Add to your calendar: <a href="${esc(r.links.google)}" target="_blank" rel="noopener">Google</a> · <a href="${esc(r.links.outlook)}" target="_blank" rel="noopener">Outlook</a> · <a href="${esc(r.links.ics_data)}" download="appointment.ics">Apple / .ics</a>
-              <div style="margin-top:6px"><button class="mini" data-a="apsend">${inserter ? "Send to client" : "Copy for the client"}</button></div>`;
-            const sb = done.querySelector('[data-a="apsend"]');
-            if (sb) sb.onclick = () => { if (inserter) place(r.links.message); else copy(r.links.message, "Copied"); };
-          }
-          if (w) w.value = ""; if (pl) pl.value = "";
-        });
-      } catch (e) { toast("Couldn't book that"); }
     };
     _TEAM_MSGS.forEach((m, i) => {
       const ins = el.querySelector(`[data-tmi="${i}"]`); if (ins) ins.onclick = () => place(fill(m));
@@ -1157,16 +1194,11 @@
           ${activeCid() ? `<button class="btn primary" data-cadd="${i}">Add this client</button>` : ""}
           ${ctx.catalog && inserter ? `<button class="btn" data-ci="${i}">Insert catalogue link</button>` : ""}
           ${ctx.catalog ? `<button class="btn" data-cc="${i}">Copy catalogue link</button>` : ""}
-          <button class="btn" data-cu="${i}">Copy UTM</button>
         </div></div>`).join("");
     show.forEach((c, i) => {
       const link = () => taggedCatalog(c.utm);
       const ins = el.querySelector(`[data-ci="${i}"]`); if (ins) ins.onclick = () => place(link());
       const cc = el.querySelector(`[data-cc="${i}"]`); if (cc) cc.onclick = () => copy(link(), "Tagged link copied");
-      const cu = el.querySelector(`[data-cu="${i}"]`); if (cu) cu.onclick = () => {
-        const cm = CHAN[channel] || CHAN.email;
-        copy("utm_source=" + cm[0] + "&utm_medium=" + cm[1] + "&utm_campaign=" + c.utm, "UTM copied");
-      };
       const ca = el.querySelector(`[data-cadd="${i}"]`);
       if (ca) ca.onclick = () => act({ action: "campaign_add", campaign_id: c.id, cid: activeCid() },
         "Added to " + c.name);
@@ -1325,8 +1357,7 @@
     const who = activeFirst();
     const label = s.busy ? "Looking…" : (s.picks && s.picks.length ? "Suggest again"
       : (who && who !== "there" ? "Suggest for " + esc(who) : "Suggest for this client"));
-    return `<div class="dbox" style="margin-bottom:10px">
-      <div class="sh">Suggested</div>
+    return `<div style="margin-bottom:10px">
       <div class="acts" style="margin-top:0">
         <button class="btn primary" data-a="sgo"${s.busy ? " disabled" : ""}>${label}</button>
       </div>
