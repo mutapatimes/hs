@@ -149,3 +149,19 @@ def test_invite_and_capture_serve_on_the_store_domain_through_the_proxy(env, mon
     assert client.get(f"/proxy/catalogue/i/{token}.ics?{q}").headers["content-type"].startswith("text/calendar")
     assert client.get(f"/proxy/catalogue/i/{token}").status_code == 403
     client_host._CACHE.clear()
+
+
+def test_invite_page_carries_the_store_name_once_and_never_a_placeholder_heading(env, monkeypatch):
+    client, store, sink = env
+    from halia.api import appointments as ap
+    links = ap.calendar_links({"id": "x", "when": _soon(2, 14).isoformat(timespec="minutes"),
+                               "minutes": 45, "place": "Mount Street", "note": ""}, "Grace", "Maison")
+    page = client.get("/i/" + links["invite"].rsplit("/i/", 1)[1])
+    assert page.status_code == 200
+    assert page.text.count("Your appointment") == 0
+    assert page.text.count("<h1>Maison</h1>") == 1
+    # a store with no name shows no heading at all, rather than a placeholder
+    links = ap.calendar_links({"id": "y", "when": _soon(2, 14).isoformat(timespec="minutes"),
+                               "minutes": 45, "place": "", "note": ""}, "Grace", "")
+    page = client.get("/i/" + links["invite"].rsplit("/i/", 1)[1])
+    assert page.status_code == 200 and "<h1>" not in page.text and "Your appointment" not in page.text
