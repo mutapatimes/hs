@@ -140,12 +140,28 @@ def score_woo(shop: str):
     if not creds:
         raise RuntimeError("No WooCommerce credentials connected for this tenant")
     transport = http_transport(creds["store_url"], creds["consumer_key"], creds["consumer_secret"])
-    orders = [woo_order_to_rest(o) for o in fetch_orders(transport, max_pages=hcfg.WOO_MAX_PAGES)]
+    raw = fetch_orders(transport, max_pages=hcfg.WOO_MAX_PAGES)
+    # The pull is capped for a fast first scoring, so a long-standing store can lose its oldest
+    # clients silently. Remember when the cap actually bit, and the dashboard says so.
+    _note_order_cap(shop, len(raw), hcfg.WOO_MAX_PAGES, 100)
+    orders = [woo_order_to_rest(o) for o in raw]
     customers = orders_to_customers(orders).rename(columns={"orders_count": "Count of CUST_ID"})
     s = settings_for(shop)
     return score_customers(customers, weights=s.get("signal_weights"),
                            vic_threshold=s["vic_threshold"],
                            include_origin=_include_origin(shop)), orders
+
+
+_ORDER_CAP: dict[str, dict] = {}          # shop -> {"read": n, "capped": bool}
+
+
+def _note_order_cap(shop: str, read: int, max_pages: int | None, per_page: int) -> None:
+    """Record whether the order pull stopped at its page cap rather than at the end of the book."""
+    _ORDER_CAP[shop] = {"read": read, "capped": bool(max_pages) and read >= max_pages * per_page}
+
+
+def order_cap(shop: str) -> dict:
+    return _ORDER_CAP.get(shop) or {}
 
 
 def record_activity(shop: str, metric: str, n: int = 1) -> None:
@@ -208,6 +224,7 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None, 
         payload["desk"] = clienteling_payload(scored)
     payload["order_window"] = order_window   # 60 when Shopify only shares recent orders (scope not granted)
     payload["sync_diag"] = sync_diag or {}
+    payload["order_cap"] = order_cap(shop)
     cache.set(shop, results, payload, _order_index(orders))
     entry = cache.get(shop)
 
