@@ -111,3 +111,10 @@ def test_hosted_page_with_chat_widget_never_leaks_script_as_text(monkeypatch):
                 leaked.append(c.tail[:60])
     walk(doc.find("body"))
     assert leaked == []
+
+
+def test_book_a_visit_shows_only_in_the_expanded_drawer():
+    from pathlib import Path
+    html = Path("web/template.html").read_text()
+    assert ".dctl #dbook{display:none}" in html
+    assert ".drawer.wide .dctl #dbook{display:inline-flex}" in html

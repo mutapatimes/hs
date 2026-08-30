@@ -32,8 +32,17 @@
   const friendly = {
     "no-token": "Add your Halia token in the extension options to start.",
     "unauthorized": "Your Halia token is not recognised. Re-generate it in Settings.",
-    "network": "Could not reach Halia. Check the address in the options."
+    "network": "Could not reach Halia. Check the address in the options.",
+    "http-402": "This store needs a plan for the extension. Open Halia to choose one.",
+    "http-403": "Halia refused that request.",
+    "http-429": "Too many requests just now. A moment, then try again."
   };
+  // Halia's own message wins when it sent one; the map is the fallback.
+  function reason(r) {
+    if (!r || !r.error) return "";
+    if (r.detail) return r.detail;
+    return friendly[r.error] || "Could not complete that just now. Please try again.";
+  }
 
   function observe(extract) {
     HaliaPanel.mount();
@@ -157,5 +166,5 @@
     return out.slice(-(limit || 6));
   }
 
-  window.Halia = { observe, lookup, insertInto, pageEmail, readMessages };
+  window.Halia = { observe, lookup, insertInto, pageEmail, readMessages, reason };
 })();

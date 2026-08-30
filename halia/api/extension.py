@@ -322,7 +322,7 @@ class ExtAuth:
     seat_name: Optional[str] = None
 
 
-def _resolve_ext(x_halia_ext_token: Optional[str]) -> ExtAuth:
+def _resolve_ext(x_halia_ext_token: Optional[str], paid: bool = True) -> ExtAuth:
     """Authenticate an extension/keyboard request. Prefers a per-employee seat token (refreshing its
     last-seen), then falls back to the legacy shared per-shop token (seat stays None). Raises 401."""
     token_hash = hash_token(x_halia_ext_token) if x_halia_ext_token else ""
@@ -338,9 +338,13 @@ def _resolve_ext(x_halia_ext_token: Optional[str]) -> ExtAuth:
                 auth = ExtAuth(shop=shop)
     if auth is None:
         raise HTTPException(401, "Invalid or missing extension token")
-    from halia.api import billing
-    if not billing.is_paid(auth.shop):   # the free scan is the dashboard only, names withheld
-        raise HTTPException(402, "Choose a plan in Halia to use the extension and keyboard.")
+    if paid:
+        # Client data is on a plan (the free scan is the dashboard, with names withheld). Signing
+        # in, signing out and the profile stay open, so an associate can set up and read why.
+        from halia.api import billing
+        if not billing.is_paid(auth.shop):
+            raise HTTPException(402, "This store needs a plan for the extension and keyboard. "
+                                     "Open Halia to choose one.")
     return auth
 
 
@@ -1097,7 +1101,7 @@ def register(app) -> None:
     def extension_signout(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
         """Device-side sign-out for a seat: mark the seat inactive so it stops counting as an active
         head. The device also clears its stored token locally. A manager 'revoke' is the hard kill."""
-        auth = _resolve_ext(x_halia_ext_token)
+        auth = _resolve_ext(x_halia_ext_token, paid=False)
         if auth.seat_id:
             shop_store().signout_seat(auth.seat_id)
         return {"ok": True}
@@ -1125,7 +1129,7 @@ def register(app) -> None:
     @app.get("/v1/extension/profile")
     def extension_profile(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
         """The signed-in associate's own details (name, email, position, sign-off)."""
-        auth = _resolve_ext(x_halia_ext_token)
+        auth = _resolve_ext(x_halia_ext_token, paid=False)
         return {"profile": _seat_profile(auth), "seat": bool(auth.seat_id)}
 
     @app.post("/v1/extension/profile")
@@ -1135,7 +1139,7 @@ def register(app) -> None:
         email stays unique per shop; the sign-off is what drafts and templates sign with."""
         from halia.capture_quality import clean_email
 
-        auth = _resolve_ext(x_halia_ext_token)
+        auth = _resolve_ext(x_halia_ext_token, paid=False)
         if not auth.seat_id:
             raise HTTPException(400, "Sign in with your own seat to set your details.")
         body = payload or {}

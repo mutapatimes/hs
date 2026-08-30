@@ -1039,3 +1039,29 @@ def test_draft_structured_failure_falls_back_to_text_then_template(env, monkeypa
     monkeypatch.setattr(llm, "complete", lambda *a, **k: None)
     d = _draft(client, ext, {"email": "grace@x.com", "thread": [{"from": "them", "text": "Grazie, vorrei il cappotto"}]}).json()
     assert d["source"] == "template" and d["language"] == "it"
+
+
+# ── the plan gate: client data needs one, setting up does not ────────────────
+def _unpaid(monkeypatch):
+    from halia.api import billing
+    monkeypatch.setattr(billing, "is_paid", lambda shop: False)
+
+
+def test_client_data_needs_a_plan_but_sign_in_and_profile_stay_open(env, monkeypatch):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    h = {"X-Halia-Ext-Token": ext}
+    assert client.post("/v1/extension/lookup", json={"email": "grace@x.com"}, headers=h).status_code == 200
+    _unpaid(monkeypatch)
+    r = client.post("/v1/extension/lookup", json={"email": "grace@x.com"}, headers=h)
+    assert r.status_code == 402 and "needs a plan" in r.json()["detail"]
+    assert client.post("/v1/extension/draft", json={"email": "grace@x.com"}, headers=h).status_code == 402
+    # the associate can still set themselves up, and read why
+    assert client.get("/v1/extension/profile", headers=h).status_code == 200
+    seat_tok = new_token()
+    store.create_seat(SHOP, "Sarah Bloom", hash_token(seat_tok), "sarah@m.com")
+    sh = {"X-Halia-Ext-Token": seat_tok}
+    assert client.post("/v1/extension/profile", json={"name": "Sarah", "title": "Client Advisor"}, headers=sh).status_code == 200
+    assert client.post("/v1/extension/signout", headers=sh).status_code == 200
+    assert client.post("/v1/extension/lookup", json={"email": "grace@x.com"}, headers=sh).status_code == 402

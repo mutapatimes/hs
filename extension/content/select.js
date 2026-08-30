@@ -122,6 +122,7 @@
     "no-token": "Add your Halia token in the extension options first.",
     "unauthorized": "Your Halia token is not recognised. Re-generate it in Settings.",
     "network": "Could not reach Halia.",
+    "http-402": "This store needs a plan for the extension.",
     "no-token ": "Add your Halia token in the extension options first."
   };
 
