@@ -3505,15 +3505,6 @@ function openDrawer(id){
       </div>
 
       <div class="drecord">
-      <details class="dfold"><summary>How the latent value is built<span>${gbp(c.spend)} → ${gbpK(c.latent)}</span></summary>
-      <div style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:13px 15px;margin-bottom:6px">
-        <div style="display:flex;align-items:center;gap:8px;font-size:13.5px">
-          <span class="mono" style="color:var(--soft)">${gbp(c.spend)}</span>
-          <span style="flex:1;height:6px;border-radius:8px;background:linear-gradient(90deg,var(--brand-tint),var(--brand));position:relative;min-width:60px"><span style="position:absolute;top:-3px;left:calc(${Math.max(2,Math.min(96,c.spend/Math.max(1,c.latent)*100)).toFixed(0)}% - 6px);width:12px;height:12px;border-radius:8px;background:var(--brand);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></span>
-          <span class="mono" style="color:var(--brand);font-weight:600">${gbpK(c.latent)}</span>
-        </div>
-      </div></details>
-
       <details class="dfold" id="dapptFold"><summary>Appointments<span id="dapptGist">none booked</span></summary>
         <div id="drawerAppt" style="margin-bottom:6px"></div></details>
 
