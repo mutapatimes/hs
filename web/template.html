@@ -366,6 +366,8 @@
   .drawer.show{transform:none}
   .drawer.wide{width:920px}
   .dctl{display:flex;gap:8px;align-items:center;flex:none}
+  .dctl #dbook{display:none}                 /* the header stays uncrowded until the record is opened */
+  .drawer.wide .dctl #dbook{display:inline-flex}
   .dexpand{background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:8px;cursor:pointer;color:var(--soft);display:grid;place-items:center}
   .dexpand:hover{background:var(--rowhover);color:var(--ink)}
   .dexpand svg{width:15px;height:15px}

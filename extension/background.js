@@ -33,6 +33,17 @@ async function hfetch(url, init, ms) {
   }
 }
 
+// A failed call carries WHY: the status, plus Halia's own message when it sent one, so the
+// toolbar can say "this store needs a plan" instead of blaming the network.
+async function httpError(res) {
+  let detail = "";
+  try {
+    const d = await res.json();
+    detail = (d && (d.detail || d.message)) || "";
+  } catch (e) { /* no JSON body */ }
+  return { error: "http-" + res.status, status: res.status, detail: String(detail || "").slice(0, 200) };
+}
+
 async function lookup(query) {
   const { base, token } = await config();
   if (!token) return { error: "no-token" };
@@ -48,7 +59,7 @@ async function lookup(query) {
   }
   if (res.status === 401) return { error: "unauthorized" };
   if (res.status === 422) return { error: "bad-query" };
-  if (!res.ok) return { error: "http-" + res.status };
+  if (!res.ok) return await httpError(res);
   try {
     return await res.json();
   } catch (e) {
@@ -196,7 +207,7 @@ async function context() {
     return { error: "network" };
   }
   if (res.status === 401) return { error: "unauthorized" };
-  if (!res.ok) return { error: "http-" + res.status };
+  if (!res.ok) return await httpError(res);
   try {
     return await res.json();
   } catch (e) {
@@ -209,7 +220,7 @@ async function events() {
   if (!token) return { error: "no-token" };
   try {
     const res = await hfetch(base + "/v1/extension/events", { headers: { "X-Halia-Ext-Token": token } });
-    if (!res.ok) return { error: "http-" + res.status };
+    if (!res.ok) return await httpError(res);
     return await res.json();
   } catch (e) {
     return { error: "network" };
@@ -261,7 +272,7 @@ async function history(cid) {
   try {
     const res = await hfetch(base + "/v1/extension/history?cid=" + encodeURIComponent(cid || ""),
       { headers: { "X-Halia-Ext-Token": token } });
-    if (!res.ok) return { error: "http-" + res.status };
+    if (!res.ok) return await httpError(res);
     return await res.json();
   } catch (e) {
     return { error: "network" };
@@ -279,7 +290,7 @@ async function products(q) {
     return { error: "network" };
   }
   if (res.status === 401) return { error: "unauthorized" };
-  if (!res.ok) return { error: "http-" + res.status };
+  if (!res.ok) return await httpError(res);
   try {
     return await res.json();
   } catch (e) {
@@ -300,7 +311,7 @@ async function clients(q) {
     return { error: "network" };
   }
   if (res.status === 401) return { error: "unauthorized" };
-  if (!res.ok) return { error: "http-" + res.status };
+  if (!res.ok) return await httpError(res);
   try {
     return await res.json();
   } catch (e) {
@@ -319,7 +330,7 @@ async function imageData(url, w) {
       u += (u.indexOf("?") >= 0 ? "&" : "?") + "width=" + w;
     }
     const res = await fetch(u);
-    if (!res.ok) return { error: "http-" + res.status };
+    if (!res.ok) return await httpError(res);
     const bytes = new Uint8Array(await res.arrayBuffer());
     let bin = ""; const chunk = 0x8000;
     for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
@@ -396,7 +407,7 @@ async function draft(body) {
     return { error: "network" };
   }
   if (res.status === 401) return { error: "unauthorized" };
-  if (!res.ok) return { error: "http-" + res.status };
+  if (!res.ok) return await httpError(res);
   try {
     return await res.json();
   } catch (e) {
@@ -419,7 +430,7 @@ async function brief(body) {
     return { error: "network" };
   }
   if (res.status === 401) return { error: "unauthorized" };
-  if (!res.ok) return { error: "http-" + res.status };
+  if (!res.ok) return await httpError(res);
   try {
     return await res.json();
   } catch (e) {
@@ -442,7 +453,7 @@ async function post(path, body, ms) {
     return { error: "network" };
   }
   if (res.status === 401) return { error: "unauthorized" };
-  if (!res.ok) return { error: "http-" + res.status };
+  if (!res.ok) return await httpError(res);
   try {
     return await res.json();
   } catch (e) {
