@@ -3263,50 +3263,53 @@ function bPost(path,body,cb){
       cb&&cb(d);
     }).catch(e=>{toast("Pipeline: "+e.message);throw e;});
 }
-function bMove(cid,stage){bPost("move",{cid:cid,stage:stage},()=>{ _renderBoardNow(); if(drawer.classList.contains("show"))renderDrawerPipe(clientByCid(cid)||{cid:cid}); toast("Moved to "+stage+".");});}
-function bAdd(c){bPost("add",{cid:c.cid},()=>{ if(!BOARD.cards[c.cid])BOARD.cards[c.cid]={cid:c.cid,name:c.name,email:c.email,stage:"To reach out",activity:[]}; renderDrawerPipe(c); toast("Added to pipeline.");});}
-function bRemove(c){if(!confirm("Remove "+(c.name||"this client")+" from the pipeline?"))return;bPost("remove",{cid:c.cid},()=>{delete BOARD.cards[c.cid];renderDrawerPipe(c);toast("Removed from pipeline.");});}
-function bNote(c,note){bPost("note",{cid:c.cid,note:note},()=>renderDrawerPipe(c));}
-function bAssign(c,name){const seat=ME.seats.find(s=>s.id===name);bPost("assign",seat?{cid:c.cid,assignee_seat:seat.id}:{cid:c.cid,assignee_name:name},()=>{renderDrawerPipe(c);if(document.getElementById("viewBoard").style.display!=="none")_renderBoardNow();});}
+function bMove(cid,stage){bPost("move",{cid:cid,stage:stage},()=>{ _renderBoardNow(); toast("Moved to "+stage+".");});}
+function bAdd(c){bPost("add",{cid:c.cid},()=>{ if(!BOARD.cards[c.cid])BOARD.cards[c.cid]={cid:c.cid,name:c.name,email:c.email,stage:"To reach out",activity:[]}; _renderBoardNow(); toast("Added to pipeline.");});}
+function bRemove(c){if(!confirm("Remove "+(c.name||"this client")+" from the pipeline?"))return;bPost("remove",{cid:c.cid},()=>{delete BOARD.cards[c.cid];_renderBoardNow();toast("Removed from pipeline.");});}
+function bNote(c,note){bPost("note",{cid:c.cid,note:note},()=>_renderBoardNow());}
+function bAssign(c,name){const seat=ME.seats.find(s=>s.id===name);bPost("assign",seat?{cid:c.cid,assignee_seat:seat.id}:{cid:c.cid,assignee_name:name},()=>_renderBoardNow());}
 // drawer pipeline section — lazy-loads the board once, then renders for this client
-function renderDrawerPipe(c){
-  const el=document.getElementById("drawerPipe");if(!el)return;
-  boardLoad(false,()=>{
-    const box=document.getElementById("drawerPipe");if(!box)return;
-    if(!BOARD.available){box.innerHTML='<div class="dlabel">Pipeline</div><div style="color:var(--faint);font-size:12.5px">Available for Shopify stores with write-back.</div>';return;}
-    const card=BOARD.cards[c.cid];
-    if(!card){box.innerHTML='<div class="dlabel">Pipeline</div><button class="dbtn" id="pipeAdd">Add to outreach pipeline</button>';
-      const b=document.getElementById("pipeAdd");if(b)b.onclick=()=>bAdd(c);return;}
-    const opts=BOARD.stages.map(s=>`<option ${s===card.stage?'selected':''}>${esc(s)}</option>`).join("");
-    const evs=(card.activity||[]).slice().reverse().slice(0,12);
-    const acts=evs.map(e=>`<div class="ev"><b>${esc(e.actor_name||'Someone')}</b> <span class="w">${esc(actLabel(e))} · ${esc(timeAgo(e.at))}</span>${e.note?`<div class="note">"${esc(e.note)}"</div>`:""}</div>`).join("");
-    box.innerHTML=`<div class="dlabel">Pipeline</div><div class="dp">
-      <div class="row"><label style="font-size:12px;color:var(--faint)">Stage</label>
-        <select id="pipeStage">${opts}</select>
-        <label style="font-size:12px;color:var(--faint);margin-left:6px">Owner</label>
-        ${ME.seats.length?`<select id="pipeAsg" style="width:150px"><option value="">Unassigned</option>${ME.seats.map(sd=>`<option value="${esc(sd.id)}" ${card.assignee&&(card.assignee.id===sd.id||card.assignee.name===sd.name)?"selected":""}>${esc(sd.name)}</option>`).join("")}</select>`:`<input id="pipeAsg" placeholder="Assign to…" value="${esc((card.assignee&&card.assignee.name)||'')}" style="width:120px">`}
-        <button class="dbtn" id="pipeRemove" style="margin-left:auto;color:#9A3838;padding:6px 10px">Remove</button></div>
-      <div class="row"><input id="pipeNote" placeholder="Add a note…" style="flex:1"><button class="dbtn" id="pipeNoteBtn" style="padding:6px 12px">Log</button></div>
-      ${(card.appointments||[]).filter(x=>new Date(x.when)>=new Date(Date.now()-2*3600e3)).map(x=>`<div class="row" style="gap:10px;flex-wrap:wrap"><span style="font:600 13px system-ui">${esc(apptWhen(x.when))}</span>${x.place?`<span style="font:12.5px system-ui;color:var(--faint)">${esc(x.place)}</span>`:""}${x.seat_name?`<span style="font:12.5px system-ui;color:var(--faint)">${esc(x.seat_name)}</span>`:""}<span style="margin-left:auto;display:flex;gap:10px" data-apptlinks="${esc(x.id)}"></span><button class="dbtn" data-apptcancel="${esc(x.id)}" style="padding:4px 9px;color:#9A3838">Cancel</button></div>`).join("")}
+function apptClientLine(links){
+  if(!links||!links.message) return "";
+  return `<div style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin-top:8px">
+    <div style="font:600 12.5px system-ui;color:var(--ink);margin-bottom:6px">Their invitation</div>
+    <div style="font:13px system-ui;color:var(--soft);line-height:1.5">${esc(links.message)}</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:9px;align-items:center">
+      <button class="dbtn" data-apptsend="${esc(links.message)}" style="padding:5px 11px">Copy for the client</button>
+      <span style="font:12px system-ui;color:var(--faint)">Your calendar:</span>${apptLinks({links:links})}
+    </div></div>`;
+}
+// Appointments for one client: what is booked, and one row to book the next. Booking hands back
+// the client's own invitation immediately, so it can be sent while the conversation is open.
+function renderDrawerAppt(c){
+  const box=document.getElementById("drawerAppt"); if(!box) return;
+  const gist=document.getElementById("dapptGist");
+  box.innerHTML='<div style="color:var(--faint);font-size:12.5px">Loading…</div>';
+  fetch("/v1/appointments?days=180").then(r=>r.json()).then(d=>{
+    const mine=(d.appointments||[]).filter(a=>String(a.cid)===String(c.cid));
+    if(gist) gist.textContent = mine.length ? (mine.length===1?"1 booked":mine.length+" booked") : "none booked";
+    box.innerHTML=`<div class="dp">
+      ${mine.map(a=>`<div class="row" style="gap:10px;flex-wrap:wrap">
+        <span style="font:600 13px system-ui">${esc(apptWhen(a.when))}</span>
+        ${a.place?`<span style="font:12.5px system-ui;color:var(--faint)">${esc(a.place)}</span>`:""}
+        ${a.seat_name?`<span style="font:12.5px system-ui;color:var(--faint)">${esc(a.seat_name)}</span>`:""}
+        <span style="margin-left:auto;display:flex;gap:12px;align-items:center">
+          ${a.links&&a.links.message?`<button class="dbtn" data-apptsend="${esc(a.links.message)}" style="padding:4px 9px">Copy for the client</button>`:""}
+          <button class="dbtn" data-apptcancel="${esc(a.id)}" style="padding:4px 9px;color:#9A3838">Cancel</button></span>
+      </div>`).join("")}
       <div class="row"><input id="pipeWhen" type="datetime-local" style="flex:none"><input id="pipePlace" placeholder="Where (optional)" style="flex:1"><button class="dbtn" id="pipeBook" style="padding:6px 12px">Book a visit</button></div>
-      <div id="pipeBooked" style="display:none;font:12.5px system-ui;color:var(--soft);gap:12px;align-items:center;flex-wrap:wrap"></div>
-      <div class="tl${evs.length?'':' empty'}">${acts||'<div class="ev w">No activity yet.</div>'}</div></div>`;
-    document.getElementById("pipeStage").onchange=e=>bMove(c.cid,e.target.value);
-    document.getElementById("pipeRemove").onclick=()=>bRemove(c);
-    const asg=document.getElementById("pipeAsg");asg.onchange=()=>bAssign(c,asg.value.trim());
+      <div id="pipeBooked"></div></div>`;
     const bk=document.getElementById("pipeBook"),bw=document.getElementById("pipeWhen"),bp=document.getElementById("pipePlace"),bo=document.getElementById("pipeBooked");
     if(bk) bk.onclick=()=>{ if(!bw.value){toast("Pick a date and time");return;}
-      const when=new Date(bw.value).toISOString();
-      bPost("appointment",{cid:c.cid,when:when,place:bp.value.trim(),client_name:c.name||""},d=>{
-        toast("Booked."); if(d&&d.links&&bo){bo.style.display="flex";bo.innerHTML="Add to your calendar: "+apptLinks({links:d.links});}
-        boardLoad(true,()=>renderDrawerPipe(c));
+      bk.disabled=true;bk.textContent="Booking…";
+      bPost("appointment",{cid:c.cid,when:new Date(bw.value).toISOString(),place:bp.value.trim(),client_name:c.name||""},d2=>{
+        bk.disabled=false;bk.textContent="Book a visit";toast("Booked.");
+        if(bo&&d2&&d2.links) bo.innerHTML=apptClientLine(d2.links);
+        renderDrawerAppt(c);
       }); };
     box.querySelectorAll("[data-apptcancel]").forEach(b=>b.onclick=()=>{ if(!confirm("Cancel this appointment?"))return;
-      bPost("appointment/cancel",{cid:c.cid,id:b.dataset.apptcancel},()=>{toast("Cancelled.");boardLoad(true,()=>renderDrawerPipe(c));}); });
-    const nb=document.getElementById("pipeNoteBtn"),ni=document.getElementById("pipeNote");
-    nb.onclick=()=>{const v=ni.value.trim();if(v){bNote(c,v);ni.value="";}};
-    ni.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();nb.onclick();}};
-  });
+      bPost("appointment/cancel",{cid:c.cid,id:b.dataset.apptcancel},()=>{toast("Cancelled.");renderDrawerAppt(c);}); });
+  }).catch(()=>{ box.innerHTML='<div style="color:var(--faint);font-size:12.5px">Appointments are available for stores with write-back.</div>'; });
 }
 function actLabel(e){const a=e.action||"";if(a==="added")return"added to pipeline";if(a==="removed")return"removed";if(a==="note")return"noted";if(a==="appointment")return"booked an appointment";if(a==="appointment_cancelled")return"cancelled an appointment";
   if(a.indexOf("moved:")===0)return"moved to "+a.slice(6);if(a.indexOf("assigned:")===0)return"assigned "+a.slice(9);return a;}
@@ -3508,8 +3511,8 @@ function openDrawer(id){
         <div style="font-size:11.5px;color:var(--soft);margin-top:9px;line-height:1.5">Grown from their current spend toward your client ceiling, scaled by a Halia score of <b>${c.score}</b>.</div>
       </div></details>
 
-      <details class="dfold"><summary>Pipeline<span id="dpipeGist">not started</span></summary>
-        <div id="drawerPipe" style="margin-bottom:6px"></div></details>
+      <details class="dfold" id="dapptFold"><summary>Appointments<span id="dapptGist">none booked</span></summary>
+        <div id="drawerAppt" style="margin-bottom:6px"></div></details>
 
       <details class="dfold"><summary>Was this a good call?<span>trains Halia to your book</span></summary>
         <div id="dfb" style="display:flex;gap:8px">
@@ -3561,7 +3564,7 @@ function openDrawer(id){
   drawer.classList.add("show");scrim.classList.add("show");drawer.setAttribute("aria-hidden","false");
   wireDrawerCtl();
   wireCartBuilder(c);    // "Send a cart" -> one-tap Shopify checkout link (Shopify only)
-  renderDrawerPipe(c);   // outreach-pipeline section (stage / owner / activity)
+  renderDrawerAppt(c);   // appointments: what is booked, and booking the next
   // Associate feedback loop: one tap records an anonymous per-signal tally (Halia) + tags the
   // client in the merchant's own store. This is the label that later fixes calibration direction.
   (function(){
@@ -3643,7 +3646,9 @@ function toggleDrawerWide(){
   if(b){b.innerHTML=w?COMPRESS_ICON:EXPAND_ICON;b.title=w?"Show less":"Show the full record";}
 }
 function wireDrawerCtl(){const c=document.getElementById("dclose");if(c)c.onclick=closeDrawer;const e=document.getElementById("dexpand");if(e)e.onclick=toggleDrawerWide;
-  const b=document.getElementById("dbook");if(b)b.onclick=()=>{const w=document.getElementById("pipeWhen");if(w){w.scrollIntoView({block:"center",behavior:"smooth"});try{w.showPicker&&w.showPicker();}catch(_){}w.focus();}else{const p=document.getElementById("pipeAdd");if(p){p.scrollIntoView({block:"center",behavior:"smooth"});toast("Add them to the pipeline first, then book.");}}};}
+  const b=document.getElementById("dbook");if(b)b.onclick=()=>{
+    const f=document.getElementById("dapptFold"); if(f){f.open=true;f.scrollIntoView({block:"center",behavior:"smooth"});}
+    setTimeout(()=>{const w=document.getElementById("pipeWhen");if(w){w.focus();try{w.showPicker&&w.showPicker();}catch(_){}}},250);};}
 // "Send a cart": search products, pick quantities, and build a one-tap Shopify checkout link the
 // client pays themselves (read-only cart permalink; creates nothing on the store). Shopify only.
 function wireCartBuilder(c){
