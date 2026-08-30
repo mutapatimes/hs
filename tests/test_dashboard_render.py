@@ -118,3 +118,14 @@ def test_book_a_visit_shows_only_in_the_expanded_drawer():
     html = Path("web/template.html").read_text()
     assert ".dctl #dbook{display:none}" in html
     assert ".drawer.wide .dctl #dbook{display:inline-flex}" in html
+
+
+def test_drawer_shows_appointments_not_the_pipeline():
+    """The drawer was crowded: stage, owner, activity and booking in one fold. Only appointments
+    remain there (the board keeps the pipeline), and a booking hands back the client's invitation."""
+    from pathlib import Path
+    html = Path("web/template.html").read_text()
+    assert 'id="dapptFold"' in html and ">Appointments<" in html
+    assert "renderDrawerPipe" not in html and 'id="drawerPipe"' not in html
+    assert "function apptClientLine(" in html and "Their invitation" in html
+    assert "Copy for the client" in html
