@@ -483,6 +483,16 @@ struct HaliaAPI {
         let _: OkOnly = try await postAny("/v1/capture/followup", body: body)
     }
 
+    // MARK: Book a visit (keyboard) — into the client's own record, with the line to send them.
+
+    struct BookedAppointment: Decodable { let ok: Bool?; let links: ApptLinks? }
+
+    func bookAppointment(cid: String, when: String, place: String, clientName: String) async throws -> BookedAppointment {
+        let body: [String: Any] = ["action": "appointment", "cid": cid, "when": when,
+                                   "place": place, "client_name": clientName]
+        return try await postAny("/v1/extension/action", body: body)
+    }
+
     // MARK: Remember (keyboard) — what the client said about themselves, into their record in the store.
 
     struct Occasion: Decodable { let label: String?; let date: String? }
