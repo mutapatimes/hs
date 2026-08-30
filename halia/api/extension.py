@@ -199,6 +199,11 @@ def _resp_from_row(shop: str, row: dict) -> dict:
         "spend": row.get("spend"),
         "ordersCount": row.get("ordersCount"),
         "last": row.get("last"),
+        # What they have actually bought, newest first: the toolbar shows this instead of a
+        # latent-value figure, which means nothing beside a live chat.
+        "orders": [{"date": o.get("date"), "amount": o.get("amount"), "items": o.get("items"),
+                    "titles": (o.get("titles") or [])[:3]}
+                   for o in (row.get("orders") or [])[:5]],
         "cart": _cart(row),
         "reasons": [s.get("d") for s in (row.get("signals") or []) if s.get("d")],
         "reco": row.get("reco"),

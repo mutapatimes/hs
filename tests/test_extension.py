@@ -1065,3 +1065,14 @@ def test_client_data_needs_a_plan_but_sign_in_and_profile_stay_open(env, monkeyp
     assert client.post("/v1/extension/profile", json={"name": "Sarah", "title": "Client Advisor"}, headers=sh).status_code == 200
     assert client.post("/v1/extension/signout", headers=sh).status_code == 200
     assert client.post("/v1/extension/lookup", json={"email": "grace@x.com"}, headers=sh).status_code == 402
+
+
+def test_lookup_carries_recent_orders_for_the_toolbar(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row(orders=[{"date": "2026-06-29", "amount": 2121, "items": 1, "titles": ["Cashmere coat", "Silk scarf"]},
+                        {"date": "2026-05-02", "amount": 890, "items": 2, "titles": ["Loafers"]}])])
+    d = client.post("/v1/extension/lookup", json={"email": "grace@x.com"},
+                    headers={"X-Halia-Ext-Token": ext}).json()
+    assert [o["date"] for o in d["orders"]] == ["2026-06-29", "2026-05-02"]
+    assert d["orders"][0]["amount"] == 2121 and d["orders"][0]["titles"] == ["Cashmere coat", "Silk scarf"]
