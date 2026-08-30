@@ -117,8 +117,7 @@ _INVITE_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
   a.b{{display:block;text-align:center;margin-top:10px;padding:14px;border:1px solid #1a1a1d;border-radius:12px;color:#1a1a1d;text-decoration:none;font-weight:600}}
   a.b.p{{background:#1a1a1d;color:#fff}}
 </style></head><body><div class="wrap">
- <h1>{store}</h1><p class="sub">Your appointment</p>
- <p class="when">{when}</p><p class="where">{where}</p>
+ {head}<p class="when">{when}</p><p class="where">{where}</p>
  <a class="b p" id="ics" href="{ics}">Add to my calendar</a>
  <a class="b" href="{google}" rel="noopener">Google Calendar</a>
  <a class="b" href="{outlook}" rel="noopener">Outlook</a>
@@ -241,7 +240,9 @@ def render_invite(token: str):
     outlook = "https://outlook.office.com/calendar/0/deeplink/compose?" + urlencode({
         "subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
         "enddt": end.astimezone(timezone.utc).isoformat(), "location": place, "path": "/calendar/action/compose"})
-    html = _INVITE_PAGE.format(store=_html.escape(inv["store"] or "Your appointment"),
+    store = _html.escape(inv["store"] or "")
+    html = _INVITE_PAGE.format(store=store or "Appointment",          # the tab's title only
+                               head=(f"<h1>{store}</h1>" if store else ""),
                                when=_html.escape(start.strftime("%A %d %B, %H:%M")),
                                where=_html.escape(place), ics=f"{token}.ics",
                                google=_html.escape(google), outlook=_html.escape(outlook))
