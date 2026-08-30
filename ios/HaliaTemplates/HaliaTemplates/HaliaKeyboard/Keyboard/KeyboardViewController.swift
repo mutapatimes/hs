@@ -20,7 +20,7 @@ import UIKit
 final class KeyboardViewController: UIInputViewController, UITableViewDataSource, UITableViewDelegate,
                                     UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
-    private enum Mode { case templates, suggestions, draft, products, saved }
+    private enum Mode { case templates, suggestions, draft, products, saved, book }
     private enum Audience { case client, team }   // write to the client, or to the team about them
 
     private struct SuggestRow { let id, title, why: String; let price: String?; var on: Bool }
@@ -63,6 +63,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var lastReplacement: (original: String, polished: String)?   // Polish: Undo restores what was typed
     private var polishedText: String?                                     // last polished message, for Adjust
     private var pendingOccasion: (label: String, date: String, cid: String)?   // Remember found a date
+    private var bookDay: Date?                        // the day chosen in Book mode
+    private var bookMinutes: Int?                     // minutes past midnight for the chosen time
     private var undoClearTask: Task<Void, Never>?
 
     // Whether an inserted template carries its greeting ("Dear …,") and sign-off ("Warm regards, …").
@@ -229,7 +231,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         grid.isHidden = !showGrid
         table.isHidden = !(mode == .suggestions || (mode == .saved && products.isEmpty) || showTemplateList)
 
-        if mode == .products {
+        if mode == .book {
+            emptyLabel.text = bookSummary()
+            emptyLabel.isHidden = false
+        } else if mode == .products {
             emptyLabel.text = hasFullAccess
                 ? "No products to show. Connect in the Halia app, and note product search needs a Shopify store with published, in-stock items."
                 : "Turn on Full Access in Settings to browse and search products."
@@ -378,6 +383,17 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 actionStack.addArrangedSubview(pillButton(label, filled: false) { [weak self] in self?.refine(mod) })
             }
 
+        case .book:
+            actionHeight.constant = 46; actionScroll.isHidden = false
+            actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
+            for slot in Self.bookTimes {
+                actionStack.addArrangedSubview(togglePill(Self.timeLabel(slot), on: bookMinutes == slot) { [weak self] in
+                    guard let self else { return }
+                    self.bookMinutes = (self.bookMinutes == slot) ? nil : slot
+                    self.rebuildActionRow(); self.reload()
+                })
+            }
+
         case .products:
             actionHeight.constant = 46; actionScroll.isHidden = false
             actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
@@ -437,6 +453,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             actionStack.addArrangedSubview(pillButton("✦ Suggest pieces", filled: true) { [weak self] in self?.suggestPieces() })
             actionStack.addArrangedSubview(pillButton("↩ Reply", filled: false) { [weak self] in self?.replyToCopied() })
             actionStack.addArrangedSubview(pillButton("Remember", filled: false) { [weak self] in self?.rememberCopied() })
+            if clientCid != nil {
+                actionStack.addArrangedSubview(pillButton("Book a visit", filled: false) { [weak self] in self?.enterBook() })
+            }
             actionStack.addArrangedSubview(pillButton("Offer a time", filled: false) { [weak self] in
                 self?.startDraft(instruction: "Offer a private appointment at the boutique this week. Ask which day and "
                                  + "time would suit them. Do not name specific times or dates yourself.", thread: nil)
@@ -551,6 +570,59 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                     lastThread = thread; pendingCartUrl = nil; draftIsHandoff = false
                     mode = .draft; setStatus(nil)
                 } else { setStatus("No reply came back") }
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
+
+    // MARK: - Book a visit (agree a time in the chat, book it, send them the invite)
+
+    /// Half-hourly slots a boutique actually offers, as minutes past midnight.
+    private static let bookTimes: [Int] = stride(from: 9 * 60, through: 19 * 60, by: 30).map { $0 }
+
+    private static func timeLabel(_ minutes: Int) -> String {
+        String(format: "%02d:%02d", minutes / 60, minutes % 60)
+    }
+
+    private static func dayLabel(_ day: Date, offset: Int) -> String {
+        if offset == 0 { return "Today" }
+        if offset == 1 { return "Tomorrow" }
+        let f = DateFormatter(); f.dateFormat = "EEE d"
+        return f.string(from: day)
+    }
+
+    private func bookSummary() -> String {
+        guard let day = bookDay else { return "Pick a day, then a time." }
+        let f = DateFormatter(); f.dateFormat = "EEEE d MMMM"
+        guard let mins = bookMinutes else { return f.string(from: day) + " · pick a time" }
+        return f.string(from: day) + " at " + Self.timeLabel(mins)
+    }
+
+    private func enterBook() {
+        guard clientCid != nil else { flash("Look up a client first"); return }
+        bookDay = nil; bookMinutes = nil
+        mode = .book; setStatus(nil); reload()
+    }
+
+    private func confirmBooking() {
+        guard let cid = clientCid, let day = bookDay, let mins = bookMinutes, !busy else { return }
+        let cal = Calendar.current
+        guard let at = cal.date(byAdding: .minute, value: mins, to: cal.startOfDay(for: day)) else { return }
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        iso.timeZone = TimeZone.current
+        busy = true; setStatus("Booking…", loading: true)
+        Task {
+            do {
+                let res = try await HaliaAPI.current.bookAppointment(cid: cid, when: iso.string(from: at),
+                                                                     place: "", clientName: clientName ?? "")
+                if let msg = res.links?.message, !msg.isEmpty {
+                    mode = .templates; bookDay = nil; bookMinutes = nil
+                    insertUndoable(msg)            // the client's line, with their calendar link
+                    setStatus(nil); flash("Booked")
+                } else { setStatus("Could not book that time") }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
@@ -707,6 +779,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func backToTemplates() {
         clearBrief()
         mode = .templates; suggestions = []; products = []; draftText = ""; pendingCartUrl = nil
+        bookDay = nil; bookMinutes = nil
         searchQuery = ""; searchWork?.cancel(); reload()
     }
 
@@ -867,6 +940,24 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func rebuildChips() {
         chipsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        if mode == .book {                                       // pick the day here, the time above
+            chipsHeight.constant = 44
+            chipsScroll.isHidden = false
+            let cal = Calendar.current
+            for offset in 0..<14 {
+                guard let day = cal.date(byAdding: .day, value: offset, to: cal.startOfDay(for: Date())) else { continue }
+                let on = bookDay.map { cal.isDate($0, inSameDayAs: day) } ?? false
+                chipsStack.addArrangedSubview(togglePill(Self.dayLabel(day, offset: offset), on: on) { [weak self] in
+                    guard let self else { return }
+                    self.bookDay = on ? nil : day
+                    self.rebuildChips(); self.reload()
+                })
+            }
+            if bookDay != nil && bookMinutes != nil {
+                chipsStack.addArrangedSubview(pillButton("Book", filled: true) { [weak self] in self?.confirmBooking() })
+            }
+            return
+        }
         if mode == .draft {                                      // a brief shows its moves here
             let pills = briefPills()
             chipsHeight.constant = pills.isEmpty ? 0 : 44
