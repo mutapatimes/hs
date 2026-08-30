@@ -3272,11 +3272,10 @@ function bAssign(c,name){const seat=ME.seats.find(s=>s.id===name);bPost("assign"
 function apptClientLine(links){
   if(!links||!links.message) return "";
   return `<div style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin-top:8px">
-    <div style="font:600 12.5px system-ui;color:var(--ink);margin-bottom:6px">Their invitation</div>
     <div style="font:13px system-ui;color:var(--soft);line-height:1.5">${esc(links.message)}</div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:9px;align-items:center">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;align-items:center;font:600 12.5px system-ui">
       <button class="dbtn" data-apptsend="${esc(links.message)}" style="padding:5px 11px">Copy for the client</button>
-      <span style="font:12px system-ui;color:var(--faint)">Your calendar:</span>${apptLinks({links:links})}
+      ${apptLinks({links:links})}
     </div></div>`;
 }
 // Appointments for one client: what is booked, and one row to book the next. Booking hands back
@@ -3293,11 +3292,11 @@ function renderDrawerAppt(c){
         <span style="font:600 13px system-ui">${esc(apptWhen(a.when))}</span>
         ${a.place?`<span style="font:12.5px system-ui;color:var(--faint)">${esc(a.place)}</span>`:""}
         ${a.seat_name?`<span style="font:12.5px system-ui;color:var(--faint)">${esc(a.seat_name)}</span>`:""}
-        <span style="margin-left:auto;display:flex;gap:12px;align-items:center">
-          ${a.links&&a.links.message?`<button class="dbtn" data-apptsend="${esc(a.links.message)}" style="padding:4px 9px">Copy for the client</button>`:""}
-          <button class="dbtn" data-apptcancel="${esc(a.id)}" style="padding:4px 9px;color:#9A3838">Cancel</button></span>
+        <span style="margin-left:auto;display:flex;gap:14px;align-items:center;font:600 12.5px system-ui">
+          ${a.links&&a.links.message?`<button class="lnkbtn" data-apptsend="${esc(a.links.message)}">Copy for the client</button>`:""}
+          <button class="lnkbtn" data-apptcancel="${esc(a.id)}" style="color:#9A3838">Cancel</button></span>
       </div>`).join("")}
-      <div class="row"><input id="pipeWhen" type="datetime-local" style="flex:none"><input id="pipePlace" placeholder="Where (optional)" style="flex:1"><button class="dbtn" id="pipeBook" style="padding:6px 12px">Book a visit</button></div>
+      <div class="row" style="gap:8px"><input id="pipeWhen" type="datetime-local" style="flex:none"><input id="pipePlace" placeholder="Where" style="flex:1;min-width:90px"><button class="dbtn" id="pipeBook" style="padding:6px 12px;white-space:nowrap">Book</button></div>
       <div id="pipeBooked"></div></div>`;
     const bk=document.getElementById("pipeBook"),bw=document.getElementById("pipeWhen"),bp=document.getElementById("pipePlace"),bo=document.getElementById("pipeBooked");
     if(bk) bk.onclick=()=>{ if(!bw.value){toast("Pick a date and time");return;}
@@ -3508,7 +3507,6 @@ function openDrawer(id){
           <span style="flex:1;height:6px;border-radius:8px;background:linear-gradient(90deg,var(--brand-tint),var(--brand));position:relative;min-width:60px"><span style="position:absolute;top:-3px;left:calc(${Math.max(2,Math.min(96,c.spend/Math.max(1,c.latent)*100)).toFixed(0)}% - 6px);width:12px;height:12px;border-radius:8px;background:var(--brand);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span></span>
           <span class="mono" style="color:var(--brand);font-weight:600">${gbpK(c.latent)}</span>
         </div>
-        <div style="font-size:11.5px;color:var(--soft);margin-top:9px;line-height:1.5">Grown from their current spend toward your client ceiling, scaled by a Halia score of <b>${c.score}</b>.</div>
       </div></details>
 
       <details class="dfold" id="dapptFold"><summary>Appointments<span id="dapptGist">none booked</span></summary>
@@ -3519,7 +3517,6 @@ function openDrawer(id){
           <button class="dbtn" id="dfbYes">&#128077; Good call</button>
           <button class="dbtn" id="dfbNo">&#128078; Not a fit</button>
         </div>
-        <div style="color:var(--faint);font-size:11.5px;margin-top:6px">Your verdict is tagged on the client in your store; Halia keeps only an anonymous per-signal tally.</div>
       </details>
 
       <details class="dfold"><summary>Order history<span>${c.orders&&c.orders.length?`${c.orders.length} · ${gbp(c.spend)}`:"none on record"}</span></summary>
@@ -3641,7 +3638,7 @@ function drawerCtl(){return `<div class="dctl"><button class="dbtn" id="dbook" s
 // who / why / what-to-do view it is meant to be.
 function toggleDrawerWide(){
   const w=drawer.classList.toggle("wide");
-  drawer.querySelectorAll("details.dfold").forEach(d=>{d.open=w;});
+  if(!w) drawer.querySelectorAll("details.dfold").forEach(d=>{d.open=false;});   // narrow again: fold it all away
   const b=document.getElementById("dexpand");
   if(b){b.innerHTML=w?COMPRESS_ICON:EXPAND_ICON;b.title=w?"Show less":"Show the full record";}
 }

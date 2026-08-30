@@ -127,5 +127,14 @@ def test_drawer_shows_appointments_not_the_pipeline():
     html = Path("web/template.html").read_text()
     assert 'id="dapptFold"' in html and ">Appointments<" in html
     assert "renderDrawerPipe" not in html and 'id="drawerPipe"' not in html
-    assert "function apptClientLine(" in html and "Their invitation" in html
+    assert "function apptClientLine(" in html
     assert "Copy for the client" in html
+
+
+def test_the_record_is_quiet_by_default():
+    """Expanding the drawer used to fling every fold open and each carried an explainer line."""
+    from pathlib import Path
+    html = Path("web/template.html").read_text()
+    assert "forEach(d=>{d.open=w;})" not in html            # no auto-open on expand
+    assert "Grown from their current spend" not in html      # the bar and the two numbers say it
+    assert "Your verdict is tagged on the client" not in html
