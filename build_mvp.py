@@ -674,6 +674,7 @@ def render_payload(payload: dict, head_extra: str = "", body_extra: str = "") ->
     html = html.replace("__SYNC_RUNNING__", "true" if payload.get("sync_running") else "false")
     html = html.replace("__ORDER_WINDOW__", str(int(payload.get("order_window") or 0)))
     html = html.replace("__SYNC_DIAG__", _safe(json.dumps(payload.get("sync_diag") or {})))
+    html = html.replace("__ORDER_CAP__", _safe(json.dumps(payload.get("order_cap") or {})))
     return html
 
 

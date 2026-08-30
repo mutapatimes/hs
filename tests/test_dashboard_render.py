@@ -138,3 +138,20 @@ def test_the_record_is_quiet_by_default():
     assert "forEach(d=>{d.open=w;})" not in html            # no auto-open on expand
     assert "Grown from their current spend" not in html      # the bar and the two numbers say it
     assert "Your verdict is tagged on the client" not in html
+
+
+def test_no_recommended_approach_label_and_the_order_cap_is_named():
+    from pathlib import Path
+    html = Path("web/template.html").read_text()
+    assert "Recommended approach" not in html          # the line speaks for itself
+    assert "const ORDER_CAP" in html and 'id="capNote"' in html
+
+
+def test_order_cap_is_recorded_when_the_pull_stops_at_its_limit():
+    from halia.api import data
+    data._note_order_cap("s1", 6000, 60, 100)
+    assert data.order_cap("s1") == {"read": 6000, "capped": True}
+    data._note_order_cap("s2", 1200, 60, 100)
+    assert data.order_cap("s2") == {"read": 1200, "capped": False}
+    data._note_order_cap("s3", 90000, None, 100)       # no cap configured
+    assert data.order_cap("s3")["capped"] is False

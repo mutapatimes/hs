@@ -886,7 +886,7 @@
           <p class="sub">High-potential clients your spend thresholds miss, surfaced from how they already buy and where they ship.</p>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
-          <div class="live"><span class="pulse"></span> Scored from your data · <span class="mono">__STAT_SCORED__</span> customers · <button class="rescore" id="rescore">Re-score</button></div>
+          <div class="live"><span class="pulse"></span> Scored from your data · <span class="mono">__STAT_SCORED__</span> customers<span id="capNote"></span> · <button class="rescore" id="rescore">Re-score</button></div>
           <div style="display:flex;gap:8px;position:relative">
             <button class="dbtn" id="alertsBell" style="border:1px solid var(--line);background:var(--card);position:relative;display:none">🔔 Alerts<span id="alertsCount" style="display:none;position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:8px;background:#1f564a;color:#fff;font:700 11px/18px system-ui;text-align:center"></span></button>
             <button class="dbtn" id="openSettings" style="border:1px solid var(--line);background:var(--card)">Settings</button>
@@ -1285,6 +1285,7 @@ function playOf(c){
 const SYNC_RUNNING = __SYNC_RUNNING__;   // true when the embedded entry kicked a background score
 const ORDER_WINDOW = __ORDER_WINDOW__;   // 60 when Shopify shares only recent orders (scope pending); 0 otherwise
 const SYNC_DIAG = __SYNC_DIAG__;         // what Shopify shared on the last empty sync: orders_recent, guest_orders, customers
+const ORDER_CAP = __ORDER_CAP__;         // {read, capped}: whether the order pull stopped at its cap
 const PLATFORM = "__PLATFORM__";         // shopify | woocommerce | bigcommerce | centra | scayle
 const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce:"BigCommerce",centra:"Centra",scayle:"SCAYLE"})[PLATFORM] || "your store";
 // Embedded (Shopify admin) only: keep the admin sidebar nav (ui-nav-menu) and the app in sync
@@ -1587,6 +1588,10 @@ function renderHistBanner(){
     +' are behind the full-history plan. <button class="histup">See full history &rarr;</button>';
   ["cHist","oHist"].forEach(id=>{const el=document.getElementById(id);if(el){el.innerHTML=html;el.style.display="";const b=el.querySelector(".histup");if(b)b.onclick=upgradePrompt;}});
 }
+(function(){ const el=document.getElementById("capNote");
+  if(el && ORDER_CAP && ORDER_CAP.capped && ORDER_CAP.read)
+    el.textContent = " · newest " + Number(ORDER_CAP.read).toLocaleString("en-GB") + " orders";
+})();
 renderHistBanner();
 function paintDate(prefix,state){
   const el=document.getElementById(prefix+"Date"); if(!el) return;
@@ -2223,7 +2228,7 @@ function openOrderDrawer(o){
     <div style="padding:18px 22px">
       <div style="display:flex;align-items:center;gap:10px">${ogr(o)}<div style="font:600 16px system-ui">${esc(o.name)}</div>${o.score?`<span style="margin-left:auto;font:700 13px system-ui;color:var(--brand)">Score ${o.score}</span>`:""}</div>
       ${sigs.length?`<div style="font:600 11px system-ui;color:var(--soft);margin:18px 0 8px;">Why this client matters</div>${evidenceHTML(sigs)}`:`<div style="color:var(--soft);font-size:13px;margin:14px 0">Graded ${o.grade||"this client"}. Open the Clients view for the full signal breakdown on your potential VICs.</div>`}
-      ${reco?`<div style="font:600 11px system-ui;color:var(--soft);margin:18px 0 8px;">Recommended approach</div><div style="font-size:14px;line-height:1.6">${reco}</div>`:""}
+      ${reco?`<div style="font-size:14px;line-height:1.6;margin-top:16px">${reco}</div>`:""}
       <div style="font:600 11px system-ui;color:var(--soft);margin:20px 0 9px;">Send a ${o.status.toLowerCase()} message</div>
       <div style="display:flex;flex-direction:column;gap:8px">${tpls.map((t,j)=>`<a class="obtn${j===0?" primary":""}" style="justify-content:flex-start;text-align:left" href="${href(t)}" target="_top">${t.name}</a>`).join("")}<a class="obtn" style="justify-content:flex-start" href="mailto:${em}" target="_top">Blank email</a></div>
     </div>`;
@@ -3496,7 +3501,7 @@ function openDrawer(id){
       <div id="dsum" class="dsum" style="display:none"></div>
       <div class="evidence">${evidenceHTML(c.signals)}</div>
 
-      ${c.reco?`<div class="reco"><div class="k">Recommended approach</div><p>${esc(c.reco)}</p></div>`:""}
+      ${c.reco?`<div class="reco"><p>${esc(c.reco)}</p></div>`:""}
       </div>
 
       <div class="drecord">
@@ -3622,7 +3627,7 @@ function loadClientSummary(c){
       if(!document.getElementById("dsum")) return;       // drawer moved on while we waited
       box.textContent=d.summary;
       box.style.display="";
-      // The written line and the canned "Recommended approach" say the same thing. Show one.
+      // The written line and the canned one say the same thing. Show one.
       const reco=document.querySelector(".dbody .reco");
       if(reco) reco.style.display="none";
     })
