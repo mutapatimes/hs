@@ -947,6 +947,8 @@ private struct CaptureView: View {
     @State private var emailSuggestion: String?
     @State private var checkedOnce = false
     @State private var handBack = false     // saved (or cancelled): show the hand-back screen
+    @State private var handedBack = false   // the associate has taken the phone back
+    @State private var pendingMatch: HaliaAPI.ExistingClient?   // they may already be in the book
     @State private var savedGrade: String?
     @State private var savedId: String?
 
@@ -956,13 +958,17 @@ private struct CaptureView: View {
     }
 
     var body: some View {
-        NavigationView {
+        // The hand-back screen sits OVER the form rather than replacing the navigation view's
+        // root: swapping the root made the two screens shear into each other mid-transition.
+        ZStack {
+            NavigationView { form }
             if handBack {
-                handBackView
-            } else {
-                form
+                Color(.systemBackground).ignoresSafeArea()
+                (pendingMatch != nil && handedBack ? AnyView(matchView) : AnyView(handBackView))
             }
         }
+        .animation(.easeInOut(duration: 0.22), value: handBack)
+        .animation(.easeInOut(duration: 0.22), value: handedBack)
         .interactiveDismissDisabled(true)
     }
 
@@ -1049,11 +1055,74 @@ private struct CaptureView: View {
                 .padding(.vertical, 14).padding(.horizontal, 36)
                 .background(Capsule().stroke(Color.secondary.opacity(0.4)))
                 .onLongPressGesture(minimumDuration: 1.2) {
+                    if pendingMatch != nil { handedBack = true; return }   // your decision, not theirs
                     onDone(savedGrade.map { "Saved \u{00b7} Grade " + $0 } ?? (savedId != nil ? "Saved" : nil), savedId)
                     dismiss()
                 }
                 .padding(.bottom, 40)
         }
+    }
+
+    /// Associate-facing: this email or phone already belongs to someone. Add to that record, or
+    /// keep them apart. Never shown while the client is holding the phone.
+    private var matchView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Spacer()
+            Text("They may already be in your book").font(.title3.weight(.semibold))
+            if let m = pendingMatch {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(m.name ?? "A client").font(.body.weight(.semibold))
+                    Text(matchLine(m)).font(.footnote).foregroundColor(.secondary)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+            }
+            LuxeButton(saving ? "Saving…" : "Add to their record") { Task { await finish(mode: "merge") } }
+            Button("Create a separate client") { Task { await finish(mode: "new") } }
+                .font(.system(size: 15, weight: .semibold))
+                .frame(maxWidth: .infinity)
+            if let errorText { Text(errorText).font(.footnote).foregroundColor(.red) }
+            Spacer()
+        }
+        .padding(24)
+        .disabled(saving)
+    }
+
+    private func matchLine(_ m: HaliaAPI.ExistingClient) -> String {
+        var bits: [String] = []
+        if let e = m.email, !e.isEmpty { bits.append(e) }
+        if let p = m.phone, !p.isEmpty, m.by == "phone" { bits.append(p) }
+        if let n = m.orders, n > 0 { bits.append("\(n) order" + (n == 1 ? "" : "s")) }
+        if let l = m.last, !l.isEmpty { bits.append("last " + l) }
+        return bits.joined(separator: " · ")
+    }
+
+    /// Write the capture with the associate's decision, then hand back to the desk.
+    private func finish(mode: String) async {
+        saving = true; errorText = nil
+        do {
+            let result = try await HaliaAPI.current.captureClient(fields(mode: mode))
+            saving = false
+            onDone(result.grade.map { "Saved \u{00b7} Grade " + $0 } ?? "Saved", result.customer_id)
+            dismiss()
+        } catch {
+            saving = false
+            errorText = "Could not save just now. Check the connection and try again."
+        }
+    }
+
+    private func fields(mode: String) -> [String: Any] {
+        var out: [String: Any] = ["channel": "handover", "mode": mode]
+        for (k, v) in [("first_name", first), ("last_name", last), ("company", company),
+                       ("phone", phone), ("email", email), ("birthday", birthday),
+                       ("address", address), ("postcode", postcode), ("city", city), ("country", country),
+                       ("sizes", sizes), ("preferences", preferences), ("notes", notes)] {
+            let t = v.trimmingCharacters(in: .whitespaces)
+            if !t.isEmpty { out[k] = t }
+        }
+        out["consent"] = ["email_marketing": emailUpdates, "sms_marketing": smsUpdates]
+        return out
     }
 
     private func save() async {
@@ -1065,26 +1134,26 @@ private struct CaptureView: View {
             let trimmedEmail = email.trimmingCharacters(in: .whitespaces)
             if let check = try? await HaliaAPI.current.checkCapture(
                 email: trimmedEmail.isEmpty ? nil : trimmedEmail,
-                postcode: postcode.trimmingCharacters(in: .whitespaces)) {
+                postcode: postcode.trimmingCharacters(in: .whitespaces),
+                phone: phone.trimmingCharacters(in: .whitespaces)) {
                 if let pc = check.postcode, !pc.isEmpty { postcode = pc }
                 if let sug = check.email_suggestion, !sug.isEmpty {
                     emailSuggestion = sug
                     saving = false
                     return          // surface the fix; the next Done saves either way
                 }
+                if let m = check.match, (m.cid ?? "").isEmpty == false {
+                    // Someone in the book already has this email or phone. The client sees only
+                    // the thank-you; the associate decides when the phone is back in their hand.
+                    pendingMatch = m
+                    saving = false
+                    handBack = true
+                    return
+                }
             }
         }
-        var fields: [String: Any] = ["channel": "handover"]
-        for (k, v) in [("first_name", first), ("last_name", last), ("company", company),
-                       ("phone", phone), ("email", email), ("birthday", birthday),
-                       ("address", address), ("postcode", postcode), ("city", city), ("country", country),
-                       ("sizes", sizes), ("preferences", preferences), ("notes", notes)] {
-            let t = v.trimmingCharacters(in: .whitespaces)
-            if !t.isEmpty { fields[k] = t }
-        }
-        fields["consent"] = ["email_marketing": emailUpdates, "sms_marketing": smsUpdates]
         do {
-            let result = try await HaliaAPI.current.captureClient(fields)
+            let result = try await HaliaAPI.current.captureClient(fields(mode: "auto"))
             savedGrade = result.grade
             savedId = result.customer_id
             saving = false

@@ -31,7 +31,11 @@ def _gql(shop: str, token: str, query: str, variables: dict) -> dict:
 
 _SEARCH = """
 query($q: String!) {
-  customers(first: 1, query: $q) { nodes { id email phone tags } }
+  customers(first: 1, query: $q) {
+    nodes { id email phone tags displayName numberOfOrders
+            amountSpent { amount currencyCode }
+            lastOrder { processedAt } }
+  }
 }"""
 
 _CREATE = """
@@ -79,6 +83,25 @@ def _find_existing(shop: str, token: str, email: str, phone: str) -> Optional[di
         if nodes:
             return nodes[0]
     return None
+
+
+def existing_match(shop: str, email: str, phone: str) -> Optional[dict]:
+    """Who this email or phone already belongs to, described so an associate can tell whether it
+    is the same person. Shopify tenants only; returns None when nothing matches."""
+    token = get_valid_token(shop)
+    if not token or not (email or phone):
+        return None
+    node = _find_existing(shop, token, email, phone)
+    if not node:
+        return None
+    by = "email" if (email and (node.get("email") or "").lower() == email.lower()) else "phone"
+    spent = (node.get("amountSpent") or {}).get("amount")
+    return {"cid": str(node.get("id") or ""), "name": node.get("displayName") or "",
+            "email": node.get("email") or "", "phone": node.get("phone") or "",
+            "orders": int(node.get("numberOfOrders") or 0),
+            "spent": spent, "currency": (node.get("amountSpent") or {}).get("currencyCode") or "",
+            "last": ((node.get("lastOrder") or {}).get("processedAt") or "")[:10],
+            "by": by}
 
 
 def _score_capture(cid: str, body: dict, email: str, phone: str) -> dict:
@@ -166,9 +189,14 @@ def _perform_capture_woo(shop: str, body: dict, channel: str, email: str, phone:
 
 
 def perform_capture(shop: str, body: dict, channel: str,
-                    associate: str = "", seat_id: str = "") -> dict:
+                    associate: str = "", seat_id: str = "", mode: str = "auto") -> dict:
     """The shared pipeline: dedupe -> write -> consent -> tags -> score. Used by the seat-authed
-    endpoint (handover, keyboard, vcard) and the public QR self-capture form alike."""
+    endpoint (handover, keyboard, vcard) and the public QR self-capture form alike.
+
+    ``mode`` is the associate's decision when the details match someone already in the book:
+    "auto"/"merge" adds to that record (the default, and what the unattended QR form does),
+    "new" keeps them apart as a separate client, tagged so the merchant can reconcile later.
+    """
     from halia.capture_quality import clean_email, clean_postcode
 
     email, _, _ = clean_email(body.get("email"), check_dns=False)
@@ -194,7 +222,7 @@ def perform_capture(shop: str, body: dict, channel: str,
     wants_email = bool(consent.get("email_marketing")) and bool(email)
     wants_sms = bool(consent.get("sms_marketing")) and bool(phone)
 
-    existing = _find_existing(shop, token, email, phone)
+    existing = None if mode == "new" else _find_existing(shop, token, email, phone)
     created = existing is None
 
     # The customer write: create, or update only the fields the form actually provided.
@@ -213,7 +241,8 @@ def perform_capture(shop: str, body: dict, channel: str,
         cust_input["addresses"] = [addr]
 
     if created:
-        cust_input["tags"] = [CAPTURE_TAG, f"halia-capture-{channel}"]
+        cust_input["tags"] = [CAPTURE_TAG, f"halia-capture-{channel}"] + (
+            ["halia-possible-duplicate"] if mode == "new" else [])
         data_ = _gql(shop, token, _CREATE, {"input": cust_input})
         node = (data_ or {}).get("customerCreate") or {}
     else:
@@ -468,8 +497,11 @@ def register(app) -> None:
         if not isinstance(body, dict):
             raise HTTPException(422, "Body must be a JSON object")
         channel = _clean(body.get("channel")) or "handover"
-        return perform_capture(auth.shop, body, channel,
-                               associate=auth.seat_name or "", seat_id=auth.seat_id or "")
+        mode = _clean(body.get("mode")) or "auto"
+        if mode not in ("auto", "merge", "new"):
+            raise HTTPException(422, "mode must be auto, merge or new")
+        return perform_capture(auth.shop, body, channel, associate=auth.seat_name or "",
+                               seat_id=auth.seat_id or "", mode=mode)
 
     @app.post("/v1/capture/followup")
     def capture_followup(body: Any = Body(...),
@@ -534,8 +566,18 @@ def register(app) -> None:
                            x_halia_ext_token: Optional[str] = Header(None)) -> dict:
         from halia.api.extension import _resolve_ext
 
-        _resolve_ext(x_halia_ext_token)
-        return _check_fields(body if isinstance(body, dict) else {})
+        auth = _resolve_ext(x_halia_ext_token)
+        b = body if isinstance(body, dict) else {}
+        out = _check_fields(b)
+        # Does this person look like someone already in the book? The associate decides what to do;
+        # the public QR form never sees this, so a stranger cannot probe who is on file.
+        try:
+            from halia.capture_quality import clean_email
+            email, _, _ = clean_email(b.get("email"), check_dns=False)
+            out["match"] = existing_match(auth.shop, email, _clean(b.get("phone")))
+        except Exception:  # noqa: BLE001 — a failed search must never block the form
+            out["match"] = None
+        return out
 
     @app.get("/c/{slug}", include_in_schema=False)
     def capture_page(slug: str):
