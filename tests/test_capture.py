@@ -313,3 +313,48 @@ def test_capture_link_and_settings_follow_the_client_host(env, monkeypatch):
     s = client.get("/v1/settings", cookies={COOKIE: tok}).json()
     assert s["capture_url"].startswith("https://shopx.com/a/catalogue/c/") and s["client_cname_target"]
     client_host._CACHE.clear()
+
+
+# ── a client who may already be in the book ─────────────────────────────────
+class MatchShopify(FakeShopify):
+    """A search that finds someone, with the detail an associate needs to recognise them."""
+    def __call__(self, shop, token, query, variables):
+        if "customers(first: 1" in query:
+            self.calls.append((query, variables))
+            return {"customers": {"nodes": [{"id": "gid://shopify/Customer/5", "email": "grace@x.com",
+                                             "phone": "", "tags": [], "displayName": "Grace Ladoja",
+                                             "numberOfOrders": 3, "amountSpent": {"amount": "4200.0", "currencyCode": "GBP"},
+                                             "lastOrder": {"processedAt": "2026-06-29T10:00:00Z"}}]}}
+        return super().__call__(shop, token, query, variables)
+
+
+def test_check_tells_the_associate_the_client_may_exist(env, monkeypatch):
+    client, store, ext, _ = env
+    monkeypatch.setattr(capture_mod, "_gql", MatchShopify())
+    from halia import capture_quality as cq
+    monkeypatch.setattr(cq, "_domain_resolves", lambda d: True)
+    d = client.post("/v1/capture/check", json={"email": "grace@x.com"},
+                    headers={"X-Halia-Ext-Token": ext}).json()
+    assert d["match"]["name"] == "Grace Ladoja" and d["match"]["orders"] == 3
+    assert d["match"]["by"] == "email" and d["match"]["last"] == "2026-06-29"
+    # the public form is told nothing about who is on file
+    capture_mod._SLUG_CACHE.clear()
+    slug = capture_mod._slug_for(SHOP)
+    pub = client.post(f"/c/{slug}/check", json={"email": "grace@x.com"}).json()
+    assert "match" not in pub
+
+
+def test_the_associate_can_keep_them_apart(env, monkeypatch):
+    client, store, ext, _ = env
+    fake = MatchShopify()
+    monkeypatch.setattr(capture_mod, "_gql", fake)
+    h = {"X-Halia-Ext-Token": ext}
+    # merge: the existing record is updated, nothing new is created
+    r = client.post("/v1/capture", json={"email": "grace@x.com", "first_name": "Grace", "mode": "merge"}, headers=h).json()
+    assert r["created"] is False and r["customer_id"] == "gid://shopify/Customer/5"
+    # new: a separate client, flagged so the merchant can reconcile
+    r = client.post("/v1/capture", json={"email": "grace@x.com", "first_name": "Grace", "mode": "new"}, headers=h).json()
+    assert r["created"] is True
+    create_vars = next(v for q, v in fake.calls if "customerCreate" in q)
+    assert "halia-possible-duplicate" in create_vars["input"]["tags"]
+    assert client.post("/v1/capture", json={"email": "a@b.com", "mode": "sideways"}, headers=h).status_code == 422
