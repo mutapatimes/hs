@@ -96,11 +96,16 @@ def _csp(shop: str) -> str:
     return f"frame-ancestors https://{shop} https://admin.shopify.com;"
 
 
-def _head(shop: str = "") -> str:
-    """App Bridge boot HTML. The apiKey must match the app the admin is loading — a custom-
-    distribution bridge tenant's own app, else the public Halia app."""
-    from halia.api.shopify_auth import credentials_for_shop
-    key = credentials_for_shop(shop)[0] if shop else config.SHOPIFY_API_KEY
+def _head(shop: str = "", session_token: str = "") -> str:
+    """App Bridge boot HTML. The apiKey must match the app the admin is loading: the app named by
+    the session token's aud when we have one, else the app that issued the shop's stored token,
+    else the public Halia app."""
+    from halia.api.shopify_auth import _creds_for_session_token, credentials_for_shop
+    key = None
+    if session_token:
+        key = _creds_for_session_token(session_token)[0]
+    if not key:
+        key = credentials_for_shop(shop)[0] if shop else config.SHOPIFY_API_KEY
     return _HEAD.format(key=key or "")
 
 
@@ -194,7 +199,7 @@ def register(app) -> None:
                 return HTMLResponse("<!doctype html><title></title>", headers={"Cache-Control": "no-store"})
             return HTMLResponse(_marketing(host))
 
-        head = _head(shop)
+        head = _head(shop, session_token)
         _note_open(shop)
         try:
             entry = cache.get(shop)

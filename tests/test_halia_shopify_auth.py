@@ -245,3 +245,33 @@ def test_sync_shop_authed_does_not_retry_non_auth_errors(monkeypatch):
                         lambda shop, token: (_ for _ in ()).throw(RuntimeError("scoring blew up")))
     with pytest.raises(RuntimeError):
         data.sync_shop_authed(SHOP, "sess")
+
+
+def test_exchange_uses_the_app_named_by_the_session_token_not_the_shop_mapping(monkeypatch):
+    """A store installed on a bridge app but missing from HALIA_SHOPIFY_CUSTOM_APPS used to be
+    exchanged with the public app's credentials: Shopify answered invalid_subject_token."""
+    _with_bridge(monkeypatch)
+    captured = {}
+    def fake_post(url, body):
+        captured["body"] = body
+        return 200, {"access_token": "shpat_x", "expires_in": 3600, "refresh_token": "r", "refresh_token_expires_in": 100}
+    tok = _token(dest="https://unmapped-dev.myshopify.com", aud=BRIDGE_KEY, secret=BRIDGE_SECRET)
+    payload = shopify_auth.token_exchange("unmapped-dev.myshopify.com", tok, transport=fake_post)
+    assert captured["body"]["client_id"] == BRIDGE_KEY and captured["body"]["client_secret"] == BRIDGE_SECRET
+    assert payload["_client_id"] == BRIDGE_KEY
+
+
+def test_stored_client_id_drives_later_credentials_and_refresh(tmp_path, monkeypatch):
+    _with_bridge(monkeypatch)
+    st = _temp_store(tmp_path, monkeypatch)
+    shop = "unmapped-dev.myshopify.com"
+    shopify_auth._persist_token(shop, {"access_token": "a", "expires_in": 1, "refresh_token": "r",
+                                       "refresh_token_expires_in": 100, "_client_id": BRIDGE_KEY})
+    assert st.shop_client_id(shop) == BRIDGE_KEY
+    assert shopify_auth.credentials_for_shop(shop) == (BRIDGE_KEY, BRIDGE_SECRET)
+    captured = {}
+    def fake_post(url, body):
+        captured["body"] = body
+        return 200, {"access_token": "b"}
+    shopify_auth.refresh_offline_token(shop, "r", transport=fake_post)
+    assert captured["body"]["client_id"] == BRIDGE_KEY

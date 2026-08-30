@@ -24,12 +24,32 @@ from halia import config
 from halia.store import ShopStore
 
 
+def _secret_for_client_id(cid: str | None) -> str | None:
+    if not cid:
+        return None
+    if cid == config.SHOPIFY_API_KEY:
+        return config.SHOPIFY_API_SECRET
+    for c, secret in config.SHOPIFY_CUSTOM_APPS.values():
+        if c == cid:
+            return secret
+    return None
+
+
 def credentials_for_shop(shop: str) -> tuple[str | None, str | None]:
-    """(client_id, client_secret) for the app THIS shop installs through: its custom-distribution
-    bridge app when one is configured (HALIA_SHOPIFY_CUSTOM_APPS), else the public Halia app."""
+    """(client_id, client_secret) for the app THIS shop installs through: the explicit mapping
+    (HALIA_SHOPIFY_CUSTOM_APPS), else the app that issued the shop's stored token (remembered at
+    exchange time, so a store installed on a bridge app is served by that app even when the
+    mapping was never written), else the public Halia app."""
     custom = config.SHOPIFY_CUSTOM_APPS.get((shop or "").strip().lower())
     if custom:
         return custom
+    try:
+        cid = shop_store().shop_client_id(shop)
+    except Exception:  # noqa: BLE001
+        cid = None
+    secret = _secret_for_client_id(cid)
+    if cid and secret:
+        return cid, secret
     return config.SHOPIFY_API_KEY, config.SHOPIFY_API_SECRET
 
 
@@ -53,6 +73,21 @@ def _creds_for_session_token(token: str) -> tuple[str | None, str | None]:
             if cid == aud:
                 return cid, secret
     return config.SHOPIFY_API_KEY, config.SHOPIFY_API_SECRET
+
+
+def _app_for_aud(token: str) -> tuple[str | None, str | None]:
+    """The app a session token was issued for, or (None, None) when the token cannot be read or
+    names no app this deployment answers for."""
+    try:
+        aud = jwt.decode(token, options={"verify_signature": False}).get("aud")
+    except jwt.PyJWTError:
+        return None, None
+    if aud and aud == config.SHOPIFY_API_KEY:
+        return config.SHOPIFY_API_KEY, config.SHOPIFY_API_SECRET
+    for cid, secret in config.SHOPIFY_CUSTOM_APPS.values():
+        if cid == aud:
+            return cid, secret
+    return None, None
 
 
 def verify_app_proxy(request: Request, secret: str | None = None) -> bool:
@@ -163,7 +198,11 @@ def token_exchange(shop: str, session_token: str, transport=None) -> dict:
     Returns the raw payload: ``access_token`` plus ``expires_in`` / ``refresh_token`` /
     ``refresh_token_expires_in`` (the expiring-token fields). Callers persist it via ``_persist_token``.
     """
-    cid, secret = credentials_for_shop(shop)
+    # The token must be exchanged with the app that issued it: the session token names that app
+    # in its aud claim. Only when the token cannot be read do we fall back to the shop's mapping.
+    cid, secret = _app_for_aud(session_token)
+    if not (cid and secret):
+        cid, secret = credentials_for_shop(shop)
     body = {
         "client_id": cid,
         "client_secret": secret,
@@ -181,6 +220,8 @@ def token_exchange(shop: str, session_token: str, transport=None) -> dict:
     status, payload = (transport or _http_post)(url, body)
     if not (200 <= status < 300) or "access_token" not in payload:
         raise HTTPException(401, f"Token exchange failed (HTTP {status}): {str(payload)[:200]}")
+    payload = dict(payload)
+    payload["_client_id"] = cid          # remembered with the token, so refreshes use the same app
     return payload
 
 
@@ -227,11 +268,13 @@ def _persist_token(shop: str, payload: dict) -> str:
     now = int(time.time())
     ein = payload.get("expires_in")
     rein = payload.get("refresh_token_expires_in")
-    shop_store().save_shop(
-        shop, payload["access_token"],
-        access_expires_at=(now + int(ein)) if ein else None,
-        refresh_token=payload.get("refresh_token"),
-        refresh_expires_at=(now + int(rein)) if rein else None)
+    kwargs = dict(access_expires_at=(now + int(ein)) if ein else None,
+                  refresh_token=payload.get("refresh_token"),
+                  refresh_expires_at=(now + int(rein)) if rein else None)
+    try:
+        shop_store().save_shop(shop, payload["access_token"], client_id=payload.get("_client_id"), **kwargs)
+    except TypeError:                     # an older store double without the client id column
+        shop_store().save_shop(shop, payload["access_token"], **kwargs)
     return payload["access_token"]
 
 

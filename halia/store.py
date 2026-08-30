@@ -377,7 +377,9 @@ class ShopStore(_DB):
 
     # ── Shopify offline token (from token exchange) ─────────────────────────────
     def save_shop(self, shop: str, access_token: str, *, access_expires_at: int | None = None,
-                  refresh_token: str | None = None, refresh_expires_at: int | None = None) -> None:
+                  refresh_token: str | None = None, refresh_expires_at: int | None = None,
+                  client_id: str | None = None) -> None:
+        self._add_column("shops", "app_client_id", "TEXT")
         self._run(
             """INSERT INTO shops (shop, access_token, installed_at,
                                   access_expires_at, refresh_token, refresh_expires_at)
@@ -390,6 +392,14 @@ class ShopStore(_DB):
              "aexp": str(access_expires_at) if access_expires_at else None,
              "rtok": crypto.encrypt(refresh_token) if refresh_token else None,
              "rexp": str(refresh_expires_at) if refresh_expires_at else None})
+        if client_id:
+            self._run("UPDATE shops SET app_client_id = :cid WHERE shop = :shop", {"cid": client_id, "shop": shop})
+
+    def shop_client_id(self, shop: str) -> str | None:
+        """The client id of the app that issued this shop's offline token (a bridge app or the public app)."""
+        self._add_column("shops", "app_client_id", "TEXT")
+        row = self._run("SELECT app_client_id FROM shops WHERE shop = :shop", {"shop": shop}, fetch="one")
+        return (dict(row).get("app_client_id") if row else None) or None
 
     def get_token(self, shop: str) -> str | None:
         row = self._run("SELECT access_token FROM shops WHERE shop = :shop",
