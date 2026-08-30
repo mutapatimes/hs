@@ -136,7 +136,7 @@ def test_the_record_is_quiet_by_default():
     from pathlib import Path
     html = Path("web/template.html").read_text()
     assert "forEach(d=>{d.open=w;})" not in html            # no auto-open on expand
-    assert "Grown from their current spend" not in html      # the bar and the two numbers say it
+    assert "How the latent value is built" not in html       # the number stands on its own
     assert "Your verdict is tagged on the client" not in html
 
 
