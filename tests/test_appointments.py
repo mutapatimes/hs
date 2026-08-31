@@ -154,25 +154,29 @@ def test_ics_escapes_commas_and_newlines():
 
 
 # ── the client's invite ───────────────────────────────────────────────────────
-def test_invite_link_is_signed_store_voiced_and_never_names_halia(env):
+def test_invite_link_is_signed_store_voiced_and_carries_no_client_detail(env):
     client, store, sink = env
     d = client.post("/v1/board/appointment", json={"cid": "c1", "when": _soon(4, 11).isoformat(), "place": "Mount Street",
-                                                   "client_name": "Grace Ladoja"}).json()
+                                                   "client_name": "Grace Ladoja",
+                                                   "client_email": "grace@x.com", "actor": "Sarah"}).json()
     links = d["links"]
     assert links["invite"].startswith("http") and "/i/" in links["invite"]
     assert links["message"].startswith("Your appointment is set for ") and "Mount Street" in links["message"] and links["invite"] in links["message"]
     token = links["invite"].rsplit("/i/", 1)[1]
+    assert "Grace" not in token and "Ladoja" not in appointments.parse_invite(token).__repr__()
     page = client.get(f"/i/{token}")
     assert page.status_code == 200 and "Maison" in page.text and "Mount Street" in page.text
+    assert "Grace" not in page.text and "grace@x.com" not in page.text and "Sarah" not in page.text
     assert "Halia" not in page.text.replace("haliascore", "")   # the store's page, not ours
     ics = client.get(f"/i/{token}.ics")
     assert ics.status_code == 200 and ics.headers["content-type"].startswith("text/calendar")
-    assert "SUMMARY:Appointment with Grace Ladoja at Maison" in ics.text and "LOCATION:Mount Street" in ics.text
+    assert "SUMMARY:Appointment at Maison" in ics.text and "LOCATION:Mount Street" in ics.text
+    assert "ATTENDEE" not in ics.text and "mailto:" not in ics.text   # nobody is named to the client
     assert client.get(f"/i/{token[:-3]}xyz").status_code == 404
     assert client.get("/i/garbage").status_code == 404
 
 
-def test_the_invite_names_both_people_and_carries_both_addresses(env):
+def test_the_associates_own_entry_names_both_people_and_carries_both_addresses(env):
     client, store, sink = env
     seat_tok = new_token()
     store.create_seat(SHOP, "Sarah Bloom", hash_token(seat_tok), "sarah@maison.com")
@@ -187,10 +191,10 @@ def test_the_invite_names_both_people_and_carries_both_addresses(env):
     assert 'ATTENDEE;CN="Grace Ladoja";ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:grace@x.com' in links["ics"]
     assert "add=grace%40x.com%2Csarah%40maison.com" in links["google"]
     assert "to=grace%40x.com%2Csarah%40maison.com" in links["outlook"]
-    # and the client's own copy of the entry says the same thing
+    # the client's own copy stays anonymous: the store, the time, the place, and nobody named
     ics = client.get("/i/" + links["invite"].rsplit("/i/", 1)[1] + ".ics").text
-    assert "SUMMARY:Appointment with Grace Ladoja and Sarah Bloom at Maison" in ics
-    assert "mailto:grace@x.com" in ics and "mailto:sarah@maison.com" in ics
+    assert "SUMMARY:Appointment at Maison" in ics
+    assert "Grace" not in ics and "Sarah" not in ics and "mailto:" not in ics
 
 
 def test_the_invite_page_is_headed_by_the_store_even_with_no_label(env, monkeypatch):

@@ -43,19 +43,13 @@ def _label(when: datetime, minutes: int) -> str:
     return when.strftime("%a %d %b, %H:%M") + f" ({minutes} min)"
 
 
-def invite_token(appt: dict, store_name: str, who: Optional[dict] = None) -> str:
-    """A signed, self-contained invite for the client: when, how long, where, the store, and the
-    two people meeting. Nothing is stored and the signature stops tampering. The only names in it
-    are the client's own and the associate they are seeing, which is what the calendar entry has
-    to say; nothing about how the store reads them travels in it."""
-    who = who or {}
-    d = {"w": appt["when"], "m": int(appt.get("minutes") or DEFAULT_MINUTES),
-         "p": appt.get("place") or "", "s": store_name or ""}
-    for key, val in (("c", who.get("client_name")), ("ce", who.get("client_email")),
-                     ("a", who.get("seat_name")), ("ae", who.get("seat_email"))):
-        if val:
-            d[key] = str(val)[:160]
-    raw = json.dumps(d, separators=(",", ":")).encode()
+def invite_token(appt: dict, store_name: str) -> str:
+    """A signed, self-contained invite for the client: when, how long, where, the store. No name
+    and no address travel in it, so a forwarded link tells a stranger nothing about the client;
+    the two people are named only on the associate's own copy of the entry. Nothing is stored and
+    the signature stops tampering."""
+    raw = json.dumps({"w": appt["when"], "m": int(appt.get("minutes") or DEFAULT_MINUTES),
+                      "p": appt.get("place") or "", "s": store_name or ""}, separators=(",", ":")).encode()
     body = base64.urlsafe_b64encode(raw).decode().rstrip("=")
     sig = hmac.new(_secret(), body.encode(), hashlib.sha256).hexdigest()[:24]
     return f"{body}.{sig}"
@@ -69,9 +63,7 @@ def parse_invite(token: str) -> Optional[dict]:
         d = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
         datetime.fromisoformat(d["w"])
         return {"when": d["w"], "minutes": int(d.get("m") or DEFAULT_MINUTES), "place": d.get("p") or "",
-                "store": d.get("s") or "", "client_name": d.get("c") or "",
-                "client_email": d.get("ce") or "", "seat_name": d.get("a") or "",
-                "seat_email": d.get("ae") or ""}
+                "store": d.get("s") or ""}
     except Exception:  # noqa: BLE001 — any malformed token is simply not an invite
         return None
 
@@ -148,8 +140,7 @@ def calendar_links(appt: dict, client_name: str, store_name: str, shop: str = ""
         f"LOCATION:{_ics_escape(place)}", f"DESCRIPTION:{_ics_escape(details)}",
         *_people_ics(client_name, client_email, seat_name, seat_addr),
         "END:VEVENT", "END:VCALENDAR", ""])
-    token = invite_token(appt, store_name, {"client_name": client_name, "client_email": client_email,
-                                            "seat_name": seat_name, "seat_email": seat_addr})
+    token = invite_token(appt, store_name)
     if shop:
         from halia.api.client_host import client_url
         invite = client_url(shop, f"i/{token}")
@@ -317,29 +308,22 @@ def render_invite(token: str):
     start = datetime.fromisoformat(inv["when"])
     end = start + timedelta(minutes=inv["minutes"])
     fmt = lambda d: d.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    title = event_title(inv["client_name"], inv["seat_name"], inv["store"])
+    # The client's copy names nobody: the store, the time and the place, and no addresses. Their
+    # associate's own copy is the one that carries both people.
+    title = f"Appointment at {inv['store']}" if inv["store"] else "Appointment"
     place = inv["place"] or inv["store"]
-    guests = [e for e in (inv["client_email"], inv["seat_email"]) if e]
     if ics_wanted:
         ics = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halia//Appointments//EN", "BEGIN:VEVENT",
                             f"UID:{appt['id']}@haliascore.com", f"DTSTAMP:{fmt(datetime.now(timezone.utc))}",
                             f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}", f"SUMMARY:{_ics_escape(title)}",
-                            f"LOCATION:{_ics_escape(place)}",
-                            *_people_ics(inv["client_name"], inv["client_email"],
-                                         inv["seat_name"], inv["seat_email"]),
-                            "END:VEVENT", "END:VCALENDAR", ""])
+                            f"LOCATION:{_ics_escape(place)}", "END:VEVENT", "END:VCALENDAR", ""])
         return Response(ics, media_type="text/calendar; charset=utf-8",
                         headers={"Content-Disposition": 'attachment; filename="appointment.ics"'})
-    gq = {"action": "TEMPLATE", "text": title, "dates": f"{fmt(start)}/{fmt(end)}", "location": place}
-    if guests:
-        gq["add"] = ",".join(guests)
-    google = "https://calendar.google.com/calendar/render?" + urlencode(gq)
-    oq = {"subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
-          "enddt": end.astimezone(timezone.utc).isoformat(), "location": place,
-          "path": "/calendar/action/compose"}
-    if guests:
-        oq["to"] = ",".join(guests)
-    outlook = "https://outlook.office.com/calendar/0/deeplink/compose?" + urlencode(oq)
+    google = "https://calendar.google.com/calendar/render?" + urlencode({
+        "action": "TEMPLATE", "text": title, "dates": f"{fmt(start)}/{fmt(end)}", "location": place})
+    outlook = "https://outlook.office.com/calendar/0/deeplink/compose?" + urlencode({
+        "subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
+        "enddt": end.astimezone(timezone.utc).isoformat(), "location": place, "path": "/calendar/action/compose"})
     store = _html.escape(inv["store"] or "")
     html = _INVITE_PAGE.format(store=store or "Appointment",          # the tab's title only
                                head=(f"<h1>{store}</h1>" if store else ""),
