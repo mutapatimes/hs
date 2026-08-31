@@ -104,12 +104,17 @@ private struct PickerView: View {
     @State private var busy = false
     @State private var status: String?
 
-    /// Two sources, one list: what was saved while browsing, else the store's own products.
-    private var fromSaved: Bool { results.isEmpty && !saved.isEmpty }
-    private var rows: [(id: String, title: String, image: String?)] {
-        fromSaved ? saved.map { (id: $0.url, title: $0.title ?? $0.url, image: nil) }
-                  : results.map { (id: $0.id, title: $0.title, image: $0.image) }
+    /// The whole shelf, with anything saved while browsing pinned above it. A search narrows the
+    /// products; the saved pieces stay put so they are never a search away.
+    private var savedRows: [(id: String, title: String, image: String?)] {
+        query.trimmingCharacters(in: .whitespaces).isEmpty
+            ? saved.map { (id: $0.url, title: $0.title ?? $0.url, image: nil) } : []
     }
+    private var productRows: [(id: String, title: String, image: String?)] {
+        results.map { (id: $0.id, title: $0.title, image: $0.image) }
+    }
+    private var rows: [(id: String, title: String, image: String?)] { savedRows + productRows }
+    private var savedIds: Set<String> { Set(savedRows.map { $0.id }) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -131,7 +136,7 @@ private struct PickerView: View {
                 Spacer(); ProgressView(); Spacer()
             } else if rows.isEmpty {
                 Spacer()
-                Text(status ?? "No products came back. Search for a piece by name.")
+                Text(status ?? "No products came back. This needs a store with published, in-stock products.")
                     .font(.footnote).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center).padding(.horizontal, 24)
                 Spacer()
@@ -173,7 +178,7 @@ private struct PickerView: View {
         }
         .task {
             saved = SavedItemsStore.load()
-            if saved.isEmpty { await search(initial: true) }   // open on the store's own products
+            await search(initial: true)          // open on everything the store sells
         }
     }
 
@@ -182,7 +187,7 @@ private struct PickerView: View {
         guard initial || !q.isEmpty else { return }
         busy = true; status = nil
         do {
-            results = try await HaliaAPI.current.searchProducts(q).products
+            results = try await HaliaAPI.current.searchProducts(q, limit: 100).products
             chosen.removeAll()
             if results.isEmpty {
                 status = initial ? "No products came back. This needs a store with published, in-stock products."
@@ -198,9 +203,18 @@ private struct PickerView: View {
         busy = true; status = nil
         do {
             let picked = rows.filter { chosen.contains($0.id) }.map { $0.id }
-            let url = fromSaved
-                ? try await HaliaAPI.current.catalogueFromUrls(urls: picked).url
-                : try await HaliaAPI.current.catalogue(productIds: picked, name: nil)
+            let urls = picked.filter { savedIds.contains($0) }
+            let ids = picked.filter { !savedIds.contains($0) }
+            let url: String
+            if ids.isEmpty {
+                url = try await HaliaAPI.current.catalogueFromUrls(urls: urls).url
+            } else if urls.isEmpty {
+                url = try await HaliaAPI.current.catalogue(productIds: ids, name: nil)
+            } else {
+                // A mix: resolve the saved links to ids first, then build one selection.
+                let resolved = try await HaliaAPI.current.productsFromUrls(urls).products.map { $0.id }
+                url = try await HaliaAPI.current.catalogue(productIds: resolved + ids, name: nil)
+            }
             send(url)
         } catch {
             status = "Could not build that selection."
