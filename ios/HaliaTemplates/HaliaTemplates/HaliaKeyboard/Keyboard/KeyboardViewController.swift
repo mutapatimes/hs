@@ -83,6 +83,13 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var suggestions: [SuggestRow] = []
     private var products: [HaliaAPI.Product] = []
     private var productCartBase: String?
+    // The view being browsed in Products: a collection and a size, the ids of everything they
+    // match (so a whole shelf can be sent as one selection), and the filters to choose from.
+    private var prodCollection: String?
+    private var prodSize: String?
+    private var prodViewIds: [String] = []
+    private var prodCollections: [String] = []
+    private var prodSizes: [String] = []
     private var searchQuery = ""              // the live product-search text, typed on the in-keyboard keys
     private var searchWork: DispatchWorkItem? // debounces live search as you type
     private var draftText = ""
@@ -774,6 +781,25 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
+    /// The whole view, as one selection for the client. The link carries at most 40 pieces, which
+    /// is what the server offers back, so this never silently drops half a shelf.
+    private func sendViewAsSelection() {
+        guard !prodViewIds.isEmpty else { flash("Nothing in this view"); return }
+        guard !busy else { return }
+        busy = true; setStatus("Making a selection…", loading: true)
+        Task {
+            do {
+                let url = try await HaliaAPI.current.catalogue(productIds: prodViewIds, name: clientName,
+                                                               email: clientEmail ?? "", phone: clientPhone ?? "")
+                insertUndoable(url)
+                mode = .templates; setStatus(nil)
+            } catch {
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
+            }
+            busy = false; reload()
+        }
+    }
+
     private func sendCartLink() {
         let ids = suggestions.filter { $0.on }.map { $0.id }
         guard !ids.isEmpty else { flash("Pick at least one piece"); return }
@@ -887,7 +913,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     // MARK: - Products (a live, searchable image library of the store's catalogue)
 
     private func enterProducts() {
-        mode = .products; products = []; searchQuery = ""; reload()
+        mode = .products; products = []; searchQuery = ""
+        prodCollection = nil; prodSize = nil; prodViewIds = []
+        reload()
         runProductSearch("")   // browse the whole catalogue straight away, like a media library
     }
 
@@ -910,10 +938,17 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         busy = true; setStatus(q.isEmpty ? "Loading products…" : "Searching…", loading: true)
         Task {
             do {
-                let (items, base) = try await HaliaAPI.current.searchProducts(q)
-                products = items; productCartBase = base
-                if items.isEmpty { setStatus(q.isEmpty ? nil : "No products for “\(q)”") }
-                else { setStatus(nil) }
+                let view = try await HaliaAPI.current.searchProducts(
+                    q, collection: prodCollection ?? "", size: prodSize ?? "")
+                products = view.products; productCartBase = view.cartBase
+                prodViewIds = view.ids
+                if !view.collections.isEmpty { prodCollections = view.collections }
+                if !view.sizes.isEmpty { prodSizes = view.sizes }
+                if view.products.isEmpty {
+                    setStatus(q.isEmpty && prodCollection == nil && prodSize == nil
+                              ? nil : "Nothing in this view")
+                } else { setStatus(nil) }
+                rebuildChips()
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
@@ -999,6 +1034,31 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                     guard let self else { return }
                     self.bookDay = on ? nil : day
                     self.rebuildChips(); self.rebuildConfirmBar(); self.reload()
+                })
+            }
+            return
+        }
+        if mode == .products {                    // narrow the range, or send the whole of it
+            chipsHeight.constant = 44
+            chipsScroll.isHidden = false
+            if !prodViewIds.isEmpty {
+                chipsStack.addArrangedSubview(
+                    pillButton("Send all \(prodViewIds.count)", filled: true) { [weak self] in
+                        self?.sendViewAsSelection()
+                    })
+            }
+            for c in prodCollections.prefix(40) {
+                chipsStack.addArrangedSubview(togglePill(c, on: prodCollection == c) { [weak self] in
+                    guard let self else { return }
+                    self.prodCollection = (self.prodCollection == c) ? nil : c
+                    self.rebuildChips(); self.runProductSearch(self.searchQuery)
+                })
+            }
+            for z in prodSizes.prefix(40) {
+                chipsStack.addArrangedSubview(togglePill("Size \(z)", on: prodSize == z) { [weak self] in
+                    guard let self else { return }
+                    self.prodSize = (self.prodSize == z) ? nil : z
+                    self.rebuildChips(); self.runProductSearch(self.searchQuery)
                 })
             }
             return

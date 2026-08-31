@@ -103,6 +103,13 @@ private struct PickerView: View {
     @State private var chosen: Set<String> = []
     @State private var busy = false
     @State private var status: String?
+    // The view being browsed: a collection and a size, and the ids of everything they match, so a
+    // whole shelf can go into one selection without ticking it piece by piece.
+    @State private var collection = ""
+    @State private var size = ""
+    @State private var viewIds: [String] = []
+    @State private var collections: [String] = []
+    @State private var sizes: [String] = []
 
     /// The whole shelf, with anything saved while browsing pinned above it. A search narrows the
     /// products; the saved pieces stay put so they are never a search away.
@@ -126,7 +133,9 @@ private struct PickerView: View {
                 Button("Search") { Task { await search() } }.font(.footnote.weight(.semibold))
                 Button("Close", action: close).font(.footnote).foregroundStyle(.secondary)
             }
-            .padding(12)
+            .padding(.horizontal, 12).padding(.top, 12)
+
+            filterRow.padding(.horizontal, 12).padding(.vertical, 8)
 
             if let status {
                 Text(status).font(.footnote).foregroundStyle(.secondary).padding(.bottom, 8)
@@ -182,16 +191,65 @@ private struct PickerView: View {
         }
     }
 
+    /// Narrow the range to what suits this client, then take the whole view at once.
+    @ViewBuilder private var filterRow: some View {
+        if !collections.isEmpty || !sizes.isEmpty {
+            HStack(spacing: 8) {
+                if !collections.isEmpty {
+                    Menu {
+                        Button("All collections") { collection = ""; Task { await search(initial: true) } }
+                        ForEach(collections, id: \.self) { c in
+                            Button(c) { collection = c; Task { await search(initial: true) } }
+                        }
+                    } label: { filterLabel(collection.isEmpty ? "All collections" : collection) }
+                }
+                if !sizes.isEmpty {
+                    Menu {
+                        Button("All sizes") { size = ""; Task { await search(initial: true) } }
+                        ForEach(sizes, id: \.self) { s in
+                            Button(s) { size = s; Task { await search(initial: true) } }
+                        }
+                    } label: { filterLabel(size.isEmpty ? "All sizes" : size) }
+                }
+                Spacer(minLength: 0)
+                if !viewIds.isEmpty {
+                    Button(chosen.count == viewIds.count ? "Clear" : "All \(viewIds.count)") {
+                        if chosen.count == viewIds.count { chosen.removeAll() }
+                        else { chosen = Set(viewIds) }
+                    }
+                    .font(.footnote.weight(.semibold)).foregroundStyle(Ink.brand)
+                }
+            }
+        }
+    }
+
+    private func filterLabel(_ text: String) -> some View {
+        HStack(spacing: 3) {
+            Text(text).lineLimit(1)
+            Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
+        }
+        .font(.footnote)
+        .foregroundStyle(Ink.deep)
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.12)))
+    }
+
     private func search(initial: Bool = false) async {
         let q = query.trimmingCharacters(in: .whitespaces)
         guard initial || !q.isEmpty else { return }
         busy = true; status = nil
         do {
-            results = try await HaliaAPI.current.searchProducts(q, limit: 100).products
+            let view = try await HaliaAPI.current.searchProducts(q, limit: 100,
+                                                                 collection: collection, size: size)
+            results = view.products
+            viewIds = view.ids
+            if !view.collections.isEmpty { collections = view.collections }
+            if !view.sizes.isEmpty { sizes = view.sizes }
             chosen.removeAll()
             if results.isEmpty {
-                status = initial ? "No products came back. This needs a store with published, in-stock products."
-                                 : "Nothing matched that."
+                status = (collection.isEmpty && size.isEmpty && q.isEmpty)
+                    ? "No products came back. This needs a store with published, in-stock products."
+                    : "Nothing in this view."
             }
         } catch {
             status = (error as? LocalizedError)?.errorDescription ?? "Could not reach Halia."

@@ -181,7 +181,8 @@ def test_products_requires_token_and_is_shopify_only(env):
     assert client.get("/v1/extension/products").status_code == 401
     ext = _ext_token(client, tok)
     d = client.get("/v1/extension/products?q=scarf", headers={"X-Halia-Ext-Token": ext}).json()
-    assert d == {"products": [], "cart_base": None}
+    assert d == {"products": [], "cart_base": None, "ids": [],
+                 "facets": {"collections": [], "sizes": []}}
 
 
 # ── inbox triage batch ────────────────────────────────────────────────────────
