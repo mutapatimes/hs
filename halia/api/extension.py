@@ -300,6 +300,32 @@ def _client_details(body: dict) -> dict:
             "phone": str(body.get("phone") or body.get("client_phone") or "").strip()[:60]}
 
 
+def _catalogue_slice(shop: str, term: str, collection: str, size: str, n: int) -> tuple:
+    """The merchant's own catalogue, narrowed by search, collection and size. Returns the page, the
+    ids of everything that matched (so a whole view can be sent at once) and the facets to choose
+    from. Reads the same cached product list the catalogue builder uses."""
+    from halia.api import catalog
+    try:
+        prods = catalog._products(shop)
+    except Exception:  # noqa: BLE001 — a picker without facets still searches
+        return [], [], {"collections": [], "sizes": []}
+    pid = catalog._pid_key           # one id form, so a view and a search never double-add
+    term, col, sz = term.lower(), collection.strip(), size.strip().lower()
+    hits = [p for p in prods
+            if (not term or term in (p.get("title") or "").lower()
+                or term in (p.get("vendor") or "").lower() or term in (p.get("sku") or "").lower())
+            and (not col or col in (p.get("collections") or []))
+            and (not sz or sz in [str(s).strip().lower() for s in (p.get("sizes") or [])])]
+    facets = catalog._facets(prods)
+    return (hits[:n], [pid(p.get("id")) for p in hits[:_SEND_ALL_MAX]],
+            {"collections": facets["collections"], "sizes": facets["sizes"]})
+
+
+# A selection link holds at most this many pieces (catalog._ADHOC_MAX), so "select all in view"
+# offers no more than the link can actually carry.
+_SEND_ALL_MAX = 40
+
+
 def _products_for_handles(shop: str, handles: list[str]) -> list[dict]:
     """Resolve storefront handles to product cards (product_search_node dicts, with variants),
     preserving order, via one Shopify product search. Shopify-only; returns [] for a read-only /
@@ -1674,44 +1700,60 @@ def register(app) -> None:
     @app.get("/v1/extension/products")
     def extension_products(x_halia_ext_token: Optional[str] = Header(None),
                            q: Optional[str] = Query(None),
+                           collection: Optional[str] = Query(None),
+                           size: Optional[str] = Query(None),
                            limit: int = Query(20)) -> dict:
         """Search the merchant's Shopify products (with buyable variant ids) so the toolbar can build
         a cart permalink for a client. Shopify-only; returns the storefront base for the /cart link.
-        Products are the merchant's own catalogue, not customer data."""
+        Products are the merchant's own catalogue, not customer data.
+
+        ``collection`` and ``size`` narrow the view to what suits one client, and ``ids`` carries
+        everything the current view matches so the whole of it can go into one selection."""
         auth = _resolve_ext(x_halia_ext_token)
         shop = auth.shop
+        term = (q or "").strip()[:80]
+        col = (collection or "").strip()[:120]
+        size_ = (size or "").strip()[:40]
+        n = max(1, min(int(limit or 20), 100))
         woo = _woo_store(shop)
         if woo:
             # WooCommerce: the catalogue the builder already reads, filtered here. A product is its
             # own "variant" for the cart link (add-to-cart takes the product id).
-            from halia.api import catalog
-            try:
-                prods = catalog._products(shop)
-            except Exception:  # noqa: BLE001
-                prods = []
-            term = (q or "").strip().lower()
-            n = max(1, min(int(limit or 20), 100))
-            hits = [p for p in prods if not term or term in (p.get("title") or "").lower()
-                    or term in (p.get("sku") or "").lower()][:n]
-            return {"products": [{"id": str(p.get("id")), "title": p.get("title") or "",
+            hits, ids, facets = _catalogue_slice(shop, term, col, size_, n)
+            from halia.api.catalog import _pid_key
+            return {"products": [{"id": _pid_key(p.get("id")), "title": p.get("title") or "",
                                   "handle": p.get("handle") or "", "image": p.get("image_url"),
-                                  "variants": [{"id": str(p.get("id")), "title": "", "price": p.get("price")}]}
+                                  "variants": [{"id": _pid_key(p.get("id")), "title": "", "price": p.get("price")}]}
                                  for p in hits],
-                    "cart_base": woo}
+                    "cart_base": woo, "ids": ids, "facets": facets}
         token = get_valid_token(shop)
         if not token:                                # non-Shopify or read-only: no cart builder
-            return {"products": [], "cart_base": None}
+            return {"products": [], "cart_base": None, "ids": [], "facets": {"collections": [], "sizes": []}}
+        if col or size_:
+            # Facets live on the catalogue, not on Shopify's product search, so narrow there and
+            # then resolve the page through search to get the buyable variant ids back.
+            from halia.api.catalog import _pid_key
+            hits, ids, facets = _catalogue_slice(shop, term, col, size_, n)
+            handles = [str(p.get("handle") or "") for p in hits if p.get("handle")]
+            resolved = {p["handle"].lower(): p for p in _products_for_handles(shop, handles) if p.get("handle")}
+            products = []
+            for p in hits:
+                got = resolved.get(str(p.get("handle") or "").lower())
+                products.append(got or {"id": _pid_key(p.get("id")), "title": p.get("title") or "",
+                                        "handle": p.get("handle") or "", "image": p.get("image_url"),
+                                        "variants": []})
+            return {"products": products, "cart_base": _cart_base(shop), "ids": ids, "facets": facets}
         from scoring.shopify_fetch import _run, http_transport
         from scoring.shopify_graphql import PRODUCT_SEARCH_QUERY, product_search_node
-        n = max(1, min(int(limit or 20), 100))
-        term = (q or "").strip()[:80]
+        facets = _catalogue_slice(shop, "", "", "", 0)[2]     # for the pickers' filter menus
         try:
             data_ = _run(http_transport(shop, token), PRODUCT_SEARCH_QUERY, {"q": term, "n": n}, 2)
         except Exception:
-            return {"products": [], "cart_base": _cart_base(shop)}
+            return {"products": [], "cart_base": _cart_base(shop), "ids": [], "facets": facets}
         nodes = ((data_.get("products") or {}).get("nodes")) or []
         products = [p for p in (product_search_node(x) for x in nodes) if p["variants"]]
-        return {"products": products, "cart_base": _cart_base(shop)}
+        return {"products": products, "cart_base": _cart_base(shop),
+                "ids": [p["id"] for p in products][:_SEND_ALL_MAX], "facets": facets}
 
     @app.post("/v1/extension/batch")
     def extension_batch(x_halia_ext_token: Optional[str] = Header(None),

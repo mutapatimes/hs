@@ -275,14 +275,38 @@ struct HaliaAPI {
         }
     }
 
-    private struct ProductSearch: Decodable { let products: [Product]?; let cart_base: String? }
+    /// The collections and sizes a view can be narrowed to.
+    struct ProductFacets: Decodable {
+        let collections: [String]?
+        let sizes: [String]?
+    }
 
-    /// Live search of the merchant's catalogue (query on demand, like a GIF keyboard).
-    func searchProducts(_ q: String, limit: Int = 24) async throws -> (products: [Product], cartBase: String?) {
-        let query = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let (data, _) = try await send("/v1/extension/products?q=\(query)&limit=\(limit)", method: "GET", body: nil)
+    /// A view of the range: the page shown, everything it matches (so the whole view can go into
+    /// one selection), and the filters to narrow it by.
+    struct ProductView {
+        let products: [Product]
+        let cartBase: String?
+        let ids: [String]
+        let collections: [String]
+        let sizes: [String]
+    }
+
+    private struct ProductSearch: Decodable {
+        let products: [Product]?; let cart_base: String?
+        let ids: [String]?; let facets: ProductFacets?
+    }
+
+    /// Live search of the merchant's catalogue (query on demand, like a GIF keyboard), narrowed to
+    /// a collection or a size so an associate sends what actually suits the client.
+    func searchProducts(_ q: String, limit: Int = 24, collection: String = "",
+                        size: String = "") async throws -> ProductView {
+        func enc(_ v: String) -> String { v.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "" }
+        let path = "/v1/extension/products?q=\(enc(q))&limit=\(limit)"
+            + "&collection=\(enc(collection))&size=\(enc(size))"
+        let (data, _) = try await send(path, method: "GET", body: nil)
         guard let r = try? JSONDecoder().decode(ProductSearch.self, from: data) else { throw HaliaAPIError.decode }
-        return (r.products ?? [], r.cart_base)
+        return ProductView(products: r.products ?? [], cartBase: r.cart_base, ids: r.ids ?? [],
+                           collections: r.facets?.collections ?? [], sizes: r.facets?.sizes ?? [])
     }
 
     /// Resolve saved storefront URLs to product cards (with images) for the keyboard's Saved grid.
@@ -292,6 +316,8 @@ struct HaliaAPI {
         guard let r = try? JSONDecoder().decode(ProductSearch.self, from: data) else { throw HaliaAPIError.decode }
         return (r.products ?? [], r.cart_base)
     }
+
+
 
     // MARK: Today (widget + App Intents / Siri) — the proactive "who to reach today" queue.
 

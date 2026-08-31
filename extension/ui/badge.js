@@ -248,6 +248,10 @@
   let host = null, root = null, open = true, inserter = null, channel = "email";
   let ctx = null, client = null; // ctx = standing context; client = active client state
   let cart = [], prodResults = [], cartBase = ""; // the working cart + last product search
+  // The view an associate is browsing: a search term plus a collection and a size, and the ids
+  // of everything it matches, so the whole of it can go into one selection.
+  let prodView = { collection: "", size: "", ids: [], loaded: false, facets: { collections: [], sizes: [] } };
+  let prodQ = "";
   let mode = "clienteling"; // "clienteling" (client-facing) | "internal" (team coordination)
   let view = "client";      // clienteling crossbar tab: "client" | "reply" | "sell"
   let whyAll = false, noteOpen = false;   // per-client: expand the reasons list / reveal the note box
@@ -1307,19 +1311,44 @@
   function doProductSearch(q) {
     const box = root && root.querySelector('[data-a="presults"]');
     if (box) box.innerHTML = `<div class="muted">Searching…</div>`;
+    const filters = { collection: prodView.collection, size: prodView.size };
     try {
-      chrome.runtime.sendMessage({ type: "halia:products", q }, (r) => {
+      chrome.runtime.sendMessage({ type: "halia:products", q, filters }, (r) => {
         if (chrome.runtime.lastError || !r || r.error) {
-          prodResults = [];
+          prodResults = []; prodView.ids = [];
           if (box) box.innerHTML = `<div class="muted">Couldn't load products.</div>`;
           return;
         }
         prodResults = r.products || [];
+        prodView.ids = r.ids || [];
+        if (r.facets && (r.facets.collections || []).length) prodView.facets = r.facets;
         if (r.cart_base) cartBase = r.cart_base;
-        if (!prodResults.length && box) box.innerHTML = `<div class="muted">No products found.</div>`;
-        else paintResults();
+        renderProducts();
+        if (!prodResults.length) {
+          const b2 = root && root.querySelector('[data-a="presults"]');
+          if (b2) b2.innerHTML = `<div class="muted">Nothing in this view.</div>`;
+        }
       });
     } catch (e) { /* ignore */ }
+  }
+  // Everything the current view matches, into the cart in one go. A selection link carries at most
+  // 40 pieces, so that is what the server offers back.
+  function addViewToCart() {
+    const ids = prodView.ids || [];
+    if (!ids.length) { toast("Nothing in this view"); return; }
+    const byId = {};
+    prodResults.forEach((p) => { byId[String(p.id)] = p; });
+    let added = 0;
+    ids.forEach((id) => {
+      const p = byId[String(id)];
+      const v = p && (p.variants || [])[0];
+      if (v) { if (!cart.find((i) => i.id === v.id)) { cart.push({ id: v.id, qty: 1, price: v.price, product_id: p.id, label: p.title }); added++; } }
+      else if (!cart.find((i) => String(i.product_id) === String(id))) {
+        cart.push({ id: null, qty: 1, price: (p && p.price) || null, product_id: id, label: (p && p.title) || "" });
+        added++;
+      }
+    });
+    paintCart(); toast(added + " added");
   }
   // ── SUGGESTIONS ───────────────────────────────────────────────────────────
   // Halia proposes a handful of pieces for the client on screen, each with a reason the associate
@@ -1377,6 +1406,21 @@
     </div>`;
   }
 
+  // Narrow the range to what suits one client, then take the whole view in one go.
+  function facetRow() {
+    const f = prodView.facets || {};
+    const cols = f.collections || [], sizes = f.sizes || [];
+    if (!cols.length && !sizes.length) return "";
+    const opt = (list, on, any) => `<option value="">${any}</option>` +
+      list.map((v) => `<option value="${esc(v)}"${v === on ? " selected" : ""}>${esc(v)}</option>`).join("");
+    const n = (prodView.ids || []).length;
+    return `<div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">
+      ${cols.length ? `<select data-a="fcol" style="flex:1;min-width:96px">${opt(cols, prodView.collection, "All collections")}</select>` : ""}
+      ${sizes.length ? `<select data-a="fsize" style="flex:1;min-width:76px">${opt(sizes, prodView.size, "All sizes")}</select>` : ""}
+      ${n ? `<button class="btn" data-a="fall">Add all ${n}</button>` : ""}
+    </div>`;
+  }
+
   function renderProducts() {
     updateThinking();
     const el = sec("prod"); if (!el) return;
@@ -1384,21 +1428,30 @@
     el.innerHTML = `<div class="sh">Build a cart</div>
       ${activeCid() ? suggestHtml() : ""}
       <div style="display:flex;gap:6px">
-        <input class="psearch" data-a="psearch" placeholder="Search products">
+        <input class="psearch" data-a="psearch" placeholder="Search products" value="${esc(prodQ)}">
         <button class="btn" data-a="pgo">Search</button>
       </div>
+      ${facetRow()}
       <div data-a="presults" style="margin-top:8px"></div>
       <div data-a="pcart" style="margin-top:8px"></div>`;
     const inp = el.querySelector('[data-a="psearch"]');
-    const go = () => doProductSearch((inp && inp.value) || "");
+    const go = () => { prodQ = (inp && inp.value) || ""; doProductSearch(prodQ); };
     el.querySelector('[data-a="pgo"]').onclick = go;
     if (inp) inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+    const fc = el.querySelector('[data-a="fcol"]');
+    if (fc) fc.onchange = () => { prodView.collection = fc.value; doProductSearch(prodQ); };
+    const fs = el.querySelector('[data-a="fsize"]');
+    if (fs) fs.onchange = () => { prodView.size = fs.value; doProductSearch(prodQ); };
+    const fa = el.querySelector('[data-a="fall"]'); if (fa) fa.onclick = addViewToCart;
     const sgo = el.querySelector('[data-a="sgo"]'); if (sgo) sgo.onclick = runSuggest;
     const sadd = el.querySelector('[data-a="sadd"]'); if (sadd) sadd.onclick = suggestIntoCart;
     el.querySelectorAll("[data-sp]").forEach((b) => b.onchange = () => {
       const p = ((suggest && suggest.picks) || [])[+b.dataset.sp]; if (p) p.on = b.checked;
     });
     paintResults(); paintCart();
+    // First open: load the range so the filters are populated and there is something to pick from,
+    // rather than an empty box waiting on a search term.
+    if (!prodView.loaded) { prodView.loaded = true; doProductSearch(prodQ); }
   }
 
   // ── CATALOGUE ─────────────────────────────────────────────────────────────

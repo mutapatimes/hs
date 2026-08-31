@@ -279,10 +279,13 @@ async function history(cid) {
   }
 }
 
-async function products(q) {
+async function products(q, filters) {
   const { base, token } = await config();
   if (!token) return { error: "no-token" };
-  const url = base + "/v1/extension/products?limit=20&q=" + encodeURIComponent(q || "");
+  const f = filters || {};
+  const url = base + "/v1/extension/products?limit=40&q=" + encodeURIComponent(q || "")
+    + "&collection=" + encodeURIComponent(f.collection || "")
+    + "&size=" + encodeURIComponent(f.size || "");
   let res;
   try {
     res = await hfetch(url, { headers: { "X-Halia-Ext-Token": token } });
@@ -479,7 +482,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
   if (msg && msg.type === "halia:products") {
-    products(msg.q).then(sendResponse);
+    products(msg.q, msg.filters).then(sendResponse);
     return true;
   }
   if (msg && msg.type === "halia:clients") {

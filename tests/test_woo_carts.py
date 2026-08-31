@@ -21,8 +21,10 @@ def env(tmp_path, monkeypatch):
     store.create_tenant(SHOP, "woocommerce", "Maison Woo", hash_token(tok))
     store.save_woocommerce(SHOP, "https://maison.example", "ck", "cs")
     ext = new_token(); store.set_extension_token(SHOP, hash_token(ext))
-    products = [{"id": "12", "title": "Camel coat", "handle": "camel-coat", "image_url": None, "price": "1200", "sku": "CC1"},
-                {"id": "45", "title": "Silk scarf", "handle": "silk-scarf", "image_url": None, "price": "180", "sku": "SS9"}]
+    products = [{"id": "12", "title": "Camel coat", "handle": "camel-coat", "image_url": None, "price": "1200",
+                 "sku": "CC1", "collections": ["Outerwear"], "sizes": ["S", "M"], "tags": [], "vendor": "Aubin"},
+                {"id": "45", "title": "Silk scarf", "handle": "silk-scarf", "image_url": None, "price": "180",
+                 "sku": "SS9", "collections": ["Accessories"], "sizes": [], "tags": [], "vendor": "Aubin"}]
     monkeypatch.setattr(catalog, "_products", lambda shop, force=False: products)
     cache.clear()
     yield TestClient(app, cookies={COOKIE: tok}), store, ext
@@ -63,5 +65,22 @@ def test_extension_products_and_cart_link_on_woo(env):
     d = client.get("/v1/extension/products?q=scarf", headers={"X-Halia-Ext-Token": ext}).json()
     assert d["cart_base"] == "https://maison.example" and [p["title"] for p in d["products"]] == ["Silk scarf"]
     assert d["products"][0]["variants"][0]["id"] == "45"
+    assert d["ids"] == ["45"]                                   # the view, ready to send whole
     d = client.post("/v1/extension/cart_link", headers={"X-Halia-Ext-Token": ext}, json={"product_ids": ["45"]}).json()
     assert "add-to-cart=45" in d["url"] and d["needs_helper"] is False
+
+
+def test_a_view_can_be_narrowed_by_collection_and_size_then_sent_whole(env):
+    # An associate sends what suits one client: narrow the range, then take the whole view rather
+    # than ticking it piece by piece.
+    client, store, ext = env
+    h = {"X-Halia-Ext-Token": ext}
+    d = client.get("/v1/extension/products", headers=h).json()
+    assert d["facets"] == {"collections": ["Accessories", "Outerwear"], "sizes": ["S", "M"]}
+    assert d["ids"] == ["12", "45"]                             # everything, when nothing is chosen
+    d = client.get("/v1/extension/products?collection=Outerwear", headers=h).json()
+    assert [p["title"] for p in d["products"]] == ["Camel coat"] and d["ids"] == ["12"]
+    d = client.get("/v1/extension/products?size=m", headers=h).json()
+    assert d["ids"] == ["12"]                                   # sizes match whatever the case
+    assert client.get("/v1/extension/products?collection=Outerwear&size=S", headers=h).json()["ids"] == ["12"]
+    assert client.get("/v1/extension/products?collection=Accessories&size=S", headers=h).json()["ids"] == []
