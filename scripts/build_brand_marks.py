@@ -83,13 +83,14 @@ def svg_tile(size=64):
 
 # ── PNG ──────────────────────────────────────────────────────────────────────
 
-def _gradient(size):
-    img = Image.new("RGBA", (size, size))
+def _gradient(w, h=None):
+    h = w if h is None else h
+    img = Image.new("RGBA", (w, h))
     px = img.load()
-    for y in range(size):
-        t = y / max(1, size - 1)
+    for y in range(h):
+        t = y / max(1, h - 1)
         c = tuple(int(GREEN_TOP[i] + (GREEN_BOTTOM[i] - GREEN_TOP[i]) * t) for i in range(3))
-        for x in range(size):
+        for x in range(w):
             px[x, y] = c + (255,)
     return img
 
@@ -113,6 +114,52 @@ def png_tile(size, *, gradient=True, mark_scale=0.72, rounded=False, transparent
     return img.resize((size, size), Image.LANCZOS)
 
 
+def png_rect(w, h, *, mark_scale=0.72):
+    """The mark centred on a green rectangle. iMessage wants 4:3 icons, not squares."""
+    ss = 4
+    W, H = w * ss, h * ss
+    img = _gradient(W, H)
+    draw = ImageDraw.Draw(img)
+    m = min(W, H)
+    ox, oy = (W - m) / 2, (H - m) / 2
+    for poly in asterism_polys(mark_scale):
+        draw.polygon([(ox + x * m, oy + y * m) for x, y in poly], fill=CREAM)
+    return img.resize((w, h), Image.LANCZOS)
+
+
+# The Messages drawer icon set: eight rectangles plus two marketing sizes. App Store Connect
+# rejects an upload missing any of them (error 90649), and actool writes
+# MSMessagesExtensionStoreIconName (error 90642) only when the whole set assigns cleanly, which
+# it does only for a .stickersiconset with these exact idiom / scale / platform keys.
+IMESSAGE_ICONS = [
+    # (w, h, {asset-catalog metadata})
+    (1024, 1024, {"idiom": "ios-marketing", "size": "1024x1024", "scale": "1x"}),
+    (1024, 768, {"idiom": "ios-marketing", "size": "1024x768", "scale": "1x", "platform": "ios"}),
+    (120, 90, {"idiom": "iphone", "size": "60x45", "scale": "2x"}),
+    (180, 135, {"idiom": "iphone", "size": "60x45", "scale": "3x"}),
+    (134, 100, {"idiom": "ipad", "size": "67x50", "scale": "2x"}),
+    (148, 110, {"idiom": "ipad", "size": "74x55", "scale": "2x"}),
+    (54, 40, {"idiom": "universal", "size": "27x20", "scale": "2x", "platform": "ios"}),
+    (81, 60, {"idiom": "universal", "size": "27x20", "scale": "3x", "platform": "ios"}),
+    (64, 48, {"idiom": "universal", "size": "32x24", "scale": "2x", "platform": "ios"}),
+    (96, 72, {"idiom": "universal", "size": "32x24", "scale": "3x", "platform": "ios"}),
+]
+
+
+def build_imessage_iconset(folder: Path):
+    import json
+
+    folder.mkdir(parents=True, exist_ok=True)
+    images = []
+    for w, h, meta in IMESSAGE_ICONS:
+        name = f"icon-{w}x{h}.png"
+        png_rect(w, h, mark_scale=0.86 if min(w, h) < 100 else 0.72).save(folder / name)
+        images.append({"filename": name, **meta})
+    (folder / "Contents.json").write_text(
+        json.dumps({"images": images, "info": {"author": "xcode", "version": 1}}, indent=2) + "\n")
+    return folder
+
+
 def main():
     out = []
     # iOS app icon set (Apple applies its own corner mask; supply square).
@@ -121,6 +168,9 @@ def main():
     png_tile(1024).save(ios / "AppIcon-1024-dark.png"); out.append(ios / "AppIcon-1024-dark.png")
     png_tile(1024, transparent_mark_only=True).save(ios / "AppIcon-1024-tinted.png")
     out.append(ios / "AppIcon-1024-tinted.png")
+    # The Messages extension has its own icon set, in its own shape.
+    out.append(build_imessage_iconset(
+        ROOT / "ios/HaliaTemplates/HaliaIMessage/Assets.xcassets/iMessage App Icon.stickersiconset"))
     # Chrome extension
     for s in (16, 48, 128):
         p = ROOT / f"extension/icons/icon{s}.png"
