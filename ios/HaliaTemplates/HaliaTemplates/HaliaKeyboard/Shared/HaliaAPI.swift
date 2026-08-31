@@ -16,7 +16,11 @@ enum HaliaAPIError: LocalizedError {
         switch self {
         case .badURL:         return "That Halia address does not look right."
         case .unauthorized:   return "Token not recognised. Generate a new one in Halia, Settings."
-        case .http(let c):    return "Halia returned an error (HTTP \(c))."
+        case .http(let c):
+            if c == 402 { return "This store needs a plan for the extension and keyboard." }
+            if c == 403 { return "Halia refused that request." }
+            if c == 429 { return "Too many requests just now. A moment, then try again." }
+            return "Halia returned an error (HTTP \(c))."
         case .decode:         return "Could not read the response from Halia."
         case .network(let m): return "Could not reach Halia. \(m)"
         }
