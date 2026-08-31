@@ -104,11 +104,11 @@ private struct PickerView: View {
     @State private var busy = false
     @State private var status: String?
 
-    /// Two sources, one list: what was saved while browsing until a search replaces it.
-    private var fromSaved: Bool { results.isEmpty }
-    private var rows: [(id: String, title: String)] {
-        results.isEmpty ? saved.map { (id: $0.url, title: $0.title ?? $0.url) }
-                        : results.map { (id: $0.id, title: $0.title) }
+    /// Two sources, one list: what was saved while browsing, else the store's own products.
+    private var fromSaved: Bool { results.isEmpty && !saved.isEmpty }
+    private var rows: [(id: String, title: String, image: String?)] {
+        fromSaved ? saved.map { (id: $0.url, title: $0.title ?? $0.url, image: nil) }
+                  : results.map { (id: $0.id, title: $0.title, image: $0.image) }
     }
 
     var body: some View {
@@ -127,20 +127,36 @@ private struct PickerView: View {
                 Text(status).font(.footnote).foregroundStyle(.secondary).padding(.bottom, 8)
             }
 
-            List(rows, id: \.id) { row in
-                Button {
-                    if chosen.contains(row.id) { chosen.remove(row.id) } else { chosen.insert(row.id) }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: chosen.contains(row.id) ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(chosen.contains(row.id) ? Ink.brand : Color.secondary)
-                        Text(row.title).lineLimit(2)
-                        Spacer()
+            if rows.isEmpty && busy {
+                Spacer(); ProgressView(); Spacer()
+            } else if rows.isEmpty {
+                Spacer()
+                Text(status ?? "No products came back. Search for a piece by name.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center).padding(.horizontal, 24)
+                Spacer()
+            } else {
+                List(rows, id: \.id) { row in
+                    Button {
+                        if chosen.contains(row.id) { chosen.remove(row.id) } else { chosen.insert(row.id) }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: chosen.contains(row.id) ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(chosen.contains(row.id) ? Ink.brand : Color.secondary)
+                            if let img = row.image, let url = URL(string: img) {
+                                AsyncImage(url: url) { image in
+                                    image.resizable().aspectRatio(contentMode: .fill)
+                                } placeholder: { Color.secondary.opacity(0.1) }
+                                .frame(width: 38, height: 46).clipped()
+                            }
+                            Text(row.title).lineLimit(2)
+                            Spacer()
+                        }
                     }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                .listStyle(.plain)
             }
-            .listStyle(.plain)
 
             Button {
                 Task { await sendSelection() }
@@ -155,19 +171,25 @@ private struct PickerView: View {
             .disabled(chosen.isEmpty || busy)
             .padding(12)
         }
-        .task { saved = SavedItemsStore.load() }
+        .task {
+            saved = SavedItemsStore.load()
+            if saved.isEmpty { await search(initial: true) }   // open on the store's own products
+        }
     }
 
-    private func search() async {
+    private func search(initial: Bool = false) async {
         let q = query.trimmingCharacters(in: .whitespaces)
-        guard !q.isEmpty else { return }
+        guard initial || !q.isEmpty else { return }
         busy = true; status = nil
         do {
             results = try await HaliaAPI.current.searchProducts(q).products
             chosen.removeAll()
-            if results.isEmpty { status = "Nothing matched that." }
+            if results.isEmpty {
+                status = initial ? "No products came back. This needs a store with published, in-stock products."
+                                 : "Nothing matched that."
+            }
         } catch {
-            status = "Could not reach Halia."
+            status = (error as? LocalizedError)?.errorDescription ?? "Could not reach Halia."
         }
         busy = false
     }
