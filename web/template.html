@@ -2561,6 +2561,7 @@ function renderTeamReport(){
   if(sw) sw.onchange=()=>{ try{localStorage.setItem("halia_team_view",sw.checked?"1":"0");}catch(e){} renderTeamReport(); };
   if(sel) sel.onchange=renderTeamReport;
 })();
+function apptLocal(iso){const d=new Date(iso);if(isNaN(d))return "";const p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"T"+p(d.getHours())+":"+p(d.getMinutes());}
 function apptWhen(iso){const d=new Date(iso);return d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})+", "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});}
 function apptLinks(a){return `<a href="${esc(a.links.google)}" target="_blank" rel="noopener" style="font:600 12px system-ui;color:var(--ink)">Google</a><a href="${esc(a.links.outlook)}" target="_blank" rel="noopener" style="font:600 12px system-ui;color:var(--ink)">Outlook</a><a href="${esc(a.links.ics_data)}" download="appointment.ics" style="font:600 12px system-ui;color:var(--ink)">Apple / .ics</a>${a.links.message?`<button data-apptsend="${esc(a.links.message)}" style="background:none;border:none;padding:0;font:600 12px system-ui;color:var(--brand-deep);cursor:pointer">Send to client</button>`:""}`;}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-apptsend]");if(!b)return;navigator.clipboard.writeText(b.dataset.apptsend).then(()=>toast("Copied. Paste it into your message to them."),()=>toast("Copy failed."));});
@@ -3299,20 +3300,36 @@ function renderDrawerAppt(c){
         ${a.seat_name?`<span style="font:12.5px system-ui;color:var(--faint)">${esc(a.seat_name)}</span>`:""}
         <span style="margin-left:auto;display:flex;gap:14px;align-items:center;font:600 12.5px system-ui">
           ${a.links&&a.links.message?`<button class="lnkbtn" data-apptsend="${esc(a.links.message)}">Copy for the client</button>`:""}
+          <button class="lnkbtn" data-apptmove="${esc(a.id)}">Change</button>
           <button class="lnkbtn" data-apptcancel="${esc(a.id)}" style="color:#9A3838">Cancel</button></span>
+        <div class="row" data-movebox="${esc(a.id)}" hidden style="gap:8px;width:100%">
+          <input type="datetime-local" data-movewhen="${esc(a.id)}" value="${esc(apptLocal(a.when))}" style="flex:none">
+          <input placeholder="Where" data-moveplace="${esc(a.id)}" value="${esc(a.place||"")}" style="flex:1;min-width:90px">
+          <button class="dbtn" data-movego="${esc(a.id)}" style="padding:6px 12px;white-space:nowrap">Save</button></div>
       </div>`).join("")}
       <div class="row" style="gap:8px"><input id="pipeWhen" type="datetime-local" style="flex:none"><input id="pipePlace" placeholder="Where" style="flex:1;min-width:90px"><button class="dbtn" id="pipeBook" style="padding:6px 12px;white-space:nowrap">Book</button></div>
       <div id="pipeBooked"></div></div>`;
     const bk=document.getElementById("pipeBook"),bw=document.getElementById("pipeWhen"),bp=document.getElementById("pipePlace"),bo=document.getElementById("pipeBooked");
     if(bk) bk.onclick=()=>{ if(!bw.value){toast("Pick a date and time");return;}
       bk.disabled=true;bk.textContent="Booking…";
-      bPost("appointment",{cid:c.cid,when:new Date(bw.value).toISOString(),place:bp.value.trim(),client_name:c.name||""},d2=>{
+      bPost("appointment",{cid:c.cid,when:new Date(bw.value).toISOString(),place:bp.value.trim(),client_name:c.name||"",client_email:c.email||""},d2=>{
         bk.disabled=false;bk.textContent="Book a visit";toast("Booked.");
         if(bo&&d2&&d2.links) bo.innerHTML=apptClientLine(d2.links);
         renderDrawerAppt(c);
       }); };
     box.querySelectorAll("[data-apptcancel]").forEach(b=>b.onclick=()=>{ if(!confirm("Cancel this appointment?"))return;
       bPost("appointment/cancel",{cid:c.cid,id:b.dataset.apptcancel},()=>{toast("Cancelled.");renderDrawerAppt(c);}); });
+    box.querySelectorAll("[data-apptmove]").forEach(b=>b.onclick=()=>{
+      const row=box.querySelector('[data-movebox="'+b.dataset.apptmove+'"]'); if(row) row.hidden=!row.hidden; });
+    box.querySelectorAll("[data-movego]").forEach(b=>b.onclick=()=>{
+      const id=b.dataset.movego,w=box.querySelector('[data-movewhen="'+id+'"]'),pl=box.querySelector('[data-moveplace="'+id+'"]');
+      if(!w||!w.value){toast("Pick a date and time");return;}
+      b.disabled=true;b.textContent="Saving…";
+      bPost("appointment/reschedule",{cid:c.cid,id:id,when:new Date(w.value).toISOString(),place:pl?pl.value.trim():"",client_name:c.name||"",client_email:c.email||""},d2=>{
+        toast("Moved.");
+        if(bo&&d2&&d2.links) bo.innerHTML=apptClientLine(d2.links);
+        renderDrawerAppt(c);
+      }).catch(()=>{b.disabled=false;b.textContent="Save";}); });
   }).catch(()=>{ box.innerHTML='<div style="color:var(--faint);font-size:12.5px">Appointments are available for stores with write-back.</div>'; });
 }
 function actLabel(e){const a=e.action||"";if(a==="added")return"added to pipeline";if(a==="removed")return"removed";if(a==="note")return"noted";if(a==="appointment")return"booked an appointment";if(a==="appointment_cancelled")return"cancelled an appointment";

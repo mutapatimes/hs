@@ -1655,7 +1655,9 @@ def register(app) -> None:
         auth = _resolve_ext(x_halia_ext_token)
         rows = appts.upcoming(auth.shop, days, seat_id=auth.seat_id)
         store = appts._store_name(auth.shop)
-        return {"appointments": [{**a, "links": appts.calendar_links(a, a.get("name") or "", store, auth.shop)} for a in rows]}
+        return {"appointments": [{**a, "links": appts.calendar_links(a, a.get("name") or "", store, auth.shop,
+                                                                    client_email=a.get("email") or "")}
+                                 for a in rows]}
 
     @app.get("/v1/extension/products")
     def extension_products(x_halia_ext_token: Optional[str] = Header(None),
@@ -1814,15 +1816,27 @@ def register(app) -> None:
             data.record_activity(shop, "extension_pipeline_add")
             return {"ok": True, "stage": stage}
 
-        if action in ("appointment", "appointment_cancel"):
+        if action in ("appointment", "appointment_move", "appointment_cancel"):
             from halia.api import appointments as appts
+            if action == "appointment_move":
+                moved = appts.reschedule(shop, cid, str(body.get("id") or ""), body.get("when"),
+                                         body.get("minutes"), body.get("place"), auth.seat_id, who)
+                if not moved:
+                    raise HTTPException(404, "That appointment is no longer in the client's record.")
+                data.record_activity(shop, "extension_appointment")
+                return {"ok": True, "appointment": moved,
+                        "links": appts.calendar_links(moved, str(body.get("client_name") or ""),
+                                                      appts._store_name(shop), shop,
+                                                      client_email=str(body.get("client_email") or ""))}
             if action == "appointment":
                 appt = appts.book(shop, cid, body.get("when"), body.get("minutes"), body.get("place"),
                                   body.get("note"), auth.seat_id, who)
                 _seat_hit(auth, "appointments")
                 data.record_activity(shop, "extension_appointment")
                 return {"ok": True, "appointment": appt,
-                        "links": appts.calendar_links(appt, str(body.get("client_name") or ""), appts._store_name(shop), shop)}
+                        "links": appts.calendar_links(appt, str(body.get("client_name") or ""),
+                                                     appts._store_name(shop), shop,
+                                                     client_email=str(body.get("client_email") or ""))}
             ok = appts.cancel(shop, cid, str(body.get("id") or ""), auth.seat_id, who)
             return {"ok": ok}
 

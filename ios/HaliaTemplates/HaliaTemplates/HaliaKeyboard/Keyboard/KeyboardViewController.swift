@@ -52,6 +52,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var currentRef: ClientRef?
     private var clientName: String?
     private var clientCid: String?
+    private var clientEmail: String?   // goes on the calendar invite when we book
     private var statusText: String?
     private var busy = false
     private var statusLoading = false
@@ -105,6 +106,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private let chipsScroll = UIScrollView()
     private let chipsStack = UIStackView()
     private var chipsHeight: NSLayoutConstraint!
+    private let confirmBar = UIView()         // Book sits under both pill rows, not among the times
+    private var confirmHeight: NSLayoutConstraint!
     private let table = UITableView(frame: .zero, style: .plain)
     private let draftView = UITextView()
     private let grid: UICollectionView = {
@@ -179,6 +182,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         buildClientBar()
         buildActionRow()
         buildChips()
+        buildConfirmBar()
         buildTable()
         buildEmptyLabel()
         buildBottomBar()
@@ -209,6 +213,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         rebuildClientBar()
         rebuildActionRow()
         rebuildChips()
+        rebuildConfirmBar()
         rebuildBottomBar()
         let showDraft = (mode == .draft)
         let showTemplateList = (mode == .templates && audience == .client)
@@ -330,13 +335,14 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
         currentRef = ref
         clientName = ref.kind == .name ? ref.value : nil
-        clientCid = nil; cartUrl = nil; cartCount = nil
+        clientCid = nil; clientEmail = nil; cartUrl = nil; cartCount = nil
         mode = .templates; suggestions = []; draftText = ""
         setStatus("Looking up…", loading: true)
         Task {
             do {
                 let res = try await HaliaAPI.current.lookup(ref)
                 if let n = res.name, !n.isEmpty { clientName = n }
+                if let e = res.email, !e.isEmpty { clientEmail = e }
                 applySuggestions(res.suggested)
                 clientCid = res.cid
                 if let u = res.cart?.url, !u.isEmpty { cartUrl = u; cartCount = res.cart?.count }
@@ -346,7 +352,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     private func clearClient() {
-        currentRef = nil; clientName = nil; clientCid = nil; cartUrl = nil; cartCount = nil
+        currentRef = nil; clientName = nil; clientCid = nil; clientEmail = nil; cartUrl = nil; cartCount = nil
         applySuggestions(nil)
         mode = .templates; suggestions = []; draftText = ""; pendingCartUrl = nil
         setStatus(nil); reload()
@@ -390,7 +396,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 actionStack.addArrangedSubview(togglePill(Self.timeLabel(slot), on: bookMinutes == slot) { [weak self] in
                     guard let self else { return }
                     self.bookMinutes = (self.bookMinutes == slot) ? nil : slot
-                    self.rebuildActionRow(); self.reload()
+                    self.rebuildActionRow(); self.rebuildConfirmBar(); self.reload()
                 })
             }
 
@@ -582,6 +588,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     /// Half-hourly slots a boutique actually offers, as minutes past midnight.
     private static let bookTimes: [Int] = stride(from: 9 * 60, through: 19 * 60, by: 30).map { $0 }
 
+    /// How far ahead a visit can be set. A season's worth, so a client passing through in two
+    /// months can be booked in the chat rather than promised a follow-up.
+    private static let bookDays = 90
+
     private static func timeLabel(_ minutes: Int) -> String {
         String(format: "%02d:%02d", minutes / 60, minutes % 60)
     }
@@ -589,7 +599,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private static func dayLabel(_ day: Date, offset: Int) -> String {
         if offset == 0 { return "Today" }
         if offset == 1 { return "Tomorrow" }
-        let f = DateFormatter(); f.dateFormat = "EEE d"
+        let f = DateFormatter()
+        f.dateFormat = offset < 7 ? "EEE d" : "d MMM"   // a weekday reads as this week; past that, a date
         return f.string(from: day)
     }
 
@@ -617,7 +628,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         Task {
             do {
                 let res = try await HaliaAPI.current.bookAppointment(cid: cid, when: iso.string(from: at),
-                                                                     place: "", clientName: clientName ?? "")
+                                                                     place: "", clientName: clientName ?? "",
+                                                                     clientEmail: clientEmail ?? "")
                 if let msg = res.links?.message, !msg.isEmpty {
                     mode = .templates; bookDay = nil; bookMinutes = nil
                     insertUndoable(msg)            // the client's line, with their calendar link
@@ -938,23 +950,52 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ])
     }
 
+    /// A row of its own under the day and time pills, so Book is a decision rather than one more
+    /// pill to scroll past on the time row.
+    private func buildConfirmBar() {
+        confirmBar.translatesAutoresizingMaskIntoConstraints = false
+        confirmBar.backgroundColor = .clear
+        view.addSubview(confirmBar)
+        confirmHeight = confirmBar.heightAnchor.constraint(equalToConstant: 0)
+        NSLayoutConstraint.activate([
+            confirmBar.topAnchor.constraint(equalTo: chipsScroll.bottomAnchor),
+            confirmBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            confirmBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            confirmHeight,
+        ])
+    }
+
+    private func rebuildConfirmBar() {
+        confirmBar.subviews.forEach { $0.removeFromSuperview() }
+        let ready = mode == .book && bookDay != nil && bookMinutes != nil
+        confirmHeight.constant = ready ? 50 : 0
+        confirmBar.isHidden = !ready
+        guard ready else { return }
+        let b = pillButton("Book", filled: true) { [weak self] in self?.confirmBooking() }
+        b.translatesAutoresizingMaskIntoConstraints = false
+        confirmBar.addSubview(b)
+        NSLayoutConstraint.activate([
+            b.leadingAnchor.constraint(equalTo: confirmBar.leadingAnchor, constant: 12),
+            b.trailingAnchor.constraint(equalTo: confirmBar.trailingAnchor, constant: -12),
+            b.topAnchor.constraint(equalTo: confirmBar.topAnchor, constant: 4),
+            b.heightAnchor.constraint(equalToConstant: 38),
+        ])
+    }
+
     private func rebuildChips() {
         chipsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         if mode == .book {                                       // pick the day here, the time above
             chipsHeight.constant = 44
             chipsScroll.isHidden = false
             let cal = Calendar.current
-            for offset in 0..<14 {
+            for offset in 0..<Self.bookDays {
                 guard let day = cal.date(byAdding: .day, value: offset, to: cal.startOfDay(for: Date())) else { continue }
                 let on = bookDay.map { cal.isDate($0, inSameDayAs: day) } ?? false
                 chipsStack.addArrangedSubview(togglePill(Self.dayLabel(day, offset: offset), on: on) { [weak self] in
                     guard let self else { return }
                     self.bookDay = on ? nil : day
-                    self.rebuildChips(); self.reload()
+                    self.rebuildChips(); self.rebuildConfirmBar(); self.reload()
                 })
-            }
-            if bookDay != nil && bookMinutes != nil {
-                chipsStack.addArrangedSubview(pillButton("Book", filled: true) { [weak self] in self?.confirmBooking() })
             }
             return
         }
@@ -999,7 +1040,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         table.register(UITableViewCell.self, forCellReuseIdentifier: cellID)
         view.addSubview(table)
         NSLayoutConstraint.activate([
-            table.topAnchor.constraint(equalTo: chipsScroll.bottomAnchor),
+            table.topAnchor.constraint(equalTo: confirmBar.bottomAnchor),
             table.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             table.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
