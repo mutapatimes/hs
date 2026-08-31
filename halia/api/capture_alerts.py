@@ -100,3 +100,32 @@ def dispatch_capture_alert(shop: str, result: dict, body: dict, channel: str,
         return True
     except Exception:  # noqa: BLE001 — alerts must never break a capture
         return False
+
+
+def dispatch_pick_alert(shop: str, who: str, count: int, seat=None) -> bool:
+    """A client has picked from a selection an associate sent. Push, email and Slack, on the same
+    switch as capture alerts. Best-effort; a pick is never lost to a failed alert."""
+    try:
+        from halia.api.settings import settings_for
+        s = settings_for(shop)
+        if not s.get("capture_alerts", True):
+            return False
+        store = shop_store()
+        slack = store.get_slack(shop)
+        emails = s.get("notify_emails") or ([s["notify_email"]] if s.get("notify_email") else [])
+        subs = store.push_subs(shop)
+        if not (slack or subs or (emails and notify.email_configured())):
+            return False
+        pieces = f"{count} piece" + ("" if count == 1 else "s")
+        title = f"{who} picked {pieces}"
+        line = f"From the selection {(seat or {}).get('name')} sent." if (seat or {}).get("name") \
+            else "From a selection you sent."
+        sent = False
+        if subs:
+            sent = bool(notify.send_web_push(subs, {"title": title, "body": line,
+                                                    "tag": f"halia-pick-{who}", "url": "/app"}, shop=shop)) or sent
+        if slack and slack.get("webhook_url"):
+            sent = bool(notify.send_slack(slack["webhook_url"], f"{title}. {line}")) or sent
+        return sent
+    except Exception:  # noqa: BLE001
+        return False
