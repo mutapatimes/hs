@@ -179,7 +179,7 @@ def test_enquire_form_page_renders_and_prefills(client):
                                             "enquiry_email": "sales@aubin.com"}).json()["id"]
     r = c.get(f"/catalog/{cid}?name=Jane%20Doe&email=jane@x.com")
     assert r.status_code == 200 and "text/html" in r.headers["content-type"]
-    assert "Cashmere coat" in r.text and "Add to enquiry" in r.text
+    assert "Cashmere coat" in r.text and "Pick" in r.text
     assert 'value="Jane Doe"' in r.text and 'value="jane@x.com"' in r.text
 
 
@@ -237,7 +237,7 @@ def test_app_proxy_serves_on_merchant_domain_with_valid_signature(client, monkey
     q = "&".join(f"{k}={v}" for k, v in params.items()) + "&signature=" + _proxy_sig(params, "sekret")
     # valid signature -> the same interactive form, served for the App Proxy
     r = c.get(f"/proxy/catalogue/{cid}?{q}")
-    assert r.status_code == 200 and "Cashmere coat" in r.text and "Add to enquiry" in r.text
+    assert r.status_code == 200 and "Cashmere coat" in r.text and "Pick" in r.text
     # missing / tampered signature -> rejected
     assert c.get(f"/proxy/catalogue/{cid}").status_code == 403
     assert c.get(f"/proxy/catalogue/{cid}?{q}TAMPER").status_code == 403
@@ -404,3 +404,77 @@ def test_generate_requires_a_product(client, monkeypatch):
     monkeypatch.setattr(cr, "html_to_pdf", lambda html: b"%PDF")
     cid = c.post("/v1/catalog/save", json={"name": "Empty", "product_ids": ["gid://MISSING"]}).json()["id"]
     assert c.post(f"/v1/catalog/{cid}/generate").status_code == 400   # nothing resolves
+
+
+# ── the link as a card, and the picks coming back to the associate ───────────
+def test_form_page_carries_preview_tags(client, monkeypatch):
+    c, store = client
+    import halia.api.catalog as cat
+    monkeypatch.setattr(cat, "_resolve", lambda shop, sel: [
+        {"id": "1", "title": "Cashmere coat", "image_url": "https://cdn/1.jpg", "vendor": "Maison"},
+        {"id": "2", "title": "Silk scarf", "image_url": "https://cdn/2.jpg"}])
+    cid = c.post("/v1/catalog/save", json={"name": "A selection", "product_ids": ["1", "2"],
+                                           "enquiry_email": "s@a.com"}).json()["id"]
+    page = c.get(f"/catalog/{cid}?to=Grace%20Ladoja").text
+    assert '<meta property="og:image" content="https://cdn/1.jpg">' in page
+    assert 'name="twitter:card" content="summary_large_image"' in page
+    assert 'property="og:description" content="A selection for Grace &middot; 2 pieces"'.replace("&middot;", "·") in page
+    assert '<meta name="robots" content="noindex">' in page          # still out of search
+    # no usable image: the card degrades rather than showing a broken one
+    monkeypatch.setattr(cat, "_resolve", lambda shop, sel: [{"id": "1", "title": "Coat", "image_url": "http://cdn/1.jpg"}])
+    page = c.get(f"/catalog/{cid}").text
+    assert "og:image" not in page and 'name="twitter:card" content="summary"' in page
+
+
+def test_a_selection_link_names_who_sent_it(client, monkeypatch):
+    from halia.api.catalog import adhoc_sig, adhoc_url
+    c, store = client
+    import halia.api.catalog as cat
+    monkeypatch.setattr(cat, "_resolve", lambda shop, sel: [{"id": "1", "title": "Coat", "image_url": "https://cdn/1.jpg"}])
+    url = adhoc_url(SHOP, ["1"], "Grace", by="seat_1")
+    assert "by=seat_1" in url
+    q = url.split("?", 1)[1]
+    assert c.get("/catalog/for?" + q).status_code == 200
+    assert c.get("/catalog/for?" + q.replace("by=seat_1", "by=seat_9")).status_code == 403
+    # a link made before senders existed still opens
+    legacy = f"/catalog/for?p=1&s={adhoc_sig(SHOP, '1')}&sh={SHOP}"
+    assert c.get(legacy).status_code == 200
+
+
+def test_picks_reach_the_associate_and_land_on_the_client(client, monkeypatch):
+    c, store = client
+    import halia.api.catalog as cat
+    import halia.notify as notify
+    monkeypatch.setattr(cat, "_resolve", lambda shop, sel: [{"id": "1", "title": "Cashmere coat"},
+                                                            {"id": "2", "title": "Silk scarf"}])
+    sent = []
+    monkeypatch.setattr(notify, "send_email", lambda to, subj, html, text=None, **kw: sent.append((to, subj, kw.get("reply_to"))) or True)
+    seat = store.create_seat(SHOP, "Sarah Bloom", "hash", "sarah@m.com")
+    logged = {}
+    class Sink:
+        def get_metafield(self, cid, key, namespace="halia"): return None
+        def set_metafield(self, cid, key, value, *a, **k): logged["pipe"] = value
+    monkeypatch.setattr("halia.api.board._sink", lambda shop: Sink())
+    monkeypatch.setattr("halia.api.capture.existing_match", lambda shop, e, p: {"cid": "c1"})
+    cid = c.post("/v1/catalog/save", json={"name": "A selection", "product_ids": ["1", "2"],
+                                           "enquiry_email": "store@a.com"}).json()["id"]
+    r = c.post(f"/catalog/{cid}/enquire", json={"name": "Grace", "email": "grace@x.com",
+                                                "product_ids": ["1"], "by": seat})
+    assert r.status_code == 200 and r.json() == {"ok": True}
+    assert [t[0] for t in sent] == ["sarah@m.com", "store@a.com"]     # the associate first, the store copied
+    assert sent[0][1] == "Grace picked 1 piece" and sent[0][2] == "grace@x.com"
+    assert '"action": "picked"' in logged["pipe"] and "Cashmere coat" in logged["pipe"]
+    assert store.seat_month_metrics(seat) == {"picked": 1}
+
+
+def test_a_pick_without_a_sender_still_reaches_the_store(client, monkeypatch):
+    c, store = client
+    import halia.api.catalog as cat
+    import halia.notify as notify
+    monkeypatch.setattr(cat, "_resolve", lambda shop, sel: [{"id": "1", "title": "Coat"}])
+    sent = []
+    monkeypatch.setattr(notify, "send_email", lambda to, *a, **k: sent.append(to) or True)
+    monkeypatch.setattr("halia.api.board._sink", lambda shop: (_ for _ in ()).throw(RuntimeError("no write-back")))
+    cid = c.post("/v1/catalog/save", json={"name": "S", "product_ids": ["1"], "enquiry_email": "store@a.com"}).json()["id"]
+    r = c.post(f"/catalog/{cid}/enquire", json={"name": "Grace", "email": "g@x.com", "product_ids": ["1"]})
+    assert r.status_code == 200 and sent == ["store@a.com"]           # a failed write never loses the pick

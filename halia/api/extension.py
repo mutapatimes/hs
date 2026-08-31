@@ -1570,7 +1570,7 @@ def register(app) -> None:
             raise HTTPException(422, "product_ids is required")
         first = (str(body.get("name") or "").strip().split(" ") or [""])[0][:80]
         data.record_activity(shop, "extension_catalogue")
-        return {"url": adhoc_url(shop, ids, first)}
+        return {"url": adhoc_url(shop, ids, first, by=auth.seat_id or "")}
 
     @app.post("/v1/extension/cart_link")
     def extension_cart_link(x_halia_ext_token: Optional[str] = Header(None),
@@ -1941,7 +1941,7 @@ def register(app) -> None:
             return {"url": "", "resolved": 0, "requested": len(handles)}
         first = ((str(body.get("name") or "").strip().split(" ") or [""])[0])[:80]
         data.record_activity(shop, "extension_catalogue_urls")
-        return {"url": adhoc_url(shop, ids, first), "resolved": len(ids), "requested": len(handles)}
+        return {"url": adhoc_url(shop, ids, first, by=auth.seat_id or ""), "resolved": len(ids), "requested": len(handles)}
 
     @app.post("/v1/extension/products_from_urls")
     def extension_products_from_urls(x_halia_ext_token: Optional[str] = Header(None),

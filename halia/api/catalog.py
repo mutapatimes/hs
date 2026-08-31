@@ -101,7 +101,7 @@ def _price_str(pr: dict) -> str:
         return ""
 
 
-def _enquiry_html(cat_name, name, email, phone, message, picked) -> str:
+def _enquiry_html(cat_name, name, email, phone, message, picked, lead: str = "") -> str:
     import html as _h
     rows = "".join(
         f'<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">{_h.escape(pr.get("title") or "")}'
@@ -123,8 +123,8 @@ def _enquiry_html(cat_name, name, email, phone, message, picked) -> str:
             f'Reply directly to {_h.escape(email)} to respond.</p></div>')
 
 
-def _enquiry_text(cat_name, name, email, phone, message, picked) -> str:
-    lines = [f"New enquiry from {name} via your {cat_name} catalogue.",
+def _enquiry_text(cat_name, name, email, phone, message, picked, lead: str = "") -> str:
+    lines = ([lead, ""] if lead else []) + [f"New enquiry from {name} via your {cat_name} catalogue.",
              f"{email}" + (f" · {phone}" if phone else ""), ""]
     for pr in picked:
         bit = f"- {pr.get('title') or ''}"
@@ -339,21 +339,26 @@ def _personalize(text: str, ctx: dict) -> str:
 _ADHOC_MAX = 40
 
 
-def adhoc_sig(shop: str, ids: str) -> str:
+def adhoc_sig(shop: str, ids: str, by: str = "") -> str:
     """Sign a selection so this endpoint cannot be used to render arbitrary combinations of a
-    shop's products by anyone who works out the URL shape."""
+    shop's products by anyone who works out the URL shape. ``by`` names the seat who sent it and
+    is signed with the rest; without it the body is unchanged, so older links keep working."""
     from halia.api.tenant_auth import _secret
-    return hmac.new(_secret(), f"cat|{shop}|{ids}".encode(), hashlib.sha256).hexdigest()[:32]
+    body = f"cat|{shop}|{ids}" + (f"|{by}" if by else "")
+    return hmac.new(_secret(), body.encode(), hashlib.sha256).hexdigest()[:32]
 
 
 def _adhoc_ids(raw: str) -> list[str]:
     return [x for x in re.split(r"[,\s]+", str(raw or "")) if x][:_ADHOC_MAX]
 
 
-def adhoc_url(shop: str, product_ids: list, name: str = "") -> str:
-    """The shareable link for a bespoke selection, on the merchant's own domain where possible."""
+def adhoc_url(shop: str, product_ids: list, name: str = "", by: str = "") -> str:
+    """The shareable link for a bespoke selection, on the merchant's own domain where possible.
+    ``by`` is the seat sending it, so the client's picks come back to that associate."""
     ids = ",".join(str(p) for p in (product_ids or [])[:_ADHOC_MAX])
-    q = {"p": ids, "s": adhoc_sig(shop, ids)}
+    q = {"p": ids, "s": adhoc_sig(shop, ids, by)}
+    if by:
+        q["by"] = by
     if name:
         q["to"] = name[:160]
     base = catalog_share_base(shop)
@@ -363,6 +368,30 @@ def adhoc_url(shop: str, product_ids: list, name: str = "") -> str:
     return f"{base}/for?{_up.urlencode(q)}"
 
 
+def _og_bits(products: list, ctx: dict) -> tuple:
+    """The image and the line a link preview shows: the first product photo we can actually use,
+    and who the selection is for."""
+    image = next((p.get("image_url") for p in products
+                  if str(p.get("image_url") or "").startswith("https://")), "")
+    n = len(products)
+    pieces = f"{n} piece" + ("" if n == 1 else "s")
+    first = (ctx or {}).get("first_name") or ""
+    desc = f"A selection for {first} · {pieces}" if first else f"{pieces} chosen for you"
+    return image, desc
+
+
+def _seat_sender(shop: str, raw: str) -> str:
+    """The seat named on a link, when it belongs to this shop. Anything else is ignored."""
+    by = str(raw or "").strip()[:64]
+    if not by:
+        return ""
+    try:
+        seat = shop_store().seat_profile(by) or {}
+    except Exception:  # noqa: BLE001
+        return ""
+    return by if seat and seat.get("shop") == shop else ""
+
+
 def _adhoc_response(shop: str, request: Request):
     """Render a bespoke selection as the catalogue form. Writes nothing."""
     from fastapi.responses import HTMLResponse
@@ -370,8 +399,9 @@ def _adhoc_response(shop: str, request: Request):
     ids = _adhoc_ids(request.query_params.get("p") or "")
     if not ids:
         raise HTTPException(404, "Nothing to show.")
+    by = str(request.query_params.get("by") or "").strip()[:64]
     if not hmac.compare_digest(request.query_params.get("s") or "",
-                               adhoc_sig(shop, ",".join(ids))):
+                               adhoc_sig(shop, ",".join(ids), by)):
         raise HTTPException(403, "This link is not valid.")
     products = _resolve(shop, {"product_ids": ids})
     if not products:
@@ -388,7 +418,8 @@ def _adhoc_response(shop: str, request: Request):
          "logo": cfg.get("logo", ""), "brand_color": cfg.get("brand_color"),
          "fields": cfg.get("fields")},
         products, shop_name=_shop_display(shop), catalog_id=(cat.get("id") or ""),
-        enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill)
+        enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill,
+        og_image=_og_bits(products, ctx)[0], og_desc=_og_bits(products, ctx)[1], by=by)
     return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
 
@@ -445,8 +476,39 @@ def _form_response(catalog_id: str, request: Request):
         {"name": _personalize(cat["name"], ctx), "subtitle": _personalize(cfg.get("subtitle", ""), ctx),
          "logo": cfg.get("logo", ""), "brand_color": cfg.get("brand_color"), "fields": cfg.get("fields")},
         products, shop_name=_shop_display(shop), catalog_id=catalog_id,
-        enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill)
+        enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill,
+        og_image=_og_bits(products, ctx)[0], og_desc=_og_bits(products, ctx)[1],
+        by=_seat_sender(shop, request.query_params.get("by")))
     return HTMLResponse(html, headers={"Cache-Control": "no-store"})
+
+
+def _record_pick(shop: str, seat, by: str, name: str, email: str, phone: str, picked: list) -> None:
+    """Everything around the email: the pick on the client's own record in the store, the counters
+    behind the team report, and a word to the team. Each best-effort; a hiccup never fails a pick."""
+    try:
+        from halia.api import data as _data
+        _data.record_activity(shop, "catalog_picked")
+        if by:
+            shop_store().bump_seat_metric(by, "picked")
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from halia.api.board import _sink, _write_soft, append_activity, load_pipe
+        from halia.api.capture import existing_match
+        m = existing_match(shop, email, phone) or {}
+        if m.get("cid"):
+            sink = _sink(shop)
+            pipe = load_pipe(sink.get_metafield(m["cid"], "pipeline"))
+            append_activity(pipe, "picked", by or None, (seat or {}).get("name") or name,
+                            note="Picked " + ", ".join(str(x.get("title") or "") for x in picked[:6]))
+            _write_soft(sink, m["cid"], pipe)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from halia.api.capture_alerts import dispatch_pick_alert
+        dispatch_pick_alert(shop, name, len(picked), seat)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _do_enquire(catalog_id: str, payload) -> dict:
@@ -470,14 +532,27 @@ def _do_enquire(catalog_id: str, payload) -> dict:
     cfg = json.loads(cat.get("config_json") or "{}")
     shop = cat["shop"]
     picked = [pr for pr in _resolve(shop, cfg.get("selection") or {}) if pr["id"] in ids]
-    to = cfg.get("enquiry_email") or _default_enquiry_email(shop)
-    if not to:
+    seat = None
+    by = str(p.get("by") or "").strip()[:64]
+    if by:
+        try:
+            prof = shop_store().seat_profile(by) or {}
+            seat = prof if prof.get("shop") == shop and prof.get("email") else None
+        except Exception:  # noqa: BLE001
+            seat = None
+    store_to = cfg.get("enquiry_email") or _default_enquiry_email(shop)
+    recipients = [e for e in dict.fromkeys([(seat or {}).get("email"), store_to]) if e]
+    if not recipients:
         raise HTTPException(400, "This catalogue has no enquiry address set.")
     from halia.notify import send_email
-    ok = send_email(to, f"New catalogue enquiry from {name}",
-                    _enquiry_html(cat["name"], name, email, phone, message, picked),
-                    _enquiry_text(cat["name"], name, email, phone, message, picked),
-                    shop=shop, reply_to=email)   # hit Reply -> straight to the shopper
+    lead = f"{name} picked {len(picked)} of the pieces you sent." if seat else ""
+    ok = False
+    for addr in recipients:
+        ok = send_email(addr, f"{name} picked {len(picked)} piece" + ("" if len(picked) == 1 else "s"),
+                        _enquiry_html(cat["name"], name, email, phone, message, picked, lead=lead),
+                        _enquiry_text(cat["name"], name, email, phone, message, picked, lead=lead),
+                        shop=shop, reply_to=email) or ok   # hit Reply -> straight to the shopper
+    _record_pick(shop, seat, by, name, email, phone, picked)
     if not ok:
         raise HTTPException(502, "Could not send the enquiry just now. Please try again.")
     return {"ok": True}

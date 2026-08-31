@@ -57,12 +57,33 @@ def _card(p: dict, brand: str, fields: dict) -> str:
     return (f'<div class="card" data-pid="{pid}" data-title="{_attr(p.get("title"))}">'
             f'{media}<div class="meta">{"".join(bits)}</div>'
             f'<button type="button" class="pick" data-pid="{pid}">'
-            f'<span class="pi">+</span><span class="pl">Add to enquiry</span></button></div>')
+            f'<span class="pi">+</span><span class="pl">Pick</span></button></div>')
+
+
+def _social_tags(title: str, desc: str, image: str, site: str) -> str:
+    """Preview tags, so a pasted link renders as an image card in iMessage, WhatsApp, Instagram and
+    Slack. Only an https image is offered: a data: logo would be dropped by every unfurler, and a
+    card with a broken image reads worse than a card with none."""
+    img = image if str(image or "").startswith("https://") else ""
+    out = ['<meta property="og:type" content="website">',
+           f'<meta property="og:title" content="{_attr(title)}">',
+           f'<meta name="twitter:card" content="{"summary_large_image" if img else "summary"}">']
+    if site:
+        out.append(f'<meta property="og:site_name" content="{_attr(site)}">')
+    if desc:
+        out.append(f'<meta property="og:description" content="{_attr(desc)}">')
+        out.append(f'<meta name="twitter:description" content="{_attr(desc)}">')
+    if img:
+        out.append(f'<meta property="og:image" content="{_attr(img)}">')
+        out.append(f'<meta name="twitter:image" content="{_attr(img)}">')
+    return "\n".join(out)
 
 
 def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, catalog_id: str,
-                      enquiry_email: str, prefill: dict | None = None) -> str:
-    """Full interactive enquiry page. ``prefill`` may carry name/email/phone from the share link."""
+                      enquiry_email: str, prefill: dict | None = None,
+                      og_image: str = "", og_desc: str = "", by: str = "") -> str:
+    """Full interactive enquiry page. ``prefill`` may carry name/email/phone from the share link;
+    ``by`` is the seat that sent it, so their picks come back to that associate."""
     prefill = prefill or {}
     name = catalog.get("name") or "Product Catalogue"
     personal = str(catalog.get("subtitle") or "").strip()   # personalised line, already token-filled
@@ -76,6 +97,7 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>{_esc(name)}{f' · {_esc(shop_name)}' if shop_name else ''}</title>
+{_social_tags(name, og_desc, og_image, shop_name)}
 <style>
   :root {{ --brand: {brand}; }}
   * {{ box-sizing: border-box; }}
@@ -181,9 +203,10 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     <div class="field"><label>Phone (optional)</label><input name="phone" value="{_attr(prefill.get('phone',''))}" placeholder="Best number to reach you"></div>
     <div class="field"><label>Message (optional)</label><textarea name="message" rows="3" placeholder="Anything you'd like the team to know"></textarea></div>
     <input class="hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <input type="hidden" name="by" value="{_attr(by)}">
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">
       <button type="button" class="btn ghost" id="cancelBtn">Back</button>
-      <button type="submit" class="btn" id="sendBtn">Send enquiry</button>
+      <button type="submit" class="btn" id="sendBtn">Send my picks</button>
     </div>
     <div id="formErr" style="color:#a23b2a;font-size:13px;margin-top:10px;display:none"></div>
   </form>
@@ -202,13 +225,13 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
   grid.addEventListener('click', function(e){{
     var b=e.target.closest('.pick'); if(!b) return;
     var card=b.closest('.card'), id=b.getAttribute('data-pid');
-    if(selected.has(id)){{ selected.delete(id); card.classList.remove('on'); b.querySelector('.pl').textContent='Add to enquiry'; }}
-    else {{ selected.add(id); card.classList.add('on'); b.querySelector('.pl').textContent='Added'; }}
+    if(selected.has(id)){{ selected.delete(id); card.classList.remove('on'); b.querySelector('.pl').textContent='Pick'; }}
+    else {{ selected.add(id); card.classList.add('on'); b.querySelector('.pl').textContent='Picked'; }}
     refresh();
   }});
   document.getElementById('clearBtn').onclick=function(){{
     selected.clear();
-    grid.querySelectorAll('.card.on').forEach(function(c){{ c.classList.remove('on'); c.querySelector('.pl').textContent='Add to enquiry'; }});
+    grid.querySelectorAll('.card.on').forEach(function(c){{ c.classList.remove('on'); c.querySelector('.pl').textContent='Pick'; }});
     refresh();
   }};
   function openPanel(){{
@@ -216,7 +239,7 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     grid.querySelectorAll('.card').forEach(function(c){{
       if(selected.has(c.getAttribute('data-pid'))) rows.push('<div>• <b>'+ (c.getAttribute('data-title')||'') +'</b></div>');
     }});
-    list.innerHTML = rows.length ? ('Enquiring about '+rows.length+' item'+(rows.length>1?'s':'')+':<div style="margin-top:6px">'+rows.join('')+'</div>') : 'No items selected yet.';
+    list.innerHTML = rows.length ? ('Picked '+rows.length+' piece'+(rows.length>1?'s':'')+':<div style="margin-top:6px">'+rows.join('')+'</div>') : 'No items selected yet.';
     panel.classList.add('show');
   }}
   document.getElementById('openBtn').onclick=openPanel;
@@ -228,7 +251,7 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     err.style.display='none';
     var payload={{ product_ids:[].concat.apply([],[Array.from(selected)]),
       name:f.name.value.trim(), email:f.email.value.trim(), phone:f.phone.value.trim(),
-      message:f.message.value.trim(), company:f.company.value }};
+      message:f.message.value.trim(), company:f.company.value, by:(f.by&&f.by.value)||'' }};
     if(!payload.name || !payload.email){{ err.textContent='Please add your name and email.'; err.style.display='block'; return; }}
     btn.disabled=true; btn.textContent='Sending…';
     // POST relative to how this page was served, so it works both directly and under the App Proxy
@@ -239,10 +262,10 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
       .then(function(res){{
         if(!res.ok) throw new Error((res.d&&res.d.detail)||'Could not send');
         document.getElementById('sheet').innerHTML='<div class="ok"><div class="tick">✓</div>'
-          +'<h2 style="margin:0 0 6px">Enquiry sent</h2>'
-          +'<p class="sub" style="margin:0">Thank you. The team has your selection and will be in touch shortly.</p></div>';
+          +'<h2 style="margin:0 0 6px">Sent</h2>'
+          +'<p class="sub" style="margin:0">Thank you. They have your picks and will be in touch shortly.</p></div>';
       }})
-      .catch(function(ex){{ err.textContent=ex.message; err.style.display='block'; btn.disabled=false; btn.textContent='Send enquiry'; }});
+      .catch(function(ex){{ err.textContent=ex.message; err.style.display='block'; btn.disabled=false; btn.textContent='Send my picks'; }});
   }});
 }})();
 </script>
