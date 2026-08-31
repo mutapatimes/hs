@@ -230,8 +230,12 @@ struct HaliaAPI {
 
     private struct CatalogueResponse: Decodable { let url: String? }
 
-    func catalogue(productIds: [String], name: String?) async throws -> String {
-        let body: [String: Any] = ["product_ids": productIds, "name": name ?? ""]
+    /// The client's own details ride along so the page arrives filled in rather than asking them
+    /// for what the store already holds. Prefill only.
+    func catalogue(productIds: [String], name: String?,
+                   email: String = "", phone: String = "") async throws -> String {
+        let body: [String: Any] = ["product_ids": productIds, "name": name ?? "",
+                                   "email": email, "phone": phone]
         let resp: CatalogueResponse = try await postAny("/v1/extension/catalogue", body: body)
         guard let url = resp.url, !url.isEmpty else { throw HaliaAPIError.decode }
         return url
@@ -378,9 +382,12 @@ struct HaliaAPI {
     private struct UrlCatalogueResponse: Decodable { let url: String?; let resolved: Int?; let requested: Int? }
 
     /// Resolve the saved storefront product URLs to a shareable catalogue link.
-    func catalogueFromUrls(urls: [String], name: String = "") async throws -> UrlCatalogueResult {
+    func catalogueFromUrls(urls: [String], name: String = "", email: String = "",
+                           phone: String = "") async throws -> UrlCatalogueResult {
         var body: [String: Any] = ["urls": urls]
         if !name.isEmpty { body["name"] = name }
+        if !email.isEmpty { body["email"] = email }
+        if !phone.isEmpty { body["phone"] = phone }
         let (data, _) = try await send("/v1/extension/catalogue_from_urls", method: "POST",
                                        body: try JSONSerialization.data(withJSONObject: body))
         guard let r = try? JSONDecoder().decode(UrlCatalogueResponse.self, from: data) else {

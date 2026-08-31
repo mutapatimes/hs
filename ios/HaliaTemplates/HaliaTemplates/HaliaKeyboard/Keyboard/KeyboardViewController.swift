@@ -52,7 +52,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var currentRef: ClientRef?
     private var clientName: String?
     private var clientCid: String?
-    private var clientEmail: String?   // goes on the calendar invite when we book
+    private var clientEmail: String?   // goes on the calendar invite, and prefills a selection
+    private var clientPhone: String?
     private var statusText: String?
     private var busy = false
     private var statusLoading = false
@@ -335,7 +336,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
         currentRef = ref
         clientName = ref.kind == .name ? ref.value : nil
-        clientCid = nil; clientEmail = nil; cartUrl = nil; cartCount = nil
+        clientCid = nil; clientEmail = nil; clientPhone = nil; cartUrl = nil; cartCount = nil
         mode = .templates; suggestions = []; draftText = ""
         setStatus("Looking up…", loading: true)
         Task {
@@ -343,6 +344,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 let res = try await HaliaAPI.current.lookup(ref)
                 if let n = res.name, !n.isEmpty { clientName = n }
                 if let e = res.email, !e.isEmpty { clientEmail = e }
+                if let ph = res.phone, !ph.isEmpty { clientPhone = ph }
                 applySuggestions(res.suggested)
                 clientCid = res.cid
                 if let u = res.cart?.url, !u.isEmpty { cartUrl = u; cartCount = res.cart?.count }
@@ -352,7 +354,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     private func clearClient() {
-        currentRef = nil; clientName = nil; clientCid = nil; clientEmail = nil; cartUrl = nil; cartCount = nil
+        currentRef = nil; clientName = nil; clientCid = nil; clientEmail = nil; clientPhone = nil; cartUrl = nil; cartCount = nil
         applySuggestions(nil)
         mode = .templates; suggestions = []; draftText = ""; pendingCartUrl = nil
         setStatus(nil); reload()
@@ -761,7 +763,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         busy = true; setStatus("Making a catalogue…", loading: true)
         Task {
             do {
-                let url = try await HaliaAPI.current.catalogue(productIds: ids, name: clientName)
+                let url = try await HaliaAPI.current.catalogue(productIds: ids, name: clientName,
+                                                               email: clientEmail ?? "", phone: clientPhone ?? "")
                 insertUndoable(url)
                 mode = .templates; suggestions = []; setStatus(nil)
             } catch {
@@ -827,7 +830,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         busy = true; setStatus("Building a catalogue…", loading: true)
         Task {
             do {
-                let r = try await HaliaAPI.current.catalogueFromUrls(urls: urls, name: clientName ?? "")
+                let r = try await HaliaAPI.current.catalogueFromUrls(urls: urls, name: clientName ?? "",
+                                                                     email: clientEmail ?? "", phone: clientPhone ?? "")
                 if r.url.isEmpty {
                     setStatus("None of your saved items are in this store")
                 } else {

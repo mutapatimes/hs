@@ -363,15 +363,22 @@ def _adhoc_ids(raw: str) -> list[str]:
     return [x for x in re.split(r"[,\s]+", str(raw or "")) if x][:_ADHOC_MAX]
 
 
-def adhoc_url(shop: str, product_ids: list, name: str = "", by: str = "") -> str:
+def adhoc_url(shop: str, product_ids: list, name: str = "", by: str = "",
+              email: str = "", phone: str = "") -> str:
     """The shareable link for a bespoke selection, on the merchant's own domain where possible.
-    ``by`` is the seat sending it, so the client's picks come back to that associate."""
+    ``by`` is the seat sending it, so the client's picks come back to that associate. The client's
+    own name, address and number ride along so they are not asked to type what the store already
+    has; they are prefill only, and are not signed (they change nothing the link can reach)."""
     ids = ",".join(str(p) for p in (product_ids or [])[:_ADHOC_MAX])
     q = {"p": ids, "s": adhoc_sig(shop, ids, by)}
     if by:
         q["by"] = by
     if name:
         q["to"] = name[:160]
+    if email:
+        q["email"] = str(email)[:160]
+    if phone:
+        q["phone"] = str(phone)[:60]
     base = catalog_share_base(shop)
     if base.rstrip("/").endswith(f"/{config.PROXY_SUBPATH}"):
         return f"{base}/for?{_up.urlencode(q)}"          # merchant domain via the App Proxy
@@ -522,12 +529,10 @@ def _record_pick(shop: str, seat, by: str, name: str, email: str, phone: str, pi
         pass
 
 
-def _do_enquire(catalog_id: str, payload) -> dict:
-    """A recipient's enquiry: email the ticked products + their details to the merchant.
+def _deliver_enquiry(shop: str, title: str, cfg: dict, payload, throttle_key: str) -> dict:
+    """Email a recipient's picks to the associate who sent them, with the store copied, and log the
+    pick on the client's record. Shared by saved catalogues and bespoke selections.
     Zero-retention — nothing about the enquirer is stored."""
-    cat = shop_store().get_catalog(catalog_id)
-    if not cat:
-        raise HTTPException(404, "Catalogue not found.")
     p = payload or {}
     if str(p.get("company") or "").strip():        # honeypot — silently accept & drop bots
         return {"ok": True}
@@ -535,13 +540,11 @@ def _do_enquire(catalog_id: str, payload) -> dict:
     email = _clean_email(p.get("email"))
     if not name or not email:
         raise HTTPException(400, "Please add your name and a valid email.")
-    if not _enquiry_allowed(catalog_id, time.monotonic()):
+    if not _enquiry_allowed(throttle_key, time.monotonic()):
         raise HTTPException(429, "Too many enquiries just now. Please try again in a minute.")
     phone = str(p.get("phone") or "").strip()[:60]
     message = str(p.get("message") or "").strip()[:2000]
     ids = [_pid_key(x) for x in (p.get("product_ids") or [])[:400]]
-    cfg = json.loads(cat.get("config_json") or "{}")
-    shop = cat["shop"]
     # Resolve what they ticked, not what the saved catalogue holds: a bespoke selection is built in
     # the extension or the Messages app from anywhere in the store, so filtering it against the
     # saved catalogue reported "picked 0 pieces" for every one of them.
@@ -557,19 +560,45 @@ def _do_enquire(catalog_id: str, payload) -> dict:
     store_to = cfg.get("enquiry_email") or _default_enquiry_email(shop)
     recipients = [e for e in dict.fromkeys([(seat or {}).get("email"), store_to]) if e]
     if not recipients:
-        raise HTTPException(400, "This catalogue has no enquiry address set.")
+        raise HTTPException(400, "This store has no address set to receive enquiries.")
     from halia.notify import send_email
     lead = f"{name} picked {len(picked)} of the pieces you sent." if seat else ""
     ok = False
     for addr in recipients:
         ok = send_email(addr, f"{name} picked {len(picked)} piece" + ("" if len(picked) == 1 else "s"),
-                        _enquiry_html(cat["name"], name, email, phone, message, picked, lead=lead),
-                        _enquiry_text(cat["name"], name, email, phone, message, picked, lead=lead),
+                        _enquiry_html(title, name, email, phone, message, picked, lead=lead),
+                        _enquiry_text(title, name, email, phone, message, picked, lead=lead),
                         shop=shop, reply_to=email) or ok   # hit Reply -> straight to the shopper
     _record_pick(shop, seat, by, name, email, phone, picked)
     if not ok:
         raise HTTPException(502, "Could not send the enquiry just now. Please try again.")
     return {"ok": True}
+
+
+def _do_enquire(catalog_id: str, payload) -> dict:
+    cat = shop_store().get_catalog(catalog_id)
+    if not cat:
+        raise HTTPException(404, "Catalogue not found.")
+    return _deliver_enquiry(cat["shop"], cat["name"], json.loads(cat.get("config_json") or "{}"),
+                            payload, catalog_id)
+
+
+def _do_adhoc_enquire(shop: str, request: Request, payload) -> dict:
+    """The picks from a bespoke selection. There is no catalogue row behind one of these, so the
+    selection is re-checked against the signature on the page's own link before anything is sent."""
+    ids = _adhoc_ids(request.query_params.get("p") or "")
+    by = str(request.query_params.get("by") or "").strip()[:64]
+    if not ids or not hmac.compare_digest(request.query_params.get("s") or "",
+                                          adhoc_sig(shop, ",".join(ids), by)):
+        raise HTTPException(403, "This link is not valid.")
+    p = dict(payload or {})
+    p["by"] = by                                   # the sender is the signed one, not a posted one
+    # Only the pieces that were actually in the selection can come back through it.
+    allowed = {_pid_key(i) for i in ids}
+    p["product_ids"] = [x for x in (p.get("product_ids") or []) if _pid_key(x) in allowed]
+    cat = shop_store().active_catalog(shop) or {}
+    cfg = json.loads(cat.get("config_json") or "{}") if cat else {}
+    return _deliver_enquiry(shop, "A selection", cfg, p, f"adhoc:{shop}")
 
 
 def register(app) -> None:
@@ -805,6 +834,13 @@ def register(app) -> None:
             raise HTTPException(404, "Nothing to show.")
         return _adhoc_response(shop, request)
 
+    @app.post("/catalog/for/enquire")
+    def catalog_adhoc_enquire(request: Request, payload: Any = Body(default=None)) -> dict:
+        shop = (request.query_params.get("sh") or "").strip()
+        if not shop:
+            raise HTTPException(404, "Nothing to show.")
+        return _do_adhoc_enquire(shop, request, payload)
+
     @app.get("/proxy/catalogue/for")
     def proxy_adhoc(request: Request):
         if not verify_app_proxy(request):
@@ -813,6 +849,15 @@ def register(app) -> None:
         if not shop:
             raise HTTPException(404, "Nothing to show.")
         return _adhoc_response(shop, request)
+
+    @app.post("/proxy/catalogue/for/enquire")
+    def proxy_adhoc_enquire(request: Request, payload: Any = Body(default=None)) -> dict:
+        if not verify_app_proxy(request):
+            raise HTTPException(403, "Invalid app-proxy signature.")
+        shop = (request.query_params.get("shop") or "").strip()
+        if not shop:
+            raise HTTPException(404, "Nothing to show.")
+        return _do_adhoc_enquire(shop, request, payload)
 
     # ── Direct links (Halia domain) ──────────────────────────────────────────────────────────
     @app.get("/catalog/{catalog_id}.pdf")

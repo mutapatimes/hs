@@ -422,6 +422,11 @@
   }
   function activeCid() { return client && client.data && client.data.cid; }
   function activeName() { return (client && client.data && client.data.name) || ""; }
+  // What we already hold about this client, so a link we send them arrives filled in.
+  function activeDetails() {
+    const d = (client && client.data) || {};
+    return { name: d.name || "", email: d.email || "", phone: d.phone || "" };
+  }
   function logContact(cid, name, reason) {
     act({ action: "contacted", cid, client_name: name, reason: reason || "" },
       "Logged" + (ctx && ctx.slack ? " and told the team" : ""));
@@ -1289,7 +1294,7 @@
     if (!ids.length) { toast("Add something from Suggested first"); return; }
     try {
       chrome.runtime.sendMessage({ type: "halia:catalogue",
-        body: { product_ids: ids, name: activeName() } }, (r) => {
+        body: Object.assign({ product_ids: ids }, activeDetails()) }, (r) => {
         if (chrome.runtime.lastError || !r || r.error || !r.url) { toast("Couldn't build that"); return; }
         const camp = ((ctx && ctx.campaigns) || []).find((c) => c.running);
         const cm = CHAN[channel] || CHAN.email;

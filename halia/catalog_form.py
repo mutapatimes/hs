@@ -176,8 +176,7 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     <div class="eyebrow">{subtitle}</div>
     <h1>{_esc(name)}</h1>
     {f'<p class="personal">{_esc(personal)}</p>' if personal else ''}
-    <p class="lead">Tick the pieces you would like to enquire about, then send. Your selection reaches
-      the team directly and they will be in touch.</p>
+    <p class="lead">Tick the pieces you would like, then send.</p>
   </header>
   <div class="grid" id="grid">{cards}</div>
   <details class="foot">
@@ -196,7 +195,6 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
 <div class="panel" id="panel"><div class="sheet" id="sheet">
   <form id="enqForm">
     <h2>Send your enquiry</h2>
-    <p class="sub">Confirm your details and we will get back to you about the pieces you chose.</p>
     <div class="picked" id="pickedList"></div>
     <div class="field"><label>Your name</label><input name="name" required value="{_attr(prefill.get('name',''))}" placeholder="Full name"></div>
     <div class="field"><label>Email</label><input name="email" type="email" required value="{_attr(prefill.get('email',''))}" placeholder="you@email.com"></div>
@@ -255,8 +253,9 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     if(!payload.name || !payload.email){{ err.textContent='Please add your name and email.'; err.style.display='block'; return; }}
     btn.disabled=true; btn.textContent='Sending…';
     // POST relative to how this page was served, so it works both directly and under the App Proxy
-    // (theirbrand.com/a/catalogue/{{id}} -> …/{{id}}/enquire), never hard-coding an app URL.
-    var enquireUrl = window.location.pathname.replace(/\\/+$/, '') + '/enquire';
+    // (theirbrand.com/a/catalogue/{{id}} -> …/{{id}}/enquire), never hard-coding an app URL. The
+    // query string comes along: a bespoke selection is signed there, and the App Proxy signs there.
+    var enquireUrl = window.location.pathname.replace(/\\/+$/, '') + '/enquire' + window.location.search;
     fetch(enquireUrl, {{ method:'POST', headers:{{'content-type':'application/json'}}, body:JSON.stringify(payload) }})
       .then(function(r){{ return r.json().then(function(d){{ return {{ok:r.ok, d:d}}; }}); }})
       .then(function(res){{
