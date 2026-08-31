@@ -496,6 +496,40 @@ struct HaliaAPI {
             body: ["name": name, "email": email, "title": title, "signoff": signoff])
     }
 
+    // MARK: The house voice — four sliders and a language, shared by everyone at this store.
+
+    struct Voice: Codable {
+        var formality: Int
+        var exclusivity: Int
+        var attentiveness: Int
+        var polish: Int
+        var language: String
+    }
+    struct VoiceAxis: Decodable { let key: String; let low: String; let high: String }
+    struct VoiceLanguage: Decodable { let code: String; let name: String }
+    struct VoiceSettings: Decodable {
+        let voice: Voice?
+        let sample: String?
+        let axes: [VoiceAxis]?
+        let languages: [VoiceLanguage]?
+    }
+
+    func fetchVoice() async throws -> VoiceSettings {
+        let (data, _) = try await send("/v1/extension/voice", method: "GET", body: nil)
+        guard let v = try? JSONDecoder().decode(VoiceSettings.self, from: data) else {
+            throw HaliaAPIError.decode
+        }
+        return v
+    }
+
+    @discardableResult
+    func saveVoice(_ v: Voice) async throws -> VoiceSettings {
+        let body: [String: Any] = ["voice": ["formality": v.formality, "exclusivity": v.exclusivity,
+                                             "attentiveness": v.attentiveness, "polish": v.polish,
+                                             "language": v.language]]
+        return try await postAny("/v1/extension/voice", body: body)
+    }
+
     // MARK: Your week (the desk's own numbers)
 
     struct WeekRow: Decodable {

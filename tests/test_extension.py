@@ -1077,3 +1077,24 @@ def test_lookup_carries_recent_orders_for_the_toolbar(env):
                     headers={"X-Halia-Ext-Token": ext}).json()
     assert [o["date"] for o in d["orders"]] == ["2026-06-29", "2026-05-02"]
     assert d["orders"][0]["amount"] == 2121 and d["orders"][0]["titles"] == ["Cashmere coat", "Silk scarf"]
+
+def test_the_house_voice_reads_and_writes_from_the_app(env):
+    # The associate sets the sliders from their phone. The voice belongs to the store, so it goes
+    # into the same settings blob the dashboard writes, and nothing else in there is disturbed.
+    import json
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    h = {"X-Halia-Ext-Token": ext}
+    store.save_settings(SHOP, json.dumps({"sender_name": "Maison", "capture_slug": "keep-me"}))
+    d = client.get("/v1/extension/voice", headers=h).json()
+    assert d["voice"]["formality"] == 70 and d["voice"]["language"] == "en"
+    assert [a["key"] for a in d["axes"]] == ["formality", "exclusivity", "attentiveness", "polish"]
+    assert d["sample"]
+    r = client.post("/v1/extension/voice",
+                    json={"voice": {"formality": 10, "exclusivity": 90, "attentiveness": 40,
+                                    "polish": 20, "language": "fr"}}, headers=h)
+    assert r.status_code == 200 and r.json()["voice"]["formality"] == 10
+    assert r.json()["sample"] != d["sample"]                 # the sliders actually move the writing
+    saved = json.loads(store.get_settings_raw(SHOP))
+    assert saved["voice"]["language"] == "fr" and saved["capture_slug"] == "keep-me"
+    assert client.get("/v1/extension/voice", headers=h).json()["voice"]["exclusivity"] == 90

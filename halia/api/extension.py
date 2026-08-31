@@ -1167,6 +1167,36 @@ def register(app) -> None:
             return {"available": False, "me": None, "team": {}, "days": days}
         return seat_week(auth.shop, auth.seat_id, max(1, min(int(days or 365), 365)))
 
+    @app.get("/v1/extension/voice")
+    def extension_voice(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
+        """How the house sounds: the four sliders and the language, so an associate can set it from
+        their phone as well as from the dashboard. Store-wide, not per seat."""
+        from halia import voice as _voice
+        from halia.api.settings import settings_for
+        auth = _resolve_ext(x_halia_ext_token, paid=False)
+        v = _voice.clean_voice((settings_for(auth.shop) or {}).get("voice"))
+        return {"voice": v, "sample": _voice.sample_message(v, sender=auth.seat_name or "Sarah"),
+                "axes": [{"key": a, "low": _voice.AXIS_LABELS[a][0], "high": _voice.AXIS_LABELS[a][1]}
+                         for a in _voice.AXES],
+                "languages": [{"code": c, "name": n} for c, n in _voice.LANGUAGES]}
+
+    @app.post("/v1/extension/voice")
+    def extension_voice_save(x_halia_ext_token: Optional[str] = Header(None),
+                             payload: Any = Body(default=None)) -> dict:
+        """Set the house voice. Everything Halia writes for this store follows it, so it is saved
+        against the store rather than the seat."""
+        import json as _json
+
+        from halia import voice as _voice
+        auth = _resolve_ext(x_halia_ext_token, paid=False)
+        raw = shop_store().get_settings_raw(auth.shop)
+        existing = _json.loads(raw) if raw else {}
+        v = _voice.clean_voice((payload or {}).get("voice"))
+        existing["voice"] = v
+        shop_store().save_settings(auth.shop, _json.dumps(existing))
+        return {"ok": True, "voice": v,
+                "sample": _voice.sample_message(v, sender=auth.seat_name or "Sarah")}
+
     @app.get("/v1/extension/profile")
     def extension_profile(x_halia_ext_token: Optional[str] = Header(None)) -> dict:
         """The signed-in associate's own details (name, email, position, sign-off)."""
