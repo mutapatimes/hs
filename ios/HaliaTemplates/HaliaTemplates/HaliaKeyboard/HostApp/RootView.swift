@@ -591,6 +591,7 @@ private struct HomeView: View {
     @State private var showOpeners = false
     @State private var showCapture = false
     @State private var showCaptureTools = false
+    @State private var showSettings = false
     @State private var captureNote: String?
     @State private var captureId: String?
     @State private var followedUp = false
@@ -612,22 +613,41 @@ private struct HomeView: View {
         NavigationStack {
             List {
                 Section {
-                    HStack(spacing: 12) {
-                        Image(systemName: model.isError ? "exclamationmark.circle.fill"
-                                                        : "checkmark.seal.fill")
-                            .font(.system(size: 30))
-                            .foregroundStyle(model.isError ? Color.orange : Palette.brand)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(syncLine).font(.body.weight(.medium))
-                            if !model.seatName.isEmpty {
-                                Text("Signed in as \(model.seatName)")
-                                    .font(.subheadline).foregroundStyle(.secondary)
+                    Button { showCapture = true } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "person.crop.circle.badge.plus")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 38, height: 38)
+                                .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                    .fill(Palette.brand))
+                            Text("Add a client").font(.title3.weight(.semibold)).foregroundStyle(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.faint)
+                        }
+                        .padding(.vertical, 6)
+                    }
+                }
+
+                if !appointments.isEmpty {
+                    Section {
+                        ForEach(Array(appointments.enumerated()), id: \.offset) { _, a in
+                            Button { openAppt = a } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "calendar").foregroundStyle(Palette.brand)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(a.name ?? "A client").font(.body).foregroundStyle(.primary)
+                                        Text(apptLine(a)).font(.footnote).foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(Palette.faint)
+                                }
                             }
                         }
-                        Spacer()
-                        if model.busy { ProgressView() }
-                    }
-                    .padding(.vertical, 4)
+                    } header: { Text("Appointments") }
                 }
 
                 if let me = week?.me, week?.available == true {
@@ -678,64 +698,56 @@ private struct HomeView: View {
                     }
                 }
 
-                if !appointments.isEmpty {
-                    Section {
-                        ForEach(Array(appointments.enumerated()), id: \.offset) { _, a in
-                            Button { openAppt = a } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "calendar").foregroundStyle(Palette.brand)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(a.name ?? "A client").font(.body).foregroundStyle(.primary)
-                                        Text(apptLine(a)).font(.footnote).foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundStyle(Palette.faint)
-                                }
-                            }
-                        }
-                    } header: { Text("Appointments") }
-                }
-
-                Section("Clients") {
-                    navRow("Add a client", "Capture their details, straight into your book",
-                           icon: "person.crop.circle.badge.plus", tint: Palette.brand) { showCapture = true }
+                Section("On the floor") {
                     navRow("Capture tools", "QR codes and your card, for the shop floor",
                            icon: "qrcode", tint: Palette.brandDeep) { showCaptureTools = true }
-                }
-
-                Section("Messaging") {
                     navRow("Message openers", "The angles you send from Share",
                            icon: "bubble.left.and.text.bubble.right.fill", tint: .indigo) { showOpeners = true }
-                    navRow(model.busy ? "Syncing\u{2026}" : "Sync now",
-                           "Refresh your templates and clients",
-                           icon: "arrow.triangle.2.circlepath", tint: .teal) {
-                        Task { await model.sync() }
-                    }
+                    navRow("Your details and voice", "Your name, your sign-off, how the house sounds",
+                           icon: "slider.horizontal.3", tint: Palette.brand) { showSettings = true }
                 }
 
                 Section {
-                    navRow("Reconnect", "Scan a new code or paste a token",
-                           icon: "qrcode.viewfinder", tint: .gray, action: onReconnect)
-                    navRow("Support", "Live chat with us",
-                           icon: "questionmark.circle.fill", tint: .blue) {
-                        let base = Credentials.baseURL.hasSuffix("/")
-                            ? String(Credentials.baseURL.dropLast()) : Credentials.baseURL
-                        if let url = URL(string: base + "/contact?chat=open") { openURL(url) }
+                    Button { Task { await model.sync() } } label: {
+                        HStack(spacing: 8) {
+                            if model.busy { ProgressView().controlSize(.small) }
+                            Text(model.busy ? "Syncing…" : syncLine)
+                                .font(.footnote)
+                                .foregroundStyle(model.isError ? Color.orange : .secondary)
+                            Spacer()
+                            if !model.busy {
+                                Text("Sync").font(.footnote.weight(.semibold)).foregroundStyle(Palette.brand)
+                            }
+                        }
                     }
-                }
-
-                Section {
-                    Button(role: .destructive) {
-                        Task { await model.signOut(); onSignedOut() }
-                    } label: {
-                        Text("Sign out").frame(maxWidth: .infinity, alignment: .center)
-                    }
+                    .listRowBackground(Color.clear)
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Halia")
+            .navigationTitle("Store Concierge Desk")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button { showSettings = true } label: {
+                            Label("Your details and voice", systemImage: "slider.horizontal.3")
+                        }
+                        Button(action: onReconnect) {
+                            Label("Reconnect", systemImage: "qrcode.viewfinder")
+                        }
+                        Button {
+                            let base = Credentials.baseURL.hasSuffix("/")
+                                ? String(Credentials.baseURL.dropLast()) : Credentials.baseURL
+                            if let url = URL(string: base + "/contact?chat=open") { openURL(url) }
+                        } label: { Label("Support", systemImage: "questionmark.circle") }
+                        Divider()
+                        Button(role: .destructive) {
+                            Task { await model.signOut(); onSignedOut() }
+                        } label: { Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right") }
+                    } label: {
+                        Image(systemName: "line.3.horizontal")
+                    }
+                }
+            }
             .tint(Palette.brand)
             .task { week = try? await HaliaAPI.current.myWeek(days: weekDays)
                     birthdays = (try? await HaliaAPI.current.birthdays()) ?? []
@@ -749,6 +761,7 @@ private struct HomeView: View {
                 appointments = (try? await HaliaAPI.current.appointments(days: 90)) ?? []
             }
         }
+        .sheet(isPresented: $showSettings) { DeskSettingsView(model: model) }
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
         .fullScreenCover(isPresented: $showCapture) {
             CaptureView { note, cid in captureNote = note; captureId = cid; followedUp = false }
@@ -857,6 +870,148 @@ private struct HomeView: View {
 
 
 // MARK: - Openers editor
+
+/// Your own details and how the house sounds. The name and sign-off are yours; the voice sliders
+/// are the store's, so everyone writes in the same register.
+private struct DeskSettingsView: View {
+    @ObservedObject var model: RootModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var title = ""
+    @State private var email = ""
+    @State private var signoff = ""
+    @State private var voice: HaliaAPI.Voice?
+    @State private var axes: [HaliaAPI.VoiceAxis] = []
+    @State private var languages: [HaliaAPI.VoiceLanguage] = []
+    @State private var sample = ""
+    @State private var loading = true
+    @State private var busy = false
+    @State private var status: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    LabeledContent("Name") {
+                        TextField("Your name", text: $name).multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Position") {
+                        TextField("Client advisor", text: $title).multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Email") {
+                        TextField("you@store.com", text: $email)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.emailAddress)
+                    }
+                } header: { Text("You") }
+
+                Section {
+                    TextEditor(text: $signoff).frame(minHeight: 76)
+                } header: { Text("Sign-off") } footer: {
+                    Text("How your messages end. Left empty, they end with your name and the store.")
+                }
+
+                if let v = voice {
+                    Section {
+                        ForEach(axes, id: \.key) { axis in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(axis.low).font(.footnote).foregroundStyle(.secondary)
+                                    Spacer()
+                                    Text(axis.high).font(.footnote).foregroundStyle(.secondary)
+                                }
+                                Slider(value: binding(for: axis.key, in: v), in: 0...100, step: 5)
+                                    .tint(Palette.brand)
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        Picker("Language", selection: Binding(
+                            get: { voice?.language ?? "en" },
+                            set: { voice?.language = $0 })) {
+                            ForEach(languages, id: \.code) { l in Text(l.name).tag(l.code) }
+                        }
+                    } header: { Text("How the house sounds") } footer: {
+                        Text("Everyone at this store writes in this voice.")
+                    }
+
+                    if !sample.isEmpty {
+                        Section {
+                            Text(sample).font(.callout).foregroundStyle(.secondary)
+                        } header: { Text("A note in this voice") }
+                    }
+                }
+
+                if let s = status {
+                    Section { Text(s).font(.footnote).foregroundStyle(.secondary) }
+                }
+            }
+            .navigationTitle("Your desk")
+            .navigationBarTitleDisplayMode(.inline)
+            .tint(Palette.brand)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(busy ? "Saving…" : "Save") { Task { await save() } }.disabled(busy || loading)
+                }
+            }
+            .overlay { if loading { ProgressView() } }
+            .task { await load() }
+        }
+    }
+
+    private func binding(for key: String, in v: HaliaAPI.Voice) -> Binding<Double> {
+        Binding(
+            get: {
+                switch key {
+                case "formality": return Double(voice?.formality ?? v.formality)
+                case "exclusivity": return Double(voice?.exclusivity ?? v.exclusivity)
+                case "attentiveness": return Double(voice?.attentiveness ?? v.attentiveness)
+                default: return Double(voice?.polish ?? v.polish)
+                }
+            },
+            set: { new in
+                let n = Int(new)
+                switch key {
+                case "formality": voice?.formality = n
+                case "exclusivity": voice?.exclusivity = n
+                case "attentiveness": voice?.attentiveness = n
+                default: voice?.polish = n
+                }
+            })
+    }
+
+    private func load() async {
+        if let p = try? await HaliaAPI.current.fetchProfile() {
+            name = p.name ?? ""; title = p.title ?? ""; email = p.email ?? ""
+            signoff = (p.default_signoff == true) ? "" : (p.signoff ?? "")
+        }
+        if let v = try? await HaliaAPI.current.fetchVoice() {
+            voice = v.voice
+            axes = v.axes ?? []
+            languages = v.languages ?? []
+            sample = v.sample ?? ""
+        }
+        loading = false
+    }
+
+    private func save() async {
+        busy = true; status = nil
+        do {
+            try await HaliaAPI.current.saveProfile(name: name, email: email, title: title, signoff: signoff)
+            if let v = voice {
+                let r = try await HaliaAPI.current.saveVoice(v)
+                sample = r.sample ?? sample
+            }
+            if !name.isEmpty { Credentials.name = name; model.seatName = name }
+            status = "Saved."
+        } catch {
+            status = (error as? LocalizedError)?.errorDescription ?? "Could not save that"
+        }
+        busy = false
+    }
+}
 
 /// One appointment, opened from the home list: change the time or the place, send the client their
 /// invitation again, put it in your own calendar, or cancel it.
