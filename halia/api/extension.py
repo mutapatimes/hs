@@ -1676,7 +1676,7 @@ def register(app) -> None:
             except Exception:  # noqa: BLE001
                 prods = []
             term = (q or "").strip().lower()
-            n = max(1, min(int(limit or 20), 30))
+            n = max(1, min(int(limit or 20), 100))
             hits = [p for p in prods if not term or term in (p.get("title") or "").lower()
                     or term in (p.get("sku") or "").lower()][:n]
             return {"products": [{"id": str(p.get("id")), "title": p.get("title") or "",
@@ -1689,7 +1689,7 @@ def register(app) -> None:
             return {"products": [], "cart_base": None}
         from scoring.shopify_fetch import _run, http_transport
         from scoring.shopify_graphql import PRODUCT_SEARCH_QUERY, product_search_node
-        n = max(1, min(int(limit or 20), 30))
+        n = max(1, min(int(limit or 20), 100))
         term = (q or "").strip()[:80]
         try:
             data_ = _run(http_transport(shop, token), PRODUCT_SEARCH_QUERY, {"q": term, "n": n}, 2)
