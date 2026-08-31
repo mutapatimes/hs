@@ -8,6 +8,7 @@ Xcode's "New Target" wizard any more.
 | `HaliaKeyboard`      | Custom keyboard (templates, drafts, products) | `com.haliascore.HaliaTemplates.HaliaKeyboard`      |
 | `HaliaShare`         | Share sheet: "Send with Halia", capture a shared contact | `com.haliascore.HaliaTemplates.HaliaShare` |
 | `HaliaCallDirectory` | CallKit caller ID for graded clients          | `com.haliascore.HaliaTemplates.HaliaCallDirectory` |
+| `HaliaIMessage`      | Messages drawer: build a selection, send the link | `com.haliascore.HaliaTemplates.HaliaIMessage` |
 
 The "Reach today" widget was dropped from the product (2026-08-17). Its backend endpoint and the
 Siri/Shortcuts App Intents in the host app remain; there is no widget target.
@@ -27,6 +28,12 @@ xcodebuild build -project HaliaTemplates.xcodeproj -scheme HaliaTemplates \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 ```
 
+One caution learned adding HaliaIMessage: a target's folder is attached through
+`fileSystemSynchronizedGroups`, and the same reference line appears in the main group's children.
+Inserting by text match hits both, and the neighbouring extension then compiles your folder too
+("Multiple commands produce …Info.plist"). Check each target's `fileSystemSynchronizedGroups`
+lists only its own folder.
+
 ## The human bits (need an Apple account or a device)
 
 1. **App IDs and the App Group in the developer portal.** With automatic signing, selecting the Team on
@@ -40,6 +47,9 @@ xcodebuild build -project HaliaTemplates.xcodeproj -scheme HaliaTemplates \
    run it.
 4. **Share sheet:** share a contact, a name or a product URL from Contacts, Safari or Shopify; Halia
    appears in the sheet. If it is missing, tap More and switch it on.
+5. **Messages drawer:** in a conversation, tap the apps row beside the text field and choose Halia.
+   An iMessage app also needs its own `iMessage App Icon` asset before an App Store submission
+   (1024 marketing plus the messages sizes); TestFlight builds carry a placeholder until then.
 
 ## Adding a shared file to an extension later
 
