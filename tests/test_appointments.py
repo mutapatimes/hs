@@ -58,7 +58,7 @@ def test_booking_writes_the_record_and_hands_back_calendar_links(env):
     appt, links = d["appointment"], d["links"]
     assert appt["place"] == "Mount Street" and appt["minutes"] == 45
     assert "calendar.google.com" in links["google"] and "outlook.office.com" in links["outlook"]
-    assert "BEGIN:VEVENT" in links["ics"] and "SUMMARY:Grace Ladoja at Maison" in links["ics"]
+    assert "BEGIN:VEVENT" in links["ics"] and "SUMMARY:Appointment with Grace Ladoja and Sarah at Maison" in links["ics"]
     assert links["ics_data"].startswith("data:text/calendar")
     pipe = json.loads(sink.meta[("c1", "pipeline")])
     assert pipe["appointments"][0]["id"] == appt["id"] and pipe["stage"] == "To reach out"
@@ -78,6 +78,48 @@ def test_upcoming_lists_the_next_fortnight_and_cancel_removes(env):
     pipe = json.loads(sink.meta[("c1", "pipeline")])
     assert len(pipe["appointments"]) == 1 and pipe["activity"][-1]["action"] == "appointment_cancelled"
     assert client.post("/v1/board/appointment/cancel", json={"cid": "c1", "id": "nope"}).json()["ok"] is False
+
+
+def test_rescheduling_moves_the_entry_the_client_already_has(env):
+    client, store, sink = env
+    d = client.post("/v1/board/appointment", json={"cid": "c1", "when": _soon(3, 15).isoformat(),
+                                                   "place": "Mount Street", "client_name": "Grace",
+                                                   "actor": "Sarah"}).json()
+    appt_id = d["appointment"]["id"]
+    r = client.post("/v1/board/appointment/reschedule",
+                    json={"cid": "c1", "id": appt_id, "when": _soon(5, 11).isoformat(),
+                          "place": "Bond Street", "client_name": "Grace", "actor": "Sarah"})
+    assert r.status_code == 200
+    moved = r.json()["appointment"]
+    assert moved["id"] == appt_id and moved["place"] == "Bond Street"   # same entry, moved
+    pipe = json.loads(sink.meta[("c1", "pipeline")])
+    assert len(pipe["appointments"]) == 1 and pipe["appointments"][0]["id"] == appt_id
+    assert pipe["activity"][-1]["action"] == "appointment_moved" and "moved to" in pipe["activity"][-1]["note"]
+    # the invitation is rebuilt for the new time
+    assert "11:00" in r.json()["links"]["message"] and "Bond Street" in r.json()["links"]["message"]
+    assert client.post("/v1/board/appointment/reschedule",
+                       json={"cid": "c1", "id": "nope", "when": _soon(6).isoformat()}).status_code == 404
+
+
+def test_the_keyboard_and_app_can_move_and_cancel_a_booking(env):
+    client, store, sink = env
+    seat_tok = new_token()
+    store.create_seat(SHOP, "Sarah Bloom", hash_token(seat_tok), "sarah@m.com")
+    h = {"X-Halia-Ext-Token": seat_tok}
+    booked = client.post("/v1/extension/action",
+                         json={"action": "appointment", "cid": "c1", "when": _soon(2).isoformat(),
+                               "client_name": "Grace"}, headers=h).json()["appointment"]
+    r = client.post("/v1/extension/action",
+                    json={"action": "appointment_move", "cid": "c1", "id": booked["id"],
+                          "when": _soon(9, 16).isoformat(), "place": "Bond Street",
+                          "client_name": "Grace"}, headers=h)
+    assert r.status_code == 200 and r.json()["appointment"]["place"] == "Bond Street"
+    rows = client.get("/v1/extension/appointments?days=30", headers=h).json()["appointments"]
+    assert len(rows) == 1 and rows[0]["place"] == "Bond Street"
+    assert client.post("/v1/extension/action",
+                       json={"action": "appointment_cancel", "cid": "c1", "id": booked["id"]},
+                       headers=h).json()["ok"] is True
+    assert json.loads(sink.meta[("c1", "pipeline")])["appointments"] == []
 
 
 def test_bad_when_is_rejected(env):
@@ -112,7 +154,7 @@ def test_ics_escapes_commas_and_newlines():
 
 
 # ── the client's invite ───────────────────────────────────────────────────────
-def test_invite_link_is_signed_store_voiced_and_carries_no_client_detail(env):
+def test_invite_link_is_signed_store_voiced_and_never_names_halia(env):
     client, store, sink = env
     d = client.post("/v1/board/appointment", json={"cid": "c1", "when": _soon(4, 11).isoformat(), "place": "Mount Street",
                                                    "client_name": "Grace Ladoja"}).json()
@@ -120,15 +162,42 @@ def test_invite_link_is_signed_store_voiced_and_carries_no_client_detail(env):
     assert links["invite"].startswith("http") and "/i/" in links["invite"]
     assert links["message"].startswith("Your appointment is set for ") and "Mount Street" in links["message"] and links["invite"] in links["message"]
     token = links["invite"].rsplit("/i/", 1)[1]
-    assert "Grace" not in token and "Ladoja" not in appointments.parse_invite(token).__repr__()
     page = client.get(f"/i/{token}")
     assert page.status_code == 200 and "Maison" in page.text and "Mount Street" in page.text
-    assert "Grace" not in page.text and "Halia" not in page.text.replace("haliascore", "")
+    assert "Halia" not in page.text.replace("haliascore", "")   # the store's page, not ours
     ics = client.get(f"/i/{token}.ics")
     assert ics.status_code == 200 and ics.headers["content-type"].startswith("text/calendar")
-    assert "SUMMARY:Appointment at Maison" in ics.text and "LOCATION:Mount Street" in ics.text
+    assert "SUMMARY:Appointment with Grace Ladoja at Maison" in ics.text and "LOCATION:Mount Street" in ics.text
     assert client.get(f"/i/{token[:-3]}xyz").status_code == 404
     assert client.get("/i/garbage").status_code == 404
+
+
+def test_the_invite_names_both_people_and_carries_both_addresses(env):
+    client, store, sink = env
+    seat_tok = new_token()
+    store.create_seat(SHOP, "Sarah Bloom", hash_token(seat_tok), "sarah@maison.com")
+    r = client.post("/v1/extension/action",
+                    json={"action": "appointment", "cid": "c1", "when": _soon(3).isoformat(),
+                          "place": "Mount Street", "client_name": "Grace Ladoja",
+                          "client_email": "grace@x.com"},
+                    headers={"X-Halia-Ext-Token": seat_tok})
+    links = r.json()["links"]
+    assert "SUMMARY:Appointment with Grace Ladoja and Sarah Bloom at Maison" in links["ics"]
+    assert 'ORGANIZER;CN="Sarah Bloom":mailto:sarah@maison.com' in links["ics"]
+    assert 'ATTENDEE;CN="Grace Ladoja";ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:grace@x.com' in links["ics"]
+    assert "add=grace%40x.com%2Csarah%40maison.com" in links["google"]
+    assert "to=grace%40x.com%2Csarah%40maison.com" in links["outlook"]
+    # and the client's own copy of the entry says the same thing
+    ics = client.get("/i/" + links["invite"].rsplit("/i/", 1)[1] + ".ics").text
+    assert "SUMMARY:Appointment with Grace Ladoja and Sarah Bloom at Maison" in ics
+    assert "mailto:grace@x.com" in ics and "mailto:sarah@maison.com" in ics
+
+
+def test_the_invite_page_is_headed_by_the_store_even_with_no_label(env, monkeypatch):
+    from halia.api import appointments as ap
+    client, store, sink = env
+    monkeypatch.setattr(ap.shop_store(), "get_tenant", lambda shop: {"label": ""})
+    assert ap._store_name("glen-norah-vmskd33v.myshopify.com") == "Glen Norah Vmskd33V"
 
 
 def test_invite_and_capture_serve_on_the_store_domain_through_the_proxy(env, monkeypatch):

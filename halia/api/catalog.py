@@ -196,12 +196,22 @@ def _sort_sizes(sizes) -> list[str]:
     return sorted(sizes, key=key)
 
 
+def _pid_key(pid) -> str:
+    """A product id in one comparable form. Shopify hands the catalogue full graph ids
+    (gid://shopify/Product/123) but hands product search the bare number, and a selection built in
+    the extension, the keyboard or the Messages app carries whichever it was given. Compare on the
+    number so a link minted from either side resolves."""
+    s = str(pid or "").strip()
+    tail = s.rsplit("/", 1)[-1]
+    return tail if tail.isdigit() else s
+
+
 def _resolve(shop: str, selection: dict) -> list[dict]:
     """Products for a catalog from its saved selection. Explicit ids come first, IN THE SAVED ORDER
     (so the merchant's manual ordering is honoured), then any collection/tag/vendor matches."""
     prods = _products(shop)
-    by_id = {p["id"]: p for p in prods}
-    id_list = [str(x) for x in (selection.get("product_ids") or [])]
+    by_id = {_pid_key(p["id"]): p for p in prods}
+    id_list = [_pid_key(x) for x in (selection.get("product_ids") or [])]
     cols = set(selection.get("collections") or [])
     tags = set(selection.get("tags") or [])
     vendors = set(selection.get("vendors") or [])
@@ -213,13 +223,14 @@ def _resolve(shop: str, selection: dict) -> list[dict]:
             seen.add(pid)
     if cols or tags or vendors:                      # then facet matches (product order)
         for p in prods:
-            if p["id"] in seen:
+            key = _pid_key(p["id"])
+            if key in seen:
                 continue
             if ((cols and set(p.get("collections") or []) & cols)
                     or (tags and set(p.get("tags") or []) & tags)
                     or (vendors and p.get("vendor") in vendors)):
                 out.append(p)
-                seen.add(p["id"])
+                seen.add(key)
     return out
 
 
@@ -528,10 +539,13 @@ def _do_enquire(catalog_id: str, payload) -> dict:
         raise HTTPException(429, "Too many enquiries just now. Please try again in a minute.")
     phone = str(p.get("phone") or "").strip()[:60]
     message = str(p.get("message") or "").strip()[:2000]
-    ids = {str(x) for x in (p.get("product_ids") or [])[:400]}
+    ids = [_pid_key(x) for x in (p.get("product_ids") or [])[:400]]
     cfg = json.loads(cat.get("config_json") or "{}")
     shop = cat["shop"]
-    picked = [pr for pr in _resolve(shop, cfg.get("selection") or {}) if pr["id"] in ids]
+    # Resolve what they ticked, not what the saved catalogue holds: a bespoke selection is built in
+    # the extension or the Messages app from anywhere in the store, so filtering it against the
+    # saved catalogue reported "picked 0 pieces" for every one of them.
+    picked = _resolve(shop, {"product_ids": ids})
     seat = None
     by = str(p.get("by") or "").strip()[:64]
     if by:

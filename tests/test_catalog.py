@@ -441,12 +441,45 @@ def test_a_selection_link_names_who_sent_it(client, monkeypatch):
     assert c.get(legacy).status_code == 200
 
 
+def test_a_selection_built_from_numeric_ids_opens(client):
+    # Shopify hands the catalogue full graph ids and hands product search the bare number, so a
+    # link minted in the extension, the keyboard or the Messages app carries the number. It has to
+    # resolve against the same products, or the client opens "Nothing to show."
+    from halia.api.catalog import adhoc_url
+    c, _ = client
+    url = adhoc_url(SHOP, ["1", "2"], "Grace")           # numeric, against gid://P/1 products
+    page = c.get("/catalog/for?" + url.split("?", 1)[1])
+    assert page.status_code == 200
+    assert "Cashmere coat" in page.text and "Silk scarf" in page.text
+    # and the graph-id form a saved catalogue stores still resolves
+    gid = adhoc_url(SHOP, ["gid://P/1"], "Grace")
+    assert c.get("/catalog/for?" + gid.split("?", 1)[1]).status_code == 200
+
+
+def test_a_pick_outside_the_saved_catalogue_is_still_counted(client, monkeypatch):
+    # A bespoke selection is built from anywhere in the store, so the pieces a client ticks are
+    # not necessarily in the saved catalogue. They used to be filtered against it, which reported
+    # every bespoke pick as "picked 0 pieces".
+    import halia.notify as notify
+    c, _ = client
+    sent = []
+    monkeypatch.setattr(notify, "send_email",
+                        lambda to, subj, *a, **k: sent.append((to, subj)) or True)
+    cid = c.post("/v1/catalog/save", json={"name": "S", "product_ids": ["gid://P/1"],
+                                           "enquiry_email": "store@a.com"}).json()["id"]
+    r = c.post(f"/catalog/{cid}/enquire",
+               json={"name": "Grace", "email": "g@x.com", "product_ids": ["2"]})  # not in the catalogue
+    assert r.status_code == 200
+    assert sent[0][1] == "Grace picked 1 piece"
+
+
 def test_picks_reach_the_associate_and_land_on_the_client(client, monkeypatch):
     c, store = client
     import halia.api.catalog as cat
     import halia.notify as notify
-    monkeypatch.setattr(cat, "_resolve", lambda shop, sel: [{"id": "1", "title": "Cashmere coat"},
-                                                            {"id": "2", "title": "Silk scarf"}])
+    catalogue = [{"id": "1", "title": "Cashmere coat"}, {"id": "2", "title": "Silk scarf"}]
+    monkeypatch.setattr(cat, "_resolve", lambda shop, sel: [
+        p for p in catalogue if p["id"] in {str(x) for x in (sel.get("product_ids") or [])}])
     sent = []
     monkeypatch.setattr(notify, "send_email", lambda to, subj, html, text=None, **kw: sent.append((to, subj, kw.get("reply_to"))) or True)
     seat = store.create_seat(SHOP, "Sarah Bloom", "hash", "sarah@m.com")

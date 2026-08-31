@@ -501,9 +501,13 @@ struct HaliaAPI {
 
     struct BookedAppointment: Decodable { let ok: Bool?; let links: ApptLinks? }
 
-    func bookAppointment(cid: String, when: String, place: String, clientName: String) async throws -> BookedAppointment {
+    func bookAppointment(cid: String, when: String, place: String, clientName: String,
+                         clientEmail: String = "") async throws -> BookedAppointment {
+        // The client's address goes on the calendar entry beside the associate's, so both of them
+        // hold the same invitation.
         let body: [String: Any] = ["action": "appointment", "cid": cid, "when": when,
-                                   "place": place, "client_name": clientName]
+                                   "place": place, "client_name": clientName,
+                                   "client_email": clientEmail]
         return try await postAny("/v1/extension/action", body: body)
     }
 
@@ -532,6 +536,24 @@ struct HaliaAPI {
     struct Appointment: Decodable {
         let id: String?; let cid: String?; let name: String?; let when: String?; let minutes: Int?
         let place: String?; let seat_name: String?; let in_days: Int?; let mine: Bool?; let links: ApptLinks?
+        let email: String?
+    }
+
+    /// Move a booking that is already in the client's record. It keeps its id, so the entry the
+    /// client already has moves rather than a second one arriving.
+    func moveAppointment(id: String, cid: String, when: String, place: String,
+                         clientName: String, clientEmail: String) async throws -> BookedAppointment {
+        let body: [String: Any] = ["action": "appointment_move", "id": id, "cid": cid, "when": when,
+                                   "place": place, "client_name": clientName,
+                                   "client_email": clientEmail]
+        return try await postAny("/v1/extension/action", body: body)
+    }
+
+    @discardableResult
+    func cancelAppointment(id: String, cid: String) async throws -> Bool {
+        let body: [String: Any] = ["action": "appointment_cancel", "id": id, "cid": cid]
+        let r: BookedAppointment = try await postAny("/v1/extension/action", body: body)
+        return r.ok ?? false
     }
     private struct AppointmentsEnvelope: Decodable { let appointments: [Appointment]? }
 
@@ -586,3 +608,6 @@ struct HaliaAPI {
         }
     }
 }
+
+/// So an appointment can drive a SwiftUI sheet straight from the list.
+extension HaliaAPI.Appointment: Identifiable {}

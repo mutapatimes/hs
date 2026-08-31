@@ -43,11 +43,19 @@ def _label(when: datetime, minutes: int) -> str:
     return when.strftime("%a %d %b, %H:%M") + f" ({minutes} min)"
 
 
-def invite_token(appt: dict, store_name: str) -> str:
-    """A signed, self-contained invite for the client: when, how long, where, the store. No
-    client detail travels in it and nothing is stored; the signature stops tampering."""
-    raw = json.dumps({"w": appt["when"], "m": int(appt.get("minutes") or DEFAULT_MINUTES),
-                      "p": appt.get("place") or "", "s": store_name or ""}, separators=(",", ":")).encode()
+def invite_token(appt: dict, store_name: str, who: Optional[dict] = None) -> str:
+    """A signed, self-contained invite for the client: when, how long, where, the store, and the
+    two people meeting. Nothing is stored and the signature stops tampering. The only names in it
+    are the client's own and the associate they are seeing, which is what the calendar entry has
+    to say; nothing about how the store reads them travels in it."""
+    who = who or {}
+    d = {"w": appt["when"], "m": int(appt.get("minutes") or DEFAULT_MINUTES),
+         "p": appt.get("place") or "", "s": store_name or ""}
+    for key, val in (("c", who.get("client_name")), ("ce", who.get("client_email")),
+                     ("a", who.get("seat_name")), ("ae", who.get("seat_email"))):
+        if val:
+            d[key] = str(val)[:160]
+    raw = json.dumps(d, separators=(",", ":")).encode()
     body = base64.urlsafe_b64encode(raw).decode().rstrip("=")
     sig = hmac.new(_secret(), body.encode(), hashlib.sha256).hexdigest()[:24]
     return f"{body}.{sig}"
@@ -61,9 +69,43 @@ def parse_invite(token: str) -> Optional[dict]:
         d = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
         datetime.fromisoformat(d["w"])
         return {"when": d["w"], "minutes": int(d.get("m") or DEFAULT_MINUTES), "place": d.get("p") or "",
-                "store": d.get("s") or ""}
+                "store": d.get("s") or "", "client_name": d.get("c") or "",
+                "client_email": d.get("ce") or "", "seat_name": d.get("a") or "",
+                "seat_email": d.get("ae") or ""}
     except Exception:  # noqa: BLE001 — any malformed token is simply not an invite
         return None
+
+
+def event_title(client_name: str, seat_name: str, store_name: str) -> str:
+    """What the entry is called in both calendars: who is meeting whom, and where."""
+    who = " and ".join([n for n in (str(client_name or "").strip(), str(seat_name or "").strip()) if n])
+    head = f"Appointment with {who}" if who else "Appointment"
+    return f"{head} at {store_name}" if store_name else head
+
+
+def seat_email(seat_id: Optional[str]) -> str:
+    """The associate's own address, so they are on the invite beside the client."""
+    if not seat_id:
+        return ""
+    try:
+        return str((shop_store().seat_profile(seat_id) or {}).get("email") or "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _people_ics(client_name: str, client_email: str, seat_name: str, seat_email_: str) -> list[str]:
+    """ORGANIZER and ATTENDEE lines. The associate hosts; both of them are on it."""
+    def cn(name: str) -> str:
+        clean = str(name or "").replace('"', "").replace(";", " ").replace(":", " ").strip()
+        return f';CN="{clean}"' if clean else ""
+    lines = []
+    if seat_email_:
+        lines.append(f"ORGANIZER{cn(seat_name)}:mailto:{seat_email_}")
+    if client_email:
+        lines.append(f"ATTENDEE{cn(client_name)};ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:{client_email}")
+    if seat_email_:
+        lines.append(f"ATTENDEE{cn(seat_name)};ROLE=REQ-PARTICIPANT:mailto:{seat_email_}")
+    return lines
 
 
 def client_message(appt: dict, store_name: str, invite_url: str) -> str:
@@ -74,28 +116,40 @@ def client_message(appt: dict, store_name: str, invite_url: str) -> str:
     return f"Your appointment is set for {when}{where}. Add it to your calendar here: {invite_url}"
 
 
-def calendar_links(appt: dict, client_name: str, store_name: str, shop: str = "") -> dict:
+def calendar_links(appt: dict, client_name: str, store_name: str, shop: str = "",
+                   client_email: str = "") -> dict:
     """Links into the associate's own calendar. Google and Outlook open prefilled; the .ics text
-    is for Apple Calendar and anything else (served as a download by the callers)."""
+    is for Apple Calendar and anything else (served as a download by the callers). Both people are
+    on the entry: the associate hosts it, the client is invited."""
     start = datetime.fromisoformat(appt["when"])
     end = start + timedelta(minutes=int(appt.get("minutes") or DEFAULT_MINUTES))
     fmt = lambda d: d.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    title = f"{client_name or 'Client'} at {store_name}" if store_name else (client_name or "Client appointment")
+    seat_name = str(appt.get("seat_name") or "")
+    seat_addr = seat_email(appt.get("seat_id"))
+    title = event_title(client_name, seat_name, store_name)
     details = appt.get("note") or ""
     place = appt.get("place") or store_name or ""
-    google = "https://calendar.google.com/calendar/render?" + urlencode({
-        "action": "TEMPLATE", "text": title, "dates": f"{fmt(start)}/{fmt(end)}",
-        "details": details, "location": place})
-    outlook = "https://outlook.office.com/calendar/0/deeplink/compose?" + urlencode({
-        "subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
-        "enddt": end.astimezone(timezone.utc).isoformat(), "body": details, "location": place, "path": "/calendar/action/compose"})
+    guests = [e for e in (client_email, seat_addr) if e]
+    q = {"action": "TEMPLATE", "text": title, "dates": f"{fmt(start)}/{fmt(end)}",
+         "details": details, "location": place}
+    if guests:
+        q["add"] = ",".join(guests)
+    google = "https://calendar.google.com/calendar/render?" + urlencode(q)
+    oq = {"subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
+          "enddt": end.astimezone(timezone.utc).isoformat(), "body": details, "location": place,
+          "path": "/calendar/action/compose"}
+    if guests:
+        oq["to"] = ",".join(guests)
+    outlook = "https://outlook.office.com/calendar/0/deeplink/compose?" + urlencode(oq)
     ics = "\r\n".join([
         "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halia//Appointments//EN", "BEGIN:VEVENT",
         f"UID:{appt['id']}@haliascore.com", f"DTSTAMP:{fmt(datetime.now(timezone.utc))}",
         f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}", f"SUMMARY:{_ics_escape(title)}",
         f"LOCATION:{_ics_escape(place)}", f"DESCRIPTION:{_ics_escape(details)}",
+        *_people_ics(client_name, client_email, seat_name, seat_addr),
         "END:VEVENT", "END:VCALENDAR", ""])
-    token = invite_token(appt, store_name)
+    token = invite_token(appt, store_name, {"client_name": client_name, "client_email": client_email,
+                                            "seat_name": seat_name, "seat_email": seat_addr})
     if shop:
         from halia.api.client_host import client_url
         invite = client_url(shop, f"i/{token}")
@@ -159,6 +213,35 @@ def book(shop: str, cid: str, when: Any, minutes: Any, place: str, note: str,
     return appt
 
 
+def reschedule(shop: str, cid: str, appt_id: str, when: Any, minutes: Any, place: Any,
+               actor_id: Optional[str], actor_name: Optional[str]) -> Optional[dict]:
+    """Move an appointment that is already in the client's record. The entry keeps its id, so the
+    client's calendar updates the event they already hold rather than gaining a second one. Returns
+    the changed appointment, or None when there is nothing by that id."""
+    from halia.api.board import _sink, _write_soft, append_activity, load_pipe
+
+    start = _parse_when(when)
+    sink = _sink(shop)
+    pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
+    rows = pipe.get("appointments") or []
+    appt = next((a for a in rows if a.get("id") == appt_id), None)
+    if not appt:
+        return None
+    was = _label(datetime.fromisoformat(appt["when"]), int(appt.get("minutes") or DEFAULT_MINUTES))
+    appt["when"] = start.isoformat(timespec="minutes")
+    appt["minutes"] = max(15, min(int(minutes or appt.get("minutes") or DEFAULT_MINUTES), 480))
+    if place is not None:
+        appt["place"] = str(place or "").strip()[:120]
+    pipe["appointments"] = rows
+    append_activity(pipe, "appointment_moved", actor_id, actor_name,
+                    note=f"{was} moved to " + _label(start, int(appt["minutes"]))
+                         + (f" at {appt['place']}" if appt.get("place") else ""))
+    if _write_soft(sink, cid, pipe):
+        raise HTTPException(502, "Could not save to the store just now. Please try again.")
+    _invalidate(shop)
+    return appt
+
+
 def cancel(shop: str, cid: str, appt_id: str, actor_id: Optional[str], actor_name: Optional[str]) -> bool:
     from halia.api.board import _sink, _write_soft, append_activity, load_pipe
     sink = _sink(shop)
@@ -209,7 +292,15 @@ def _invalidate(shop: str) -> None:
 
 
 def _store_name(shop: str) -> str:
-    return str(dict(shop_store().get_tenant(shop) or {}).get("label") or "")
+    # dict() first: the store hands back a sqlite3.Row, which has no .get. Falls back to the
+    # domain, so the client's page is always headed by the shop and never by "Appointment".
+    t = dict(shop_store().get_tenant(shop) or {})
+    name = str(t.get("label") or "").strip()
+    if name:
+        return name
+    host = str(shop or "").replace(".myshopify.com", "").strip("/")
+    host = host.split("//")[-1].split("/")[0]
+    return host.replace("-", " ").title() if host else ""
 
 
 def render_invite(token: str):
@@ -226,20 +317,29 @@ def render_invite(token: str):
     start = datetime.fromisoformat(inv["when"])
     end = start + timedelta(minutes=inv["minutes"])
     fmt = lambda d: d.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    title = f"Appointment at {inv['store']}" if inv["store"] else "Appointment"
+    title = event_title(inv["client_name"], inv["seat_name"], inv["store"])
     place = inv["place"] or inv["store"]
+    guests = [e for e in (inv["client_email"], inv["seat_email"]) if e]
     if ics_wanted:
         ics = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halia//Appointments//EN", "BEGIN:VEVENT",
                             f"UID:{appt['id']}@haliascore.com", f"DTSTAMP:{fmt(datetime.now(timezone.utc))}",
                             f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}", f"SUMMARY:{_ics_escape(title)}",
-                            f"LOCATION:{_ics_escape(place)}", "END:VEVENT", "END:VCALENDAR", ""])
+                            f"LOCATION:{_ics_escape(place)}",
+                            *_people_ics(inv["client_name"], inv["client_email"],
+                                         inv["seat_name"], inv["seat_email"]),
+                            "END:VEVENT", "END:VCALENDAR", ""])
         return Response(ics, media_type="text/calendar; charset=utf-8",
                         headers={"Content-Disposition": 'attachment; filename="appointment.ics"'})
-    google = "https://calendar.google.com/calendar/render?" + urlencode({
-        "action": "TEMPLATE", "text": title, "dates": f"{fmt(start)}/{fmt(end)}", "location": place})
-    outlook = "https://outlook.office.com/calendar/0/deeplink/compose?" + urlencode({
-        "subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
-        "enddt": end.astimezone(timezone.utc).isoformat(), "location": place, "path": "/calendar/action/compose"})
+    gq = {"action": "TEMPLATE", "text": title, "dates": f"{fmt(start)}/{fmt(end)}", "location": place}
+    if guests:
+        gq["add"] = ",".join(guests)
+    google = "https://calendar.google.com/calendar/render?" + urlencode(gq)
+    oq = {"subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
+          "enddt": end.astimezone(timezone.utc).isoformat(), "location": place,
+          "path": "/calendar/action/compose"}
+    if guests:
+        oq["to"] = ",".join(guests)
+    outlook = "https://outlook.office.com/calendar/0/deeplink/compose?" + urlencode(oq)
     store = _html.escape(inv["store"] or "")
     html = _INVITE_PAGE.format(store=store or "Appointment",          # the tab's title only
                                head=(f"<h1>{store}</h1>" if store else ""),
@@ -261,7 +361,21 @@ def register(app) -> None:
         actor_id, actor_name = _actor(request, p)
         appt = book(shop, cid, p.get("when"), p.get("minutes"), p.get("place"), p.get("note"), actor_id, actor_name)
         return {"ok": True, "appointment": appt,
-                "links": calendar_links(appt, str(p.get("client_name") or ""), _store_name(shop), shop)}
+                "links": calendar_links(appt, str(p.get("client_name") or ""), _store_name(shop), shop,
+                                        client_email=str(p.get("client_email") or ""))}
+
+    @app.post("/v1/board/appointment/reschedule")
+    def board_appointment_reschedule(request: Request, shop: str = Depends(require_shop),
+                                     payload: Any = Body(...)) -> dict:
+        p = payload or {}
+        actor_id, actor_name = _actor(request, p)
+        appt = reschedule(shop, str(p.get("cid") or "").strip(), str(p.get("id") or "").strip(),
+                          p.get("when"), p.get("minutes"), p.get("place"), actor_id, actor_name)
+        if not appt:
+            raise HTTPException(404, "That appointment is no longer in the client's record.")
+        return {"ok": True, "appointment": appt,
+                "links": calendar_links(appt, str(p.get("client_name") or ""), _store_name(shop), shop,
+                                        client_email=str(p.get("client_email") or ""))}
 
     @app.post("/v1/board/appointment/cancel")
     def board_appointment_cancel(request: Request, shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
@@ -278,4 +392,6 @@ def register(app) -> None:
     def list_appointments(shop: str = Depends(require_shop), days: int = Query(14)) -> dict:
         rows = upcoming(shop, days)
         store = _store_name(shop)
-        return {"appointments": [{**a, "links": calendar_links(a, a.get("name") or "", store, shop)} for a in rows]}
+        return {"appointments": [{**a, "links": calendar_links(a, a.get("name") or "", store, shop,
+                                                               client_email=a.get("email") or "")}
+                                 for a in rows]}

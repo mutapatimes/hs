@@ -596,6 +596,7 @@ private struct HomeView: View {
     @State private var followedUp = false
     @State private var birthdays: [HaliaAPI.Birthday] = []
     @State private var appointments: [HaliaAPI.Appointment] = []
+    @State private var openAppt: HaliaAPI.Appointment?
     @State private var week: HaliaAPI.Week?
     @State private var weekDays = 365          // all by default; the picker narrows it
     @Environment(\.openURL) private var openURL
@@ -680,20 +681,17 @@ private struct HomeView: View {
                 if !appointments.isEmpty {
                     Section {
                         ForEach(Array(appointments.enumerated()), id: \.offset) { _, a in
-                            HStack(spacing: 12) {
-                                Image(systemName: "calendar").foregroundStyle(Palette.brand)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(a.name ?? "A client").font(.body)
-                                    Text(apptLine(a)).font(.footnote).foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                if let msg = a.links?.message, !msg.isEmpty {
-                                    ShareLink(item: msg) { Image(systemName: "paperplane") }
-                                        .foregroundStyle(Palette.brandDeep)
-                                }
-                                if let ics = a.links?.ics, let file = icsFile(ics, id: a.id ?? "appt") {
-                                    ShareLink(item: file) { Image(systemName: "calendar.badge.plus") }
-                                        .foregroundStyle(Palette.brandDeep)
+                            Button { openAppt = a } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "calendar").foregroundStyle(Palette.brand)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(a.name ?? "A client").font(.body).foregroundStyle(.primary)
+                                        Text(apptLine(a)).font(.footnote).foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(Palette.faint)
                                 }
                             }
                         }
@@ -741,10 +739,15 @@ private struct HomeView: View {
             .tint(Palette.brand)
             .task { week = try? await HaliaAPI.current.myWeek(days: weekDays)
                     birthdays = (try? await HaliaAPI.current.birthdays()) ?? []
-                    appointments = (try? await HaliaAPI.current.appointments()) ?? [] }
+                    appointments = (try? await HaliaAPI.current.appointments(days: 90)) ?? [] }
             .refreshable { await model.sync(); week = try? await HaliaAPI.current.myWeek(days: weekDays)
                            birthdays = (try? await HaliaAPI.current.birthdays()) ?? []
-                           appointments = (try? await HaliaAPI.current.appointments()) ?? [] }
+                           appointments = (try? await HaliaAPI.current.appointments(days: 90)) ?? [] }
+        }
+        .sheet(item: $openAppt) { appt in
+            AppointmentView(appt: appt) {
+                appointments = (try? await HaliaAPI.current.appointments(days: 90)) ?? []
+            }
         }
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
         .fullScreenCover(isPresented: $showCapture) {
@@ -854,6 +857,143 @@ private struct HomeView: View {
 
 
 // MARK: - Openers editor
+
+/// One appointment, opened from the home list: change the time or the place, send the client their
+/// invitation again, put it in your own calendar, or cancel it.
+private struct AppointmentView: View {
+    let appt: HaliaAPI.Appointment
+    let onChanged: () async -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var when: Date
+    @State private var place: String
+    @State private var links: HaliaAPI.ApptLinks?
+    @State private var busy = false
+    @State private var status: String?
+    @State private var confirmingCancel = false
+    @Environment(\.openURL) private var openURL
+
+    init(appt: HaliaAPI.Appointment, onChanged: @escaping () async -> Void) {
+        self.appt = appt
+        self.onChanged = onChanged
+        _when = State(initialValue: AppointmentView.parse(appt.when) ?? Date())
+        _place = State(initialValue: appt.place ?? "")
+        _links = State(initialValue: appt.links)
+    }
+
+    static func parse(_ raw: String?) -> Date? {
+        let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime]
+        let g = ISO8601DateFormatter(); g.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f.date(from: raw ?? "") ?? g.date(from: raw ?? "")
+    }
+
+    private var moved: Bool {
+        (AppointmentView.parse(appt.when).map { abs($0.timeIntervalSince(when)) > 30 } ?? true)
+            || place != (appt.place ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    DatePicker("When", selection: $when,
+                               in: Date().addingTimeInterval(-86_400)...Date().addingTimeInterval(86_400 * 365))
+                    TextField("Where", text: $place)
+                    if let s = appt.seat_name, !s.isEmpty {
+                        LabeledContent("With", value: s)
+                    }
+                } header: { Text(appt.name ?? "A client") }
+
+                if moved {
+                    Section {
+                        Button(busy ? "Saving…" : "Save the change") { Task { await save() } }
+                            .disabled(busy)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .foregroundStyle(Palette.brandDeep)
+                            .fontWeight(.semibold)
+                    } footer: {
+                        Text("Their invitation updates the entry they already have.")
+                    }
+                }
+
+                Section {
+                    if let msg = links?.message, !msg.isEmpty {
+                        ShareLink(item: msg) {
+                            Label("Send the client their invitation", systemImage: "paperplane")
+                        }
+                    }
+                    if let ics = links?.ics, let file = icsFile(ics) {
+                        ShareLink(item: file) {
+                            Label("Add to my calendar", systemImage: "calendar.badge.plus")
+                        }
+                    }
+                    if let g = links?.google, let u = URL(string: g) {
+                        Button { openURL(u) } label: { Label("Google Calendar", systemImage: "arrow.up.right") }
+                    }
+                    if let o = links?.outlook, let u = URL(string: o) {
+                        Button { openURL(u) } label: { Label("Outlook", systemImage: "arrow.up.right") }
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) { confirmingCancel = true } label: {
+                        Text("Cancel this appointment").frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    .disabled(busy)
+                }
+
+                if let s = status {
+                    Section { Text(s).font(.footnote).foregroundStyle(.secondary) }
+                }
+            }
+            .navigationTitle("Appointment")
+            .navigationBarTitleDisplayMode(.inline)
+            .tint(Palette.brand)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
+            .confirmationDialog("Cancel this appointment?", isPresented: $confirmingCancel, titleVisibility: .visible) {
+                Button("Cancel it", role: .destructive) { Task { await drop() } }
+                Button("Keep it", role: .cancel) {}
+            }
+        }
+    }
+
+    private func save() async {
+        guard let id = appt.id, let cid = appt.cid else { return }
+        busy = true; status = nil
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        iso.timeZone = TimeZone.current
+        do {
+            let res = try await HaliaAPI.current.moveAppointment(
+                id: id, cid: cid, when: iso.string(from: when), place: place,
+                clientName: appt.name ?? "", clientEmail: appt.email ?? "")
+            links = res.links
+            status = "Moved. Send them the new invitation."
+            await onChanged()
+        } catch {
+            status = (error as? LocalizedError)?.errorDescription ?? "Could not save that change"
+        }
+        busy = false
+    }
+
+    private func drop() async {
+        guard let id = appt.id, let cid = appt.cid else { return }
+        busy = true; status = nil
+        do {
+            _ = try await HaliaAPI.current.cancelAppointment(id: id, cid: cid)
+            await onChanged()
+            dismiss()
+        } catch {
+            status = (error as? LocalizedError)?.errorDescription ?? "Could not cancel it"
+        }
+        busy = false
+    }
+
+    private func icsFile(_ ics: String) -> URL? {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("halia-\(appt.id ?? "appt").ics")
+        return (try? ics.data(using: .utf8)?.write(to: url)) != nil ? url : nil
+    }
+}
 
 /// Edit the message openers the Share extension offers when you share a page and pick a client. One
 /// set per page kind (product, collection, care, returns…). Saved to the App Group; Share reads them
