@@ -245,12 +245,14 @@ struct HaliaAPI {
     // MARK: Product search (keyboard) — a live, searchable image library of the store's products.
 
     struct Product: Decodable {
+        let id: String
         let title: String
         let handle: String?
         let image: String?
-        private enum K: String, CodingKey { case title, handle, image }
+        private enum K: String, CodingKey { case id, title, handle, image }
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: K.self)
+            id     = (try? c.decodeIfPresent(String.self, forKey: .id)) ?? "" ?? ""
             title  = (try? c.decodeIfPresent(String.self, forKey: .title)) ?? "" ?? ""
             handle = (try? c.decodeIfPresent(String.self, forKey: .handle)) ?? nil
             image  = (try? c.decodeIfPresent(String.self, forKey: .image)) ?? nil
