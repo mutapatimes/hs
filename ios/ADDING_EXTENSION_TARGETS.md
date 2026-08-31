@@ -34,6 +34,21 @@ Inserting by text match hits both, and the neighbouring extension then compiles 
 ("Multiple commands produce …Info.plist"). Check each target's `fileSystemSynchronizedGroups`
 lists only its own folder.
 
+A second caution, learned when App Store Connect rejected build 5: an iMessage extension must ship
+its own icon, and the app's icon does not stand in. `scripts/build_brand_marks.py` generates
+`HaliaIMessage/Assets.xcassets/iMessage App Icon.stickersiconset` (eight 4:3 sizes plus 1024x1024
+and 1024x768 marketing), and both HaliaIMessage configurations set
+`ASSETCATALOG_COMPILER_APPICON_NAME = "iMessage App Icon"`. The set must be a `.stickersiconset`,
+not an `.appiconset`, and the metadata keys are fussy: the four small `universal` entries need
+`"platform": "ios"` beside the scale, and the 1024x768 marketing entry needs both. Get any of it
+wrong and actool assigns nothing, silently drops `MSMessagesExtensionStoreIconName`, and the
+upload fails with codes 90649 and 90642 long after the build succeeded. To check before archiving:
+
+```
+plutil -extract MSMessagesExtensionStoreIconName raw \
+  <DerivedData>/…/HaliaTemplates.app/PlugIns/HaliaIMessage.appex/Info.plist
+```
+
 ## The human bits (need an Apple account or a device)
 
 1. **App IDs and the App Group in the developer portal.** With automatic signing, selecting the Team on
@@ -48,8 +63,6 @@ lists only its own folder.
 4. **Share sheet:** share a contact, a name or a product URL from Contacts, Safari or Shopify; Halia
    appears in the sheet. If it is missing, tap More and switch it on.
 5. **Messages drawer:** in a conversation, tap the apps row beside the text field and choose Halia.
-   An iMessage app also needs its own `iMessage App Icon` asset before an App Store submission
-   (1024 marketing plus the messages sizes); TestFlight builds carry a placeholder until then.
 
 ## Adding a shared file to an extension later
 
