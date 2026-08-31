@@ -456,6 +456,40 @@ def test_a_selection_built_from_numeric_ids_opens(client):
     assert c.get("/catalog/for?" + gid.split("?", 1)[1]).status_code == 200
 
 
+def test_a_bespoke_selection_can_be_sent_back_without_a_saved_catalogue(client, monkeypatch):
+    # There is no catalogue row behind a bespoke selection, so the enquiry used to post to the
+    # saved-catalogue route and come back "Catalogue not found."
+    from halia.api.catalog import adhoc_url
+    import halia.notify as notify
+    c, store = client
+    sent = []
+    monkeypatch.setattr(notify, "send_email", lambda to, subj, *a, **k: sent.append((to, subj)) or True)
+    seat = store.create_seat(SHOP, "Sarah Bloom", "hash", "sarah@m.com")
+    qs = adhoc_url(SHOP, ["1", "2"], "Grace", by=seat).split("?", 1)[1]
+    assert c.get("/catalog/for?" + qs).status_code == 200
+    r = c.post("/catalog/for/enquire?" + qs,
+               json={"name": "Grace", "email": "g@x.com", "product_ids": ["1", "2"]})
+    assert r.status_code == 200 and r.json() == {"ok": True}
+    assert sent[0] == ("sarah@m.com", "Grace picked 2 pieces")   # back to whoever sent it
+    # the signature still guards it, and only the pieces in the selection can come back
+    assert c.post("/catalog/for/enquire?" + qs.replace("p=1%2C2", "p=2"),
+                  json={"name": "G", "email": "g@x.com", "product_ids": ["2"]}).status_code == 403
+    sent.clear()
+    c.post("/catalog/for/enquire?" + qs, json={"name": "Grace", "email": "g@x.com",
+                                               "product_ids": ["1", "999"]})
+    assert sent[0][1] == "Grace picked 1 piece"
+
+
+def test_a_selection_link_carries_the_clients_details_for_prefill(client):
+    from halia.api.catalog import adhoc_url
+    c, _ = client
+    url = adhoc_url(SHOP, ["1"], "Grace Ladoja", email="grace@x.com", phone="07961123148")
+    page = c.get("/catalog/for?" + url.split("?", 1)[1]).text
+    assert 'value="Grace Ladoja"' in page and 'value="grace@x.com"' in page
+    assert 'value="07961123148"' in page
+    assert "A selection for Grace" in page          # the title still uses the first name only
+
+
 def test_a_pick_outside_the_saved_catalogue_is_still_counted(client, monkeypatch):
     # A bespoke selection is built from anywhere in the store, so the pieces a client ticks are
     # not necessarily in the saved catalogue. They used to be filtered against it, which reported

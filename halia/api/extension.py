@@ -290,6 +290,16 @@ def _handle_from_url(u) -> str:
     return ""
 
 
+def _client_details(body: dict) -> dict:
+    """The client a link is addressed to, as the toolbar, the keyboard and the Messages app know
+    them. Used for prefill only, so the page arrives filled in rather than asking a client to type
+    what the store already holds."""
+    body = body or {}
+    return {"name": str(body.get("name") or "").strip()[:160],
+            "email": str(body.get("email") or body.get("client_email") or "").strip()[:160],
+            "phone": str(body.get("phone") or body.get("client_phone") or "").strip()[:60]}
+
+
 def _products_for_handles(shop: str, handles: list[str]) -> list[dict]:
     """Resolve storefront handles to product cards (product_search_node dicts, with variants),
     preserving order, via one Shopify product search. Shopify-only; returns [] for a read-only /
@@ -1557,8 +1567,9 @@ def register(app) -> None:
     def extension_catalogue(x_halia_ext_token: Optional[str] = Header(None),
                             payload: Any = Body(default=None)) -> dict:
         """Mint a shareable link for the selection the associate has built, addressed to this
-        client. Nothing is stored: the products travel in the signed link and the name travels in
-        it too, exactly as every other personalised catalogue link already works."""
+        client. Nothing is stored: the products travel in the signed link and the client's own
+        details travel in it too, exactly as every other personalised catalogue link already works,
+        so the page arrives filled in rather than asking them for what the store already holds."""
         from halia.api.catalog import adhoc_url
 
         auth = _resolve_ext(x_halia_ext_token)
@@ -1568,9 +1579,10 @@ def register(app) -> None:
         ids = [str(p).strip() for p in (body.get("product_ids") or []) if str(p).strip()][:40]
         if not ids:
             raise HTTPException(422, "product_ids is required")
-        first = (str(body.get("name") or "").strip().split(" ") or [""])[0][:80]
+        who = _client_details(body)
         data.record_activity(shop, "extension_catalogue")
-        return {"url": adhoc_url(shop, ids, first, by=auth.seat_id or "")}
+        return {"url": adhoc_url(shop, ids, who["name"], by=auth.seat_id or "",
+                                 email=who["email"], phone=who["phone"])}
 
     @app.post("/v1/extension/cart_link")
     def extension_cart_link(x_halia_ext_token: Optional[str] = Header(None),
@@ -1953,9 +1965,11 @@ def register(app) -> None:
         ids = _ids_for_handles(shop, handles)
         if not ids:
             return {"url": "", "resolved": 0, "requested": len(handles)}
-        first = ((str(body.get("name") or "").strip().split(" ") or [""])[0])[:80]
+        who = _client_details(body)
         data.record_activity(shop, "extension_catalogue_urls")
-        return {"url": adhoc_url(shop, ids, first, by=auth.seat_id or ""), "resolved": len(ids), "requested": len(handles)}
+        return {"url": adhoc_url(shop, ids, who["name"], by=auth.seat_id or "",
+                                 email=who["email"], phone=who["phone"]),
+                "resolved": len(ids), "requested": len(handles)}
 
     @app.post("/v1/extension/products_from_urls")
     def extension_products_from_urls(x_halia_ext_token: Optional[str] = Header(None),

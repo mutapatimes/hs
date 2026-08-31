@@ -392,7 +392,8 @@ struct ShareRootView: View {
         var link = query                       // most pages send the shared link as-is
         if pageKind.buildsCatalogue {          // a product becomes a signed catalogue link
             do {
-                let r = try await HaliaAPI.current.catalogueFromUrls(urls: [query], name: c.name)
+                let r = try await HaliaAPI.current.catalogueFromUrls(urls: [query], name: c.name,
+                                                                    email: c.email ?? "", phone: c.phone ?? "")
                 if r.url.isEmpty { status = "Could not build a link for this product."; return }
                 link = r.url
             } catch { status = "Could not build a link for this product."; return }
@@ -437,7 +438,8 @@ struct ShareRootView: View {
             let picks = try await HaliaAPI.current.suggest(ref, instruction: "")
             let ids = picks.map { $0.productId }
             guard !ids.isEmpty else { status = "No pieces to suggest just now."; return }
-            let link = try await HaliaAPI.current.catalogue(productIds: ids, name: result?.name ?? "")
+            let link = try await HaliaAPI.current.catalogue(productIds: ids, name: result?.name ?? "",
+                                                           email: result?.email ?? "", phone: result?.phone ?? "")
             draft = "I set aside a few pieces I thought you would love. You can see them here:\n\(link)"
         } catch {
             status = "Could not build a lookbook."
