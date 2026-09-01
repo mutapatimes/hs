@@ -7,44 +7,10 @@
   if (window.__haliaCompose) return;
   window.__haliaCompose = true;
 
-  // ── template shaping: fill the name, and honour the greeting / sign-off toggles ──
-  const GREET_RE = /^(dear|dearest|hi|hello|hey|good\s+(morning|afternoon|evening)|greetings)\b/i;
-  const SIGN_LINE = /^(warm(est)?\s+(regards|wishes)|kind(est)?\s+regards|best(\s+(regards|wishes))?|very\s+best|all\s+the\s+best|with\s+(love|thanks|gratitude|appreciation|warm\s+wishes|warmth)|many\s+thanks|thank\s+you|thanks|yours(\s+(sincerely|truly|faithfully))?|sincerely|warmly|speak\s+soon|see\s+you\s+soon|regards|cheers|love|xx)[.,!]*(\s+[A-Z][\w'’.-]*(\s+[A-Z][\w'’.-]*)?)?$/i;
-  function fillName(body, first) { return String(body || "").split("{first_name}").join(first || "there"); }
-  // Remove the leading salutation clause up to its comma (handles "Dear X,\n\n…" and inline
-  // "Hi X, …"), or a short own-line greeting with no comma.
-  function stripGreeting(text) {
-    let t = String(text || "").replace(/^\s+/, "");
-    if (!GREET_RE.test(t)) return String(text || "");
-    const comma = t.indexOf(","), nl = t.indexOf("\n");
-    if (comma >= 0 && (nl < 0 || comma < nl)) {
-      return t.slice(comma + 1).replace(/^[ \t]*\n+/, "").replace(/^[ \t]+/, "");
-    }
-    if (nl >= 0 && nl <= 24) return t.slice(nl + 1).replace(/^\s+/, "");
-    return String(text || "");
-  }
-  // Cut from the closing line to the end. Only the last few lines are considered, and a line counts
-  // as a closing only when it is essentially just a sign-off phrase (optionally a name), so body
-  // text like "Thanks for your patience." is never mistaken for one.
-  function stripSignoff(text) {
-    const lines = String(text || "").split("\n");
-    const nonEmpty = [];
-    for (let k = 0; k < lines.length; k++) if (lines[k].trim()) nonEmpty.push(k);
-    if (!nonEmpty.length) return String(text || "");
-    const tail = nonEmpty.slice(-4);
-    let cut = -1;
-    for (let j = 0; j < tail.length; j++) if (SIGN_LINE.test(lines[tail[j]].trim())) { cut = tail[j]; break; }
-    if (cut < 0) return String(text || "");
-    let out = lines.slice(0, cut);
-    while (out.length && !out[out.length - 1].trim()) out.pop();
-    return out.join("\n");
-  }
-  function shape(body, first, greeting, signoff) {
-    let t = fillName(body, first);
-    if (!greeting) t = stripGreeting(t);
-    if (!signoff) t = stripSignoff(t);
-    return t;
-  }
+  // Template shaping (fill the name, honour the toggles) lives in one place, shared with the
+  // Outlook task pane: content/shape.js, loaded before this script.
+  const shape = (body, first, greeting, signoff) =>
+    window.HaliaShape.shape(body, first, greeting, signoff);
 
   // Insert text at the cursor of a field, preserving line breaks. Textareas/inputs take a spliced
   // value with the native setter (so frameworks notice); rich composers take a synthetic paste (the

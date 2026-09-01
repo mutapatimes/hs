@@ -286,38 +286,15 @@
   }
   function money(v) { return "£" + Number(v || 0).toLocaleString(); }
   // Greeting / sign-off toggles: strip the salutation or the closing from a template when the
-  // associate is already mid-conversation. Shared with the on-any-page composer via the same keys.
-  const GREET_RE = /^(dear|dearest|hi|hello|hey|good\s+(morning|afternoon|evening)|greetings)\b/i;
-  const SIGN_LINE = /^(warm(est)?\s+(regards|wishes)|kind(est)?\s+regards|best(\s+(regards|wishes))?|very\s+best|all\s+the\s+best|with\s+(love|thanks|gratitude|appreciation|warm\s+wishes|warmth)|many\s+thanks|thank\s+you|thanks|yours(\s+(sincerely|truly|faithfully))?|sincerely|warmly|speak\s+soon|see\s+you\s+soon|regards|cheers|love|xx)[.,!]*(\s+[A-Z][\w'’.-]*(\s+[A-Z][\w'’.-]*)?)?$/i;
-  function stripGreeting(text) {
-    let t = String(text || "").replace(/^\s+/, "");
-    if (!GREET_RE.test(t)) return String(text || "");
-    const comma = t.indexOf(","), nl = t.indexOf("\n");
-    if (comma >= 0 && (nl < 0 || comma < nl)) {
-      return t.slice(comma + 1).replace(/^[ \t]*\n+/, "").replace(/^[ \t]+/, "");
-    }
-    if (nl >= 0 && nl <= 24) return t.slice(nl + 1).replace(/^\s+/, "");
-    return String(text || "");
-  }
-  function stripSignoff(text) {
-    const lines = String(text || "").split("\n");
-    const nonEmpty = [];
-    for (let k = 0; k < lines.length; k++) if (lines[k].trim()) nonEmpty.push(k);
-    if (!nonEmpty.length) return String(text || "");
-    const tail = nonEmpty.slice(-4);
-    let cut = -1;
-    for (let j = 0; j < tail.length; j++) if (SIGN_LINE.test(lines[tail[j]].trim())) { cut = tail[j]; break; }
-    if (cut < 0) return String(text || "");
-    let out = lines.slice(0, cut);
-    while (out.length && !out[out.length - 1].trim()) out.pop();
-    return out.join("\n");
-  }
+  // associate is already mid-conversation. The rules live in one place, shared with the on-any-page
+  // composer and the Outlook task pane (content/shape.js).
   function withToggles(text) {
-    let t = String(text || "");
-    if (!tplGreeting) t = stripGreeting(t);
-    if (!tplSignoff) t = stripSignoff(t);
+    let t = String(text || "");                    // the name is already filled by fill()
+    if (!tplGreeting) t = window.HaliaShape.stripGreeting(t);
+    if (!tplSignoff) t = window.HaliaShape.stripSignoff(t);
     return t;
   }
+
   // Ease a number up from 0 to its value on a fresh client — a small "alive" flourish. Preserves a
   // leading £ and re-formats with thousands separators; leaves non-numeric values (e.g. "High") alone.
   function countUp(el) {

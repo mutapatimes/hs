@@ -91,14 +91,14 @@ async function syncWooScripts() {
   const regs = [{
     id: "halia-woo",
     matches: granted.map((o) => o + "/wp-admin/*"),
-    js: ["ui/badge.js", "content/core.js", "content/admin.js"],
+    js: ["content/shape.js", "ui/badge.js", "content/core.js", "content/admin.js"],
     runAt: "document_idle",
     persistAcrossSessions: true
   }, {
     id: "halia-store",
     matches: granted.map((o) => o + "/*"),
     excludeMatches: granted.flatMap((o) => [o + "/wp-admin/*", o + "/admin/*"]),
-    js: ["ui/badge.js", "content/core.js", "content/storefront.js"],
+    js: ["content/shape.js", "ui/badge.js", "content/core.js", "content/storefront.js"],
     runAt: "document_idle",
     persistAcrossSessions: true
   }];
@@ -128,7 +128,7 @@ async function syncSelectScript() {
     await chrome.scripting.registerContentScripts([{
       id: "halia-select",
       matches: ["*://*/*"],
-      js: ["content/select.js", "content/compose.js"],
+      js: ["content/shape.js", "content/select.js", "content/compose.js"],
       runAt: "document_idle",
       persistAcrossSessions: true
     }]);

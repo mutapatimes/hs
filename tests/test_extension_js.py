@@ -19,6 +19,7 @@ import pytest
 _JS_DIR = Path(__file__).parent / "js"
 _HARNESS = _JS_DIR / "thread_reader_smoke.js"
 _WA_HARNESS = _JS_DIR / "whatsapp_reader_smoke.js"
+_SHAPE_HARNESS = _JS_DIR / "shape_smoke.js"
 
 
 def _enabled() -> bool:
@@ -99,3 +100,15 @@ def test_whatsapp_legacy_rows_still_work(wa):
 
 def test_whatsapp_no_open_chat_is_empty(wa):
     assert wa["empty"] == []
+
+
+def test_the_house_shaping_rules_behave(  # noqa: D103
+):
+    """web/site/static/halia-shape.js — what every surface runs on a template before it is sent.
+
+    Until now this had no test in any language, which is how three clients ended up with three
+    algorithms. See tests/js/shape_smoke.js for the cases.
+    """
+    out = _run(_SHAPE_HARNESS)
+    assert out["total"] >= 15
+    assert out["failed"] == [], out["failed"]
