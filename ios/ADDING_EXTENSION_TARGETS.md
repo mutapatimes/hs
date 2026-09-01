@@ -8,7 +8,7 @@ Xcode's "New Target" wizard any more.
 | `HaliaKeyboard`      | Custom keyboard (templates, drafts, products) | `com.haliascore.HaliaTemplates.HaliaKeyboard`      |
 | `HaliaShare`         | Share sheet: "Send with Halia", capture a shared contact | `com.haliascore.HaliaTemplates.HaliaShare` |
 | `HaliaCallDirectory` | CallKit caller ID for graded clients          | `com.haliascore.HaliaTemplates.HaliaCallDirectory` |
-| `HaliaIMessage`      | Messages drawer: build a selection, send the link | `com.haliascore.HaliaTemplates.HaliaIMessage` |
+| `HaliaIMessage`      | Messages drawer: the desk (client, templates, pieces, draft, book) | `com.haliascore.HaliaTemplates.HaliaIMessage` |
 
 The "Reach today" widget was dropped from the product (2026-08-17). Its backend endpoint and the
 Siri/Shortcuts App Intents in the host app remain; there is no widget target.
