@@ -54,6 +54,17 @@
   .toggles { display:flex; gap:14px; margin:8px 0 }
   .toggles label { display:flex; gap:5px; align-items:center; font:13px system-ui; color:var(--soft) }
   .err { color:#9a3838; font-size:12.5px }
+  .warn { color:#8a5a1f; font-size:12px }
+  .thumb { width:34px; height:42px; object-fit:cover; border-radius:4px; flex:none;
+           background:#f0f0ee }
+  .head { font:600 11px system-ui; color:var(--faint); letter-spacing:.02em;
+          padding:7px 10px 3px; background:#fafafa }
+  .item.open { background:#fafafa; cursor:default }
+  .item .full { display:block; color:var(--soft); font-size:13px; margin:6px 0 8px;
+                white-space:normal }
+  .reply { background:#f6f8f7; border:1px solid var(--line); border-radius:8px; padding:9px 11px;
+           font-size:13px; color:var(--ink); margin:8px 0 }
+  .sub2 { color:var(--faint); font-size:12px }
   .foot { text-align:center; padding-bottom:4px }
   .hide { display:none !important }
 </style></head>
@@ -82,6 +93,18 @@
         <span class="grade hide" id="grade"></span>
       </div>
       <div class="note" id="whoNote" style="margin-top:3px"></div>
+      <div id="whoDetail" style="margin-top:4px"></div>
+      <button id="addBook" class="hide" style="margin-top:8px">Add them to the book</button>
+    </div>
+
+    <!-- Reading their email: Halia reads it too, and answers it. Compose hides this card. -->
+    <div class="card hide" id="briefCard">
+      <div class="row">
+        <button class="primary" id="briefGo">Read this for me</button>
+        <button id="rememberGo">Remember this</button>
+        <span id="briefMsg" class="note"></span>
+      </div>
+      <div id="briefOut" style="margin-top:8px"></div>
     </div>
 
     <div class="tabs" id="tabs" role="tablist">
@@ -133,6 +156,7 @@
 
     <!-- Book -->
     <div class="card hide" data-panel="book">
+      <div id="bookList" style="margin-bottom:8px"></div>
       <label for="when">When</label>
       <input id="when" type="datetime-local">
       <div class="row" style="margin-top:8px">
@@ -149,8 +173,9 @@
       <div class="note" id="bookMsg" style="margin-top:7px"></div>
     </div>
 
-    <div class="row" style="justify-content:space-between">
+    <div class="row">
       <button id="logged">Log that I contacted them</button>
+      <button id="polish">Polish my writing</button>
       <span id="logMsg" class="note"></span>
     </div>
 

@@ -1,11 +1,41 @@
 # Halia in Outlook
 
-A task pane beside the message an associate is writing: who it is going to, the house templates, a
-drafted note, a selection to send, and a visit to book. Same endpoints as the Chrome toolbar and
-the iPhone app, so nothing new has to be learned or maintained.
+A task pane beside the message an associate is writing or reading: who it is with, their standing,
+the house templates, a selection or a basket to send, and a visit to book. Same endpoints as the
+Chrome toolbar and the iPhone app, so nothing new has to be learned or maintained.
 
 The gain over the toolbar is reach. `extension/content/gmail.js` covers Gmail in Chrome on a
 desktop and nothing else; Outlook was not covered at all.
+
+## Reading and writing are both first-class
+
+**Reading a client's email**, every action opens a reply already written, through Outlook's own
+reply form: pick a template, send a selection, book a visit, and the words arrive in a reply
+window ready to send. "Read this for me" reads what the client wrote and comes back with where
+the relationship stands, the moves worth making, and a ready reply, one tap from being open.
+"Remember this" puts what they said (sizes, occasions) on their record. An unknown sender is one
+tap from the book, through the same capture path as the shop floor.
+
+The pane can be **pinned** (the pin icon in its corner, on the web and on Windows; Mac keeps
+panes open by itself). Pinned, it stays up while the associate walks the inbox and re-identifies
+each message: every sender's standing appears as they arrive on it.
+
+**Writing**, the recipient is identified live as the To field is filled, templates land at the
+cursor and fill an empty subject line, and "Polish my writing" rewrites the selected sentences in
+the house voice, leaving the quoted thread and the signature alone.
+
+## Sending logs itself
+
+Sending a message to someone in the book puts a contact line on their record with no tap, at most
+once per client per day, so a back-and-forth thread logs one line rather than five. The manual
+"Log that I contacted them" button remains for everything else.
+
+This runs on Outlook's on-send event with the `PromptUser` mode, which carries a guarantee worth
+stating plainly: **if Halia is slow, broken or unreachable, Outlook sends the mail anyway.**
+Nothing Halia does can hold up anyone's email. The handler reads the sign-in from the mailbox's
+roaming settings (written when the associate signs in on the pane); on classic Outlook for
+Windows the event runs in a JavaScript-only runtime, which is why roaming settings carry it
+rather than the browser's own storage. Verify on a real classic client before promising it there.
 
 ## Where it runs
 
