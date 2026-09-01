@@ -369,6 +369,8 @@ def settings_for(shop: str) -> dict:
         "catalog_domain": d.get("catalog_domain", ""),   # white-label host for catalogue links (CNAME)
         # The house voice: four sliders + a language, applied to AI drafting and template rewrites.
         "voice": _voice.clean_voice(d.get("voice")),
+        # When the shop is open, so a booking surface can offer real times.
+        "hours": clean_hours(d.get("hours")),
         # Latent-value benchmarks (merchant's own numbers; 0 = not set → fallback heuristic).
         "aov": d.get("aov", 0),
         "max_orders": d.get("max_orders", 0),
@@ -392,6 +394,41 @@ def settings_for(shop: str) -> dict:
         # Per-merchant calibrated signal weights (see scoring.calibrate). None = engine defaults.
         "signal_weights": d.get("signal_weights") or None,
     }
+
+
+# When the shop is open. Every booking surface built its own picker, and each one happily offers
+# 03:00 on a Sunday; the keyboard hard-codes 09:00-19:00 for every store in the world. This is the
+# one place a store says otherwise. Empty means "we have not said", and nothing is warned about.
+DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
+
+def _clean_time(v, fallback: str) -> str:
+    """"9:30" / "09:30" -> "09:30". Anything unparseable falls back rather than throwing, because a
+    malformed hour must never stop a merchant saving the rest of their settings."""
+    s = str(v or "").strip()
+    if not s:
+        return fallback
+    parts = s.replace(".", ":").split(":")
+    try:
+        h = max(0, min(int(parts[0]), 23))
+        m = max(0, min(int(parts[1]) if len(parts) > 1 else 0, 59))
+    except (TypeError, ValueError):
+        return fallback
+    return f"{h:02d}:{m:02d}"
+
+
+def clean_hours(raw) -> dict:
+    """Seven days of {open, close, closed}. Returns {} when the store has never set them."""
+    d = raw if isinstance(raw, dict) else {}
+    if not d:
+        return {}
+    out = {}
+    for day in DAYS:
+        row = d.get(day) if isinstance(d.get(day), dict) else {}
+        opened = _clean_time(row.get("open"), "10:00")
+        closed_at = _clean_time(row.get("close"), "18:00")
+        out[day] = {"open": opened, "close": closed_at, "closed": bool(row.get("closed"))}
+    return out
 
 
 def _clean_signal_weights(raw):
@@ -538,6 +575,8 @@ def register(app) -> None:
             "catalog_domain": _clean_domain(payload.get("catalog_domain")),
             "voice": (_voice.clean_voice(payload["voice"]) if "voice" in payload
                       else _voice.clean_voice(existing.get("voice"))),
+            "hours": (clean_hours(payload["hours"]) if "hours" in payload
+                      else clean_hours(existing.get("hours"))),
             "aov": _num(payload.get("aov")),
             "max_orders": int(_num(payload.get("max_orders"))),
             "highest_lt": _num(payload.get("highest_lt")),

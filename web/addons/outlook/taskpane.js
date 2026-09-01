@@ -44,20 +44,83 @@
 
   // ── the mailbox ───────────────────────────────────────────────────────────
   // In compose we want who it is going TO; reading an email, who it came FROM.
+  function isAppointment() {
+    var item = Office.context.mailbox.item;
+    try {
+      return !!item && item.itemType === Office.MailboxEnums.ItemType.Appointment;
+    } catch (e) { return false; }
+  }
+
+  function firstOf(list) {
+    return (list && list.length)
+      ? { email: list[0].emailAddress, name: list[0].displayName } : null;
+  }
+
   function recipient() {
     return new Promise(function (resolve) {
       var item = Office.context.mailbox.item;
       if (!item) return resolve(null);
-      if (item.to && item.to.getAsync) {
-        item.to.getAsync(function (res) {
-          var list = (res && res.value) || [];
-          resolve(list.length ? { email: list[0].emailAddress, name: list[0].displayName } : null);
-        });
+      // A meeting being organised: the client is the attendee. Reading one: the organiser.
+      if (item.requiredAttendees && item.requiredAttendees.getAsync) {
+        item.requiredAttendees.getAsync(function (res) { resolve(firstOf(res && res.value)); });
         return;
       }
-      var f = item.from || item.sender;
+      if (item.requiredAttendees && item.requiredAttendees.length) {
+        return resolve(firstOf(item.requiredAttendees));
+      }
+      if (item.to && item.to.getAsync) {
+        item.to.getAsync(function (res) { resolve(firstOf(res && res.value)); });
+        return;
+      }
+      if (item.to && item.to.length) return resolve(firstOf(item.to));
+      var f = item.organizer || item.from || item.sender;
       resolve(f ? { email: f.emailAddress, name: f.displayName } : null);
     });
+  }
+
+  // ── the appointment window ────────────────────────────────────────────────
+  // A visit is as often agreed in the calendar as in an email. When Halia is opened on a meeting
+  // rather than a message it fills the meeting in and writes it to the client's record, so the
+  // calendar-first path lands in the book like any other booking.
+  function apptField(field) {
+    return new Promise(function (resolve) {
+      if (!field || !field.getAsync) return resolve(null);
+      field.getAsync(function (r) { resolve(r && r.value); });
+    });
+  }
+
+  function fillMeeting() {
+    var item = Office.context.mailbox.item;
+    if (!item) return;
+    var name = (client && client.name) || "";
+    var title = name ? "Appointment with " + name : "Appointment";
+    try {
+      if (item.subject && item.subject.setAsync) item.subject.setAsync(title);
+      if (item.location && item.location.setAsync && el("place").value.trim()) {
+        item.location.setAsync(el("place").value.trim());
+      }
+      say("apptMsg", "Filled in. Add anything else, then send it.");
+    } catch (e) {
+      say("apptMsg", "Could not fill that in.", true);
+    }
+  }
+
+  function saveMeeting() {
+    var item = Office.context.mailbox.item;
+    if (!client || !client.cid) { say("apptMsg", "They need to be in your book first.", true); return; }
+    say("apptMsg", "Saving…");
+    Promise.all([apptField(item.start), apptField(item.end), apptField(item.location)])
+      .then(function (v) {
+        var start = v[0] ? new Date(v[0]) : null;
+        if (!start) throw new Error("This meeting has no time yet.");
+        var mins = v[1] ? Math.round((new Date(v[1]) - start) / 60000) : 45;
+        return api("/v1/extension/action", { method: "POST",
+          body: { action: "appointment", cid: client.cid, when: start.toISOString(),
+                  minutes: mins > 0 ? mins : 45, place: v[2] || "",
+                  client_name: client.name, client_email: client.email } });
+      })
+      .then(function () { say("apptMsg", "On their record."); })
+      .catch(function (e) { say("apptMsg", e.message, true); });
   }
 
   // Put text where the cursor is. Match the message's own format, or HTML tags arrive as tags.
@@ -246,6 +309,60 @@
   }
 
   // ── book ──────────────────────────────────────────────────────────────────
+  // Every other Halia surface can only hand the client a link to a page where they add the visit
+  // to their own calendar, because nowhere else is Halia sitting in a calendar client. Here it is.
+  // Outlook's own appointment window opens filled in, the client on it as an attendee, and the
+  // associate presses Send: a real invitation, in both calendars, that Outlook then reschedules
+  // and cancels natively.
+  //
+  // Halia books first, because displayNewAppointmentForm tells us nothing about whether the
+  // associate actually sent it, so there is no later moment to record. If they close the window
+  // the visit is still on the client's record, which is right — a time was agreed — and Cancel is
+  // one tap. The status line says so rather than leaving it a surprise.
+  var lastLinks = null;
+
+  function inviteMeeting(links) {
+    if (!Office.context.mailbox.displayNewAppointmentForm) {
+      say("bookMsg", "Booked. Add the invitation to the message below.");
+      return;
+    }
+    try {
+      Office.context.mailbox.displayNewAppointmentForm({
+        requiredAttendees: client && client.email ? [client.email] : [],
+        start: new Date(links.start),
+        end: new Date(links.end),
+        subject: links.title,
+        location: links.location || "",
+        body: links.message || ""
+      });
+      say("bookMsg", "Booked. Send the invitation Outlook just opened, or close it and use the "
+                     + "line below instead.");
+    } catch (e) {
+      say("bookMsg", "Booked. Add the invitation to the message below.");
+    }
+  }
+
+  // Asked as the time changes, so a warning arrives while another time can still be picked.
+  function checkTime() {
+    var when = el("when").value;
+    if (!when || !token) { say("bookWarn", ""); return; }
+    var q = "?when=" + encodeURIComponent(new Date(when).toISOString())
+          + "&minutes=" + (+el("mins").value || 45)
+          + "&cid=" + encodeURIComponent((client && client.cid) || "");
+    api("/v1/extension/check_time" + q)
+      .then(function (d) {
+        var bits = [];
+        if (d.outside_hours) bits.push(d.outside_hours);
+        (d.clash || []).forEach(function (c) {
+          bits.push(c.why === "you"
+            ? "You already have " + (c.name || "someone") + " then."
+            : (c.name || "They") + " is already booked then.");
+        });
+        say("bookWarn", bits.join(" "));
+      })
+      .catch(function () { say("bookWarn", ""); });
+  }
+
   function book() {
     if (!client || !client.cid) { say("bookMsg", "They need to be in your book first.", true); return; }
     var when = el("when").value;
@@ -253,12 +370,13 @@
     say("bookMsg", "Booking…");
     api("/v1/extension/action", { method: "POST",
         body: { action: "appointment", cid: client.cid, when: new Date(when).toISOString(),
-                minutes: +el("mins").value, place: el("place").value.trim(),
+                minutes: +el("mins").value, place: el("bookPlace").value.trim(),
                 client_name: client.name, client_email: client.email } })
       .then(function (d) {
-        var msg = (d.links && d.links.message) || "";
-        if (!msg) { say("bookMsg", "Booked, but the invitation did not come back."); return; }
-        return insert(msg).then(function () { say("bookMsg", "Booked, and their invitation is in."); });
+        lastLinks = (d && d.links) || null;
+        if (!lastLinks) { say("bookMsg", "Booked, but the invitation did not come back."); return; }
+        el("bookSend").className = "";
+        inviteMeeting(lastLinks);
       })
       .catch(function (e) { say("bookMsg", e.message, true); });
   }
@@ -271,6 +389,18 @@
 
   function start() {
     showDesk(true);
+    if (isAppointment()) {
+      el("tabs").className = "tabs hide";
+      Array.prototype.forEach.call(document.querySelectorAll("[data-panel]"), function (p) {
+        p.className = "card hide";
+      });
+      el("apptPanel").className = "card";
+      el("fillMeeting").onclick = fillMeeting;
+      el("saveMeeting").onclick = saveMeeting;
+      loadContext().catch(function () { /* templates are not needed on a meeting */ });
+      identify();
+      return;
+    }
     renderAngles();
     var d = new Date(Date.now() + 3600000); d.setMinutes(0, 0, 0);
     el("when").value = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
@@ -336,6 +466,14 @@
     };
     el("sendSel").onclick = sendSelection;
     el("bookGo").onclick = book;
+    el("when").onchange = checkTime;
+    el("mins").onchange = checkTime;
+    el("bookSend").onclick = function () {
+      if (!lastLinks || !lastLinks.message) return;
+      insert(lastLinks.message)
+        .then(function () { say("bookMsg", "Their invitation is in the message."); })
+        .catch(function (e) { say("bookMsg", e.message, true); });
+    };
     el("logged").onclick = function () {
       if (!client || !client.cid) { say("logMsg", "They are not in your book.", true); return; }
       api("/v1/extension/action", { method: "POST",

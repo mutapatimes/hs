@@ -87,7 +87,7 @@ struct BookTab: View {
         do {
             let res = try await HaliaAPI.current.bookAppointment(
                 cid: cid, when: iso.string(from: when), place: place,
-                clientName: model.name, clientEmail: model.email)
+                clientName: model.name, clientEmail: model.email, minutes: minutes)
             if let m = res.links?.message, !m.isEmpty {
                 message = m
                 model.send(m)          // straight into the chat; it is why they are here

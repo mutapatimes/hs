@@ -103,10 +103,14 @@ _MANIFEST = """<?xml version="1.0" encoding="UTF-8"?>
   <!-- Reading a recipient needs ReadItem; putting text into the body needs ReadWriteItem,
        which covers both. -->
   <Permissions>ReadWriteItem</Permissions>
-  <!-- Where the add-in may appear. A mail manifest is rejected without this. -->
+  <!-- Where the add-in may appear. A mail manifest is rejected without this. Appointments are
+       here as well as messages: a visit is often agreed in the calendar rather than in an email,
+       and Halia should be on that window too. -->
   <Rule xsi:type="RuleCollection" Mode="Or">
     <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
     <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit"/>
+    <Rule xsi:type="ItemIs" ItemType="Appointment" FormType="Read"/>
+    <Rule xsi:type="ItemIs" ItemType="Appointment" FormType="Edit"/>
   </Rule>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides"
                     xsi:type="VersionOverridesV1_0">
@@ -146,6 +150,50 @@ _MANIFEST = """<?xml version="1.0" encoding="UTF-8"?>
               <Group id="haliaGroupRead">
                 <Label resid="groupLabel"/>
                 <Control xsi:type="Button" id="haliaOpenRead">
+                  <Label resid="buttonLabel"/>
+                  <Supertip>
+                    <Title resid="buttonLabel"/>
+                    <Description resid="buttonTip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="icon16"/>
+                    <bt:Image size="32" resid="icon32"/>
+                    <bt:Image size="80" resid="icon80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="taskpane"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+          <ExtensionPoint xsi:type="AppointmentOrganizerCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="haliaGroupApptOrg">
+                <Label resid="groupLabel"/>
+                <Control xsi:type="Button" id="haliaOpenApptOrg">
+                  <Label resid="buttonLabel"/>
+                  <Supertip>
+                    <Title resid="buttonLabel"/>
+                    <Description resid="buttonTip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="icon16"/>
+                    <bt:Image size="32" resid="icon32"/>
+                    <bt:Image size="80" resid="icon80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="taskpane"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+          <ExtensionPoint xsi:type="AppointmentAttendeeCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="haliaGroupApptAtt">
+                <Label resid="groupLabel"/>
+                <Control xsi:type="Button" id="haliaOpenApptAtt">
                   <Label resid="buttonLabel"/>
                   <Supertip>
                     <Title resid="buttonLabel"/>

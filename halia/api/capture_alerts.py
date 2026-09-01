@@ -102,6 +102,54 @@ def dispatch_capture_alert(shop: str, result: dict, body: dict, channel: str,
         return False
 
 
+def dispatch_visit_reminder(shop: str, rows: list) -> int:
+    """Tomorrow's visits, to the team. Push, email and Slack, on the same switch as capture alerts.
+
+    To the ASSOCIATE, never to the client: Halia's own transports go to the merchant's team, and a
+    client hearing from software they never signed up to is not a line worth crossing for a
+    reminder. Returns how many visits were mentioned."""
+    try:
+        if not rows:
+            return 0
+        from halia.api.settings import settings_for
+        s = settings_for(shop)
+        if not s.get("capture_alerts", True):
+            return 0
+        store = shop_store()
+        slack = store.get_slack(shop)
+        emails = s.get("notify_emails") or ([s["notify_email"]] if s.get("notify_email") else [])
+        subs = store.push_subs(shop)
+        if not (slack or subs or (emails and notify.email_configured())):
+            return 0
+
+        def _line(r):
+            from datetime import datetime
+            try:
+                when = datetime.fromisoformat(r["when"]).strftime("%H:%M")
+            except (KeyError, ValueError):
+                when = ""
+            bits = [b for b in (when, r.get("name") or "A client", r.get("place") or "") if b]
+            who_with = r.get("seat_name") or ""
+            return " · ".join(bits) + (f" (with {who_with})" if who_with else "")
+
+        lines = [_line(r) for r in rows[:8]]
+        n = len(rows)
+        title = f"{n} visit" + ("" if n == 1 else "s") + " coming up"
+        if subs:
+            notify.send_web_push(subs, {"title": title, "body": lines[0],
+                                        "tag": f"halia-visits-{shop}", "url": "/app"}, shop=shop)
+        if slack:
+            notify.send_slack(slack["webhook_url"], title + "\n" + "\n".join(lines), None, shop=shop)
+        if emails and notify.email_configured():
+            body = ("<p>" + _html.escape(title) + "</p><ul>"
+                    + "".join(f"<li>{_html.escape(x)}</li>" for x in lines) + "</ul>")
+            for email in emails:
+                notify.send_email(email, title, body, shop=shop)
+        return n
+    except Exception:  # noqa: BLE001 — a reminder must never break the cron run
+        return 0
+
+
 def dispatch_pick_alert(shop: str, who: str, count: int, seat=None) -> bool:
     """A client has picked from a selection an associate sent. Push, email and Slack, on the same
     switch as capture alerts. Best-effort; a pick is never lost to a failed alert."""

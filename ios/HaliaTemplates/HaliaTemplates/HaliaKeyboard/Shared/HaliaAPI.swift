@@ -36,14 +36,20 @@ struct HaliaAPI {
 
     // MARK: Templates (host app, on sync)
 
-    private struct ContextResponse: Decodable { let templates: [Template]?; let seat: String? }
+    private struct ContextResponse: Decodable {
+        let templates: [Template]?
+        let seat: String?
+        let hours: [String: HoursStore.Day]?
+    }
 
-    /// Templates plus the signed-in seat name (nil on the legacy shared token).
+    /// Templates, the signed-in seat name (nil on the legacy shared token), and when the shop is
+    /// open, which the keyboard needs offline and so gets cached in the App Group on sync.
     func fetchContext() async throws -> (templates: [Template], seat: String?) {
         let (data, _) = try await send("/v1/extension/context", method: "GET", body: nil)
         guard let decoded = try? JSONDecoder().decode(ContextResponse.self, from: data) else {
             throw HaliaAPIError.decode
         }
+        HoursStore.save(decoded.hours ?? [:])
         return (decoded.templates ?? [], decoded.seat)
     }
 
@@ -571,12 +577,13 @@ struct HaliaAPI {
     struct BookedAppointment: Decodable { let ok: Bool?; let links: ApptLinks? }
 
     func bookAppointment(cid: String, when: String, place: String, clientName: String,
-                         clientEmail: String = "") async throws -> BookedAppointment {
+                         clientEmail: String = "", minutes: Int = 0) async throws -> BookedAppointment {
         // The client's address goes on the calendar entry beside the associate's, so both of them
-        // hold the same invitation.
-        let body: [String: Any] = ["action": "appointment", "cid": cid, "when": when,
+        // hold the same invitation. `minutes` omitted lets the server apply the house default.
+        var body: [String: Any] = ["action": "appointment", "cid": cid, "when": when,
                                    "place": place, "client_name": clientName,
                                    "client_email": clientEmail]
+        if minutes > 0 { body["minutes"] = minutes }
         return try await postAny("/v1/extension/action", body: body)
     }
 
