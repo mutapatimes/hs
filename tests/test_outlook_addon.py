@@ -131,9 +131,9 @@ def test_the_pane_reads_the_sender_when_reading_a_message(client):
     # In compose `to` is a Recipients object and the client is who it is going to. Reading a
     # message, `to` is a plain array holding US, so the client is the sender. Getting this the
     # wrong way round looked up the associate as if they were their own client.
-    to_async = js.index("item.to && item.to.getAsync")
-    sender = js.index("item.organizer || item.from || item.sender")
-    plain_to = js.index("item.to && item.to.length")
+    to_async = js.index("it.to && it.to.getAsync")
+    sender = js.index("it.organizer || it.from || it.sender")
+    plain_to = js.index("it.to && it.to.length")
     assert to_async < sender < plain_to, "the sender must be preferred over a read-mode `to`"
 
 
@@ -159,3 +159,77 @@ def test_the_pane_shows_the_grade_and_keeps_sign_out_out_of_the_way(client):
 def test_nothing_in_the_pane_tells_an_associate_to_ask_a_manager(client):
     page = client.get("/addons/outlook/taskpane").text
     assert "manager" not in page.lower()
+
+
+_V0 = "{http://schemas.microsoft.com/office/mailappversionoverrides}"
+_V1 = "{http://schemas.microsoft.com/office/mailappversionoverrides/1.1}"
+_XSI = "{http://www.w3.org/2001/XMLSchema-instance}type"
+
+
+def test_the_two_schema_generations_nest_as_the_spec_demands(client):
+    # The 1.1 element must be the LAST child of the 1.0 element and inherits nothing from it, so
+    # it restates its own Requirements, Hosts and Resources. Older clients read only the outer
+    # block and see exactly what they saw before.
+    x = ET.fromstring(client.get("/addons/outlook/manifest.xml").text)
+    v0 = x.find(_V0 + "VersionOverrides")
+    kids = [c.tag for c in v0]
+    assert kids[-1] == _V1 + "VersionOverrides", "V1_1 must be the last child of V1_0"
+    v1 = v0.find(_V1 + "VersionOverrides")
+    inner = {c.tag.replace(_V1, "") for c in v1}
+    assert {"Requirements", "Hosts", "Resources"} <= inner
+    # and both generations carry the same four ribbon surfaces, from the same template
+    def points(root, ns):
+        return [e.get(_XSI) for e in root.iter() if e.tag == ns + "ExtensionPoint"]
+    four = ["MessageComposeCommandSurface", "MessageReadCommandSurface",
+            "AppointmentOrganizerCommandSurface", "AppointmentAttendeeCommandSurface"]
+    assert [p for p in points(v0, _V0) if p != "LaunchEvent"] == four
+    assert [p for p in points(v1, _V1) if p != "LaunchEvent"] == four
+
+
+def test_the_read_pane_is_pinnable_and_only_where_pinning_exists(client):
+    x = ET.fromstring(client.get("/addons/outlook/manifest.xml").text)
+    v0 = x.find(_V0 + "VersionOverrides")
+    v1 = v0.find(_V1 + "VersionOverrides")
+    # Pinning is a 1.1-only element; putting it in the 1.0 block would invalidate that manifest
+    # for every older client.
+    assert not [e for e in v0.iter() if e.tag == _V0 + "SupportsPinning"]
+    pins = [e for e in v1.iter() if e.tag == _V1 + "SupportsPinning"]
+    assert len(pins) == 2 and all(e.text == "true" for e in pins)   # the two read surfaces
+
+
+def test_sending_fires_the_auto_log_and_can_never_hold_up_mail(client):
+    x = ET.fromstring(client.get("/addons/outlook/manifest.xml").text)
+    v1 = x.find(_V0 + "VersionOverrides").find(_V1 + "VersionOverrides")
+    ev = [e for e in v1.iter() if e.tag == _V1 + "LaunchEvent"]
+    assert len(ev) == 1
+    assert ev[0].get("Type") == "OnMessageSend"
+    # PromptUser is the guarantee: if Halia is broken or unreachable, Outlook sends the mail.
+    assert ev[0].get("SendMode") == "PromptUser"
+    # and the classic-Windows runtime override points at the standalone handler
+    overrides = [e.get("resid") for e in v1.iter() if e.tag == _V1 + "Override"]
+    assert overrides == ["eventsJs"]
+    js = client.get("/addons/outlook/events.js").text
+    assert "allowEvent: true" in js and "haliaOnSend" in js
+    assert "__BASE__" not in js                       # the base is baked in at serve time
+    assert js.index("finish();") < js.index("fetch(")  # the timeout path completes the event
+
+
+def test_reading_a_message_is_a_first_class_desk(client):
+    js = client.get("/addons/outlook/taskpane.js").text
+    # Every action used to fail in read mode with "Open a reply first." Now it opens a reply
+    # already written.
+    assert "displayReplyForm" in js and "Open a reply first" not in js
+    assert "/v1/extension/brief" in js and "/v1/extension/remember" in js
+    assert "/v1/extension/history" in js and "/v1/extension/appointments" in js
+    assert "/v1/capture" in js                        # an unknown sender is one tap from the book
+    assert "ItemChanged" in js and "RecipientsChanged" in js
+    assert "roamingSettings" in js                    # what the on-send handler signs in with
+    # The standing shows reasons, the play and orders, and never the latent value (the field is
+    # in the lookup response; the pane must not read it).
+    assert "d.latent" not in js and "client.latent" not in js
+
+
+def test_compose_still_gets_its_own_tools(client):
+    js = client.get("/addons/outlook/taskpane.js").text
+    assert "/v1/extension/polish" in js and "getSelectedDataAsync" in js
+    assert "fillSubject" in js                        # a template's subject fills an empty draft

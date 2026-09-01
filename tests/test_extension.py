@@ -1098,3 +1098,67 @@ def test_the_house_voice_reads_and_writes_from_the_app(env):
     saved = json.loads(store.get_settings_raw(SHOP))
     assert saved["voice"]["language"] == "fr" and saved["capture_slug"] == "keep-me"
     assert client.get("/v1/extension/voice", headers=h).json()["voice"]["exclusivity"] == 90
+
+
+# ── the on-send auto-log ─────────────────────────────────────────────────────
+class _Sink:
+    def __init__(self): self.meta = {}
+    def get_metafield(self, cid, key, namespace="halia"): return self.meta.get((cid, key))
+    def set_metafield(self, cid, key, value, *a, **k): self.meta[(cid, key)] = value
+
+
+def test_sending_an_email_logs_the_contact_once_a_day(env, monkeypatch):
+    import json
+    client, store, tok = env
+    from halia.api import extension as ext_mod
+    seat_tok = new_token()
+    sid = store.create_seat(SHOP, "Sarah Bloom", hash_token(seat_tok), "sarah@m.com")
+    h = {"X-Halia-Ext-Token": seat_tok}
+    _seed([_row()])
+    sink = _Sink()
+    monkeypatch.setattr("halia.api.board._sink", lambda shop: sink)
+    ext_mod._EMAILED.clear()
+
+    r = client.post("/v1/extension/emailed", json={"emails": ["GRACE@x.com"]}, headers=h)
+    assert r.status_code == 200 and r.json() == {"logged": 1}
+    pipe = json.loads(sink.meta[("c1", "pipeline")])
+    entry = pipe["activity"][-1]
+    assert entry["action"] == "contacted" and entry["note"] == "Emailed"
+    assert entry["actor_id"] == sid and entry["actor_name"] == "Sarah Bloom"
+
+    # The rest of the thread that day logs nothing more.
+    assert client.post("/v1/extension/emailed", json={"emails": ["grace@x.com"]},
+                       headers=h).json() == {"logged": 0}
+    assert len([a for a in json.loads(sink.meta[("c1", "pipeline")])["activity"]
+                if a["action"] == "contacted"]) == 1
+
+    # A different day is a fresh contact worth a line.
+    for k in list(ext_mod._EMAILED):
+        ext_mod._EMAILED[(k[0], k[1], k[2], "2020-01-01")] = ext_mod._EMAILED.pop(k)
+    assert client.post("/v1/extension/emailed", json={"emails": ["grace@x.com"]},
+                       headers=h).json() == {"logged": 1}
+
+
+def test_emails_to_strangers_log_nothing_and_create_nobody(env, monkeypatch):
+    client, store, tok = env
+    from halia.api import extension as ext_mod
+    ext = _ext_token(client, tok)
+    h = {"X-Halia-Ext-Token": ext}
+    _seed([_row()])
+    sink = _Sink()
+    monkeypatch.setattr("halia.api.board._sink", lambda shop: sink)
+    ext_mod._EMAILED.clear()
+    r = client.post("/v1/extension/emailed",
+                    json={"emails": ["dhl@example.com", "accountant@example.com"]}, headers=h)
+    assert r.status_code == 200 and r.json() == {"logged": 0}
+    assert sink.meta == {}                                # nothing written, nobody created
+    # And the cap: only the first five addresses are even considered.
+    many = ["x%d@example.com" % i for i in range(9)] + ["grace@x.com"]
+    assert client.post("/v1/extension/emailed", json={"emails": many},
+                       headers=h).json() == {"logged": 0}
+
+
+def test_the_auto_log_needs_a_sign_in(env):
+    client, store, tok = env
+    assert client.post("/v1/extension/emailed",
+                       json={"emails": ["grace@x.com"]}).status_code == 401

@@ -325,6 +325,9 @@ def _catalogue_slice(shop: str, term: str, collection: str, size: str, n: int) -
 # offers no more than the link can actually carry.
 _SEND_ALL_MAX = 40
 
+# The on-send auto-log's once-a-day memory: (shop, seat, cid, date) -> True. RAM only.
+_EMAILED: dict = {}
+
 
 def _products_for_handles(shop: str, handles: list[str]) -> list[dict]:
     """Resolve storefront handles to product cards (product_search_node dicts, with variants),
@@ -1740,6 +1743,52 @@ def register(app) -> None:
         return {"appointments": [{**a, "links": appts.calendar_links(a, a.get("name") or "", store, auth.shop,
                                                                     client_email=a.get("email") or "")}
                                  for a in rows]}
+
+    @app.post("/v1/extension/emailed")
+    def extension_emailed(x_halia_ext_token: Optional[str] = Header(None),
+                          payload: Any = Body(default=None)) -> dict:
+        """The Outlook on-send auto-log: an email just went to these addresses; put a contact on
+        the record of any that are clients. At most once per client per seat per day, so a
+        back-and-forth thread logs one line, not five. The dedupe lives in RAM only (zero
+        retention: an opaque id and a date, gone on restart; the worst a restart costs is one
+        duplicate line). Unknown addresses are ignored and never created. No Slack broadcast,
+        deliberately: the capture and pick alerts are events, but every outgoing email is not."""
+        from datetime import date
+
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
+        raw = (payload or {}).get("emails") or []
+        emails = [str(e).strip().lower() for e in raw if str(e).strip()][:5]
+        logged = 0
+        for em in emails:
+            try:
+                resp = _lookup(shop, em, None, None, None)
+            except Exception:  # noqa: BLE001 — one bad address never stops the rest
+                continue
+            cid = resp.get("cid")
+            if not (resp.get("found") and cid):
+                continue
+            key = (shop, auth.seat_id or "", str(cid), date.today().isoformat())
+            if key in _EMAILED:
+                continue
+            try:
+                from halia.api.board import _sink, _write_soft, append_activity, load_pipe
+                sink = _sink(shop)
+                pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
+                who = auth.seat_name or "A team member"
+                append_activity(pipe, "contacted", auth.seat_id, who, note="Emailed")
+                if not _write_soft(sink, cid, pipe):
+                    _EMAILED[key] = True
+                    logged += 1
+            except Exception:  # noqa: BLE001
+                continue
+        if logged:
+            data.record_activity(shop, "extension_contacted", logged)
+        if len(_EMAILED) > 5000:                       # bound the RAM, keep today's keys working
+            today = date.today().isoformat()
+            for k in [k for k in _EMAILED if k[3] != today]:
+                _EMAILED.pop(k, None)
+        return {"logged": logged}
 
     @app.get("/v1/extension/check_time")
     def extension_check_time(x_halia_ext_token: Optional[str] = Header(None),
