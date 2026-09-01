@@ -1288,6 +1288,9 @@ def register(app) -> None:
             "campaigns": campaigns,
             "todos": _todos(shop),
             "seat": auth.seat_name,                       # who is signed in (None on the legacy token)
+            # When the shop is open, so a booking surface offers real times instead of 3am.
+            # {} when the store has never said, and then nothing is bounded or warned about.
+            "hours": s.get("hours") or {},
             "slack": bool(shop_store().get_slack(shop)),   # team broadcasts available?
         }
 
@@ -1738,6 +1741,18 @@ def register(app) -> None:
                                                                     client_email=a.get("email") or "")}
                                  for a in rows]}
 
+    @app.get("/v1/extension/check_time")
+    def extension_check_time(x_halia_ext_token: Optional[str] = Header(None),
+                             when: str = Query(...), minutes: int = Query(0),
+                             cid: Optional[str] = Query(None)) -> dict:
+        """Does this time run into anything, and is the shop even open? Asked before booking so an
+        associate is warned while they can still pick another time. Never refuses anything."""
+        from halia.api import appointments as appts
+        auth = _resolve_ext(x_halia_ext_token)
+        return {"clash": appts.clashes(auth.shop, when, minutes, seat_id=auth.seat_id,
+                                       cid=str(cid or "")),
+                "outside_hours": appts.outside_hours(auth.shop, when, minutes)}
+
     @app.get("/v1/extension/products")
     def extension_products(x_halia_ext_token: Optional[str] = Header(None),
                            q: Optional[str] = Query(None),
@@ -1911,8 +1926,15 @@ def register(app) -> None:
             data.record_activity(shop, "extension_pipeline_add")
             return {"ok": True, "stage": stage}
 
-        if action in ("appointment", "appointment_move", "appointment_cancel"):
+        if action in ("appointment", "appointment_move", "appointment_cancel",
+                      "appointment_outcome"):
             from halia.api import appointments as appts
+            if action == "appointment_outcome":
+                done = appts.record_outcome(shop, cid, str(body.get("id") or ""),
+                                            str(body.get("outcome") or ""), auth.seat_id, who)
+                if not done:
+                    raise HTTPException(404, "That appointment is no longer in the client's record.")
+                return {"ok": True, "appointment": done}
             if action == "appointment_move":
                 moved = appts.reschedule(shop, cid, str(body.get("id") or ""), body.get("when"),
                                          body.get("minutes"), body.get("place"), auth.seat_id, who)
@@ -1922,7 +1944,8 @@ def register(app) -> None:
                 return {"ok": True, "appointment": moved,
                         "links": appts.calendar_links(moved, str(body.get("client_name") or ""),
                                                       appts._store_name(shop), shop,
-                                                      client_email=str(body.get("client_email") or ""))}
+                                                      client_email=str(body.get("client_email") or "")),
+                        **appts._warnings(shop, moved, auth.seat_id, cid)}
             if action == "appointment":
                 appt = appts.book(shop, cid, body.get("when"), body.get("minutes"), body.get("place"),
                                   body.get("note"), auth.seat_id, who)
@@ -1931,7 +1954,8 @@ def register(app) -> None:
                 return {"ok": True, "appointment": appt,
                         "links": appts.calendar_links(appt, str(body.get("client_name") or ""),
                                                      appts._store_name(shop), shop,
-                                                     client_email=str(body.get("client_email") or ""))}
+                                                     client_email=str(body.get("client_email") or "")),
+                        **appts._warnings(shop, appt, auth.seat_id, cid)}
             ok = appts.cancel(shop, cid, str(body.get("id") or ""), auth.seat_id, who)
             return {"ok": ok}
 

@@ -2565,6 +2565,39 @@ function apptLocal(iso){const d=new Date(iso);if(isNaN(d))return "";const p=n=>S
 function apptWhen(iso){const d=new Date(iso);return d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})+", "+d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});}
 function apptLinks(a){return `<a href="${esc(a.links.google)}" target="_blank" rel="noopener" style="font:600 12px system-ui;color:var(--ink)">Google</a><a href="${esc(a.links.outlook)}" target="_blank" rel="noopener" style="font:600 12px system-ui;color:var(--ink)">Outlook</a><a href="${esc(a.links.ics_data)}" download="appointment.ics" style="font:600 12px system-ui;color:var(--ink)">Apple / .ics</a>${a.links.message?`<button data-apptsend="${esc(a.links.message)}" style="background:none;border:none;padding:0;font:600 12px system-ui;color:var(--brand-deep);cursor:pointer">Send to client</button>`:""}`;}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-apptsend]");if(!b)return;navigator.clipboard.writeText(b.dataset.apptsend).then(()=>toast("Copied. Paste it into your message to them."),()=>toast("Copy failed."));});
+// Opening hours: seven rows the store fills in once. Every booking surface reads them, so a
+// picker offers real times instead of 03:00 on a Sunday, and a booking outside them is flagged.
+const HOUR_DAYS=[["mon","Monday"],["tue","Tuesday"],["wed","Wednesday"],["thu","Thursday"],
+                 ["fri","Friday"],["sat","Saturday"],["sun","Sunday"]];
+function renderHours(){
+  const box=document.getElementById("setHours"); if(!box) return;
+  const h=SETTINGS.hours||{};
+  box.innerHTML=HOUR_DAYS.map(([k,label])=>{
+    const r=h[k]||{};
+    return `<div class="row" style="gap:10px;padding:5px 0;flex-wrap:wrap">
+      <span style="width:90px;font:13px system-ui;color:var(--ink)">${label}</span>
+      <input type="time" data-hopen="${k}" value="${esc(r.open||"10:00")}" style="flex:none">
+      <span style="color:var(--faint);font:12.5px system-ui">to</span>
+      <input type="time" data-hclose="${k}" value="${esc(r.close||"18:00")}" style="flex:none">
+      <label style="display:flex;gap:5px;align-items:center;font:12.5px system-ui;color:var(--soft)">
+        <input type="checkbox" data-hclosed="${k}"${r.closed?" checked":""} style="width:auto"> Closed</label>
+    </div>`;}).join("");
+  box.querySelectorAll("[data-hclosed]").forEach(cb=>cb.onchange=()=>{
+    const k=cb.dataset.hclosed;
+    box.querySelectorAll(`[data-hopen="${k}"],[data-hclose="${k}"]`).forEach(i=>i.disabled=cb.checked);
+  });
+  box.querySelectorAll("[data-hclosed]").forEach(cb=>cb.dispatchEvent(new Event("change")));
+}
+function readHours(){
+  const box=document.getElementById("setHours"); if(!box) return SETTINGS.hours||{};
+  const out={};
+  HOUR_DAYS.forEach(([k])=>{
+    const o=box.querySelector(`[data-hopen="${k}"]`), c=box.querySelector(`[data-hclose="${k}"]`),
+          x=box.querySelector(`[data-hclosed="${k}"]`);
+    out[k]={open:(o&&o.value)||"10:00",close:(c&&c.value)||"18:00",closed:!!(x&&x.checked)};
+  });
+  return out;
+}
 function renderAppointments(){
   const card=document.getElementById("ovApptCard"), box=document.getElementById("ovAppts"); if(!card||!box) return;
   fetch("/v1/appointments?days=14").then(r=>r.json()).then(d=>{
@@ -4176,6 +4209,12 @@ function openSettings(page){
         </div>
 
         <div style="${C}">
+          <div style="${H}">Opening hours</div>
+          <p style="${P}">Every place you book a visit offers these times, and warns you outside them.</p>
+          <div id="setHours"></div>
+        </div>
+
+        <div style="${C}">
           <div style="${H}">Catalogue message</div>
           <p style="${P}">Sent when you choose <b>Send catalogue</b> on a client. <b>{first_name}</b> and <b>{sender}</b> personalise it; <b>{catalog_link}</b> becomes that client's own link.</p>
           <textarea id="setCatMsg" placeholder="Hi {first_name}, …" style="width:100%;min-height:150px;${I};resize:vertical;line-height:1.6">${esc(SETTINGS.catalog_message||"")}</textarea>
@@ -4809,6 +4848,7 @@ function openSettings(page){
     };
     document.getElementById("saveSettings").onclick=()=>{
       collect();
+      renderHours();
       const num=id=>parseFloat(document.getElementById(id).value)||0;
       const capAl=document.getElementById("setCapAlerts");
         const body={vic_threshold:num("setThreshold"),sender_name:document.getElementById("setSender").value,
@@ -4823,6 +4863,7 @@ function openSettings(page){
         catalog_message:(document.getElementById("setCatMsg")||{}).value||"",
         catalog_logo:SET_LOGO,
         catalog_domain:(document.getElementById("setCatDomain")||{}).value||"",
+        hours:readHours(),
         ...(document.querySelector("[data-voice]")?{voice:(function(){const v={};document.querySelectorAll("[data-voice]").forEach(r=>v[r.dataset.voice]=+r.value);v.language=(document.getElementById("voiceLang")||{}).value||"en";return v;})()}:(SETTINGS.voice?{voice:SETTINGS.voice}:{})),
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),
         order_templates:Object.fromEntries(OSTAT.map(st=>[st,(otmpl[st]||[]).filter(t=>(t.name||"").trim()&&(t.body||"").trim())]))};

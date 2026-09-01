@@ -238,3 +238,231 @@ def test_invite_page_carries_the_store_name_once_and_never_a_placeholder_heading
                                "minutes": 45, "place": "", "note": ""}, "Grace", "")
     page = client.get("/i/" + links["invite"].rsplit("/i/", 1)[1])
     assert page.status_code == 200 and "<h1>" not in page.text and "Your appointment" not in page.text
+
+
+def test_a_duration_survives_every_path(env):
+    # No test asserted this before, which is how the Messages picker came to collect a duration and
+    # drop it on the floor: HaliaAPI.bookAppointment had no minutes parameter at all.
+    client, store, sink = env
+    seat_tok = new_token()
+    store.create_seat(SHOP, "Sarah", hash_token(seat_tok), "sarah@m.com")
+    h = {"X-Halia-Ext-Token": seat_tok}
+    d = client.post("/v1/board/appointment",
+                    json={"cid": "c1", "when": _soon(3).isoformat(), "minutes": 90}).json()
+    assert d["appointment"]["minutes"] == 90 and d["links"]["minutes"] == 90
+    assert "DTEND:" in d["links"]["ics"]
+    e = client.post("/v1/extension/action",
+                    json={"action": "appointment", "cid": "c1", "when": _soon(4).isoformat(),
+                          "minutes": 30}, headers=h).json()
+    assert e["appointment"]["minutes"] == 30
+    moved = client.post("/v1/extension/action",
+                        json={"action": "appointment_move", "cid": "c1",
+                              "id": e["appointment"]["id"], "when": _soon(5).isoformat(),
+                              "minutes": 60}, headers=h).json()
+    assert moved["appointment"]["minutes"] == 60
+
+
+def test_a_moved_appointment_moves_the_entry_both_sides_already_hold(env):
+    # The record keeps the id so the calendar entry updates rather than duplicating, but without a
+    # SEQUENCE a calendar that honours it ignores the update, and the client's copy took its UID
+    # from the token, which changes with the time, so they got a second entry instead.
+    client, store, sink = env
+    d = client.post("/v1/board/appointment",
+                    json={"cid": "c1", "when": _soon(3, 15).isoformat(), "client_name": "Grace"}).json()
+    appt_id = d["appointment"]["id"]
+    assert "SEQUENCE:0" in d["links"]["ics"]
+    first_token = d["links"]["invite"].rsplit("/i/", 1)[1]
+    first_ics = client.get(f"/i/{first_token}.ics").text
+    assert f"UID:{appt_id}@haliascore.com" in first_ics and "SEQUENCE:0" in first_ics
+
+    r = client.post("/v1/board/appointment/reschedule",
+                    json={"cid": "c1", "id": appt_id, "when": _soon(6, 11).isoformat(),
+                          "client_name": "Grace"}).json()
+    assert r["appointment"]["id"] == appt_id
+    assert "SEQUENCE:1" in r["links"]["ics"]
+    second_ics = client.get("/i/" + r["links"]["invite"].rsplit("/i/", 1)[1] + ".ics").text
+    # Same UID, higher revision: their calendar updates the visit it already has.
+    assert f"UID:{appt_id}@haliascore.com" in second_ics and "SEQUENCE:1" in second_ics
+    assert "11:00" in r["links"]["message"]
+
+
+def test_the_links_name_the_event_so_no_surface_has_to(env):
+    # The Outlook pane opens a real meeting form and has to title it. Six surfaces already
+    # re-derive parts of this; the server owns it.
+    client, store, sink = env
+    d = client.post("/v1/board/appointment",
+                    json={"cid": "c1", "when": _soon(2, 14).isoformat(), "place": "Mount Street",
+                          "client_name": "Grace Ladoja", "actor": "Sarah"}).json()
+    links = d["links"]
+    assert links["title"] == "Appointment with Grace Ladoja and Sarah at Maison"
+    assert links["location"] == "Mount Street" and links["minutes"] == 45
+    from datetime import datetime
+    assert (datetime.fromisoformat(links["end"])
+            - datetime.fromisoformat(links["start"])).total_seconds() == 45 * 60
+
+
+def test_an_invite_made_before_ids_travelled_still_opens(env):
+    # Tokens already in clients' inboxes carry no id and no revision.
+    client, store, sink = env
+    import base64 as _b64, hashlib as _h, hmac as _hm, json as _j
+    from halia.api.tenant_auth import _secret
+    raw = _j.dumps({"w": _soon(3).isoformat(timespec="minutes"), "m": 45, "p": "Mount Street",
+                    "s": "Maison"}, separators=(",", ":")).encode()
+    body = _b64.urlsafe_b64encode(raw).decode().rstrip("=")
+    sig = _hm.new(_secret(), body.encode(), _h.sha256).hexdigest()[:24]
+    old = f"{body}.{sig}"
+    assert appointments.parse_invite(old)["id"] == ""
+    page = client.get(f"/i/{old}")
+    assert page.status_code == 200 and "Mount Street" in page.text
+    ics = client.get(f"/i/{old}.ics")
+    assert ics.status_code == 200 and "SEQUENCE:0" in ics.text
+
+
+def test_a_clash_is_reported_and_never_refused(env):
+    # book() appended unconditionally before this: one associate could be in three places at once
+    # and the same client could be booked twice, with nothing said.
+    client, store, sink = env
+    seat_tok = new_token()
+    sid = store.create_seat(SHOP, "Sarah", hash_token(seat_tok), "sarah@m.com")
+    h = {"X-Halia-Ext-Token": seat_tok}
+    first = client.post("/v1/extension/action",
+                        json={"action": "appointment", "cid": "c1", "when": _soon(3, 15).isoformat(),
+                              "minutes": 60, "client_name": "Grace"}, headers=h).json()
+    assert first["clash"] == []                                    # nothing to run into yet
+
+    # An overlapping visit for the same associate is booked, and reported.
+    second = client.post("/v1/extension/action",
+                         json={"action": "appointment", "cid": "c2",
+                               "when": _soon(3, 15).replace(minute=30).isoformat(),
+                               "client_name": "Ben"}, headers=h)
+    assert second.status_code == 200
+    clash = second.json()["clash"]
+    assert len(clash) == 1 and clash[0]["id"] == first["appointment"]["id"]
+    assert clash[0]["why"] == "you"
+    assert len(json.loads(sink.meta[("c2", "pipeline")])["appointments"]) == 1   # not refused
+
+    # Asked beforehand, the same answer, without booking anything.
+    d = client.get("/v1/extension/check_time",
+                   params={"when": _soon(3, 15).replace(minute=30).isoformat(), "minutes": 45},
+                   headers=h).json()
+    assert len(d["clash"]) == 2
+    assert json.loads(sink.meta[("c1", "pipeline")])["appointments"][0]["seat_id"] == sid
+
+
+def test_visits_that_only_touch_do_not_clash(env):
+    # One ending at 15:00 and the next starting at 15:00 is a normal day, not a double booking.
+    client, store, sink = env
+    seat_tok = new_token()
+    store.create_seat(SHOP, "Sarah", hash_token(seat_tok), "sarah@m.com")
+    h = {"X-Halia-Ext-Token": seat_tok}
+    client.post("/v1/extension/action",
+                json={"action": "appointment", "cid": "c1", "when": _soon(4, 14).isoformat(),
+                      "minutes": 60}, headers=h)
+    d = client.get("/v1/extension/check_time",
+                   params={"when": _soon(4, 15).isoformat(), "minutes": 30}, headers=h).json()
+    assert d["clash"] == []
+
+
+def test_a_time_outside_opening_hours_is_flagged_but_allowed(env):
+    import json as _j
+    client, store, sink = env
+    # A store that has not set hours is never warned about.
+    d = client.post("/v1/board/appointment",
+                    json={"cid": "c1", "when": _soon(3, 3).isoformat()}).json()
+    assert d["outside_hours"] == ""
+
+    store.save_settings(SHOP, _j.dumps({"hours": {
+        "mon": {"open": "10:00", "close": "18:00"}, "tue": {"open": "10:00", "close": "18:00"},
+        "wed": {"open": "10:00", "close": "18:00"}, "thu": {"open": "10:00", "close": "18:00"},
+        "fri": {"open": "10:00", "close": "18:00"}, "sat": {"open": "11:00", "close": "17:00"},
+        "sun": {"closed": True}}}))
+    # Find a weekday and a Sunday in the window so the assertion does not depend on today.
+    def _on(weekday, hour):
+        for d_ in range(1, 9):
+            t = _soon(d_, hour)
+            if t.weekday() == weekday:
+                return t
+        raise AssertionError("no such day in the window")
+
+    early = client.post("/v1/board/appointment",
+                        json={"cid": "c1", "when": _on(0, 8).isoformat()}).json()
+    assert "before the shop opens on Monday (10:00)" in early["outside_hours"]
+    late = client.post("/v1/board/appointment",
+                       json={"cid": "c1", "when": _on(1, 17).isoformat(), "minutes": 120}).json()
+    assert "past closing on Tuesday (18:00)" in late["outside_hours"]
+    shut = client.post("/v1/board/appointment",
+                       json={"cid": "c1", "when": _on(6, 12).isoformat()}).json()
+    assert shut["outside_hours"] == "The shop is closed on Sunday."
+    fine = client.post("/v1/board/appointment",
+                       json={"cid": "c1", "when": _on(2, 11).isoformat()}).json()
+    assert fine["outside_hours"] == ""
+    # Flagged, never refused: every one of them is on the record.
+    assert len(json.loads(sink.meta[("c1", "pipeline")])["appointments"]) == 5
+
+
+def _past(hours=3):
+    return datetime.now(timezone.utc) - timedelta(hours=hours)
+
+
+def test_a_visit_can_be_marked_attended_and_counts_for_the_associate(env):
+    client, store, sink = env
+    seat_tok = new_token()
+    sid = store.create_seat(SHOP, "Sarah Bloom", hash_token(seat_tok), "sarah@m.com")
+    h = {"X-Halia-Ext-Token": seat_tok}
+    appt = client.post("/v1/extension/action",
+                       json={"action": "appointment", "cid": "c1",
+                             "when": _past(3).isoformat(), "client_name": "Grace"},
+                       headers=h).json()["appointment"]
+    r = client.post("/v1/extension/action",
+                    json={"action": "appointment_outcome", "cid": "c1", "id": appt["id"],
+                          "outcome": "attended"}, headers=h)
+    assert r.status_code == 200 and r.json()["appointment"]["status"] == "attended"
+    pipe = json.loads(sink.meta[("c1", "pipeline")])
+    assert pipe["appointments"][0]["status"] == "attended"
+    assert pipe["activity"][-1]["action"] == "appointment_attended"
+    from halia.api import reports
+    reports._REPORT_CACHE.clear()
+    rep = client.get("/v1/reports/associates?days=30").json()
+    mine = next(x for x in rep["seats"] if x["id"] == sid)
+    assert mine["attended"] == 1 and mine["no_shows"] == 0
+    assert rep["totals"]["attended"] == 1
+
+
+def test_a_visit_that_has_not_happened_cannot_be_marked(env):
+    # Otherwise an associate could mark next month's visits attended and quietly inflate the
+    # numbers the team report is built on.
+    client, store, sink = env
+    appt = client.post("/v1/board/appointment",
+                       json={"cid": "c1", "when": _soon(3).isoformat()}).json()["appointment"]
+    r = client.post("/v1/board/appointment/outcome",
+                    json={"cid": "c1", "id": appt["id"], "outcome": "attended"})
+    assert r.status_code == 422 and "has not happened yet" in r.json()["detail"]
+    bad = client.post("/v1/board/appointment/outcome",
+                      json={"cid": "c1", "id": appt["id"], "outcome": "maybe"})
+    assert bad.status_code == 422
+    assert client.post("/v1/board/appointment/outcome",
+                       json={"cid": "c1", "id": "nope", "outcome": "attended"}).status_code == 404
+
+
+def test_tomorrows_visits_are_gathered_for_the_team_and_only_theirs(env, monkeypatch):
+    client, store, sink = env
+    from halia.api import appointments as ap
+    client.post("/v1/board/appointment", json={"cid": "c1", "when":
+        (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat()})
+    client.post("/v1/board/appointment", json={"cid": "c1", "when": _soon(10).isoformat()})
+    rows = ap.due_reminders(SHOP)
+    assert len(rows) == 1                       # the far one is not due yet
+    # Within the "already told them" floor, nothing is due, so the hourly run does not repeat.
+    assert ap.due_reminders(SHOP, already=12) == []
+
+    sent = {}
+    monkeypatch.setattr("halia.notify.email_configured", lambda: True)
+    monkeypatch.setattr("halia.notify.send_email",
+                        lambda to, subj, html, *a, **k: sent.update({"to": to, "subj": subj, "html": html}) or True)
+    store.save_settings(SHOP, json.dumps({"notify_emails": ["team@maison.com"]}))
+    from halia.api.capture_alerts import dispatch_visit_reminder
+    assert dispatch_visit_reminder(SHOP, rows) == 1
+    assert sent["to"] == "team@maison.com" and "1 visit coming up" in sent["subj"]
+    assert "Grace Ladoja" in sent["html"]
+    # It goes to the team, never to the client.
+    assert "g@x.com" not in sent["to"]

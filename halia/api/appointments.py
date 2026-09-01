@@ -48,8 +48,13 @@ def invite_token(appt: dict, store_name: str) -> str:
     and no address travel in it, so a forwarded link tells a stranger nothing about the client;
     the two people are named only on the associate's own copy of the entry. Nothing is stored and
     the signature stops tampering."""
+    # The appointment's own id and revision travel too. Neither says anything about the client,
+    # and without them a reschedule hands the client a SECOND entry instead of moving the one they
+    # hold: the UID was derived from the token, and the token changes whenever the time does.
     raw = json.dumps({"w": appt["when"], "m": int(appt.get("minutes") or DEFAULT_MINUTES),
-                      "p": appt.get("place") or "", "s": store_name or ""}, separators=(",", ":")).encode()
+                      "p": appt.get("place") or "", "s": store_name or "",
+                      "i": appt.get("id") or "", "q": int(appt.get("seq") or 0)},
+                     separators=(",", ":")).encode()
     body = base64.urlsafe_b64encode(raw).decode().rstrip("=")
     sig = hmac.new(_secret(), body.encode(), hashlib.sha256).hexdigest()[:24]
     return f"{body}.{sig}"
@@ -63,7 +68,7 @@ def parse_invite(token: str) -> Optional[dict]:
         d = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
         datetime.fromisoformat(d["w"])
         return {"when": d["w"], "minutes": int(d.get("m") or DEFAULT_MINUTES), "place": d.get("p") or "",
-                "store": d.get("s") or ""}
+                "store": d.get("s") or "", "id": d.get("i") or "", "seq": int(d.get("q") or 0)}
     except Exception:  # noqa: BLE001 — any malformed token is simply not an invite
         return None
 
@@ -136,6 +141,7 @@ def calendar_links(appt: dict, client_name: str, store_name: str, shop: str = ""
     ics = "\r\n".join([
         "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halia//Appointments//EN", "BEGIN:VEVENT",
         f"UID:{appt['id']}@haliascore.com", f"DTSTAMP:{fmt(datetime.now(timezone.utc))}",
+        f"SEQUENCE:{int(appt.get('seq') or 0)}",
         f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}", f"SUMMARY:{_ics_escape(title)}",
         f"LOCATION:{_ics_escape(place)}", f"DESCRIPTION:{_ics_escape(details)}",
         *_people_ics(client_name, client_email, seat_name, seat_addr),
@@ -146,9 +152,15 @@ def calendar_links(appt: dict, client_name: str, store_name: str, shop: str = ""
         invite = client_url(shop, f"i/{token}")
     else:
         invite = (config.HALIA_APP_URL or "https://haliascore.com").rstrip("/") + f"/i/{token}"
+    # title/start/end/minutes come back too: six surfaces were each re-deriving some of this, and
+    # a client that has to build the event itself (the Outlook pane opens a real meeting form) must
+    # not invent a second way of naming the same appointment.
     return {"google": google, "outlook": outlook, "ics": ics,
             "ics_data": "data:text/calendar;charset=utf-8," + quote(ics),
-            "invite": invite, "message": client_message(appt, store_name, invite)}
+            "invite": invite, "message": client_message(appt, store_name, invite),
+            "title": title, "location": place,
+            "start": start.isoformat(), "end": end.isoformat(),
+            "minutes": int(appt.get("minutes") or DEFAULT_MINUTES)}
 
 
 _INVITE_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -182,7 +194,8 @@ def book(shop: str, cid: str, when: Any, minutes: Any, place: str, note: str,
 
     start = _parse_when(when)
     mins = max(15, min(int(minutes or DEFAULT_MINUTES), 480))
-    appt = {"id": secrets.token_hex(6), "when": start.isoformat(timespec="minutes"), "minutes": mins,
+    appt = {"id": secrets.token_hex(6), "seq": 0,
+            "when": start.isoformat(timespec="minutes"), "minutes": mins,
             "place": str(place or "").strip()[:120], "note": str(note or "").strip()[:500],
             "seat_id": actor_id, "seat_name": actor_name or "", "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     sink = _sink(shop)
@@ -219,6 +232,7 @@ def reschedule(shop: str, cid: str, appt_id: str, when: Any, minutes: Any, place
     if not appt:
         return None
     was = _label(datetime.fromisoformat(appt["when"]), int(appt.get("minutes") or DEFAULT_MINUTES))
+    appt["seq"] = int(appt.get("seq") or 0) + 1      # a new revision of the same entry
     appt["when"] = start.isoformat(timespec="minutes")
     appt["minutes"] = max(15, min(int(minutes or appt.get("minutes") or DEFAULT_MINUTES), 480))
     if place is not None:
@@ -250,6 +264,54 @@ def cancel(shop: str, cid: str, appt_id: str, actor_id: Optional[str], actor_nam
     return True
 
 
+OUTCOMES = ("attended", "no_show")
+
+
+def record_outcome(shop: str, cid: str, appt_id: str, outcome: str,
+                   actor_id: Optional[str], actor_name: Optional[str]) -> Optional[dict]:
+    """Mark a visit as attended or a no-show. Only after it has started: nobody can say how a
+    future appointment went, and letting them would quietly corrupt the associate's numbers."""
+    from halia.api.board import _sink, _write_soft, append_activity, load_pipe
+
+    if outcome not in OUTCOMES:
+        raise HTTPException(422, "Outcome must be attended or no_show.")
+    sink = _sink(shop)
+    pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
+    appt = next((a for a in (pipe.get("appointments") or []) if a.get("id") == appt_id), None)
+    if not appt:
+        return None
+    try:
+        when = datetime.fromisoformat(appt["when"])
+    except (KeyError, ValueError):
+        raise HTTPException(422, "That appointment has no usable time.")
+    if when > datetime.now(timezone.utc):
+        raise HTTPException(422, "That visit has not happened yet.")
+    appt["status"] = outcome
+    append_activity(pipe, f"appointment_{outcome}", actor_id, actor_name,
+                    note=_label(when, int(appt.get("minutes") or DEFAULT_MINUTES)))
+    if _write_soft(sink, cid, pipe):
+        raise HTTPException(502, "Could not save to the store just now. Please try again.")
+    _invalidate(shop)
+    return appt
+
+
+def due_reminders(shop: str, within_hours: int = 24, already: int = 2) -> list[dict]:
+    """Visits starting inside the window that have not been reminded about. ``already`` is the
+    lower bound in hours, so the hourly cron does not send the same nudge twice."""
+    now = datetime.now(timezone.utc)
+    soon = now + timedelta(hours=max(1, within_hours))
+    floor = now + timedelta(hours=max(0, already))
+    out = []
+    for row in upcoming(shop, days=2):
+        try:
+            when = datetime.fromisoformat(row["when"])
+        except (KeyError, ValueError):
+            continue
+        if floor <= when <= soon:
+            out.append(row)
+    return out
+
+
 def upcoming(shop: str, days: int = 14, seat_id: Optional[str] = None) -> list[dict]:
     """Every appointment in the next ``days`` across the board, soonest first."""
     from halia.api.board import _sink, pipeline_cards
@@ -272,6 +334,83 @@ def upcoming(shop: str, days: int = 14, seat_id: Optional[str] = None) -> list[d
                             "mine": bool(seat_id and a.get("seat_id") == seat_id)})
     out.sort(key=lambda x: x["when"])
     return out
+
+
+def clashes(shop: str, when: Any, minutes: Any = None, seat_id: Optional[str] = None,
+            cid: str = "", ignore_id: str = "") -> list[dict]:
+    """Anything the proposed time runs into: the same associate booked elsewhere, or the same
+    client booked twice. Overlap is strict, so a visit ending at 15:00 and one starting at 15:00
+    do not clash.
+
+    A warning, never a block. An associate double-booking themselves on purpose is a normal thing
+    to do, and refusing it would send them somewhere else to work."""
+    try:
+        start = _parse_when(when)
+    except HTTPException:
+        return []
+    mins = max(15, min(int(minutes or DEFAULT_MINUTES), 480))
+    end = start + timedelta(minutes=mins)
+    out = []
+    # 90 is the horizon upcoming() allows, and it only looks forward, which is all we need: a time
+    # in the past cannot be double-booked in any way worth warning about.
+    for row in upcoming(shop, days=90):
+        if row.get("id") == ignore_id:
+            continue
+        mine = seat_id and row.get("seat_id") == seat_id
+        theirs = cid and str(row.get("cid")) == str(cid)
+        if not (mine or theirs):
+            continue
+        try:
+            r_start = datetime.fromisoformat(row["when"])
+        except (KeyError, ValueError):
+            continue
+        r_end = r_start + timedelta(minutes=int(row.get("minutes") or DEFAULT_MINUTES))
+        if r_start < end and start < r_end:
+            out.append({"id": row.get("id"), "cid": row.get("cid"), "name": row.get("name") or "",
+                        "when": row["when"], "minutes": int(row.get("minutes") or DEFAULT_MINUTES),
+                        "seat_name": row.get("seat_name") or "",
+                        "why": "you" if mine else "them"})
+    return out
+
+
+def outside_hours(shop: str, when: Any, minutes: Any = None) -> str:
+    """A plain sentence when the time falls outside the shop's own opening hours, else "".
+    A store that has not set hours is never warned about."""
+    try:
+        from halia.api.settings import DAYS, settings_for
+        hours = (settings_for(shop) or {}).get("hours") or {}
+    except Exception:  # noqa: BLE001 — a settings hiccup must never block a booking
+        return ""
+    if not hours:
+        return ""
+    try:
+        start = _parse_when(when)
+    except HTTPException:
+        return ""
+    end = start + timedelta(minutes=max(15, min(int(minutes or DEFAULT_MINUTES), 480)))
+    row = hours.get(DAYS[start.weekday()]) or {}
+    day = start.strftime("%A")
+    if row.get("closed"):
+        return f"The shop is closed on {day}."
+    def _mins(hhmm: str) -> int:
+        h, _, m = str(hhmm or "").partition(":")
+        return int(h or 0) * 60 + int(m or 0)
+    opens, shuts = _mins(row.get("open")), _mins(row.get("close"))
+    s_min = start.hour * 60 + start.minute
+    e_min = s_min + int((end - start).total_seconds() // 60)
+    if s_min < opens:
+        return f"That is before the shop opens on {day} ({row['open']})."
+    if e_min > shuts:
+        return f"That runs past closing on {day} ({row['close']})."
+    return ""
+
+
+def _warnings(shop: str, appt: dict, seat_id: Optional[str], cid: str) -> dict:
+    """What a surface should say before the associate walks away. Informational: every one of
+    these is a booking a person may legitimately want."""
+    return {"clash": clashes(shop, appt["when"], appt.get("minutes"), seat_id=seat_id, cid=cid,
+                             ignore_id=appt.get("id") or ""),
+            "outside_hours": outside_hours(shop, appt["when"], appt.get("minutes"))}
 
 
 def _invalidate(shop: str) -> None:
@@ -303,7 +442,7 @@ def render_invite(token: str):
     inv = parse_invite(token[:-4] if ics_wanted else token)
     if not inv:
         raise HTTPException(404, "Not found")
-    appt = {"id": hashlib.sha1(token.encode()).hexdigest()[:12], "when": inv["when"],
+    appt = {"id": inv["id"] or hashlib.sha1(token.encode()).hexdigest()[:12], "when": inv["when"],
             "minutes": inv["minutes"], "place": inv["place"], "note": ""}
     start = datetime.fromisoformat(inv["when"])
     end = start + timedelta(minutes=inv["minutes"])
@@ -315,6 +454,7 @@ def render_invite(token: str):
     if ics_wanted:
         ics = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halia//Appointments//EN", "BEGIN:VEVENT",
                             f"UID:{appt['id']}@haliascore.com", f"DTSTAMP:{fmt(datetime.now(timezone.utc))}",
+                            f"SEQUENCE:{inv['seq']}",
                             f"DTSTART:{fmt(start)}", f"DTEND:{fmt(end)}", f"SUMMARY:{_ics_escape(title)}",
                             f"LOCATION:{_ics_escape(place)}", "END:VEVENT", "END:VCALENDAR", ""])
         return Response(ics, media_type="text/calendar; charset=utf-8",
@@ -346,20 +486,34 @@ def register(app) -> None:
         appt = book(shop, cid, p.get("when"), p.get("minutes"), p.get("place"), p.get("note"), actor_id, actor_name)
         return {"ok": True, "appointment": appt,
                 "links": calendar_links(appt, str(p.get("client_name") or ""), _store_name(shop), shop,
-                                        client_email=str(p.get("client_email") or ""))}
+                                        client_email=str(p.get("client_email") or "")),
+                **_warnings(shop, appt, actor_id, cid)}
 
     @app.post("/v1/board/appointment/reschedule")
     def board_appointment_reschedule(request: Request, shop: str = Depends(require_shop),
                                      payload: Any = Body(...)) -> dict:
         p = payload or {}
+        cid = str(p.get("cid") or "").strip()
         actor_id, actor_name = _actor(request, p)
-        appt = reschedule(shop, str(p.get("cid") or "").strip(), str(p.get("id") or "").strip(),
+        appt = reschedule(shop, cid, str(p.get("id") or "").strip(),
                           p.get("when"), p.get("minutes"), p.get("place"), actor_id, actor_name)
         if not appt:
             raise HTTPException(404, "That appointment is no longer in the client's record.")
         return {"ok": True, "appointment": appt,
                 "links": calendar_links(appt, str(p.get("client_name") or ""), _store_name(shop), shop,
-                                        client_email=str(p.get("client_email") or ""))}
+                                        client_email=str(p.get("client_email") or "")),
+                **_warnings(shop, appt, actor_id, cid)}
+
+    @app.post("/v1/board/appointment/outcome")
+    def board_appointment_outcome(request: Request, shop: str = Depends(require_shop),
+                                  payload: Any = Body(...)) -> dict:
+        p = payload or {}
+        actor_id, actor_name = _actor(request, p)
+        appt = record_outcome(shop, str(p.get("cid") or "").strip(), str(p.get("id") or "").strip(),
+                              str(p.get("outcome") or "").strip(), actor_id, actor_name)
+        if not appt:
+            raise HTTPException(404, "That appointment is no longer in the client's record.")
+        return {"ok": True, "appointment": appt}
 
     @app.post("/v1/board/appointment/cancel")
     def board_appointment_cancel(request: Request, shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
@@ -371,6 +525,14 @@ def register(app) -> None:
     @app.get("/i/{token}", include_in_schema=False)
     def invite_page(token: str):
         return render_invite(token)
+
+    @app.get("/v1/appointments/check")
+    def check_time(shop: str = Depends(require_shop), when: str = Query(...),
+                   minutes: int = Query(0), cid: Optional[str] = Query(None),
+                   seat_id: Optional[str] = Query(None)) -> dict:
+        """The dashboard's twin of /v1/extension/check_time."""
+        return {"clash": clashes(shop, when, minutes, seat_id=seat_id, cid=str(cid or "")),
+                "outside_hours": outside_hours(shop, when, minutes)}
 
     @app.get("/v1/appointments")
     def list_appointments(shop: str = Depends(require_shop), days: int = Query(14)) -> dict:

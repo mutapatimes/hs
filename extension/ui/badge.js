@@ -791,8 +791,9 @@
     apb.onclick = () => {
       const w = el.querySelector('[data-a="apwhen"]'), pl = el.querySelector('[data-a="applace"]'), done = el.querySelector('[data-a="apdone"]');
       if (!w || !w.value) { toast("Pick a date and time"); return; }
+      const d = activeDetails();
       const body = { action: "appointment", cid: activeCid(), when: new Date(w.value).toISOString(),
-        place: (pl && pl.value) || "", client_name: activeName() };
+        place: (pl && pl.value) || "", client_name: d.name, client_email: d.email };
       apb.disabled = true; apb.textContent = "Booking…";
       try {
         chrome.runtime.sendMessage({ type: "halia:action", body }, (r) => {

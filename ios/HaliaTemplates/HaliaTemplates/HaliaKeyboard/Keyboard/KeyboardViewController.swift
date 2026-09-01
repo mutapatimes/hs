@@ -401,7 +401,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         case .book:
             actionHeight.constant = 46; actionScroll.isHidden = false
             actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
-            for slot in Self.bookTimes {
+            if bookDay != nil && bookTimes.isEmpty {
+                actionStack.addArrangedSubview(mutedLabel("Closed that day"))
+            }
+            for slot in bookTimes {
                 actionStack.addArrangedSubview(togglePill(Self.timeLabel(slot), on: bookMinutes == slot) { [weak self] in
                     guard let self else { return }
                     self.bookMinutes = (self.bookMinutes == slot) ? nil : slot
@@ -594,8 +597,12 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     // MARK: - Book a visit (agree a time in the chat, book it, send them the invite)
 
-    /// Half-hourly slots a boutique actually offers, as minutes past midnight.
-    private static let bookTimes: [Int] = stride(from: 9 * 60, through: 19 * 60, by: 30).map { $0 }
+    /// Half-hourly slots the shop is actually open for on the chosen day, as minutes past
+    /// midnight. A store that has set no hours keeps the old 09:00-19:00; a day it is shut offers
+    /// nothing rather than pretending.
+    private var bookTimes: [Int] {
+        HoursStore.slots(on: bookDay ?? Date())
+    }
 
     /// How far ahead a visit can be set. A season's worth, so a client passing through in two
     /// months can be booked in the chat rather than promised a follow-up.
@@ -1033,7 +1040,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 chipsStack.addArrangedSubview(togglePill(Self.dayLabel(day, offset: offset), on: on) { [weak self] in
                     guard let self else { return }
                     self.bookDay = on ? nil : day
-                    self.rebuildChips(); self.rebuildConfirmBar(); self.reload()
+                    if !self.bookTimes.contains(self.bookMinutes ?? -1) { self.bookMinutes = nil }
+                    self.rebuildChips(); self.rebuildActionRow()
+                    self.rebuildConfirmBar(); self.reload()
                 })
             }
             return

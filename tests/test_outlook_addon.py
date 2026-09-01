@@ -100,3 +100,27 @@ def test_the_manifest_and_pane_need_no_sign_in(client):
 def test_an_unknown_asset_is_not_a_path_traversal(client):
     assert client.get("/addons/outlook/asset/nope.png").status_code == 404
     assert client.get("/addons/outlook/asset/..%2F..%2Fconfig.py").status_code in (404, 400)
+
+
+def test_halia_is_offered_on_meetings_as_well_as_messages(client):
+    # A visit is as often agreed in the calendar as in an email, so the add-in appears on the
+    # organiser's and the attendee's meeting windows too.
+    x = ET.fromstring(client.get("/addons/outlook/manifest.xml").text)
+    xsi = "{http://www.w3.org/2001/XMLSchema-instance}type"
+    points = [e.get(xsi) for e in x.iter() if e.tag.endswith("ExtensionPoint")]
+    assert "AppointmentOrganizerCommandSurface" in points
+    assert "AppointmentAttendeeCommandSurface" in points
+    rules = {(e.get("ItemType"), e.get("FormType")) for e in x.iter()
+             if e.tag.endswith("Rule") and e.get("ItemType")}
+    # Without the Appointment rules the ribbon buttons never activate.
+    assert ("Appointment", "Edit") in rules and ("Appointment", "Read") in rules
+    assert ("Message", "Edit") in rules and ("Message", "Read") in rules
+
+
+def test_the_pane_sends_a_real_invitation_rather_than_a_link(client):
+    js = client.get("/addons/outlook/taskpane.js").text
+    # The whole point of being inside a calendar client.
+    assert "displayNewAppointmentForm" in js
+    assert "requiredAttendees" in js and "links.title" in js
+    # And it still degrades to the sentence when the host cannot open a form.
+    assert "bookSend" in js
