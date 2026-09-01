@@ -9,75 +9,90 @@
   :root { --ink:#303030; --soft:#616161; --faint:#8a8a8a; --brand:#1f564a; --deep:#0e2e27;
           --line:#e3e3e3; --card:#fff; --bg:#f6f6f5; }
   * { box-sizing:border-box }
+  html, body { height:100% }
   body { margin:0; background:var(--bg); color:var(--ink);
          font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif }
-  .wrap { padding:12px }
+  /* The pane is tall and narrow. Everything above the list is fixed height and the list takes the
+     rest, so a long list of templates uses the room instead of leaving it blank. */
+  .wrap { display:flex; flex-direction:column; height:100%; padding:12px; gap:10px }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
-          padding:12px 13px; margin-bottom:10px }
+          padding:12px 13px }
+  .card.fill { flex:1; display:flex; flex-direction:column; min-height:0 }
   h1 { font-size:15px; margin:0 0 8px; font-weight:600 }
-  h2 { font-size:12px; margin:0 0 7px; font-weight:600; color:var(--soft) }
   p { margin:0 0 8px; color:var(--soft) }
   label { display:block; font:600 11.5px system-ui; color:var(--faint); margin:0 0 4px }
   input, select, textarea { width:100%; padding:8px 10px; border:1px solid var(--line);
     border-radius:8px; font:14px system-ui; color:var(--ink); background:#fff; outline:none }
+  /* A tick is not a text field. Without this it stretches across the row and pushes the product's
+     name out of sight, which reads as an empty list. */
+  input[type=checkbox] { width:auto; flex:none; margin:0 }
   input:focus, select:focus, textarea:focus { border-color:var(--brand) }
-  textarea { min-height:120px; resize:vertical }
   button { font:600 13px system-ui; cursor:pointer; border-radius:8px; padding:8px 12px;
            border:1px solid var(--line); background:#fff; color:var(--ink) }
   button.primary { background:var(--brand); border-color:var(--brand); color:#fff }
+  button.quiet { border:none; background:none; color:var(--faint); font-weight:400; padding:4px }
   button:disabled { opacity:.5; cursor:default }
   .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
   .row > * { min-width:0 }
   .grow { flex:1 }
-  .tabs { display:flex; gap:4px; margin-bottom:10px }
+  .tabs { display:flex; gap:4px }
   .tabs button { flex:1; padding:7px 4px; font-size:12px }
   .tabs button[aria-selected="true"] { background:var(--deep); border-color:var(--deep); color:#fff }
-  .who { font:600 14px system-ui }
+  .who { font:600 15px system-ui }
+  .grade { font:600 11px system-ui; border:1px solid var(--line); border-radius:20px;
+           padding:1px 8px; color:var(--deep); background:#f1f5f3 }
   .note { font-size:12px; color:var(--faint) }
-  .list { max-height:230px; overflow-y:auto; border:1px solid var(--line); border-radius:8px;
-          background:#fff }
-  .item { display:flex; gap:9px; align-items:flex-start; padding:8px 10px;
-          border-bottom:1px solid var(--line); cursor:pointer }
+  .list { flex:1; min-height:120px; overflow-y:auto; border:1px solid var(--line);
+          border-radius:8px; background:#fff }
+  .item { display:flex; gap:9px; align-items:flex-start; padding:9px 10px;
+          border-bottom:1px solid var(--line); cursor:pointer; color:var(--ink) }
   .item:last-child { border-bottom:0 }
   .item:hover { background:#fafafa }
-  .item b { font-weight:600 }
+  .item b { font-weight:600; color:var(--ink) }
   .item .sub { display:block; color:var(--faint); font-size:12px;
                overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
   .toggles { display:flex; gap:14px; margin:8px 0 }
   .toggles label { display:flex; gap:5px; align-items:center; font:13px system-ui; color:var(--soft) }
-  .toggles input { width:auto }
   .err { color:#9a3838; font-size:12.5px }
-  .ok { color:var(--brand); font-size:12.5px }
+  .foot { text-align:center; padding-bottom:4px }
   .hide { display:none !important }
 </style></head>
 <body><div class="wrap">
 
-  <!-- Connect: one paste, once per machine. Outlook no longer issues an identity token we could
-       use to recognise the associate silently, so the seat token is entered by hand. -->
+  <!-- Signing in: once per machine. Outlook no longer issues an identity token an add-in could
+       use to recognise the associate silently, so they sign in by hand. -->
   <div class="card" id="connect">
-    <h1>Connect Halia</h1>
-    <p>Paste the sign-in your manager sent you.</p>
+    <h1>Sign in to Halia</h1>
+    <p>Use the address and sign-in you were given.</p>
+    <label for="mail">Your work email</label>
+    <input id="mail" type="email" autocomplete="username" spellcheck="false">
+    <div style="height:8px"></div>
     <label for="tok">Sign-in</label>
-    <input id="tok" type="password" autocomplete="off" spellcheck="false">
-    <div class="row" style="margin-top:9px">
-      <button class="primary" id="connectGo">Connect</button>
+    <input id="tok" type="password" autocomplete="current-password" spellcheck="false">
+    <div class="row" style="margin-top:10px">
+      <button class="primary" id="connectGo">Sign in</button>
       <span id="connectMsg" class="note"></span>
     </div>
   </div>
 
-  <div id="desk" class="hide">
+  <div id="desk" class="hide" style="flex-direction:column;height:100%;gap:10px;min-height:0">
     <div class="card">
       <div class="row">
         <span class="who grow" id="who">Reading the message…</span>
-        <button id="signout" title="Sign out">Sign out</button>
+        <span class="grade hide" id="grade"></span>
       </div>
-      <div class="note" id="whoNote"></div>
+      <div class="note" id="whoNote" style="margin-top:3px"></div>
+    </div>
+
+    <div class="tabs" id="tabs" role="tablist">
+      <button data-tab="templates" aria-selected="true">Templates</button>
+      <button data-tab="pieces" aria-selected="false">Pieces</button>
+      <button data-tab="book" aria-selected="false">Book</button>
     </div>
 
     <!-- Shown instead of the tabs when Halia is opened on a meeting rather than a message. -->
     <div class="card hide" id="apptPanel">
       <h1>This meeting</h1>
-      <p>Fill it in from their record, and keep it in your book.</p>
       <label for="place">Where</label>
       <input id="place">
       <div class="row" style="margin-top:9px">
@@ -87,18 +102,9 @@
       <div class="note" id="apptMsg" style="margin-top:7px"></div>
     </div>
 
-    <div class="tabs" id="tabs" role="tablist">
-      <button data-tab="templates" aria-selected="true">Templates</button>
-      <button data-tab="draft" aria-selected="false">Draft</button>
-      <button data-tab="pieces" aria-selected="false">Pieces</button>
-      <button data-tab="book" aria-selected="false">Book</button>
-    </div>
-
     <!-- Templates -->
-    <div class="card" data-panel="templates">
-      <div class="row">
-        <select id="cat" class="grow"><option value="">All</option></select>
-      </div>
+    <div class="card fill" data-panel="templates">
+      <select id="cat"><option value="">All</option></select>
       <div class="toggles">
         <label><input type="checkbox" id="greeting" checked> Greeting</label>
         <label><input type="checkbox" id="signoff" checked> Sign-off</label>
@@ -106,23 +112,8 @@
       <div class="list" id="tplList"></div>
     </div>
 
-    <!-- Draft -->
-    <div class="card hide" data-panel="draft">
-      <label for="ask">What should it say?</label>
-      <div class="row">
-        <input id="ask" class="grow" placeholder="a warm hello, nothing to sell">
-        <button id="write">Write</button>
-      </div>
-      <div class="row" id="angles" style="margin:8px 0"></div>
-      <textarea id="draftText" placeholder="The note appears here, and you can change it."></textarea>
-      <div class="row" style="margin-top:8px">
-        <button class="primary" id="insertDraft">Put it in the message</button>
-        <span id="draftMsg" class="note"></span>
-      </div>
-    </div>
-
     <!-- Pieces -->
-    <div class="card hide" data-panel="pieces">
+    <div class="card fill hide" data-panel="pieces">
       <div class="row">
         <input id="q" class="grow" placeholder="Search your products">
         <button id="search">Search</button>
@@ -134,9 +125,10 @@
       </div>
       <div class="list" id="prodList"></div>
       <div class="row" style="margin-top:9px">
-        <button class="primary" id="sendSel">Add selection (0)</button>
-        <span id="piecesMsg" class="note"></span>
+        <button class="primary" id="sendSel">Send a selection (0)</button>
+        <button id="sendCart">Send a basket</button>
       </div>
+      <div class="note" id="piecesMsg" style="margin-top:6px"></div>
     </div>
 
     <!-- Book -->
@@ -157,10 +149,12 @@
       <div class="note" id="bookMsg" style="margin-top:7px"></div>
     </div>
 
-    <div class="row" style="margin-top:2px">
+    <div class="row" style="justify-content:space-between">
       <button id="logged">Log that I contacted them</button>
       <span id="logMsg" class="note"></span>
     </div>
+
+    <div class="foot"><button class="quiet" id="signout">Sign out</button></div>
   </div>
 
 </div>

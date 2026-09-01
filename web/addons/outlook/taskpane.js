@@ -68,13 +68,16 @@
       if (item.requiredAttendees && item.requiredAttendees.length) {
         return resolve(firstOf(item.requiredAttendees));
       }
+      // Compose hands back a Recipients object with getAsync, and the client is who it is going
+      // to. Reading a message, `to` is a plain array and it is US, so the client is the sender.
       if (item.to && item.to.getAsync) {
         item.to.getAsync(function (res) { resolve(firstOf(res && res.value)); });
         return;
       }
-      if (item.to && item.to.length) return resolve(firstOf(item.to));
       var f = item.organizer || item.from || item.sender;
-      resolve(f ? { email: f.emailAddress, name: f.displayName } : null);
+      if (f) return resolve({ email: f.emailAddress, name: f.displayName });
+      if (item.to && item.to.length) return resolve(firstOf(item.to));
+      resolve(null);
     });
   }
 
@@ -160,7 +163,9 @@
                      phone: d.phone || "", suggested: d.suggested || [],
                      cart: (d.cart && d.cart.count) || 0 };
           el("who").textContent = client.name || to.email;
-          // Deliberately no grade: an inbox is forwarded and screen-shared far more than a chat.
+          var g = el("grade");
+          g.textContent = d.grade || "";
+          g.className = d.grade ? "grade" : "grade hide";
           say("whoNote", d.found
             ? (client.cart ? client.cart + " in an open basket" : "In your book")
             : "Not in the book yet. You can still write to them.");
@@ -222,36 +227,6 @@
     });
   }
 
-  // ── draft ─────────────────────────────────────────────────────────────────
-  var ANGLES = [["Warm hello", "a warm hello, nothing to sell"],
-                ["New in", "tell them what has just come in"],
-                ["Their size", "something in their size is back"],
-                ["Invite in", "invite them in to see it"],
-                ["Follow up", "follow up on our last conversation"]];
-
-  function renderAngles() {
-    el("angles").innerHTML = ANGLES.map(function (a, i) {
-      return '<button data-angle="' + i + '">' + esc(a[0]) + '</button>';
-    }).join("");
-    Array.prototype.forEach.call(el("angles").querySelectorAll("[data-angle]"), function (b) {
-      b.onclick = function () { el("ask").value = ANGLES[+b.dataset.angle][1]; write(); };
-    });
-  }
-
-  function write() {
-    var ask = el("ask").value.trim();
-    if (!ask) { say("draftMsg", "Say what to write, or pick an angle.", true); return; }
-    if (!client || !client.email) { say("draftMsg", "Address the message first.", true); return; }
-    say("draftMsg", "Writing…");
-    api("/v1/extension/draft", { method: "POST",
-        body: { email: client.email, channel: "email", instruction: ask } })
-      .then(function (d) {
-        el("draftText").value = d.draft || "";
-        say("draftMsg", d.draft ? "" : "Nothing came back. Try saying it another way.");
-      })
-      .catch(function (e) { say("draftMsg", e.message, true); });
-  }
-
   // ── pieces ────────────────────────────────────────────────────────────────
   function search() {
     var q = encodeURIComponent(el("q").value.trim());
@@ -288,7 +263,21 @@
   }
 
   function picked() { return Object.keys(chosen); }
-  function count() { el("sendSel").textContent = "Add selection (" + picked().length + ")"; }
+  function count() { el("sendSel").textContent = "Send a selection (" + picked().length + ")"; }
+
+  function sendBasket() {
+    var ids = picked();
+    if (!ids.length) { say("piecesMsg", "Tick something first.", true); return; }
+    say("piecesMsg", "Building…");
+    api("/v1/extension/cart_link", { method: "POST", body: { product_ids: ids } })
+      .then(function (d) {
+        var line = "I have put these aside in a basket for you";
+        return insert(line + ": " + d.url,
+                      line + ': <a href="' + esc(d.url) + '">check out here</a>.');
+      })
+      .then(function () { say("piecesMsg", "Added."); })
+      .catch(function () { say("piecesMsg", "Nothing here has a buyable variant.", true); });
+  }
 
   function sendSelection() {
     var ids = picked();
@@ -384,7 +373,9 @@
   // ── wiring ────────────────────────────────────────────────────────────────
   function showDesk(on) {
     el("connect").className = on ? "card hide" : "card";
-    el("desk").className = on ? "" : "hide";
+    var desk = el("desk");
+    desk.className = on ? "" : "hide";
+    desk.style.display = on ? "flex" : "none";
   }
 
   function start() {
@@ -401,7 +392,6 @@
       identify();
       return;
     }
-    renderAngles();
     var d = new Date(Date.now() + 3600000); d.setMinutes(0, 0, 0);
     el("when").value = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
       .toISOString().slice(0, 16);
@@ -412,11 +402,18 @@
 
   function connect() {
     var t = el("tok").value.trim();
-    if (!t) return;
+    var mail = el("mail").value.trim().toLowerCase();
+    if (!t || !mail) { say("connectMsg", "Both, please.", true); return; }
     token = t;
     say("connectMsg", "Checking…");
     api("/v1/extension/profile")
-      .then(function () {
+      .then(function (d) {
+        // The sign-in identifies the seat on its own; the address is checked against it so a
+        // token pasted from someone else's message does not quietly sign you in as them.
+        var mine = ((d.profile && d.profile.email) || "").toLowerCase();
+        if (mine && mine !== mail) {
+          throw new Error("That sign-in belongs to a different address.");
+        }
         try { localStorage.setItem(KEY, t); } catch (e) { /* private mode: this session only */ }
         say("connectMsg", "");
         start();
@@ -444,13 +441,6 @@
     el("cat").onchange = renderTemplates;
     el("greeting").onchange = renderTemplates;
     el("signoff").onchange = renderTemplates;
-    el("write").onclick = write;
-    el("ask").onkeydown = function (e) { if (e.key === "Enter") write(); };
-    el("insertDraft").onclick = function () {
-      insert(el("draftText").value)
-        .then(function () { say("draftMsg", "Added."); })
-        .catch(function (e) { say("draftMsg", e.message, true); });
-    };
     el("search").onclick = search;
     el("q").onkeydown = function (e) { if (e.key === "Enter") search(); };
     el("fcol").onchange = search;
@@ -465,6 +455,7 @@
       count();
     };
     el("sendSel").onclick = sendSelection;
+    el("sendCart").onclick = sendBasket;
     el("bookGo").onclick = book;
     el("when").onchange = checkTime;
     el("mins").onchange = checkTime;

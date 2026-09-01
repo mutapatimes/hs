@@ -162,15 +162,8 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
   .ok {{ text-align: center; padding: 22px 6px; }}
   .ok .tick {{ width: 54px; height: 54px; border-radius:0; background: #1a1712; color: #fff;
     font-size: 26px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }}
-  .excl {{ text-align: center; color: #9a9385; font-size: 11px; letter-spacing: .04em;
-    padding: 16px 0 0; }}
-  .foot {{ text-align: center; padding: 26px 0 40px; color: #b6b1a5; font-size: 12px; }}
-  .foot summary {{ cursor: pointer; list-style: none; color: #9a9385; display: inline-block; }}
-  .foot summary::-webkit-details-marker {{ display: none; }}
-  .foot .more {{ max-width: 54ch; margin: 10px auto 0; line-height: 1.55; color: #b6b1a5; }}
 </style></head><body>
 <div class="wrap">
-  <div class="excl">Please do not share. This catalogue was sent exclusively to you.</div>
   <header>
     {f'<img class="logo" src="{_attr(logo)}" alt="">' if logo else ''}
     <div class="eyebrow">{subtitle}</div>
@@ -179,27 +172,23 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     <p class="lead">Tick the pieces you would like, then send.</p>
   </header>
   <div class="grid" id="grid">{cards}</div>
-  <details class="foot">
-    <summary>About this catalogue</summary>
-    <div class="more">This catalogue was prepared exclusively for you and delivered with Store Concierge.</div>
-  </details>
 </div>
 
 <div class="bar" id="bar"><div class="wrap">
   <span class="n"><b id="barN">0</b> selected</span>
   <span style="flex:1"></span>
   <button type="button" class="btn ghost" id="clearBtn">Clear</button>
-  <button type="button" class="btn" id="openBtn">Continue to enquiry →</button>
+  <button type="button" class="btn" id="openBtn">Continue</button>
 </div></div>
 
 <div class="panel" id="panel"><div class="sheet" id="sheet">
   <form id="enqForm">
-    <h2>Send your enquiry</h2>
+    <h2>Your details</h2>
     <div class="picked" id="pickedList"></div>
     <div class="field"><label>Your name</label><input name="name" required value="{_attr(prefill.get('name',''))}" placeholder="Full name"></div>
     <div class="field"><label>Email</label><input name="email" type="email" required value="{_attr(prefill.get('email',''))}" placeholder="you@email.com"></div>
-    <div class="field"><label>Phone (optional)</label><input name="phone" value="{_attr(prefill.get('phone',''))}" placeholder="Best number to reach you"></div>
-    <div class="field"><label>Message (optional)</label><textarea name="message" rows="3" placeholder="Anything you'd like the team to know"></textarea></div>
+    <div class="field"><label>Phone (optional)</label><input name="phone" value="{_attr(prefill.get('phone',''))}" placeholder="Optional"></div>
+    <div class="field"><label>Message (optional)</label><textarea name="message" rows="3" placeholder="Anything else?"></textarea></div>
     <input class="hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
     <input type="hidden" name="by" value="{_attr(by)}">
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">
