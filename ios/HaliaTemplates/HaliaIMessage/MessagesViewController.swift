@@ -1,16 +1,20 @@
 // Target membership: HaliaIMessage ONLY.
 //
-// Halia in the Messages drawer: pick pieces, send the client a selection they can tap through.
-// What goes into the conversation is the plain catalogue link, not a Halia message bubble: a
-// bubble would offer the App Store to anyone without the app, and no client installs a boutique's
-// app. The link carries preview tags, so it arrives as an image card and opens a page where the
-// client ticks what they like. Their picks come back to whoever sent it.
+// Halia in the Messages drawer. Compact, it is one button. Expanded, a Messages extension gets
+// close to a full screen, so the desk that follows carries what the keyboard carries and more:
+// who the message is for, the house notes, the range, a drafted note, and booking a visit.
+//
+// Everything it puts in the conversation is plain text or a plain link, never a Halia message
+// bubble: a bubble would offer the App Store to anyone without the app, and no client installs a
+// boutique's app. A selection link carries preview tags, so it arrives as an image card and opens
+// a page where the client ticks what they like. Their picks come back to whoever sent it.
 import Messages
 import SwiftUI
 import UIKit
 
 final class MessagesViewController: MSMessagesAppViewController {
     private var hosting: UIHostingController<AnyView>?
+    private var style: MSMessagesAppPresentationStyle = .compact
 
     override func willBecomeActive(with conversation: MSConversation) {
         super.willBecomeActive(with: conversation)
@@ -23,6 +27,10 @@ final class MessagesViewController: MSMessagesAppViewController {
     }
 
     private func present(for style: MSMessagesAppPresentationStyle) {
+        // Rebuilding the desk on every transition would throw away a lookup and a half-written
+        // draft, so the expanded view is built once and kept.
+        if style == self.style, hosting != nil { return }
+        self.style = style
         hosting?.willMove(toParent: nil)
         hosting?.view.removeFromSuperview()
         hosting?.removeFromParent()
@@ -33,12 +41,9 @@ final class MessagesViewController: MSMessagesAppViewController {
         } else if style == .compact {
             root = AnyView(CompactView { [weak self] in self?.requestPresentationStyle(.expanded) })
         } else {
-            root = AnyView(PickerView(
-                send: { [weak self] url in
-                    self?.activeConversation?.insertText(url) { _ in }
-                    self?.requestPresentationStyle(.compact)
-                },
-                close: { [weak self] in self?.requestPresentationStyle(.compact) }))
+            root = AnyView(DeskView(
+                insert: { [weak self] text in self?.activeConversation?.insertText(text) { _ in } },
+                collapse: { [weak self] in self?.requestPresentationStyle(.compact) }))
         }
 
         let vc = UIHostingController(rootView: root)
@@ -56,19 +61,13 @@ final class MessagesViewController: MSMessagesAppViewController {
     }
 }
 
-// MARK: - Views
-
-private enum Ink {
-    static let brand = Color(red: 0.122, green: 0.337, blue: 0.290)
-    static let deep = Color(red: 0.055, green: 0.180, blue: 0.153)
-    static let soft = Color(red: 0.380, green: 0.380, blue: 0.380)
-}
+// MARK: - The two small states
 
 private struct SignedOutView: View {
     var body: some View {
         VStack(spacing: 8) {
             Text("Halia").font(.headline)
-            Text("Open the Halia app and sign in to send a selection.")
+            Text("Open the Halia app and sign in to write from here.")
                 .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }
         .padding(20)
@@ -81,7 +80,7 @@ private struct CompactView: View {
         Button(action: expand) {
             HStack(spacing: 8) {
                 Image(systemName: "square.grid.2x2")
-                Text("Build a selection").fontWeight(.semibold)
+                Text("Open your desk").fontWeight(.semibold)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
@@ -89,194 +88,5 @@ private struct CompactView: View {
             .foregroundColor(.white)
         }
         .padding(14)
-    }
-}
-
-/// Pick from what the associate saved while browsing, or search the catalogue, then send.
-private struct PickerView: View {
-    let send: (String) -> Void
-    let close: () -> Void
-
-    @State private var query = ""
-    @State private var results: [HaliaAPI.Product] = []
-    @State private var saved: [SavedItemsStore.Item] = []
-    @State private var chosen: Set<String> = []
-    @State private var busy = false
-    @State private var status: String?
-    // The view being browsed: a collection and a size, and the ids of everything they match, so a
-    // whole shelf can go into one selection without ticking it piece by piece.
-    @State private var collection = ""
-    @State private var size = ""
-    @State private var viewIds: [String] = []
-    @State private var collections: [String] = []
-    @State private var sizes: [String] = []
-
-    /// The whole shelf, with anything saved while browsing pinned above it. A search narrows the
-    /// products; the saved pieces stay put so they are never a search away.
-    private var savedRows: [(id: String, title: String, image: String?)] {
-        query.trimmingCharacters(in: .whitespaces).isEmpty
-            ? saved.map { (id: $0.url, title: $0.title ?? $0.url, image: nil) } : []
-    }
-    private var productRows: [(id: String, title: String, image: String?)] {
-        results.map { (id: $0.id, title: $0.title, image: $0.image) }
-    }
-    private var rows: [(id: String, title: String, image: String?)] { savedRows + productRows }
-    private var savedIds: Set<String> { Set(savedRows.map { $0.id }) }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                TextField("Search your products", text: $query)
-                    .textFieldStyle(.roundedBorder)
-                    .autocorrectionDisabled()
-                    .onSubmit { Task { await search() } }
-                Button("Search") { Task { await search() } }.font(.footnote.weight(.semibold))
-                Button("Close", action: close).font(.footnote).foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 12).padding(.top, 12)
-
-            filterRow.padding(.horizontal, 12).padding(.vertical, 8)
-
-            if let status {
-                Text(status).font(.footnote).foregroundStyle(.secondary).padding(.bottom, 8)
-            }
-
-            if rows.isEmpty && busy {
-                Spacer(); ProgressView(); Spacer()
-            } else if rows.isEmpty {
-                Spacer()
-                Text(status ?? "No products came back. This needs a store with published, in-stock products.")
-                    .font(.footnote).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center).padding(.horizontal, 24)
-                Spacer()
-            } else {
-                List(rows, id: \.id) { row in
-                    Button {
-                        if chosen.contains(row.id) { chosen.remove(row.id) } else { chosen.insert(row.id) }
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: chosen.contains(row.id) ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(chosen.contains(row.id) ? Ink.brand : Color.secondary)
-                            if let img = row.image, let url = URL(string: img) {
-                                AsyncImage(url: url) { image in
-                                    image.resizable().aspectRatio(contentMode: .fill)
-                                } placeholder: { Color.secondary.opacity(0.1) }
-                                .frame(width: 38, height: 46).clipped()
-                            }
-                            Text(row.title).lineLimit(2)
-                            Spacer()
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-                .listStyle(.plain)
-            }
-
-            Button {
-                Task { await sendSelection() }
-            } label: {
-                Text(busy ? "Sending…" : "Send selection (\(chosen.count))")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(chosen.isEmpty ? Color.secondary.opacity(0.3) : Ink.brand))
-                    .foregroundColor(.white)
-            }
-            .disabled(chosen.isEmpty || busy)
-            .padding(12)
-        }
-        .task {
-            saved = SavedItemsStore.load()
-            await search(initial: true)          // open on everything the store sells
-        }
-    }
-
-    /// Narrow the range to what suits this client, then take the whole view at once.
-    @ViewBuilder private var filterRow: some View {
-        if !collections.isEmpty || !sizes.isEmpty {
-            HStack(spacing: 8) {
-                if !collections.isEmpty {
-                    Menu {
-                        Button("All collections") { collection = ""; Task { await search(initial: true) } }
-                        ForEach(collections, id: \.self) { c in
-                            Button(c) { collection = c; Task { await search(initial: true) } }
-                        }
-                    } label: { filterLabel(collection.isEmpty ? "All collections" : collection) }
-                }
-                if !sizes.isEmpty {
-                    Menu {
-                        Button("All sizes") { size = ""; Task { await search(initial: true) } }
-                        ForEach(sizes, id: \.self) { s in
-                            Button(s) { size = s; Task { await search(initial: true) } }
-                        }
-                    } label: { filterLabel(size.isEmpty ? "All sizes" : size) }
-                }
-                Spacer(minLength: 0)
-                if !viewIds.isEmpty {
-                    Button(chosen.count == viewIds.count ? "Clear" : "All \(viewIds.count)") {
-                        if chosen.count == viewIds.count { chosen.removeAll() }
-                        else { chosen = Set(viewIds) }
-                    }
-                    .font(.footnote.weight(.semibold)).foregroundStyle(Ink.brand)
-                }
-            }
-        }
-    }
-
-    private func filterLabel(_ text: String) -> some View {
-        HStack(spacing: 3) {
-            Text(text).lineLimit(1)
-            Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
-        }
-        .font(.footnote)
-        .foregroundStyle(Ink.deep)
-        .padding(.horizontal, 10).padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.12)))
-    }
-
-    private func search(initial: Bool = false) async {
-        let q = query.trimmingCharacters(in: .whitespaces)
-        guard initial || !q.isEmpty else { return }
-        busy = true; status = nil
-        do {
-            let view = try await HaliaAPI.current.searchProducts(q, limit: 100,
-                                                                 collection: collection, size: size)
-            results = view.products
-            viewIds = view.ids
-            if !view.collections.isEmpty { collections = view.collections }
-            if !view.sizes.isEmpty { sizes = view.sizes }
-            chosen.removeAll()
-            if results.isEmpty {
-                status = (collection.isEmpty && size.isEmpty && q.isEmpty)
-                    ? "No products came back. This needs a store with published, in-stock products."
-                    : "Nothing in this view."
-            }
-        } catch {
-            status = (error as? LocalizedError)?.errorDescription ?? "Could not reach Halia."
-        }
-        busy = false
-    }
-
-    private func sendSelection() async {
-        busy = true; status = nil
-        do {
-            let picked = rows.filter { chosen.contains($0.id) }.map { $0.id }
-            let urls = picked.filter { savedIds.contains($0) }
-            let ids = picked.filter { !savedIds.contains($0) }
-            let url: String
-            if ids.isEmpty {
-                url = try await HaliaAPI.current.catalogueFromUrls(urls: urls).url
-            } else if urls.isEmpty {
-                url = try await HaliaAPI.current.catalogue(productIds: ids, name: nil)
-            } else {
-                // A mix: resolve the saved links to ids first, then build one selection.
-                let resolved = try await HaliaAPI.current.productsFromUrls(urls).products.map { $0.id }
-                url = try await HaliaAPI.current.catalogue(productIds: resolved + ids, name: nil)
-            }
-            send(url)
-        } catch {
-            status = "Could not build that selection."
-        }
-        busy = false
     }
 }
