@@ -124,3 +124,38 @@ def test_the_pane_sends_a_real_invitation_rather_than_a_link(client):
     assert "requiredAttendees" in js and "links.title" in js
     # And it still degrades to the sentence when the host cannot open a form.
     assert "bookSend" in js
+
+
+def test_the_pane_reads_the_sender_when_reading_a_message(client):
+    js = client.get("/addons/outlook/taskpane.js").text
+    # In compose `to` is a Recipients object and the client is who it is going to. Reading a
+    # message, `to` is a plain array holding US, so the client is the sender. Getting this the
+    # wrong way round looked up the associate as if they were their own client.
+    to_async = js.index("item.to && item.to.getAsync")
+    sender = js.index("item.organizer || item.from || item.sender")
+    plain_to = js.index("item.to && item.to.length")
+    assert to_async < sender < plain_to, "the sender must be preferred over a read-mode `to`"
+
+
+def test_a_tick_is_not_a_text_field(client):
+    # `input { width:100% }` stretched the checkbox across the row and pushed the product's name
+    # out of sight, which read as an empty list.
+    page = client.get("/addons/outlook/taskpane").text
+    assert "input[type=checkbox] { width:auto" in page
+
+
+def test_the_pane_offers_a_basket_as_well_as_a_selection(client):
+    js = client.get("/addons/outlook/taskpane.js").text
+    assert "/v1/extension/cart_link" in js and "/v1/extension/catalogue" in js
+
+
+def test_the_pane_shows_the_grade_and_keeps_sign_out_out_of_the_way(client):
+    page = client.get("/addons/outlook/taskpane").text
+    js = client.get("/addons/outlook/taskpane.js").text
+    assert 'id="grade"' in page and 'd.grade' in js
+    assert 'class="quiet" id="signout"' in page      # a footnote, not a button beside their name
+
+
+def test_nothing_in_the_pane_tells_an_associate_to_ask_a_manager(client):
+    page = client.get("/addons/outlook/taskpane").text
+    assert "manager" not in page.lower()

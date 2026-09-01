@@ -44,9 +44,9 @@ plus up to about four weeks end to end. It is not needed to serve a named custom
 ## Signing in
 
 Outlook no longer issues the identity token that used to let an add-in recognise the signed-in
-person silently, so the associate pastes their Halia sign-in once per machine. The manager mints it
-in the dashboard, Settings → Team, exactly as for the Chrome extension and the iPhone app, and
-revoking the seat there stops the add-in too.
+person silently, so the associate signs in by hand once per machine, with their work email and the
+sign-in they were given. Seats are minted in the dashboard under Settings → Team, exactly as for
+the Chrome extension and the iPhone app, and revoking one there stops the add-in too.
 
 The token is kept in the browser profile's own storage on `haliascore.com`. On a shared machine
 each profile pairs once, and the token should be treated like a password.
