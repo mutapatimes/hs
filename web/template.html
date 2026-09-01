@@ -4002,6 +4002,7 @@ function openSettings(page){
             </div>
             <span id="setExtConnStatus" style="display:block;font:600 12px system-ui;margin-top:8px"></span>
           </div>
+          <div id="seatPending"></div>
           <div id="seatList" style="margin:6px 0 14px"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input id="seatEmail" type="email" placeholder="Their work email" style="flex:1;min-width:200px;border:1px solid var(--line-strong);border-radius:8px;padding:9px 11px;font:14px system-ui;color:var(--ink)">
@@ -4496,21 +4497,54 @@ function openSettings(page){
               : `${n} seats in use, ${inc} included with ${t.name}. The next teammate is £${t.seatPrice} a month.`; }
           else pl.textContent="";
         }
-        if(!seats.length){ list.innerHTML='<div style="font:13px system-ui;color:#8a8a8a">No teammates yet. Add one below.</div>'; return; }
         const IN='border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px;font:13px system-ui;color:var(--ink);background:var(--card);min-width:0';
         const LK='background:none;border:none;font:600 13px system-ui;cursor:pointer;padding:0';
+        const boss=(d&&d.role)==="manager";
+        // Shopify staff who have opened the app and have no seat yet. The manager lets them in as
+        // an associate, or as a manager, and from then on Shopify recognises them with no token.
+        const wait=document.getElementById("seatPending");
+        if(wait){
+          const rows=(d&&d.pending)||[];
+          wait.innerHTML=rows.length?`<div style="border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:12px">
+            <div style="font:600 13px system-ui;color:var(--ink);margin-bottom:7px">Waiting for access</div>
+            ${rows.map(r=>`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:5px 0">
+              <span style="font:13px system-ui;color:var(--ink)">${esc(r.name||("Shopify user "+r.id))}</span>
+              ${r.email?`<span style="font:12px system-ui;color:#8a8a8a">${esc(r.email)}</span>`:``}
+              <span style="margin-left:auto;display:flex;gap:14px">
+                <button data-grant="${esc(r.id)}" style="${LK};color:#1f564a">Add as associate</button>
+                <button data-grantm="${esc(r.id)}" style="${LK};color:var(--ink)">Add as manager</button>
+                <button data-deny="${esc(r.id)}" style="${LK};color:#9a3838">Not now</button>
+              </span></div>`).join("")}</div>`:"";
+          wait.querySelectorAll("[data-grant],[data-grantm]").forEach(btn=>btn.onclick=()=>{
+            const id=btn.dataset.grant||btn.dataset.grantm;
+            const row=((d&&d.pending)||[]).find(x=>String(x.id)===String(id))||{};
+            fetch("/v1/seats/grant",{method:"POST",headers:{"content-type":"application/json"},
+              body:JSON.stringify({staff_id:id,name:row.name||"",email:row.email||"",
+                                   role:btn.dataset.grantm?"manager":"associate"})})
+              .then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+                if(!ok) throw new Error((j&&j.detail)||"failed"); toast("Added."); renderSeats(); })
+              .catch(e=>toast("Team: "+e.message));
+          });
+          wait.querySelectorAll("[data-deny]").forEach(btn=>btn.onclick=()=>{
+            fetch("/v1/seats/deny",{method:"POST",headers:{"content-type":"application/json"},
+              body:JSON.stringify({staff_id:btn.dataset.deny})}).then(()=>renderSeats());
+          });
+        }
+        if(!seats.length){ list.innerHTML='<div style="font:13px system-ui;color:#8a8a8a">No teammates yet. Add one below.</div>'; return; }
         list.innerHTML=seats.map(s=>`<div data-seat="${s.id}" style="padding:9px 0;border-top:1px solid var(--line)">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span style="width:8px;height:8px;border-radius:50%;background:${s.active?'#1f564a':'#c9cdcf'};flex:none"></span>
             <span style="font:600 14px system-ui;color:var(--ink)">${esc(s.name)}</span>
+            ${s.role==="manager"?`<span style="font:600 11px system-ui;color:var(--brand-deep);border:1px solid var(--line-strong);border-radius:20px;padding:1px 8px">Manager</span>`:``}
             ${s.title?`<span style="font:12px system-ui;color:#8a8a8a">${esc(s.title)}</span>`:``}
             ${s.email?`<span style="font:12px system-ui;color:#8a8a8a">${esc(s.email)}</span>`:``}
             <span style="font:12px system-ui;color:#8a8a8a">${s.active?'active':(s.lastSeen?'idle':'not signed in yet')}</span>
-            <span style="margin-left:auto;display:flex;gap:14px">
+            ${boss?`<span style="margin-left:auto;display:flex;gap:14px">
               <button data-edit="${s.id}" style="${LK};color:var(--ink)">Edit</button>
-              <button data-reissue="${s.id}" style="${LK};color:#1f564a">New sign-in</button>
+              <button data-role="${s.id}" data-to="${s.role==="manager"?"associate":"manager"}" style="${LK};color:var(--ink)">${s.role==="manager"?"Make associate":"Make manager"}</button>
+              ${s.shopifyUser?``:`<button data-reissue="${s.id}" style="${LK};color:#1f564a">New sign-in</button>`}
               <button data-revoke="${s.id}" style="${LK};color:#9a3838">Revoke</button>
-            </span>
+            </span>`:``}
           </div>
           <form data-editform="${s.id}" style="display:none;margin:10px 0 4px 18px;gap:8px;grid-template-columns:1fr 1fr">
             <input name="name" value="${esc(s.name)}" placeholder="Name" style="${IN}">
@@ -4525,6 +4559,14 @@ function openSettings(page){
           f.style.display=f.style.display==="none"?"grid":"none";
         });
         list.querySelectorAll("[data-cancel]").forEach(b=>b.onclick=()=>{ const f=list.querySelector(`[data-editform="${b.dataset.cancel}"]`); if(f) f.style.display="none"; });
+        list.querySelectorAll("[data-role]").forEach(b=>b.onclick=()=>{
+          const to=b.dataset.to;
+          if(to==="manager"&&!confirm("A manager can change the settings, the house voice, billing and the team. Continue?"))return;
+          fetch("/v1/seats/"+b.dataset.role+"/role",{method:"POST",headers:{"content-type":"application/json"},
+            body:JSON.stringify({role:to})}).then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+              if(!ok) throw new Error((j&&j.detail)||"failed"); toast(to==="manager"?"Now a manager.":"Now an associate."); renderSeats(); })
+            .catch(e=>toast("Team: "+e.message));
+        });
         list.querySelectorAll("[data-editform]").forEach(f=>f.onsubmit=e=>{
           e.preventDefault();
           const body={name:f.name.value.trim(),email:f.email.value.trim(),title:f.title.value.trim(),signoff:f.signoff.value.trim()};

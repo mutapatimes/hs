@@ -512,6 +512,8 @@ struct HaliaAPI {
         let sample: String?
         let axes: [VoiceAxis]?
         let languages: [VoiceLanguage]?
+        let can_edit: Bool?          // the house voice belongs to the store, so only a manager moves it
+        let role: String?
     }
 
     func fetchVoice() async throws -> VoiceSettings {

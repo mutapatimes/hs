@@ -22,6 +22,7 @@ import json
 from fastapi import Body, Depends, HTTPException, Request
 
 from halia import config
+from halia.api.roles import require_manager
 from halia.api.shopify_auth import require_shop, shop_store
 
 _ACTIVE = {"active", "trialing", "comped", "complete"}
@@ -498,7 +499,7 @@ def _verify_sig(body: bytes, sig_header: str, secret: str, tolerance: int = 300)
 def register(app) -> None:
 
     @app.post("/v1/checkout")
-    def checkout(shop: str = Depends(require_shop)) -> dict:
+    def checkout(shop: str = Depends(require_manager)) -> dict:
         if not billing_enabled():
             return {"url": "/app"}  # nothing to pay for; the dashboard is already open
         return {"url": create_checkout(shop)}
@@ -514,20 +515,20 @@ def register(app) -> None:
         return stripe_plans_payload(shop)
 
     @app.post("/v1/billing/checkout-plan")
-    def billing_checkout_plan(shop: str = Depends(require_shop),
+    def billing_checkout_plan(shop: str = Depends(require_manager),
                               payload: dict = Body(default={})) -> dict:
         """Stripe Checkout for one named plan (bridge tenants without Payment Links)."""
         key = str((payload or {}).get("plan", "")).strip().lower()
         return {"url": create_plan_checkout(shop, key)}
 
     @app.post("/v1/billing/portal")
-    def billing_portal(shop: str = Depends(require_shop)) -> dict:
+    def billing_portal(shop: str = Depends(require_manager)) -> dict:
         if not billing_enabled():
             raise HTTPException(400, "Billing isn't enabled.")
         return {"url": create_portal(shop)}
 
     @app.post("/v1/billing/cancel")
-    def billing_cancel(shop: str = Depends(require_shop),
+    def billing_cancel(shop: str = Depends(require_manager),
                        payload: dict = Body(default={})) -> dict:
         """Self-service cancel at the end of the current period (keeps access until then).
         Optionally records the merchant's stated reason from the cancellation survey."""
@@ -538,7 +539,7 @@ def register(app) -> None:
         return set_cancel(shop, True)
 
     @app.post("/v1/billing/resume")
-    def billing_resume(shop: str = Depends(require_shop)) -> dict:
+    def billing_resume(shop: str = Depends(require_manager)) -> dict:
         """Undo a scheduled cancellation — keep the subscription running."""
         if not billing_enabled():
             raise HTTPException(400, "Billing isn't enabled.")

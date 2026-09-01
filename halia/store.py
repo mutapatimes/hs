@@ -580,24 +580,28 @@ class ShopStore(_DB):
         return row["shop"] if row else None
 
     # ── Seats (per-employee sign-in credentials) ────────────────────────────────
-    def create_seat(self, shop: str, name: str, token_hash: str, email: str = "") -> str:
+    def create_seat(self, shop: str, name: str, token_hash: str, email: str = "",
+                    role: str = "associate", staff_user_id: str = "") -> str:
         """Provision one seat under a shop with its (already hashed) sign-in token. Returns the seat id.
         The email, when given, is the seat's identity: one live seat per email per shop."""
-        self._add_column("seats", "email", "TEXT")
+        self._seat_cols()
         seat_id = secrets.token_hex(8)
         self._run(
-            """INSERT INTO seats (id, shop, name, token_hash, created_at, email)
-               VALUES (:id, :shop, :name, :th, :at, :em)""",
+            """INSERT INTO seats (id, shop, name, token_hash, created_at, email, role, staff_user_id)
+               VALUES (:id, :shop, :name, :th, :at, :em, :role, :sid)""",
             {"id": seat_id, "shop": shop, "name": (name or "Teammate")[:80],
-             "th": token_hash, "at": _now(), "em": (email or "").strip().lower()[:200] or None})
+             "th": token_hash, "at": _now(), "em": (email or "").strip().lower()[:200] or None,
+             "role": "manager" if role == "manager" else "associate",
+             "sid": str(staff_user_id)[:64] or None})
         return seat_id
 
     def seat_by_email(self, shop: str, email: str) -> dict | None:
         """The live seat already held by this email under the shop, if any."""
-        self._add_column("seats", "email", "TEXT")
+        self._seat_cols()
         row = self._run(
-            "SELECT id, shop, name, email FROM seats WHERE shop = :shop AND email = :em "
-            "AND revoked_at IS NULL", {"shop": shop, "em": (email or "").strip().lower()}, fetch="one")
+            "SELECT id, shop, name, email, role, staff_user_id FROM seats WHERE shop = :shop "
+            "AND email = :em AND revoked_at IS NULL",
+            {"shop": shop, "em": (email or "").strip().lower()}, fetch="one")
         return dict(row) if row else None
 
     # ── WooCommerce: which customers carry a pipeline card or a capture record (ids only) ──
@@ -633,17 +637,15 @@ class ShopStore(_DB):
 
     def seat_profile(self, seat_id: str) -> dict | None:
         """The seat's own details: name, email, title, sign-off (what a draft signs with)."""
-        for col in ("title", "signoff"):
-            self._add_column("seats", col, "TEXT")
-        row = self._run("SELECT id, shop, name, email, title, signoff FROM seats WHERE id = :id "
-                        "AND revoked_at IS NULL", {"id": seat_id}, fetch="one")
+        self._seat_cols()
+        row = self._run("SELECT id, shop, name, email, title, signoff, role, staff_user_id "
+                        "FROM seats WHERE id = :id AND revoked_at IS NULL", {"id": seat_id}, fetch="one")
         return dict(row) if row else None
 
     def update_seat_profile(self, seat_id: str, *, name: str | None = None, email: str | None = None,
                             title: str | None = None, signoff: str | None = None) -> None:
         """Update whichever profile fields were given (None = leave alone)."""
-        for col in ("title", "signoff"):
-            self._add_column("seats", col, "TEXT")
+        self._seat_cols()
         sets, params = [], {"id": seat_id}
         for col, val, cap in (("name", name, 80), ("email", email, 200), ("title", title, 80),
                               ("signoff", signoff, 300)):
@@ -659,21 +661,51 @@ class ShopStore(_DB):
                   "WHERE id = :id", {"th": token_hash, "nm": (name or "")[:80], "id": seat_id})
 
     def seat_for_token(self, token_hash: str) -> dict | None:
-        """Resolve a seat token to {shop, seat_id, name}, excluding revoked seats."""
+        """Resolve a seat token to {shop, seat_id, name, role}, excluding revoked seats."""
+        self._seat_cols()
         row = self._run(
-            "SELECT id, shop, name FROM seats WHERE token_hash = :th AND revoked_at IS NULL",
+            "SELECT id, shop, name, role FROM seats WHERE token_hash = :th AND revoked_at IS NULL",
             {"th": token_hash}, fetch="one")
-        return {"shop": row["shop"], "seat_id": row["id"], "name": row["name"]} if row else None
+        return ({"shop": row["shop"], "seat_id": row["id"], "name": row["name"],
+                 "role": row["role"] or "associate"} if row else None)
+
+    def _seat_cols(self) -> None:
+        for col in ("email", "title", "signoff", "role", "staff_user_id"):
+            self._add_column("seats", col, "TEXT")
 
     def list_seats(self, shop: str, include_revoked: bool = False) -> list[dict]:
-        for col in ("email", "title", "signoff"):
-            self._add_column("seats", col, "TEXT")
+        self._seat_cols()
         rows = self._run(
-            "SELECT id, name, email, title, signoff, created_at, last_seen_at, revoked_at FROM seats "
+            "SELECT id, name, email, title, signoff, role, staff_user_id, created_at, last_seen_at, "
+            "revoked_at FROM seats "
             "WHERE shop = :shop " + ("" if include_revoked else "AND revoked_at IS NULL ")
             + "ORDER BY created_at",
             {"shop": shop}, fetch="all") or []
         return [dict(r) for r in rows]
+
+    def set_seat_role(self, shop: str, seat_id: str, role: str) -> None:
+        """Promote a teammate to manager or put them back on the floor. A manager can do everything
+        the person who set the store up can do, so this is the only door to that."""
+        self._seat_cols()
+        self._run("UPDATE seats SET role = :r WHERE id = :id AND shop = :shop",
+                  {"r": "manager" if role == "manager" else "associate", "id": seat_id, "shop": shop})
+
+    def seat_by_staff_id(self, shop: str, staff_user_id: str) -> dict | None:
+        """The seat a Shopify staff member has been given, if any. This is what decides whether
+        someone who opens the embedded app is a manager, an associate, or a stranger."""
+        self._seat_cols()
+        row = self._run(
+            "SELECT id, name, email, role, staff_user_id FROM seats "
+            "WHERE shop = :shop AND staff_user_id = :sid AND revoked_at IS NULL",
+            {"shop": shop, "sid": str(staff_user_id)}, fetch="one")
+        return dict(row) if row else None
+
+    def link_seat_staff_id(self, seat_id: str, staff_user_id: str) -> None:
+        """Tie a seat to the Shopify staff account that signed in, so the embedded app knows them
+        without anyone typing a token."""
+        self._seat_cols()
+        self._run("UPDATE seats SET staff_user_id = :sid WHERE id = :id",
+                  {"sid": str(staff_user_id)[:64], "id": seat_id})
 
     def revoke_seat(self, shop: str, seat_id: str) -> None:
         self._run("UPDATE seats SET revoked_at = :at WHERE id = :id AND shop = :shop",

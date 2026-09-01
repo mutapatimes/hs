@@ -128,6 +128,31 @@ def _note_open(shop: str) -> None:
         pass
 
 
+def _note_who(shop: str, session_token: str) -> None:
+    """Who just opened the app. Shopify names the staff member in the session token's ``sub``, which
+    costs no scope. The first one through the door installed the app and set the store up, so they
+    are recorded as the owner; anyone after that who has no seat goes on a list for the manager to
+    let in. Best-effort: a missing claim changes nothing (see halia.api.roles)."""
+    try:
+        from halia.api import roles
+        from halia.api.shopify_auth import session_claims
+        claims = session_claims(session_token) or {}
+        staff = str(claims.get("sub") or "")
+        if not staff:
+            return
+        if roles.claim_owner(shop, staff):
+            return                                  # they set the store up; nothing to ask for
+        if staff != roles.owner_staff_id(shop) and not shop_store_seat(shop, staff):
+            roles.note_pending(shop, staff)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def shop_store_seat(shop: str, staff_id: str):
+    from halia.api.shopify_auth import shop_store
+    return shop_store().seat_by_staff_id(shop, staff_id)
+
+
 def _learn_shop_email(shop: str, st) -> None:
     """One Admin API read of the shop's contact email into settings.account_email."""
     import json as _json
@@ -201,6 +226,7 @@ def register(app) -> None:
 
         head = _head(shop, session_token)
         _note_open(shop)
+        _note_who(shop, session_token)
         try:
             entry = cache.get(shop)
             from halia.api.onboarding import _stale_mask
