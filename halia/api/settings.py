@@ -20,6 +20,7 @@ from fastapi import Body, Depends, HTTPException
 
 from halia import config
 from halia import vip
+from halia.api.roles import require_manager
 from halia.api.shopify_auth import require_shop, shop_store
 from halia.cache import cache
 
@@ -518,7 +519,7 @@ def register(app) -> None:
         return s
 
     @app.post("/v1/settings")
-    def save_settings(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
+    def save_settings(shop: str = Depends(require_manager), payload: Any = Body(...)) -> dict:
         payload = payload or {}
         existing_raw = shop_store().get_settings_raw(shop)
         existing = json.loads(existing_raw) if existing_raw else {}
@@ -584,12 +585,12 @@ def register(app) -> None:
                 "profile": settings_for(shop).get("vip_profile") or {}}
 
     @app.post("/v1/klaviyo/disconnect")
-    def klaviyo_disconnect(shop: str = Depends(require_shop)) -> dict:
+    def klaviyo_disconnect(shop: str = Depends(require_manager)) -> dict:
         shop_store().delete_klaviyo(shop)
         return {"ok": True}
 
     @app.post("/v1/account/delete")
-    def delete_account(shop: str = Depends(require_shop)):
+    def delete_account(shop: str = Depends(require_manager)):
         """Right-to-erasure: cancel any subscription, then wipe everything Halia holds for
         this tenant (tokens, keys, settings, integrations, billing) and sign them out.
         Irreversible; the customer's own store data is untouched."""
@@ -621,7 +622,7 @@ def register(app) -> None:
         }
 
     @app.post("/v1/calibrate")
-    def calibrate_apply(shop: str = Depends(require_shop)) -> dict:
+    def calibrate_apply(shop: str = Depends(require_manager)) -> dict:
         """Compute per-merchant calibrated weights and adopt them (re-scores on next load)."""
         from halia.api import data
         from scoring.calibrate import calibrate_weights, calibration_report
@@ -634,7 +635,7 @@ def register(app) -> None:
         return {"ok": True, "saved": saved, "report": report}
 
     @app.delete("/v1/calibrate")
-    def calibrate_reset(shop: str = Depends(require_shop)) -> dict:
+    def calibrate_reset(shop: str = Depends(require_manager)) -> dict:
         """Clear calibrated weights — back to the engine's default weights."""
         set_signal_weights(shop, None)
         return {"ok": True, "saved": None}
@@ -657,7 +658,7 @@ def register(app) -> None:
         }
 
     @app.post("/v1/calibrate/feedback")
-    def calibrate_feedback_apply(shop: str = Depends(require_shop)) -> dict:
+    def calibrate_feedback_apply(shop: str = Depends(require_manager)) -> dict:
         """Adopt outcome-based (feedback-precision) calibrated weights (re-scores on next load)."""
         from scoring.calibrate import calibrate_from_feedback, feedback_calibration_report
 

@@ -361,6 +361,13 @@ class ExtAuth:
     shop: str
     seat_id: Optional[str] = None
     seat_name: Optional[str] = None
+    # "manager" changes what the whole store sees (settings, the house voice, the team);
+    # "associate" works the floor. The legacy shared token has no seat, so it stays a manager.
+    role: str = "manager"
+
+    @property
+    def is_manager(self) -> bool:
+        return self.role == "manager"
 
 
 def _resolve_ext(x_halia_ext_token: Optional[str], paid: bool = True) -> ExtAuth:
@@ -372,7 +379,8 @@ def _resolve_ext(x_halia_ext_token: Optional[str], paid: bool = True) -> ExtAuth
         seat = shop_store().seat_for_token(token_hash)
         if seat:
             shop_store().touch_seat(seat["seat_id"])
-            auth = ExtAuth(shop=seat["shop"], seat_id=seat["seat_id"], seat_name=seat["name"])
+            auth = ExtAuth(shop=seat["shop"], seat_id=seat["seat_id"], seat_name=seat["name"],
+                           role=seat.get("role") or "associate")
         else:
             shop = shop_store().shop_for_extension_token(token_hash)
             if shop:
@@ -1176,6 +1184,7 @@ def register(app) -> None:
         auth = _resolve_ext(x_halia_ext_token, paid=False)
         v = _voice.clean_voice((settings_for(auth.shop) or {}).get("voice"))
         return {"voice": v, "sample": _voice.sample_message(v, sender=auth.seat_name or "Sarah"),
+                "can_edit": auth.is_manager, "role": auth.role,
                 "axes": [{"key": a, "low": _voice.AXIS_LABELS[a][0], "high": _voice.AXIS_LABELS[a][1]}
                          for a in _voice.AXES],
                 "languages": [{"code": c, "name": n} for c, n in _voice.LANGUAGES]}
@@ -1189,6 +1198,8 @@ def register(app) -> None:
 
         from halia import voice as _voice
         auth = _resolve_ext(x_halia_ext_token, paid=False)
+        if not auth.is_manager:
+            raise HTTPException(403, "Only a manager can change how the house sounds.")
         raw = shop_store().get_settings_raw(auth.shop)
         existing = _json.loads(raw) if raw else {}
         v = _voice.clean_voice((payload or {}).get("voice"))

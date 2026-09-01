@@ -14,9 +14,10 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import HTTPException, Body, Depends
+from fastapi import Body, Depends, HTTPException, Request
 
 from halia import config
+from halia.api.roles import require_manager
 from halia.api.shopify_auth import require_shop, shop_store
 from halia.api.tenant_auth import hash_token, new_token
 
@@ -84,20 +85,83 @@ def seat_terms(shop: str) -> dict:
 
 def register(app) -> None:
     @app.get("/v1/seats")
-    def list_seats(shop: str = Depends(require_shop)) -> dict:
-        """The tenant's seats for the dashboard Team panel, plus the active-seat count (billing meter)."""
+    def list_seats(request: Request, shop: str = Depends(require_shop)) -> dict:
+        """The tenant's seats for the dashboard Team panel, plus the active-seat count (billing meter),
+        who is a manager, and any Shopify staff waiting to be let in."""
+        from halia.api import roles
+
         cutoff = (datetime.now(timezone.utc) - timedelta(days=_ACTIVE_DAYS)).isoformat(timespec="seconds")
         seats = []
         for s in shop_store().list_seats(shop):
             last = s.get("last_seen_at")
             seats.append({"id": s["id"], "name": s["name"], "email": s.get("email") or "",
                           "title": s.get("title") or "", "signoff": s.get("signoff") or "",
+                          "role": s.get("role") or "associate",
+                          "shopifyUser": bool(s.get("staff_user_id")),
                           "lastSeen": last, "active": bool(last and last >= cutoff)})
+        mine = roles.role_for_request(request, shop)
         return {"seats": seats, "count": shop_store().active_seat_count(shop, days=_ACTIVE_DAYS),
-                "plan": seat_terms(shop)}
+                "plan": seat_terms(shop), "role": mine,
+                "pending": roles.pending_staff(shop) if mine == roles.MANAGER else []}
+
+    @app.post("/v1/seats/{seat_id}/role")
+    def set_seat_role(seat_id: str, shop: str = Depends(require_manager),
+                      payload: dict = Body(default={})) -> dict:
+        """Promote a teammate to manager, or put them back on the floor. A manager can change the
+        settings, the house voice, billing and the team, so this is the only door to that."""
+        from halia.api import roles
+
+        _own_seat(shop, seat_id)
+        role = str((payload or {}).get("role") or "").strip().lower()
+        if role not in (roles.MANAGER, roles.ASSOCIATE):
+            raise HTTPException(422, "Role must be manager or associate.")
+        shop_store().set_seat_role(shop, seat_id, role)
+        return {"ok": True, "role": role}
+
+    @app.post("/v1/seats/grant")
+    def grant_staff(shop: str = Depends(require_manager), payload: dict = Body(default={})) -> dict:
+        """Let a Shopify staff member who has opened the app in as an associate (or a manager).
+        They are recognised by their Shopify account from then on, with no token to hand over."""
+        from halia.api import roles
+
+        p = payload or {}
+        staff_id = str(p.get("staff_id") or "").strip()[:64]
+        if not staff_id:
+            raise HTTPException(422, "staff_id is required.")
+        role = roles.MANAGER if str(p.get("role") or "").lower() == roles.MANAGER else roles.ASSOCIATE
+        store = shop_store()
+        existing = store.seat_by_staff_id(shop, staff_id)
+        if existing:
+            store.set_seat_role(shop, existing["id"], role)
+            roles.clear_pending(shop, staff_id)
+            return {"ok": True, "seat_id": existing["id"], "role": role}
+        name = str(p.get("name") or "").strip()[:80] or "Teammate"
+        email = str(p.get("email") or "").strip().lower()[:200]
+        seat_id = store.seat_by_email(shop, email)["id"] if (email and store.seat_by_email(shop, email)) else ""
+        if seat_id:                                  # they already had a seat: just tie it to Shopify
+            store.link_seat_staff_id(seat_id, staff_id)
+            store.set_seat_role(shop, seat_id, role)
+        else:
+            terms = seat_terms(shop)
+            if terms["free"] and terms["seats"] >= terms["freeSeats"]:
+                raise HTTPException(402, "The free scan includes one sign-in. Choose a plan in Billing to add teammates.")
+            token = new_token()
+            seat_id = store.create_seat(shop, name, hash_token(token), email,
+                                        role=role, staff_user_id=staff_id)
+        roles.clear_pending(shop, staff_id)
+        return {"ok": True, "seat_id": seat_id, "role": role}
+
+    @app.post("/v1/seats/deny")
+    def deny_staff(shop: str = Depends(require_manager), payload: dict = Body(default={})) -> dict:
+        """Take a waiting Shopify staff member off the list. They keep no access either way."""
+        from halia.api import roles
+
+        staff_id = str((payload or {}).get("staff_id") or "").strip()[:64]
+        roles.clear_pending(shop, staff_id)
+        return {"ok": True}
 
     @app.post("/v1/seats")
-    def create_seat(shop: str = Depends(require_shop), payload: dict = Body(default={})) -> dict:
+    def create_seat(shop: str = Depends(require_manager), payload: dict = Body(default={})) -> dict:
         """Provision a seat and return its one-time join token + QR (the raw token is shown only here)."""
         from halia.capture_quality import clean_email
 
@@ -135,7 +199,7 @@ def register(app) -> None:
         raise HTTPException(404, "No such seat.")
 
     @app.patch("/v1/seats/{seat_id}")
-    def edit_seat(seat_id: str, shop: str = Depends(require_shop), payload: dict = Body(default={})) -> dict:
+    def edit_seat(seat_id: str, shop: str = Depends(require_manager), payload: dict = Body(default={})) -> dict:
         """Edit a teammate's details from the dashboard: name, email, position, sign-off."""
         from halia.capture_quality import clean_email
 
@@ -161,7 +225,7 @@ def register(app) -> None:
         return {"ok": True, "seat": {"id": seat_id, **(shop_store().seat_profile(seat_id) or {})}}
 
     @app.post("/v1/seats/{seat_id}/reissue")
-    def reissue_seat(seat_id: str, shop: str = Depends(require_shop)) -> dict:
+    def reissue_seat(seat_id: str, shop: str = Depends(require_manager)) -> dict:
         """A fresh sign-in for an existing teammate (new phone, new laptop). The old token stops."""
         seat = _own_seat(shop, seat_id)
         token = new_token()
@@ -173,7 +237,7 @@ def register(app) -> None:
                 "reissued": True}
 
     @app.post("/v1/seats/{seat_id}/revoke")
-    def revoke_seat(seat_id: str, shop: str = Depends(require_shop)) -> dict:
+    def revoke_seat(seat_id: str, shop: str = Depends(require_manager)) -> dict:
         """Hard-kill a seat: its token stops authenticating and it drops from the seat count."""
         shop_store().revoke_seat(shop, seat_id)
         return {"ok": True}

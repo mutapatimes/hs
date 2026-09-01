@@ -884,6 +884,7 @@ private struct DeskSettingsView: View {
     @State private var axes: [HaliaAPI.VoiceAxis] = []
     @State private var languages: [HaliaAPI.VoiceLanguage] = []
     @State private var sample = ""
+    @State private var canEditVoice = true
     @State private var loading = true
     @State private var busy = false
     @State private var status: String?
@@ -924,6 +925,7 @@ private struct DeskSettingsView: View {
                                 }
                                 Slider(value: binding(for: axis.key, in: v), in: 0...100, step: 5)
                                     .tint(Palette.brand)
+                                    .disabled(!canEditVoice)
                             }
                             .padding(.vertical, 2)
                         }
@@ -932,9 +934,13 @@ private struct DeskSettingsView: View {
                             set: { voice?.language = $0 })) {
                             ForEach(languages, id: \.code) { l in Text(l.name).tag(l.code) }
                         }
+                        .disabled(!canEditVoice)
                     } header: { Text("How the house sounds") } footer: {
-                        Text("Everyone at this store writes in this voice.")
+                        Text(canEditVoice
+                             ? "Everyone at this store writes in this voice."
+                             : "Set by your manager. Everyone at this store writes in this voice.")
                     }
+                    .opacity(canEditVoice ? 1 : 0.6)
 
                     if !sample.isEmpty {
                         Section {
@@ -992,6 +998,7 @@ private struct DeskSettingsView: View {
             axes = v.axes ?? []
             languages = v.languages ?? []
             sample = v.sample ?? ""
+            canEditVoice = v.can_edit ?? true
         }
         loading = false
     }
@@ -1000,7 +1007,7 @@ private struct DeskSettingsView: View {
         busy = true; status = nil
         do {
             try await HaliaAPI.current.saveProfile(name: name, email: email, title: title, signoff: signoff)
-            if let v = voice {
+            if canEditVoice, let v = voice {
                 let r = try await HaliaAPI.current.saveVoice(v)
                 sample = r.sample ?? sample
             }
