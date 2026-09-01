@@ -727,5 +727,7 @@ lifecycle.register(app)
 shopify_push.register(app)
 extension.register(app)
 seats.register(app)
+from halia.api import outlook_addon as _outlook_addon  # noqa: E402
+_outlook_addon.register(app)
 insight.register(app)
 feedback.register(app)

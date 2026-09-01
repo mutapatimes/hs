@@ -52,6 +52,12 @@ SHOPIFY_APP_HANDLE = os.environ.get("SHOPIFY_APP_HANDLE") or None
 SHOPIFY_API_SECRET = os.environ.get("SHOPIFY_API_SECRET")
 HALIA_APP_URL = os.environ.get("HALIA_APP_URL", "").rstrip("/")
 
+# The Outlook add-in's identity. Outlook keys an installed add-in on this GUID, so it must never
+# change once a mailbox has it: a new id reads as a different add-in and installs a second copy.
+# The default is the production id; set the env var only to run a second add-in side by side.
+OUTLOOK_ADDIN_ID = (os.environ.get("HALIA_OUTLOOK_ADDIN_ID")
+                    or "6f3a1c58-9d2e-4b7a-bd41-2e8c5a7f0913")
+
 # Shopify App Proxy — serves the shareable catalogue under the merchant's OWN storefront domain
 # (theirbrand.com/<prefix>/<subpath>/…) so a client never sees a Halia URL. Must match the App
 # Proxy configured in the Shopify Dev Dashboard (Subpath prefix + Subpath; Proxy URL points at

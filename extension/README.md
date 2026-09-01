@@ -137,6 +137,9 @@ nothing; the first check is silent so installing never blasts a backlog.
 | WhatsApp Web | `web.whatsapp.com` | the chat's phone number, else an exact name match |
 | Gmail | `mail.google.com` | the other correspondent's email address |
 
+Outlook is served by an add-in rather than this extension, because Outlook has no web DOM to sit
+on that would also cover Windows and Mac. See [docs/outlook-add-in.md](../docs/outlook-add-in.md).
+
 WhatsApp and Gmail match against the customers already in your Halia book. If the person isn't a
 flagged client, the card says so.
 
