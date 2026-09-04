@@ -312,8 +312,11 @@ def due_reminders(shop: str, within_hours: int = 24, already: int = 2) -> list[d
     return out
 
 
-def upcoming(shop: str, days: int = 14, seat_id: Optional[str] = None) -> list[dict]:
-    """Every appointment in the next ``days`` across the board, soonest first."""
+def upcoming(shop: str, days: int = 14, seat_id: Optional[str] = None,
+             past_days: int = 0) -> list[dict]:
+    """Every appointment in the next ``days`` across the board, soonest first. ``past_days``
+    reaches back as well (the calendar view shows the month as it was, not just what is ahead);
+    the record keeps KEEP_DAYS behind it, so that is the natural bound."""
     from halia.api.board import _sink, pipeline_cards
     try:
         cards = pipeline_cards(_sink(shop))
@@ -321,6 +324,8 @@ def upcoming(shop: str, days: int = 14, seat_id: Optional[str] = None) -> list[d
         return []
     now = datetime.now(timezone.utc)
     horizon = now + timedelta(days=max(1, min(int(days or 14), 90)))
+    floor = now - (timedelta(days=min(int(past_days), KEEP_DAYS)) if past_days
+                   else timedelta(hours=2))
     out = []
     for card in cards.values():
         for a in card.get("appointments") or []:
@@ -328,7 +333,7 @@ def upcoming(shop: str, days: int = 14, seat_id: Optional[str] = None) -> list[d
                 when = datetime.fromisoformat(a["when"])
             except (KeyError, ValueError):
                 continue
-            if now - timedelta(hours=2) <= when <= horizon:
+            if floor <= when <= horizon:
                 out.append({**a, "cid": card["cid"], "name": card.get("name") or "", "email": card.get("email") or "",
                             "in_days": (when.date() - now.date()).days,
                             "mine": bool(seat_id and a.get("seat_id") == seat_id)})
@@ -535,8 +540,9 @@ def register(app) -> None:
                 "outside_hours": outside_hours(shop, when, minutes)}
 
     @app.get("/v1/appointments")
-    def list_appointments(shop: str = Depends(require_shop), days: int = Query(14)) -> dict:
-        rows = upcoming(shop, days)
+    def list_appointments(shop: str = Depends(require_shop), days: int = Query(14),
+                          past: int = Query(0)) -> dict:
+        rows = upcoming(shop, days, past_days=max(0, min(int(past or 0), KEEP_DAYS)))
         store = _store_name(shop)
         return {"appointments": [{**a, "links": calendar_links(a, a.get("name") or "", store, shop,
                                                                client_email=a.get("email") or "")}
