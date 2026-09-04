@@ -155,3 +155,18 @@ def test_order_cap_is_recorded_when_the_pull_stops_at_its_limit():
     assert data.order_cap("s2") == {"read": 1200, "capped": False}
     data._note_order_cap("s3", 90000, None, 100)       # no cap configured
     assert data.order_cap("s3")["capped"] is False
+
+
+def test_appointments_have_their_own_tab_and_a_calendar():
+    from pathlib import Path
+    html = Path("web/template.html").read_text()
+    assert 'data-view="appts">Appointments</button>' in html
+    assert 'id="viewAppts"' in html
+    # a month view and a list view, outcomes settable from the list, one click into the client
+    assert "function apptCalHtml(" in html and "function apptListHtml(" in html
+    assert "appointment/outcome" in html and "data-aopen" in html
+    assert 'past=90' in html                       # the calendar shows the month as it was
+    # the admin sidebar reaches it, and the router knows the segment both ways
+    from halia.api.embedded import _NAV_MENU
+    assert '/view/appointments' in _NAV_MENU
+    assert 'appointments:"appts"' in html and 'appts:"appointments"' in html

@@ -466,3 +466,21 @@ def test_tomorrows_visits_are_gathered_for_the_team_and_only_theirs(env, monkeyp
     assert "Grace Ladoja" in sent["html"]
     # It goes to the team, never to the client.
     assert "g@x.com" not in sent["to"]
+
+
+def test_the_diary_reaches_back_for_the_calendar(env):
+    # upcoming() only looked forward, but a calendar shows the month as it was. `past` opens the
+    # floor; without it, nothing already over is returned, exactly as before.
+    client, store, sink = env
+    client.post("/v1/board/appointment", json={"cid": "c1", "when": _soon(3).isoformat()})
+    client.post("/v1/board/appointment",
+                json={"cid": "c1", "when": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()})
+    assert len(client.get("/v1/appointments?days=14").json()["appointments"]) == 1
+    both = client.get("/v1/appointments?days=14&past=30").json()["appointments"]
+    assert len(both) == 2 and both[0]["when"] < both[1]["when"]     # oldest first
+    # an outcome rides along, so the calendar can colour the day
+    past_id = both[0]["id"]
+    client.post("/v1/board/appointment/outcome",
+                json={"cid": "c1", "id": past_id, "outcome": "attended"})
+    rows = client.get("/v1/appointments?days=14&past=30").json()["appointments"]
+    assert next(r for r in rows if r["id"] == past_id)["status"] == "attended"

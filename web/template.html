@@ -555,6 +555,26 @@
   .vtab{border:none;background:transparent;font:600 13px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;color:var(--soft);padding:8px 18px;border-radius:8px;cursor:pointer;transition:color var(--dur) var(--ease),background var(--dur) var(--ease)}
   .vtab:hover{color:var(--ink)}
   .vtab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  /* Appointments: the month grid */
+  .calbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .calbar .mon{font:600 16px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;color:var(--ink);min-width:150px;text-align:center}
+  .calbtn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 12px;font:600 12.5px system-ui;color:var(--ink);cursor:pointer}
+  .calbtn.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .caldow{background:var(--shell);padding:7px 9px;font:600 11px system-ui;color:var(--faint);letter-spacing:.03em;text-transform:uppercase}
+  .calday{background:var(--card);min-height:96px;padding:6px 7px;display:flex;flex-direction:column;gap:4px}
+  .calday.out{background:var(--shell)}
+  .calday .dnum{font:600 12px system-ui;color:var(--faint)}
+  .calday.today .dnum{color:#fff;background:var(--brand-deep,#0e2e27);border-radius:10px;padding:1px 7px;align-self:flex-start}
+  .calchip{font:600 11.5px system-ui;border:none;border-radius:6px;padding:3px 7px;text-align:left;cursor:pointer;background:#eef3f1;color:#1f564a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .calchip.done{background:#eaf3ec;color:#1e5c37}
+  .calchip.miss{background:#f7ecec;color:#9a3838;text-decoration:line-through}
+  .calchip:hover{filter:brightness(.96)}
+  .aday{font:600 13px system-ui;color:var(--soft);margin:18px 0 6px}
+  .arow{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+  .achip{font:600 11px system-ui;border-radius:20px;padding:2px 9px}
+  .achip.done{background:#eaf3ec;color:#1e5c37}
+  .achip.miss{background:#f7ecec;color:#9a3838}
   /* campaigns tab */
   .camplist{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
   .camprow{display:flex;justify-content:space-between;align-items:center;gap:14px;border:1px solid var(--line);background:var(--card);padding:14px 16px}
@@ -926,6 +946,7 @@
         <button class="vtab" data-view="orders">Orders</button>
         <button class="vtab" data-view="map">Map</button>
         <button class="vtab" data-view="board">Pipeline</button>
+        <button class="vtab" data-view="appts">Appointments</button>
         <button class="vtab" data-view="catalogs">Catalogues</button>
         <button class="vtab" data-view="campaigns">Campaigns</button>
       </div>
@@ -951,7 +972,7 @@
           <div class="cb"><div id="ovTeam"></div></div>
         </div>
         <div id="ovApptCard" class="card" style="display:none;margin-bottom:16px">
-          <div class="ch"><h3>Appointments</h3><span class="hint">next fortnight</span></div>
+          <div class="ch"><h3>Appointments</h3><span class="hint">next fortnight</span><button class="lnkbtn" style="margin-left:auto" onclick="showView('appts')">View all</button></div>
           <div class="cb"><div id="ovAppts"></div></div>
         </div>
         <div id="ovBirthdaysCard" class="card" style="display:none;margin-bottom:16px">
@@ -1129,6 +1150,11 @@
         <div id="boardRoot"><div class="hload"><span class="pxgrid wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="shim" style="font:600 13px system-ui">Loading</span></div></div>
       </div><!-- /viewBoard -->
 
+      <!-- APPOINTMENTS: every visit on the books, as a month or a list -->
+      <div id="viewAppts" style="display:none">
+        <div id="apptsRoot" style="min-height:80px"><div class="hload"><span class="pxgrid wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="shim" style="font:600 13px system-ui">Loading</span></div></div>
+      </div><!-- /viewAppts -->
+
       <!-- CATALOGUES: build print-ready PDF + shareable enquiry-form catalogues from products -->
       <div id="viewCatalogs" style="display:none">
         <div id="catalogsRoot" style="min-height:80px"><div class="hload"><span class="pxgrid wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="shim" style="font:600 13px system-ui">Loading</span></div></div>
@@ -1293,8 +1319,8 @@ const PLATFORM_LABEL = ({shopify:"Shopify",woocommerce:"WooCommerce",bigcommerce
 // "settings" is an overlay, not a view, so it routes specially. Query params (host/embedded)
 // are always preserved.
 const EMBEDDED = !!document.querySelector('meta[name="shopify-api-key"]');
-const SEG2VIEW = {clients:"clients",catalogues:"catalogs",pipeline:"board",orders:"orders",map:"map",campaigns:"campaigns"};
-const VIEW2SEG = {clients:"clients",catalogs:"catalogues",board:"pipeline",orders:"orders",map:"map",campaigns:"campaigns"};
+const SEG2VIEW = {clients:"clients",catalogues:"catalogs",pipeline:"board",orders:"orders",map:"map",campaigns:"campaigns",appointments:"appts"};
+const VIEW2SEG = {clients:"clients",catalogs:"catalogues",board:"pipeline",orders:"orders",map:"map",campaigns:"campaigns",appts:"appointments"};
 
 // ── Adaptive landing: which view greets this user on "home". ──────────────────────────
 // Early on, Clients — learn your book, no pressure to act. Once they are working the app (they
@@ -2611,6 +2637,97 @@ function renderAppointments(){
     box.querySelectorAll("[data-appt]").forEach(b=>b.onclick=()=>openDrawer(DATA.find(x=>String(x.cid)===String(b.dataset.appt))?.id||b.dataset.appt));
   }).catch(()=>{ card.style.display="none"; });
 }
+/* ---- Appointments tab: the whole diary, as a month or a list ---- */
+const APPT_STATE={mode:"cal",ym:null,rows:null,at:0};
+function apptStatusChip(a){
+  if(a.status==="attended")return '<span class="achip done">Attended</span>';
+  if(a.status==="no_show")return '<span class="achip miss">No-show</span>';
+  return "";
+}
+function apptHM(iso){const d=new Date(iso);return isNaN(d)?"":d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});}
+function renderApptsView(force){
+  const root=document.getElementById("apptsRoot"); if(!root) return;
+  if(!force && APPT_STATE.rows && Date.now()-APPT_STATE.at<60000){apptPaint();return;}
+  fetch("/v1/appointments?days=90&past=90").then(r=>r.json()).then(d=>{
+    APPT_STATE.rows=d.appointments||[]; APPT_STATE.at=Date.now();
+    if(!APPT_STATE.ym){const n=new Date();APPT_STATE.ym=[n.getFullYear(),n.getMonth()];}
+    apptPaint();
+  }).catch(()=>{root.innerHTML='<div class="card"><div class="cb" style="color:var(--faint);font:13px system-ui">Appointments are available for stores with write-back.</div></div>';});
+}
+function apptPaint(){
+  const root=document.getElementById("apptsRoot"); if(!root) return;
+  const cal=APPT_STATE.mode==="cal";
+  const [y,m]=APPT_STATE.ym;
+  const monName=new Date(y,m,1).toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+  root.innerHTML=`<div class="calbar">
+      <button class="calbtn${cal?" on":""}" data-am="cal">Calendar</button>
+      <button class="calbtn${cal?"":" on"}" data-am="list">List</button>
+      <span style="flex:1"></span>
+      ${cal?`<button class="calbtn" data-anav="-1">‹</button>
+      <span class="mon">${esc(monName)}</span>
+      <button class="calbtn" data-anav="1">›</button>
+      <button class="calbtn" data-anav="0">Today</button>`:""}
+    </div>
+    <div id="apptBody">${cal?apptCalHtml(y,m):apptListHtml()}</div>`;
+  root.querySelectorAll("[data-am]").forEach(b=>b.onclick=()=>{APPT_STATE.mode=b.dataset.am;apptPaint();});
+  root.querySelectorAll("[data-anav]").forEach(b=>b.onclick=()=>{
+    const n=+b.dataset.anav;
+    if(n===0){const t=new Date();APPT_STATE.ym=[t.getFullYear(),t.getMonth()];}
+    else{const d=new Date(y,m+n,1);APPT_STATE.ym=[d.getFullYear(),d.getMonth()];}
+    apptPaint();});
+  root.querySelectorAll("[data-aopen]").forEach(b=>b.onclick=()=>{
+    const cid=b.dataset.aopen;
+    openDrawer((typeof DATA!=="undefined"&&DATA.find(x=>String(x.cid)===String(cid)))?.id||cid);});
+  root.querySelectorAll("[data-aout]").forEach(b=>b.onclick=()=>{
+    const [cid,id,outcome]=b.dataset.aout.split("|");
+    b.disabled=true;
+    bPost("appointment/outcome",{cid:cid,id:id,outcome:outcome},()=>{
+      toast(outcome==="attended"?"Marked attended.":"Marked a no-show.");
+      renderApptsView(true);
+    }).catch(()=>{b.disabled=false;});});
+}
+function apptCalHtml(y,m){
+  const byDay={};
+  (APPT_STATE.rows||[]).forEach(a=>{const d=new Date(a.when);if(isNaN(d))return;
+    const k=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();(byDay[k]=byDay[k]||[]).push(a);});
+  const first=new Date(y,m,1), start=(first.getDay()+6)%7;       // Monday first
+  const days=new Date(y,m+1,0).getDate();
+  const today=new Date(); const isToday=d=>d===today.getDate()&&m===today.getMonth()&&y===today.getFullYear();
+  let cells='<div class="calgrid">'+["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=>`<div class="caldow">${d}</div>`).join("");
+  for(let i=0;i<start;i++)cells+='<div class="calday out"></div>';
+  for(let d=1;d<=days;d++){
+    const rows=(byDay[y+"-"+m+"-"+d]||[]).sort((a,b)=>a.when<b.when?-1:1);
+    cells+=`<div class="calday${isToday(d)?" today":""}"><span class="dnum">${d}</span>`
+      +rows.map(a=>{const cls=a.status==="attended"?" done":(a.status==="no_show"?" miss":"");
+        return `<button class="calchip${cls}" data-aopen="${esc(a.cid)}" title="${esc((a.name||"A client")+(a.place?" · "+a.place:"")+(a.seat_name?" · "+a.seat_name:""))}">${esc(apptHM(a.when))} ${esc((a.name||"A client").split(" ")[0])}</button>`;}).join("")
+      +'</div>';
+  }
+  const tail=(7-((start+days)%7))%7;
+  for(let i=0;i<tail;i++)cells+='<div class="calday out"></div>';
+  return cells+"</div>";
+}
+function apptListHtml(){
+  const rows=(APPT_STATE.rows||[]).slice().sort((a,b)=>a.when<b.when?-1:1);
+  if(!rows.length)return '<div class="card"><div class="cb" style="color:var(--faint);font:13px system-ui">Nothing booked. Open a client and book a visit from their drawer.</div></div>';
+  const now=new Date(); let out="",lastDay="";
+  rows.forEach(a=>{
+    const d=new Date(a.when);
+    const day=isNaN(d)?"":d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+    if(day!==lastDay){out+=`<div class="aday">${esc(day)}</div>`;lastDay=day;}
+    const past=d<now;
+    out+=`<div class="arow">
+      <span style="font:600 13px system-ui;color:var(--ink);min-width:44px">${esc(apptHM(a.when))}</span>
+      <span style="font:600 14px system-ui;color:var(--ink)">${esc(a.name||"A client")}</span>
+      <span style="font:12.5px system-ui;color:var(--faint)">${esc([a.place,a.seat_name].filter(Boolean).join(" · "))}</span>
+      ${apptStatusChip(a)}
+      <span style="margin-left:auto;display:flex;gap:12px;align-items:center;font:600 12.5px system-ui">
+        ${past&&!a.status?`<button class="calbtn" data-aout="${esc(a.cid)}|${esc(a.id)}|attended">Attended</button>
+        <button class="calbtn" data-aout="${esc(a.cid)}|${esc(a.id)}|no_show">No-show</button>`:""}
+        ${!past&&a.links?apptLinks(a):""}
+        <button class="calbtn" data-aopen="${esc(a.cid)}">Open</button></span>
+    </div>`;});
+  return '<div class="card"><div class="cb">'+out+"</div></div>";
+}
 function renderBirthdays(){
   const card=document.getElementById("ovBirthdaysCard"), box=document.getElementById("ovBirthdays"); if(!card||!box) return;
   fetch("/v1/birthdays?days=14").then(r=>r.json()).then(d=>{
@@ -3155,7 +3272,8 @@ const PAGE_META={
   map:{t:"Where your VICs are",s:"Your potential VICs by area."},
   board:{t:"Outreach pipeline",s:"Track outreach across the team."},
   catalogs:{t:"Catalogues",s:"Build a catalogue and share it as a PDF or enquiry form."},
-  campaigns:{t:"Campaigns",s:"Track the sales a campaign drives."}
+  campaigns:{t:"Campaigns",s:"Track the sales a campaign drives."},
+  appts:{t:"Appointments",s:"Every visit on the books, on a calendar."}
 };
 function showView(v){
   CURRENT_VIEW=v;
@@ -3163,7 +3281,7 @@ function showView(v){
   REVEAL_ACTIVE=false;
   if(v==="overview"||v==="clients") beginReveal();   // reveal the first time a scored view paints
   document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("on",x.dataset.view===v));
-  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"],["catalogs","viewCatalogs"],["campaigns","viewCampaigns"]].forEach(([k,id])=>{
+  [["overview","viewOverview"],["clients","viewClients"],["orders","viewOrders"],["map","viewMap"],["board","viewBoard"],["appts","viewAppts"],["catalogs","viewCatalogs"],["campaigns","viewCampaigns"]].forEach(([k,id])=>{
     const el=document.getElementById(id);if(el)el.style.display=k===v?"":"none";});
   const statsEl=document.querySelector(".stats");
   if(v==="clients"){
@@ -3180,6 +3298,10 @@ function showView(v){
     document.querySelector(".title").textContent=PAGE_META.board.t;document.querySelector(".sub").textContent=PAGE_META.board.s;
     statsEl.style.display="none";
     renderBoard();
+  } else if(v==="appts"){
+    document.querySelector(".title").textContent=PAGE_META.appts.t;document.querySelector(".sub").textContent=PAGE_META.appts.s;
+    statsEl.style.display="none";
+    renderApptsView();
   } else if(v==="catalogs"){
     document.querySelector(".title").textContent=PAGE_META.catalogs.t;document.querySelector(".sub").textContent=PAGE_META.catalogs.s;
     statsEl.style.display="none";
