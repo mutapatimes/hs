@@ -199,6 +199,10 @@ def perform_capture(shop: str, body: dict, channel: str,
     """
     from halia.capture_quality import clean_email, clean_postcode
 
+    furigana = _clean(body.get("furigana"))
+    if furigana:                          # the name reading, kept with their preferences
+        prefs = _clean(body.get("preferences"))
+        body = {**body, "preferences": (f"フリガナ: {furigana}" + (f" · {prefs}" if prefs else ""))}
     email, _, _ = clean_email(body.get("email"), check_dns=False)
     phone = _clean(body.get("phone"))
     if not email and not phone:
@@ -364,11 +368,11 @@ def _shop_for_slug(slug: str):
     return None
 
 
-_QR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+_QR_PAGE = """<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
 <title>{store}</title><style>
   *{{box-sizing:border-box}} body{{margin:0;background:#f8f7f5;color:#1a1a1d;
-    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
+    font:16px/1.5 {font}-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
   .wrap{{max-width:430px;margin:0 auto;padding:34px 22px 60px}}
   h1{{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:27px;margin:0 0 6px}}
   .sub{{color:#6b6b70;font-size:14px;margin:0 0 26px}}
@@ -383,23 +387,20 @@ _QR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
     color:#fff;font:600 16px inherit;cursor:pointer}}
   .done{{text-align:center;padding-top:14vh}} .done h1{{font-size:30px}}
 </style></head><body><div class="wrap" id="w">
- <h1>{store}</h1><p class="sub">Leave your details and we&rsquo;ll look after you.</p>
+ <h1>{store}</h1><p class="sub">{lead}</p>
  <form id="f">
-  <label>First name</label><input name="first_name" autocomplete="given-name">
-  <label>Last name</label><input name="last_name" autocomplete="family-name">
-  <label>Phone</label><input name="phone" type="tel" autocomplete="tel">
-  <label>Email</label><input name="email" type="email" autocomplete="email">
-  <label>Birthday <span class="why">for a birthday treat</span></label><input name="birthday" placeholder="14 June">
-  <label class="grp">Delivery address <span class="why">for gifts, deliveries and event invitations</span></label>
-  <input name="address" placeholder="Street address" autocomplete="street-address" style="margin-bottom:8px">
-  <input name="postcode" placeholder="Postcode" autocomplete="postal-code" style="margin-bottom:8px">
-  <input name="city" placeholder="City" autocomplete="address-level2">
-  <label>Sizes, likes, occasions (optional)</label><input name="preferences">
+  {name_fields}
+  <label>{l_phone}</label><input name="phone" type="tel" autocomplete="tel">
+  <label>{l_email}</label><input name="email" type="email" autocomplete="email">
+  <label>{l_birthday} <span class="why">{w_birthday}</span></label><input name="birthday" placeholder="{ph_birthday}">
+  <label class="grp">{l_address} <span class="why">{w_address}</span></label>
+  {address_fields}
+  <label>{l_prefs}</label><input name="preferences">
   <div id="sug" style="display:none;margin-top:7px;font-size:13.5px;color:#1f564a;cursor:pointer;font-weight:600"></div>
-  <label class="tgl"><input type="checkbox" name="em">Email me about new arrivals and events</label>
-  <label class="tgl"><input type="checkbox" name="sm">Text me occasionally</label>
-  <p class="foot">Kept by {store} for personal service.</p>
-  <button type="submit">Save my details</button>
+  <label class="tgl"><input type="checkbox" name="em">{c_email}</label>
+  <label class="tgl"><input type="checkbox" name="sm">{c_sms}</label>
+  <p class="foot">{foot}</p>
+  <button type="submit">{save}</button>
  </form>
 </div><script>
 var F=document.getElementById('f'),SG=document.getElementById('sug');
@@ -411,7 +412,7 @@ F.email.addEventListener('blur',function(){{var v=F.email.value.trim();
   SG.style.display='none';
   if(!v)return;
   check({{email:v}}).then(function(d){{
-    if(d.email_suggestion){{SG.textContent='Did you mean '+d.email_suggestion+'?';
+    if(d.email_suggestion){{SG.textContent={j_didyoumean}.replace('__S__', d.email_suggestion);
       SG.style.display='block';
       SG.onclick=function(){{F.email.value=d.email_suggestion;SG.style.display='none';}};}}
   }}).catch(function(){{}});}});
@@ -421,16 +422,16 @@ F.postcode.addEventListener('blur',function(){{var v=F.postcode.value.trim();
   .catch(function(){{}});}});
 document.getElementById('f').addEventListener('submit',function(e){{e.preventDefault();
   var f=e.target,b={{channel:'qr',by:new URLSearchParams(location.search).get('by')||''}};
-  ['first_name','last_name','phone','email','birthday','address','postcode','city','preferences'].forEach(function(k){{
-    if(f[k].value.trim())b[k]=f[k].value.trim();}});
-  if(!b.phone&&!b.email){{alert('A phone number or email is needed.');return;}}
+  ['first_name','last_name','furigana','phone','email','birthday','address','postcode','city','preferences'].forEach(function(k){{
+    if(f[k]&&f[k].value.trim())b[k]=f[k].value.trim();}});
+  if(!b.phone&&!b.email){{alert({j_needone});return;}}
   b.consent={{email_marketing:f.em.checked,sms_marketing:f.sm.checked}};
-  var btn=f.querySelector('button');btn.disabled=true;btn.textContent='Saving\u2026';
+  var btn=f.querySelector('button');btn.disabled=true;btn.textContent={j_saving};
   fetch(EP(''),{{method:'POST',headers:{{'Content-Type':'application/json'}},
     body:JSON.stringify(b)}}).then(function(r){{if(!r.ok)throw 0;
-    document.getElementById('w').innerHTML='<div class="done"><h1>Thank you</h1>'+
-      '<p class="sub">You are in good hands.</p></div>';}})
-  .catch(function(){{btn.disabled=false;btn.textContent='Save my details';
+    document.getElementById('w').innerHTML='<div class="done"><h1>'+{j_thanks}+'</h1>'+
+      '<p class="sub">'+{j_hands}+'</p></div>';}})
+  .catch(function(){{btn.disabled=false;btn.textContent={j_save};
     alert('Could not save just now. Please try again.');}});
 }});
 </script></body></html>"""
@@ -461,7 +462,47 @@ def render_capture(slug: str):
         raise HTTPException(404, "Unknown link")
     tenant = dict(shop_store().get_tenant(shop) or {})
     store = (tenant.get("label") or shop).strip()
-    return HTMLResponse(_QR_PAGE.format(store=store))
+    return HTMLResponse(_qr_page(store, shop))
+
+
+def _qr_page(store: str, shop: str) -> str:
+    """The form, in the store's own language. Japanese changes structure as well as words: family
+    name first, a フリガナ (reading) field so staff can address the client correctly, and the
+    address written postcode-first the way every Japanese form is."""
+    import json as _json
+
+    from halia.i18n import client_lang, font_prefix, t
+
+    lang = client_lang(shop)
+    T = lambda k, **f: t(lang, k, **f)   # noqa: E731
+    j = lambda k, **f: _json.dumps(T(k, **f), ensure_ascii=False)   # noqa: E731
+    first = f'<label>{T("cap.first")}</label><input name="first_name" autocomplete="given-name">'
+    last = f'<label>{T("cap.last")}</label><input name="last_name" autocomplete="family-name">'
+    if lang == "ja":
+        name_fields = (last + first
+                       + f'<label>{T("cap.furigana")}</label><input name="furigana">')
+        address_fields = (
+            f'<input name="postcode" placeholder="{T("cap.postcode_ph")}" autocomplete="postal-code" style="margin-bottom:8px">'
+            f'<input name="city" placeholder="{T("cap.city_ph")}" autocomplete="address-level1" style="margin-bottom:8px">'
+            f'<input name="address" placeholder="{T("cap.street_ph")}" autocomplete="street-address">')
+    else:
+        name_fields = first + last
+        address_fields = (
+            f'<input name="address" placeholder="{T("cap.street_ph")}" autocomplete="street-address" style="margin-bottom:8px">'
+            f'<input name="postcode" placeholder="{T("cap.postcode_ph")}" autocomplete="postal-code" style="margin-bottom:8px">'
+            f'<input name="city" placeholder="{T("cap.city_ph")}" autocomplete="address-level2">')
+    return _QR_PAGE.format(
+        store=store, lang=lang, font=font_prefix(lang), lead=T("cap.lead"),
+        name_fields=name_fields, address_fields=address_fields,
+        l_phone=T("cap.phone"), l_email=T("cap.email"),
+        l_birthday=T("cap.birthday"), w_birthday=T("cap.birthday_why"),
+        ph_birthday=T("cap.birthday_ph"),
+        l_address=T("cap.address"), w_address=T("cap.address_why"),
+        l_prefs=T("cap.prefs"), c_email=T("cap.consent_email"), c_sms=T("cap.consent_sms"),
+        foot=T("cap.foot", store=store), save=T("cap.save"),
+        j_didyoumean=j("cap.did_you_mean", suggestion="__S__"),
+        j_needone=j("cap.need_one"), j_saving=j("cap.saving"),
+        j_thanks=j("cap.thanks"), j_hands=j("cap.good_hands"), j_save=j("cap.save"))
 
 
 def submit_public(slug: str, body: Any) -> dict:

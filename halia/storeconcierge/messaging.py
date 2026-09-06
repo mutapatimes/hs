@@ -77,6 +77,14 @@ def wa_number(phone: str) -> str:
     return d
 
 
+def line_share_link(body: str) -> str:
+    """Open LINE's share picker with the message; the associate chooses the chat. LINE is not
+    addressed by number the way WhatsApp is, so the picker is the whole flow. Mobile only, which
+    is where LINE lives."""
+    from urllib.parse import quote
+    return f"https://line.me/R/share?text={quote(body)}"
+
+
 def whatsapp_link(phone: str, body: str) -> str:
     num = wa_number(phone)
     if not num:

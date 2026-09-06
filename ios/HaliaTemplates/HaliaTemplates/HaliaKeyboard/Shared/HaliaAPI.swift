@@ -451,6 +451,14 @@ struct HaliaAPI {
     private struct CaptureLink: Decodable { let url: String? }
 
     /// The store's self-capture URL (rendered as a QR the client scans on their own phone).
+    /// The store's LINE Official Account Basic ID from settings ("" when unset), for the
+    /// add-friend QR in the capture tools.
+    private struct LineBits: Decodable { let line_id: String? }
+    func lineId() async throws -> String {
+        let (data, _) = try await send("/v1/extension/context", method: "GET", body: nil)
+        return (try? JSONDecoder().decode(LineBits.self, from: data))?.line_id ?? ""
+    }
+
     func captureLink() async throws -> String {
         let (data, _) = try await send("/v1/capture/link", method: "GET", body: nil)
         guard let d = try? JSONDecoder().decode(CaptureLink.self, from: data), let u = d.url

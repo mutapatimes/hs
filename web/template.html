@@ -4356,6 +4356,12 @@ function openSettings(page){
         </div>
 
         <div style="${C}">
+          <div style="${H}">LINE</div>
+          <p style="${P}">Your LINE Official Account's Basic ID. It puts an add-friend QR beside the capture tools, so a client can add your LINE at the till.</p>
+          <input id="setLineId" value="${esc(SETTINGS.line_id||'')}" placeholder="@maison" style="width:100%;max-width:240px;${I}">
+        </div>
+
+        <div style="${C}">
           <div style="${H}">Client pages</div>
           <p style="${P}">Catalogue links, appointment invites and the capture form on your own domain. Shopify stores have this already; on any other platform, enter a subdomain of your site.</p>
           <input id="setCatDomain" value="${esc(SETTINGS.catalog_domain||'')}" placeholder="catalogue.yourbrand.com" style="width:100%;max-width:440px;${I}">
@@ -4986,6 +4992,7 @@ function openSettings(page){
         catalog_logo:SET_LOGO,
         catalog_domain:(document.getElementById("setCatDomain")||{}).value||"",
         hours:readHours(),
+        line_id:(document.getElementById("setLineId")||{}).value||"",
         ...(document.querySelector("[data-voice]")?{voice:(function(){const v={};document.querySelectorAll("[data-voice]").forEach(r=>v[r.dataset.voice]=+r.value);v.language=(document.getElementById("voiceLang")||{}).value||"en";return v;})()}:(SETTINGS.voice?{voice:SETTINGS.voice}:{})),
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),
         order_templates:Object.fromEntries(OSTAT.map(st=>[st,(otmpl[st]||[]).filter(t=>(t.name||"").trim()&&(t.body||"").trim())]))};

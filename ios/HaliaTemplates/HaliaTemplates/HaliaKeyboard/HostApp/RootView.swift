@@ -1568,6 +1568,7 @@ private struct CaptureToolsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var card = MyCard.load()
     @State private var captureURL: String?
+    @State private var lineId: String = ""
     @State private var vcardFile: URL?
 
     private var waLink: String? {
@@ -1589,6 +1590,16 @@ private struct CaptureToolsView: View {
                         HStack { Spacer(); ProgressView(); Spacer() }.padding(.vertical, 30)
                     }
                 } header: { Text("Self-capture") }
+
+                if !lineId.isEmpty {
+                    Section {
+                        // In Japan "add our LINE" at the till is how a client joins the book.
+                        // No @ in the URL: line.me wants the bare id.
+                        QRCard(value: "https://line.me/R/ti/p/"
+                                      + lineId.replacingOccurrences(of: "@", with: ""),
+                               caption: "The client scans this and your store's LINE opens, one tap from adding you.")
+                    } header: { Text("LINE") }
+                }
 
                 Section {
                     if let wa = waLink {
@@ -1641,6 +1652,7 @@ private struct CaptureToolsView: View {
             .task {
                 writeVcard()
                 captureURL = try? await HaliaAPI.current.captureLink()
+                lineId = (try? await HaliaAPI.current.lineId()) ?? ""
             }
         }
     }

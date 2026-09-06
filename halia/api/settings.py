@@ -371,6 +371,9 @@ def settings_for(shop: str) -> dict:
         "voice": _voice.clean_voice(d.get("voice")),
         # When the shop is open, so a booking surface can offer real times.
         "hours": clean_hours(d.get("hours")),
+        # The store's LINE Official Account Basic ID (e.g. @maison). Powers the add-friend QR in
+        # the capture tools; in Japan "add our LINE" at the till is how a client joins the book.
+        "line_id": str(d.get("line_id") or "").strip()[:40],
         # Latent-value benchmarks (merchant's own numbers; 0 = not set → fallback heuristic).
         "aov": d.get("aov", 0),
         "max_orders": d.get("max_orders", 0),
@@ -577,6 +580,7 @@ def register(app) -> None:
                       else _voice.clean_voice(existing.get("voice"))),
             "hours": (clean_hours(payload["hours"]) if "hours" in payload
                       else clean_hours(existing.get("hours"))),
+            "line_id": str(payload.get("line_id", existing.get("line_id") or "")).strip()[:40],
             "aov": _num(payload.get("aov")),
             "max_orders": int(_num(payload.get("max_orders"))),
             "highest_lt": _num(payload.get("highest_lt")),

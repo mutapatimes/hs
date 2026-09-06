@@ -12,6 +12,7 @@ import html as _html
 import re as _re
 
 _CUR_SYMBOL = {"GBP": "£", "EUR": "€", "USD": "$", "JPY": "¥", "AUD": "$", "CAD": "$"}
+_ZERO_DECIMAL = {"JPY", "KRW"}
 
 
 def _esc(s: object) -> str:
@@ -31,6 +32,8 @@ def _price(p: dict) -> str:
     except (TypeError, ValueError):
         return ""
     sym = _CUR_SYMBOL.get(cur)
+    if cur in _ZERO_DECIMAL:                       # yen (and won) carry no minor unit
+        return f"{sym}{v:,.0f}" if sym else f"{v:,.0f} {cur}".strip()
     return f"{sym}{v:,.2f}" if sym else (f"{v:,.2f} {cur}".strip())
 
 
@@ -41,7 +44,7 @@ def _desc(p: dict, limit: int = 220) -> str:
     return raw
 
 
-def _card(p: dict, brand: str, fields: dict) -> str:
+def _card(p: dict, brand: str, fields: dict, pick_label: str = "Pick") -> str:
     pid = _attr(p.get("id"))
     img = p.get("image_url")
     media = (f'<div class="ph" style="background-image:url(\'{_attr(img)}\')"></div>' if img
@@ -57,7 +60,7 @@ def _card(p: dict, brand: str, fields: dict) -> str:
     return (f'<div class="card" data-pid="{pid}" data-title="{_attr(p.get("title"))}">'
             f'{media}<div class="meta">{"".join(bits)}</div>'
             f'<button type="button" class="pick" data-pid="{pid}">'
-            f'<span class="pi">+</span><span class="pl">Pick</span></button></div>')
+            f'<span class="pi">+</span><span class="pl">{_esc(pick_label)}</span></button></div>')
 
 
 def _social_tags(title: str, desc: str, image: str, site: str) -> str:
@@ -81,19 +84,24 @@ def _social_tags(title: str, desc: str, image: str, site: str) -> str:
 
 def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, catalog_id: str,
                       enquiry_email: str, prefill: dict | None = None,
-                      og_image: str = "", og_desc: str = "", by: str = "") -> str:
+                      og_image: str = "", og_desc: str = "", by: str = "",
+                      lang: str = "en") -> str:
     """Full interactive enquiry page. ``prefill`` may carry name/email/phone from the share link;
-    ``by`` is the seat that sent it, so their picks come back to that associate."""
+    ``by`` is the seat that sent it, so their picks come back to that associate. ``lang`` is the
+    store's client language (halia.i18n); everything the client reads follows it."""
+    from halia.i18n import font_prefix, t as _t
+    def T(key, **fmt):
+        return _t(lang, key, **fmt)
     prefill = prefill or {}
-    name = catalog.get("name") or "Product Catalogue"
+    name = catalog.get("name") or T("cat.title_fallback")
     personal = str(catalog.get("subtitle") or "").strip()   # personalised line, already token-filled
     logo = str(catalog.get("logo") or "").strip()           # retailer logo (data: URI or URL)
     brand = catalog.get("brand_color") or "#1f564a"
     fields = catalog.get("fields") or {}
-    cards = "".join(_card(p, brand, fields) for p in products) \
-        or '<div class="empty">This catalogue has no products yet.</div>'
-    subtitle = _esc(shop_name) if shop_name else "Catalogue"
-    return f"""<!doctype html><html lang="en"><head>
+    cards = "".join(_card(p, brand, fields, T("cat.pick")) for p in products) \
+        or f'<div class="empty">{_esc(T("cat.empty"))}</div>'
+    subtitle = _esc(shop_name) if shop_name else _esc(T("cat.site_fallback"))
+    return f"""<!doctype html><html lang="{lang}"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>{_esc(name)}{f' · {_esc(shop_name)}' if shop_name else ''}</title>
@@ -102,7 +110,7 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
   :root {{ --brand: {brand}; }}
   * {{ box-sizing: border-box; }}
   body {{ margin: 0; background: #fafafa; color: #1a1712;
-    font-family: 'Helvetica', Arial, sans-serif; }}
+    font-family: {font_prefix(lang)}'Helvetica', Arial, sans-serif; }}
   a {{ color: #1a1712; }}
   .wrap {{ max-width: 1120px; margin: 0 auto; padding: 0 22px; }}
   header {{ padding: 54px 0 30px; border-bottom: 1px solid #ece8df; margin-bottom: 30px; }}
@@ -169,31 +177,31 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     <div class="eyebrow">{subtitle}</div>
     <h1>{_esc(name)}</h1>
     {f'<p class="personal">{_esc(personal)}</p>' if personal else ''}
-    <p class="lead">Tick the pieces you would like, then send.</p>
+    <p class="lead">{_esc(T("cat.lead"))}</p>
   </header>
   <div class="grid" id="grid">{cards}</div>
 </div>
 
 <div class="bar" id="bar"><div class="wrap">
-  <span class="n"><b id="barN">0</b> selected</span>
+  <span class="n"><b id="barN">0</b> {_esc(T("cat.selected"))}</span>
   <span style="flex:1"></span>
-  <button type="button" class="btn ghost" id="clearBtn">Clear</button>
-  <button type="button" class="btn" id="openBtn">Continue</button>
+  <button type="button" class="btn ghost" id="clearBtn">{_esc(T("cat.clear"))}</button>
+  <button type="button" class="btn" id="openBtn">{_esc(T("cat.continue"))}</button>
 </div></div>
 
 <div class="panel" id="panel"><div class="sheet" id="sheet">
   <form id="enqForm">
-    <h2>Your details</h2>
+    <h2>{_esc(T("cat.sheet_title"))}</h2>
     <div class="picked" id="pickedList"></div>
-    <div class="field"><label>Your name</label><input name="name" required value="{_attr(prefill.get('name',''))}" placeholder="Full name"></div>
-    <div class="field"><label>Email</label><input name="email" type="email" required value="{_attr(prefill.get('email',''))}" placeholder="you@email.com"></div>
-    <div class="field"><label>Phone (optional)</label><input name="phone" value="{_attr(prefill.get('phone',''))}" placeholder="Optional"></div>
-    <div class="field"><label>Message (optional)</label><textarea name="message" rows="3" placeholder="Anything else?"></textarea></div>
+    <div class="field"><label>{_esc(T("cat.name"))}</label><input name="name" required value="{_attr(prefill.get('name',''))}" placeholder="{_attr(T("cat.name_ph"))}"></div>
+    <div class="field"><label>{_esc(T("cat.email"))}</label><input name="email" type="email" required value="{_attr(prefill.get('email',''))}" placeholder="you@email.com"></div>
+    <div class="field"><label>{_esc(T("cat.phone"))}</label><input name="phone" value="{_attr(prefill.get('phone',''))}" placeholder="{_attr(T("cat.phone_ph"))}"></div>
+    <div class="field"><label>{_esc(T("cat.message"))}</label><textarea name="message" rows="3" placeholder="{_attr(T("cat.message_ph"))}"></textarea></div>
     <input class="hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
     <input type="hidden" name="by" value="{_attr(by)}">
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">
-      <button type="button" class="btn ghost" id="cancelBtn">Back</button>
-      <button type="submit" class="btn" id="sendBtn">Send my picks</button>
+      <button type="button" class="btn ghost" id="cancelBtn">{_esc(T("cat.back"))}</button>
+      <button type="submit" class="btn" id="sendBtn">{_esc(T("cat.send"))}</button>
     </div>
     <div id="formErr" style="color:#a23b2a;font-size:13px;margin-top:10px;display:none"></div>
   </form>
@@ -212,13 +220,13 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
   grid.addEventListener('click', function(e){{
     var b=e.target.closest('.pick'); if(!b) return;
     var card=b.closest('.card'), id=b.getAttribute('data-pid');
-    if(selected.has(id)){{ selected.delete(id); card.classList.remove('on'); b.querySelector('.pl').textContent='Pick'; }}
-    else {{ selected.add(id); card.classList.add('on'); b.querySelector('.pl').textContent='Picked'; }}
+    if(selected.has(id)){{ selected.delete(id); card.classList.remove('on'); b.querySelector('.pl').textContent={_jstr(T("cat.pick"))}; }}
+    else {{ selected.add(id); card.classList.add('on'); b.querySelector('.pl').textContent={_jstr(T("cat.picked"))}; }}
     refresh();
   }});
   document.getElementById('clearBtn').onclick=function(){{
     selected.clear();
-    grid.querySelectorAll('.card.on').forEach(function(c){{ c.classList.remove('on'); c.querySelector('.pl').textContent='Pick'; }});
+    grid.querySelectorAll('.card.on').forEach(function(c){{ c.classList.remove('on'); c.querySelector('.pl').textContent={_jstr(T("cat.pick"))}; }});
     refresh();
   }};
   function openPanel(){{
@@ -226,7 +234,8 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     grid.querySelectorAll('.card').forEach(function(c){{
       if(selected.has(c.getAttribute('data-pid'))) rows.push('<div>• <b>'+ (c.getAttribute('data-title')||'') +'</b></div>');
     }});
-    list.innerHTML = rows.length ? ('Picked '+rows.length+' piece'+(rows.length>1?'s':'')+':<div style="margin-top:6px">'+rows.join('')+'</div>') : 'No items selected yet.';
+    var pickedLine=(rows.length>1?{_jstr(T("cat.picked_n", n="__N__", s="s"))}:{_jstr(T("cat.picked_n", n="__N__", s=""))}).replace('__N__', rows.length);
+    list.innerHTML = rows.length ? (pickedLine+'<div style="margin-top:6px">'+rows.join('')+'</div>') : {_jstr(T("cat.none_yet"))};
     panel.classList.add('show');
   }}
   document.getElementById('openBtn').onclick=openPanel;
@@ -239,8 +248,8 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     var payload={{ product_ids:[].concat.apply([],[Array.from(selected)]),
       name:f.name.value.trim(), email:f.email.value.trim(), phone:f.phone.value.trim(),
       message:f.message.value.trim(), company:f.company.value, by:(f.by&&f.by.value)||'' }};
-    if(!payload.name || !payload.email){{ err.textContent='Please add your name and email.'; err.style.display='block'; return; }}
-    btn.disabled=true; btn.textContent='Sending…';
+    if(!payload.name || !payload.email){{ err.textContent={_jstr(T("cat.err_need"))}; err.style.display='block'; return; }}
+    btn.disabled=true; btn.textContent={_jstr(T("cat.sending"))};
     // POST relative to how this page was served, so it works both directly and under the App Proxy
     // (theirbrand.com/a/catalogue/{{id}} -> …/{{id}}/enquire), never hard-coding an app URL. The
     // query string comes along: a bespoke selection is signed there, and the App Proxy signs there.
@@ -248,12 +257,12 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     fetch(enquireUrl, {{ method:'POST', headers:{{'content-type':'application/json'}}, body:JSON.stringify(payload) }})
       .then(function(r){{ return r.json().then(function(d){{ return {{ok:r.ok, d:d}}; }}); }})
       .then(function(res){{
-        if(!res.ok) throw new Error((res.d&&res.d.detail)||'Could not send');
+        if(!res.ok) throw new Error((res.d&&res.d.detail)||{_jstr(T("cat.err_send"))});
         document.getElementById('sheet').innerHTML='<div class="ok"><div class="tick">✓</div>'
-          +'<h2 style="margin:0 0 6px">Sent</h2>'
-          +'<p class="sub" style="margin:0">Thank you. They have your picks and will be in touch shortly.</p></div>';
+          +'<h2 style="margin:0 0 6px">'+{_jstr(T("cat.sent"))}+'</h2>'
+          +'<p class="sub" style="margin:0">'+{_jstr(T("cat.thanks"))}+'</p></div>';
       }})
-      .catch(function(ex){{ err.textContent=ex.message; err.style.display='block'; btn.disabled=false; btn.textContent='Send my picks'; }});
+      .catch(function(ex){{ err.textContent=ex.message; err.style.display='block'; btn.disabled=false; btn.textContent={_jstr(T("cat.send"))}; }});
   }});
 }})();
 </script>
@@ -263,3 +272,10 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
 def _js(s: str) -> str:
     """A safe single-quoted JS string literal for a server-injected id."""
     return "'" + _re.sub(r"[^A-Za-z0-9_\-]", "", str(s)) + "'"
+
+
+def _jstr(s: str) -> str:
+    """A JS string literal for real copy. json.dumps escapes quotes and non-ASCII correctly;
+    breaking "</" stops a </script> in a translation from ending the block early."""
+    import json as _json
+    return _json.dumps(str(s or ""), ensure_ascii=False).replace("</", "<\\/")

@@ -8,7 +8,7 @@
   if (window.HaliaPanel) return;
 
   const CHAN = { whatsapp: ["whatsapp", "chat"], email: ["email", "email"],
-    admin: ["catalogue", "referral"] };
+    line: ["line", "chat"], admin: ["catalogue", "referral"] };
 
   const CSS = `
     :host { all: initial; }
@@ -1005,7 +1005,7 @@
   // What to write in the shared contact log. The brief already knows what the associate is about
   // to send, so the log can say what was actually said rather than "Sent a note" — which is what a
   // colleague reading the pipeline next week actually needs. Costs nothing: no extra call.
-  const _CHAN_LABEL = { whatsapp: "WhatsApp", email: "Email", admin: "Store" };
+  const _CHAN_LABEL = { whatsapp: "WhatsApp", email: "Email", line: "LINE", admin: "Store" };
   function briefLogReason() {
     const text = (draft && draft.text) || "";
     if (!text) return "";

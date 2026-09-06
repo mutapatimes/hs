@@ -221,16 +221,16 @@ struct ShareRootView: View {
                 .onChange(of: draft) { _, _ in copied = false; sendResult = "" }   // edited text is stale
             Text("Tap to edit before you send.")
                 .font(.system(size: 11.5)).foregroundColor(.secondary)
-            if rawNumber != nil || rawEmail != nil {
-                HStack(spacing: 10) {
-                    if rawNumber != nil {
-                        sendButton("WhatsApp", system: "message.fill") { send(.whatsapp) }
-                        sendButton("Messages", system: "bubble.left.fill") { send(.messages) }
-                    }
-                    if rawEmail != nil {
-                        sendButton("Email", system: "envelope.fill") { send(.email) }
-                    }
+            HStack(spacing: 10) {
+                if rawNumber != nil {
+                    sendButton("WhatsApp", system: "message.fill") { send(.whatsapp) }
+                    sendButton("Messages", system: "bubble.left.fill") { send(.messages) }
                 }
+                if rawEmail != nil {
+                    sendButton("Email", system: "envelope.fill") { send(.email) }
+                }
+                // LINE's share picker is not addressed to anyone, so it needs no number on file.
+                sendButton("LINE", system: "ellipsis.message.fill") { send(.line) }
             }
             HStack(spacing: 10) {
                 sendButton(copied ? "Copied ✓" : "Copy", system: "doc.on.doc") { copyDraft() }
@@ -274,7 +274,7 @@ struct ShareRootView: View {
 
     // MARK: send
 
-    private enum Channel { case whatsapp, messages, email }
+    private enum Channel { case whatsapp, messages, email, line }
 
     /// A number to send to: the chosen client (reverse flow) or the matched client's phone from the
     /// lookup, else the shared value when a phone was what you shared.
@@ -319,6 +319,7 @@ struct ShareRootView: View {
         case .whatsapp: return "WhatsApp"
         case .messages: return "Messages"
         case .email:    return "Mail"
+        case .line:     return "LINE"
         }
     }
 
@@ -337,6 +338,9 @@ struct ShareRootView: View {
                 guard let em = rawEmail else { return nil }
                 let subj = emailSubject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
                 return URL(string: "mailto:\(em)?subject=\(subj)&body=\(body)")
+            case .line:
+                // Opens LINE's own share picker with the text; the associate chooses the chat.
+                return URL(string: "https://line.me/R/share?text=\(body)")
             }
         }()
         guard let url else { return }

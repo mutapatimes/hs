@@ -43,7 +43,7 @@ def _label(when: datetime, minutes: int) -> str:
     return when.strftime("%a %d %b, %H:%M") + f" ({minutes} min)"
 
 
-def invite_token(appt: dict, store_name: str) -> str:
+def invite_token(appt: dict, store_name: str, lang: str = "en") -> str:
     """A signed, self-contained invite for the client: when, how long, where, the store. No name
     and no address travel in it, so a forwarded link tells a stranger nothing about the client;
     the two people are named only on the associate's own copy of the entry. Nothing is stored and
@@ -51,10 +51,12 @@ def invite_token(appt: dict, store_name: str) -> str:
     # The appointment's own id and revision travel too. Neither says anything about the client,
     # and without them a reschedule hands the client a SECOND entry instead of moving the one they
     # hold: the UID was derived from the token, and the token changes whenever the time does.
-    raw = json.dumps({"w": appt["when"], "m": int(appt.get("minutes") or DEFAULT_MINUTES),
-                      "p": appt.get("place") or "", "s": store_name or "",
-                      "i": appt.get("id") or "", "q": int(appt.get("seq") or 0)},
-                     separators=(",", ":")).encode()
+    d = {"w": appt["when"], "m": int(appt.get("minutes") or DEFAULT_MINUTES),
+         "p": appt.get("place") or "", "s": store_name or "",
+         "i": appt.get("id") or "", "q": int(appt.get("seq") or 0)}
+    if lang and lang != "en":
+        d["l"] = lang                    # absent means English, so older tokens are unchanged
+    raw = json.dumps(d, separators=(",", ":")).encode()
     body = base64.urlsafe_b64encode(raw).decode().rstrip("=")
     sig = hmac.new(_secret(), body.encode(), hashlib.sha256).hexdigest()[:24]
     return f"{body}.{sig}"
@@ -68,7 +70,8 @@ def parse_invite(token: str) -> Optional[dict]:
         d = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
         datetime.fromisoformat(d["w"])
         return {"when": d["w"], "minutes": int(d.get("m") or DEFAULT_MINUTES), "place": d.get("p") or "",
-                "store": d.get("s") or "", "id": d.get("i") or "", "seq": int(d.get("q") or 0)}
+                "store": d.get("s") or "", "id": d.get("i") or "", "seq": int(d.get("q") or 0),
+                "lang": d.get("l") or "en"}
     except Exception:  # noqa: BLE001 — any malformed token is simply not an invite
         return None
 
@@ -105,12 +108,13 @@ def _people_ics(client_name: str, client_email: str, seat_name: str, seat_email_
     return lines
 
 
-def client_message(appt: dict, store_name: str, invite_url: str) -> str:
-    """The line an associate sends the client, ready to paste."""
+def client_message(appt: dict, store_name: str, invite_url: str, lang: str = "en") -> str:
+    """The line an associate sends the client, ready to paste, in the store's own language."""
+    from halia.i18n import t, when_words
     start = datetime.fromisoformat(appt["when"])
-    when = start.strftime("%A %d %B at %H:%M")
-    where = f" at {appt['place']}" if appt.get("place") else (f" at {store_name}" if store_name else "")
-    return f"Your appointment is set for {when}{where}. Add it to your calendar here: {invite_url}"
+    place = appt.get("place") or store_name or ""
+    where = t(lang, "appt.message_at", place=place) if place else ""
+    return t(lang, "appt.message", when=when_words(start, lang), where=where, url=invite_url)
 
 
 def calendar_links(appt: dict, client_name: str, store_name: str, shop: str = "",
@@ -146,7 +150,9 @@ def calendar_links(appt: dict, client_name: str, store_name: str, shop: str = ""
         f"LOCATION:{_ics_escape(place)}", f"DESCRIPTION:{_ics_escape(details)}",
         *_people_ics(client_name, client_email, seat_name, seat_addr),
         "END:VEVENT", "END:VCALENDAR", ""])
-    token = invite_token(appt, store_name)
+    from halia.i18n import client_lang
+    lang = client_lang(shop) if shop else "en"
+    token = invite_token(appt, store_name, lang)
     if shop:
         from halia.api.client_host import client_url
         invite = client_url(shop, f"i/{token}")
@@ -157,16 +163,16 @@ def calendar_links(appt: dict, client_name: str, store_name: str, shop: str = ""
     # not invent a second way of naming the same appointment.
     return {"google": google, "outlook": outlook, "ics": ics,
             "ics_data": "data:text/calendar;charset=utf-8," + quote(ics),
-            "invite": invite, "message": client_message(appt, store_name, invite),
+            "invite": invite, "message": client_message(appt, store_name, invite, lang),
             "title": title, "location": place,
             "start": start.isoformat(), "end": end.isoformat(),
             "minutes": int(appt.get("minutes") or DEFAULT_MINUTES)}
 
 
-_INVITE_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+_INVITE_PAGE = """<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
 <title>{store}</title><style>
-  *{{box-sizing:border-box}} body{{margin:0;background:#f8f7f5;color:#1a1a1d;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
+  *{{box-sizing:border-box}} body{{margin:0;background:#f8f7f5;color:#1a1a1d;font:16px/1.5 {font}-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
   .wrap{{max-width:430px;margin:0 auto;padding:40px 22px 60px}}
   h1{{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:27px;margin:0 0 6px}}
   .sub{{color:#6b6b70;font-size:14px;margin:0 0 28px}}
@@ -175,9 +181,9 @@ _INVITE_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
   a.b.p{{background:#1a1a1d;color:#fff}}
 </style></head><body><div class="wrap">
  {head}<p class="when">{when}</p><p class="where">{where}</p>
- <a class="b p" id="ics" href="{ics}">Add to my calendar</a>
- <a class="b" href="{google}" rel="noopener">Google Calendar</a>
- <a class="b" href="{outlook}" rel="noopener">Outlook</a>
+ <a class="b p" id="ics" href="{ics}">{cal}</a>
+ <a class="b" href="{google}" rel="noopener">{gcal}</a>
+ <a class="b" href="{outlook}" rel="noopener">{ol}</a>
 </div><script>(function(){{var q=new URLSearchParams(location.search).get('halia-page');
 if(q)document.getElementById('ics').href=location.pathname+'?halia-page='+q+'.ics';}})();</script></body></html>"""
 
@@ -452,9 +458,11 @@ def render_invite(token: str):
     start = datetime.fromisoformat(inv["when"])
     end = start + timedelta(minutes=inv["minutes"])
     fmt = lambda d: d.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    from halia.i18n import font_prefix, t, when_words
+    lang = inv.get("lang") or "en"
     # The client's copy names nobody: the store, the time and the place, and no addresses. Their
     # associate's own copy is the one that carries both people.
-    title = f"Appointment at {inv['store']}" if inv["store"] else "Appointment"
+    title = t(lang, "appt.title_at", store=inv["store"]) if inv["store"] else t(lang, "appt.title")
     place = inv["place"] or inv["store"]
     if ics_wanted:
         ics = "\r\n".join(["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Halia//Appointments//EN", "BEGIN:VEVENT",
@@ -470,11 +478,14 @@ def render_invite(token: str):
         "subject": title, "startdt": start.astimezone(timezone.utc).isoformat(),
         "enddt": end.astimezone(timezone.utc).isoformat(), "location": place, "path": "/calendar/action/compose"})
     store = _html.escape(inv["store"] or "")
-    html = _INVITE_PAGE.format(store=store or "Appointment",          # the tab's title only
+    html = _INVITE_PAGE.format(store=store or _html.escape(title),    # the tab's title only
                                head=(f"<h1>{store}</h1>" if store else ""),
-                               when=_html.escape(start.strftime("%A %d %B, %H:%M")),
+                               when=_html.escape(when_words(start, lang)),
                                where=_html.escape(place), ics=f"{token}.ics",
-                               google=_html.escape(google), outlook=_html.escape(outlook))
+                               google=_html.escape(google), outlook=_html.escape(outlook),
+                               lang=lang, font=font_prefix(lang),
+                               cal=t(lang, "appt.add"), gcal=t(lang, "appt.google"),
+                               ol=t(lang, "appt.outlook"))
     return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
 

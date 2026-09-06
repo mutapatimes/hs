@@ -527,10 +527,12 @@ def _detect_language(thread: list[dict]) -> str:
         return "en"
     if re.search(r"[\u0600-\u06FF]", text):
         return "ar"
-    if re.search(r"[\u4E00-\u9FFF]", text):
-        return "zh"
+    # Kana before ideographs: Japanese uses both, Chinese only the latter, so a message with any
+    # kana in it is Japanese even when it is mostly kanji. The old order called it Chinese.
     if re.search(r"[\u3040-\u30FF]", text):
         return "ja"
+    if re.search(r"[\u4E00-\u9FFF]", text):
+        return "zh"
     if re.search(r"[\u0400-\u04FF]", text):
         return "ru"
     words = re.findall(r"[a-zà-ÿ']+", text.lower())
@@ -1294,6 +1296,8 @@ def register(app) -> None:
             # When the shop is open, so a booking surface offers real times instead of 3am.
             # {} when the store has never said, and then nothing is bounded or warned about.
             "hours": s.get("hours") or {},
+            # The store's LINE Basic ID, for the add-friend QR in the capture tools.
+            "line_id": s.get("line_id") or "",
             "slack": bool(shop_store().get_slack(shop)),   # team broadcasts available?
         }
 

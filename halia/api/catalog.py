@@ -96,35 +96,42 @@ def _price_str(pr: dict) -> str:
     if amt in (None, ""):
         return ""
     try:
-        return f"{sym}{float(amt):,.2f}" if sym else f"{float(amt):,.2f} {pr.get('currency') or ''}".strip()
+        v = float(amt)
     except (TypeError, ValueError):
         return ""
+    if (pr.get("currency") or "") in ("JPY", "KRW"):   # no minor unit: never ¥250,000.00
+        return f"{sym}{v:,.0f}" if sym else f"{v:,.0f} {pr.get('currency') or ''}".strip()
+    return f"{sym}{v:,.2f}" if sym else f"{v:,.2f} {pr.get('currency') or ''}".strip()
 
 
-def _enquiry_html(cat_name, name, email, phone, message, picked, lead: str = "") -> str:
+def _enquiry_html(cat_name, name, email, phone, message, picked, lead: str = "",
+                  lang: str = "en") -> str:
     import html as _h
+
+    from halia.i18n import t as _t
     rows = "".join(
         f'<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">{_h.escape(pr.get("title") or "")}'
         + (f' <span style="color:#9a9385">· {_h.escape(pr["sku"])}</span>' if pr.get("sku") else "")
         + f'</td><td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;color:#1f564a">'
         f'{_h.escape(_price_str(pr))}</td></tr>'
-        for pr in picked) or '<tr><td style="padding:6px 10px;color:#9a9385">(No specific products ticked)</td></tr>'
-    msg = (f'<p style="margin:14px 0 0"><b>Message</b><br>{_h.escape(message)}</p>' if message else "")
+        for pr in picked) or f'<tr><td style="padding:6px 10px;color:#9a9385">{_h.escape(_t(lang, "enq.none"))}</td></tr>'
+    msg = (f'<p style="margin:14px 0 0"><b>{_h.escape(_t(lang, "enq.message"))}</b><br>{_h.escape(message)}</p>' if message else "")
     ph = (f' · {_h.escape(phone)}' if phone else "")
     return (f'<div style="font-family:Helvetica,Arial,sans-serif;color:#1a1712;max-width:560px">'
-            f'<p style="font-size:15px">New enquiry from <b>{_h.escape(name)}</b> via your '
-            f'<b>{_h.escape(cat_name)}</b> catalogue.</p>'
+            f'<p style="font-size:15px">{_t(lang, "enq.new_from", name="<b>" + _h.escape(name) + "</b>", cat="<b>" + _h.escape(cat_name) + "</b>")}</p>'
             f'<p style="margin:4px 0 16px;color:#555">{_h.escape(email)}{ph}</p>'
             f'<table style="border-collapse:collapse;width:100%;font-size:14px">'
-            f'<thead><tr><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #1a1712">Product</th>'
-            f'<th style="text-align:right;padding:6px 10px;border-bottom:2px solid #1a1712">Price</th></tr></thead>'
+            f'<thead><tr><th style="text-align:left;padding:6px 10px;border-bottom:2px solid #1a1712">{_h.escape(_t(lang, "enq.product"))}</th>'
+            f'<th style="text-align:right;padding:6px 10px;border-bottom:2px solid #1a1712">{_h.escape(_t(lang, "enq.price"))}</th></tr></thead>'
             f'<tbody>{rows}</tbody></table>{msg}'
-            f'<p style="margin-top:20px;color:#9a9385;font-size:12px">Sent to you by Halia. '
-            f'Reply directly to {_h.escape(email)} to respond.</p></div>')
+            f'<p style="margin-top:20px;color:#9a9385;font-size:12px">'
+            f'{_h.escape(_t(lang, "enq.reply", email=email))}</p></div>')
 
 
-def _enquiry_text(cat_name, name, email, phone, message, picked, lead: str = "") -> str:
-    lines = ([lead, ""] if lead else []) + [f"New enquiry from {name} via your {cat_name} catalogue.",
+def _enquiry_text(cat_name, name, email, phone, message, picked, lead: str = "",
+                  lang: str = "en") -> str:
+    from halia.i18n import t as _t
+    lines = ([lead, ""] if lead else []) + [_t(lang, "enq.new_from", name=name, cat=cat_name),
              f"{email}" + (f" · {phone}" if phone else ""), ""]
     for pr in picked:
         bit = f"- {pr.get('title') or ''}"
@@ -134,10 +141,10 @@ def _enquiry_text(cat_name, name, email, phone, message, picked, lead: str = "")
             bit += f" — {_price_str(pr)}"
         lines.append(bit)
     if not picked:
-        lines.append("(No specific products ticked)")
+        lines.append(_t(lang, "enq.none"))
     if message:
-        lines += ["", f"Message: {message}"]
-    lines += ["", f"Reply directly to {email} to respond."]
+        lines += ["", f"{_t(lang, 'enq.message')}: {message}"]
+    lines += ["", _t(lang, "enq.reply", email=email)]
     return "\n".join(lines)
 
 
@@ -386,15 +393,17 @@ def adhoc_url(shop: str, product_ids: list, name: str = "", by: str = "",
     return f"{base}/for?{_up.urlencode(q)}"
 
 
-def _og_bits(products: list, ctx: dict) -> tuple:
+def _og_bits(products: list, ctx: dict, lang: str = "en") -> tuple:
     """The image and the line a link preview shows: the first product photo we can actually use,
     and who the selection is for."""
+    from halia import i18n
     image = next((p.get("image_url") for p in products
                   if str(p.get("image_url") or "").startswith("https://")), "")
     n = len(products)
-    pieces = f"{n} piece" + ("" if n == 1 else "s")
+    pcs = i18n.pieces(lang, n)
     first = (ctx or {}).get("first_name") or ""
-    desc = f"A selection for {first} · {pieces}" if first else f"{pieces} chosen for you"
+    desc = (i18n.t(lang, "cat.og_for", first=first, pieces=pcs) if first
+            else i18n.t(lang, "cat.og_pieces", pieces=pcs))
     return image, desc
 
 
@@ -429,15 +438,18 @@ def _adhoc_response(shop: str, request: Request):
     prefill = {"name": _link_name(request),
                "email": (request.query_params.get("email") or "")[:160],
                "phone": (request.query_params.get("phone") or "")[:160]}
+    from halia.i18n import client_lang, t as _t
+    lang = client_lang(shop)
     ctx = _person_ctx(prefill.get("name", ""), _shop_display(shop))
-    title = _personalize(cfg.get("adhoc_title") or "A selection for {first_name}", ctx)
+    title = _personalize(cfg.get("adhoc_title") or _t(lang, "cat.adhoc_title"), ctx)
     html = catalog_form_html(
         {"name": title, "subtitle": _personalize(cfg.get("subtitle", ""), ctx),
          "logo": cfg.get("logo", ""), "brand_color": cfg.get("brand_color"),
          "fields": cfg.get("fields")},
         products, shop_name=_shop_display(shop), catalog_id=(cat.get("id") or ""),
         enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill,
-        og_image=_og_bits(products, ctx)[0], og_desc=_og_bits(products, ctx)[1], by=by)
+        og_image=_og_bits(products, ctx, lang)[0], og_desc=_og_bits(products, ctx, lang)[1],
+        by=by, lang=lang)
     return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
 
@@ -489,14 +501,16 @@ def _form_response(catalog_id: str, request: Request):
     prefill = {"name": _link_name(request),
                "email": (request.query_params.get("email") or "")[:160],
                "phone": (request.query_params.get("phone") or "")[:160]}
+    from halia.i18n import client_lang
+    lang = client_lang(shop)
     ctx = _person_ctx(prefill.get("name", ""), _shop_display(shop))
     html = catalog_form_html(
         {"name": _personalize(cat["name"], ctx), "subtitle": _personalize(cfg.get("subtitle", ""), ctx),
          "logo": cfg.get("logo", ""), "brand_color": cfg.get("brand_color"), "fields": cfg.get("fields")},
         products, shop_name=_shop_display(shop), catalog_id=catalog_id,
         enquiry_email=cfg.get("enquiry_email") or _default_enquiry_email(shop), prefill=prefill,
-        og_image=_og_bits(products, ctx)[0], og_desc=_og_bits(products, ctx)[1],
-        by=_seat_sender(shop, request.query_params.get("by")))
+        og_image=_og_bits(products, ctx, lang)[0], og_desc=_og_bits(products, ctx, lang)[1],
+        by=_seat_sender(shop, request.query_params.get("by")), lang=lang)
     return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
 
@@ -562,12 +576,15 @@ def _deliver_enquiry(shop: str, title: str, cfg: dict, payload, throttle_key: st
     if not recipients:
         raise HTTPException(400, "This store has no address set to receive enquiries.")
     from halia.notify import send_email
-    lead = f"{name} picked {len(picked)} of the pieces you sent." if seat else ""
+    from halia import i18n
+    lang = i18n.client_lang(shop)
+    lead = i18n.t(lang, "enq.lead", name=name, n=len(picked)) if seat else ""
+    subject = i18n.t(lang, "enq.subject", name=name, pieces=i18n.pieces(lang, len(picked)))
     ok = False
     for addr in recipients:
-        ok = send_email(addr, f"{name} picked {len(picked)} piece" + ("" if len(picked) == 1 else "s"),
-                        _enquiry_html(title, name, email, phone, message, picked, lead=lead),
-                        _enquiry_text(title, name, email, phone, message, picked, lead=lead),
+        ok = send_email(addr, subject,
+                        _enquiry_html(title, name, email, phone, message, picked, lead=lead, lang=lang),
+                        _enquiry_text(title, name, email, phone, message, picked, lead=lead, lang=lang),
                         shop=shop, reply_to=email) or ok   # hit Reply -> straight to the shopper
     _record_pick(shop, seat, by, name, email, phone, picked)
     if not ok:

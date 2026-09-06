@@ -136,6 +136,7 @@ nothing; the first check is silent so installing never blasts a backlog.
 | WooCommerce | your own domain's `wp-admin` (added in settings) | billing/customer email field |
 | WhatsApp Web | `web.whatsapp.com` | the chat's phone number, else an exact name match |
 | Gmail | `mail.google.com` | the other correspondent's email address |
+| LINE Official Account chat | `chat.line.biz` | the chat's display name (LINE shows nothing else; the badge says when it is unsure) |
 
 Outlook is served by an add-in rather than this extension, because Outlook has no web DOM to sit
 on that would also cover Windows and Mac. See [docs/outlook-add-in.md](../docs/outlook-add-in.md).

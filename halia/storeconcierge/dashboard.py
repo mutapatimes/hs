@@ -41,7 +41,7 @@ def _tselect(selected: str) -> str:
 def _actions(default_key: str) -> str:
     return (f'<div class="send">{_tselect(default_key)}'
             f'<button class="sb email" data-send="email">Email</button>'
-            f'<button class="sb wa" data-send="whatsapp">WhatsApp</button></div>')
+            f'<button class="sb wa" data-send="whatsapp">WhatsApp</button><button class="sb ln" data-send="line">LINE</button></div>')
 
 
 def _data_attrs(c: dict) -> str:
@@ -262,7 +262,7 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
     }});
   }};
 
-  // one-tap send: build the email / WhatsApp link from the chosen template
+  // one-tap send: build the email / WhatsApp / LINE link from the chosen template
   document.addEventListener('click',function(e){{
     var b=e.target.closest('[data-send]'); if(!b)return;
     var tr=b.closest('tr'); if(!tr)return;
@@ -273,6 +273,11 @@ def render_clienteling(payload: dict, *, shop: str = "", demo: bool = False) -> 
       var em=tr.dataset.email;
       if(!em){{alert('No email on file for this customer.');return;}}
       location.href='mailto:'+em+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
+    }}else if(b.dataset.send==='line'){{
+      // LINE's share picker chooses the chat, so no number is needed. Mobile-only scheme: on a
+      // desktop this opens LINE's page; the message is on the clipboard either way.
+      try{{navigator.clipboard.writeText(body);}}catch(_e){{}}
+      window.open('https://line.me/R/share?text='+encodeURIComponent(body),'_blank');
     }}else{{
       var num=waNum(tr.dataset.phone);
       if(!num){{alert('No usable phone number for WhatsApp.');return;}}
