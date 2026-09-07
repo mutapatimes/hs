@@ -145,9 +145,10 @@ def test_seed_is_idempotent(tmp_path, monkeypatch):
     monkeypatch.setattr(shopify_auth, "_shop_store", store)
     blog.seed_blog()
     blog.seed_blog()
-    # the four seeded posts (OuterSignal/Mercana, Altrata, Julius Baer, Knight Frank), no dups
-    assert store.count_posts(published_only=False) == 4
-    slugs = (blog.COMPARISON_SLUG, blog.ALTRATA_SLUG, blog.JULIUS_BAER_SLUG, blog.KNIGHT_FRANK_SLUG)
+    # every seeded post exactly once, no dups
+    assert store.count_posts(published_only=False) == len(blog._SEED_POSTS)
+    slugs = (blog.COMPARISON_SLUG, blog.ALTRATA_SLUG, blog.JULIUS_BAER_SLUG,
+             blog.KNIGHT_FRANK_SLUG, blog.MYTHERESA_SLUG)
     for slug in slugs:
         assert store.get_post(slug)
 
@@ -161,5 +162,5 @@ def test_seed_is_idempotent(tmp_path, monkeypatch):
     store.upsert_post({**store.get_post(blog.JULIUS_BAER_SLUG),
                        "published_at": "2026-07-17T09:00:00+00:00"})
     blog.seed_blog()
-    assert store.count_posts(published_only=False) == 4
+    assert store.count_posts(published_only=False) == len(blog._SEED_POSTS)
     assert store.get_post(blog.JULIUS_BAER_SLUG)["published_at"] == "2026-07-12T09:00:00+00:00"

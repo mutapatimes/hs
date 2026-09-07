@@ -33,6 +33,7 @@ COMPARISON_SLUG = "influence-or-net-worth-halia-vs-outersignal-mercana"
 ALTRATA_SLUG = "stored-or-scored-halia-vs-altrata"
 JULIUS_BAER_SLUG = "julius-baer-wealth-report-2026-the-quiet-buyer"
 KNIGHT_FRANK_SLUG = "knight-frank-wealth-report-2025-wealth-is-moving"
+MYTHERESA_SLUG = "mytheresa-scores-future-vips-your-boutique-can-too"
 
 _SCRIPT_RE = re.compile(r"<(script|iframe)\b[^>]*>.*?</\1>", re.I | re.S)
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -772,6 +773,62 @@ decade, wherever in the world they happen to spend it.</p>
 """
 
 
+_MYTHERESA_BODY = """
+<p>In June, Glossy's Luxury Briefing sat down with Michael Kliger, chief executive of LuxExperience,
+the parent of Mytheresa, Net-a-Porter, Mr Porter and Yoox. The whole interview is worth reading, but
+one passage deserves to be pinned above the desk of every boutique owner. Asked how the group uses
+AI, Kliger described predictive models Mytheresa has run since 2017 to identify which first-time
+shoppers will become its most valuable clients, long before their spend says so.</p>
+
+<h2>The playbook, stated plainly</h2>
+<p>The signals Kliger listed are worth quoting: a customer's first purchase, their search behaviour,
+payment method, products and brands purchased, shipping and billing address, even the time of day a
+transaction is made. The product itself, he said, remains one of the clearest tells. An expensive
+dress suggests a client building a wardrobe; an expensive handbag may be a one-off.</p>
+<p>Then the part that matters. When the model flags a first-time shopper as high future value,
+Mytheresa moves early: preferred service, complimentary shipping and returns, sometimes a personal
+shopper, before the client has spent much at all. &ldquo;We start to act as a company as if she or he
+is already a good customer,&rdquo; Kliger said.</p>
+<p>That is the hidden VIC, described by the largest multi-brand luxury retailer in the world. The
+client whose till receipts look ordinary and whose signals say otherwise, recognised and treated
+accordingly, before a competitor gets there.</p>
+
+<h2>Nine years of compounding</h2>
+<p>Mytheresa has run this discipline since 2017, and it shows in the numbers the group reports. In
+the quarter announced this May, Mytheresa remained LuxExperience's strongest business, with net sales
+up 9.9 per cent at constant currency and up 33.8 per cent in the United States, in a luxury market
+that has been anything but easy. Reading future value early, and acting on it, compounds.</p>
+<p>Kliger's second insight is about time. Older recommendation models, he noted, lean on what a
+client did a year ago; his team now weights the last three weeks. &ldquo;I'm less interested in what
+you did a year ago. I'm more interested in what you did in the last three weeks,&rdquo; he said. A
+client's signals are freshest right after they act, which is why the follow-up that lands the same
+week beats the campaign that lands next season.</p>
+
+<h2>The part that stays human</h2>
+<p>For all the modelling, Kliger was emphatic about where the machine stops. Mytheresa's buying is
+led by editors, its events are curated by people who know that two clients share a background in
+biotech and should be seated together, and its ambition for AI in clienteling is to take the desk
+work away, &ldquo;from pulling customer information to preparing recommendations, so personal
+shoppers can spend more time directly with clients. We still believe the human touch makes a huge
+difference at that level.&rdquo;</p>
+<p>We could not have put Halia's own design brief better. The engine finds the client; a person at
+your brand makes the call and builds the relationship.</p>
+
+<h2>What this means for a boutique</h2>
+<p>Mytheresa built this capability in-house, with a data team, over nine years. That is the honest
+cost of the playbook, and it is why, until now, it has belonged to retailers with nine-figure
+revenues.</p>
+<p>Halia is that capability for a single boutique. It reads the same kind of signals in your own
+customer data, grades every client, and surfaces the ones whose future value their spend has not yet
+revealed, so your team can act as if they are already a good customer, because they are about to be.
+Your data stays in your store, your associates get the time back, and the playbook the biggest house
+in luxury e-commerce has validated for nine years starts working for yours.</p>
+
+<p class="cmp-src">Quotes and figures are from <a href="https://www.glossy.co/" target="_blank"
+rel="noopener">Glossy's Luxury Briefing of 12 June 2026</a>, reported by Zofia Zwieglinska. The
+reading, and any opinions, are our own.</p>
+"""
+
 # House Journal seed posts, in publish order. Dates are held one week apart on purpose;
 # seed_blog() reconciles them so the spacing survives even for posts already published.
 _SEED_POSTS = [
@@ -802,6 +859,12 @@ _SEED_POSTS = [
             "raises the value of simply knowing who your best clients are.",
      "body": _KNIGHT_FRANK_BODY, "tags": "wealth, luxury, research",
      "cover": "/img/blog/knight-frank-wealth-report.jpg"},
+    {"slug": MYTHERESA_SLUG, "published_at": "2026-09-07T09:00:00+00:00",
+     "title": "Mytheresa has scored its future VIPs since 2017. Your boutique can too",
+     "dek": "LuxExperience's chief executive told Glossy how Mytheresa predicts which first-time "
+            "shoppers will become its best clients, and treats them that way early. It is the "
+            "hidden-VIC playbook, validated at the top of luxury e-commerce.",
+     "body": _MYTHERESA_BODY, "tags": "luxury, clienteling, positioning"},
 ]
 
 
