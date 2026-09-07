@@ -95,6 +95,26 @@ def pipeline_cards(sink) -> dict:
     return fetch_pipeline_cards(sink._transport())
 
 
+def pipelines_for(sink, cids) -> dict:
+    """{numeric_id: pipe} for a chosen set of customers, carded or not. Shopify answers in
+    ceil(N/100) calls; WooCommerce has no id-batch read, so its (bounded) carded set is filtered;
+    other platforms have no board and return {}."""
+    from scoring.shopify_pipeline import _numeric_id
+    if hasattr(sink, "pipeline_cards"):
+        want = {_numeric_id(c) for c in cids or []}
+        try:
+            cards = sink.pipeline_cards() or {}
+        except Exception:
+            return {}
+        return {_numeric_id(cid): {"activity": card.get("activity") or [],
+                                   "appointments": card.get("appointments") or []}
+                for cid, card in cards.items() if _numeric_id(cid) in want}
+    if not hasattr(sink, "_transport"):
+        return {}
+    from scoring.shopify_pipeline import fetch_pipeline_for
+    return fetch_pipeline_for(sink._transport(), cids)
+
+
 def _actor(request: Request, payload: dict) -> tuple[str | None, str | None]:
     """Who is acting, as a seat when we know one: the Shopify staff user's mapped seat, else the
     seat this browser chose (hosted dashboards), else the typed name from before seats existed."""

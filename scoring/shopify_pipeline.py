@@ -32,6 +32,54 @@ query HaliaPipeline($q: String!, $cursor: String) {
 """
 
 
+# Exact fetch of the pipeline metafield for a chosen set of customers, for the burst's
+# "contacted recently" check. nodes(ids:) rather than a customers(query:"id:… OR …") search: it
+# does not depend on the search index (which lags a fresh capture), takes up to 250 ids a call,
+# and answers in input order.
+_BY_IDS_QUERY = """
+query HaliaPipelineByIds($ids: [ID!]!) {
+  nodes(ids: $ids) {
+    ... on Customer {
+      id
+      metafield(namespace: "halia", key: "pipeline") { value }
+    }
+  }
+}
+"""
+_BY_IDS_CHUNK = 100
+
+
+def _numeric_id(cid) -> str:
+    """'gid://shopify/Customer/123' or '123' -> '123'. Payload rows carry the gid, the toolbar and
+    the apps pass whichever they were handed."""
+    return str(cid or "").strip().rsplit("/", 1)[-1]
+
+
+def fetch_pipeline_for(transport, cids, retries: int = 5) -> dict:
+    """{numeric_id: pipe} for the given customers, in ceil(N/100) calls instead of one metafield
+    read each. Customers with no pipeline metafield are simply absent; a deleted id comes back
+    null from Shopify and is skipped."""
+    from scoring.shopify_fetch import _run
+    ids = []
+    seen: set[str] = set()
+    for cid in cids or []:
+        n = _numeric_id(cid)
+        if n.isdigit() and n not in seen:
+            seen.add(n)
+            ids.append(n)
+    out: dict = {}
+    for i in range(0, len(ids), _BY_IDS_CHUNK):
+        chunk = [f"gid://shopify/Customer/{n}" for n in ids[i:i + _BY_IDS_CHUNK]]
+        data = _run(transport, _BY_IDS_QUERY, {"ids": chunk}, retries)
+        for node in (data or {}).get("nodes") or []:
+            if not node or not node.get("id"):
+                continue
+            pipe = _parse_pipe((node.get("metafield") or {}).get("value"))
+            if pipe:
+                out[_numeric_id(node["id"])] = pipe
+    return out
+
+
 def _parse_pipe(raw: str | None) -> dict:
     if not raw:
         return {}

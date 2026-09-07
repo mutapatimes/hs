@@ -28,6 +28,8 @@ _CUSTOMER_NODE = """
       firstName
       lastName
       tags
+      emailMarketingConsent { marketingState }
+      smsMarketingConsent { marketingState }
       numberOfOrders
       amountSpent { amount currencyCode }
       orders(first: 60) {
@@ -210,6 +212,17 @@ def _tags_str(tags) -> str:
     return tags or ""
 
 
+def _consent_state(node: dict | None) -> str:
+    """Shopify marketing consent -> one of subscribed / not_subscribed / unknown. Only a live
+    SUBSCRIBED counts as consent; UNSUBSCRIBED, NOT_SUBSCRIBED, PENDING, INVALID and REDACTED all
+    read as not subscribed, and a missing node (older cached books, other platforms) is unknown.
+    Surfaced to associates so a message goes out knowingly; never a gate."""
+    state = str((node or {}).get("marketingState") or "").upper()
+    if not state:
+        return "unknown"
+    return "subscribed" if state == "SUBSCRIBED" else "not_subscribed"
+
+
 def order_node_to_rest(order: dict, customer: dict) -> dict:
     """Transform one GraphQL order node (+ its parent customer) into the REST
     order shape ``flatten_order`` consumes."""
@@ -250,6 +263,9 @@ def order_node_to_rest(order: dict, customer: dict) -> dict:
             # Authoritative customer-level rollups for the behavioural layer (§5a).
             "amount_spent": amount_spent,
             "number_of_orders": customer.get("numberOfOrders"),
+            # Marketing consent, read back so a burst can show it per client.
+            "consent": {"email": _consent_state(customer.get("emailMarketingConsent")),
+                        "sms": _consent_state(customer.get("smsMarketingConsent"))},
         },
     }
 

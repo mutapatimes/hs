@@ -127,3 +127,40 @@ def test_adapter_feeds_the_untouched_core():
 def test_customer_with_no_orders_is_skipped():
     empty = {**SAMPLE_CUSTOMER, "orders": {"nodes": []}}
     assert graphql_customers_to_orders([empty]) == []
+
+
+# ── marketing consent, read back so a burst can show it per client ──────────────────
+def test_customer_node_requests_both_consent_fields():
+    from scoring.shopify_graphql import _CUSTOMER_NODE, _CUSTOMER_NODE_JOURNEY
+    for node in (_CUSTOMER_NODE, _CUSTOMER_NODE_JOURNEY):
+        assert "emailMarketingConsent { marketingState }" in node
+        assert "smsMarketingConsent { marketingState }" in node
+
+
+def test_consent_state_maps_every_shopify_state_to_three_words():
+    from scoring.shopify_graphql import _consent_state
+    assert _consent_state({"marketingState": "SUBSCRIBED"}) == "subscribed"
+    for st in ("UNSUBSCRIBED", "NOT_SUBSCRIBED", "PENDING", "INVALID", "REDACTED"):
+        assert _consent_state({"marketingState": st}) == "not_subscribed", st
+    assert _consent_state(None) == "unknown" and _consent_state({}) == "unknown"
+
+
+def test_order_node_carries_consent_and_older_shapes_read_unknown():
+    cust = {**SAMPLE_CUSTOMER,
+            "emailMarketingConsent": {"marketingState": "SUBSCRIBED"},
+            "smsMarketingConsent": {"marketingState": "NOT_SUBSCRIBED"}}
+    rest = order_node_to_rest(SAMPLE_CUSTOMER["orders"]["nodes"][0], cust)
+    assert rest["customer"]["consent"] == {"email": "subscribed", "sms": "not_subscribed"}
+    old = order_node_to_rest(SAMPLE_CUSTOMER["orders"]["nodes"][0], SAMPLE_CUSTOMER)
+    assert old["customer"]["consent"] == {"email": "unknown", "sms": "unknown"}
+
+
+def test_data_consent_side_map_is_keyed_by_customer_and_empty_for_rest_shapes():
+    from halia.api.data import _consent
+    shopify = [{"customer": {"id": "gid://shopify/Customer/1",
+                             "consent": {"email": "subscribed", "sms": "unknown"}}},
+               {"customer": {"id": "gid://shopify/Customer/1",
+                             "consent": {"email": "not_subscribed", "sms": "unknown"}}}]   # first wins
+    assert _consent(shopify) == {"gid://shopify/Customer/1": {"email": "subscribed", "sms": "unknown"}}
+    woo = [{"customer": {"id": 5, "email": "a@b.com"}}]      # WooCommerce carries no consent
+    assert _consent(woo) == {}

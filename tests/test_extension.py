@@ -1162,3 +1162,18 @@ def test_the_auto_log_needs_a_sign_in(env):
     client, store, tok = env
     assert client.post("/v1/extension/emailed",
                        json={"emails": ["grace@x.com"]}).status_code == 401
+
+
+# ── marketing consent on every client row a surface sees ─────────────────────────
+def test_consent_rides_on_lookup_and_the_client_book_with_unknown_as_the_default(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row(consent={"email": "subscribed", "sms": "not_subscribed"}),
+           _row(cid="c2", name="Bella Ndlovu", email="bella@x.com")])   # no consent key at all
+    d = client.post("/v1/extension/lookup", json={"email": "grace@x.com"},
+                    headers={"X-Halia-Ext-Token": ext}).json()
+    assert d["consent"] == {"email": "subscribed", "sms": "not_subscribed"}
+    book = {c["name"]: c for c in client.get("/v1/extension/clients",
+                                             headers={"X-Halia-Ext-Token": ext}).json()["clients"]}
+    assert book["Grace Ladoja"]["consent"]["sms"] == "not_subscribed"
+    assert book["Bella Ndlovu"]["consent"] == {"email": "unknown", "sms": "unknown"}

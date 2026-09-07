@@ -180,6 +180,14 @@ def _cart(row: dict) -> Optional[dict]:
     return {"value": c.get("value"), "count": c.get("count"), "url": c.get("url")}
 
 
+def _consent_of(row: dict | None) -> dict:
+    """{email, sms} marketing consent for a payload row: subscribed / not_subscribed / unknown.
+    Unknown covers books cached before consent was read back and every non-Shopify tenant, so a
+    surface can always show the line and never has to guess."""
+    c = (row or {}).get("consent") or {}
+    return {"email": c.get("email") or "unknown", "sms": c.get("sms") or "unknown"}
+
+
 def _resp_from_row(shop: str, row: dict) -> dict:
     """The lookup response built from a warm payload client row (has latent, reasons, reco)."""
     play = _play_of(row)
@@ -190,6 +198,7 @@ def _resp_from_row(shop: str, row: dict) -> dict:
         "name": row.get("name"),
         "email": row.get("email"),
         "phone": row.get("phone"),
+        "consent": _consent_of(row),
         "grade": row.get("grade"),
         "tier": row.get("tier"),
         "score": row.get("score"),
@@ -2096,6 +2105,7 @@ def register(app) -> None:
                 "phone": r.get("phone"),
                 "email": r.get("email"),
                 "latent": r.get("latent"),
+                "consent": _consent_of(r),
             })
         out.sort(key=lambda c: (-rank.get(c["grade"], 0), c["name"].lower()))
         return {"count": len(out), "clients": out[:500]}

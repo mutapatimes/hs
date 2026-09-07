@@ -355,7 +355,8 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
             orders_by_customer: dict | None = None, shop: str | None = None,
             benchmarks: dict | None = None, carts_by_customer: dict | None = None,
             platform: str = "shopify", store_url: str = "",
-            now_ts: float | None = None, known: bool = False) -> dict:
+            now_ts: float | None = None, known: bool = False,
+            consent_by_customer: dict | None = None) -> dict:
     raw = _num(row[SCORE_COL])
     s100 = _score100(raw)
     t = _tier(s100)
@@ -394,6 +395,7 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
                           # (kept out of the default hidden-VIC lists and counts)
         "orders": (orders_by_customer or {}).get(str(cid), []),
         "cart": (carts_by_customer or {}).get(str(cid)),   # open basket (abandoned checkout), if any
+        "consent": (consent_by_customer or {}).get(str(cid)),   # {email, sms} marketing consent, or None
         "adminUrl": _admin_url(shop, cid, platform, store_url),   # deep link into the merchant's own admin
         "signals": sigs,
         "reco": RECO.get(top_label, DEFAULT_RECO),
@@ -493,7 +495,8 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
                       shop: str | None = None, benchmarks: dict | None = None,
                       raw_orders: list | None = None,
                       carts_by_customer: dict | None = None,
-                      platform: str = "shopify", store_url: str = "") -> dict:
+                      platform: str = "shopify", store_url: str = "",
+                      consent_by_customer: dict | None = None) -> dict:
     """Compute the JSON-serialisable dashboard payload from a scored frame.
 
     Separated from rendering so the embedded app can compute it once during sync,
@@ -507,7 +510,8 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
     seg_labels: dict[str, str] = {}
     top = top_hidden_vics(scored, n=max(len(hidden), 1))
     data = [_client(i, row, seg_labels, store_aov, orders_by_customer, shop, benchmarks,
-                    carts_by_customer, platform, store_url, now_ts=now_ts)
+                    carts_by_customer, platform, store_url, now_ts=now_ts,
+                    consent_by_customer=consent_by_customer)
             for i, (_, row) in enumerate(top.iterrows())]
 
     # --- Wealth x behaviour plays -----------------------------------------------------------
@@ -532,7 +536,7 @@ def dashboard_payload(scored, orders_by_customer: dict | None = None,
     sleeping = scored[sleeping_mask].sort_values("Spent", ascending=False).head(SLEEPING_CAP)
     data += [_client(len(data) + j, row, seg_labels, store_aov, orders_by_customer, shop,
                      benchmarks, carts_by_customer, platform, store_url,
-                     now_ts=now_ts, known=True)
+                     now_ts=now_ts, known=True, consent_by_customer=consent_by_customer)
              for j, (_, row) in enumerate(sleeping.iterrows())]
     segments = {seg: {"label": label} for seg, label in seg_labels.items()}
 
@@ -594,7 +598,7 @@ def mask_payload(payload: dict) -> dict:
     for c in payload.get("data") or []:
         m = dict(c)
         m.update({"name": "", "init": "", "email": "", "phone": "", "cid": "", "adminUrl": "",
-                  "orders": [], "cart": None, "signals": [], "reco": ""})
+                  "orders": [], "cart": None, "consent": None, "signals": [], "reco": ""})
         data.append(m)
     orders = []
     for o in payload.get("orders") or []:

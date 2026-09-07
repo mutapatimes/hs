@@ -57,6 +57,20 @@ def _order_utm(o: dict) -> str:
 _BOUGHT_CAP = 12          # distinct titles kept per client: enough to see taste, not a catalogue
 
 
+def _consent(orders: list[dict]) -> dict:
+    """CUST_ID -> {email, sms} marketing consent, from the customer sub-dict Shopify orders carry.
+    WooCommerce and the other REST shapes carry none, so the map is simply empty there and every
+    client reads as unknown. RAM-only like the rest of the payload."""
+    by: dict[str, dict] = {}
+    for o in orders:
+        cust = o.get("customer") or {}
+        cid, consent = cust.get("id"), cust.get("consent")
+        if cid is not None and isinstance(consent, dict) and str(cid) not in by:
+            by[str(cid)] = {"email": consent.get("email") or "unknown",
+                            "sms": consent.get("sms") or "unknown"}
+    return by
+
+
 def _history(orders: list[dict]) -> dict:
     """CUST_ID -> [{date, amount, items, titles?, utm?}], newest first (per-client order history).
 
@@ -209,7 +223,8 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None, 
         creds = shop_store().get_woocommerce(shop)
         store_url = (creds or {}).get("store_url") or ""
     payload = dashboard_payload(scored, _history(orders), shop, benchmarks, raw_orders=orders,
-                                carts_by_customer=carts, platform=platform, store_url=store_url)
+                                carts_by_customer=carts, platform=platform, store_url=store_url,
+                                consent_by_customer=_consent(orders))
     # The free scan shows the whole book scored but not who anyone is: identities are withheld
     # server-side until the tenant is on a plan.
     from halia.api import billing
