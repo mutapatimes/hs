@@ -592,6 +592,7 @@ private struct HomeView: View {
     @State private var showCapture = false
     @State private var showCaptureTools = false
     @State private var showSettings = false
+    @State private var showBurst = false
     @State private var captureNote: String?
     @State private var captureId: String?
     @State private var followedUp = false
@@ -699,6 +700,8 @@ private struct HomeView: View {
                 }
 
                 Section("On the floor") {
+                    navRow("Message several clients", "One template, sent to each from your own apps",
+                           icon: "paperplane.fill", tint: Palette.brand) { showBurst = true }
                     navRow("Capture tools", "QR codes and your card, for the shop floor",
                            icon: "qrcode", tint: Palette.brandDeep) { showCaptureTools = true }
                     navRow("Message openers", "The angles you send from Share",
@@ -762,6 +765,7 @@ private struct HomeView: View {
             }
         }
         .sheet(isPresented: $showSettings) { DeskSettingsView(model: model) }
+        .sheet(isPresented: $showBurst) { BurstView(model: model) }
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
         .fullScreenCover(isPresented: $showCapture) {
             CaptureView { note, cid in captureNote = note; captureId = cid; followedUp = false }
@@ -868,6 +872,295 @@ private struct HomeView: View {
 
 }
 
+
+// MARK: - The guided burst
+
+/// One template, one personal message per client, each sent from the associate's own apps. Halia
+/// renders the messages; the associate opens WhatsApp, Messages, Mail or LINE for each one and
+/// comes back for the next. The queue is shared with the keyboard and the Messages app, so it can
+/// be finished from inside the chats themselves.
+private struct BurstView: View {
+    @ObservedObject var model: RootModel
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+
+    private enum Source: String, CaseIterable { case campaign = "Campaign", pick = "Choose clients" }
+    private enum Channel: String, CaseIterable, Identifiable {
+        case whatsapp = "WhatsApp", messages = "Messages", email = "Mail", line = "LINE"
+        var id: String { rawValue }
+        var server: String { switch self { case .whatsapp: return "whatsapp"; case .messages: return "sms"
+                                            case .email: return "email"; case .line: return "line" } }
+        var stored: String { switch self { case .whatsapp: return "whatsapp"; case .messages: return "messages"
+                                            case .email: return "email"; case .line: return "line" } }
+    }
+
+    @State private var queue: BurstStore.Queue? = BurstStore.load()
+    @State private var source = Source.campaign
+    @State private var campaigns: [HaliaAPI.Campaign] = []
+    @State private var campaign: HaliaAPI.Campaign?
+    @State private var clients: [HaliaAPI.Client] = []
+    @State private var query = ""
+    @State private var picked: Set<String> = []
+    @State private var template: Template?
+    @State private var channel = Channel.whatsapp
+    @State private var busy = false
+    @State private var note: String?
+    @State private var draft = ""
+    @State private var awaitingReturn = false
+    @State private var cameBack = false
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let q = queue { stepper(q) } else { builder }
+            }
+            .navigationTitle(queue == nil ? "Message several clients" : "\((queue?.index ?? 0) + 1) of \(queue?.items.count ?? 0)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { Button("Close") { dismiss() } }
+            }
+            .tint(Palette.brand)
+        }
+        .task {
+            campaigns = ((try? await HaliaAPI.current.fetchCampaigns()) ?? []).filter { $0.members > 0 }
+            if campaigns.isEmpty { source = .pick }
+            await loadClients()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Back from WhatsApp or Mail: ask, rather than assume, whether it went.
+            if phase == .active && awaitingReturn { awaitingReturn = false; cameBack = true }
+        }
+    }
+
+    // MARK: choosing
+
+    private var builder: some View {
+        Form {
+            if !campaigns.isEmpty {
+                Picker("Who", selection: $source) {
+                    ForEach(Source.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .listRowBackground(Color.clear)
+            }
+            if source == .campaign {
+                Section {
+                    ForEach(campaigns) { c in
+                        Button { campaign = c } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(c.name).foregroundStyle(.primary)
+                                    Text("\(c.members) client\(c.members == 1 ? "" : "s")" + (c.running ? " · live" : ""))
+                                        .font(.footnote).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if campaign?.id == c.id { Image(systemName: "checkmark").foregroundStyle(Palette.brand) }
+                            }
+                        }
+                    }
+                }
+            } else {
+                Section {
+                    TextField("Search your book", text: $query)
+                        .autocorrectionDisabled()
+                        .onChange(of: query) { _, _ in Task { await loadClients() } }
+                    ForEach(clients.prefix(60)) { c in
+                        Button { toggle(c) } label: {
+                            HStack(spacing: 10) {
+                                Text(c.grade).font(.system(size: 11, weight: .bold))
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(Capsule().fill(Palette.brand.opacity(0.12)))
+                                    .foregroundStyle(Palette.brandDeep)
+                                Text(c.name).foregroundStyle(.primary)
+                                Spacer()
+                                if c.phone == nil && c.email == nil {
+                                    Text("no address").font(.caption).foregroundStyle(.secondary)
+                                }
+                                Image(systemName: picked.contains(c.cid ?? "") ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(picked.contains(c.cid ?? "") ? Palette.brand : Palette.faint)
+                            }
+                        }
+                    }
+                } footer: {
+                    HStack {
+                        Button("Tick all shown") { clients.prefix(60).forEach { if let id = $0.cid { picked.insert(id) } } }
+                        if !picked.isEmpty { Button("Clear \(picked.count)") { picked.removeAll() } }
+                    }
+                    .font(.footnote)
+                }
+            }
+            Section {
+                Picker("Template", selection: $template) {
+                    Text("Choose").tag(Template?.none)
+                    ForEach(model.templates) { t in Text(t.name).tag(Template?.some(t)) }
+                }
+                Picker("Send on", selection: $channel) {
+                    ForEach(Channel.allCases) { Text($0.rawValue).tag($0) }
+                }
+            }
+            Section {
+                Button {
+                    Task { await prepare() }
+                } label: {
+                    HStack {
+                        Spacer()
+                        if busy { ProgressView().controlSize(.small) }
+                        Text(busy ? "Preparing…" : "Prepare \(count == 0 ? "" : "\(count) ")message\(count == 1 ? "" : "s")")
+                            .fontWeight(.semibold)
+                        Spacer()
+                    }
+                }
+                .disabled(busy || count == 0 || template == nil)
+                if let note { Text(note).font(.footnote).foregroundStyle(.secondary) }
+            }
+        }
+    }
+
+    private var count: Int { source == .campaign ? (campaign?.members ?? 0) : picked.count }
+
+    private func toggle(_ c: HaliaAPI.Client) {
+        guard let id = c.cid else { return }
+        if picked.contains(id) { picked.remove(id) } else { picked.insert(id) }
+    }
+
+    private func loadClients() async {
+        clients = (try? await HaliaAPI.current.clients(q: query)) ?? []
+    }
+
+    private func prepare() async {
+        guard let t = template else { return }
+        busy = true; note = nil
+        defer { busy = false }
+        do {
+            let r = try await HaliaAPI.current.burst(
+                cids: source == .pick ? Array(picked) : [],
+                campaignId: source == .campaign ? campaign?.id : nil,
+                template: t.name, channel: channel.server)
+            let items = (r.clients ?? []).map { c in
+                BurstStore.Item(cid: c.cid, name: c.name, first: c.first, grade: c.grade, email: c.email,
+                                phone: c.phone, message: c.message, subject: c.subject,
+                                consentEmail: c.consent?.email ?? "unknown", consentSms: c.consent?.sms ?? "unknown",
+                                warn: c.warn ?? [], lastContactAt: c.last_contact?.at, lastContactBy: c.last_contact?.by,
+                                status: "pending", text: nil)
+            }
+            guard !items.isEmpty else { note = "No one here can be reached on \(channel.rawValue)."; return }
+            let q = BurstStore.Queue(template: r.template ?? t.name, channel: channel.stored, started: Date(),
+                                     index: 0, items: items, unreachable: r.skipped?.count ?? 0)
+            BurstStore.save(q)
+            queue = q
+            draft = items[0].body
+            if let n = r.skipped?.count, n > 0 { note = "\(n) skipped, no address for \(channel.rawValue)." }
+        } catch {
+            note = (error as? LocalizedError)?.errorDescription ?? "Could not prepare that."
+        }
+    }
+
+    // MARK: stepping
+
+    @ViewBuilder private func stepper(_ q: BurstStore.Queue) -> some View {
+        if let it = q.current {
+            Form {
+                Section {
+                    HStack(spacing: 10) {
+                        Text(it.grade).font(.system(size: 11, weight: .bold))
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Capsule().fill(Palette.brand.opacity(0.12)))
+                            .foregroundStyle(Palette.brandDeep)
+                        Text(it.name).font(.headline)
+                    }
+                    Text(it.consentLine).font(.footnote).foregroundStyle(.secondary)
+                    if let w = it.warnLine { Text(w).font(.footnote).foregroundStyle(.orange) }
+                }
+                Section {
+                    TextEditor(text: $draft)
+                        .frame(minHeight: 150)
+                        .onChange(of: draft) { _, v in edit(v) }
+                } header: { Text(q.channelWord) }
+                if cameBack {
+                    Section {
+                        Text("Sent?").font(.headline)
+                        Button("Sent, next") { advance(sent: true) }
+                        Button("Skip") { advance(sent: false) }
+                        Button("Open again") { cameBack = false; open(it, q) }
+                    }
+                } else {
+                    Section {
+                        Button {
+                            open(it, q)
+                        } label: {
+                            HStack { Spacer(); Text("Send on \(q.channelWord)").fontWeight(.semibold); Spacer() }
+                        }
+                        Button("Copy") { UIPasteboard.general.string = draft; note = "Copied." }
+                        Button("Sent, next") { advance(sent: true) }
+                        Button("Skip") { advance(sent: false) }
+                    }
+                }
+                Section {
+                    if let note { Text(note).font(.footnote).foregroundStyle(.secondary) }
+                    Text("The queue is in your keyboard and in Messages too.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Button("Stop", role: .destructive) { finish() }
+                }
+            }
+        } else {
+            Form {
+                Section {
+                    Text("\(q.sent) sent" + (q.skipped > 0 ? ", \(q.skipped) skipped" : "")).font(.headline)
+                    Button("Finish") { finish() }
+                }
+            }
+        }
+    }
+
+    private func edit(_ v: String) {
+        guard var q = queue, q.current != nil else { return }
+        q.items[q.index].text = v
+        BurstStore.save(q); queue = q
+    }
+
+    private func open(_ it: BurstStore.Item, _ q: BurstStore.Queue) {
+        UIPasteboard.general.string = draft            // always leave the text, in case open is blocked
+        let body = draft.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let url: URL? = {
+            switch q.channel {
+            case "whatsapp": return it.phone.flatMap { URL(string: "https://wa.me/\($0)?text=\(body)") }
+            case "messages": return it.phone.flatMap { URL(string: "sms:+\($0)&body=\(body)") }
+            case "email":
+                let subj = (it.subject ?? "").addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+                return it.email.flatMap { URL(string: "mailto:\($0)?subject=\(subj)&body=\(body)") }
+            default: return URL(string: "https://line.me/R/share?text=\(body)")
+            }
+        }()
+        guard let url else { note = "No address for \(q.channelWord); copied instead."; return }
+        note = nil
+        UIApplication.shared.open(url, options: [:]) { ok in
+            DispatchQueue.main.async {
+                if ok { awaitingReturn = true } else { note = "Couldn't open \(q.channelWord); copied instead, paste it in." }
+            }
+        }
+    }
+
+    private func advance(sent: Bool) {
+        guard var q = queue, let it = q.current else { return }
+        q.items[q.index].status = sent ? "sent" : "skipped"
+        q.index += 1
+        BurstStore.save(q); queue = q
+        cameBack = false; awaitingReturn = false; note = nil
+        draft = q.current?.body ?? ""
+        if sent {
+            Task { try? await HaliaAPI.current.logContacted(
+                cid: it.cid, clientName: it.name, reason: "Burst: \(q.template) via \(q.channelWord)", quiet: true) }
+        }
+    }
+
+    private func finish() {
+        if let q = queue, q.sent > 0 {
+            Task { await HaliaAPI.current.burstDone(n: q.sent, template: q.template, channel: q.channel) }
+        }
+        BurstStore.clear(); queue = nil
+        dismiss()
+    }
+}
 
 // MARK: - Openers editor
 

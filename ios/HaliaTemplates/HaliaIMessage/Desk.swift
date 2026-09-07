@@ -89,11 +89,17 @@ final class DeskModel: ObservableObject {
     }
 }
 
+extension Notification.Name {
+    /// Posted when Messages brings the desk back, so a burst prepared in the app shows up here.
+    static let haliaDeskActive = Notification.Name("halia.desk.active")
+}
+
 struct DeskView: View {
     @StateObject private var model: DeskModel
     @State private var tab = Tab.pieces
+    @State private var hasBurst = BurstStore.load()?.current != nil
 
-    enum Tab: Hashable { case templates, pieces, draft, book }
+    enum Tab: Hashable { case templates, pieces, draft, book, burst }
 
     init(insert: @escaping (String) -> Void, collapse: @escaping () -> Void) {
         _model = StateObject(wrappedValue: DeskModel(insert: insert, collapse: collapse))
@@ -112,9 +118,89 @@ struct DeskView: View {
                     .tabItem { Label("Draft", systemImage: "sparkles") }.tag(Tab.draft)
                 BookTab(model: model)
                     .tabItem { Label("Book", systemImage: "calendar") }.tag(Tab.book)
+                if hasBurst {
+                    BurstTab(model: model) { hasBurst = false; tab = .templates }
+                        .tabItem { Label("Burst", systemImage: "paperplane") }.tag(Tab.burst)
+                }
             }
             .tint(Ink.brand)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .haliaDeskActive)) { _ in
+            hasBurst = BurstStore.load()?.current != nil
+        }
+    }
+}
+
+/// A burst prepared in the Halia app, finished from inside Messages. Messages never says who the
+/// open conversation is with, so each step names the client and the associate opens their chat
+/// before Insert. Insert puts the message in the conversation and logs the contact.
+struct BurstTab: View {
+    @ObservedObject var model: DeskModel
+    let onDone: () -> Void
+    @State private var queue: BurstStore.Queue? = BurstStore.load()
+    @State private var draft = BurstStore.load()?.current?.body ?? ""
+
+    var body: some View {
+        if let q = queue, let it = q.current {
+            Form {
+                Section {
+                    Text("\(q.index + 1) of \(q.items.count)").font(.caption).foregroundStyle(Ink.soft)
+                    HStack(spacing: 8) {
+                        if !it.grade.isEmpty {
+                            Text(it.grade).font(.system(size: 11, weight: .bold))
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(Capsule().fill(Ink.brand.opacity(0.12))).foregroundStyle(Ink.deep)
+                        }
+                        Text(it.name).font(.headline)
+                    }
+                    Text(it.consentLine).font(.footnote).foregroundStyle(.secondary)
+                    if let w = it.warnLine { Text(w).font(.footnote).foregroundStyle(.orange) }
+                    Text("Open the conversation with \(it.first.isEmpty ? it.name : it.first) first.")
+                        .font(.footnote).foregroundStyle(Ink.soft)
+                }
+                Section {
+                    TextEditor(text: $draft).frame(minHeight: 140)
+                        .onChange(of: draft) { _, v in
+                            guard var q2 = queue, q2.current != nil else { return }
+                            q2.items[q2.index].text = v; BurstStore.save(q2); queue = q2
+                        }
+                }
+                Section {
+                    Button {
+                        model.send(draft)
+                        Task { try? await HaliaAPI.current.logContacted(
+                            cid: it.cid, clientName: it.name, reason: "Burst: \(q.template) via Messages", quiet: true) }
+                        advance(sent: true)
+                    } label: { HStack { Spacer(); Text("Insert").fontWeight(.semibold); Spacer() } }
+                    Button("Skip") { advance(sent: false) }
+                    Button("Stop", role: .destructive) { finish() }
+                }
+            }
+        } else if let q = queue {
+            VStack(spacing: 12) {
+                Text("\(q.sent) sent" + (q.skipped > 0 ? ", \(q.skipped) skipped" : "")).font(.headline)
+                Button("Finish") { finish() }.buttonStyle(.borderedProminent)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            Text("No burst waiting.").foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private func advance(sent: Bool) {
+        guard var q = queue, q.current != nil else { return }
+        q.items[q.index].status = sent ? "sent" : "skipped"; q.index += 1
+        BurstStore.save(q); queue = q
+        draft = q.current?.body ?? ""
+    }
+
+    private func finish() {
+        if let q = queue, q.sent > 0 {
+            Task { await HaliaAPI.current.burstDone(n: q.sent, template: q.template, channel: "messages") }
+        }
+        BurstStore.clear(); queue = nil
+        onDone()
     }
 }
 

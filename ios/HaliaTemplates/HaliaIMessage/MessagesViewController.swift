@@ -18,6 +18,7 @@ final class MessagesViewController: MSMessagesAppViewController {
 
     override func willBecomeActive(with conversation: MSConversation) {
         super.willBecomeActive(with: conversation)
+        NotificationCenter.default.post(name: .haliaDeskActive, object: nil)   // a burst may have started since
         present(for: presentationStyle)
     }
 

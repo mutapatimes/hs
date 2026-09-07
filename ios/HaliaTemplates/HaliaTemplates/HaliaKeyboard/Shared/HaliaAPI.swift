@@ -162,9 +162,9 @@ struct HaliaAPI {
     private struct ActionResponse: Decodable { let recorded: Bool? }
 
     @discardableResult
-    func logContacted(cid: String, clientName: String?, reason: String) async throws -> Bool {
+    func logContacted(cid: String, clientName: String?, reason: String, quiet: Bool = false) async throws -> Bool {
         let body: [String: Any] = ["action": "contacted", "cid": cid,
-                                   "client_name": clientName ?? "", "reason": reason]
+                                   "client_name": clientName ?? "", "reason": reason, "quiet": quiet]
         let resp: ActionResponse = try await postAny("/v1/extension/action", body: body)
         return resp.recorded ?? true
     }
@@ -374,6 +374,82 @@ struct HaliaAPI {
         let (data, _) = try await send("/v1/extension/directory", method: "GET", body: nil)
         guard let r = try? JSONDecoder().decode(DirectoryResponse.self, from: data) else { throw HaliaAPIError.decode }
         return r.entries ?? []
+    }
+
+    // MARK: The guided burst — one template, one message per client, sent by the associate.
+
+    struct Campaign: Decodable, Identifiable {
+        let id: String
+        let name: String
+        let members: Int
+        let running: Bool
+        private enum K: String, CodingKey { case id, name, members, running }
+        init(from d: Decoder) throws {
+            let c = try d.container(keyedBy: K.self)
+            id      = (try? c.decodeIfPresent(Scalar.self, forKey: .id))?.text ?? ""
+            name    = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? ""
+            members = (try? c.decodeIfPresent(Int.self, forKey: .members)) ?? 0
+            running = (try? c.decodeIfPresent(Bool.self, forKey: .running)) ?? false
+        }
+    }
+    private struct CampaignsResponse: Decodable { let campaigns: [Campaign]? }
+
+    /// The store's campaigns, for "message everyone in this one".
+    func fetchCampaigns() async throws -> [Campaign] {
+        let (data, _) = try await send("/v1/extension/context", method: "GET", body: nil)
+        return (try? JSONDecoder().decode(CampaignsResponse.self, from: data))?.campaigns ?? []
+    }
+
+    struct BurstClient: Decodable {
+        struct Consent: Decodable { let email: String?; let sms: String? }
+        struct LastContact: Decodable { let at: String?; let by: String? }
+        let cid: String
+        let name: String
+        let first: String
+        let grade: String
+        let email: String?
+        let phone: String?
+        let message: String
+        let subject: String?
+        let consent: Consent?
+        let last_contact: LastContact?
+        let warn: [String]?
+        private enum K: String, CodingKey { case cid, name, first, grade, email, phone, message, subject, consent, last_contact, warn }
+        init(from d: Decoder) throws {
+            let c = try d.container(keyedBy: K.self)
+            cid     = (try? c.decodeIfPresent(Scalar.self, forKey: .cid))?.text ?? ""
+            name    = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? ""
+            first   = (try? c.decodeIfPresent(String.self, forKey: .first)) ?? ""
+            grade   = (try? c.decodeIfPresent(String.self, forKey: .grade)) ?? ""
+            email   = (try? c.decodeIfPresent(String.self, forKey: .email)) ?? nil
+            phone   = (try? c.decodeIfPresent(String.self, forKey: .phone)) ?? nil
+            message = (try? c.decodeIfPresent(String.self, forKey: .message)) ?? ""
+            subject = (try? c.decodeIfPresent(String.self, forKey: .subject)) ?? nil
+            consent = try? c.decodeIfPresent(Consent.self, forKey: .consent)
+            last_contact = try? c.decodeIfPresent(LastContact.self, forKey: .last_contact)
+            warn    = try? c.decodeIfPresent([String].self, forKey: .warn)
+        }
+    }
+    struct BurstResponse: Decodable {
+        struct Skipped: Decodable { let name: String?; let reason: String? }
+        let template: String?
+        let clients: [BurstClient]?
+        let skipped: [Skipped]?
+    }
+
+    /// One rendered message per chosen client. Halia sends nothing and stores nothing; the answer
+    /// is the queue, and it lives on this device (BurstStore).
+    func burst(cids: [String], campaignId: String?, template: String, channel: String) async throws -> BurstResponse {
+        var body: [String: Any] = ["template": ["name": template], "channel": channel]
+        if !cids.isEmpty { body["cids"] = cids }
+        if let campaignId, !campaignId.isEmpty { body["campaign_id"] = campaignId }
+        return try await postAny("/v1/extension/burst", body: body)
+    }
+
+    /// One line to the team when a burst finishes, instead of one per client.
+    func burstDone(n: Int, template: String, channel: String) async {
+        let body: [String: Any] = ["action": "burst_done", "n": n, "template": template, "channel": channel]
+        let _: ActionResponse? = try? await postAny("/v1/extension/action", body: body)
     }
 
     // MARK: Client book (Share reverse flow) — pick who to send a shared product to.

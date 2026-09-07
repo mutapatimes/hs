@@ -20,7 +20,7 @@ import UIKit
 final class KeyboardViewController: UIInputViewController, UITableViewDataSource, UITableViewDelegate,
                                     UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
-    private enum Mode { case templates, suggestions, draft, products, saved, book }
+    private enum Mode { case templates, suggestions, draft, products, saved, book, burst }
     private enum Audience { case client, team }   // write to the client, or to the team about them
 
     private struct SuggestRow { let id, title, why: String; let price: String?; var on: Bool }
@@ -46,6 +46,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     // State
     private var mode: Mode = .templates
+    private var burstQueue: BurstStore.Queue?              // a burst the host app prepared, if one is running
     private var savedItems: [SavedItemsStore.Item] = []   // products saved while browsing (via App Intents)
     private var audience: Audience = .client
     private var draftIsHandoff = false
@@ -215,6 +216,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         // Synced client templates plus the merchant's store-info snippets, which ride along as a
         // "Store info" category and insert exactly like any template.
         templates = TemplateStore.load() + StoreInfoStore.asTemplates()
+        burstQueue = BurstStore.load()
+        if mode == .burst && burstQueue == nil { mode = .templates }
         var seen = Set<String>()
         categories = templates.map { $0.category }.filter { seen.insert($0).inserted }.sorted()
         if let c = selectedCategory, c != Self.recentCat, !categories.contains(c) { selectedCategory = nil }
@@ -246,6 +249,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
         if mode == .book {
             emptyLabel.text = bookSummary()
+            emptyLabel.isHidden = false
+        } else if mode == .burst {
+            emptyLabel.text = burstSummary()
             emptyLabel.isHidden = false
         } else if mode == .products {
             emptyLabel.text = hasFullAccess
@@ -296,6 +302,12 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         clientBar.addArrangedSubview(audiencePill("Team", active: audience == .team) { [weak self] in self?.setAudience(.team) })
         if lastInserted != nil {
             clientBar.addArrangedSubview(pillButton("⤺ Undo", filled: false) { [weak self] in self?.undoInsert() })
+        }
+        // A burst the host app prepared: the next client is one tap away, whichever chat is open.
+        if mode != .burst, let q = burstQueue, q.current != nil {
+            clientBar.addArrangedSubview(pillButton("Burst \(q.index + 1) of \(q.items.count)", filled: true) { [weak self] in
+                guard let self else { return }; self.mode = .burst; self.reload()
+            })
         }
 
         if let s = statusText {
@@ -416,6 +428,16 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             actionHeight.constant = 46; actionScroll.isHidden = false
             actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
             actionStack.addArrangedSubview(searchFieldView())
+
+        case .burst:
+            actionHeight.constant = 46; actionScroll.isHidden = false
+            actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
+            if burstQueue?.current != nil {
+                actionStack.addArrangedSubview(pillButton("Insert", filled: true) { [weak self] in self?.burstInsert() })
+                actionStack.addArrangedSubview(pillButton("Skip", filled: false) { [weak self] in self?.burstSkip() })
+            } else {
+                actionStack.addArrangedSubview(pillButton("Done", filled: true) { [weak self] in self?.burstDone() })
+            }
 
         case .saved:
             actionHeight.constant = 46; actionScroll.isHidden = false
@@ -965,6 +987,53 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     // MARK: - Log contacted
+
+    // MARK: - The burst, from inside the chat
+
+    /// What the associate needs to see before Insert: who this step is for, where they stand, and
+    /// the message itself. The keyboard cannot switch chats, so it says so.
+    private func burstSummary() -> String {
+        guard let q = burstQueue else { return "" }
+        guard let it = q.current else {
+            return "\(q.sent) sent" + (q.skipped > 0 ? ", \(q.skipped) skipped" : "") + ". Tap Done."
+        }
+        var lines = ["\(q.index + 1) of \(q.items.count) · \(it.name)" + (it.grade.isEmpty ? "" : " · \(it.grade)"),
+                     it.consentLine]
+        if let w = it.warnLine { lines.append(w) }
+        lines.append("Open their chat, then Insert. Insert logs the contact.")
+        lines.append("")
+        lines.append(it.body)
+        return lines.joined(separator: "\n")
+    }
+
+    private func burstInsert() {
+        guard var q = burstQueue, let it = q.current else { return }
+        insertUndoable(it.body)
+        q.items[q.index].status = "sent"; q.index += 1
+        BurstStore.save(q); burstQueue = q
+        if hasFullAccess {
+            Task { try? await HaliaAPI.current.logContacted(
+                cid: it.cid, clientName: it.name, reason: "Burst: \(q.template) via keyboard", quiet: true) }
+        }
+        flash(q.current == nil ? "Inserted, that was the last" : "Inserted, next")
+        reload()
+    }
+
+    private func burstSkip() {
+        guard var q = burstQueue, q.current != nil else { return }
+        q.items[q.index].status = "skipped"; q.index += 1
+        BurstStore.save(q); burstQueue = q
+        reload()
+    }
+
+    private func burstDone() {
+        if let q = burstQueue, q.sent > 0, hasFullAccess {
+            Task { await HaliaAPI.current.burstDone(n: q.sent, template: q.template, channel: q.channel) }
+        }
+        BurstStore.clear(); burstQueue = nil
+        mode = .templates
+        reload()
+    }
 
     private func markContacted() {
         guard let cid = clientCid else { flash("Look up the client first"); return }

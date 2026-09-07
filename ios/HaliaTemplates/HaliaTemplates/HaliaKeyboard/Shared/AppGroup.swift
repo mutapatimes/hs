@@ -27,7 +27,85 @@ enum AppGroup {
         static let saved     = "halia.saved.json"        // shortlist of products saved while browsing
         static let openers   = "halia.openers.json"      // reverse-flow message openers (host app edits)
         static let hours     = "halia.hours.json"        // when the shop is open, from /context
+        static let burst     = "halia.burst.json"        // a burst in progress, shared with the keyboard + Messages
     }
+}
+
+/// A guided burst in progress: one template rendered per chosen client, sent by the associate
+/// from their own apps, one at a time. The host app writes it, the keyboard and the Messages app
+/// read it, so the queue follows the associate into whichever chat they open. It is transient:
+/// cleared on Finish, ignored after a day, on this device only. Halia's server holds nothing.
+enum BurstStore {
+    struct Item: Codable {
+        let cid: String
+        let name: String
+        let first: String
+        let grade: String
+        let email: String?
+        let phone: String?          // full international digits, no plus; nil when unusable
+        var message: String
+        var subject: String?
+        let consentEmail: String    // subscribed | not_subscribed | unknown
+        let consentSms: String
+        let warn: [String]
+        let lastContactAt: String?
+        let lastContactBy: String?
+        var status: String          // pending | sent | skipped
+        var text: String?           // the associate's own edit of the message, if any
+
+        var body: String { text ?? message }
+        var consentLine: String {
+            func w(_ v: String) -> String { v == "subscribed" ? "subscribed" : v == "not_subscribed" ? "not subscribed" : "not on file" }
+            if consentEmail == "unknown" && consentSms == "unknown" { return "Consent not on file" }
+            return "Email \(w(consentEmail)) · SMS \(w(consentSms))"
+        }
+        var warnLine: String? {
+            guard warn.contains("contacted_recently"), let at = lastContactAt else { return nil }
+            let days: String
+            if let d = ISO8601DateFormatter().date(from: at) ?? ISO8601DateFormatter.withFraction.date(from: at) {
+                let n = Int(Date().timeIntervalSince(d) / 86400)
+                days = n <= 0 ? "today" : n == 1 ? "yesterday" : "\(n) days ago"
+            } else { days = "recently" }
+            return "Contacted \(days)" + (lastContactBy.map { " by \($0)" } ?? "")
+        }
+    }
+
+    struct Queue: Codable {
+        let template: String
+        let channel: String         // whatsapp | messages | email | line
+        let started: Date
+        var index: Int
+        var items: [Item]
+        var unreachable: Int        // skipped by the server: no address for the channel
+
+        var current: Item? { index < items.count ? items[index] : nil }
+        var sent: Int { items.filter { $0.status == "sent" }.count }
+        var skipped: Int { unreachable + items.filter { $0.status == "skipped" }.count }
+        var channelWord: String {
+            switch channel { case "whatsapp": return "WhatsApp"; case "messages": return "Messages"
+                             case "email": return "Mail"; case "line": return "LINE"; default: return channel }
+        }
+    }
+
+    static func load() -> Queue? {
+        guard let data = AppGroup.defaults.data(forKey: AppGroup.Key.burst),
+              let q = try? JSONDecoder().decode(Queue.self, from: data),
+              Date().timeIntervalSince(q.started) < 24 * 3600 else { return nil }
+        return q
+    }
+
+    static func save(_ q: Queue) {
+        guard let data = try? JSONEncoder().encode(q) else { return }
+        AppGroup.defaults.set(data, forKey: AppGroup.Key.burst)
+    }
+
+    static func clear() { AppGroup.defaults.removeObject(forKey: AppGroup.Key.burst) }
+}
+
+extension ISO8601DateFormatter {
+    static let withFraction: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]; return f
+    }()
 }
 
 /// When the shop is open, as the store set it in Halia. Synced by the host app and read by the
