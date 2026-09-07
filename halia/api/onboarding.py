@@ -1492,7 +1492,7 @@ def _connect_marketing(store, shop: str, platform: str, api_key: str) -> tuple[b
     """Best-effort connect of a tenant's marketing platform during onboarding.
 
     Returns (connected, warning). Never raises: a platform hiccup must not block the
-    store connection, which is the part that matters. They can finish in Settings.
+    store connection, which is what the scan needs. They can finish in Settings.
     """
     platform, api_key = (platform or "").lower().strip(), (api_key or "").strip()
     if not platform or not api_key:

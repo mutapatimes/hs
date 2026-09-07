@@ -54,3 +54,25 @@ def test_decks_stay_out_of_the_sitemap():
     xml = client.get("/sitemap.xml").text
     for path in DECKS:
         assert path not in xml
+
+
+def test_token_link_grants_access_without_the_password():
+    from halia.api.app import _deck_token
+    c = TestClient(app)
+    r = c.get(f"/pitch?k={_deck_token()}", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/pitch"
+    assert "halia_deck" in r.headers.get("set-cookie", "")
+    assert "This briefing is private" not in c.get("/pitch").text
+
+
+def test_wrong_token_stays_at_the_gate():
+    c = TestClient(app)
+    r = c.get("/pitch?k=not-the-token")
+    assert "This briefing is private" in r.text
+
+
+def test_password_entry_lands_on_the_shareable_link():
+    from halia.api.app import _deck_password, _deck_token
+    c = TestClient(app)
+    r = c.post("/present", data={"pw": _deck_password()}, follow_redirects=False)
+    assert r.headers["location"] == f"/present?k={_deck_token()}"

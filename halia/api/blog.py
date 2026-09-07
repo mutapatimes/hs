@@ -780,13 +780,12 @@ one passage deserves to be pinned above the desk of every boutique owner. Asked 
 AI, Kliger described predictive models Mytheresa has run since 2017 to identify which first-time
 shoppers will become its most valuable clients, long before their spend says so.</p>
 
-<h2>The playbook, stated plainly</h2>
+<h2>The playbook</h2>
 <p>The signals Kliger listed are worth quoting: a customer's first purchase, their search behaviour,
 payment method, products and brands purchased, shipping and billing address, even the time of day a
 transaction is made. The product itself, he said, remains one of the clearest tells. An expensive
 dress suggests a client building a wardrobe; an expensive handbag may be a one-off.</p>
-<p>Then the part that matters. When the model flags a first-time shopper as high future value,
-Mytheresa moves early: preferred service, complimentary shipping and returns, sometimes a personal
+<p>When the model flags a first-time shopper as high future value, Mytheresa moves early: preferred service, complimentary shipping and returns, sometimes a personal
 shopper, before the client has spent much at all. &ldquo;We start to act as a company as if she or he
 is already a good customer,&rdquo; Kliger said.</p>
 <p>That is the hidden VIC, described by the largest multi-brand luxury retailer in the world. The
@@ -804,7 +803,7 @@ you did a year ago. I'm more interested in what you did in the last three weeks,
 client's signals are freshest right after they act, which is why the follow-up that lands the same
 week beats the campaign that lands next season.</p>
 
-<h2>The part that stays human</h2>
+<h2>Editors and associates</h2>
 <p>For all the modelling, Kliger was emphatic about where the machine stops. Mytheresa's buying is
 led by editors, its events are curated by people who know that two clients share a background in
 biotech and should be seated together, and its ambition for AI in clienteling is to take the desk
@@ -824,9 +823,10 @@ revealed, so your team can act as if they are already a good customer, because t
 Your data stays in your store, your associates get the time back, and the playbook the biggest house
 in luxury e-commerce has validated for nine years starts working for yours.</p>
 
-<p class="cmp-src">Quotes and figures are from <a href="https://www.glossy.co/" target="_blank"
-rel="noopener">Glossy's Luxury Briefing of 12 June 2026</a>, reported by Zofia Zwieglinska. The
-reading, and any opinions, are our own.</p>
+<p class="cmp-src">Quotes and figures are from <a
+href="https://www.glossy.co/fashion/luxury-briefing-mytheresa-is-using-ai-to-find-future-vips/"
+target="_blank" rel="noopener">Glossy's Luxury Briefing of 12 June 2026</a>, reported by Zofia
+Zwieglinska. The reading, and any opinions, are our own.</p>
 """
 
 # House Journal seed posts, in publish order. Dates are held one week apart on purpose;
@@ -864,7 +864,8 @@ _SEED_POSTS = [
      "dek": "LuxExperience's chief executive told Glossy how Mytheresa predicts which first-time "
             "shoppers will become its best clients, and treats them that way early. It is the "
             "hidden-VIC playbook, validated at the top of luxury e-commerce.",
-     "body": _MYTHERESA_BODY, "tags": "luxury, clienteling, positioning"},
+     "body": _MYTHERESA_BODY, "tags": "luxury, clienteling, positioning",
+     "cover": "https://www.glossy.co/wp-content/uploads/sites/4/2026/06/Untitled-design-66.png?w=1140&h=600&crop=1"},
 ]
 
 

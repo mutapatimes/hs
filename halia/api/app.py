@@ -237,6 +237,9 @@ app.add_api_route("/campaign-demo", lambda: _serve_page("campaign-demo"),
 # A shared password (rotatable via env) gates all three; entering it once sets a signed
 # cookie for 30 days. The cookie is a hash OF the password, so it proves knowledge of it
 # and a captured cookie never reveals it. Every response carries X-Robots-Tag: noindex.
+# A ?k=<token> link grants the same access without the password changing hands: after you
+# enter the password the address bar shows the shareable link, and a recipient opening it
+# gets the cookie and a clean URL. Rotating HALIA_DECK_PASSWORD kills cookies and links alike.
 import hashlib as _hashlib  # noqa: E402
 import hmac as _hmac  # noqa: E402
 from fastapi.responses import RedirectResponse as _Redirect  # noqa: E402
@@ -280,13 +283,22 @@ async def _deck_handler(request: Request) -> _HTML:
     if request.method == "POST":
         form = await request.form()
         if _hmac.compare_digest(str(form.get("pw") or ""), _deck_password()):
-            resp = _Redirect(path, status_code=303)
+            # Land on the token link so it can be copied straight from the address bar.
+            resp = _Redirect(f"{path}?k={_deck_token()}", status_code=303)
             resp.set_cookie(_DECK_COOKIE, _deck_token(), max_age=86400 * 30, httponly=True,
                             samesite="lax", secure=request.url.scheme == "https")
             resp.headers.update(_NOINDEX)
             return resp
         return _HTML(_deck_gate(path, wrong=True), status_code=401, headers=_NOINDEX)
-    if request.cookies.get(_DECK_COOKIE) != _deck_token():
+    has_cookie = request.cookies.get(_DECK_COOKIE) == _deck_token()
+    k = str(request.query_params.get("k") or "")
+    if not has_cookie:
+        if k and _hmac.compare_digest(k, _deck_token()):
+            resp = _Redirect(path, status_code=303)
+            resp.set_cookie(_DECK_COOKIE, _deck_token(), max_age=86400 * 30, httponly=True,
+                            samesite="lax", secure=request.url.scheme == "https")
+            resp.headers.update(_NOINDEX)
+            return resp
         return _HTML(_deck_gate(path), headers=_NOINDEX)
     resp = _serve_page(name)
     resp.headers.update(_NOINDEX)
