@@ -233,3 +233,16 @@ def test_compose_still_gets_its_own_tools(client):
     js = client.get("/addons/outlook/taskpane.js").text
     assert "/v1/extension/polish" in js and "getSelectedDataAsync" in js
     assert "fillSubject" in js                        # a template's subject fills an empty draft
+
+
+
+def test_the_pane_can_open_a_pre_addressed_email_and_falls_back_to_mailto():
+    # The Several tab opens each burst email addressed to the client (Mailbox 1.6, feature-detected,
+    # so the manifest's declared 1.3 stays) and falls back to a mailto: link where the API is absent.
+    from pathlib import Path
+    ROOT = Path(__file__).resolve().parents[1]
+    js = (ROOT / "web" / "addons" / "outlook" / "taskpane.js").read_text()
+    assert "displayNewMessageForm" in js and "mailto:" in js
+    assert 'action: "burst_done"' in js and "quiet: true" in js         # one summary, quiet steps
+    html = (ROOT / "web" / "addons" / "outlook" / "taskpane.html").read_text()
+    assert 'data-tab="several"' in html and 'data-panel="several"' in html

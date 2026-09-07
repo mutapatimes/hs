@@ -489,6 +489,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     clients(msg.q).then(sendResponse);
     return true;
   }
+  if (msg && msg.type === "halia:burst") {
+    // One template rendered per chosen client; the response is the associate's queue.
+    post("/v1/extension/burst", msg.body || {}).then(sendResponse);
+    return true;
+  }
   if (msg && msg.type === "halia:image") {
     imageData(msg.url, msg.w).then(sendResponse);
     return true;

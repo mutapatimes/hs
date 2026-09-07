@@ -22,6 +22,11 @@
   var moveId = null;                   // a visit being moved rather than newly booked
   var visits = [];                     // this client's upcoming appointments
   var openTpl = -1;                    // which template row is expanded
+  // The guided burst: one template rendered per chosen client, each opened as a pre-addressed
+  // email for the associate to read and send. The queue is the server's answer, mirrored to
+  // localStorage so a pinned pane keeps its place across items; it expires after a day.
+  var BKEY = "halia.burst", BURST_TTL = 24 * 3600 * 1000;
+  var bClients = null, bPicked = {}, burst = null;
   var el = function (id) { return document.getElementById(id); };
 
   // ── transport ─────────────────────────────────────────────────────────────
@@ -373,6 +378,7 @@
       el("cat").innerHTML = '<option value="">All</option>' +
         cats.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join("");
       renderTemplates();
+      fillBurstTemplates();
     });
   }
 
@@ -657,6 +663,133 @@
     });
   }
 
+  // ── several: the guided burst ─────────────────────────────────────────────
+  function loadBurst() {
+    try {
+      var b = JSON.parse(localStorage.getItem(BKEY) || "null");
+      burst = (b && b.items && (Date.now() - (b.started || 0)) < BURST_TTL) ? b : null;
+    } catch (e) { burst = null; }
+    renderBurst();
+  }
+  function saveBurst() {
+    try { if (burst) localStorage.setItem(BKEY, JSON.stringify(burst)); else localStorage.removeItem(BKEY); }
+    catch (e) { /* the pane still works for this sitting */ }
+  }
+  function bSearch(q) {
+    say("bMsg", "Reading your book…");
+    api("/v1/extension/clients?q=" + encodeURIComponent(q || ""))
+      .then(function (d) { bClients = d.clients || []; say("bMsg", ""); paintBurstList(); })
+      .catch(function (e) { say("bMsg", e.message, true); });
+  }
+  function paintBurstList() {
+    var list = bClients || [];
+    el("bList").innerHTML = list.length ? list.slice(0, 60).map(function (c, i) {
+      var on = !!bPicked[c.cid];
+      return '<div class="item" data-b="' + i + '"><input type="checkbox" data-bcb="' + i + '"' + (on ? " checked" : "") + ">"
+        + "<span><b>" + esc(c.name) + "</b>"
+        + '<span class="sub">' + esc(c.grade || "") + (c.email ? "" : " · no email") + "</span></span></div>";
+    }).join("") : '<div class="item"><span class="sub">No one by that name in your book.</span></div>';
+    Array.prototype.forEach.call(el("bList").querySelectorAll("[data-bcb]"), function (cb) {
+      cb.onchange = function () {
+        var c = list[+cb.dataset.bcb];
+        if (cb.checked) bPicked[c.cid] = c; else delete bPicked[c.cid];
+        bCount();
+      };
+    });
+    bCount();
+  }
+  function bCount() {
+    var n = Object.keys(bPicked).length;
+    el("bGo").textContent = "Prepare " + (n ? n + " email" + (n === 1 ? "" : "s") : "emails");
+  }
+  function fillBurstTemplates() {
+    var keep = el("bTpl").value;
+    el("bTpl").innerHTML = '<option value="">Choose a template</option>' + templates.map(function (t) {
+      return "<option" + (t.name === keep ? " selected" : "") + ">" + esc(t.name) + "</option>";
+    }).join("");
+  }
+  function startBurst() {
+    var cids = Object.keys(bPicked), name = el("bTpl").value;
+    if (!cids.length) { say("bMsg", "Tick someone first.", true); return; }
+    if (!name) { say("bMsg", "Choose a template.", true); return; }
+    say("bMsg", "Preparing…");
+    api("/v1/extension/burst", { method: "POST", body: { cids: cids, template: { name: name }, channel: "email" } })
+      .then(function (d) {
+        if (!(d.clients || []).length) { say("bMsg", "No one here has an email address.", true); return; }
+        burst = { template: d.template || name, started: Date.now(), i: 0,
+                  items: d.clients.map(function (c) { c.status = "pending"; return c; }),
+                  skipped: d.skipped || [] };
+        bPicked = {};
+        saveBurst(); renderBurst();
+        say("bMsg", d.skipped && d.skipped.length ? d.skipped.length + " skipped, no email." : "");
+      })
+      .catch(function (e) { say("bMsg", e.message, true); });
+  }
+  function burstItem() { return burst && burst.items[burst.i]; }
+  function renderBurst() {
+    var build = el("bBuild"), step = el("bStep");
+    if (!build || !step) return;
+    if (!burst) { build.className = ""; step.className = "hide"; return; }
+    build.className = "hide"; step.className = "";
+    var it = burstItem();
+    var sent = burst.items.filter(function (x) { return x.status === "sent"; }).length;
+    if (!it) {
+      var sk = burst.items.filter(function (x) { return x.status === "skipped"; }).length + (burst.skipped || []).length;
+      el("bHead").textContent = sent + " sent" + (sk ? ", " + sk + " skipped" : "");
+      el("bWho").textContent = ""; say("bWarn", "");
+      ["bSubject", "bBody", "bOpen", "bCopy", "bSkip"].forEach(function (id) { el(id).className = "hide"; });
+      el("bSent").textContent = "Finish"; el("bStop").className = "hide";
+      return;
+    }
+    ["bSubject", "bBody", "bOpen", "bCopy", "bSkip"].forEach(function (id) { el(id).className = ""; });
+    el("bStop").className = "quiet"; el("bSent").textContent = "Sent, next";
+    el("bHead").textContent = (burst.i + 1) + " of " + burst.items.length;
+    var c = it.consent || {};
+    var w = function (v) { return v === "subscribed" ? "subscribed" : v === "not_subscribed" ? "not subscribed" : "not on file"; };
+    var consent = (c.email === "unknown" && c.sms === "unknown") ? "Consent not on file" : "Email " + w(c.email) + " · SMS " + w(c.sms);
+    el("bWho").textContent = it.name + (it.grade ? " · " + it.grade : "") + " · " + consent;
+    var lc = it.last_contact;
+    say("bWarn", (it.warn || []).indexOf("contacted_recently") >= 0 && lc
+      ? "Contacted " + ago(lc.at) + (lc.by ? " by " + lc.by : "") : "", true);
+    el("bSubject").value = it.subject || "";
+    el("bBody").value = it.text != null ? it.text
+      : window.HaliaShape.shape(it.message || "", it.first || "", el("greeting").checked, el("signoff").checked);
+    say("bStepMsg", "");
+  }
+  function ago(iso) {
+    var t = Date.parse(iso); if (!t) return "";
+    var d = Math.round((Date.now() - t) / 86400000);
+    return d <= 0 ? "today" : d === 1 ? "yesterday" : d + " days ago";
+  }
+  function openBurstEmail() {
+    var it = burstItem(); if (!it) return;
+    var subject = el("bSubject").value, body = el("bBody").value;
+    var html = esc(body).replace(/\n/g, "<br>");
+    try {
+      if (Office.context.mailbox.displayNewMessageForm) {
+        Office.context.mailbox.displayNewMessageForm({ toRecipients: [it.email], subject: subject, htmlBody: html });
+        return;
+      }
+    } catch (e) { /* fall through to mailto */ }
+    window.open("mailto:" + encodeURIComponent(it.email) + "?subject=" + encodeURIComponent(subject)
+      + "&body=" + encodeURIComponent(body));
+  }
+  function burstAdvance(sent) {
+    var it = burstItem(); if (!it) return;
+    if (sent) {
+      it.status = "sent";
+      api("/v1/extension/action", { method: "POST", body: { action: "contacted", cid: it.cid, client_name: it.name,
+        reason: "Burst: " + (burst.template || "message") + " via Outlook", quiet: true } }).catch(function () {});
+    } else { it.status = "skipped"; }
+    burst.i += 1; saveBurst(); renderBurst();
+  }
+  function finishBurst() {
+    var sent = burst ? burst.items.filter(function (x) { return x.status === "sent"; }).length : 0;
+    if (sent) api("/v1/extension/action", { method: "POST", body: { action: "burst_done", n: sent,
+      template: burst.template, channel: "outlook" } }).catch(function () {});
+    burst = null; saveBurst(); renderBurst();
+  }
+
   // ── wiring ────────────────────────────────────────────────────────────────
   function showDesk(on) {
     el("connect").className = on ? "card hide" : "card";
@@ -772,6 +905,22 @@
       };
     });
     el("cat").onchange = function () { openTpl = -1; renderTemplates(); };
+    var bt = null;
+    el("bq").oninput = function () { clearTimeout(bt); bt = setTimeout(function () { bSearch(el("bq").value); }, 250); };
+    el("bq").onfocus = function () { if (bClients === null) bSearch(""); };
+    el("bAll").onclick = function () { (bClients || []).slice(0, 60).forEach(function (c) { bPicked[c.cid] = c; }); paintBurstList(); };
+    el("bNone").onclick = function () { bPicked = {}; paintBurstList(); };
+    el("bGo").onclick = startBurst;
+    el("bOpen").onclick = openBurstEmail;
+    el("bCopy").onclick = function () {
+      navigator.clipboard.writeText(el("bBody").value).then(function () { say("bStepMsg", "Copied."); });
+    };
+    el("bBody").oninput = function () { var it = burstItem(); if (it) { it.text = el("bBody").value; saveBurst(); } };
+    el("bSubject").oninput = function () { var it = burstItem(); if (it) { it.subject = el("bSubject").value; saveBurst(); } };
+    el("bSent").onclick = function () { if (burstItem()) burstAdvance(true); else finishBurst(); };
+    el("bSkip").onclick = function () { burstAdvance(false); };
+    el("bStop").onclick = function () { if (confirm("Stop this burst? The rest will not be sent.")) finishBurst(); };
+    loadBurst();
     el("greeting").onchange = renderTemplates;
     el("signoff").onchange = renderTemplates;
     el("search").onclick = search;

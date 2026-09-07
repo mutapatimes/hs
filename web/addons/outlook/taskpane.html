@@ -111,6 +111,7 @@
       <button data-tab="templates" aria-selected="true">Templates</button>
       <button data-tab="pieces" aria-selected="false">Pieces</button>
       <button data-tab="book" aria-selected="false">Book</button>
+      <button data-tab="several" aria-selected="false">Several</button>
     </div>
 
     <!-- Shown instead of the tabs when Halia is opened on a meeting rather than a message. -->
@@ -152,6 +153,45 @@
         <button id="sendCart">Send a basket</button>
       </div>
       <div class="note" id="piecesMsg" style="margin-top:6px"></div>
+    </div>
+
+    <!-- Several: one template, one email per client, each opened pre-addressed for the associate
+         to read and send. The queue is the server's answer and lives in this pane only. -->
+    <div class="card fill hide" data-panel="several">
+      <div id="bBuild">
+        <div class="row">
+          <input id="bq" class="grow" placeholder="Search your book">
+        </div>
+        <div class="list" id="bList" style="margin-top:8px"></div>
+        <div class="row" style="margin-top:8px">
+          <button id="bAll">All shown</button>
+          <button id="bNone">Clear</button>
+          <select id="bTpl" class="grow"><option value="">Choose a template</option></select>
+        </div>
+        <div class="row" style="margin-top:9px">
+          <button class="primary" id="bGo">Prepare emails</button>
+        </div>
+        <div class="note" id="bMsg" style="margin-top:6px"></div>
+      </div>
+      <div id="bStep" class="hide">
+        <h1 id="bHead"></h1>
+        <div id="bWho" class="note"></div>
+        <div id="bWarn" class="err"></div>
+        <label for="bSubject">Subject</label>
+        <input id="bSubject">
+        <label for="bBody">Message</label>
+        <textarea id="bBody" rows="8"></textarea>
+        <div class="row" style="margin-top:9px">
+          <button class="primary" id="bOpen">Open the email</button>
+          <button id="bCopy">Copy</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="primary" id="bSent">Sent, next</button>
+          <button id="bSkip">Skip</button>
+          <button id="bStop" class="quiet">Stop</button>
+        </div>
+        <div class="note" id="bStepMsg" style="margin-top:6px"></div>
+      </div>
     </div>
 
     <!-- Book -->

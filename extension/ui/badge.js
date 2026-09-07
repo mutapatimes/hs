@@ -255,7 +255,7 @@
   let mode = "clienteling"; // "clienteling" (client-facing) | "internal" (team coordination)
   let view = "client";      // clienteling crossbar tab: "client" | "reply" | "sell"
   let whyAll = false, noteOpen = false;   // per-client: expand the reasons list / reveal the note box
-  const VIEW_SECS = { share: ["share"], client: ["client"], reply: ["tpl"], sell: ["camp", "prod", "media", "cat"] };
+  const VIEW_SECS = { share: ["share"], client: ["client"], reply: ["tpl"], sell: ["burst", "camp", "prod", "media", "cat"] };
   let mediaResults = [], mediaQuery = "";   // the Media panel's own product search (send product photos)
   let tplQuery = "", tplSel = null;   // template search text + selected index
   let tplGreeting = true, tplSignoff = true;   // include the salutation / the closing when inserting
@@ -279,6 +279,13 @@
   let clientResults = null;           // last client search: [] | null (not searched) | "busy" | "err"
   let clientQuery = "";
   let sharePinned = false;            // have we landed the panel on the Share view yet
+  // The guided burst: one template rendered per chosen client, sent by the associate from their
+  // own channel, one at a time. The queue is the server's response and lives in chrome.storage
+  // .local (this profile only, never synced) so it survives a page load and follows the associate
+  // from the store admin to WhatsApp Web; it is cleared on Finish and expires after a day.
+  let burst = null;                   // { template, channel, started, i, items:[{...,status}], skipped }
+  let bpick = { open: false, camp: "", q: "", list: null, ids: new Set(), tpl: "", chan: "" };
+  const BURST_TTL = 24 * 3600 * 1000;
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
@@ -339,7 +346,7 @@
     } else if (chip) { chip.remove(); }
   }
   function applyFolds() {
-    ["client", "team", "tpl", "camp", "prod", "cat"].forEach((n) => {
+    ["client", "team", "tpl", "burst", "camp", "prod", "cat"].forEach((n) => {
       const el = sec(n); if (el) el.classList.toggle("folded", folded.has(n));
     });
   }
@@ -408,9 +415,9 @@
     const d = (client && client.data) || {};
     return { name: d.name || "", email: d.email || "", phone: d.phone || "" };
   }
-  function logContact(cid, name, reason) {
-    act({ action: "contacted", cid, client_name: name, reason: reason || "" },
-      "Logged" + (ctx && ctx.slack ? " and told the team" : ""));
+  function logContact(cid, name, reason, quiet) {
+    act({ action: "contacted", cid, client_name: name, reason: reason || "", quiet: !!quiet },
+      quiet ? "Logged" : "Logged" + (ctx && ctx.slack ? " and told the team" : ""));
     if (cid) { delete contactHist[cid]; renderClient(); }   // refresh the 'last contacted' cue
   }
 
@@ -521,6 +528,7 @@
           <section class="sec" data-s="client"></section>
           <section class="sec" data-s="team"></section>
           <section class="sec" data-s="tpl"></section>
+          <section class="sec" data-s="burst"></section>
           <section class="sec" data-s="camp"></section>
           <section class="sec" data-s="prod"></section>
           <section class="sec" data-s="media"></section>
@@ -542,7 +550,7 @@
     dock.querySelector('[data-a="tabs"]').addEventListener("click", (e) => {
       const b = e.target.closest(".tab"); if (b && b.dataset.v) setView(b.dataset.v);
     });
-    renderShare(); renderTemplates(); renderCampaigns(); renderProducts(); renderMedia(); renderCatalogue();
+    renderShare(); renderTemplates(); renderBurst(); renderCampaigns(); renderProducts(); renderMedia(); renderCatalogue();
     applyMode(); applyFolds(); paintHandle();
   }
 
@@ -569,15 +577,17 @@
     if (internal) {
       // Internal mode is only two blocks (client + team brief) — no crossbar needed.
       show("client", true); show("team", true);
-      ["share", "tpl", "camp", "prod", "media", "cat"].forEach((n) => show(n, false));
+      ["share", "tpl", "burst", "camp", "prod", "media", "cat"].forEach((n) => show(n, false));
     } else {
       // Clienteling: show ONLY the active tab's section(s), so it reads as one calm view. If "share"
       // is the view but this page has nothing to share, fall back to the client view.
       show("team", false);
       const effView = (view === "share" && !share) ? "client" : view;
       const active = VIEW_SECS[effView] || VIEW_SECS.client;
-      ["share", "client", "tpl", "camp", "prod", "media", "cat"].forEach((n) => {
-        const on = active.indexOf(n) >= 0; show(n, on);
+      ["share", "client", "tpl", "burst", "camp", "prod", "media", "cat"].forEach((n) => {
+        // A burst in progress stays on screen whichever tab is up: the associate is on Reply in
+        // WhatsApp, on Client in the admin, and the next message must be a glance away.
+        const on = active.indexOf(n) >= 0 || (n === "burst" && !!burst); show(n, on);
         if (on) { const s2 = sec(n); if (s2) { s2.classList.remove("vin"); void s2.offsetWidth; s2.classList.add("vin"); } }
       });
       if (tabs) tabs.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b.dataset.v === effView));
@@ -1179,6 +1189,7 @@
         <div class="rd">${c.running ? `<span class="live">● live</span> · ` : ""}${esc(c.starts)} → ${esc(c.ends)}${c.members ? ` · ${c.members} client${c.members === 1 ? "" : "s"}` : ""}</div>
         <div class="acts">
           ${activeCid() ? `<button class="btn primary" data-cadd="${i}">Add this client</button>` : ""}
+          ${c.members && !burst ? `<button class="btn" data-cmsg="${i}">Message all ${c.members}</button>` : ""}
           ${ctx.catalog && inserter ? `<button class="btn" data-ci="${i}">Insert catalogue link</button>` : ""}
           ${ctx.catalog ? `<button class="btn" data-cc="${i}">Copy catalogue link</button>` : ""}
         </div></div>`).join("");
@@ -1189,7 +1200,241 @@
       const ca = el.querySelector(`[data-cadd="${i}"]`);
       if (ca) ca.onclick = () => act({ action: "campaign_add", campaign_id: c.id, cid: activeCid() },
         "Added to " + c.name);
+      const cm = el.querySelector(`[data-cmsg="${i}"]`);
+      if (cm) cm.onclick = () => { bpick.open = true; bpick.camp = c.id; bpick.ids = new Set(); renderBurst(); scrollToBurst(); };
     });
+  }
+
+  // ── THE BURST ─────────────────────────────────────────────────────────────
+  function saveBurst() {
+    try { if (burst) chrome.storage.local.set({ haliaBurst: burst }); else chrome.storage.local.remove("haliaBurst"); }
+    catch (e) { /* ignore */ }
+  }
+  function loadBurst(b) {
+    burst = (b && Array.isArray(b.items) && (Date.now() - (b.started || 0)) < BURST_TTL) ? b : null;
+    if (root) { renderBurst(); renderCampaigns(); applyMode(); }
+  }
+  function scrollToBurst() { const el = sec("burst"); if (el && el.scrollIntoView) el.scrollIntoView({ block: "start" }); }
+  // What the burst will go out on. A chat or mail surface decides for itself; the store admin
+  // and the storefront let the associate choose, since the messages open elsewhere.
+  function burstChannels() {
+    if (channel === "whatsapp") return ["whatsapp"];
+    if (channel === "email") return ["email"];
+    if (channel === "line") return ["line"];
+    return ["whatsapp", "email", "line"];
+  }
+  const _BURST_CHAN_WORD = { whatsapp: "WhatsApp", email: "Email", line: "LINE" };
+  function burstItem() { return (burst && burst.items[burst.i]) || null; }
+  function burstText(it) { return it.text != null ? it.text : withToggles(it.message || ""); }
+  function burstProgress() {
+    const sent = burst.items.filter((x) => x.status === "sent").length;
+    const skipped = burst.items.filter((x) => x.status === "skipped").length + (burst.skipped || []).length;
+    return { sent, skipped };
+  }
+  // Is the chat on screen the client this step is for? By id when the lookup found them, else by
+  // the last nine digits of the number, else by the exact name.
+  function burstMatchesCurrent(it) {
+    const d = client && client.data; if (!d || !it) return false;
+    if (d.cid && it.cid && String(d.cid) === String(it.cid)) return true;
+    const a = digits(d.phone).slice(-9), b = digits(it.phone).slice(-9);
+    if (a && b && a.length === 9 && a === b) return true;
+    return !!(d.name && it.name && d.name.trim().toLowerCase() === it.name.trim().toLowerCase());
+  }
+  function consentLine(c) {
+    const w = (v) => v === "subscribed" ? "subscribed" : v === "not_subscribed" ? "not subscribed" : "not on file";
+    if (!c || (c.email === "unknown" && c.sms === "unknown")) return "Consent not on file";
+    return "Email " + w(c.email) + " · SMS " + w(c.sms);
+  }
+  function warnLine(it) {
+    const lc = it.last_contact;
+    if ((it.warn || []).indexOf("contacted_recently") >= 0 && lc) {
+      return "Contacted " + ago(lc.at) + (lc.by ? " by " + lc.by : "");
+    }
+    return "";
+  }
+  function loadBurstClients(q) {
+    bpick.q = q; bpick.list = "busy"; renderBurst();
+    try {
+      chrome.runtime.sendMessage({ type: "halia:clients", q }, (r) => {
+        bpick.list = (chrome.runtime.lastError || !r || r.error) ? "err" : (r.clients || []);
+        renderBurst();
+        const inp = sec("burst") && sec("burst").querySelector('[data-a="bq"]');
+        if (inp && q) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+      });
+    } catch (e) { bpick.list = "err"; renderBurst(); }
+  }
+  function startBurst() {
+    const body = { template: { name: bpick.tpl }, channel: bpick.chan || burstChannels()[0] };
+    if (bpick.camp) body.campaign_id = bpick.camp;
+    if (bpick.ids.size) body.cids = Array.from(bpick.ids);
+    if (!body.campaign_id && !body.cids) { toast("Choose who to message"); return; }
+    if (!bpick.tpl) { toast("Choose a template"); return; }
+    toast("Preparing…");
+    try {
+      chrome.runtime.sendMessage({ type: "halia:burst", body }, (r) => {
+        if (chrome.runtime.lastError || !r || r.error) { toast((r && r.detail) || "Couldn't prepare that"); return; }
+        if (!(r.clients || []).length) { toast("No one to message on " + (_BURST_CHAN_WORD[body.channel] || "that channel")); return; }
+        burst = { template: r.template || bpick.tpl, channel: body.channel, started: Date.now(), i: 0,
+          items: r.clients.map((c) => Object.assign({}, c, { status: "pending" })), skipped: r.skipped || [] };
+        bpick = { open: false, camp: "", q: "", list: null, ids: new Set(), tpl: "", chan: "" };
+        saveBurst(); renderBurst(); renderCampaigns(); applyMode(); scrollToBurst();
+        if (burst.skipped.length) toast(burst.skipped.length + " skipped, no address for " + _BURST_CHAN_WORD[body.channel]);
+      });
+    } catch (e) { toast("Couldn't prepare that"); }
+  }
+  function burstAdvance(sent) {
+    const it = burstItem(); if (!it) return;
+    if (sent) {
+      it.status = "sent";
+      logContact(it.cid, it.name, "Burst: " + (burst.template || "message") + " via " + (_BURST_CHAN_WORD[burst.channel] || burst.channel), true);
+    } else { it.status = "skipped"; }
+    burst.i += 1;
+    saveBurst(); renderBurst();
+  }
+  function finishBurst() {
+    const p = burstProgress();
+    if (p.sent) act({ action: "burst_done", n: p.sent, template: burst.template, channel: burst.channel }, "Told the team");
+    burst = null; saveBurst(); renderBurst(); renderCampaigns(); applyMode();
+  }
+  function gmailCompose(it, text) {
+    return "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(it.email || "")
+      + "&su=" + encodeURIComponent(it.subject || "") + "&body=" + encodeURIComponent(text);
+  }
+  function renderBurst() {
+    const el = sec("burst"); if (!el) return;
+    if (!burst) { renderBurstBuilder(el); return; }
+    const it = burstItem();
+    const p = burstProgress();
+    if (!it) {
+      el.innerHTML = `<div class="sh">Message several clients</div>
+        <div class="row"><div class="rn">${p.sent} sent${p.skipped ? `, ${p.skipped} skipped` : ""}</div>
+        <div class="acts"><button class="btn primary" data-a="bfin">Finish</button></div></div>`;
+      el.querySelector('[data-a="bfin"]').onclick = finishBurst;
+      return;
+    }
+    const text = burstText(it);
+    const word = _BURST_CHAN_WORD[burst.channel] || "";
+    const onSurface = channel === burst.channel;          // the chat or mail app is this page
+    const matched = onSurface && burstMatchesCurrent(it);
+    const here = client && client.data && client.data.name;
+    let lead = "", acts = "";
+    if (onSurface && (burst.channel === "whatsapp" || burst.channel === "line")) {
+      if (matched) acts += `<button class="btn primary" data-a="bins">Insert message</button>`;
+      else {
+        lead = here && here.trim().toLowerCase() !== it.name.trim().toLowerCase()
+          ? `This chat is ${esc(here)}, not ${esc(it.name)}.` : `Open the chat with ${esc(it.name)}.`;
+        if (inserter) acts += `<button class="btn" data-a="bins">Insert anyway</button>`;
+      }
+    } else if (onSurface && burst.channel === "email") {
+      if (inserter) acts += `<button class="btn primary" data-a="bins">Insert message</button>`;
+      acts += `<button class="btn" data-a="bgm">New email to ${esc(it.first || it.name)}</button>`;
+    } else if (burst.channel === "whatsapp") {
+      acts += `<button class="btn primary" data-a="bwa">Open WhatsApp</button>`;
+    } else if (burst.channel === "email") {
+      acts += `<button class="btn primary" data-a="bgm">Open in Gmail</button><button class="btn" data-a="bmail">Open mail app</button>`;
+    } else {
+      lead = "Copy the message and paste it into LINE.";
+    }
+    el.innerHTML = `<div class="sh">${burst.i + 1} of ${burst.items.length} <span class="n">${esc(word)}</span></div>
+      <div class="row">
+        <div class="rn"><span class="cg ${gradeClass(it.grade)}">${esc(it.grade || "·")}</span> ${esc(it.name)}</div>
+        <div class="rd">${esc(consentLine(it.consent))}</div>
+        ${warnLine(it) ? `<div class="rd" style="color:#8a4b1f">${esc(warnLine(it))}</div>` : ""}
+        ${lead ? `<div class="muted" style="margin-top:6px">${lead}</div>` : ""}
+        ${it.subject && burst.channel === "email" ? `<input class="psearch" data-a="bsub" value="${esc(it.subject)}" style="margin-top:8px">` : ""}
+        <textarea data-a="bmsg" rows="7" style="margin-top:8px">${esc(text)}</textarea>
+        <div class="acts">${acts}<button class="btn" data-a="bcopy">Copy</button></div>
+        <div class="acts" style="margin-top:6px">
+          <button class="btn primary" data-a="bsent">Sent, next</button>
+          <button class="btn" data-a="bskip">Skip</button>
+          <button class="lnkbtn" data-a="bstop">Stop</button>
+        </div>
+      </div>`;
+    const ta = el.querySelector('[data-a="bmsg"]');
+    ta.oninput = () => { it.text = ta.value; saveBurst(); };
+    const sub = el.querySelector('[data-a="bsub"]');
+    if (sub) sub.oninput = () => { it.subject = sub.value; saveBurst(); };
+    const cur = () => (ta.value || "");
+    const q = (k) => el.querySelector(`[data-a="${k}"]`);
+    if (q("bins")) q("bins").onclick = () => place(cur());
+    if (q("bcopy")) q("bcopy").onclick = () => copy(cur(), "Message copied");
+    if (q("bwa")) q("bwa").onclick = () => {
+      const url = "https://wa.me/" + digits(it.phone) + "?text=" + encodeURIComponent(cur());
+      try { window.open(url, "_blank", "noopener"); } catch (e) { copy(cur(), "Copied — paste into WhatsApp"); }
+    };
+    if (q("bgm")) q("bgm").onclick = () => {
+      const t = cur();
+      if (t.length > 6000) { copy(t, "Too long for a link — copied instead"); return; }
+      try { window.open(gmailCompose(it, t), "_blank", "noopener"); } catch (e) { copy(t, "Copied"); }
+    };
+    if (q("bmail")) q("bmail").onclick = () => {
+      location.href = "mailto:" + encodeURIComponent(it.email || "") + "?subject=" + encodeURIComponent(it.subject || "")
+        + "&body=" + encodeURIComponent(cur());
+    };
+    q("bsent").onclick = () => burstAdvance(true);
+    q("bskip").onclick = () => burstAdvance(false);
+    q("bstop").onclick = () => { if (burst && (burstProgress().sent === 0 || confirm("Stop this burst? The rest will not be sent."))) finishBurst(); };
+  }
+  function renderBurstBuilder(el) {
+    const camps = ((ctx && ctx.campaigns) || []).filter((c) => c.members > 0);
+    if (!bpick.open) {
+      el.innerHTML = `<div class="sh">Message several clients</div>
+        <div class="acts"><button class="btn" data-a="bopen">Choose clients</button>
+        ${camps.slice(0, 3).map((c, i) => `<button class="btn" data-bc="${i}">All ${c.members} in ${esc(c.name)}</button>`).join("")}</div>`;
+      el.querySelector('[data-a="bopen"]').onclick = () => { bpick.open = true; bpick.camp = ""; renderBurst(); loadBurstClients(""); };
+      camps.slice(0, 3).forEach((c, i) => { const b = el.querySelector(`[data-bc="${i}"]`);
+        if (b) b.onclick = () => { bpick.open = true; bpick.camp = c.id; renderBurst(); }; });
+      return;
+    }
+    const tpls = templateList();
+    const chans = burstChannels();
+    const camp = camps.find((c) => c.id === bpick.camp);
+    const n = camp ? camp.members : bpick.ids.size;
+    let who;
+    if (camp) {
+      who = `<div class="row"><div class="rn">${esc(camp.name)}</div><div class="rd">${camp.members} client${camp.members === 1 ? "" : "s"}</div>
+        <div class="acts"><button class="lnkbtn" data-a="bpickinstead">Choose clients instead</button></div></div>`;
+    } else {
+      const list = bpick.list;
+      let rows = "";
+      if (list === "busy") rows = `<div class="muted" style="padding:8px 9px">Reading your book…</div>`;
+      else if (list === "err") rows = `<div class="muted" style="padding:8px 9px">Couldn't reach your book.</div>`;
+      else if (Array.isArray(list)) rows = list.length ? list.slice(0, 60).map((c, i) => `
+        <button class="cli${bpick.ids.has(String(c.cid)) ? " sel" : ""}" data-bi="${i}">
+          <span class="cg ${gradeClass(c.grade)}">${esc(c.grade || "·")}</span>
+          <span class="cn">${esc(c.name)}</span>
+          ${bpick.ids.has(String(c.cid)) ? `<span class="cx">✓</span>` : (c.phone || c.email ? "" : `<span class="cx">no address</span>`)}
+        </button>`).join("") : `<div class="muted" style="padding:8px 9px">No one by that name in your book.</div>`;
+      who = `<input class="psearch" data-a="bq" placeholder="Search your book" value="${esc(bpick.q)}" style="margin-bottom:6px">
+        <div class="clist">${rows}</div>
+        <div class="acts" style="margin-top:6px">${Array.isArray(list) && list.length ? `<button class="mini" data-a="ball">Tick all shown</button>` : ""}
+        ${bpick.ids.size ? `<button class="mini" data-a="bnone">Clear ${bpick.ids.size}</button>` : ""}</div>`;
+    }
+    el.innerHTML = `<div class="sh">Message several clients</div>
+      ${who}
+      <div class="lbl" style="margin-top:10px">Template</div>
+      <select data-a="btpl" style="width:100%"><option value="">Choose a template</option>
+        ${tpls.map((t) => `<option${t.name === bpick.tpl ? " selected" : ""}>${esc(t.name)}</option>`).join("")}</select>
+      ${chans.length > 1 ? `<div class="lbl" style="margin-top:10px">Send on</div>
+        <select data-a="bchan" style="width:100%">${chans.map((c) => `<option value="${c}"${(bpick.chan || chans[0]) === c ? " selected" : ""}>${_BURST_CHAN_WORD[c]}</option>`).join("")}</select>` : ""}
+      <div class="acts" style="margin-top:10px">
+        <button class="btn primary" data-a="bgo"${n ? "" : " disabled"}>Prepare ${n || ""} message${n === 1 ? "" : "s"}</button>
+        <button class="lnkbtn" data-a="bcancel">Cancel</button>
+      </div>`;
+    const q = (k) => el.querySelector(`[data-a="${k}"]`);
+    if (q("bq")) q("bq").oninput = () => loadBurstClients(q("bq").value);
+    el.querySelectorAll("[data-bi]").forEach((b) => b.onclick = () => {
+      const c = bpick.list[+b.dataset.bi]; if (!c) return;
+      const k = String(c.cid); if (bpick.ids.has(k)) bpick.ids.delete(k); else bpick.ids.add(k);
+      renderBurst();
+    });
+    if (q("ball")) q("ball").onclick = () => { bpick.list.slice(0, 60).forEach((c) => bpick.ids.add(String(c.cid))); renderBurst(); };
+    if (q("bnone")) q("bnone").onclick = () => { bpick.ids = new Set(); renderBurst(); };
+    if (q("bpickinstead")) q("bpickinstead").onclick = () => { bpick.camp = ""; renderBurst(); loadBurstClients(""); };
+    q("btpl").onchange = () => { bpick.tpl = q("btpl").value; };
+    if (q("bchan")) q("bchan").onchange = () => { bpick.chan = q("bchan").value; };
+    q("bgo").onclick = () => { bpick.tpl = q("btpl").value; if (q("bchan")) bpick.chan = q("bchan").value; startBurst(); };
+    q("bcancel").onclick = () => { bpick = { open: false, camp: "", q: "", list: null, ids: new Set(), tpl: "", chan: "" }; renderBurst(); };
   }
 
   // ── PRODUCTS / CART BUILDER (Shopify) ─────────────────────────────────────
@@ -1537,11 +1782,16 @@
     mount() {
       ensure();
       try {
-        chrome.storage.local.get(["panelOpen", "haliaMode", "haliaView", "folded"], (r) => {
+        chrome.storage.local.get(["panelOpen", "haliaMode", "haliaView", "folded", "haliaBurst"], (r) => {
           if (r && typeof r.panelOpen === "boolean") setOpen(r.panelOpen);
           if (r && r.haliaMode) setMode(r.haliaMode);
           if (r && r.haliaView && !sharePinned) setView(r.haliaView);   // don't knock a storefront off Share
           if (r && Array.isArray(r.folded)) { r.folded.forEach((n) => folded.add(n)); applyFolds(); }
+          if (r && r.haliaBurst) loadBurst(r.haliaBurst);
+        });
+        // The queue follows the associate: a step taken in the WhatsApp tab moves the admin tab on.
+        chrome.storage.onChanged.addListener((ch, area) => {
+          if (area === "local" && ch.haliaBurst) loadBurst(ch.haliaBurst.newValue || null);
         });
         chrome.storage.sync.get(["tplGreeting", "tplSignoff", "tplRecent"], (r) => {
           if (Array.isArray(r.tplRecent)) tplRecent = r.tplRecent;
@@ -1553,7 +1803,7 @@
     },
     setContext(c) {
       ctx = c && !c.error ? c : null;
-      if (root) { renderShare(); renderTemplates(); renderCampaigns(); renderProducts(); renderMedia(); renderCatalogue(); renderTeam(); renderFoot(); }
+      if (root) { renderShare(); renderTemplates(); renderBurst(); renderCampaigns(); renderProducts(); renderMedia(); renderCatalogue(); renderTeam(); renderFoot(); }
     },
     // The storefront surface hands the toolbar the page to share (url + title + kind). The Share tab
     // appears and, the first time, becomes the active view. Passing null clears it.
@@ -1577,7 +1827,7 @@
       // renderProducts too: the Suggest block is addressed to whoever is on screen, so it has to
       // be rebuilt when they change, not just when the standing context reloads.
       if (root) { renderClient(); renderTemplates(); renderCampaigns(); renderProducts();
-        renderTeam(); paintHandle(); }
+        renderTeam(); paintHandle(); if (burst) renderBurst(); }   // the Insert button follows the open chat
     },
     setInserter(fn) { inserter = fn; },
     setThreadReader(fn) { threadReader = fn; },   // surface supplies () => [{from,text}] of the chat
