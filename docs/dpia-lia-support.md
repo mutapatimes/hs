@@ -102,6 +102,20 @@ safeguards). Keep the human and the "elevate-only" effect real.
 - Output is explainable: each score carries the specific reasons that produced it, so a customer
   query can be answered honestly.
 
+### 5.1 The guided burst and the device-resident queue
+
+"Message several clients" lets an associate send one template, personalised per client, from
+their own WhatsApp, Messages, Mail or LINE, one client at a time. Halia renders the messages and
+sends none of them; the merchant's own channels and the associate's own accounts carry every one.
+Nothing about the burst is stored by Halia: the rendered list is the API response, and it is held
+only on the associate's device (the browser profile for the toolbar, the App Group for the iPhone
+apps, the pane's local storage in Outlook) until they finish, and for at most a day. Each message
+that goes out is recorded as a contact on the client's record in the merchant's own store, exactly
+as a single message is. Marketing consent (email and SMS, read back from the store) and the most
+recent contact are shown against every client before the associate sends; they inform the
+associate's judgement and never gate it, because these are personal messages from a named
+associate to their own clients, not a marketing broadcast.
+
 ## 6. Signal catalogue: wealth facts (on) vs origin proxies (off by default)
 
 **On by default (wealth / work / specific-address / structure facts):**

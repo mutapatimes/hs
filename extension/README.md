@@ -127,6 +127,17 @@ nothing; the first check is silent so installing never blasts a backlog.
    unless your team uses a different Halia URL.
 5. Press **Test connection**. You should see "Connected".
 
+## Message several clients (the burst)
+
+On the Sell tab, "Message several clients" takes a campaign's members or a hand-picked list, a
+template, and a channel, and turns the panel into a stepper: one client at a time, the message
+already personalised, with their marketing consent and last contact shown. On the store admin
+each step opens WhatsApp or a pre-addressed Gmail compose in a new tab; on WhatsApp Web the
+panel watches which chat is open and offers Insert only when it is the right person; on Gmail it
+inserts into an open compose or opens one. "Sent, next" logs the contact on the client's record
+and moves on; Skip does not. The queue is kept in this browser profile only, follows you between
+tabs, expires after a day and is cleared when you Finish. Halia sends nothing itself.
+
 ## Surfaces and how identity is read
 
 | Surface | Where it runs | How the client is matched |
