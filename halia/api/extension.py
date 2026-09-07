@@ -93,6 +93,75 @@ def _last_outreach(activity: list) -> Optional[dict]:
             "action": last.get("action"), "note": last.get("note")}
 
 
+_CHANNEL_WORDS = {"whatsapp": "WhatsApp", "sms": "Messages", "email": "email", "line": "LINE",
+                  "outlook": "Outlook"}
+_BURST_MAX = 500          # matches the client book; a burst is clienteling, not a blast
+_RECENT_DAYS = 14         # "contacted recently" horizon for the burst warning
+
+
+def _days_since(iso: str | None) -> Optional[int]:
+    from datetime import datetime, timezone
+    try:
+        t = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+        if t.tzinfo is None:
+            t = t.replace(tzinfo=timezone.utc)
+        return max(0, (datetime.now(timezone.utc) - t).days)
+    except (TypeError, ValueError):
+        return None
+
+
+def _burst_plan(rows: list[dict], template: dict, channel: Optional[str], sender: str,
+                pipes: dict, catalog: Optional[str]) -> tuple[list[dict], list[dict]]:
+    """One rendered message per client, plus the clients that cannot be reached on the chosen
+    channel. Pure: nothing is stored, the return value IS the associate's queue.
+
+    Consent and the last contact are shown, never gates: the associate decides. A bare local
+    phone number never becomes a WhatsApp or SMS link (it would misroute), so those clients are
+    skipped with a reason the surface can show."""
+    from urllib.parse import quote
+    from scoring.shopify_pipeline import _numeric_id
+    body_t = str(template.get("body") or "")
+    subj_t = str(template.get("subject") or "")
+    clients, skipped = [], []
+    for r in rows:
+        name = (r.get("name") or "").strip()
+        cid = r.get("cid")
+        first = name.split(" ")[0] if name else ""
+        email = (r.get("email") or "").strip() or None
+        phone = _e164(r.get("phone")) or None
+        if channel in ("whatsapp", "sms") and not phone:
+            skipped.append({"cid": cid, "name": name, "reason": "no_phone"})
+            continue
+        if channel == "email" and not email:
+            skipped.append({"cid": cid, "name": name, "reason": "no_email"})
+            continue
+        link = None
+        if catalog:
+            link = catalog + ("&" if "?" in catalog else "?") + "to=" + quote(first or "")
+        message = _fill(body_t, first, sender, link)
+        subject = _fill(subj_t, first, sender, link)
+        latest = (r.get("orders") or [None])[0] or {}
+        if latest.get("amount") is not None:
+            message = message.replace("{order_total}", str(latest.get("amount")))
+        consent = _consent_of(r)
+        pipe = pipes.get(_numeric_id(cid)) or pipes.get(str(cid)) or {}
+        last = _last_outreach(pipe.get("activity"))
+        warn = []
+        if last:
+            days = _days_since(last.get("at"))
+            if days is not None and days <= _RECENT_DAYS:
+                warn.append("contacted_recently")
+        if channel == "email" and consent["email"] == "not_subscribed":
+            warn.append("email_not_subscribed")
+        if channel in ("whatsapp", "sms") and consent["sms"] == "not_subscribed":
+            warn.append("sms_not_subscribed")
+        clients.append({"cid": cid, "name": name, "first": first, "grade": r.get("grade"),
+                        "email": email, "phone": phone, "message": message,
+                        "subject": subject or None, "consent": consent,
+                        "last_contact": last, "warn": warn})
+    return clients, skipped
+
+
 def _todos(shop: str) -> list[dict]:
     """Team to-dos from the scored book: fresh orders from top clients to acknowledge, and proven
     clients gone quiet to win back. Warm cache only, so this is cheap. No customer data stored."""
@@ -1788,6 +1857,12 @@ def register(app) -> None:
                 from halia.api.board import _sink, _write_soft, append_activity, load_pipe
                 sink = _sink(shop)
                 pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
+                today = date.today().isoformat()
+                if any(a.get("action") == "contacted" and str(a.get("at") or "")[:10] == today
+                       and (a.get("actor_id") or "") == (auth.seat_id or "")
+                       for a in pipe.get("activity") or []):
+                    _EMAILED[key] = True             # a burst step (or an earlier send) logged it
+                    continue
                 who = auth.seat_name or "A team member"
                 append_activity(pipe, "contacted", auth.seat_id, who, note="Emailed")
                 if not _write_soft(sink, cid, pipe):
@@ -1925,12 +2000,34 @@ def register(app) -> None:
         shop = auth.shop
         body = payload or {}
         action = str(body.get("action") or "").strip()
+        # The signed-in seat is the authenticated actor; fall back to the client-passed name (legacy).
+        who = auth.seat_name or str(body.get("actor") or "").strip()[:80] or "A team member"
+
+        if action == "burst_done":
+            # One line to the team when a burst finishes, instead of one per client. Nothing is
+            # written to the merchant's store here; every step logged its own contact.
+            try:
+                n = max(0, int(body.get("n") or 0))
+            except (TypeError, ValueError):
+                n = 0
+            tpl = str(body.get("template") or "").strip()[:80]
+            chan = _CHANNEL_WORDS.get(str(body.get("channel") or "").lower(), "")
+            slacked = False
+            conn = shop_store().get_slack(shop)
+            if conn and conn.get("webhook_url") and n:
+                from halia import notify
+                txt = (f"{who} sent " + (f"'{tpl}'" if tpl else "a message")
+                       + f" to {n} client{'s' if n != 1 else ''}" + (f" on {chan}" if chan else ""))
+                try:
+                    slacked = bool(notify.send_slack(conn["webhook_url"], txt))
+                except Exception:
+                    slacked = False
+            data.record_activity(shop, "extension_burst_done")
+            return {"ok": True, "slack": slacked}
+
         cid = str(body.get("cid") or "").strip()
         if not cid:
             raise HTTPException(422, "cid is required")
-
-        # The signed-in seat is the authenticated actor; fall back to the client-passed name (legacy).
-        who = auth.seat_name or str(body.get("actor") or "").strip()[:80] or "A team member"
 
         if action == "contacted":
             # Log that this client was reached out to, so the team is in the loop and nobody
@@ -1951,7 +2048,8 @@ def register(app) -> None:
                 recorded = False                     # non-Shopify tenant or write hiccup
             slacked = False
             conn = shop_store().get_slack(shop)
-            if conn and conn.get("webhook_url"):
+            # quiet: a burst step logs the contact but leaves Slack to the one summary at the end.
+            if conn and conn.get("webhook_url") and not body.get("quiet"):
                 from halia import notify
                 txt = f"{who} contacted {client_name or 'a client'}" + (f" — {reason}" if reason else "")
                 try:
@@ -2109,6 +2207,102 @@ def register(app) -> None:
             })
         out.sort(key=lambda c: (-rank.get(c["grade"], 0), c["name"].lower()))
         return {"count": len(out), "clients": out[:500]}
+
+    @app.post("/v1/extension/burst")
+    def extension_burst(x_halia_ext_token: Optional[str] = Header(None),
+                        payload: Any = Body(default=None)) -> dict:
+        """The guided burst: one template, rendered once per chosen client, for the associate to
+        send from their own WhatsApp, Messages, Mail or LINE, client by client. Halia sends nothing
+        and stores nothing; the response is the queue and it lives on the associate's device.
+
+        Audience: hand-picked ``cids`` and/or a ``campaign_id`` (its hand-picked members plus its
+        grade and signal targets, the same rule the campaign monitor uses). Every client carries
+        their marketing consent and their last contact so a message goes out knowingly."""
+        from halia.api import board as _board
+        from halia.api.settings import settings_for
+        from halia.cache import cache
+
+        auth = _resolve_ext(x_halia_ext_token)
+        shop = auth.shop
+        body = payload or {}
+        entry = cache.get(shop)
+        rows = ((entry or {}).get("payload") or {}).get("data") or []
+        if not entry:
+            raise HTTPException(409, "Your book is still loading. Open Halia once, then try again.")
+
+        raw_cids = body.get("cids") if isinstance(body.get("cids"), list) else []
+        cids = [str(c).strip() for c in raw_cids if str(c or "").strip()]
+        campaign_id = str(body.get("campaign_id") or "").strip()
+        if not cids and not campaign_id:
+            raise HTTPException(422, "Choose clients or a campaign.")
+
+        # Resolve the template: one of the merchant's by name, or an inline body.
+        tpl_in = body.get("template") if isinstance(body.get("template"), dict) else {}
+        tpl_name = str(tpl_in.get("name") or "").strip()
+        if tpl_name:
+            found = next((t for t in (settings_for(shop).get("email_templates") or [])
+                          if (t.get("name") or "").strip().lower() == tpl_name.lower()), None)
+            if not found:
+                raise HTTPException(404, "That template is not in your library.")
+            template = {"name": found.get("name"), "body": found.get("body") or "",
+                        "subject": found.get("subject") or ""}
+        else:
+            inline = str(tpl_in.get("body") or "").strip()
+            if not inline:
+                raise HTTPException(422, "A template is needed.")
+            template = {"name": "", "body": inline[:4000],
+                        "subject": str(tpl_in.get("subject") or "")[:200]}
+
+        channel = str(body.get("channel") or "").strip().lower() or None
+        if channel not in (None, "whatsapp", "sms", "email", "line"):
+            raise HTTPException(422, "Unknown channel.")
+
+        # Resolve the audience against the warm book, request order preserved, no duplicates.
+        from scoring.shopify_pipeline import _numeric_id
+        by_key: dict[str, dict] = {}
+        for r in rows:
+            c = str(r.get("cid") or "")
+            if c:
+                by_key.setdefault(c, r)
+                by_key.setdefault(_numeric_id(c), r)
+        chosen: list[dict] = []
+        seen: set[str] = set()
+        skipped: list[dict] = []
+        for c in cids:
+            r = by_key.get(c) or by_key.get(_numeric_id(c))
+            if not r:
+                skipped.append({"cid": c, "name": "", "reason": "not_in_book"})
+                continue
+            k = str(r.get("cid"))
+            if k not in seen:
+                seen.add(k)
+                chosen.append(r)
+        if campaign_id:
+            from halia.api.campaigns import _campaign_dict
+            from halia.campaigns import select_members
+            crow = shop_store().get_campaign(campaign_id, shop)
+            if not crow:
+                raise HTTPException(404, "Campaign not found.")
+            for r in select_members(_campaign_dict(crow), rows):
+                k = str(r.get("cid"))
+                if k not in seen:
+                    seen.add(k)
+                    chosen.append(r)
+        chosen = chosen[:_BURST_MAX]
+
+        pipes: dict = {}
+        try:
+            pipes = _board.pipelines_for(_board._sink(shop), [r.get("cid") for r in chosen]) or {}
+        except Exception:  # noqa: BLE001 — no board on this platform, or a Shopify hiccup
+            pipes = {}
+        sender = _seat_profile(auth).get("signoff") or ""
+        clients, unreachable = _burst_plan(chosen, template, channel, sender, pipes,
+                                           _catalog_link(shop))
+        _seat_hit(auth, "bursts")
+        if clients:
+            data.record_activity(shop, "extension_burst", len(clients))
+        return {"template": template.get("name") or "", "channel": channel,
+                "count": len(clients), "clients": clients, "skipped": skipped + unreachable}
 
     @app.post("/v1/extension/catalogue_from_urls")
     def extension_catalogue_from_urls(x_halia_ext_token: Optional[str] = Header(None),

@@ -1177,3 +1177,160 @@ def test_consent_rides_on_lookup_and_the_client_book_with_unknown_as_the_default
                                              headers={"X-Halia-Ext-Token": ext}).json()["clients"]}
     assert book["Grace Ladoja"]["consent"]["sms"] == "not_subscribed"
     assert book["Bella Ndlovu"]["consent"] == {"email": "unknown", "sms": "unknown"}
+
+
+# ── the guided burst: one template, one message per client, sent by the associate ──
+def _hdr(ext):
+    return {"X-Halia-Ext-Token": ext}
+
+
+def test_burst_requires_token_and_a_warm_book(env):
+    client, store, tok = env
+    assert client.post("/v1/extension/burst", json={"cids": ["c1"]}).status_code == 401
+    ext = _ext_token(client, tok)
+    r = client.post("/v1/extension/burst", json={"cids": ["c1"], "template": {"body": "x"}},
+                    headers=_hdr(ext))
+    assert r.status_code == 409                        # nothing scored yet
+
+
+def test_burst_validates_audience_template_and_channel(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    post = lambda body: client.post("/v1/extension/burst", json=body, headers=_hdr(ext))  # noqa: E731
+    assert post({"template": {"body": "x"}}).status_code == 422
+    assert post({"cids": ["c1"]}).status_code == 422
+    assert post({"cids": ["c1"], "template": {"name": "No such template"}}).status_code == 404
+    assert post({"cids": ["c1"], "template": {"body": "x"}, "channel": "fax"}).status_code == 422
+    assert post({"cids": ["c1"], "template": {"name": "Personal welcome"}}).status_code == 200
+
+
+def test_burst_renders_one_personal_message_per_client(env, monkeypatch):
+    import json as _json
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    store.save_settings(SHOP, _json.dumps({"sender_name": "Amara"}))
+    monkeypatch.setattr(extension, "_catalog_link", lambda shop: "https://shopx/c/abc?s=1")
+    _seed([_row(), _row(cid="c2", name="Bella Ndlovu", email="bella@x.com", phone="+27 82 000 0000",
+                       orders=[{"date": "2026-09-01", "amount": 1200.0, "items": 1}])])
+    r = client.post("/v1/extension/burst", headers=_hdr(ext),
+                    json={"cids": ["c2", "c1", "c2", "ghost"],
+                          "template": {"body": "Hi {first_name}, a few pieces: {catalog_link}\n{sender}",
+                                       "subject": "For {first_name}"}})
+    d = r.json()
+    assert r.status_code == 200 and d["count"] == 2
+    assert [c["name"] for c in d["clients"]] == ["Bella Ndlovu", "Grace Ladoja"]   # request order, deduped
+    bella = d["clients"][0]
+    assert bella["message"] == "Hi Bella, a few pieces: https://shopx/c/abc?s=1&to=Bella\nAmara"
+    assert bella["subject"] == "For Bella" and bella["first"] == "Bella"
+    assert bella["phone"] == "27820000000"                       # E.164 digits, no plus
+    assert d["skipped"] == [{"cid": "ghost", "name": "", "reason": "not_in_book"}]
+    # zero persistence: the book is untouched and no client-level row appeared anywhere
+    assert [c["cid"] for c in cache.get(SHOP)["payload"]["data"]] == ["c1", "c2"]
+
+
+def test_burst_skips_clients_the_channel_cannot_reach(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row(), _row(cid="c2", name="Local Only", phone="07700 900123", email=""),
+           _row(cid="c3", name="Mail Only", phone="", email="m@x.com")])
+    body = {"cids": ["c1", "c2", "c3"], "template": {"body": "Hi {first_name}"}}
+    wa = client.post("/v1/extension/burst", headers=_hdr(ext), json={**body, "channel": "whatsapp"}).json()
+    assert [c["name"] for c in wa["clients"]] == ["Grace Ladoja"]
+    assert {s["name"]: s["reason"] for s in wa["skipped"]} == {"Local Only": "no_phone", "Mail Only": "no_phone"}
+    em = client.post("/v1/extension/burst", headers=_hdr(ext), json={**body, "channel": "email"}).json()
+    assert {s["name"]: s["reason"] for s in em["skipped"]} == {"Local Only": "no_email"}
+    for ch in ("line", None):
+        d = client.post("/v1/extension/burst", headers=_hdr(ext), json={**body, "channel": ch}).json()
+        assert d["count"] == 3 and d["skipped"] == []
+
+
+def test_burst_resolves_a_campaign_by_its_own_rule(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row(), _row(cid="c2", name="Bella Ndlovu", tier="B", grade="B", email="b@x.com"),
+           _row(cid="c3", name="Cara Moyo", tier="C", grade="C", email="c@x.com")])
+    r = client.post("/v1/campaigns", cookies={COOKIE: tok},
+                    json={"name": "Bespoke", "starts": "2026-09-01", "ends": "2026-12-31",
+                          "config": {"tiers": ["a1"], "members": ["c2"]}})
+    camp = r.json()["id"]
+    d = client.post("/v1/extension/burst", headers=_hdr(ext),
+                    json={"campaign_id": camp, "template": {"body": "x"}}).json()
+    assert sorted(c["name"] for c in d["clients"]) == ["Bella Ndlovu", "Grace Ladoja"]   # members ∪ tier
+    assert client.post("/v1/extension/burst", headers=_hdr(ext),
+                       json={"campaign_id": "nope", "template": {"body": "x"}}).status_code == 404
+
+
+def test_burst_shows_consent_and_recent_contact_without_gating(env, monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    from halia.api import board
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    now = datetime.now(timezone.utc)
+    _seed([_row(consent={"email": "subscribed", "sms": "not_subscribed"}),
+           _row(cid="c2", name="Bella Ndlovu", email="b@x.com", phone="+44 7700 900999")])
+    monkeypatch.setattr(board, "_sink", lambda shop: object())
+    monkeypatch.setattr(board, "pipelines_for", lambda sink, cids: {
+        "c1": {"activity": [{"action": "contacted", "at": (now - timedelta(days=3)).isoformat(),
+                             "actor_name": "Amara"}]},
+        "c2": {"activity": [{"action": "contacted", "at": (now - timedelta(days=20)).isoformat(),
+                             "actor_name": "Amara"}]}})
+    d = client.post("/v1/extension/burst", headers=_hdr(ext),
+                    json={"cids": ["c1", "c2"], "template": {"body": "x"}, "channel": "whatsapp"}).json()
+    grace, bella = d["clients"]
+    assert d["count"] == 2                                        # warned, never dropped
+    assert grace["consent"] == {"email": "subscribed", "sms": "not_subscribed"}
+    assert set(grace["warn"]) == {"contacted_recently", "sms_not_subscribed"}
+    assert grace["last_contact"]["by"] == "Amara"
+    assert bella["warn"] == [] and bella["consent"] == {"email": "unknown", "sms": "unknown"}
+    em = client.post("/v1/extension/burst", headers=_hdr(ext),
+                     json={"cids": ["c1"], "template": {"body": "x"}, "channel": "email"}).json()
+    assert "sms_not_subscribed" not in em["clients"][0]["warn"]
+
+
+def test_burst_caps_at_the_book_ceiling(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row(cid=f"c{i}", name=f"Client {i}", email=f"c{i}@x.com") for i in range(501)])
+    d = client.post("/v1/extension/burst", headers=_hdr(ext),
+                    json={"cids": [f"c{i}" for i in range(501)], "template": {"body": "x"}}).json()
+    assert d["count"] == 500
+
+
+def test_burst_steps_log_quietly_and_the_summary_speaks_once(env, monkeypatch):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    store.save_slack(SHOP, "https://hooks.slack.com/services/xxx")
+    sent = []
+    import halia.notify as notify
+    monkeypatch.setattr(notify, "send_slack", lambda url, text, *a, **k: sent.append(text) or True)
+    r = client.post("/v1/extension/action", headers=_hdr(ext),
+                    json={"action": "contacted", "cid": "c1", "client_name": "Grace",
+                          "reason": "Burst: Private preview via WhatsApp", "quiet": True})
+    assert r.status_code == 200 and r.json()["slack"] is False and sent == []
+    r = client.post("/v1/extension/action", headers=_hdr(ext),
+                    json={"action": "burst_done", "n": 24, "template": "Private preview",
+                          "channel": "whatsapp"})
+    assert r.status_code == 200 and r.json()["slack"] is True
+    assert sent == ["A team member sent 'Private preview' to 24 clients on WhatsApp"]
+
+
+def test_emailed_does_not_double_a_burst_step_logged_today(env, monkeypatch):
+    import json as _json
+    from datetime import datetime, timezone
+    from halia.api import board
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    _seed([_row()])
+    writes = []
+
+    class Sink:
+        def get_metafield(self, cid, key, namespace="halia"):
+            return _json.dumps({"activity": [{"action": "contacted", "actor_id": "",
+                                              "actor_name": "A team member",
+                                              "at": datetime.now(timezone.utc).isoformat(),
+                                              "note": "Burst: Private preview via Outlook"}]})
+        def set_metafield(self, cid, key, value, *a, **k): writes.append(value)
+    monkeypatch.setattr(board, "_sink", lambda shop: Sink())
+    r = client.post("/v1/extension/emailed", headers=_hdr(ext), json={"emails": ["grace@x.com"]})
+    assert r.status_code == 200 and r.json()["logged"] == 0 and writes == []
