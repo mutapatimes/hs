@@ -160,6 +160,182 @@ def build_imessage_iconset(folder: Path):
     return folder
 
 
+# ── The brand kit: every mark, lockup and wordmark on /brand, as SVG and PNG ──────────────
+#
+# The wordmark is Cormorant Garamond Light. For the SVGs its letters are converted to outlines
+# from the OFL-licensed variable font in scripts/assets, so a downloaded file needs no font
+# installed and looks identical everywhere. The PNGs are drawn with the same font at 2x and
+# downsampled, so both formats come from one geometry.
+
+FONT_PATH = ROOT / "scripts/assets/CormorantGaramond[wght].ttf"
+WORDMARK = "Halia"
+INK, OFFWHITE, SLATE, SILVER, NEARBLACK = "#1a1a1d", "#f6f6f4", "#5E6B74", "#D7DADE", "#0a0a0b"
+
+
+def _rgb(hexs):
+    h = hexs.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) + (255,)
+
+
+_FONT = {}
+
+
+def light_font():
+    """Cormorant Garamond at weight 300, instanced once from the variable font."""
+    if "ttf" not in _FONT:
+        from fontTools.ttLib import TTFont
+        from fontTools.varLib import instancer
+        f = instancer.instantiateVariableFont(TTFont(str(FONT_PATH)), {"wght": 300})
+        import io
+        buf = io.BytesIO(); f.save(buf)
+        _FONT["ttf"] = f
+        _FONT["bytes"] = buf.getvalue()
+    return _FONT["ttf"]
+
+
+def wordmark_svg(size, x, baseline, fill):
+    """The wordmark as outlines: one <path> per letter, advanced by the font's own widths."""
+    from fontTools.pens.svgPathPen import SVGPathPen
+    f = light_font()
+    gs, cmap = f.getGlyphSet(), f.getBestCmap()
+    upm = f["head"].unitsPerEm
+    k = size / upm
+    parts, cx = [], x
+    for ch in WORDMARK:
+        g = cmap[ord(ch)]
+        pen = SVGPathPen(gs)
+        gs[g].draw(pen)
+        d = pen.getCommands()
+        if d:
+            parts.append(f'<path fill="{fill}" transform="translate({cx:.2f},{baseline:.2f}) scale({k:.5f},{-k:.5f})" d="{d}"/>')
+        cx += f["hmtx"][g][0] * k
+    return "".join(parts), cx - x          # markup, advance width in user units
+
+
+def wordmark_width(size):
+    f = light_font()
+    cmap = f.getBestCmap()
+    k = size / f["head"].unitsPerEm
+    return sum(f["hmtx"][cmap[ord(c)]][0] for c in WORDMARK) * k
+
+
+def _svg(w, h, body, bg=None):
+    rect = f'<rect width="{w}" height="{h}" fill="{bg}"/>' if bg else ""
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}">{rect}{body}</svg>'
+
+
+def _mark_svg(x, y, size, fill):
+    """The asterism inside a size×size box whose top-left is (x, y)."""
+    d = []
+    for poly in asterism_polys(1.0):
+        pts = " ".join(f"{x + px * size:.2f},{y + py * size:.2f}" for px, py in poly)
+        d.append(f"M{pts}Z")
+    return f'<path fill="{fill}" d="{"".join(d)}"/>'
+
+
+def kit_mark(fill):
+    return _svg(100, 100, _mark_svg(0, 0, 100, fill))
+
+
+def kit_wordmark(fill):
+    size = 100
+    w = wordmark_width(size)
+    body, _ = wordmark_svg(size, 0, 78, fill)          # baseline at 78: ascender room above, no descenders
+    return _svg(round(w, 2), 100, body)
+
+
+def kit_lockup(bg, mark_fill, word_fill):
+    """Horizontal: mark left of the wordmark, both at one em, as the site's nav sets them."""
+    em, gap, pad = 100, 31, 80
+    ww = wordmark_width(em)
+    w, h = round(pad * 2 + em + gap + ww, 2), pad * 2 + em
+    baseline = pad + em * 0.78
+    mark = _mark_svg(pad, baseline - em * 0.88, em, mark_fill)   # vertical-align -.12em, as on the site
+    word, _ = wordmark_svg(em, pad + em + gap, baseline, word_fill)
+    return _svg(w, h, mark + word, bg=bg)
+
+
+def kit_square(bg, mark_fill, word_fill=None, size=1024):
+    """Square: the mark alone as an icon, or above the wordmark as a stacked lockup."""
+    if word_fill is None:
+        m = size * 0.44
+        return _svg(size, size, _mark_svg((size - m) / 2, (size - m) / 2, m, mark_fill), bg=bg)
+    m, fs, gap = size * 0.30, size * 0.15, size * 0.05
+    total = m + gap + fs * 0.78
+    top = (size - total) / 2
+    ww = wordmark_width(fs)
+    word, _ = wordmark_svg(fs, (size - ww) / 2, top + m + gap + fs * 0.78, word_fill)
+    return _svg(size, size, _mark_svg((size - m) / 2, top, m, mark_fill) + word, bg=bg)
+
+
+def png_from_layout(w, h, *, bg, marks, words, scale=1.0):
+    """Render a kit layout with PIL at the requested pixel size (2x supersampled).
+
+    marks: [(x, y, size, hex)]  words: [(x, baseline, font_size, hex)]  in the SVG's user units."""
+    from PIL import ImageFont
+    import io
+    ss = 2
+    W, H = int(round(w * scale * ss)), int(round(h * scale * ss))
+    img = Image.new("RGBA", (W, H), _rgb(bg) if bg else (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    k = scale * ss
+    for (x, y, size, fill) in marks:
+        for poly in asterism_polys(1.0):
+            draw.polygon([((x + px * size) * k, (y + py * size) * k) for px, py in poly], fill=_rgb(fill))
+    for (x, baseline, fs, fill) in words:
+        light_font()
+        font = ImageFont.truetype(io.BytesIO(_FONT["bytes"]), int(round(fs * k)))
+        draw.text((x * k, baseline * k), WORDMARK, font=font, fill=_rgb(fill), anchor="ls")
+    return img.resize((W // ss, H // ss), Image.LANCZOS)
+
+
+def build_brand_kit(folder: Path):
+    """Everything shown on /brand, as SVG and PNG, plus one zip of the lot."""
+    import zipfile
+    folder.mkdir(parents=True, exist_ok=True)
+    out = []
+    em, gap, pad = 100, 31, 80
+    ww = wordmark_width(em)
+    lw, lh = round(pad * 2 + em + gap + ww, 2), pad * 2 + em
+    lbase = pad + em * 0.78
+    S = 1024
+    m_icon = S * 0.44
+    m_st, fs_st, gap_st = S * 0.30, S * 0.15, S * 0.05
+    top_st = (S - (m_st + gap_st + fs_st * 0.78)) / 2
+    ww_st = wordmark_width(fs_st)
+
+    items = [
+        # name, svg, png (w, h, bg, marks, words, scale)
+        ("halia-mark-slate", kit_mark(SLATE), (100, 100, None, [(0, 0, 100, SLATE)], [], 10.24)),
+        ("halia-mark-ink", kit_mark(INK), (100, 100, None, [(0, 0, 100, INK)], [], 10.24)),
+        ("halia-mark-cream", kit_mark(OFFWHITE), (100, 100, None, [(0, 0, 100, OFFWHITE)], [], 10.24)),
+        ("halia-wordmark-ink", kit_wordmark(INK), (round(ww, 2), 100, None, [], [(0, 78, 100, INK)], 10.24)),
+        ("halia-wordmark-cream", kit_wordmark(OFFWHITE), (round(ww, 2), 100, None, [], [(0, 78, 100, OFFWHITE)], 10.24)),
+        ("halia-lockup-cream", kit_lockup(OFFWHITE, SLATE, INK),
+         (lw, lh, OFFWHITE, [(pad, lbase - em * 0.88, em, SLATE)], [(pad + em + gap, lbase, em, INK)], 4)),
+        ("halia-lockup-dark", kit_lockup(NEARBLACK, SILVER, OFFWHITE),
+         (lw, lh, NEARBLACK, [(pad, lbase - em * 0.88, em, SILVER)], [(pad + em + gap, lbase, em, OFFWHITE)], 4)),
+        ("halia-icon-ink", kit_square(INK, OFFWHITE), (S, S, INK, [((S - m_icon) / 2, (S - m_icon) / 2, m_icon, OFFWHITE)], [], 1)),
+        ("halia-icon-slate", kit_square(SLATE, OFFWHITE), (S, S, SLATE, [((S - m_icon) / 2, (S - m_icon) / 2, m_icon, OFFWHITE)], [], 1)),
+        ("halia-stacked-cream", kit_square(OFFWHITE, INK, INK),
+         (S, S, OFFWHITE, [((S - m_st) / 2, top_st, m_st, INK)], [((S - ww_st) / 2, top_st + m_st + gap_st + fs_st * 0.78, fs_st, INK)], 1)),
+        ("halia-stacked-dark", kit_square(NEARBLACK, SILVER, OFFWHITE),
+         (S, S, NEARBLACK, [((S - m_st) / 2, top_st, m_st, SILVER)], [((S - ww_st) / 2, top_st + m_st + gap_st + fs_st * 0.78, fs_st, OFFWHITE)], 1)),
+    ]
+    for name, svg, (w, h, bg, marks, words, scale) in items:
+        (folder / f"{name}.svg").write_text(svg); out.append(folder / f"{name}.svg")
+        png_from_layout(w, h, bg=bg, marks=marks, words=words, scale=scale).save(folder / f"{name}.png")
+        out.append(folder / f"{name}.png")
+    licence = ROOT / "scripts/assets/OFL-CormorantGaramond.txt"
+    with zipfile.ZipFile(folder / "halia-brand-kit.zip", "w", zipfile.ZIP_DEFLATED) as z:
+        for p in out:
+            z.write(p, p.name)
+        if licence.exists():
+            z.write(licence, "OFL-CormorantGaramond.txt")
+    out.append(folder / "halia-brand-kit.zip")
+    return out
+
+
 def main():
     out = []
     # iOS app icon set (Apple applies its own corner mask; supply square).
@@ -189,6 +365,8 @@ def main():
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
         f'<path fill="#5E6B74" d="{svg_paths(asterism_polys(1.0), 100)}"/></svg>')
     out.append(img / "asterism.svg")
+    # The downloadable brand kit behind /brand
+    out += build_brand_kit(img / "brand")
     for p in out:
         print("wrote", p.relative_to(ROOT))
 
