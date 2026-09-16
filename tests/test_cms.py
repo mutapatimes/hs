@@ -47,7 +47,7 @@ def test_email_draft_is_a_cms_editable_block(client):
 
 def test_homepage_serves_default_then_override(client):
     c, store = client
-    assert "A sea of records" in c.get("/").text          # default renders; marker is a comment
+    assert "Halia finds them from the signals in your order data" in c.get("/").text   # default renders; marker is a comment
     store.set_content("home.hero.sub", "Edited subcopy here.")
     content._bust()
     body = c.get("/").text
