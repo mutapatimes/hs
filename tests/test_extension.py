@@ -1132,9 +1132,14 @@ def test_sending_an_email_logs_the_contact_once_a_day(env, monkeypatch):
     assert len([a for a in json.loads(sink.meta[("c1", "pipeline")])["activity"]
                 if a["action"] == "contacted"]) == 1
 
-    # A different day is a fresh contact worth a line.
+    # A different day is a fresh contact worth a line: age both the RAM dedupe and the entry on
+    # the record itself (the record is the second guard, so a burst step is never doubled).
     for k in list(ext_mod._EMAILED):
         ext_mod._EMAILED[(k[0], k[1], k[2], "2020-01-01")] = ext_mod._EMAILED.pop(k)
+    aged = json.loads(sink.meta[("c1", "pipeline")])
+    for a in aged["activity"]:
+        a["at"] = "2020-01-01T10:00:00+00:00"
+    sink.meta[("c1", "pipeline")] = json.dumps(aged)
     assert client.post("/v1/extension/emailed", json={"emails": ["grace@x.com"]},
                        headers=h).json() == {"logged": 1}
 

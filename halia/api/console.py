@@ -63,8 +63,9 @@ def _make_cookie(ttl: int = 60 * 60 * 12) -> str:
 def _console_ok(request: Request) -> bool:
     if not config.CONSOLE_KEY:
         return False
-    if staff_auth.session_ok(request):        # shared single sign-on (also set by the CMS)
-        return True
+    who = staff_auth.note(request)           # shared single sign-on (also set by the CMS)
+    if who:
+        return who["role"] == "owner"        # the business numbers are the owner's; editors get the CMS
     raw = request.cookies.get(_CONSOLE_COOKIE) or ""
     try:
         exp_s, sig = raw.split("|", 1)
@@ -494,6 +495,7 @@ _NAV = [
     ("readiness", "/console/readiness", "Readiness"),
     ("content", "/admin", "Content"),
     ("blog", "/admin/blog", "Blog"),
+    ("team", "/console/team", "Team"),
     ("settings", "/console/settings", "Settings"),
 ]
 
@@ -502,8 +504,13 @@ _ADMIN_NAV = {"content", "blog"}
 
 
 def _nav_items() -> list[tuple[str, str, str]]:
-    """Nav entries for the shell. The CMS surfaces only appear when the editor is enabled."""
-    return [(k, h, l) for k, h, l in _NAV if k not in _ADMIN_NAV or config.ADMIN_KEY]
+    """Nav entries for the shell. The CMS surfaces only appear when the editor is enabled, and a
+    team member signed in by email sees only those two: the console is the owner's."""
+    who = staff_auth.current.get()
+    items = [(k, h, l) for k, h, l in _NAV if k not in _ADMIN_NAV or config.ADMIN_KEY]
+    if who and who.get("role") != "owner":
+        items = [(k, h, l) for k, h, l in items if k in _ADMIN_NAV]
+    return items
 
 
 def _status_pill() -> str:
@@ -534,10 +541,18 @@ def _shell(active: str, title: str, body: str, subtitle: str = "", actions: str 
         "<div class=sidelogo><span class=as>&#8258;</span>Halia</div>"
         "<div class=sidecap>Halia · Console</div>"
         f"<nav class=nav>{nav}"
-        "<a class=signout href=/console/logout><span class=ic></span>Sign out</a></nav></aside>")
+        + (f"<span class=sidecap style='margin-top:14px'>{_html.escape(_who_line())}</span>" if _who_line() else "")
+        + "<a class=signout href=/console/logout><span class=ic></span>Sign out</a></nav></aside>")
     top = (f"<header class=tophdr><div><h1>{_html.escape(title)}</h1>{sub}</div>"
            f"<div class=topright>{actions}{_status_pill()}</div></header>")
     return _page(title, f"<div class=app>{side}<div class=main><div class=inner>{top}{body}</div></div></div>")
+
+
+def _who_line() -> str:
+    who = staff_auth.current.get()
+    if not who or who.get("role") == "owner":
+        return ""
+    return who.get("name") or who.get("email") or ""
 
 
 def _login_form(error: str = "", action: str = "/console/login",
@@ -553,6 +568,10 @@ def _login_form(error: str = "", action: str = "/console/login",
         f"{err}<form method=post action={action} style='margin-top:18px;display:flex;gap:10px;flex-wrap:wrap'>"
         "<input type=password name=key placeholder='Access key' autofocus>"
         "<button class=btn type=submit>Sign in</button></form>"
+        "<p class=sub style='margin-top:22px;margin-bottom:0'>On the team? Sign in with your work email.</p>"
+        "<form method=post action=/admin/login/email style='margin-top:10px;display:flex;gap:10px;flex-wrap:wrap'>"
+        "<input type=email name=email placeholder='you@haliascore.com' required>"
+        "<button class='btn ghost' type=submit>Send me a link</button></form>"
         "<p class=sub style='margin-top:14px;font-size:12.5px'>One sign-in covers the console and the "
         "content editor.</p></div></div>"))
 
@@ -1131,6 +1150,37 @@ def _apply_settings(tab: str, form: dict) -> None:
         save_console_settings({"milestones": out})
 
 
+def _q(s: str) -> str:
+    from urllib.parse import quote
+    return quote(s)
+
+
+def _render_team(note: str = "") -> str:
+    """Who may sign in with their work email. The owner adds a person here; they then enter that
+    address at the sign-in page and get a link. Removing them ends their access at once."""
+    rows = shop_store().list_editors()
+    body = (f"<div class=ok2>{_html.escape(note)}</div>" if note else "")
+    body += ("<p class=sub style='margin:-4px 0 20px'>People on this list sign in to the content editor "
+             "and the blog with their work email. The console itself stays with the access key.</p>")
+    if rows:
+        body += "<table class=tbl><thead><tr><th>Name</th><th>Email</th><th>Since</th><th></th></tr></thead><tbody>"
+        for r in rows:
+            body += (f"<tr><td>{_html.escape(r.get('name') or '')}</td><td>{_html.escape(r['email'])}</td>"
+                     f"<td>{_html.escape((r.get('added_at') or '')[:10])}</td>"
+                     f"<td><form method=post action=/console/team/remove style='margin:0'>"
+                     f"<input type=hidden name=email value='{_html.escape(r['email'])}'>"
+                     f"<button class='btn ghost' type=submit>Remove</button></form></td></tr>")
+        body += "</tbody></table>"
+    else:
+        body += "<p class=sub>Nobody yet. Add the first person below.</p>"
+    body += ("<form method=post action=/console/team/add style='margin-top:22px;display:flex;gap:10px;flex-wrap:wrap'>"
+             "<input name=name placeholder='Name' style='border:1px solid var(--line);border-radius:9px;padding:12px 14px'>"
+             "<input type=email name=email placeholder='name@haliascore.com' required "
+             "style='border:1px solid var(--line);border-radius:9px;padding:12px 14px;min-width:260px'>"
+             "<button class=btn type=submit>Add to the team</button></form>")
+    return _shell("team", "Team", body, subtitle="Who can sign in")
+
+
 # ── routes ───────────────────────────────────────────────────────────────────────
 def register(app) -> None:
 
@@ -1179,6 +1229,29 @@ def register(app) -> None:
         if not _console_ok(request):
             return HTMLResponse(_login_form())
         return None
+
+    @app.get("/console/team", response_class=HTMLResponse)
+    def console_team(request: Request):
+        return _gate(request) or HTMLResponse(_render_team(request.query_params.get("note") or ""))
+
+    @app.post("/console/team/add")
+    def console_team_add(request: Request, email: str = Form(""), name: str = Form("")):
+        if not _console_ok(request):
+            raise HTTPException(403, "Not signed in.")
+        email = (email or "").strip().lower()
+        if "@" not in email:
+            return RedirectResponse("/console/team?note=" + _q("That email does not look right."), status_code=303)
+        shop_store().add_editor(email, name, "editor", added_by="owner")
+        return RedirectResponse("/console/team?note=" + _q(f"{name or email} can now sign in with their email."),
+                                status_code=303)
+
+    @app.post("/console/team/remove")
+    def console_team_remove(request: Request, email: str = Form("")):
+        if not _console_ok(request):
+            raise HTTPException(403, "Not signed in.")
+        shop_store().remove_editor(email)
+        return RedirectResponse("/console/team?note=" + _q("Removed. Their sign-in stops working now."),
+                                status_code=303)
 
     @app.get("/console/revenue", response_class=HTMLResponse)
     def console_revenue(request: Request):

@@ -265,7 +265,7 @@ def _make_cookie(ttl: int = 60 * 60 * 12) -> str:
 def _admin_ok(request: Request) -> bool:
     if not config.ADMIN_KEY:
         return False
-    if staff_auth.session_ok(request):        # shared single sign-on (also set by the console)
+    if staff_auth.note(request):              # shared single sign-on: the owner, or a team member
         return True
     raw = request.cookies.get(_ADMIN_COOKIE) or ""
     try:
@@ -340,6 +340,35 @@ def register(app) -> None:
                         secure=(config.HALIA_APP_URL or "").startswith("https"),
                         samesite="lax", max_age=60 * 60 * 12)
         staff_auth.set_session(resp)          # also open the console (one sign-in for both)
+        return resp
+
+    @app.post("/admin/login/email", response_class=HTMLResponse)
+    def admin_login_email(email: str = Form("")):
+        """Team sign-in, step one: a link goes to the address if it is on the team. The answer is
+        the same either way, so the team list cannot be read off this form."""
+        if not config.ADMIN_KEY:
+            return HTMLResponse(_disabled_page())
+        staff_auth.send_link(email)
+        return HTMLResponse(console._page("Check your email", (
+            "<div class=authwrap><div class=card>"
+            "<div class=brand style='font-size:24px;margin-bottom:8px'><span class=as>&#8258;</span> Halia</div>"
+            "<h1 style='font-size:22px;margin:0 0 4px'>Check your email</h1>"
+            f"<p class=sub>If {_html.escape((email or '').strip())} is on the team, a sign-in link is on its "
+            "way. It works for fifteen minutes.</p>"
+            "<p class=sub style='margin-top:14px;font-size:12.5px'><a href=/admin>Back to sign in</a></p>"
+            "</div></div>")))
+
+    @app.get("/admin/login/link")
+    def admin_login_link(t: str = ""):
+        """Team sign-in, step two: the link becomes a session for that person."""
+        if not config.ADMIN_KEY:
+            return HTMLResponse(_disabled_page())
+        email = staff_auth.link_email(t)
+        if not email or not shop_store().get_editor(email):
+            return HTMLResponse(_login_form("That link has expired or was already used. Ask for a new one."),
+                                status_code=401)
+        resp = RedirectResponse("/admin", status_code=303)
+        staff_auth.set_session(resp, email=email)
         return resp
 
     @app.get("/admin/logout")

@@ -238,6 +238,15 @@ _TABLES = [
         data_b64   TEXT,
         created_at TEXT
     )""",
+    # The team allowed into the console and the CMS by email link. Company staff, not customer
+    # data. The owner (the holder of the enable keys) manages the list from /console/team.
+    """CREATE TABLE IF NOT EXISTS editors (
+        email      TEXT PRIMARY KEY,
+        name       TEXT,
+        role       TEXT DEFAULT 'editor',
+        added_by   TEXT,
+        added_at   TEXT
+    )""",
     # Product catalogs (the catalog-PDF builder). Company/product content, not customer PII.
     # `config_json` holds the selection (product ids or collection/tag/vendor filters) + template +
     # brand colour; `pdf_b64` is the last generated PDF (base64 TEXT, survives Render's ephemeral FS).
@@ -813,6 +822,27 @@ class ShopStore(_DB):
             """INSERT INTO email_suppressions (email, reason, created_at) VALUES (:e, :r, :at)
                ON CONFLICT(email) DO NOTHING""",
             {"e": email.strip().lower(), "r": reason, "at": _now()})
+
+    # ── the team: who may sign in to the console / CMS by email link ─────────────
+    def add_editor(self, email: str, name: str = "", role: str = "editor", added_by: str = "") -> None:
+        self._run(
+            """INSERT INTO editors (email, name, role, added_by, added_at)
+               VALUES (:e, :n, :r, :by, :at)
+               ON CONFLICT(email) DO UPDATE SET name=excluded.name, role=excluded.role""",
+            {"e": email.strip().lower(), "n": (name or "").strip()[:80],
+             "r": role if role in ("editor", "owner") else "editor", "by": added_by, "at": _now()})
+
+    def get_editor(self, email: str) -> dict | None:
+        row = self._run("SELECT email, name, role, added_at FROM editors WHERE email = :e",
+                        {"e": (email or "").strip().lower()}, fetch="one")
+        return dict(row) if row else None
+
+    def list_editors(self) -> list[dict]:
+        rows = self._run("SELECT email, name, role, added_at FROM editors ORDER BY added_at", fetch="all")
+        return [dict(r) for r in rows or []]
+
+    def remove_editor(self, email: str) -> None:
+        self._run("DELETE FROM editors WHERE email = :e", {"e": (email or "").strip().lower()})
 
     def is_suppressed(self, email: str) -> bool:
         return bool(self._run("SELECT 1 FROM email_suppressions WHERE email = :e",

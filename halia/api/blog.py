@@ -889,6 +889,13 @@ def seed_blog() -> None:
 
 
 # ── routes ─────────────────────────────────────────────────────────────────────────
+def _editor_name(request) -> str:
+    """The signed-in team member's name, so a post they write carries their byline by default."""
+    from halia.api import staff_auth
+    who = staff_auth.identity(request)
+    return (who or {}).get("name") or ""
+
+
 def register(app) -> None:
     try:
         seed_blog()
@@ -970,7 +977,7 @@ def register(app) -> None:
             "title": title,
             "dek": (form.get("dek") or "").strip(),
             "body_html": _sanitize(str(form.get("body_html") or "")),
-            "author": (form.get("author") or "").strip() or "The Halia team",
+            "author": (form.get("author") or "").strip() or _editor_name(request) or "The Halia team",
             "cover_image_id": (form.get("cover_image_id") or "").strip() or None,
             "tags": (form.get("tags") or "").strip(),
             "status": "published" if published else "draft",

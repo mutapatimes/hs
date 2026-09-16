@@ -27,6 +27,19 @@ Nothing here is customer data — it is website copy.
    HTML such as `<em>` is allowed. Blanking a field, or setting it back to the original text,
    **reverts** it (the override is deleted).
 
+## Who can sign in
+
+Two ways in, one session for the console and the editor:
+
+- **The access keys.** `HALIA_ADMIN_KEY` opens the content editor and the blog; `HALIA_CONSOLE_KEY`
+  opens the console. Whoever holds them is the owner.
+- **The team, by email.** The owner adds a person at `/console/team` (name + work email). That
+  person then enters their email on the sign-in page and gets a link that works once, for fifteen
+  minutes. It signs them in to the content editor and the blog; their posts carry their byline.
+  The console's business numbers stay with the owner. Removing someone from the team ends their
+  session immediately. An address that is not on the list gets the same "check your email" answer
+  and no email, so the team list cannot be read off the form.
+
 ## Adding more editable blocks
 
 Wrap any text in a page under `web/site/` with a unique key:
