@@ -74,12 +74,25 @@ Configure one URL, `https://<app>/webhooks/shopify`, for all topics.
   wording a Merchant pastes into its own customer privacy notice (UK GDPR Art 13/14).
 - [`docs/dpia-lia-support.md`](dpia-lia-support.md) : DPIA support + Legitimate Interests
   Assessment, the disparate-impact analysis, and the wealth-fact vs origin-proxy signal split.
+- [`docs/record-of-processing.md`](record-of-processing.md) : Halia's Article 30 record, processor
+  and controller entries.
+- [`docs/dpo-decision.md`](dpo-decision.md) : the Article 37 decision on a data protection officer,
+  for the founder to sign.
 
 ## Lawful-by-default profiling
 Origin-proxy signals (nationality / name / ethnicity tells) are **off by default** for every
 tenant (`scoring.combine.ORIGIN_PROXY_SIGNALS`); the score is built from wealth, work, and
 specific-address facts. They re-enable only per-tenant, operator-controlled, after that Merchant
 documents a lawful basis (`HALIA_ORIGIN_SIGNAL_SHOPS`). See `docs/dpia-lia-support.md` §3.
+
+## Founder actions (cannot be done from the codebase)
+- Confirm the ICO data protection fee is paid (Data Protection (Charges and Information)
+  Regulations 2018) and note the tier and renewal date in `docs/record-of-processing.md`.
+- Sign `docs/dpo-decision.md`.
+- Engage an EU representative (Article 27 EU GDPR) before the first EU brand goes live, and add
+  their details to the privacy policy.
+- Confirm the Render region and record it in the DPA and the privacy policy.
+- Hold a transfer risk assessment for the Anthropic flow (AI drafting) alongside the UK Addendum.
 
 ## Deferred (process, not code)
 - A formal legal privacy policy (template provided); the DPA template above still needs solicitor

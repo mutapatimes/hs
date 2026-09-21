@@ -21,9 +21,11 @@ privacy notice. It describes Halia honestly while keeping the language accessibl
 > example with an early look at a collection or an invitation to an event.
 >
 > **What it looks at.** The estimate is based on **commercial and address facts**: how much and
-> how often you have bought from us, and publicly recognisable signs of an area or a
-> professional email domain. It does **not** use your nationality, your ethnicity, your name, or
-> the origin of your name.
+> how often you have bought from us, publicly recognisable signs of an area or a professional
+> email domain, and facts from public registers such as HM Land Registry, Companies House and the
+> Charity Commission, which the tool compares against our records. It does not look you up
+> individually or send your details anywhere. It does **not** use your nationality, your
+> ethnicity, your name, or the origin of your name.
 >
 > **A person always decides.** The tool only highlights customers for our team to consider. It
 > does not make any automatic decision about you, it never withholds a product, price, or
@@ -40,8 +42,19 @@ privacy notice. It describes Halia honestly while keeping the language accessibl
 ## Notes for the Merchant (do not publish this section)
 
 - **Signal categories, plainly.** Halia scores on: spend and order history; address and postcode
-  matched to recognised prime areas; and work / professional email or company tells. These are
-  **wealth and address facts**.
+  matched to recognised prime areas; work / professional email or company tells; and facts from
+  public registers (HM Land Registry price-paid data for area property values, the Companies House
+  PSC register for control of an active company, the Charity Commission register for trusteeship,
+  and equivalent open registers abroad). These are **wealth and address facts**. Halia holds these
+  registers as downloaded reference tables and compares your records against them; it never sends
+  a customer's details to any register or third party. Because a register fact is information not
+  collected from the customer, your notice must mention the registers (Article 14): the wording
+  above does.
+- **Electronic marketing (PECR).** Halia's templates and message sequences help your team write to
+  customers; your team sends every message from its own accounts. Consent for marketing by email,
+  SMS or WhatsApp is your responsibility under PECR. Halia shows each customer's recorded consent
+  and their last contact before a message is sent; it does not stop a message. Brief your team on
+  when the soft opt-in applies and honour opt-outs in your platform.
 - **Explicitly excluded by default.** Nationality, billing country as an origin proxy, dialling-
   code, name structure, name origin, and heritage-surname signals are **off by default** and are
   not used unless you have documented a lawful basis and asked us to enable them. Keep them off

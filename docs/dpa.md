@@ -20,16 +20,43 @@ uninstall, Halia deletes the Controller's stored data as described in Section 8.
 
 ## 3. Nature and purpose of processing
 
-Halia reads the Controller's customer and order data through the Shopify Admin API to compute a
-private potential-value score ("hidden VIC" grade) and to surface the reasons and recommended next
-action, so the Controller can prioritise personal outreach to high-value clients. Halia does not use
-the data to make decisions producing legal or similarly significant effects on data subjects.
+Halia reads the Controller's customer and order data through the Controller's own commerce platform
+(Shopify, WooCommerce, BigCommerce or Centra, at the Controller's choice) to compute a private
+potential-value score ("hidden VIC" grade) and to surface the reasons and a recommended next action,
+so the Controller can prioritise personal outreach to high-value clients. Halia does not use the data
+to make decisions producing legal or similarly significant effects on data subjects: a member of the
+Controller's team always decides whether and how to act.
+
+**3.1 Public-register matching (documented instruction).** As part of the scoring, and on the
+Controller's instruction recorded here, Halia compares the Controller's records against reference
+tables that Halia builds from publicly available open data: HM Land Registry price-paid data (area
+property values by postcode district), the Companies House persons-with-significant-control and
+company registers (control of an active company), the Charity Commission for England and Wales
+register (trusteeship), and the equivalent open registers of other countries listed in the
+Processing Schedule. The comparison happens inside Halia's processing memory against tables Halia
+already holds. Halia does not send any customer identifier to a register, a data broker or any
+other third party, and does not look up any individual customer. The Controller may withdraw this
+instruction for any register in writing, and Halia will exclude that register from the Controller's
+scoring.
+
+**3.2 Messaging tools.** Halia provides the Controller's team with message templates, per-client
+drafts and a guided sequence for messaging several clients. Every message is sent by a member of the
+Controller's team from the Controller's own or the team member's own messaging account (email,
+WhatsApp, SMS, LINE). Halia does not send marketing messages to the Controller's customers.
 
 ## 4. Types of personal data and categories of data subjects
 
 - **Data subjects:** the Controller's customers, prospective customers, and site visitors.
-- **Personal data:** name, email, phone, billing/shipping address, and order history (including order
-  totals and dates). Halia derives location-based and behavioural signals from this data.
+- **Personal data:** name, email, phone, billing/shipping address, order history (including order
+  totals, dates and products), open baskets, and marketing-consent status as recorded in the
+  Controller's platform. Halia derives location-based and behavioural signals from this data and,
+  under Section 3.1, matches it against public-register facts (area property values, control of a
+  company, trusteeship of a charity). Halia does not process special category data, and by default
+  does not use signals that would act as proxies for nationality, ethnicity or origin (see the DPIA
+  support document).
+- **Team data:** names, work email addresses and sign-in tokens of the Controller's staff who use
+  Halia's tools, and the record of which staff member contacted which customer, which Halia writes
+  into the Controller's own platform.
 
 ## 5. Controller instructions
 
@@ -38,9 +65,26 @@ process the data for its own purposes, and will not sell the data.
 
 ## 6. Zero retention
 
-Halia is designed for data minimisation. It processes customer and order records to compute the score
-and **retains the resulting score and signals, not the underlying customer records**. Halia does not
-build or keep a standalone copy of the Controller's customer database.
+Halia is designed for data minimisation. Customer and order records are processed in memory and
+discarded within minutes (five minutes by default). Scores, grades, reasons, outreach records and
+appointments are written back into the Controller's own platform as tags and metafields on the
+customer record, where the Controller controls them. Halia's own database holds the Controller's
+account, settings, encrypted platform credentials, and aggregate counts only; it holds no customer
+record, no score, and no customer identifier. Halia does not build or keep a copy of the
+Controller's customer database, and does not use the Controller's customer data to train or improve
+any model for other customers of Halia.
+
+## 6A. Electronic marketing and consent
+
+The Controller is responsible for its own compliance with the Privacy and Electronic Communications
+Regulations 2003 (and, for EU customers, the ePrivacy Directive as implemented locally) in respect of
+any electronic marketing message its team sends to a customer, including messages drafted or
+suggested by Halia and messages sent through Halia's guided messaging sequence. Halia displays the
+customer's email and SMS marketing-consent status as recorded in the Controller's platform, and the
+date of the customer's most recent contact, before a message is sent, so that the Controller's team
+can act knowingly. Halia does not gate messages on that status, does not send messages itself, and
+is not a party to the communication. The Controller will ensure its team is trained on when consent
+or the soft opt-in applies and will honour opt-outs in its own platform.
 
 ## 7. Confidentiality and security
 
@@ -58,10 +102,21 @@ cache and the Controller's stored configuration and tokens.
 
 ## 9. Sub-processors
 
-Halia uses a limited set of sub-processors to run the service (for example, cloud hosting). Halia
-maintains a current list and will inform the Controller of intended changes, giving the Controller the
-opportunity to object. **List your sub-processors here** (e.g. Render for hosting; Stripe for
-non-Shopify billing; any email/LLM provider).
+Halia uses a limited set of sub-processors to run the service. Because Halia retains no customer
+data, no sub-processor receives a standing copy of the Controller's customers. The current list is
+published at haliascore.com/privacy#subprocessors and, at the date of this DPA, is:
+
+| Sub-processor | Purpose | Customer data involved | Region |
+| --- | --- | --- | --- |
+| Render Services, Inc. | Hosting and managed database for the Halia application | None stored; customer records pass through server memory during scoring | UK/EU region, confirmed at contract |
+| Stripe Payments Europe, Ltd. | Subscription billing for the Controller's account | None; the Controller's billing details only | EU/UK |
+| Brevo (Sendinblue SAS) | Transactional email to the Controller's team: sign-in links, alerts, results | The Controller's team addresses; a customer's first name may appear in an alert to the team | EU (France) |
+| Anthropic, PBC | Drafting and polishing message text when the Controller enables AI drafting | The text of the draft request: the customer's first name, the grade, recent purchases and the visible conversation excerpt supplied by the team member. Not retained by the provider for training under its API terms | United States, under the UK Addendum to the EU SCCs |
+
+Halia will inform the Controller of intended changes to this list at least 30 days in advance,
+giving the Controller the opportunity to object. The Controller's own connected platforms (Shopify,
+WooCommerce, BigCommerce, Centra, Klaviyo, Mailchimp, HubSpot, Slack) operate under the
+Controller's own accounts and terms and are not Halia's sub-processors.
 
 ## 10. Assistance to the Controller
 
@@ -76,9 +131,14 @@ affecting the Controller's data, with the information the Controller needs to me
 
 ## 12. International transfers
 
-Where personal data is transferred across borders, the parties rely on a lawful transfer mechanism
-(for example, UK/EU Standard Contractual Clauses / the UK Addendum). **Confirm the mechanism with
-counsel based on where you host and operate.**
+Halia processes personal data in the United Kingdom and the European Economic Area. Transfers from
+the EEA to the United Kingdom rely on the European Commission's adequacy decision for the United
+Kingdom while it remains in force; transfers from the United Kingdom to the EEA rely on the United
+Kingdom's adequacy regulations. The one onward transfer outside the UK and EEA is to Anthropic in
+the United States for AI drafting, which occurs only when the Controller enables that feature, and
+relies on the UK International Data Transfer Addendum to the EU Standard Contractual Clauses together
+with a transfer risk assessment held by Halia. Should adequacy lapse, the parties will put the UK
+Addendum or the EU Standard Contractual Clauses in place for the affected flow within 30 days.
 
 ## 13. Audits
 
@@ -87,5 +147,22 @@ allows for audits, subject to reasonable notice and confidentiality.
 
 ---
 
+## Processing Schedule
+
+| Item | Detail |
+| --- | --- |
+| Subject matter | Scoring the Controller's customers for potential value and supporting the Controller's team's personal outreach |
+| Duration | For the term of the Controller's subscription; customer data held in memory for at most five minutes per scoring run |
+| Nature | Reading customer and order records; scoring in memory; matching against public-register reference tables (Section 3.1); writing grades, reasons, outreach records and appointments to the customer record in the Controller's platform; drafting message text at the team's request |
+| Purpose | Identifying and serving high-value clients through personal attention; never pricing, credit, eligibility or refusal |
+| Data subjects | The Controller's customers and prospective customers; the Controller's staff |
+| Personal data | As Section 4 |
+| Public registers (UK) | HM Land Registry price-paid data; Companies House PSC and company registers; Charity Commission for England and Wales register; Registers of Scotland-derived area statistics |
+| Public registers (other countries, where the Controller's customers are located) | France DVF property transactions; Dubai Land Department transactions; New South Wales Valuer General sales; Australian Taxation Office postcode statistics; Canada Revenue Agency FSA statistics; United States IRS SOI ZIP statistics |
+| Storage of customer data by Halia | None |
+| Location of processing | United Kingdom / EEA (Render); United States for AI drafting only (Anthropic) |
+
+---
+
 _Placeholders to finalise with counsel: legal entity name and address for "Halia", governing law,
-the sub-processor list, and the international-transfer mechanism._
+the Render region, and the transfer risk assessment for Anthropic._
