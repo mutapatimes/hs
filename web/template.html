@@ -1247,6 +1247,54 @@ function haliaLoader(label){
     "<i></i>".repeat(9)+`</span><span class="shim" style="font:600 13px system-ui">${label||"Loading"}</span></div>`;
 }
 
+// In-page confirm and prompt. The Shopify admin frames the app cross-origin, where a browser may
+// swallow window.confirm and window.prompt without a word, so every question that gates an action
+// is asked here instead. Both resolve like their native namesakes: confirm → true/false, prompt →
+// the text or null. Hoisted so any handler below can await them.
+function haliaDialog(msg, opts){
+  opts=opts||{};
+  return new Promise(resolve=>{
+    const ov=document.createElement("div");
+    ov.style.cssText="position:fixed;inset:0;z-index:130;background:rgba(10,10,11,.45);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:16px";
+    const box=document.createElement("div");
+    box.setAttribute("role","dialog"); box.setAttribute("aria-modal","true");
+    box.style.cssText="width:min(440px,100%);background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow-lg);padding:22px 22px 18px";
+    const p=document.createElement("div");
+    p.style.cssText="font:500 15px/1.5 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;color:var(--ink)";
+    p.textContent=msg; box.appendChild(p);
+    let inp=null;
+    if(opts.input){
+      inp=document.createElement("input"); inp.type="text"; inp.value=opts.value||""; inp.setAttribute("aria-label",msg);
+      inp.style.cssText="margin-top:14px;width:100%;box-sizing:border-box;font:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);color:var(--ink)";
+      box.appendChild(inp);
+    }
+    const row=document.createElement("div");
+    row.style.cssText="display:flex;justify-content:flex-end;gap:8px;margin-top:18px";
+    const no=document.createElement("button"); no.type="button"; no.className="btn ghost"; no.textContent=opts.cancel||"Cancel";
+    const ok=document.createElement("button"); ok.type="button"; ok.className="btn"; ok.textContent=opts.ok||"Continue";
+    row.appendChild(no); row.appendChild(ok); box.appendChild(row); ov.appendChild(box);
+    const prev=document.activeElement;
+    const dismissed=opts.input?null:false;
+    function done(v){
+      ov.remove(); document.removeEventListener("keydown",key,true);
+      if(prev&&prev.focus){ try{ prev.focus(); }catch(e){} }
+      resolve(v);
+    }
+    function key(e){
+      if(e.key==="Escape"){ e.preventDefault(); done(dismissed); }
+      else if(e.key==="Enter"&&e.target.tagName!=="BUTTON"){ e.preventDefault(); done(opts.input?inp.value:true); }
+    }
+    no.onclick=()=>done(dismissed);
+    ok.onclick=()=>done(opts.input?inp.value:true);
+    ov.onclick=e=>{ if(e.target===ov) done(dismissed); };
+    document.addEventListener("keydown",key,true);
+    document.body.appendChild(ov);
+    (inp||ok).focus(); if(inp) inp.select();
+  });
+}
+function haliaConfirm(msg,opts){ return haliaDialog(msg,opts||{}); }
+function haliaPrompt(msg,value,opts){ return haliaDialog(msg,Object.assign({input:true,value:value||""},opts||{})); }
+
 // Insight-card hover layer for an area/line SVG chart. spec: {xs,ys (viewBox coords per point),
 // top,bottom (crosshair y-extent in viewBox), tips:[{label, rows:[{label,value,color}]}]}. Draws a
 // dashed crosshair + focus dot inside the SVG and an HTML tooltip in the SVG's (relative) parent.
@@ -1845,12 +1893,12 @@ document.getElementById("bulkcamp").onclick=()=>{
 
 // bulk action: sync the selected clients
 // A quick guard before an irreversible bulk sync/tag, so a stray click can't fire it.
-function confirmBulk(verb,dest){
+async function confirmBulk(verb,dest){
   const n=selected.size;
-  return n>0 && window.confirm(`${verb} ${n} client${n===1?"":"s"} ${dest}?`);
+  return n>0 && await haliaConfirm(`${verb} ${n} client${n===1?"":"s"} ${dest}?`,{ok:verb});
 }
 document.getElementById("bulkpush").onclick=async()=>{
-  if(!confirmBulk("Sync","to Klaviyo")) return;
+  if(!await confirmBulk("Sync","to Klaviyo")) return;
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   const btn=document.getElementById("bulkpush"); btn.disabled=true; btn.textContent="Syncing…";
   await haliaPush(cids);
@@ -1862,7 +1910,7 @@ document.getElementById("bulkpush").onclick=async()=>{
 document.getElementById("bulklist").onclick=async()=>{
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   if(!cids.length) return;
-  const name=prompt("Name this Klaviyo list:","Halia VIP selection");
+  const name=await haliaPrompt("Name this Klaviyo list","Halia VIP selection",{ok:"Create list"});
   if(name===null) return;
   const w=window.open("","_blank");  // open synchronously to dodge popup blockers
   const btn=document.getElementById("bulklist"); btn.disabled=true; btn.textContent="Creating…";
@@ -1879,7 +1927,7 @@ document.getElementById("bulklist").onclick=async()=>{
 };
 // bulk action: sync the selected clients to Mailchimp
 document.getElementById("bulkpushmc").onclick=async()=>{
-  if(!confirmBulk("Sync","to Mailchimp")) return;
+  if(!await confirmBulk("Sync","to Mailchimp")) return;
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   const btn=document.getElementById("bulkpushmc"); btn.disabled=true; const t=btn.textContent; btn.textContent="Syncing…";
   try{
@@ -1897,7 +1945,7 @@ document.getElementById("bulkpushmc").onclick=async()=>{
 document.getElementById("bulksegmc").onclick=async()=>{
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   if(!cids.length) return;
-  const name=prompt("Name this Mailchimp segment:","Halia VIP selection");
+  const name=await haliaPrompt("Name this Mailchimp segment","Halia VIP selection",{ok:"Create segment"});
   if(name===null) return;
   const btn=document.getElementById("bulksegmc"); btn.disabled=true; const t=btn.textContent; btn.textContent="Creating…";
   try{
@@ -1913,7 +1961,7 @@ document.getElementById("bulksegmc").onclick=async()=>{
 
 // bulk action: sync the selected clients to HubSpot (all potential VICs if none selected)
 document.getElementById("bulkpushhs").onclick=async()=>{
-  if(!confirmBulk("Sync","to HubSpot")) return;
+  if(!await confirmBulk("Sync","to HubSpot")) return;
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   const btn=document.getElementById("bulkpushhs"); btn.disabled=true; const t=btn.textContent; btn.textContent="Syncing…";
   try{
@@ -1929,7 +1977,7 @@ document.getElementById("bulkpushhs").onclick=async()=>{
 
 // bulk action: tag the selected clients back into Shopify (all potential VICs if none selected)
 document.getElementById("bulktag").onclick=async()=>{
-  if(!confirmBulk("Tag","in Shopify")) return;
+  if(!await confirmBulk("Tag","in Shopify")) return;
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   const btn=document.getElementById("bulktag"); btn.disabled=true; const t=btn.textContent; btn.textContent="Tagging…";
   try{
@@ -1947,7 +1995,7 @@ document.getElementById("bulktag").onclick=async()=>{
 document.getElementById("bulkshopseg").onclick=async()=>{
   const cids=[...selected].map(id=>{const c=DATA.find(x=>x.id===id);return c&&c.cid;}).filter(Boolean);
   if(!cids.length) return;
-  const name=prompt("Name this Shopify segment:","Halia potential VICs");
+  const name=await haliaPrompt("Name this Shopify segment","Halia potential VICs",{ok:"Create segment"});
   if(name===null) return;
   const btn=document.getElementById("bulkshopseg"); btn.disabled=true; const t=btn.textContent; btn.textContent="Creating…";
   try{
@@ -2995,8 +3043,8 @@ function shopifySubscribe(key,btn){
       window.open(d.confirmationUrl,"_top");
     }).catch(e=>{ toast("Billing error: "+e.message); if(btn){ btn.disabled=false; btn.textContent="Choose plan →"; } });
 }
-function shopifyCancelPlan(){
-  if(!confirm("Cancel your plan and move to Free?")) return;
+async function shopifyCancelPlan(){
+  if(!await haliaConfirm("Cancel your plan and move to Free?",{ok:"Cancel plan",cancel:"Keep plan"})) return;
   fetch("/v1/plans/cancel",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
     if(!ok) throw new Error((d&&d.detail)||"failed");
     toast("Plan cancelled."); PLANS_CACHE=null; SETTINGS.billing=null; loadBilling();
@@ -3213,8 +3261,8 @@ function openMonitor(id){
 function campWireList(camps){
   const root=document.getElementById("campList"); if(!root)return;
   root.querySelectorAll("[data-mon]").forEach(b=>b.onclick=()=>openMonitor(b.dataset.mon));
-  root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
-    if(!confirm("Delete this campaign?"))return;
+  root.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+    if(!await haliaConfirm("Delete this campaign?",{ok:"Delete"}))return;
     fetch("/v1/campaigns/"+encodeURIComponent(b.dataset.del),{method:"DELETE"})
       .then(()=>{toast("Campaign deleted.");campInit(true);}).catch(()=>toast("Delete failed."));});
   root.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{
@@ -3353,7 +3401,9 @@ function mePick(cb){
 function actorName(){
   if(ME.seat&&ME.seat.name) return ME.seat.name;
   let n="";try{n=localStorage.getItem("halia_actor")||"";}catch(e){}
-  if(!n&&!ME.seats.length){n=(prompt("Your name (shown on pipeline actions):")||"").trim();if(n){try{localStorage.setItem("halia_actor",n);}catch(e){}}}
+  // The hosted dashboard may still ask by name; inside the admin frame a native prompt can be
+  // swallowed, and the seat picker above covers attribution there.
+  if(!n&&!ME.seats.length&&!EMBEDDED){n=(prompt("Your name (shown on pipeline actions):")||"").trim();if(n){try{localStorage.setItem("halia_actor",n);}catch(e){}}}
   return n||"Someone";}
 function actorBody(){ return ME.seat?{actor:ME.seat.name,seat_id:ME.seat.id}:{actor:actorName()}; }
 meLoad();
@@ -3426,7 +3476,7 @@ function bPost(path,body,cb){
 }
 function bMove(cid,stage){bPost("move",{cid:cid,stage:stage},()=>{ _renderBoardNow(); toast("Moved to "+stage+".");});}
 function bAdd(c){bPost("add",{cid:c.cid},()=>{ if(!BOARD.cards[c.cid])BOARD.cards[c.cid]={cid:c.cid,name:c.name,email:c.email,stage:"To reach out",activity:[]}; _renderBoardNow(); toast("Added to pipeline.");});}
-function bRemove(c){if(!confirm("Remove "+(c.name||"this client")+" from the pipeline?"))return;bPost("remove",{cid:c.cid},()=>{delete BOARD.cards[c.cid];_renderBoardNow();toast("Removed from pipeline.");});}
+async function bRemove(c){if(!await haliaConfirm("Remove "+(c.name||"this client")+" from the pipeline?",{ok:"Remove"}))return;bPost("remove",{cid:c.cid},()=>{delete BOARD.cards[c.cid];_renderBoardNow();toast("Removed from pipeline.");});}
 function bNote(c,note){bPost("note",{cid:c.cid,note:note},()=>_renderBoardNow());}
 function bAssign(c,name){const seat=ME.seats.find(s=>s.id===name);bPost("assign",seat?{cid:c.cid,assignee_seat:seat.id}:{cid:c.cid,assignee_name:name},()=>_renderBoardNow());}
 // drawer pipeline section — lazy-loads the board once, then renders for this client
@@ -3472,7 +3522,7 @@ function renderDrawerAppt(c){
         if(bo&&d2&&d2.links) bo.innerHTML=apptClientLine(d2.links);
         renderDrawerAppt(c);
       }); };
-    box.querySelectorAll("[data-apptcancel]").forEach(b=>b.onclick=()=>{ if(!confirm("Cancel this appointment?"))return;
+    box.querySelectorAll("[data-apptcancel]").forEach(b=>b.onclick=async()=>{ if(!await haliaConfirm("Cancel this appointment?",{ok:"Cancel appointment",cancel:"Keep it"}))return;
       bPost("appointment/cancel",{cid:c.cid,id:b.dataset.apptcancel},()=>{toast("Cancelled.");renderDrawerAppt(c);}); });
     box.querySelectorAll("[data-apptmove]").forEach(b=>b.onclick=()=>{
       const row=box.querySelector('[data-movebox="'+b.dataset.apptmove+'"]'); if(row) row.hidden=!row.hidden; });
@@ -4482,10 +4532,10 @@ function openSettings(page){
           if(d.ai){out.textContent=d.ai;out.style.display="";}else{st.textContent="AI is unavailable right now.";}})
         .catch(()=>{vai.disabled=false;st.textContent="Could not reach AI.";});
     };
-    const vrw=document.getElementById("voiceRewrite"); if(vrw) vrw.onclick=()=>{
+    const vrw=document.getElementById("voiceRewrite"); if(vrw) vrw.onclick=async()=>{
       const st=document.getElementById("voiceStatus");
       collect();
-      if(!confirm("Rewrite all "+tmpl.length+" client templates in this voice? You can still edit each one, and nothing is saved until you press Save."))return;
+      if(!await haliaConfirm("Rewrite all "+tmpl.length+" client templates in this voice? You can still edit each one, and nothing is saved until you press Save.",{ok:"Rewrite"}))return;
       vrw.disabled=true;st.textContent="Rewriting "+tmpl.length+" templates…";
       fetch("/v1/voice/rewrite",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({voice:voiceNow(),templates:tmpl})})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{vrw.disabled=false;
@@ -4503,9 +4553,9 @@ function openSettings(page){
     const delIn=document.getElementById("delConfirm"),delBtn2=document.getElementById("delAccount");
     if(delIn&&delBtn2){
       delIn.addEventListener("input",()=>{const ok=delIn.value.trim().toUpperCase()==="DELETE";delBtn2.disabled=!ok;delBtn2.style.opacity=ok?"1":".5";});
-      delBtn2.onclick=()=>{
+      delBtn2.onclick=async()=>{
         if(delIn.value.trim().toUpperCase()!=="DELETE")return;
-        if(!confirm("Permanently delete your Halia account and everything in it? This cannot be undone."))return;
+        if(!await haliaConfirm("Permanently delete your Halia account and everything in it? This cannot be undone.",{ok:"Delete account",cancel:"Keep account"}))return;
         delBtn2.disabled=true;delBtn2.textContent="Deleting…";
         fetch("/v1/account/delete",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
           if(!ok)throw new Error((d&&d.detail)||"failed");
@@ -4728,9 +4778,9 @@ function openSettings(page){
           f.style.display=f.style.display==="none"?"grid":"none";
         });
         list.querySelectorAll("[data-cancel]").forEach(b=>b.onclick=()=>{ const f=list.querySelector(`[data-editform="${b.dataset.cancel}"]`); if(f) f.style.display="none"; });
-        list.querySelectorAll("[data-role]").forEach(b=>b.onclick=()=>{
+        list.querySelectorAll("[data-role]").forEach(b=>b.onclick=async()=>{
           const to=b.dataset.to;
-          if(to==="manager"&&!confirm("A manager can change the settings, the house voice, billing and the team. Continue?"))return;
+          if(to==="manager"&&!await haliaConfirm("A manager can change the settings, the house voice, billing and the team. Continue?",{ok:"Make manager"}))return;
           fetch("/v1/seats/"+b.dataset.role+"/role",{method:"POST",headers:{"content-type":"application/json"},
             body:JSON.stringify({role:to})}).then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
               if(!ok) throw new Error((j&&j.detail)||"failed"); toast(to==="manager"?"Now a manager.":"Now an associate."); renderSeats(); })
@@ -4743,12 +4793,12 @@ function openSettings(page){
             .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{ if(!ok) throw new Error((d&&d.detail)||"failed"); toast("Saved."); renderSeats(); })
             .catch(err=>toast("Could not save: "+err.message));
         });
-        list.querySelectorAll("[data-reissue]").forEach(b=>b.onclick=()=>{
-          if(!confirm("Issue a fresh sign-in for this teammate? Their current sign-in stops working."))return;
+        list.querySelectorAll("[data-reissue]").forEach(b=>b.onclick=async()=>{
+          if(!await haliaConfirm("Issue a fresh sign-in for this teammate? Their current sign-in stops working.",{ok:"Issue sign-in"}))return;
           fetch("/v1/seats/"+b.dataset.reissue+"/reissue",{method:"POST"}).then(r=>r.json()).then(d=>{ if(d&&d.token){ showSeatOut(d); renderSeats(); } });
         });
-        list.querySelectorAll("[data-revoke]").forEach(b=>b.onclick=()=>{
-          if(!confirm("Revoke this teammate's access? Their extension and keyboard will stop working."))return;
+        list.querySelectorAll("[data-revoke]").forEach(b=>b.onclick=async()=>{
+          if(!await haliaConfirm("Revoke this teammate's access? Their extension and keyboard will stop working.",{ok:"Revoke"}))return;
           fetch("/v1/seats/"+b.dataset.revoke+"/revoke",{method:"POST"}).then(()=>renderSeats());
         });
       }).catch(()=>{});
@@ -4847,8 +4897,8 @@ function openSettings(page){
           btn.disabled=false;btn.textContent=label;})
           .catch(e=>{if(w)w.close();toast("Billing error: "+e.message);btn.disabled=false;btn.textContent=label;});};
       const portal=document.getElementById("billPortal"); if(portal) portal.onclick=()=>openUrl("/v1/billing/portal",portal,"Manage billing →");
-      const setCancel=(url,confirmMsg)=>{
-        if(confirmMsg&&!confirm(confirmMsg))return;
+      const setCancel=async(url,confirmMsg)=>{
+        if(confirmMsg&&!await haliaConfirm(confirmMsg))return;
         fetch(url,{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
           if(!ok)throw new Error((d&&d.detail)||"failed");
           SETTINGS.billing=Object.assign({},b,{cancel_at_period_end:d.cancel_at_period_end,current_period_end:d.current_period_end});
@@ -5379,7 +5429,7 @@ function catGenerate(id){
     toast("Catalogue PDF generated.");
   }).catch(e=>{toast("Generate failed: "+e.message);});
 }
-function catDelete(id){if(!confirm("Delete this catalogue?"))return;
+async function catDelete(id){if(!await haliaConfirm("Delete this catalogue?",{ok:"Delete"}))return;
   fetch("/v1/catalog/"+id,{method:"DELETE"}).then(()=>{toast("Catalogue deleted.");catInit(true);}).catch(()=>toast("Delete failed."));}
 function catActivate(id){fetch("/v1/catalog/"+id+"/active",{method:"POST"}).then(r=>r.json()).then(d=>{
   if(d&&d.catalog_url!==undefined)CATALOG_URL=d.catalog_url||CATALOG_URL; toast("Active catalogue set.");catInit(true);}).catch(()=>toast("Could not set active."));}

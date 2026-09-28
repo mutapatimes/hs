@@ -67,10 +67,25 @@ def _two_page_transport():
 
 
 def test_endpoint_normalises_shop_domain():
-    assert endpoint("aubin-london", "2025-01") == (
-        "https://aubin-london.myshopify.com/admin/api/2025-01/graphql.json"
+    assert endpoint("aubin-london", "2026-04") == (
+        "https://aubin-london.myshopify.com/admin/api/2026-04/graphql.json"
     )
     assert endpoint("aubin-london.myshopify.com").endswith("/graphql.json")
+
+
+def test_default_api_version_is_one_shopify_still_serves():
+    """Shopify retires a version a year after release and silently falls forward to the oldest
+    supported one; the pin must name a version inside the support window and match the webhook
+    api_version the app deploys with."""
+    import re
+    from pathlib import Path
+    from scoring.shopify_fetch import DEFAULT_API_VERSION
+    year, quarter = (int(x) for x in DEFAULT_API_VERSION.split("-"))
+    assert quarter in (1, 4, 7, 10)
+    assert year >= 2026
+    toml = Path(__file__).resolve().parents[1] / "shopify.app.halia-score.toml"
+    m = re.search(r'api_version\s*=\s*"([0-9]{4}-[0-9]{2})"', toml.read_text())
+    assert m and m.group(1) == DEFAULT_API_VERSION
 
 
 def test_fetch_orders_paginates_and_adapts():
@@ -147,7 +162,7 @@ def test_http_transport_maps_401_to_auth_error(monkeypatch):
             raise AssertionError("raise_for_status should not run for a 401")
 
     monkeypatch.setattr(requests, "post", lambda *a, **k: FakeResp())
-    call = http_transport(shop="acme", token="revoked", version="2025-01")
+    call = http_transport(shop="acme", token="revoked", version="2026-04")
     with pytest.raises(ShopifyAuthError):
         call("query { shop { name } }", {})
 

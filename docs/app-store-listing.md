@@ -108,21 +108,48 @@ This zero-retention posture is the strongest part of the review, lead with it.
 
 ## Review-readiness checklist
 
-Already done (code):
-- [x] Managed install + token exchange ([halia/api/shopify_auth.py])
-- [x] Shopify Billing / recurring charges ([halia/api/billing_shopify.py])
-- [x] Mandatory compliance webhooks, HMAC-verified ([halia/api/webhooks.py])
-- [x] Embedded app + App Bridge; OAuth
-- [x] App config (URLs, webhooks, app proxy) deployable ([shopify.app.toml])
+Audited against Shopify's app requirements on 2026-09-28. Everything the review can test in
+code is in place; what remains lives in the Partner Dashboard, on Render, or in a recording.
 
-To do (operator, in order):
-- [ ] Stand up the **public app** and swap credentials — follow docs/shopify-public-app.md.
-- [ ] Complete the **Protected customer data** declaration (answers above).
-- [ ] Request **read_all_orders** (API access requests), then add it back to scopes and redeploy.
-- [ ] Produce the **icon + screenshots** (list above) on a demo store with sample data.
-- [ ] Fill the **listing** with the copy above; set the **pricing** to match plans.py.
-- [ ] Give the reviewer a **demo store + test steps** (they need data to see hidden VICs — provide a
-      store pre-loaded with the sample book and a 3-line walkthrough).
-- [ ] **Submit for review.**
+In the code, verified:
+- [x] Managed install and token exchange; OAuth completes before anything else runs, on
+      reinstall too ([halia/api/shopify_auth.py]).
+- [x] Session-token authentication, no cookies or local storage for identity, so incognito works
+      ([halia/api/embedded.py]). Browser storage holds only view preferences.
+- [x] App Bridge loaded from Shopify's CDN with the `shopify-api-key` meta tag; admin nav via
+      `ui-nav-menu`; per-shop `frame-ancestors` CSP on the embedded page, `DENY` everywhere else.
+- [x] Billing through the Billing API only: subscribe, upgrade and downgrade from Settings, Free
+      is a cancel, no reinstall and no support contact needed ([halia/api/billing_shopify.py]).
+      Stripe serves only tenants Shopify bars from the Billing API.
+- [x] The four compliance webhooks, HMAC-verified, with uninstall erasing every row for the shop
+      ([halia/api/webhooks.py]).
+- [x] Scopes limited to what the features use: customers and orders to score, `write_customers`
+      to tag and note, `read_products` for the catalogue. `read_all_orders` granted 2026-08-10.
+- [x] First load returns at once and scores in the background, so a large book cannot time out
+      the install ([halia/api/embedded.py], tests/test_embedded_first_load.py).
+- [x] Admin API pinned to 2026-04, inside Shopify's support window and matching the webhook
+      version; every query validated against 2026-01, 2026-04 and 2026-07.
+- [x] Every confirmation and naming step uses an in-page dialog, so nothing depends on native
+      browser dialogs inside the admin frame.
+- [x] No storefront or theme code, so Lighthouse scores are untouched. The app proxy serves
+      catalogue pages on their own URL with the proxy signature checked.
+- [x] Listing assets at the required sizes: icon 1200×1200, three screenshots 1600×900
+      ([docs/listing-assets/]). Privacy, security, FAQ and terms pages live on haliascore.com.
+
+In the Partner Dashboard and on Render, yours:
+- [ ] **Pricing section**: enter every plan from the table above, currency GBP, custom pricing on
+      for Maison. The review paused on this (1.2.1).
+- [ ] **Testing instructions**: paste the block from docs/listing-assets/review-instructions.md
+      and add a review mailbox you check daily.
+- [ ] **Screencast**: re-record from docs/listing-assets/screencast-script.md, English, under
+      eight minutes, including the billing scene.
+- [ ] **Render**: move the web service off the free plan before resubmitting, so the reviewer
+      never meets a cold start.
+- [ ] **Protected customer data**: confirm the declaration shows as applied, not draft.
+- [ ] **Emergency developer contact** current in the Partner Dashboard.
+- [ ] **Demo store**: a development store with orders older than a season, so grades show.
+- [ ] Keep `HALIA_SHOPIFY_BILLING_TEST=true` through review; set it to `false` and
+      `HALIA_SHOPIFY_APP_LIVE=1` on approval.
+- [ ] **Resubmit.**
 
 Related: docs/shopify-public-app.md, [[shopify-public-distribution]].

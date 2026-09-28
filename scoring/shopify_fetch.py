@@ -7,7 +7,7 @@ token. Then set:
 
     SHOPIFY_SHOP=your-store.myshopify.com
     SHOPIFY_ADMIN_TOKEN=shpat_xxx
-    SHOPIFY_API_VERSION=2025-01            # optional
+    SHOPIFY_API_VERSION=2026-04            # optional
 
 Run:
 
@@ -43,7 +43,11 @@ def _journey_on() -> bool:
     except Exception:
         return False
 
-DEFAULT_API_VERSION = "2025-01"
+# Pinned to the same version as the app's webhook subscriptions (shopify.app.halia-score.toml).
+# Shopify supports each version for twelve months and silently serves the oldest supported
+# version to a request that names a retired one, so move this forward each spring alongside a
+# schema check of every query in scoring.shopify_graphql, scoring.shopify_pipeline and the sinks.
+DEFAULT_API_VERSION = "2026-04"
 
 # A transport maps (query, variables) -> the parsed JSON response dict.
 Transport = Callable[[str, dict], dict]
