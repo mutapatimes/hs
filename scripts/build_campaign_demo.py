@@ -30,7 +30,7 @@ CAMPAIGN = {
 
 
 def main() -> None:
-    scored = score_customers(load_data("sample_data/SAMPLE3.xlsx"))
+    scored = score_customers(load_data("sample_data/synthetic_100k.xlsx"))   # never a real export: this page is public
     payload = dashboard_payload(scored, {}, "sample", {"aov": 0, "max_orders": 0, "highest_lt": 0})
     clients = payload["data"]
     members = select_members(CAMPAIGN, clients)
