@@ -39,9 +39,42 @@ _SCRIPT_RE = re.compile(r"<(script|iframe)\b[^>]*>.*?</\1>", re.I | re.S)
 _TAG_RE = re.compile(r"<[^>]+>")
 
 
+_ALLOWED_TAGS = {"p", "br", "div", "h2", "h3", "h4", "strong", "b", "em", "i", "u", "s", "a", "ul", "ol",
+                 "li", "blockquote", "img", "figure", "figcaption", "hr", "pre", "code", "span", "sub",
+                 "sup", "table", "thead", "tbody", "tr", "th", "td", "time"}
+# class on everything (the house styles hang off it); a few structural attributes; never an
+# event handler, a style block, or a script of any kind.
+_ALLOWED_ATTRS = {t: {"class"} for t in _ALLOWED_TAGS}
+_ALLOWED_ATTRS["a"] |= {"href", "title", "target"}
+_ALLOWED_ATTRS["img"] |= {"src", "alt", "width", "height", "loading"}
+_ALLOWED_ATTRS["td"] |= {"colspan"}
+_ALLOWED_ATTRS["th"] |= {"colspan"}
+_ALLOWED_ATTRS["time"] |= {"datetime"}
+_SAFE_IMAGE_MIMES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+
+
 def _sanitize(html_text: str) -> str:
-    """Strip <script>/<iframe> from operator-authored HTML (defense-in-depth; it renders public)."""
-    return _SCRIPT_RE.sub("", html_text or "")
+    """Operator-authored HTML renders publicly on the site's own origin, so it is reduced to a
+    fixed set of tags and attributes: no scripts, no event handlers, no javascript: links, no
+    embedded frames or objects, whichever editor wrote it."""
+    import nh3
+    return nh3.clean(html_text or "", tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS,
+                     url_schemes={"https", "http", "mailto"}, link_rel="noopener")
+
+
+def _image_mime(data: bytes) -> str | None:
+    """The type an image really is, from its first bytes: the client's claim is not trusted, and
+    anything that is not a raster image (an SVG, an HTML file) is refused so a stored file can
+    never become a page on this origin."""
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    return None
 
 
 def _slugify(text: str) -> str:
@@ -328,8 +361,9 @@ def with_journal(html: str, store) -> str:
 def _pager(page: int, pages: int, sort: str, tag: str | None) -> str:
     if pages <= 1:
         return ""
+    tq = _quote(tag) if tag else ""
     qs = lambda p: (f"?page={p}" + (f"&sort={sort}" if sort != "newest" else "")
-                    + (f"&tag={tag}" if tag else ""))
+                    + (f"&tag={tq}" if tag else ""))
     out = []
     out.append(f'<a href="{qs(page-1)}">&lsaquo;</a>' if page > 1 else '<span class="off">&lsaquo;</span>')
     for p in range(1, pages + 1):
@@ -361,8 +395,8 @@ def render_index(store, page: int, sort: str, tag: str | None) -> str:
         f'<a class="btag{" on" if (tag or "")==t else ""}" href="{tqs(t)}">{_html.escape(t)}</a>'
         for t in _all_tags(store))
     sort_ctl = (f'<div class="bsort">Sort '
-                f'<a class="{"on" if sort!="oldest" else ""}" href="/blog{("?tag="+tag) if tag else ""}">Newest</a>'
-                f'<a class="{"on" if sort=="oldest" else ""}" href="/blog?sort=oldest{("&tag="+tag) if tag else ""}">Oldest</a></div>')
+                f'<a class="{"on" if sort!="oldest" else ""}" href="/blog{("?tag="+_quote(tag)) if tag else ""}">Newest</a>'
+                f'<a class="{"on" if sort=="oldest" else ""}" href="/blog?sort=oldest{("&tag="+_quote(tag)) if tag else ""}">Oldest</a></div>')
     body = (
         '<section class="bhero"><div class="wrap">'
         '<h1 class="display">The Journal</h1>'
@@ -525,9 +559,14 @@ _EDITOR_JS = """
 </script>"""
 
 
+def _quote(s: str) -> str:
+    from urllib.parse import quote
+    return quote(str(s or ""), safe="")
+
+
 def _json(s: str) -> str:
     import json
-    return json.dumps(s)
+    return json.dumps(s).replace("</", "<\\/")
 
 
 # ── comparison seed ────────────────────────────────────────────────────────────────
@@ -917,8 +956,11 @@ def register(app) -> None:
         img = shop_store().get_image(image_id)
         if not img:
             raise HTTPException(404, "Not found")
-        return Response(content=img["data"], media_type=img["mime"] or "application/octet-stream",
-                        headers={"Cache-Control": "public, max-age=31536000, immutable"})
+        mime = img["mime"] if img.get("mime") in _SAFE_IMAGE_MIMES else _image_mime(img["data"])
+        return Response(content=img["data"], media_type=mime or "application/octet-stream",
+                        headers={"Content-Disposition": "inline", "X-Content-Type-Options": "nosniff",
+                                 "Content-Security-Policy": "default-src 'none'; sandbox",
+                                 "Cache-Control": "public, max-age=31536000, immutable"})
 
     @app.get("/blog/{slug}", response_class=HTMLResponse)
     def blog_post(slug: str, request: Request):
@@ -1005,5 +1047,8 @@ def register(app) -> None:
         if len(data) > 6 * 1024 * 1024:
             raise HTTPException(413, "Image too large (max 6MB).")
         image_id = secrets.token_urlsafe(12)
-        shop_store().save_image(data, file.content_type or "image/jpeg", image_id)
+        mime = _image_mime(data)
+        if not mime:
+            raise HTTPException(415, "Upload a PNG, JPEG, WebP or GIF image.")
+        shop_store().save_image(data, mime, image_id)
         return JSONResponse({"id": image_id, "url": f"/blog/img/{image_id}"})

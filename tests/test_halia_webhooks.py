@@ -39,7 +39,7 @@ def test_webhook_accepts_bridge_app_signature(monkeypatch):
     monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
     monkeypatch.setattr("halia.config.SHOPIFY_CUSTOM_APPS",
                         {"brand.myshopify.com": ("bridge-key", "bridge-secret")})
-    body = b'{"payload":{}}'
+    body = b'{"payload":{},"shop_domain":"brand.myshopify.com"}'
     r = TestClient(app).post("/webhooks/shopify", content=body,
                              headers={"X-Shopify-Hmac-Sha256": _sign(body, "bridge-secret"),
                                       "X-Shopify-Topic": "customers/data_request",
@@ -67,7 +67,7 @@ def test_shop_redact_deletes_secrets_and_evicts(tmp_path, monkeypatch):
 def test_customers_redact_evicts_cache_only(tmp_path, monkeypatch):
     monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
     cache.set(SHOP, [1], {}, [])
-    body = b'{"customer":{"id":1}}'
+    body = b'{"customer":{"id":1},"shop_domain":"acme.myshopify.com"}'
     r = TestClient(app).post("/webhooks/shopify", content=body,
                              headers={"X-Shopify-Hmac-Sha256": _sign(body),
                                       "X-Shopify-Topic": "customers/redact",
@@ -77,7 +77,7 @@ def test_customers_redact_evicts_cache_only(tmp_path, monkeypatch):
 
 def test_data_request_acknowledged(monkeypatch):
     monkeypatch.setattr("halia.config.SHOPIFY_API_SECRET", SECRET)
-    body = b'{"customer":{"id":1}}'
+    body = b'{"customer":{"id":1},"shop_domain":"acme.myshopify.com"}'
     r = TestClient(app).post("/webhooks/shopify", content=body,
                              headers={"X-Shopify-Hmac-Sha256": _sign(body),
                                       "X-Shopify-Topic": "customers/data_request",

@@ -459,13 +459,18 @@ class ShopStore(_DB):
         return row["data"] if row else None
 
     # ── self-service tenants (WooCommerce etc.) ─────────────────────────────────
-    def create_tenant(self, shop: str, kind: str, label: str, token_hash: str) -> None:
+    def create_tenant(self, shop: str, kind: str, label: str, token_hash: str) -> bool:
+        """Create a tenant. False when one already exists under this key: an existing store is
+        never overwritten (its sign-in key, plan and integrations) by whoever onboards a
+        look-alike address later."""
+        if self.get_tenant(shop):
+            return False
         self._run(
             """INSERT INTO tenants (shop, kind, label, token_hash, created_at)
                VALUES (:shop, :kind, :label, :th, :at)
-               ON CONFLICT(shop) DO UPDATE SET kind=excluded.kind, label=excluded.label,
-                token_hash=excluded.token_hash""",
+               ON CONFLICT(shop) DO NOTHING""",
             {"shop": shop, "kind": kind, "label": label, "th": token_hash, "at": _now()})
+        return True
 
     def get_tenant(self, shop: str) -> dict | None:
         return self._run(

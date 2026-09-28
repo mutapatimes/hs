@@ -229,10 +229,11 @@ def catalog_form_html(catalog: dict, products: list[dict], *, shop_name: str, ca
     grid.querySelectorAll('.card.on').forEach(function(c){{ c.classList.remove('on'); c.querySelector('.pl').textContent={_jstr(T("cat.pick"))}; }});
     refresh();
   }};
+  function hx(s){{ return String(s).replace(/[&<>"']/g, function(c){{ return {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]; }}); }}
   function openPanel(){{
     var list=document.getElementById('pickedList'), rows=[];
     grid.querySelectorAll('.card').forEach(function(c){{
-      if(selected.has(c.getAttribute('data-pid'))) rows.push('<div>• <b>'+ (c.getAttribute('data-title')||'') +'</b></div>');
+      if(selected.has(c.getAttribute('data-pid'))) rows.push('<div>• <b>'+ hx(c.getAttribute('data-title')||'') +'</b></div>');
     }});
     var pickedLine=(rows.length>1?{_jstr(T("cat.picked_n", n="__N__", s="s"))}:{_jstr(T("cat.picked_n", n="__N__", s=""))}).replace('__N__', rows.length);
     list.innerHTML = rows.length ? (pickedLine+'<div style="margin-top:6px">'+rows.join('')+'</div>') : {_jstr(T("cat.none_yet"))};

@@ -33,6 +33,9 @@ def _conn_or_400(shop: str) -> dict:
     return conn
 
 
+from halia.api.roles import require_manager  # noqa: E402
+
+
 def register(app) -> None:
 
     @app.get("/v1/hubspot/status")
@@ -42,7 +45,7 @@ def register(app) -> None:
                 "portal_id": (conn or {}).get("portal_id") or ""}
 
     @app.post("/v1/hubspot/connect")
-    def hubspot_connect(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
+    def hubspot_connect(shop: str = Depends(require_manager), payload: Any = Body(...)) -> dict:
         from halia.adapters.hubspot_sink import HubSpotError, HubSpotSink, validate_token
 
         token = str((payload or {}).get("api_token", "")).strip()

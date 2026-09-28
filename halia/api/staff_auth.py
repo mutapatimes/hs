@@ -28,7 +28,7 @@ def _sign(exp: int, email: str = "") -> str:
     # The key-holder's session (no email) keeps the original signature, so sessions minted before
     # the team existed stay valid; a team member's session binds their address into the signature.
     msg = f"staff|{exp}" if not email else f"staff|{exp}|{email}"
-    return hmac.new(_secret(), msg.encode(), hashlib.sha256).hexdigest()
+    return hmac.new(_secret("staff"), msg.encode(), hashlib.sha256).hexdigest()
 
 
 def make_session(ttl: int = _TTL, email: str = "") -> str:
@@ -49,7 +49,7 @@ def _parse(raw: str) -> tuple[int, str] | None:
             return None
     except ValueError:
         return None
-    if exp < int(time.time()) or not hmac.compare_digest(sig, _sign(exp, email)):
+    if exp < int(time.time()) or exp - int(time.time()) > _TTL or not hmac.compare_digest(sig, _sign(exp, email)):
         return None
     return exp, email
 
@@ -108,7 +108,7 @@ def link_token(email: str, ttl: int = _LINK_TTL) -> str:
     """A signed, short-lived token that signs this address in. Stateless: nothing to store."""
     exp = int(time.time()) + ttl
     email = (email or "").strip().lower()
-    sig = hmac.new(_secret(), f"editor-link|{exp}|{email}".encode(), hashlib.sha256).hexdigest()
+    sig = hmac.new(_secret("editor-link"), f"editor-link|{exp}|{email}".encode(), hashlib.sha256).hexdigest()
     return f"{exp}|{email}|{sig}"
 
 
@@ -122,7 +122,7 @@ def link_email(token: str) -> str | None:
     except ValueError:
         return None
     email = parts[1]
-    want = hmac.new(_secret(), f"editor-link|{exp}|{email}".encode(), hashlib.sha256).hexdigest()
+    want = hmac.new(_secret("editor-link"), f"editor-link|{exp}|{email}".encode(), hashlib.sha256).hexdigest()
     if exp < int(time.time()) or not hmac.compare_digest(parts[2], want):
         return None
     return email

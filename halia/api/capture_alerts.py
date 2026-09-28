@@ -26,6 +26,9 @@ def _who(body: dict) -> str:
 
 
 def _slack_blocks(name, grade, line, signals, base_url):
+    from halia.notify import slack_escape as _se
+    name, line = _se(name), _se(line)
+    signals = [_se(s) for s in (signals or [])]
     fallback = f"New {grade} client · {name}"
     detail = " · ".join(signals[:3]) if signals else "Signals are in the dashboard"
     blocks = [{"type": "header",

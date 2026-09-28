@@ -74,7 +74,7 @@ def test_everything_else_keeps_the_strict_headers(client):
     # Only the two framed pages are exempt; the manifest and the assets stay locked down.
     for path in ("/addons/outlook/manifest.xml", "/addons/outlook/asset/icon-64.png"):
         r = client.get(path)
-        assert r.headers["content-security-policy"] == "frame-ancestors 'none'", path
+        assert r.headers["content-security-policy"].startswith("frame-ancestors 'none'"), path
         assert r.headers["x-frame-options"] == "DENY", path
 
 

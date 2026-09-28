@@ -87,17 +87,25 @@ def test_activate_marks_active_and_redirects_into_admin(api, monkeypatch):
     c, store, _ = api
     monkeypatch.setattr(billing_shopify, "active_subscription",
                         lambda shop: {"id": "gid://s/9", "name": "Signal", "status": "ACTIVE"})
-    r = c.get("/v1/plans/activate", params={"shop": "shopx"}, follow_redirects=False)
+    r = c.get("/v1/plans/activate", params={"shop": "shopx", "state": billing_shopify._return_state("shopx")},
+              follow_redirects=False)
     assert r.status_code == 302 and "admin.shopify.com/store/shopx/apps/" in r.headers["location"]
     b = store.get_billing("shopx")
     assert b["status"] == "active" and b["subscription_id"] == "gid://s/9"
-
-
-def test_activate_without_active_sub_marks_canceled(api, monkeypatch):
-    c, store, _ = api
-    monkeypatch.setattr(billing_shopify, "active_subscription", lambda shop: None)
+    # without the signed state the return URL is just a redirect: nothing is written
+    store.set_billing("shopx", "free")
     c.get("/v1/plans/activate", params={"shop": "shopx"}, follow_redirects=False)
-    assert store.get_billing("shopx")["status"] == "canceled"
+    assert store.get_billing("shopx")["status"] == "free"
+
+
+def test_activate_without_active_sub_never_downgrades(api, monkeypatch):
+    # The return URL is public: it can only move a shop up to active, never cancel one.
+    c, store, _ = api
+    store.set_billing("shopx", "active", None, "gid://s/1")
+    monkeypatch.setattr(billing_shopify, "active_subscription", lambda shop: None)
+    c.get("/v1/plans/activate", params={"shop": "shopx", "state": billing_shopify._return_state("shopx")},
+          follow_redirects=False)
+    assert store.get_billing("shopx")["status"] == "active"
 
 
 def test_cancel_downgrades_to_free(api, monkeypatch):

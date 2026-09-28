@@ -32,6 +32,12 @@ _DEFAULT_FIELDS = {"image": True, "title": True, "vendor": True, "price": True,
                    "description": False, "sku": False, "variants": False}
 
 
+def _hex_color(v, default: str) -> str:
+    """A colour is a hex literal or the default; it is pasted into a <style> block."""
+    v = str(v or "").strip()
+    return v if re.fullmatch(r"#[0-9a-fA-F]{3,8}", v) else default
+
+
 def _clamp_int(v, default: int, lo: int, hi: int) -> int:
     try:
         return min(hi, max(lo, int(v)))
@@ -467,19 +473,34 @@ def _render_pdf(cat: dict, cfg: dict, shop: str, ctx: dict):
 
 # ── shared serving (used by both the direct /catalog/… routes and the /proxy/catalogue/… routes
 #    that Shopify's App Proxy hits so the page shows on the merchant's own domain) ────────────────
+# A personalised PDF is a full render; two at a time and each name rendered once, so a link
+# passed around cannot keep the instance rendering for strangers.
+import threading as _threading
+_PDF_RENDERS = _threading.BoundedSemaphore(2)
+_PDF_CACHE: dict = {}
+
+
 def _pdf_response(catalog_id: str, request: Request):
     from halia.catalog_render import PdfEngineUnavailable
     cat = shop_store().get_catalog(catalog_id)
     if not cat:
         raise HTTPException(404, "Not found")
-    qname = _link_name(request).strip()
+    qname = _link_name(request).strip()[:60]
     pdf = None
-    if qname:   # a personalised link -> render a fresh cover for this recipient
-        try:
-            cfg = json.loads(cat.get("config_json") or "{}")
-            pdf, _ = _render_pdf(cat, cfg, cat["shop"], _person_ctx(qname, _shop_display(cat["shop"])))
-        except (PdfEngineUnavailable, HTTPException, ValueError):
-            pdf = None   # fall back to the stored generic PDF
+    if qname:   # a personalised link -> render a fresh cover for this recipient, once
+        key = (catalog_id, qname.lower())
+        pdf = _PDF_CACHE.get(key)
+        if pdf is None and _PDF_RENDERS.acquire(timeout=8):
+            try:
+                cfg = json.loads(cat.get("config_json") or "{}")
+                pdf, _ = _render_pdf(cat, cfg, cat["shop"], _person_ctx(qname, _shop_display(cat["shop"])))
+                if len(_PDF_CACHE) >= 64:
+                    _PDF_CACHE.pop(next(iter(_PDF_CACHE)))
+                _PDF_CACHE[key] = pdf
+            except (PdfEngineUnavailable, HTTPException, ValueError):
+                pdf = None   # fall back to the stored generic PDF
+            finally:
+                _PDF_RENDERS.release()
     if pdf is None:
         pdf = shop_store().get_catalog_pdf(catalog_id)   # public: recipients open the link
     if not pdf:
@@ -754,8 +775,8 @@ def register(app) -> None:
             "template": p.get("template") if p.get("template") in ("grid", "list", "minimal", "lookbook") else "grid",
             "columns": _clamp_int(p.get("columns"), 3, 1, 4),
             "page_size": p.get("page_size") if p.get("page_size") in ("A4", "Letter") else "A4",
-            "brand_color": (str(p.get("brand_color") or "#1f564a"))[:9],
-            "text_color": (str(p.get("text_color") or "#1a1712"))[:9],
+            "brand_color": _hex_color(p.get("brand_color"), "#1f564a"),
+            "text_color": _hex_color(p.get("text_color"), "#1a1712"),
             "footer_text": (str(p.get("footer_text") or "").strip())[:160],
             "cover": bool(p.get("cover", True)),
             "enquiry_email": _clean_email(p.get("enquiry_email")),
@@ -812,8 +833,8 @@ def register(app) -> None:
             "template": p.get("template") if p.get("template") in ("grid", "list", "minimal", "lookbook") else "grid",
             "columns": _clamp_int(p.get("columns"), 3, 1, 4),
             "page_size": p.get("page_size") if p.get("page_size") in ("A4", "Letter") else "A4",
-            "brand_color": (str(p.get("brand_color") or "#1f564a"))[:9],
-            "text_color": (str(p.get("text_color") or "#1a1712"))[:9],
+            "brand_color": _hex_color(p.get("brand_color"), "#1f564a"),
+            "text_color": _hex_color(p.get("text_color"), "#1a1712"),
             "footer_text": (str(p.get("footer_text") or "").strip())[:160],
             "cover": bool(p.get("cover", True)),
             "enquiry_email": _clean_email(p.get("enquiry_email")),

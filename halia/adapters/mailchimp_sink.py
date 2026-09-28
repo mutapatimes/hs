@@ -42,7 +42,11 @@ class MailchimpError(RuntimeError):
 def dc_from_key(api_key: str) -> str:
     if not api_key or "-" not in api_key:
         raise MailchimpError("Mailchimp key must look like <key>-<dc> (for example …-us21).")
-    return api_key.rsplit("-", 1)[1]
+    dc = api_key.rsplit("-", 1)[1]
+    import re
+    if not re.fullmatch(r"[a-z]{2}\d{1,3}", dc):
+        raise MailchimpError("Mailchimp key must end in a data centre like us21.")
+    return dc
 
 
 def subscriber_hash(email: str) -> str:

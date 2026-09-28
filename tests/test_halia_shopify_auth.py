@@ -13,7 +13,7 @@ SHOP = "acme.myshopify.com"
 
 
 def _token(dest=f"https://{SHOP}", aud=KEY, exp_offset=3600, secret=SECRET):
-    payload = {"iss": f"https://{SHOP}/admin", "dest": dest, "aud": aud,
+    payload = {"iss": f"{dest}/admin", "dest": dest, "aud": aud,
                "sub": "1", "exp": int(time.time()) + exp_offset}
     return jwt.encode(payload, secret, algorithm="HS256")
 

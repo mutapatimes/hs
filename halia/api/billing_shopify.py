@@ -16,6 +16,9 @@ Test mode (config.SHOPIFY_BILLING_TEST) runs the real approval flow without char
 """
 from __future__ import annotations
 
+import hashlib as _hashlib
+import hmac as _hmac
+
 from fastapi import Body, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
@@ -218,6 +221,12 @@ def run_seat_billing() -> dict:
     return out
 
 
+def _return_state(shop: str) -> str:
+    """An HMAC over the shop under the billing purpose key, carried on the return URL."""
+    from halia.api.tenant_auth import _secret
+    return _hmac.new(_secret("billing-return"), shop.encode("utf-8"), _hashlib.sha256).hexdigest()[:32]
+
+
 def _admin_app_url(shop: str) -> str:
     """Deep link back into the embedded app inside Shopify admin (top-level, re-embeds the app)."""
     handle = config.SHOPIFY_APP_HANDLE or config.SHOPIFY_API_KEY
@@ -273,7 +282,7 @@ def register(app) -> None:
         if not _token(shop):
             raise HTTPException(400, "Shopify billing is only available inside the Shopify app.")
         base = config.HALIA_APP_URL or ""
-        return_url = f"{base}/v1/plans/activate?shop={shop}"
+        return_url = f"{base}/v1/plans/activate?shop={shop}&state={_return_state(shop)}"
         variables = {
             "name": p["name"],
             "returnUrl": return_url,
@@ -290,16 +299,19 @@ def register(app) -> None:
     @app.get("/v1/plans/activate")
     def plans_activate(request: Request):
         """Shopify's return target after approval (loads at the top of the window). Confirm the
-        subscription is live, mark the tenant active, then re-enter the embedded app."""
+        subscription is live, mark the tenant active, then re-enter the embedded app.
+
+        The URL is public, so it carries a signed state for the shop, and it only ever moves a
+        shop UP to active: a visitor cannot downgrade a store by naming it here, and a Shopify
+        hiccup on the way back cannot cancel a paying one."""
         shop = (request.query_params.get("shop") or "").strip()
-        if shop and _token(shop):
+        state = (request.query_params.get("state") or "").strip()
+        if shop and state and _hmac.compare_digest(state, _return_state(shop)) and _token(shop):
             sub = active_subscription(shop)
             from halia.api.billing import on_billing_change
             if sub and sub.get("status") == "ACTIVE":
                 shop_store().set_billing(shop, "active", None, sub.get("id"))
                 on_billing_change(shop, "active")
-            else:
-                shop_store().set_billing(shop, "canceled")
         dest = _admin_app_url(shop) if shop else ((config.HALIA_APP_URL or "") + "/app")
         return RedirectResponse(dest, status_code=302)
 

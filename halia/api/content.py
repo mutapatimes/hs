@@ -217,6 +217,18 @@ def with_site_scripts(html_text: str) -> str:
     return _before_body(with_chat_widget(out), analytics_snippet())
 
 
+# Copy edited in the CMS is inline prose. It may carry emphasis and a link, never a script,
+# an event handler or a frame, whoever on the team wrote it.
+_CMS_TAGS = {"em", "strong", "b", "i", "br", "a", "span"}
+_CMS_ATTRS = {"a": {"href", "title", "target"}, "span": {"class"}}
+
+
+def _clean(val: str) -> str:
+    import nh3
+    return nh3.clean(str(val or ""), tags=_CMS_TAGS, attributes=_CMS_ATTRS,
+                     url_schemes={"https", "http", "mailto"}, link_rel="noopener")
+
+
 def apply_overrides(html_text: str) -> str:
     """Replace each <!--cms:key-->default<!--/cms--> with its stored override, if any."""
     if "<!--cms:" not in html_text:
@@ -228,7 +240,7 @@ def apply_overrides(html_text: str) -> str:
     def repl(m: re.Match) -> str:
         key = m.group(1)
         val = ov.get(key)
-        return f"<!--cms:{key}-->{val}<!--/cms-->" if val is not None else m.group(0)
+        return f"<!--cms:{key}-->{_clean(val)}<!--/cms-->" if val is not None else m.group(0)
 
     return _BLOCK_RE.sub(repl, html_text)
 
@@ -254,7 +266,7 @@ def scan_blocks() -> list[dict]:
 
 # ── admin auth (signed, expiring cookie; no account system needed) ───────────────
 def _sign(exp: int) -> str:
-    return hmac.new(_secret(), f"admin|{exp}".encode(), hashlib.sha256).hexdigest()
+    return hmac.new(_secret("admin"), f"admin|{exp}".encode(), hashlib.sha256).hexdigest()
 
 
 def _make_cookie(ttl: int = 60 * 60 * 12) -> str:

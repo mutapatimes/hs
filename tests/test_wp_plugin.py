@@ -34,13 +34,15 @@ def test_plugin_connect_creates_tenant_and_returns_links(env):
     assert sent and sent[0][0] == "owner@maison.example"
 
 
-def test_plugin_reconnect_keeps_the_tenant_and_refreshes_keys(env):
+def test_plugin_cannot_reconnect_over_an_existing_store(env):
+    # Whoever posts a connected store's address does not get to replace its keys or learn its
+    # webhook token: the owner reconnects from the dashboard.
     client, store, sent = env
     body = {"store_url": "https://maison.example", "consumer_key": "ck_1", "consumer_secret": "cs_1"}
     client.post("/connect/woocommerce/plugin", json=body)
-    d = client.post("/connect/woocommerce/plugin", json={**body, "consumer_key": "ck_2", "consumer_secret": "cs_2"}).json()
-    assert d["reconnected"] is True and d["open_url"].endswith("/app")
-    assert store.get_woocommerce("maison-example")["consumer_key"] == "ck_2"
+    r = client.post("/connect/woocommerce/plugin", json={**body, "consumer_key": "ck_2", "consumer_secret": "cs_2"})
+    assert r.status_code == 409
+    assert store.get_woocommerce("maison-example")["consumer_key"] == "ck_1"
 
 
 def test_plugin_connect_rejects_bad_input(env, monkeypatch):

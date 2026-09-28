@@ -38,7 +38,7 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def _secret() -> bytes:
+def _master_secret() -> bytes:
     """Server-side signing secret for sessions (never leaves the server).
 
     SECURITY: chain to HALIA_ENCRYPTION_KEY before the dev literal. In production both
@@ -48,14 +48,28 @@ def _secret() -> bytes:
     """
     from halia import config
     key = config.SHOPIFY_API_SECRET or os.environ.get("HALIA_ENCRYPTION_KEY")
+    if not key and os.environ.get("DATABASE_URL"):
+        raise RuntimeError("No signing secret configured: set HALIA_ENCRYPTION_KEY or SHOPIFY_API_SECRET.")
     return (key or "halia-dev-session-secret").encode("utf-8")
+
+
+def _secret(purpose: str | None = None) -> bytes:   # noqa: F811 — the purpose-aware door
+    """The signing key for one purpose. Every kind of token Halia signs gets its own derived
+    key, so a signature obtained for one purpose (a tenant session for a shop the attacker
+    named) can never verify as another (a staff cookie, a webhook). Without a purpose, the raw
+    master key: used only by client-facing links issued before this change, so they keep
+    working."""
+    master = _master_secret()
+    if purpose is None:
+        return master
+    return hmac.new(master, ("halia-key:" + purpose).encode("utf-8"), hashlib.sha256).digest()
 
 
 def make_session(shop: str, ttl: int = SESSION_TTL) -> str:
     """A tamper-proof, expiring session value binding this browser to one tenant."""
     exp = int(time.time()) + ttl
     msg = f"{shop}|{exp}"
-    sig = hmac.new(_secret(), msg.encode("utf-8"), hashlib.sha256).hexdigest()
+    sig = hmac.new(_secret("tenant"), ("tenant|" + msg).encode("utf-8"), hashlib.sha256).hexdigest()
     return base64.urlsafe_b64encode(f"{msg}|{sig}".encode("utf-8")).decode("ascii")
 
 
@@ -64,11 +78,11 @@ def read_session(value: str) -> str | None:
     try:
         raw = base64.urlsafe_b64decode(value.encode("ascii")).decode("utf-8")
         shop, exp, sig = raw.rsplit("|", 2)
-        expect = hmac.new(_secret(), f"{shop}|{exp}".encode("utf-8"), hashlib.sha256).hexdigest()
+        expect = hmac.new(_secret("tenant"), f"tenant|{shop}|{exp}".encode("utf-8"), hashlib.sha256).hexdigest()
         if not hmac.compare_digest(sig, expect):
             return None
-        if int(exp) < int(time.time()):
-            return None
+        if int(exp) < int(time.time()) or int(exp) - int(time.time()) > SESSION_TTL:
+            return None                      # a server-side cap: a forged far-future expiry is void
         return shop or None
     except Exception:
         return None

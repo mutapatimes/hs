@@ -75,7 +75,8 @@ def _clean(v: Any) -> str:
 
 def _find_existing(shop: str, token: str, email: str, phone: str) -> Optional[dict]:
     """Dedupe: the customer this email/phone already belongs to, if any."""
-    for q in ([f'email:"{email}"'] if email else []) + ([f'phone:"{phone}"'] if phone else []):
+    esc = lambda v: str(v).replace("\\", "").replace('"', "")   # noqa: E731 — no quotes in a quoted search term
+    for q in ([f'email:"{esc(email)}"'] if email else []) + ([f'phone:"{esc(phone)}"'] if phone else []):
         try:
             nodes = ((_gql(shop, token, _SEARCH, {"q": q}) or {}).get("customers") or {}).get("nodes") or []
         except Exception:  # noqa: BLE001 — a failed search must not block a capture
@@ -228,6 +229,13 @@ def perform_capture(shop: str, body: dict, channel: str,
 
     existing = None if mode == "new" else _find_existing(shop, token, email, phone)
     created = existing is None
+    # The public form (the QR link, no signed-in associate) may add a new client, but it may not
+    # rewrite an existing one or subscribe them: anyone who knows an address could otherwise edit
+    # a client's name or opt them in. An existing client's public submission is recorded only.
+    public = channel == "qr" and not (seat_id or "").strip()
+    if public and existing is not None:
+        first = last = ""
+        wants_email = wants_sms = False
 
     # The customer write: create, or update only the fields the form actually provided.
     cust_input: dict = {}
@@ -473,6 +481,8 @@ def _qr_page(store: str, shop: str) -> str:
 
     from halia.i18n import client_lang, font_prefix, t
 
+    import html as _h
+    store = _h.escape(store)              # a store's name is text on this page, never markup
     lang = client_lang(shop)
     T = lambda k, **f: t(lang, k, **f)   # noqa: E731
     j = lambda k, **f: _json.dumps(T(k, **f), ensure_ascii=False)   # noqa: E731

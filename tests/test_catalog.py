@@ -372,11 +372,11 @@ def test_pdf_url_fetcher_uses_requests_for_remote_images(monkeypatch):
 
     seen = {}
 
-    def fake_get(url, timeout=None, headers=None):
+    def fake_get(url, timeout=None, headers=None, **kw):
         seen["url"], seen["ua"] = url, (headers or {}).get("User-Agent", "")
         return FakeResp()
 
-    monkeypatch.setattr("requests.get", fake_get)
+    monkeypatch.setattr("halia.netguard.safe_get", fake_get)
     out = cr._pdf_url_fetcher("https://cdn.example/p.jpg?v=9")
     assert out["mime_type"] == "image/webp"
     assert out["file_obj"].read() == b"IMGBYTES"

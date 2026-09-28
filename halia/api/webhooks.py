@@ -38,6 +38,9 @@ def verify_hmac(raw_body: bytes, header: str, secret: str | None) -> bool:
     return hmac.compare_digest(digest, header)
 
 
+_TOPICS = ("customers/data_request", "customers/redact", "shop/redact", "app/uninstalled")
+
+
 def register(app) -> None:
 
     @app.post("/webhooks/shopify")
@@ -51,17 +54,25 @@ def register(app) -> None:
             raise HTTPException(401, "Invalid webhook HMAC")  # Shopify requirement
 
         topic = request.headers.get("X-Shopify-Topic", "")
-        header_shop = request.headers.get("X-Shopify-Shop-Domain", "")
-        # SECURITY: the HMAC signs the BODY, not the headers, so the destructive delete target is
-        # taken from the signed JSON body (Shopify includes shop_domain), and only trusted when it
-        # agrees with the unsigned header. Falls back to the header when the body omits it.
+        if topic not in _TOPICS:
+            raise HTTPException(400, "Unknown topic")
+        header_shop = request.headers.get("X-Shopify-Shop-Domain", "").strip().lower()
+        # SECURITY: the HMAC signs the BODY, not the headers. The body must therefore be a real
+        # Shopify payload (JSON) and the shop it acts on must come from that signed body:
+        # shop_domain on the privacy topics, myshopify_domain on app/uninstalled. A signature over
+        # arbitrary bytes, however obtained, cannot name a target through the unsigned header.
         try:
-            body_shop = (json.loads(raw.decode() or "{}").get("shop_domain") or "").strip()
+            body = json.loads(raw.decode() or "")
+            if not isinstance(body, dict):
+                raise ValueError("not an object")
         except Exception:  # noqa: BLE001
-            body_shop = ""
-        shop = body_shop or header_shop
-        if body_shop and header_shop and body_shop != header_shop:
+            raise HTTPException(400, "Body must be a JSON object")
+        body_shop = str(body.get("shop_domain") or body.get("myshopify_domain") or "").strip().lower()
+        if not body_shop:
+            raise HTTPException(400, "Payload names no shop")
+        if header_shop and body_shop != header_shop:
             raise HTTPException(400, "Shop mismatch")
+        shop = body_shop
 
         if topic in ("shop/redact", "app/uninstalled"):
             ShopStore().delete_shop(shop)   # erase the only thing we persist for this shop

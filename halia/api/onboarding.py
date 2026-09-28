@@ -338,7 +338,8 @@ def _signin_shell(inner: str) -> str:
 
 def _signin_page(error: str = "", email: str = "") -> str:
     """Shown at /app with no valid session — email-first magic-link sign-in."""
-    err = f"<div class=err>{error}</div>" if error else ""
+    err = f"<div class=err>{html.escape(error)}</div>" if error else ""
+    email = html.escape(email or "")
     inner = (
         "<h1>Sign in</h1>"
         "<p class=sub>Enter the email you connected with and we'll send you a secure, "
@@ -368,7 +369,7 @@ def _signin_page(error: str = "", email: str = "") -> str:
 def _signin_sent_page(email: str) -> str:
     inner = (
         "<div class=sent><div class=big>Check your inbox</div>"
-        f"<p class=sub>If an account matches <b>{email}</b>, we've sent a secure sign-in link. "
+        f"<p class=sub>If an account matches <b>{html.escape(email)}</b>, we've sent a secure sign-in link. "
         "It expires in 15 minutes and can be used once.</p>"
         "<p class=alt><a href=/app>Back to sign in</a></p></div>"
     )
@@ -421,16 +422,51 @@ def _slug(url: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", bare).strip("-")
 
 
+# Names a tenant key may never take: they collide with Halia's own signing purposes and paths.
+_RESERVED_SLUGS = {"staff", "console", "admin", "tenant", "deck", "app", "api", "system", "_system",
+                   "halia", "haliascore-com", "www-haliascore-com"}
+
+
+def _new_tenant_or_409(store, shop: str, kind: str, label: str, token_hash: str) -> None:
+    """Create the tenant, or refuse. A slug must be a real, ASCII host with a dot in it (a
+    non-Latin domain collapses to nothing and must not slip through), must not be a reserved
+    word, and must not already exist: whoever connected a store first keeps it, and a look-alike
+    address connected later gets a 409 and a pointer to the sign-in page."""
+    if not shop or shop in _RESERVED_SLUGS or len(shop) < 5 or not shop.isascii():
+        raise HTTPException(400, "That store address does not look right.")
+    if not store.create_tenant(shop, kind, label, token_hash):
+        raise HTTPException(409, "This store is already connected to Halia. Sign in with your "
+                                 "email at /app/signin instead.")
+
+
+def _short_reason(exc: Exception) -> str:
+    """What the merchant needs to know about a failed check, and nothing the server saw."""
+    msg = str(exc)
+    for code in ("401", "403", "404", "429"):
+        if code in msg:
+            return code
+    if "reachable" in msg or "resolve" in msg or "Only public" in msg:
+        return "not reachable"
+    return "no response"
+
+
 def _validate_woo(store_url: str, ck: str, cs: str, probe=None) -> tuple[bool, str]:
     """One live read-only call to confirm the credentials work. `probe` is injectable."""
     try:
+        from halia.netguard import assert_public
+        assert_public(store_url)                 # a public https address, never something internal
+        if "?" in store_url or "#" in store_url:
+            return False, "The store address should be just the site, without a query."
         if probe is None:
             from scoring.woocommerce_fetch import http_transport
             probe = http_transport(store_url, ck, cs)
         probe("orders", {"per_page": 1})
         return True, ""
-    except Exception as exc:  # noqa: BLE001 - surface a short reason to the client
-        return False, str(exc)[:180]
+    except Exception as exc:  # noqa: BLE001 - a short, generic reason; never the raw error
+        msg = str(exc)
+        why = ("401" if "401" in msg else "403" if "403" in msg else "404" if "404" in msg
+               else "not reachable" if "reachable" in msg or "resolve" in msg else "no response")
+        return False, why
 
 
 def _validate_bigcommerce(store_hash: str, access_token: str, probe=None) -> tuple[bool, str]:
@@ -441,11 +477,16 @@ def _validate_bigcommerce(store_hash: str, access_token: str, probe=None) -> tup
             probe = http_transport(store_hash, access_token)
         probe("orders", {"limit": 1})
         return True, ""
-    except Exception as exc:  # noqa: BLE001 - surface a short reason to the client
-        return False, str(exc)[:180]
+    except Exception as exc:  # noqa: BLE001 - a short, generic reason; never the raw error
+        return False, _short_reason(exc)
 
 
 def _validate_centra(base_url: str, api_token: str, probe=None) -> tuple[bool, str]:
+    from halia.netguard import assert_public
+    try:
+        assert_public(base_url)
+    except Exception:  # noqa: BLE001
+        return False, "not reachable"
     """One live read-only GraphQL call to confirm the Centra base URL + token work."""
     try:
         if probe is None:
@@ -453,8 +494,8 @@ def _validate_centra(base_url: str, api_token: str, probe=None) -> tuple[bool, s
             probe = http_transport(base_url, api_token)
         probe("query HaliaPing { orderConnection(first: 1) { totalCount } }", {})
         return True, ""
-    except Exception as exc:  # noqa: BLE001 - surface a short reason to the client
-        return False, str(exc)[:180]
+    except Exception as exc:  # noqa: BLE001 - a short, generic reason; never the raw error
+        return False, _short_reason(exc)
 
 
 def _validate_scayle(base_url: str, access_token: str, probe=None) -> tuple[bool, str]:
@@ -465,8 +506,8 @@ def _validate_scayle(base_url: str, access_token: str, probe=None) -> tuple[bool
             probe = http_transport(base_url, access_token)
         probe("orders", {"limit": 1})
         return True, ""
-    except Exception as exc:  # noqa: BLE001 - surface a short reason to the client
-        return False, str(exc)[:180]
+    except Exception as exc:  # noqa: BLE001 - a short, generic reason; never the raw error
+        return False, _short_reason(exc)
 
 
 # Background-sync status per shop, so the preparing page can reassure / show errors rather than
@@ -1011,9 +1052,9 @@ def _detect_platform(store_url: str, fetch=None) -> dict:
         url = "https://" + url
     try:
         if fetch is None:
-            import requests
-            r = requests.get(url, timeout=7, allow_redirects=True,
-                             headers={"User-Agent": "HaliaBot/1.0 (+store detection)"})
+            from halia.netguard import safe_get
+            r = safe_get(url, timeout=7, max_bytes=200_000,
+                         headers={"User-Agent": "HaliaBot/1.0 (+store detection)"})
             header_blob = " ".join(f"{k}:{v}" for k, v in r.headers.items())
             body = r.text[:200000]
         else:
@@ -1571,7 +1612,7 @@ def register(app) -> None:
 
         store = shop_store()
         store_url = g("store_url").rstrip("/")
-        label = g("label")
+        label = re.sub(r"[<>\"'&]", "", g("label"))[:120]      # a name, never markup
         source = g("source").lower() or "woocommerce"
         link_token = new_token()
 
@@ -1595,7 +1636,7 @@ def register(app) -> None:
                 raise HTTPException(400, f"We could not reach Shopify with that token: {why}")
             shop = domain
             label = label or domain.replace(".myshopify.com", "")
-            store.create_tenant(shop, "shopify", label, hash_token(link_token))
+            _new_tenant_or_409(store, shop, "shopify", label, hash_token(link_token))
             if pend and pend.get("payload"):
                 # OAuth install: persist the EXPIRING token with its expiry + refresh token.
                 from halia.api.shopify_auth import _persist_token
@@ -1614,7 +1655,7 @@ def register(app) -> None:
                 raise HTTPException(400, f"We could not reach BigCommerce with those credentials: {why}")
             shop = _slug(store_hash) or store_hash
             label = label or store_hash
-            store.create_tenant(shop, "bigcommerce", label, hash_token(link_token))
+            _new_tenant_or_409(store, shop, "bigcommerce", label, hash_token(link_token))
             store.save_bigcommerce(shop, store_hash, access_token)
         elif source == "centra":
             centra_url = g("centra_url")
@@ -1630,7 +1671,7 @@ def register(app) -> None:
             if not shop:
                 raise HTTPException(400, "That Centra instance address does not look right.")
             label = label or shop
-            store.create_tenant(shop, "centra", label, hash_token(link_token))
+            _new_tenant_or_409(store, shop, "centra", label, hash_token(link_token))
             store.save_centra(shop, centra_url, centra_token)
         elif source == "scayle":
             scayle_url = g("scayle_url")
@@ -1646,7 +1687,7 @@ def register(app) -> None:
             if not shop:
                 raise HTTPException(400, "That SCAYLE API base URL does not look right.")
             label = label or shop
-            store.create_tenant(shop, "scayle", label, hash_token(link_token))
+            _new_tenant_or_409(store, shop, "scayle", label, hash_token(link_token))
             store.save_scayle(shop, scayle_url, scayle_token)
         else:
             shop = _slug(store_url)
@@ -1664,7 +1705,7 @@ def register(app) -> None:
             if not ok:
                 raise HTTPException(400, f"We could not reach WooCommerce with those keys: {why}")
             label = label or shop
-            store.create_tenant(shop, "woocommerce", label, hash_token(link_token))
+            _new_tenant_or_409(store, shop, "woocommerce", label, hash_token(link_token))
             store.save_woocommerce(shop, store_url, ck, cs)
             if woo_token:
                 _woo_pending_pop(woo_token)
@@ -1887,7 +1928,7 @@ def register(app) -> None:
 
         token = new_token()
         store = shop_store()
-        store.create_tenant(shop, "woocommerce", label.strip() or shop, hash_token(token))
+        _new_tenant_or_409(store, shop, "woocommerce", label.strip() or shop, hash_token(token))
         store.save_woocommerce(shop, store_url, consumer_key.strip(), consumer_secret.strip())
         _start_sync(shop, notify=True)  # warm the cache while they read the success page
 
@@ -1915,7 +1956,7 @@ def register(app) -> None:
             # no longer needs to live in the browser as a permanent bearer cookie.
             resp = RedirectResponse("/app", status_code=303)
             resp.set_cookie(SESSION_COOKIE, make_session(shop), httponly=True,
-                            secure=request.url.scheme == "https", samesite="lax",
+                            secure=(config.HALIA_APP_URL or "").startswith("https"), samesite="lax",
                             max_age=60 * 60 * 24 * 365)
             return resp
 
@@ -2008,7 +2049,7 @@ def register(app) -> None:
                       "Enter your email below for a fresh one."), status_code=400)
         resp = RedirectResponse("/app", status_code=303)
         resp.set_cookie(SESSION_COOKIE, make_session(shop), httponly=True,
-                        secure=request.url.scheme == "https", samesite="lax",
+                        secure=(config.HALIA_APP_URL or "").startswith("https"), samesite="lax",
                         max_age=60 * 60 * 24 * 365)
         return resp
 

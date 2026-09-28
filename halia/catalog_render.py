@@ -220,14 +220,16 @@ def _pdf_url_fetcher(url: str, timeout: int = 20, ssl_context=None):
     by WeasyPrint and simply leaves that image blank — it never fails the whole PDF."""
     if url.startswith(("http://", "https://")):
         import io
-        import requests
-        resp = requests.get(url, timeout=timeout, headers={
+        from halia import netguard
+        resp = netguard.safe_get(url, timeout=timeout, max_bytes=8 * 1024 * 1024, headers={
             "User-Agent": "Mozilla/5.0 (compatible; HaliaCatalogue/1.0; +https://haliascore.com)"})
         resp.raise_for_status()
         ctype = (resp.headers.get("content-type") or "").split(";")[0].strip() or None
         return {"file_obj": io.BytesIO(resp.content), "mime_type": ctype, "redirected_url": resp.url}
-    from weasyprint import default_url_fetcher  # data:/file: — only needed off the remote path
-    return default_url_fetcher(url, timeout=timeout, ssl_context=ssl_context)
+    if url.startswith("data:image/"):
+        from weasyprint import default_url_fetcher  # inline images only; never file: or anything else
+        return default_url_fetcher(url, timeout=timeout, ssl_context=ssl_context)
+    raise ValueError("Only http(s) and inline images may be fetched for a catalogue.")
 
 
 def html_to_pdf(html: str) -> bytes:

@@ -31,6 +31,9 @@ def _entry_or_404(shop: str) -> dict:
     return entry
 
 
+from halia.api.roles import require_manager  # noqa: E402
+
+
 def register(app) -> None:
 
     @app.get("/v1/klaviyo/status")
@@ -38,7 +41,7 @@ def register(app) -> None:
         return {"connected": bool(_key_for(shop))}
 
     @app.post("/v1/klaviyo/connect")
-    def klaviyo_connect(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
+    def klaviyo_connect(shop: str = Depends(require_manager), payload: Any = Body(...)) -> dict:
         key = str((payload or {}).get("api_key", "")).strip()
         if not key.startswith("pk_"):
             raise HTTPException(422, "Enter your Klaviyo PRIVATE API key (starts with pk_).")

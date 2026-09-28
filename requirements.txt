@@ -21,3 +21,4 @@ urllib3>=2.7.0    # via requests; HTTP CVE fixes
 click>=8.3.3      # via uvicorn; CVE fix
 # NOTE: starlette (via fastapi) also has an advisory whose fix (1.1.0) is a major bump coupled to
 # a newer FastAPI; deferred to a coordinated FastAPI upgrade rather than pinned blindly here.
+nh3>=0.2

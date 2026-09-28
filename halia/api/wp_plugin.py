@@ -40,11 +40,13 @@ def register(app) -> None:
             raise HTTPException(400, f"Halia could not reach WooCommerce with that key: {why}")
 
         store = shop_store()
-        existing = store.get_tenant(shop)
-        link_token = None
-        if existing is None:
-            link_token = new_token()
-            store.create_tenant(shop, "woocommerce", label or shop, hash_token(link_token))
+        if store.get_tenant(shop):
+            # Never overwrite a connected store's keys, or hand back its webhook token, to
+            # whoever posts its address: the owner signs in and reconnects from the dashboard.
+            raise HTTPException(409, "This store is already connected to Halia. Sign in from the "
+                                     "Halia dashboard to update its keys.")
+        link_token = new_token()
+        ob._new_tenant_or_409(store, shop, "woocommerce", label or shop, hash_token(link_token))
         store.save_woocommerce(shop, store_url, ck, cs)
         webhook_token = store.ensure_webhook_token(shop, secrets.token_urlsafe(24))
         base = (config.HALIA_APP_URL or "").rstrip("/")
@@ -68,6 +70,6 @@ def register(app) -> None:
             capture_qr = _connect_qr(capture_url)
         except Exception:  # noqa: BLE001
             pass
-        return {"ok": True, "shop": shop, "capture_url": capture_url, "capture_qr": capture_qr, "label": label or shop, "reconnected": existing is not None,
+        return {"ok": True, "shop": shop, "capture_url": capture_url, "capture_qr": capture_qr, "label": label or shop, "reconnected": False,
                 "open_url": open_url, "dashboard": f"{base}/app",
                 "webhook_url": f"{base}/webhooks/orders/{webhook_token}"}

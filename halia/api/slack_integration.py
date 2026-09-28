@@ -69,6 +69,9 @@ _SAMPLE = {"grade": "A*", "name": "Eleanor Ashworth", "order_id": "#1042", "spen
            "signals": ["Prime postcode (W1)", "Family-office email", "Premium card"]}
 
 
+from halia.api.roles import require_manager  # noqa: E402
+
+
 def register(app) -> None:
 
     @app.get("/v1/slack/status")
@@ -77,7 +80,7 @@ def register(app) -> None:
         return {"connected": bool(conn), "webhook": _masked(conn["webhook_url"]) if conn else ""}
 
     @app.post("/v1/slack/connect")
-    def slack_connect(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
+    def slack_connect(shop: str = Depends(require_manager), payload: Any = Body(...)) -> dict:
         url = str((payload or {}).get("webhook_url", "")).strip()
         if not url.startswith(_HOOK_PREFIX):
             raise HTTPException(400, "That doesn't look like a Slack Incoming Webhook URL — it should "

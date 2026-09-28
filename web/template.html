@@ -1748,7 +1748,7 @@ function renderRows(){
         <div class="ava ${c.tier}">${esc(c.init)}</div>
         <div class="cinfo">
           <div class="cname">${esc(c.name)}${ratedBadge(c.id)}</div>
-          <div class="cmeta">${[c.email,c.phone].filter(Boolean).join(" · ")}</div>
+          <div class="cmeta">${esc([c.email,c.phone].filter(Boolean).join(" · "))}</div>
           <div class="csignals">${sigChips}</div>
         </div>
       </div>
@@ -2124,12 +2124,12 @@ function mailtoItems(c){
   const item=(label,href)=>`<a href="${href}" target="_top" style="display:block;padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px">${label}</a>`;
   let out="";
   if(CATALOG_URL)
-    out+=item("Send catalogue &#9656;",`mailto:${em}?subject=${encodeURIComponent("A selection for you")}&body=${encodeURIComponent(catMsg(c))}`);
+    out+=item("Send catalogue &#9656;",`mailto:${encodeURIComponent(em)}?subject=${encodeURIComponent("A selection for you")}&body=${encodeURIComponent(catMsg(c))}`);
   if(CMS_DRAFT&&(CMS_DRAFT.subject||CMS_DRAFT.body))
-    out+=item("Personal note",`mailto:${em}?subject=${encodeURIComponent(fillTemplate(CMS_DRAFT.subject||"",c))}&body=${encodeURIComponent(fillTemplate(CMS_DRAFT.body||"",c))}`);
+    out+=item("Personal note",`mailto:${encodeURIComponent(em)}?subject=${encodeURIComponent(fillTemplate(CMS_DRAFT.subject||"",c))}&body=${encodeURIComponent(fillTemplate(CMS_DRAFT.body||"",c))}`);
   return `<div style="max-height:340px;overflow-y:auto">`+out
-    +tmplMenuGroups(EMAIL_TEMPLATES,t=>item(t.name,`mailto:${em}?subject=${encodeURIComponent(t.subject||"")}&body=${encodeURIComponent(fillTemplate(t.body,c))}`))
-    +item("Blank email",`mailto:${em}`)+`</div>`;
+    +tmplMenuGroups(EMAIL_TEMPLATES,t=>item(t.name,`mailto:${encodeURIComponent(em)}?subject=${encodeURIComponent(t.subject||"")}&body=${encodeURIComponent(fillTemplate(t.body,c))}`))
+    +item("Blank email",`mailto:${encodeURIComponent(em)}`)+`</div>`;
 }
 // WhatsApp: same prepopulated templates as wa.me links (body only — no subject).
 // Needs an international number; phoneDigits() returns "" when it can't route reliably.
@@ -2204,7 +2204,7 @@ function ogr(o){return o.grade?`<span class="gchip ${o.tier||'B'}">${o.grade}</s
 function osb(o){return `<span class="sb ${o.statusCat}">${o.status}</span>`;}
 function oActions(o,i){
   const tpls=ORDER_TEMPLATES[o.statusCat]||ORDER_TEMPLATES.new, em=o.email||"";
-  const href=t=>`mailto:${em}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(fillTemplate(t.body,o))}`;
+  const href=t=>`mailto:${encodeURIComponent(em)}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(fillTemplate(t.body,o))}`;
   const menu=tpls.map(t=>`<a class="omi" href="${href(t)}" target="_top">${t.name}</a>`).join("")+`<a class="omi" href="mailto:${em}" target="_top">Blank email</a>`;
   let html=`<div class="omw"><button class="obtn" data-om="${i}">Email &#9662;</button><div class="omenu" id="om-${i}">${menu}</div></div>`;
   const num=phoneDigits(o.phone);
@@ -2243,7 +2243,7 @@ function orderStatsHTML(list){
 function openOrderDrawer(o){
   const c=DATA.find(x=>x.cid===o.cid), sigs=c?c.signals:[], reco=c?c.reco:"", em=o.email||"";
   const tpls=ORDER_TEMPLATES[o.statusCat]||ORDER_TEMPLATES.new;
-  const href=t=>`mailto:${em}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(fillTemplate(t.body,o))}`;
+  const href=t=>`mailto:${encodeURIComponent(em)}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(fillTemplate(t.body,o))}`;
   drawer.innerHTML=`
     <div class="dhead" style="position:relative">
       <div style="position:absolute;top:18px;right:20px">${drawerCtl()}</div>

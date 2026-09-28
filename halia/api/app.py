@@ -77,29 +77,51 @@ from fastapi.responses import JSONResponse as _JSONResponse  # noqa: E402
 _RL_WINDOW = 60.0
 _RL_MAX = {"r": 120, "w": 30}   # requests per IP per window: reads (GET/HEAD) vs writes
 _RL_HITS: dict = {}
-_RL_PATHS = ("/v1/", "/app", "/c/", "/i/", "/proxy/", "/connect", "/subscribe", "/webhooks")
+# Signed webhooks are left out: their HMAC is the control, and a limiter keyed on the proxy
+# would let one abuser starve every store's Shopify and Stripe events.
+_RL_PATHS = ("/v1/", "/app", "/c/", "/i/", "/proxy/", "/connect", "/subscribe", "/catalog",
+             "/webhooks/orders", "/console/login", "/admin/login", "/pitch", "/present", "/present-brands")
+_RL_LOGIN = ("/console/login", "/admin/login", "/pitch", "/present", "/present-brands")
+_RL_MAX_LOGIN = 10             # password or key attempts per IP per window
+
+
+def _client_ip(request) -> str:
+    """The connecting client behind Render's proxy: the right-most X-Forwarded-For entry is
+    the one the proxy itself appended, so it cannot be spoofed by the client."""
+    xff = (getattr(request, "headers", None) or {}).get("x-forwarded-for", "")
+    if xff:
+        return xff.split(",")[-1].strip() or "?"
+    return request.client.host if request.client else "?"
 
 
 def _rl_key(request) -> str:
     """Proxied storefront traffic arrives from Shopify's own addresses, so it is keyed by the
-    store instead of the IP; everything else by IP."""
-    ip = request.client.host if request.client else "?"
+    store instead of the IP; everything else by the real client IP."""
+    ip = _client_ip(request)
     if request.url.path.startswith("/proxy/"):
-        return "shop:" + (request.query_params.get("shop") or ip)
+        return "shop:" + (request.query_params.get("shop") or ip)[:80]
+    if getattr(request, "method", "GET") == "POST" and any(request.url.path.startswith(p) for p in _RL_LOGIN):
+        return ip + "|login"           # ten guesses a minute, not thirty
     return ip
 
 
 def _rate_limited(ip: str, write: bool, now: float | None = None) -> bool:
     """True if this IP has exceeded its window for reads/writes. Pure + unit-testable."""
     now = _time.monotonic() if now is None else now
-    if len(_RL_HITS) > 5000:          # crude memory bound: reset rather than grow unbounded
-        _RL_HITS.clear()
+    if len(_RL_HITS) > 5000:          # memory bound: drop idle keys, never everyone's counters
+        cutoff = now - _RL_WINDOW
+        for k in [k for k, d in _RL_HITS.items() if not d or d[-1] < cutoff]:
+            _RL_HITS.pop(k, None)
+        if len(_RL_HITS) > 5000:
+            for k in list(_RL_HITS)[: len(_RL_HITS) - 4000]:
+                _RL_HITS.pop(k, None)
     key = f"{ip}|{'w' if write else 'r'}"
     dq = _RL_HITS.setdefault(key, _deque())
     cutoff = now - _RL_WINDOW
     while dq and dq[0] < cutoff:
         dq.popleft()
-    if len(dq) >= _RL_MAX["w" if write else "r"]:
+    limit = _RL_MAX_LOGIN if write and ip.endswith("|login") else _RL_MAX["w" if write else "r"]
+    if len(dq) >= limit:
         return True
     dq.append(now)
     return False
@@ -173,8 +195,11 @@ async def _security_headers_mw(request, call_next):
                                 "max-age=31536000; includeSubDomains")
     # A route that set its own CSP (the embedded app) chose its framing; leave it alone.
     if not any(k.lower() == "content-security-policy" for k in resp.headers):
-        resp.headers["Content-Security-Policy"] = "frame-ancestors 'none'"
+        resp.headers["Content-Security-Policy"] = "frame-ancestors 'none'; object-src 'none'; base-uri 'none'"
         resp.headers.setdefault("X-Frame-Options", "DENY")
+    # Personal data rides the API: no proxy or browser cache may keep a copy of any of it.
+    if request.url.path.startswith("/v1/"):
+        resp.headers["Cache-Control"] = "no-store"
     return resp
 
 # Serve the marketing site's imagery (water hero video, editorial photography) at /img.
@@ -257,11 +282,21 @@ _NOINDEX = {"X-Robots-Tag": "noindex, nofollow"}
 
 
 def _deck_password() -> str:
-    return _os.environ.get("HALIA_DECK_PASSWORD", "letsmakelotsofmoneythisyear")
+    """Set in the environment, never in the source. Unset means the decks are closed."""
+    return _os.environ.get("HALIA_DECK_PASSWORD") or ""
 
 
 def _deck_token() -> str:
-    return _hashlib.sha256(("halia-deck:" + _deck_password()).encode("utf-8")).hexdigest()[:40]
+    """Proves knowledge of the password without carrying it: an HMAC under the deck's own
+    derived key, so it cannot be computed from the password alone or reused elsewhere."""
+    from halia.api.tenant_auth import _secret
+    if not _deck_password():
+        return ""
+    return _hmac.new(_secret("deck"), ("deck:" + _deck_password()).encode("utf-8"), _hashlib.sha256).hexdigest()[:40]
+
+
+def _deck_secure() -> bool:
+    return (_os.environ.get("HALIA_APP_URL") or "").startswith("https")
 
 
 def _deck_gate(path: str, wrong: bool = False) -> str:
@@ -287,23 +322,28 @@ def _deck_gate(path: str, wrong: bool = False) -> str:
 async def _deck_handler(request: Request) -> _HTML:
     path = request.url.path
     name = path.strip("/")
+    if not _deck_password():
+        return _HTML(_page("Private briefing", "<div class=authwrap><div class=card><h1 style='font-size:22px;margin:0 0 6px'>"
+                           "This briefing is closed.</h1></div></div>") if False else
+                     "<!doctype html><title>Private briefing</title><p style='font:15px system-ui;padding:40px'>This briefing is closed.</p>",
+                     status_code=404, headers=_NOINDEX)
     if request.method == "POST":
         form = await request.form()
         if _hmac.compare_digest(str(form.get("pw") or ""), _deck_password()):
             # Land on the token link so it can be copied straight from the address bar.
             resp = _Redirect(f"{path}?k={_deck_token()}", status_code=303)
             resp.set_cookie(_DECK_COOKIE, _deck_token(), max_age=86400 * 30, httponly=True,
-                            samesite="lax", secure=request.url.scheme == "https")
+                            samesite="lax", secure=_deck_secure())
             resp.headers.update(_NOINDEX)
             return resp
         return _HTML(_deck_gate(path, wrong=True), status_code=401, headers=_NOINDEX)
-    has_cookie = request.cookies.get(_DECK_COOKIE) == _deck_token()
+    has_cookie = _hmac.compare_digest(request.cookies.get(_DECK_COOKIE) or "", _deck_token())
     k = str(request.query_params.get("k") or "")
     if not has_cookie:
         if k and _hmac.compare_digest(k, _deck_token()):
             resp = _Redirect(path, status_code=303)
             resp.set_cookie(_DECK_COOKIE, _deck_token(), max_age=86400 * 30, httponly=True,
-                            samesite="lax", secure=request.url.scheme == "https")
+                            samesite="lax", secure=_deck_secure())
             resp.headers.update(_NOINDEX)
             return resp
         return _HTML(_deck_gate(path), headers=_NOINDEX)
@@ -546,6 +586,8 @@ def subscribe(payload: Any = Body(...)) -> dict:
 def score(payload: Any = Body(...)) -> Any:
     """Score a customer record (or list) live — stateless, no shop, nothing stored."""
     if isinstance(payload, list):
+        if len(payload) > 100:
+            raise HTTPException(413, "Send at most 100 records per request.")
         return [r.to_dict() for r in engine.score_many(payload)]
     if isinstance(payload, dict):
         return engine.score_one(payload).to_dict()
@@ -579,8 +621,11 @@ def order_score(order_id: str, shop: str = Depends(require_shop)) -> dict:
     return result.to_dict()
 
 
+from halia.api.roles import require_manager  # noqa: E402
+
+
 @app.get("/v1/hidden-vics")
-def hidden_vics(shop: str = Depends(require_shop),
+def hidden_vics(shop: str = Depends(require_manager),
                 limit: int = Query(50, ge=1, le=1000)) -> list[dict]:
     return [r.to_dict() for r in data.hidden_results(_entry(shop), limit)]
 
@@ -604,7 +649,7 @@ def alerts(shop: str = Depends(require_shop),
 
 
 @app.get("/v1/export")
-def export_csv(shop: str = Depends(require_shop)):
+def export_csv(shop: str = Depends(require_manager)):
     """Download the surfaced hidden VICs as CSV, built from the in-RAM scored data (no re-fetch)."""
     import csv
     import io

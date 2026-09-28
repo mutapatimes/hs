@@ -6,7 +6,18 @@ from halia.api.app import app
 
 client = TestClient(app)
 DECKS = ["/pitch", "/present", "/present-brands"]
-PW = "letsmakelotsofmoneythisyear"
+PW = "test-deck-password-1"
+
+
+@pytest.fixture(autouse=True)
+def _deck_env(monkeypatch):
+    monkeypatch.setenv("HALIA_DECK_PASSWORD", PW)
+
+
+def test_decks_are_closed_when_no_password_is_configured(monkeypatch):
+    monkeypatch.delenv("HALIA_DECK_PASSWORD", raising=False)
+    r = client.get("/pitch")
+    assert r.status_code == 404 and "closed" in r.text
 
 
 @pytest.mark.parametrize("path", DECKS)

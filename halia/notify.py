@@ -112,6 +112,12 @@ def _send_email_raw(to: str, subject: str, html: str, text: str | None,
 
 
 # ── Slack (per-shop Incoming Webhook) ────────────────────────────────────────────────
+def slack_escape(s) -> str:
+    """Slack renders &, < and > as markup (mentions, links, channel pings). Text that came from
+    a client, a form or a model is escaped before it goes into a message."""
+    return str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def send_slack(webhook_url: str, text: str, blocks: list | None = None,
                shop: str | None = None) -> bool:
     """Post a message to a Slack Incoming Webhook. Best-effort; never raises.

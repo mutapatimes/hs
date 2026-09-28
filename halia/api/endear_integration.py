@@ -32,6 +32,9 @@ def _conn_or_400(shop: str) -> dict:
     return conn
 
 
+from halia.api.roles import require_manager  # noqa: E402
+
+
 def register(app) -> None:
 
     @app.get("/v1/endear/status")
@@ -40,7 +43,7 @@ def register(app) -> None:
         return {"connected": bool(conn and conn.get("api_key"))}
 
     @app.post("/v1/endear/connect")
-    def endear_connect(shop: str = Depends(require_shop), payload: Any = Body(...)) -> dict:
+    def endear_connect(shop: str = Depends(require_manager), payload: Any = Body(...)) -> dict:
         from halia.adapters.endear_sink import EndearError, EndearSink
 
         key = str((payload or {}).get("api_key", "")).strip()

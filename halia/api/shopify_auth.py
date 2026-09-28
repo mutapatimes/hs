@@ -146,6 +146,9 @@ def verify_session_token(token: str, secret: str | None = None, api_key: str | N
     shop = _shop_from_dest(claims["dest"])
     if not shop.endswith(".myshopify.com"):
         raise HTTPException(401, "Session token has an unexpected shop")
+    iss = str(claims.get("iss") or "")
+    if iss and iss.rstrip("/") != f"https://{shop}/admin":
+        raise HTTPException(401, "Session token issuer does not match its shop")
     return shop
 
 

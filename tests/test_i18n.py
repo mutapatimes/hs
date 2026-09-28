@@ -130,8 +130,9 @@ def test_the_reading_lands_with_their_preferences(env, monkeypatch):
     monkeypatch.setattr(cap, "_perform_capture_woo",
                         lambda shop, body, *a, **k: seen.update(body) or {"ok": True})
     monkeypatch.setattr("halia.api.shopify_auth.shop_store", lambda: env[1])
-    env[1].create_tenant(SHOP, "woocommerce", "Maison", "h")
-    cap.perform_capture(SHOP, {"first_name": "優子", "last_name": "田中",
+    WOO = "maison-woo.example"
+    env[1].create_tenant(WOO, "woocommerce", "Maison", "h")
+    cap.perform_capture(WOO, {"first_name": "優子", "last_name": "田中",
                                "furigana": "タナカ ユウコ", "email": "y@x.jp",
                                "preferences": "size 36"}, "qr")
     assert seen["preferences"] == "フリガナ: タナカ ユウコ · size 36"

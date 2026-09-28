@@ -1199,10 +1199,14 @@ def _variant_of(shop: str, title: str) -> Optional[dict]:
     return None
 
 
+from halia.api.roles import require_manager  # noqa: E402
+
+
 def register(app) -> None:
 
     @app.post("/v1/extension/token")
-    def mint_extension_token(shop: str = Depends(require_shop)) -> dict:
+    def mint_extension_token(shop: str = Depends(require_manager)) -> dict:
+        """The shared token acts as a manager everywhere, so only a manager may mint it."""
         token = new_token()
         shop_store().set_extension_token(shop, hash_token(token))
         base = (config.HALIA_APP_URL or "").rstrip("/")
@@ -2016,7 +2020,8 @@ def register(app) -> None:
             conn = shop_store().get_slack(shop)
             if conn and conn.get("webhook_url") and n:
                 from halia import notify
-                txt = (f"{who} sent " + (f"'{tpl}'" if tpl else "a message")
+                from halia.notify import slack_escape as _se
+                txt = (f"{_se(who)} sent " + (f"'{_se(tpl)}'" if tpl else "a message")
                        + f" to {n} client{'s' if n != 1 else ''}" + (f" on {chan}" if chan else ""))
                 try:
                     slacked = bool(notify.send_slack(conn["webhook_url"], txt))
@@ -2051,7 +2056,8 @@ def register(app) -> None:
             # quiet: a burst step logs the contact but leaves Slack to the one summary at the end.
             if conn and conn.get("webhook_url") and not body.get("quiet"):
                 from halia import notify
-                txt = f"{who} contacted {client_name or 'a client'}" + (f" — {reason}" if reason else "")
+                from halia.notify import slack_escape as _se
+                txt = f"{_se(who)} contacted {_se(client_name) or 'a client'}" + (f" — {_se(reason)}" if reason else "")
                 try:
                     slacked = bool(notify.send_slack(conn["webhook_url"], txt))
                 except Exception:

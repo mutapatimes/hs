@@ -52,7 +52,7 @@ _METRIC_LABELS = {
 
 # ── auth (signed, expiring cookie; isolated from the CMS admin key) ───────────────
 def _sign(exp: int) -> str:
-    return hmac.new(_secret(), f"console|{exp}".encode(), hashlib.sha256).hexdigest()
+    return hmac.new(_secret("console"), f"console|{exp}".encode(), hashlib.sha256).hexdigest()
 
 
 def _make_cookie(ttl: int = 60 * 60 * 12) -> str:
