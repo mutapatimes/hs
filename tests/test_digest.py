@@ -24,7 +24,7 @@ def _clean():
 
 
 def _row(**kw):
-    row = {"cid": "c1", "name": "Grace Ladoja", "grade": "A*", "tier": "A1", "known": False,
+    row = {"cid": "c1", "name": "Grace Lawson", "grade": "A*", "tier": "A1", "known": False,
            "band": "active", "spend": 4200, "latent": 12400, "ordersCount": 3,
            "lastSort": NOW - 2 * 86400}
     row.update(kw)
@@ -100,11 +100,11 @@ def test_facts_never_trigger_a_sync(monkeypatch):
 def test_without_ai_the_digest_still_states_the_facts(monkeypatch):
     from halia import llm
     monkeypatch.setattr(llm, "available", lambda: False)
-    _seed([_row(cid="a", name="Grace Ladoja", known=True, spend=9000),
+    _seed([_row(cid="a", name="Grace Lawson", known=True, spend=9000),
            _row(cid="b", name="Basket", cart={"value": 1800})])
     text, source = digest.write(digest.facts(SHOP, now=NOW))
     assert source == "book"
-    assert "Grace Ladoja" in text and "1,800" in text and "quiet" in text
+    assert "Grace Lawson" in text and "1,800" in text and "quiet" in text
 
 
 def test_an_empty_week_says_so_plainly(monkeypatch):
@@ -137,7 +137,7 @@ def test_the_model_only_sees_the_figures(monkeypatch):
     seen = {}
     monkeypatch.setattr(llm, "available", lambda: True)
     monkeypatch.setattr(llm, "complete", lambda s, u, **k: seen.update(user=u, system=s) or "Prose.")
-    _seed([_row(cid="a", name="Grace Ladoja", email="grace@x.com", known=True, spend=9000)])
+    _seed([_row(cid="a", name="Grace Lawson", email="grace@x.com", known=True, spend=9000)])
     text, source = digest.write(digest.facts(SHOP, now=NOW))
     assert (text, source) == ("Prose.", "ai")
     assert "grace@x.com" not in seen["user"]
@@ -148,6 +148,6 @@ def test_a_model_failure_falls_back_to_the_facts(monkeypatch):
     from halia import llm
     monkeypatch.setattr(llm, "available", lambda: True)
     monkeypatch.setattr(llm, "complete", lambda *a, **k: None)
-    _seed([_row(cid="a", name="Grace Ladoja", known=True, spend=9000)])
+    _seed([_row(cid="a", name="Grace Lawson", known=True, spend=9000)])
     text, source = digest.write(digest.facts(SHOP, now=NOW))
-    assert source == "book" and "Grace Ladoja" in text
+    assert source == "book" and "Grace Lawson" in text

@@ -74,7 +74,7 @@ def env(tmp_path, monkeypatch):
 def test_capture_writes_a_woo_customer_with_meta(env):
     client, store, wc, seat_tok, seat = env
     r = client.post("/v1/capture", headers={"X-Halia-Ext-Token": seat_tok}, json={
-        "first_name": "Grace", "last_name": "Ladoja", "email": "grace@x.com", "postcode": "sw1a1aa",
+        "first_name": "Grace", "last_name": "Lawson", "email": "grace@x.com", "postcode": "sw1a1aa",
         "country": "UK", "birthday": "14 June", "sizes": "IT 38", "channel": "handover",
         "consent": {"email_marketing": True}})
     assert r.status_code == 200 and r.json()["created"] is True

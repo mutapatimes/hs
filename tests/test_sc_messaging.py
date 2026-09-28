@@ -3,7 +3,7 @@ from halia.storeconcierge import messaging as m
 
 
 def test_fill_personalises_name_and_shop():
-    body = m.fill("Hi {first_name}, from {shop}", "Grace Ladoja", "Maison Aurelle")
+    body = m.fill("Hi {first_name}, from {shop}", "Grace Lawson", "Maison Aurelle")
     assert body == "Hi Grace, from Maison Aurelle"
     assert m.fill("Hi {first_name}", "", "X") == "Hi there"
 

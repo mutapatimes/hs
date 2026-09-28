@@ -78,9 +78,9 @@ def test_email_junk_is_left_alone():
 
 # ── name ──────────────────────────────────────────────────────────────────────
 def test_single_case_names_are_recased():
-    assert repair_name("GRACE LADOJA")[0] == "Grace Ladoja"
-    assert repair_name("grace ladoja")[0] == "Grace Ladoja"
-    assert repair_name("GRACE LADOJA")[1] == "case"
+    assert repair_name("GRACE LAWSON")[0] == "Grace Lawson"
+    assert repair_name("grace lawson")[0] == "Grace Lawson"
+    assert repair_name("GRACE LAWSON")[1] == "case"
 
 
 def test_name_particles_and_prefixes_survive_recasing():
@@ -91,13 +91,13 @@ def test_name_particles_and_prefixes_survive_recasing():
 
 
 def test_mixed_case_names_are_left_exactly_as_typed():
-    for good in ("Grace Ladoja", "Ludwig van Beethoven", "eBay Support", "Fiona MacLeod"):
+    for good in ("Grace Lawson", "Ludwig van Beethoven", "eBay Support", "Fiona MacLeod"):
         assert repair_name(good) == (None, None)
 
 
 # ── quality ───────────────────────────────────────────────────────────────────
 def _row(**kw):
-    base = {"Name": "Grace Ladoja", "EMAIL_ADDR": "grace@x.com", "PHONE": "+44 7700 900123",
+    base = {"Name": "Grace Lawson", "EMAIL_ADDR": "grace@x.com", "PHONE": "+44 7700 900123",
             "LATEST_BILLING_ZIP": "SW1A 1AA", "LATEST_SHIPPING_ZIP": ""}
     base.update(kw)
     return base
@@ -133,7 +133,7 @@ def test_quality_never_leaves_the_scale():
 # ── the whole-book pass ───────────────────────────────────────────────────────
 def test_repair_frame_repairs_records_and_logs_every_change():
     df = pd.DataFrame([
-        {"Name": "GRACE LADOJA", "EMAIL_ADDR": "grace@gmial.com", "PHONE": "07700900123",
+        {"Name": "GRACE LAWSON", "EMAIL_ADDR": "grace@gmial.com", "PHONE": "07700900123",
          "LATEST_BILLING_ZIP": "SW1A lAA", "LATEST_SHIPPING_ZIP": ""},
         {"Name": "Ada Lovelace", "EMAIL_ADDR": "ada@gmail.com", "PHONE": "07700900124",
          "LATEST_BILLING_ZIP": "W1K 7TN", "LATEST_SHIPPING_ZIP": ""},
@@ -141,7 +141,7 @@ def test_repair_frame_repairs_records_and_logs_every_change():
     out = repair_frame(df)
     assert out.loc[0, "LATEST_BILLING_ZIP"] == "SW1A 1AA"
     assert out.loc[0, "EMAIL_ADDR"] == "grace@gmail.com"
-    assert out.loc[0, "Name"] == "Grace Ladoja"
+    assert out.loc[0, "Name"] == "Grace Lawson"
     assert len(out.loc[0, REPAIRS_COL]) == 3                     # every change is auditable
     assert any("SW1A lAA -> SW1A 1AA" in r for r in out.loc[0, REPAIRS_COL])
     # the already-clean record is untouched and carries no repair log
@@ -156,6 +156,6 @@ def test_repair_frame_handles_an_empty_book():
 
 
 def test_repair_frame_tolerates_missing_columns():
-    out = repair_frame(pd.DataFrame([{"Name": "GRACE LADOJA"}]))
-    assert out.loc[0, "Name"] == "Grace Ladoja"
+    out = repair_frame(pd.DataFrame([{"Name": "GRACE LAWSON"}]))
+    assert out.loc[0, "Name"] == "Grace Lawson"
     assert "no email" in out.loc[0, FLAGS_COL]

@@ -167,11 +167,11 @@ def test_birthdays_weekly_only_when_there_are_some(st, monkeypatch):
     journeys.run_due(now=datetime(2026, 9, 7, 7, tzinfo=timezone.utc), send=send, store=st)     # Monday
     assert sent == []
     monkeypatch.setattr(journeys, "_birthdays_payload", lambda shop: {"count": 2, "rows": [
-        {"name": "Grace Ladoja", "date": "2026-09-16", "in_days": 2, "grade": "A*"},
+        {"name": "Grace Lawson", "date": "2026-09-16", "in_days": 2, "grade": "A*"},
         {"name": "Tom Lee", "date": "2026-09-20", "in_days": 6, "grade": ""}]})
     journeys.run_due(now=datetime(2026, 9, 14, 7, tzinfo=timezone.utc), send=send, store=st)
     assert len(sent) == 1 and sent[0][1] == "2 birthdays in the next fortnight"
-    assert "Grace Ladoja" in sent[0][2] and "in 2 days" in sent[0][2]
+    assert "Grace Lawson" in sent[0][2] and "in 2 days" in sent[0][2]
     st.revoke_seat(SHOP, sarah)
     journeys.run_due(now=datetime(2026, 9, 21, 7, tzinfo=timezone.utc), send=send, store=st)
     assert len(sent) == 1

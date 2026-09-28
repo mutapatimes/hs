@@ -64,7 +64,7 @@ def test_create_writes_profile_consent_and_scores(env, monkeypatch):
     fake = FakeShopify()
     monkeypatch.setattr(capture_mod, "_gql", fake)
     r = _post(client, ext, {
-        "first_name": "Grace", "last_name": "Ladoja", "email": "grace@x.com",
+        "first_name": "Grace", "last_name": "Lawson", "email": "grace@x.com",
         "phone": "+44 7700 900123", "postcode": "SW1A 1AA", "channel": "handover",
         "sizes": "IT 38", "consent": {"email_marketing": True, "sms_marketing": False},
     })
@@ -322,7 +322,7 @@ class MatchShopify(FakeShopify):
         if "customers(first: 1" in query:
             self.calls.append((query, variables))
             return {"customers": {"nodes": [{"id": "gid://shopify/Customer/5", "email": "grace@x.com",
-                                             "phone": "", "tags": [], "displayName": "Grace Ladoja",
+                                             "phone": "", "tags": [], "displayName": "Grace Lawson",
                                              "numberOfOrders": 3, "amountSpent": {"amount": "4200.0", "currencyCode": "GBP"},
                                              "lastOrder": {"processedAt": "2026-06-29T10:00:00Z"}}]}}
         return super().__call__(shop, token, query, variables)
@@ -335,7 +335,7 @@ def test_check_tells_the_associate_the_client_may_exist(env, monkeypatch):
     monkeypatch.setattr(cq, "_domain_resolves", lambda d: True)
     d = client.post("/v1/capture/check", json={"email": "grace@x.com"},
                     headers={"X-Halia-Ext-Token": ext}).json()
-    assert d["match"]["name"] == "Grace Ladoja" and d["match"]["orders"] == 3
+    assert d["match"]["name"] == "Grace Lawson" and d["match"]["orders"] == 3
     assert d["match"]["by"] == "email" and d["match"]["last"] == "2026-06-29"
     # the public form is told nothing about who is on file
     capture_mod._SLUG_CACHE.clear()

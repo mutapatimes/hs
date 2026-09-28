@@ -24,7 +24,7 @@ def env(tmp_path, monkeypatch):
 
 
 def _row(**kw):
-    row = {"cid": "c1", "name": "Grace Ladoja", "email": "grace@x.com",
+    row = {"cid": "c1", "name": "Grace Lawson", "email": "grace@x.com",
            "phone": "+44 7700 900123", "grade": "A*", "tier": "A1", "score": 98,
            "band": "lapsed", "known": True, "latent": "£12,400", "spend": 4200,
            "ordersCount": 3, "reco": "Lead with service.",
@@ -108,7 +108,7 @@ def test_lookup_by_phone_matches_on_national_digits(env):
     _seed([_row()])
     d = client.post("/v1/extension/lookup", json={"phone": "07700900123"},
                     headers={"X-Halia-Ext-Token": ext}).json()
-    assert d["found"] is True and d["name"] == "Grace Ladoja"
+    assert d["found"] is True and d["name"] == "Grace Lawson"
 
 
 def test_lookup_surfaces_last_order_and_open_basket(env):
@@ -519,7 +519,7 @@ def test_brief_without_ai_falls_back_to_the_book(env, monkeypatch):
     _seed([_row()])
     d = _brief(client, ext, {"email": "grace@x.com"}).json()
     assert d["source"] == "book" and d["ai_available"] is False
-    assert "Grace Ladoja" in d["summary"] and "gone quiet" in d["summary"]
+    assert "Grace Lawson" in d["summary"] and "gone quiet" in d["summary"]
     assert d["reply"] and "{first_name}" not in d["reply"]
     assert [a["kind"] for a in d["actions"]]                       # heuristic actions still offered
     assert store.shop_metric(SHOP, "extension_brief_ai") == 0
@@ -579,10 +579,10 @@ def test_brief_handles_an_unknown_person(env, monkeypatch):
 
 
 def test_summary_and_actions_from_the_book():
-    row = {"found": True, "name": "Grace Ladoja", "grade": "A*", "play": "sleeping",
+    row = {"found": True, "name": "Grace Lawson", "grade": "A*", "play": "sleeping",
            "ordersCount": 3, "last": "Mar 2026", "cart": {"value": 1800}}
     s = extension._summary_of(row, {"by": "Sarah"})
-    assert "Grace Ladoja" in s and "gone quiet" in s and "3 orders" in s
+    assert "Grace Lawson" in s and "gone quiet" in s and "3 orders" in s
     assert "basket open" in s and "already contacted by Sarah" in s
     acts = extension._suggested_actions(row, {"id": "c1", "name": "Spring"}, {"by": "Sarah"})
     kinds = [a["kind"] for a in acts]
@@ -1180,7 +1180,7 @@ def test_consent_rides_on_lookup_and_the_client_book_with_unknown_as_the_default
     assert d["consent"] == {"email": "subscribed", "sms": "not_subscribed"}
     book = {c["name"]: c for c in client.get("/v1/extension/clients",
                                              headers={"X-Halia-Ext-Token": ext}).json()["clients"]}
-    assert book["Grace Ladoja"]["consent"]["sms"] == "not_subscribed"
+    assert book["Grace Lawson"]["consent"]["sms"] == "not_subscribed"
     assert book["Bella Ndlovu"]["consent"] == {"email": "unknown", "sms": "unknown"}
 
 
@@ -1224,7 +1224,7 @@ def test_burst_renders_one_personal_message_per_client(env, monkeypatch):
                                        "subject": "For {first_name}"}})
     d = r.json()
     assert r.status_code == 200 and d["count"] == 2
-    assert [c["name"] for c in d["clients"]] == ["Bella Ndlovu", "Grace Ladoja"]   # request order, deduped
+    assert [c["name"] for c in d["clients"]] == ["Bella Ndlovu", "Grace Lawson"]   # request order, deduped
     bella = d["clients"][0]
     assert bella["message"] == "Hi Bella, a few pieces: https://shopx/c/abc?s=1&to=Bella\nAmara"
     assert bella["subject"] == "For Bella" and bella["first"] == "Bella"
@@ -1241,7 +1241,7 @@ def test_burst_skips_clients_the_channel_cannot_reach(env):
            _row(cid="c3", name="Mail Only", phone="", email="m@x.com")])
     body = {"cids": ["c1", "c2", "c3"], "template": {"body": "Hi {first_name}"}}
     wa = client.post("/v1/extension/burst", headers=_hdr(ext), json={**body, "channel": "whatsapp"}).json()
-    assert [c["name"] for c in wa["clients"]] == ["Grace Ladoja"]
+    assert [c["name"] for c in wa["clients"]] == ["Grace Lawson"]
     assert {s["name"]: s["reason"] for s in wa["skipped"]} == {"Local Only": "no_phone", "Mail Only": "no_phone"}
     em = client.post("/v1/extension/burst", headers=_hdr(ext), json={**body, "channel": "email"}).json()
     assert {s["name"]: s["reason"] for s in em["skipped"]} == {"Local Only": "no_email"}
@@ -1261,7 +1261,7 @@ def test_burst_resolves_a_campaign_by_its_own_rule(env):
     camp = r.json()["id"]
     d = client.post("/v1/extension/burst", headers=_hdr(ext),
                     json={"campaign_id": camp, "template": {"body": "x"}}).json()
-    assert sorted(c["name"] for c in d["clients"]) == ["Bella Ndlovu", "Grace Ladoja"]   # members ∪ tier
+    assert sorted(c["name"] for c in d["clients"]) == ["Bella Ndlovu", "Grace Lawson"]   # members ∪ tier
     assert client.post("/v1/extension/burst", headers=_hdr(ext),
                        json={"campaign_id": "nope", "template": {"body": "x"}}).status_code == 404
 

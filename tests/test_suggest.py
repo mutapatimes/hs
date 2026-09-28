@@ -46,7 +46,7 @@ def _products(n=4):
 
 def _seed_client():
     cache.set(SHOP, results=[], payload={"data": [{
-        "cid": "c1", "name": "Grace Ladoja", "email": "grace@x.com", "grade": "A*", "tier": "A1",
+        "cid": "c1", "name": "Grace Lawson", "email": "grace@x.com", "grade": "A*", "tier": "A1",
         "known": False, "spend": 4200, "ordersCount": 2, "band": "lapsed",
         "signals": [{"seg": "work", "d": "Work email: Goldman Sachs"}],
         "orders": [{"date": "2026-06-01", "amount": 2400, "items": 1, "titles": ["Camel scarf"]}],
@@ -181,7 +181,7 @@ def test_suggest_needs_a_token(env):
 def test_catalogue_link_is_signed_and_carries_the_selection(env):
     client, store, tok = env
     d = client.post("/v1/extension/catalogue",
-                    json={"product_ids": ["100", "101"], "name": "Grace Ladoja"},
+                    json={"product_ids": ["100", "101"], "name": "Grace Lawson"},
                     headers={"X-Halia-Ext-Token": _ext(client, tok)}).json()
     assert "/for?" in d["url"] and "p=100%2C101" in d["url"] and "to=Grace" in d["url"]
     assert "s=" in d["url"]

@@ -6,11 +6,11 @@ from build_mvp import mask_payload, render_payload
 def _payload():
     return {
         "segments": {}, "data": [
-            {"id": "C-0001", "cid": "1", "name": "Grace Ladoja", "init": "GL", "email": "g@x.com", "phone": "07700",
+            {"id": "C-0001", "cid": "1", "name": "Grace Lawson", "init": "GL", "email": "g@x.com", "phone": "07700",
              "latent": 100, "spend": 50, "grade": "A*", "signals": [{"d": "Prime postcode: SW1"}],
              "orders": [{"id": 1}], "cart": {"value": 10}, "adminUrl": "https://admin/x", "city": "London"},
         ],
-        "orders": [{"date": "2026-08-01", "name": "Grace Ladoja", "email": "g@x.com", "total": 120}],
+        "orders": [{"date": "2026-08-01", "name": "Grace Lawson", "email": "g@x.com", "total": 120}],
         "stat_scored": "1", "stat_latent": "£100", "stat_count": "1",
         "stat_avgspend": "£50", "stat_toptier": "1", "full_history": True, "masked": False,
     }

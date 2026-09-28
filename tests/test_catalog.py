@@ -415,7 +415,7 @@ def test_form_page_carries_preview_tags(client, monkeypatch):
         {"id": "2", "title": "Silk scarf", "image_url": "https://cdn/2.jpg"}])
     cid = c.post("/v1/catalog/save", json={"name": "A selection", "product_ids": ["1", "2"],
                                            "enquiry_email": "s@a.com"}).json()["id"]
-    page = c.get(f"/catalog/{cid}?to=Grace%20Ladoja").text
+    page = c.get(f"/catalog/{cid}?to=Grace%20Lawson").text
     assert '<meta property="og:image" content="https://cdn/1.jpg">' in page
     assert 'name="twitter:card" content="summary_large_image"' in page
     assert 'property="og:description" content="A selection for Grace &middot; 2 pieces"'.replace("&middot;", "·") in page
@@ -483,9 +483,9 @@ def test_a_bespoke_selection_can_be_sent_back_without_a_saved_catalogue(client, 
 def test_a_selection_link_carries_the_clients_details_for_prefill(client):
     from halia.api.catalog import adhoc_url
     c, _ = client
-    url = adhoc_url(SHOP, ["1"], "Grace Ladoja", email="grace@x.com", phone="07961123148")
+    url = adhoc_url(SHOP, ["1"], "Grace Lawson", email="grace@x.com", phone="07961123148")
     page = c.get("/catalog/for?" + url.split("?", 1)[1]).text
-    assert 'value="Grace Ladoja"' in page and 'value="grace@x.com"' in page
+    assert 'value="Grace Lawson"' in page and 'value="grace@x.com"' in page
     assert 'value="07961123148"' in page
     assert "A selection for Grace" in page          # the title still uses the first name only
 

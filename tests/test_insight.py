@@ -36,7 +36,7 @@ def client(tmp_path, monkeypatch):
 
 
 def _seed(**kw):
-    row = {"cid": "c1", "name": "Grace Ladoja", "grade": "A*", "tier": "A1", "known": False,
+    row = {"cid": "c1", "name": "Grace Lawson", "grade": "A*", "tier": "A1", "known": False,
            "latent": "£12,400", "spend": 4200, "ordersCount": 3, "last": "Mar 2026",
            "band": "lapsed", "signals": [{"seg": "work", "d": "Work email: Goldman Sachs"}]}
     row.update(kw)
@@ -189,7 +189,7 @@ def test_digest_states_the_facts_without_ai(client, monkeypatch):
     c, _ = client
     _seed(known=True, spend=9000)
     d = c.get("/v1/digest", headers=_auth()).json()
-    assert d["source"] == "book" and "Grace Ladoja" in d["text"]
+    assert d["source"] == "book" and "Grace Lawson" in d["text"]
     assert d["facts"]["quiet"] == 1          # the numbers travel with the prose, always countable
 
 

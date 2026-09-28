@@ -25,8 +25,8 @@ def test_tld_slip_on_any_domain(monkeypatch):
 
 def test_clean_addresses_pass_untouched(monkeypatch):
     _no_dns(monkeypatch)
-    email, suggestion, ok = cq.clean_email("  Grace.Ladoja@Gmail.com ")
-    assert email == "grace.ladoja@gmail.com" and suggestion is None and ok
+    email, suggestion, ok = cq.clean_email("  Grace.Lawson@Gmail.com ")
+    assert email == "grace.lawson@gmail.com" and suggestion is None and ok
 
 
 def test_dead_domain_flags_not_ok(monkeypatch):
