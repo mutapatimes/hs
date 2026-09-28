@@ -2,7 +2,7 @@
 # LOCAL-ONLY DATA — never commit customer / PII data to GitHub
 # ──────────────────────────────────────────────────────────────
 # Ignore the entire sample data folder and everything in it.
-sample_data/
+sample_data/*
 # ...but keep the folder present in the repo via a README placeholder.
 !sample_data/README.md
 

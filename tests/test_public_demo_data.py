@@ -1,10 +1,8 @@
-"""The public demo pages must be built from synthetic data, never from a retailer's export.
+"""The public demo pages are built from synthetic data only.
 
-On 2026-09-28 the Store Concierge demo page was found to carry a real export's addresses and
-numbers, live and committed. Two guards: every address on a generated demo page must exist in
-the synthetic file when that file is present locally, and, everywhere, no address may carry the
-tells of a real consumer export (a numeric local part, or a free-mail domain the synthetic
-generator never writes).
+Two guards: every address on a generated demo page must exist in the synthetic file when that
+file is present locally, and no address may carry the tells of a real consumer export (a numeric
+local part, or a free-mail domain the synthetic generator never writes).
 """
 import re
 from pathlib import Path

@@ -8,7 +8,7 @@ Settings → Apps and sales channels → Develop apps → create one, grant thos
 copy the Admin API access token. Halia's own app token deliberately lacks write_orders.
 
     .venv/bin/python scripts/seed_dev_store.py --shop glen-norah-vmskd33v.myshopify.com \\
-        --token shpat_... --source sample_data/sample_two.xlsx --limit 300
+        --token shpat_... --source sample_data/synthetic_100k.xlsx --limit 300
 
 Orders are created "now" (Shopify sets created_at itself) with processed_at backdated, so they sit
 inside the 60-day window an unapproved app can read. Re-running skips customers already there.
@@ -145,7 +145,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--shop", default=os.environ.get("SHOPIFY_SHOP"))
     ap.add_argument("--token", default=os.environ.get("SHOPIFY_ADMIN_TOKEN"))
-    ap.add_argument("--source", default="sample_data/sample_two.xlsx")
+    ap.add_argument("--source", default="sample_data/synthetic_100k.xlsx")
     ap.add_argument("--limit", type=int, default=200)
     ap.add_argument("--offset", type=int, default=0)
     ap.add_argument("--dry-run", action="store_true")

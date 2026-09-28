@@ -34,12 +34,13 @@ def load_data(
     Raises:
         FileNotFoundError: If the data file is missing (with a helpful hint).
     """
-    path = Path(path)
+    from halia.datavault import resolve_data_path, vault_dir
+    path = resolve_data_path(Path(path))
     if not path.exists():
         raise FileNotFoundError(
             f"Data file not found: {path}\n"
-            "Place the customer export at this path (it is git-ignored and "
-            "stays local). See sample_data/README.md."
+            f"Real exports live in the vault ({vault_dir()}), synthetic files in sample_data/. "
+            "See docs/data-handling-policy.md."
         )
 
     df = pd.read_excel(path, sheet_name=sheet, engine="openpyxl")

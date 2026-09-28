@@ -19,7 +19,7 @@ Reusable on any book. Run it on the first client's real export for a client-spec
 
 Usage
 -----
-    python scripts/validate_engine.py --data sample_data/SAMPLE3.xlsx
+    python scripts/validate_engine.py --data SAMPLE3.xlsx        # resolved from the vault
     python scripts/validate_engine.py --data client.xlsx --spend-col "LT Spent" --top-pct 5
 """
 from __future__ import annotations
@@ -175,7 +175,7 @@ def report(a: dict) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Validate the Halia engine against a book.")
-    ap.add_argument("--data", default="sample_data/SAMPLE3.xlsx")
+    ap.add_argument("--data", default="SAMPLE3.xlsx", help="a synthetic file in sample_data/, or the NAME of an export in the vault (HALIA_REAL_DATA_DIR)")
     ap.add_argument("--spend-col", default="LT Spent")
     ap.add_argument("--top-pct", type=float, default=5.0, help="Top N%% by spend = proven top clients")
     args = ap.parse_args()

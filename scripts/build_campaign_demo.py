@@ -30,7 +30,8 @@ CAMPAIGN = {
 
 
 def main() -> None:
-    scored = score_customers(load_data("sample_data/synthetic_100k.xlsx"))   # never a real export: this page is public
+    from halia.datavault import public_safe_source
+    scored = score_customers(load_data(public_safe_source("sample_data/synthetic_100k.xlsx")))   # this page is public
     payload = dashboard_payload(scored, {}, "sample", {"aov": 0, "max_orders": 0, "highest_lt": 0})
     clients = payload["data"]
     members = select_members(CAMPAIGN, clients)

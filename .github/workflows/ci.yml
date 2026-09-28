@@ -7,7 +7,20 @@ on:
   pull_request:
 
 jobs:
+  pii-gate:
+    # Refuses the push if any tracked text carries a real customer export. Runs first and fast.
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: No real customer data in the tree
+        run: python scripts/check_no_pii.py
+
   test:
+    needs: pii-gate
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

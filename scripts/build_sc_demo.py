@@ -16,7 +16,8 @@ from scoring.loader import load_data                       # noqa: E402
 from halia.storeconcierge.clienteling import clienteling_payload  # noqa: E402
 from halia.storeconcierge.dashboard import render_clienteling     # noqa: E402
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else "sample_data/synthetic_100k.xlsx"   # never a real export: this page is public
+from halia.datavault import public_safe_source
+SRC = public_safe_source(sys.argv[1] if len(sys.argv) > 1 else "sample_data/synthetic_100k.xlsx")   # this page is public
 OUT = ROOT / "web" / "site" / "sc-demo.html"
 
 

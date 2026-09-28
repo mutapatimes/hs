@@ -29,7 +29,8 @@ SHOP, TOK, PORT = "dev-store", "devtoken", 8899
 def _seed():
     store = shopify_auth.shop_store()
     store.create_tenant(SHOP, "shopify", "Dev Store (sample)", hash_token(TOK))
-    scored = score_customers(load_data("sample_data/SAMPLE3.xlsx"))
+    from halia.datavault import real_source
+    scored = score_customers(load_data(real_source("SAMPLE3.xlsx")))   # from the vault, never the repo
     results = engine.results_from_scored(scored)
     payload = dashboard_payload(scored, {}, SHOP, {"aov": 0, "max_orders": 0, "highest_lt": 0})
 

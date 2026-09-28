@@ -43,6 +43,13 @@ if _senv.environ.get("SENTRY_DSN"):
     except Exception:  # noqa: BLE001 — observability must never take the app down
         pass
 
+# Two guards that run before a single request is served. The first refuses to start if any
+# public file carries a real customer export; the second masks anything person-shaped in every
+# log line, Halia's and uvicorn's alike.
+from halia import datavault as _datavault, logredact as _logredact  # noqa: E402
+_datavault.assert_public_tree_clean()
+_logredact.install()
+
 app = FastAPI(title="Halia", version="1.0", summary="Hidden-VIC scoring — embedded Shopify app",
               docs_url="/api/docs", openapi_url="/api/openapi.json")
 
