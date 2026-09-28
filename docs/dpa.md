@@ -111,7 +111,7 @@ published at haliascore.com/privacy#subprocessors and, at the date of this DPA, 
 | Render Services, Inc. | Hosting and managed database for the Halia application | None stored; customer records pass through server memory during scoring | UK/EU region, confirmed at contract |
 | Stripe Payments Europe, Ltd. | Subscription billing for the Controller's account | None; the Controller's billing details only | EU/UK |
 | Brevo (Sendinblue SAS) | Transactional email to the Controller's team: sign-in links, alerts, results | The Controller's team addresses; a customer's first name may appear in an alert to the team | EU (France) |
-| Anthropic, PBC | Drafting and polishing message text when the Controller enables AI drafting | The text of the draft request: the customer's first name, the grade, recent purchases and the visible conversation excerpt supplied by the team member. Not retained by the provider for training under its API terms | United States, under the UK Addendum to the EU SCCs |
+| Anthropic, PBC | Drafting and polishing message text, unless the Controller turns AI drafting off in Settings | The text of one draft request at a time: the customer's name, grade, order count and last order date, the products bought, the reasons the client surfaced, and the conversation excerpt on the team member's screen. Not used for training under the provider's API terms; retained by the provider for its standard limited period unless a zero-retention agreement is in place | United States, under the UK Addendum to the EU SCCs |
 
 Halia will inform the Controller of intended changes to this list at least 30 days in advance,
 giving the Controller the opportunity to object. The Controller's own connected platforms (Shopify,

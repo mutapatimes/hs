@@ -19,7 +19,8 @@ function setMode(settled) {
 }
 
 async function load() {
-  const { haliaBase, haliaToken, haliaName, radarOff, lookupEverywhere } = await chrome.storage.sync.get(
+  const { haliaBase, haliaToken, haliaName } = await chrome.storage.local.get(["haliaBase", "haliaToken", "haliaName"]);
+  const { radarOff, lookupEverywhere } = await chrome.storage.sync.get(
     ["haliaBase", "haliaToken", "haliaName", "radarOff", "lookupEverywhere"]);
   $("token").value = haliaToken || "";
   $("base").value = haliaBase || DEFAULT_BASE;
@@ -119,7 +120,7 @@ $("name").onchange = () => { persist(); saveProfile(); };
 
 // ── the associate's profile lives on their seat (server); the extension edits it ──
 async function profileHeaders() {
-  const { haliaBase, haliaToken } = await chrome.storage.sync.get(["haliaBase", "haliaToken"]);
+  const { haliaBase, haliaToken } = await chrome.storage.local.get(["haliaBase", "haliaToken"]);
   const base = (haliaBase || DEFAULT_BASE).replace(/\/+$/, "");
   return { base, headers: { "X-Halia-Ext-Token": haliaToken || "", "Content-Type": "application/json" } };
 }

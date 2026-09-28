@@ -456,7 +456,7 @@ def test_draft_context_includes_gone_quiet_standing(env):
         [{"from": "them", "text": "hi"}],
         "welcome her back")
     assert "gone quiet" in ctx and "Goldman Sachs" in ctx
-    assert "welcome her back" in ctx and "Client: hi" in ctx
+    assert "welcome her back" in ctx and "<client_message>hi</client_message>" in ctx
 
 
 def test_clean_thread_caps_and_normalises():

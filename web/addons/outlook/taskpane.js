@@ -886,7 +886,9 @@
     el("connectGo").onclick = connect;
     el("tok").onkeydown = function (e) { if (e.key === "Enter") connect(); };
     el("signout").onclick = function () {
-      try { localStorage.removeItem(KEY); } catch (e) { /* nothing to clear */ }
+      try { api("/v1/extension/signout", { method: "POST" }).catch(function () {}); } catch (e) { /* best effort */ }
+      burst = null;
+      try { localStorage.removeItem(KEY); localStorage.removeItem(BKEY); } catch (e) { /* nothing to clear */ }
       try {
         Office.context.roamingSettings.remove(KEY);
         Office.context.roamingSettings.saveAsync(function () {});

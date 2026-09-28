@@ -4,9 +4,25 @@
 
 const DEFAULT_BASE = "https://haliascore.com";
 
+// The token lives in chrome.storage.LOCAL: this device only, never copied to every Chrome
+// profile signed into the same Google account, and (TRUSTED_CONTEXTS) never readable by the
+// content scripts that run inside WhatsApp, Gmail or a store page. Sync keeps only preferences.
+const ALLOWED_BASES = [DEFAULT_BASE];
+try { chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" }); } catch (e) { /* older Chrome */ }
+
 async function config() {
-  const { haliaBase, haliaToken } = await chrome.storage.sync.get(["haliaBase", "haliaToken"]);
-  return { base: (haliaBase || DEFAULT_BASE).replace(/\/+$/, ""), token: haliaToken || "" };
+  let { haliaBase, haliaToken } = await chrome.storage.local.get(["haliaBase", "haliaToken"]);
+  if (!haliaToken) {
+    // one-time move of a token stored by an earlier version in the synced area
+    const old = await chrome.storage.sync.get(["haliaBase", "haliaToken", "haliaName"]);
+    if (old.haliaToken) {
+      await chrome.storage.local.set({ haliaToken: old.haliaToken, haliaBase: old.haliaBase || DEFAULT_BASE, haliaName: old.haliaName || "" });
+      await chrome.storage.sync.remove(["haliaToken", "haliaBase", "haliaName"]);
+      haliaToken = old.haliaToken; haliaBase = old.haliaBase;
+    }
+  }
+  const base = (haliaBase || DEFAULT_BASE).replace(/\/+$/, "");
+  return { base: ALLOWED_BASES.includes(base) ? base : DEFAULT_BASE, token: haliaToken || "" };
 }
 
 // Sign out: tell Halia this seat's device is going inactive (best effort), then clear the local token.
@@ -18,7 +34,9 @@ async function signout() {
         { method: "POST", headers: { "X-Halia-Ext-Token": token } }, 6000);
     } catch (e) { /* best effort — clear locally regardless */ }
   }
-  await chrome.storage.sync.remove(["haliaToken", "haliaName"]);
+  // Everything that names a client goes with the token: the burst queue, seen events, the name.
+  await chrome.storage.local.remove(["haliaToken", "haliaName", "haliaBase", "haliaBurst", "seenEvents"]);
+  await chrome.storage.sync.remove(["haliaToken", "haliaName", "haliaBase"]);
   return { ok: true };
 }
 
@@ -527,12 +545,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
   if (msg && msg.type === "halia:connect") {
-    // One-click connect from the dashboard (via content/connect.js). Store the handed-over token
-    // exactly like a pasted one, so nobody has to copy anything.
-    const base = String(msg.base || DEFAULT_BASE).replace(/\/+$/, "");
-    const set = { haliaToken: String(msg.token || ""), haliaBase: base };
+    // One-click connect from the dashboard (via content/connect.js). Only a page on Halia's own
+    // origin may hand over a token, and the address is always Halia's: a script anywhere else,
+    // or a message naming another server, is ignored.
+    const from = String((_sender && _sender.url) || "");
+    if (!from.startsWith(DEFAULT_BASE + "/")) { sendResponse({ ok: false }); return true; }
+    const set = { haliaToken: String(msg.token || ""), haliaBase: DEFAULT_BASE };
     if (msg.name) set.haliaName = String(msg.name).slice(0, 80);
-    chrome.storage.sync.set(set).then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false }));
+    chrome.storage.local.set(set).then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false }));
     return true;
   }
   if (msg && msg.type === "halia:woo-sync") {

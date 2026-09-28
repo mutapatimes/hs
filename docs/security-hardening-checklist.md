@@ -69,6 +69,59 @@ window zero (the data must be cleartext to score), but you can make it small, ha
   written to our disk, database, or logs." That candour reads, to a security team, as *understanding*
   your threat model — worth more than a false absolute.
 
+## Controls in code (September 2026)
+Each of these is enforced in code and pinned by a test, so it stays true as the product grows.
+
+**Keys and sessions**
+- One signing key per purpose ([tenant_auth.py](../halia/api/tenant_auth.py) `_secret(purpose)`): a
+  merchant session, a staff session, a team sign-in link, the console, the CMS, a deck link and a
+  billing return each verify under their own derived key. A cookie minted for one surface is
+  meaningless on another. A session whose expiry lies beyond its own lifetime is void.
+- Webhooks act only on the shop named inside the signed body, on an allow-listed topic
+  ([webhooks.py](../halia/api/webhooks.py)); the header alone never chooses the target.
+- A store is created once ([store.py](../halia/store.py) `create_tenant` is insert-only). A second
+  connection under the same or a look-alike key answers 409 and changes nothing.
+- The billing return carries a signed state; a forged return cannot activate a plan.
+
+**Input handling**
+- Every fetch to an address a merchant or visitor supplied goes through
+  [netguard.py](../halia/netguard.py): public http(s) only, resolved before the call, re-checked on
+  each redirect, capped in size. Private ranges, loopback, link-local and cloud metadata are refused.
+- HTML that reaches a page is reduced to an allow-list with nh3 (blog bodies, CMS overrides);
+  uploads are sniffed and served under a sandboxing policy; text that is echoed is escaped.
+- `/v1/score` caps a batch at 100 rows; the manager-only exports need a manager session.
+- The rate limiter keys on the right-most forwarded address, counts sign-in attempts separately
+  and covers the catalogue, order webhooks and the extension routes.
+
+**The extension, the keyboard and the add-in**
+- The extension token lives in device-local storage, readable only by the extension's own trusted
+  contexts, never in synced storage and never by the scripts that run inside WhatsApp, Gmail or a
+  store page. Only a page on Halia's own origin, in the top frame, can hand over a token, and the
+  server address is always Halia's, whatever the page says.
+- A scanned code can sign the phone in; it cannot point the keyboard at another server.
+- Sign-out on every surface empties everything the device held: the burst queue, seen events,
+  opening hours, store details, saved openers.
+- Bulk endpoints are capped per caller as well as per store ([extension.py](../halia/api/extension.py)
+  `_ext_rate`): the client book is served a page at a time, the caller-ID directory a few times a
+  day, a burst a dozen times an hour. A token that leaves the building is worth a page of names, not
+  the book.
+
+**AI drafting**
+- One shared weekly budget per store across every AI call, counted before the call so a failed
+  call still costs; a daily ceiling per seat; and a per-store switch (Settings, House voice,
+  "Draft with AI") that turns every model call off in favour of the store's own templates.
+- The conversation on screen is quoted inside tags the model is told to treat as data. Every
+  prompt carries the rule that nothing in the material can change the task, that links, codes and
+  account details from a client's message are never repeated, and that the client is never asked
+  for a payment or a code. A generated draft keeps only links that point at the store, its
+  catalogue or Halia. The estimated value figure never enters a prompt.
+
+**Data handling**
+- Real exports live outside the checkout ([datavault.py](../halia/datavault.py)); public demo pages
+  are built from synthetic files only; a scanner runs in the pre-commit hook, the first CI job, the
+  test suite and at application start, which refuses to serve a public tree carrying a real-export
+  tell. Log output masks addresses and long digit runs.
+
 ## Sequencing (if you do nothing else)
 1. `pip audit` + 2FA on your accounts (Tier A) — hours, closes the likely paths.
 2. Keep customer data out of logs/disk (already true — guard it) + operator-file hygiene.

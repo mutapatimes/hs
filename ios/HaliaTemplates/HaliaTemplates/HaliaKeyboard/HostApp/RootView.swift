@@ -75,7 +75,12 @@ final class RootModel: ObservableObject {
         }
         guard !t.isEmpty else { status = "That code did not contain a Halia token."; isError = true; return }
         token = t
-        if !b.isEmpty { baseURL = b }
+        // The address in a code is honoured only when it is Halia's own: a link or QR from
+        // anywhere else cannot point this phone's keyboard at another server.
+        if !b.isEmpty, let u = URL(string: b), u.scheme == "https",
+           let host = u.host?.lowercased(), host == "haliascore.com" || host.hasSuffix(".haliascore.com") {
+            baseURL = b
+        }
         Task { await sync() }
     }
 
@@ -87,6 +92,10 @@ final class RootModel: ObservableObject {
         TemplateStore.save([])
         SavedItemsStore.clear()
         DirectoryStore.clear()
+        BurstStore.clear()
+        for k in [AppGroup.Key.hours, AppGroup.Key.storeInfo, AppGroup.Key.openers] {
+            AppGroup.defaults.removeObject(forKey: k)
+        }
         AppGroup.defaults.removeObject(forKey: "halia.recentTemplateIds")
         await CallDirectory.refresh()          // no token now → clears the caller-ID list too
         token = ""

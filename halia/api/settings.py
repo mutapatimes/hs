@@ -369,6 +369,9 @@ def settings_for(shop: str) -> dict:
         "catalog_domain": d.get("catalog_domain", ""),   # white-label host for catalogue links (CNAME)
         # The house voice: four sliders + a language, applied to AI drafting and template rewrites.
         "voice": _voice.clean_voice(d.get("voice")),
+        # Whether this store lets Halia send draft requests to the language model at all. Off
+        # means every draft, polish and brief comes from the store's own templates and rules.
+        "ai_enabled": bool(d.get("ai_enabled", True)),
         # When the shop is open, so a booking surface can offer real times.
         "hours": clean_hours(d.get("hours")),
         # The store's LINE Official Account Basic ID (e.g. @maison). Powers the add-friend QR in
@@ -533,7 +536,7 @@ def register(app) -> None:
         # Whether AI drafting ("Draft with Halia") is live: an LLM key is configured on the server.
         # When off, the extension's draft button falls back to the merchant's templates.
         from halia import llm
-        s["ai_drafting"] = llm.available()
+        s["ai_drafting"] = llm.available() and bool(s.get("ai_enabled", True))
         # The 1:1 outreach draft (editable at /admin) — the dashboard's "Draft note" opens it as a mailto.
         from halia.api.content import draft_template
         s["email_draft"] = draft_template()
@@ -578,6 +581,7 @@ def register(app) -> None:
             "catalog_domain": _clean_domain(payload.get("catalog_domain")),
             "voice": (_voice.clean_voice(payload["voice"]) if "voice" in payload
                       else _voice.clean_voice(existing.get("voice"))),
+            "ai_enabled": bool(payload.get("ai_enabled", existing.get("ai_enabled", True))),
             "hours": (clean_hours(payload["hours"]) if "hours" in payload
                       else clean_hours(existing.get("hours"))),
             "line_id": str(payload.get("line_id", existing.get("line_id") or "")).strip()[:40],

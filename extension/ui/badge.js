@@ -773,7 +773,7 @@
         + ' · <span data-a="signout" style="cursor:pointer;text-decoration:underline">Sign out</span>';
       const so = el.querySelector('[data-a="signout"]');
       if (so) so.onclick = () => chrome.runtime.sendMessage({ type: "halia:signout" }, () => {
-        ctx = null; renderFoot();
+        ctx = null; burst = null; client = null; renderFoot(); renderBurst(); renderClient();
         try { window.dispatchEvent(new CustomEvent("halia:refresh")); } catch (e) { /* ignore */ }
       });
     } else {

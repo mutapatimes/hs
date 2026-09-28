@@ -22,8 +22,10 @@
     if (d.type === "ping") { announce(); return; }    // re-announce if the dashboard asks
 
     if (d.type === "connect" && d.token) {
+      // The page may hand over a token, never an address: the extension talks only to the
+      // origin this script runs on, whatever the message says.
       chrome.runtime.sendMessage(
-        { type: "halia:connect", token: String(d.token), base: d.base || ORIGIN, name: d.name || "" },
+        { type: "halia:connect", token: String(d.token), base: ORIGIN, name: d.name || "" },
         function (r) {
           var ok = !chrome.runtime.lastError && r && r.ok;
           window.postMessage({ source: "halia-ext", type: "connected", ok: !!ok }, ORIGIN);

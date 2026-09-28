@@ -4306,6 +4306,8 @@ function openSettings(page){
                 <div style="display:flex;justify-content:space-between;font:600 12px system-ui;color:#616161;margin-bottom:5px"><span>${lo}</span><span>${hi}</span></div>
                 <input type="range" min="0" max="100" value="${(SETTINGS.voice||{})[k]??60}" data-voice="${k}" style="width:100%;accent-color:#1f564a">
               </div>`).join("")}
+              <label style="display:flex;align-items:center;gap:8px;font:14px system-ui;color:var(--ink);margin:2px 0 14px;cursor:pointer">
+                <input type="checkbox" id="setAiEnabled" ${SETTINGS.ai_enabled!==false?"checked":""} style="width:16px;height:16px;accent-color:#1f564a"> Draft with AI</label>
               <div style="margin-top:6px">
                 <div style="${LBL}">Language</div>
                 <select id="voiceLang" style="${I};margin-top:6px;max-width:260px">${VOICE_LANGS.map(([c,n])=>`<option value="${c}" ${((SETTINGS.voice||{}).language||"en")===c?"selected":""}>${n}</option>`).join("")}</select>
@@ -4993,6 +4995,7 @@ function openSettings(page){
         catalog_domain:(document.getElementById("setCatDomain")||{}).value||"",
         hours:readHours(),
         line_id:(document.getElementById("setLineId")||{}).value||"",
+        ai_enabled:(function(b){return b?b.checked:SETTINGS.ai_enabled!==false;})(document.getElementById("setAiEnabled")),
         ...(document.querySelector("[data-voice]")?{voice:(function(){const v={};document.querySelectorAll("[data-voice]").forEach(r=>v[r.dataset.voice]=+r.value);v.language=(document.getElementById("voiceLang")||{}).value||"en";return v;})()}:(SETTINGS.voice?{voice:SETTINGS.voice}:{})),
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),
         order_templates:Object.fromEntries(OSTAT.map(st=>[st,(otmpl[st]||[]).filter(t=>(t.name||"").trim()&&(t.body||"").trim())]))};
