@@ -1,0 +1,5 @@
+#!/bin/sh
+# Refuse a commit that carries a real customer export. Installed by: git config core.hooksPath .githooks
+files=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$files" ] && exit 0
+python3 scripts/check_no_pii.py $files

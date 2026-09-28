@@ -57,3 +57,14 @@ def test_demo_builders_default_to_the_synthetic_file():
         s = (ROOT / rel).read_text()
         assert "synthetic_100k.xlsx" in s, rel
         assert "SAMPLE3" not in s.replace('"""', "").split("\n", 12)[-1] or "synthetic" in s, rel
+
+
+def test_no_tracked_file_carries_a_real_export():
+    import subprocess, sys
+    r = subprocess.run([sys.executable, str(ROOT / "scripts" / "check_no_pii.py")], capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_the_pre_commit_hook_is_wired():
+    hook = ROOT / ".githooks" / "pre-commit"
+    assert hook.exists() and "check_no_pii.py" in hook.read_text()
