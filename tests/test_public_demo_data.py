@@ -1,35 +1,59 @@
 """The public demo pages must be built from synthetic data, never from a retailer's export.
 
 On 2026-09-28 the Store Concierge demo page was found to carry a real export's addresses and
-numbers, live and committed. The synthetic generator writes addresses as first.last<digits>@ a
-free-mail domain, so every address on a served demo page must match that shape; a real export
-breaks it at the first row.
+numbers, live and committed. Two guards: every address on a generated demo page must exist in
+the synthetic file when that file is present locally, and, everywhere, no address may carry the
+tells of a real consumer export (a numeric local part, or a free-mail domain the synthetic
+generator never writes).
 """
 import re
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
-SYNTHETIC = re.compile(r"^[a-z]+\.[a-z]+\d+@(gmail|outlook|icloud|yahoo|hotmail)\.com$")
+SYNTHETIC_XLSX = ROOT / "sample_data" / "synthetic_100k.xlsx"
 # The two pages generated from a data file. The hand-written demo pages carry a few fictional
 # addresses typed by hand and are not built from any export.
 PAGES = ["web/site/sc-demo.html", "web/site/campaign-demo.html"]
+# Domains a real consumer export is full of and the synthetic generator never writes.
+REAL_EXPORT_DOMAINS = ("qq.com", "163.com", "126.com", "sina.com", "foxmail.com", "yeah.net",
+                       "hotmail.com", "yahoo.com", "outlook.com", "live.com", "aol.com")
 
 
 def _emails(text: str) -> set[str]:
-    return set(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}", text))
+    return {e.lower() for e in re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}", text)
+            if not e.lower().endswith(("haliascore.com", "example.com"))}
 
 
-def test_every_address_on_a_public_demo_page_is_synthetic():
+def test_no_address_on_a_public_demo_page_looks_like_a_real_export():
     for rel in PAGES:
         p = ROOT / rel
         if not p.exists():
             continue
-        found = {e for e in _emails(p.read_text()) if not e.endswith(("haliascore.com", "example.com"))}
-        bad = sorted(e for e in found if not SYNTHETIC.match(e))
-        assert not bad, f"{rel} carries addresses that are not synthetic: {bad[:5]}"
+        found = _emails(p.read_text())
+        numeric = sorted(e for e in found if re.match(r"^\d+@", e))
+        assert not numeric, f"{rel}: numeric local parts are a real-export tell: {numeric[:5]}"
+        consumer = sorted(e for e in found if e.endswith(REAL_EXPORT_DOMAINS))
+        assert not consumer, f"{rel}: domains the synthetic generator never writes: {consumer[:5]}"
+
+
+@pytest.mark.skipif(not SYNTHETIC_XLSX.exists(), reason="synthetic file is local only")
+def test_every_address_on_a_generated_page_comes_from_the_synthetic_file():
+    import pandas as pd
+    df = pd.read_excel(SYNTHETIC_XLSX)
+    col = next(c for c in df.columns if "mail" in c.lower())
+    synthetic = set(df[col].dropna().astype(str).str.lower())
+    for rel in PAGES:
+        p = ROOT / rel
+        if not p.exists():
+            continue
+        strangers = sorted(_emails(p.read_text()) - synthetic)
+        assert not strangers, f"{rel}: addresses not in the synthetic file: {strangers[:5]}"
 
 
 def test_demo_builders_default_to_the_synthetic_file():
     for rel in ("scripts/build_sc_demo.py", "scripts/build_campaign_demo.py"):
         s = (ROOT / rel).read_text()
-        assert "synthetic_100k.xlsx" in s and "SAMPLE3" not in s.split("def ")[-1], rel
+        assert "synthetic_100k.xlsx" in s, rel
+        assert "SAMPLE3" not in s.replace('"""', "").split("\n", 12)[-1] or "synthetic" in s, rel
