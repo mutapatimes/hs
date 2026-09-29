@@ -34,7 +34,7 @@ final class RootModel: ObservableObject {
     func sync() async {
         let t = token.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else {
-            status = "Paste your Halia token first."; isError = true; return
+            status = "Paste your sign-in code first."; isError = true; return
         }
         busy = true; isError = false; status = "Syncing…"
         Credentials.token = t
@@ -83,7 +83,7 @@ final class RootModel: ObservableObject {
         } else {
             t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        guard !t.isEmpty else { status = "That code did not contain a Halia token."; isError = true; return }
+        guard !t.isEmpty else { status = "That code is not a Halia sign-in."; isError = true; return }
         token = t
         // The address in a code is honoured only when it is Halia's own: a link or QR from
         // anywhere else cannot point this phone's keyboard at another server.
@@ -484,11 +484,11 @@ private struct ConnectStep: View {
 
                 Divider().overlay(Palette.line).padding(.vertical, 2)
                 if showToken {
-                    LuxeField(label: "Halia token", text: $model.token, secure: true)
-                    LuxeButton("Connect & sync") { model.connect(scanned: model.token) }
+                    LuxeField(label: "Sign-in code", text: $model.token, secure: true)
+                    LuxeButton("Connect") { model.connect(scanned: model.token) }
                         .disabled(model.busy).opacity(model.busy ? 0.5 : 1)
                 } else {
-                    Button("Paste a token instead") { withAnimation { showToken = true } }
+                    Button("Paste a sign-in code instead") { withAnimation { showToken = true } }
                         .font(.system(size: 13, weight: .semibold)).foregroundColor(Palette.sage)
                 }
             }
@@ -2108,7 +2108,7 @@ private struct CaptureToolsView: View {
                     TextField("Sign-off, e.g. Warm regards, Sarah", text: $card.signoff, axis: .vertical)
                         .lineLimit(1...3)
                 } header: { Text("Your details") } footer: {
-                    Text("Your name and position sign every draft. Kept with your seat, and on this device for the card and the WhatsApp QR.")
+                    Text("Your name and position sign every draft. Kept with your sign-in, and on this device for the card and the WhatsApp QR.")
                 }
             }
             .navigationTitle("Capture tools")

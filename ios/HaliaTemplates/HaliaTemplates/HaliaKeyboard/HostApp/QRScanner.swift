@@ -64,7 +64,7 @@ struct QRScanner: View {
             Image(systemName: "camera.fill").font(.system(size: 34)).foregroundColor(.white.opacity(0.9))
             Text("Camera access is off")
                 .font(.system(size: 20, weight: .semibold, design: .serif)).foregroundColor(.white)
-            Text("Turn it on in Settings to scan your connect code, or paste a token instead.")
+            Text("Turn it on in Settings to scan your connect code, or paste a sign-in code instead.")
                 .font(.system(size: 14)).foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center).padding(.horizontal, 40)
             Button {

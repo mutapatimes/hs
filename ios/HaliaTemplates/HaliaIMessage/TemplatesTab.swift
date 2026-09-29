@@ -39,7 +39,7 @@ struct TemplatesTab: View {
             if templates.isEmpty {
                 VStack(spacing: 6) {
                     Text("No templates synced yet.").font(.footnote).foregroundStyle(.secondary)
-                    Text("Open the Halia app and tap Sync now.")
+                    Text("Open the Halia app and connect to bring your templates here.")
                         .font(.caption).foregroundStyle(Ink.soft)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

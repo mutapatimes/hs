@@ -120,7 +120,7 @@ struct DeskView: View {
                     .tabItem { Label("Book", systemImage: "calendar") }.tag(Tab.book)
                 if hasBurst {
                     BurstTab(model: model) { hasBurst = false; tab = .templates }
-                        .tabItem { Label("Burst", systemImage: "paperplane") }.tag(Tab.burst)
+                        .tabItem { Label("Several", systemImage: "paperplane") }.tag(Tab.burst)
                 }
             }
             .tint(Ink.brand)
@@ -183,7 +183,7 @@ struct BurstTab: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            Text("No burst waiting.").foregroundStyle(.secondary)
+            Text("Nothing waiting to send.").foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }

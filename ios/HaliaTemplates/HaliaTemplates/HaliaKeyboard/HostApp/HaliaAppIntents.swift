@@ -18,7 +18,7 @@ struct WhoToReachTodayIntent: AppIntent {
         }
         let (_, items) = try await HaliaAPI.current.today()
         guard !items.isEmpty else {
-            return .result(dialog: "No one flagged to reach right now. You're clear.")
+            return .result(dialog: "No one to reach right now. You're clear.")
         }
         let names = items.prefix(3).map { $0.name }
         let list = ListFormatter.localizedString(byJoining: names)

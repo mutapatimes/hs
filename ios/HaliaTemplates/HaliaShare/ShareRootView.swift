@@ -66,7 +66,7 @@ struct ShareRootView: View {
                     case .loading:    loading
                     case .signedOut:  stateView("link", "Connect Halia first", "Open Halia and connect your store, then try again.")
                     case .notfound:
-                        stateView("magnifyingglass", "No Halia signal", "“\(query)” is not a flagged client in your book yet.")
+                        stateView("magnifyingglass", "Not in your book", "“\(query)” is not in your book yet.")
                         if let c = sharedContact, captureState != .saved {
                             Button(action: { Task { await saveShared(c) } }) {
                                 Text(captureState == .saving ? "Saving…" : "Add to the client book")
@@ -147,7 +147,7 @@ struct ShareRootView: View {
                 Spacer()
             }
             if let latent = r?.latent, !latent.isEmpty {
-                Text("\(latent) latent value").font(.system(size: 13)).foregroundColor(.secondary)
+                Text("\(latent) potential").font(.system(size: 13)).foregroundColor(.secondary)
             }
             if let action = r?.action, !action.isEmpty {
                 Text(action).font(.system(size: 14, weight: .medium)).foregroundColor(green)
@@ -178,7 +178,7 @@ struct ShareRootView: View {
 
             if let cid = r?.cid, !cid.isEmpty {
                 Button(action: { Task { await markContacted() } }) {
-                    Text(contacted ? "Logged to pipeline ✓" : "Mark contacted")
+                    Text(contacted ? "Marked as contacted" : "Mark as contacted")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(contacted ? .secondary : green)
                 }
@@ -494,7 +494,7 @@ struct ShareRootView: View {
                 if !status.isEmpty { Text(status).font(.system(size: 12.5)).foregroundColor(.secondary) }
                 if let cid = c.cid, !cid.isEmpty {
                     Button(action: { Task { await markContacted() } }) {
-                        Text(contacted ? "Logged to pipeline ✓" : "Mark contacted")
+                        Text(contacted ? "Marked as contacted" : "Mark as contacted")
                             .font(.system(size: 14, weight: .medium)).foregroundColor(contacted ? .secondary : green)
                     }
                     .disabled(contacted)
@@ -512,7 +512,7 @@ struct ShareRootView: View {
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
 
                 if clients.isEmpty {
-                    Text("No clients in your book yet. Sync in the Halia app.")
+                    Text("No clients in your book yet. Open the Halia app and connect.")
                         .font(.system(size: 14)).foregroundColor(.secondary).padding(.top, 8)
                 } else {
                     LazyVStack(spacing: 0) {
@@ -551,7 +551,7 @@ struct ShareRootView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(c.name).font(.system(size: 15, weight: .semibold)).foregroundColor(.primary)
                 if let l = c.latent, !l.isEmpty {
-                    Text("\(l) latent value").font(.system(size: 12)).foregroundColor(.secondary)
+                    Text("\(l) potential").font(.system(size: 12)).foregroundColor(.secondary)
                 }
             }
             Spacer()
@@ -605,7 +605,7 @@ private struct TemplatePicker: View {
                 if templates.isEmpty {
                     VStack(spacing: 8) {
                         Text("No templates yet").font(.system(size: 17, weight: .semibold))
-                        Text("Open Halia and connect your store to sync your templates.")
+                        Text("Open Halia and connect your store to bring your templates here.")
                             .font(.system(size: 14)).foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                     }
