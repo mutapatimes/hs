@@ -135,19 +135,15 @@ private enum Palette {
     static let bg2       = Color(red: 0.945, green: 0.945, blue: 0.945)
 }
 
-// Display text follows the dashboard: the system sans, a step heavier than body.
+// Display text is the system serif (New York), a step heavier than body; everything else is the sans.
 private func serif(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
-    .system(size: size, weight: weight == .regular ? .semibold : weight, design: .default)
+    .system(size: size, weight: weight == .regular ? .semibold : weight, design: .serif)
 }
 
 private let mark = "\u{2042}"   // ⁂ the Halia asterism
 
 private struct PaperBackground: View {
-    var body: some View {
-        LinearGradient(colors: [Palette.bgTop, Palette.bg, Palette.bg2],
-                       startPoint: .top, endPoint: .bottom)
-            .ignoresSafeArea()
-    }
+    var body: some View { Palette.bg.ignoresSafeArea() }
 }
 
 private struct Card<Content: View>: View {
@@ -346,6 +342,10 @@ private struct WizardView: View {
             // (a failed sync, the finish guard) still appear when they actually happen.
             if !model.signedIn { model.status = ""; model.isError = false }
         }
+        // A successful connect moves on by itself; nobody should have to press Continue to be told so.
+        .onChange(of: model.signedIn) { _, on in
+            if on, step == 0 { withAnimation(.easeInOut(duration: 0.35)) { step = 1 } }
+        }
     }
 
     private var header: some View {
@@ -377,7 +377,7 @@ private struct WizardView: View {
             .buttonStyle(.plain)
             Spacer()
             Button(action: next) {
-                Text(step == total - 1 ? "Enter your desk" : "Continue")
+                Text(step == total - 1 ? "Begin" : "Continue")
                     .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                     .padding(.horizontal, 24).padding(.vertical, 14)
                     .background(RoundedRectangle(cornerRadius: 12).fill(Palette.brand))
@@ -601,7 +601,42 @@ private struct ExtensionsStep: View {
     }
 }
 
-// MARK: - Home (connected)
+// MARK: - Home (connected): today
+
+/// The desk is one screen: who to reach today, and the one thing to press. Everything else is a
+/// tile or a menu item. Appointments, birthdays and the book's own nudges are one list, in the
+/// order the day needs them, and a row opens a message to that person.
+private struct ReachItem: Identifiable {
+    enum Kind { case appointment, birthday, order, quiet }
+    let id: String
+    let kind: Kind
+    let cid: String?
+    let name: String
+    let grade: String
+    let why: String
+    let sort: Int                       // lower first
+    let appointment: HaliaAPI.Appointment?
+    var symbol: String {
+        switch kind {
+        case .appointment: return "calendar"
+        case .birthday: return "gift"
+        case .order: return "bag"
+        case .quiet: return "moon"
+        }
+    }
+}
+
+private struct GradeChip: View {
+    let grade: String
+    var body: some View {
+        if !grade.isEmpty {
+            Text(grade).font(.system(size: 12, weight: .bold))
+                .padding(.horizontal, 7).padding(.vertical, 3)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Palette.brand.opacity(0.12)))
+                .foregroundStyle(Palette.brandDeep)
+        }
+    }
+}
 
 private struct HomeView: View {
     @ObservedObject var model: RootModel
@@ -612,150 +647,139 @@ private struct HomeView: View {
     @State private var showCaptureTools = false
     @State private var showSettings = false
     @State private var showBurst = false
+    @State private var showMonth = false
     @State private var captureNote: String?
     @State private var captureId: String?
     @State private var followedUp = false
     @State private var birthdays: [HaliaAPI.Birthday] = []
     @State private var appointments: [HaliaAPI.Appointment] = []
+    @State private var todos: [HaliaAPI.TodayItem] = []
+    @State private var loaded = false
     @State private var openAppt: HaliaAPI.Appointment?
-    @State private var week: HaliaAPI.Week?
-    @State private var weekDays = 365          // all by default; the picker narrows it
+    @State private var reach: ReachItem?
     @Environment(\.openURL) private var openURL
 
+    private var greeting: String {
+        let h = Calendar.current.component(.hour, from: Date())
+        let part = h < 12 ? "Good morning" : (h < 18 ? "Good afternoon" : "Good evening")
+        let first = model.seatName.split(separator: " ").first.map(String.init) ?? ""
+        return first.isEmpty ? part : "\(part), \(first)"
+    }
+    private var dateLine: String {
+        let f = DateFormatter(); f.dateFormat = "EEEE d MMMM"
+        return f.string(from: Date())
+    }
     private var syncLine: String {
-        if model.busy { return "Syncing your templates…" }
+        if model.busy { return "Bringing your templates over…" }
         if model.isError, !model.status.isEmpty { return model.status }
         let n = model.templates.count
         return n == 0 ? "No templates yet" : "\(n) template\(n == 1 ? "" : "s") ready"
     }
 
+    /// The day's list: appointments first by time, then birthdays by nearness, then the book's nudges.
+    private var items: [ReachItem] {
+        var out: [ReachItem] = []
+        for a in appointments.prefix(6) {
+            let days = a.in_days ?? 0
+            out.append(ReachItem(id: "a" + (a.id ?? a.name ?? ""), kind: .appointment, cid: a.cid,
+                                 name: a.name ?? "A client", grade: "", why: apptLine(a),
+                                 sort: max(0, days) * 10, appointment: a))
+        }
+        for b in birthdays.prefix(5) {
+            let n = b.in_days ?? 0
+            let when = n == 0 ? "Birthday today" : (n == 1 ? "Birthday tomorrow" : "Birthday in \(n) days")
+            out.append(ReachItem(id: "b" + (b.cid ?? b.name ?? ""), kind: .birthday, cid: b.cid,
+                                 name: b.name ?? "A client", grade: b.grade ?? "", why: when,
+                                 sort: n * 10 + 1, appointment: nil))
+        }
+        for t in todos.prefix(8) {
+            out.append(ReachItem(id: "t" + t.id, kind: t.isNewOrder ? .order : .quiet, cid: t.cid,
+                                 name: t.name, grade: t.grade, why: t.text,
+                                 sort: t.isNewOrder ? 2 : 30, appointment: nil))
+        }
+        return out.sorted { $0.sort < $1.sort }
+    }
+
     var body: some View {
         NavigationStack {
-            List {
-                Section {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(greeting).font(serif(30)).foregroundColor(Palette.ink)
+                        Text(dateLine).font(.system(size: 14)).foregroundColor(Palette.soft)
+                    }
+                    .padding(.top, 6)
+
                     Button { showCapture = true } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "person.crop.circle.badge.plus")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .frame(width: 38, height: 38)
-                                .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .fill(Palette.brand))
-                            Text("Add a client").font(.title3.weight(.semibold)).foregroundStyle(.primary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.faint)
+                        HStack(spacing: 10) {
+                            Image(systemName: "person.crop.circle.badge.plus").font(.system(size: 17, weight: .semibold))
+                            Text("Add a client").font(.system(size: 16, weight: .semibold))
                         }
-                        .padding(.vertical, 6)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 15)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Palette.brand))
                     }
-                }
+                    .buttonStyle(.plain)
 
-                if !appointments.isEmpty {
-                    Section {
-                        ForEach(Array(appointments.enumerated()), id: \.offset) { _, a in
-                            Button { openAppt = a } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "calendar").foregroundStyle(Palette.brand)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(a.name ?? "A client").font(.body).foregroundStyle(.primary)
-                                        Text(apptLine(a)).font(.footnote).foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundStyle(Palette.faint)
-                                }
-                            }
-                        }
-                    } header: { Text("Appointments") }
-                }
-
-                if let me = week?.me, week?.available == true {
-                    Section {
-                        Picker("Period", selection: $weekDays) {
-                            Text("All").tag(365); Text("Month").tag(30); Text("Week").tag(7)
-                        }
-                        .pickerStyle(.segmented)
-                        .onChange(of: weekDays) { _ in Task { week = try? await HaliaAPI.current.myWeek(days: weekDays) } }
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
-                                  spacing: 14) {
-                            weekStat("\(me.contacts ?? 0)", "contacts")
-                            weekStat("\(me.captures ?? 0)", "captured")
-                            weekStat("\(me.conversions ?? 0)", "converted")
-                        }
-                        .padding(.vertical, 6)
-                        if (me.revenue ?? 0) > 0 || (me.contacts ?? 0) > 0 {
-                            Text("£\(me.revenue ?? 0) from clients you contacted, "
-                                 + "\(Int(((me.rate ?? 0) * 100).rounded()))% converted within two weeks.")
-                                .font(.footnote).foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Today").font(serif(20)).foregroundColor(Palette.ink)
+                        if !loaded {
+                            HaliaLoadingRow(label: "Reading the day")
+                        } else if items.isEmpty {
+                            Text("Nothing waiting. Add a client, or message several.")
+                                .font(.system(size: 14.5)).foregroundColor(Palette.soft)
+                                .padding(.vertical, 6)
                         } else {
-                            Text("Nothing logged yet. Contacts you log and clients you capture show here.")
-                                .font(.footnote).foregroundStyle(.secondary)
-                        }
-                    } header: { Text("Your results") }
-                }
-
-                if !birthdays.isEmpty {
-                    Section {
-                        ForEach(Array(birthdays.prefix(5).enumerated()), id: \.offset) { _, b in
-                            HStack(spacing: 10) {
-                                Image(systemName: "gift").foregroundStyle(Palette.brand)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(b.name ?? "A client").font(.body)
-                                    Text(weekdayLine(b)).font(.footnote).foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                if let g = b.grade, !g.isEmpty {
-                                    Text(g).font(.caption.weight(.semibold))
-                                        .padding(.horizontal, 7).padding(.vertical, 3)
-                                        .background(Capsule().fill(Palette.brand.opacity(0.12)))
-                                        .foregroundStyle(Palette.brandDeep)
+                            VStack(spacing: 0) {
+                                ForEach(items) { it in
+                                    Button {
+                                        if let a = it.appointment { openAppt = a } else { reach = it }
+                                    } label: {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: it.symbol)
+                                                .font(.system(size: 15, weight: .medium))
+                                                .foregroundColor(Palette.brand).frame(width: 22)
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(it.name).font(.system(size: 15.5, weight: .semibold)).foregroundColor(Palette.ink)
+                                                Text(it.why).font(.system(size: 13)).foregroundColor(Palette.soft).lineLimit(2)
+                                            }
+                                            Spacer()
+                                            GradeChip(grade: it.grade)
+                                            Image(systemName: "chevron.right")
+                                                .font(.system(size: 12, weight: .semibold)).foregroundColor(Palette.faint)
+                                        }
+                                        .padding(.vertical, 12).padding(.horizontal, 14)
+                                    }
+                                    .buttonStyle(.plain)
+                                    if it.id != items.last?.id { Divider().overlay(Palette.line).padding(.leading, 48) }
                                 }
                             }
-                        }
-                    } header: { Text("Birthdays") } footer: {
-                        Text("The birthday note is in your templates, ready to send.")
-                    }
-                }
-
-                Section("On the floor") {
-                    navRow("Message several clients", "One template, sent to each from your own apps",
-                           icon: "paperplane.fill", tint: Palette.brand) { showBurst = true }
-                    navRow("Capture tools", "QR codes and your card, for the shop floor",
-                           icon: "qrcode", tint: Palette.brandDeep) { showCaptureTools = true }
-                    navRow("Message openers", "The angles you send from Share",
-                           icon: "bubble.left.and.text.bubble.right.fill", tint: .indigo) { showOpeners = true }
-                    navRow("Your details and voice", "Your name, your sign-off, how the house sounds",
-                           icon: "slider.horizontal.3", tint: Palette.brand) { showSettings = true }
-                }
-
-                Section {
-                    Button { Task { await model.sync() } } label: {
-                        HStack(spacing: 8) {
-                            if model.busy { ProgressView().controlSize(.small) }
-                            Text(model.busy ? "Syncing…" : syncLine)
-                                .font(.footnote)
-                                .foregroundStyle(model.isError ? Color.orange : .secondary)
-                            Spacer()
-                            if !model.busy {
-                                Text("Sync").font(.footnote.weight(.semibold)).foregroundStyle(Palette.brand)
-                            }
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Palette.card))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.line, lineWidth: 1))
                         }
                     }
-                    .listRowBackground(Color.clear)
+
+                    HStack(spacing: 10) {
+                        tile("Several clients", "paperplane") { showBurst = true }
+                        tile("Capture tools", "qrcode") { showCaptureTools = true }
+                        tile("Your month", "chart.bar") { showMonth = true }
+                    }
                 }
+                .padding(.horizontal, 20).padding(.bottom, 30)
             }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Store Concierge Desk")
+            .background(PaperBackground())
+            .navigationTitle("")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Text(mark).font(serif(18)).foregroundColor(Palette.brand)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button { showSettings = true } label: {
-                            Label("Your details and voice", systemImage: "slider.horizontal.3")
-                        }
-                        Button(action: onReconnect) {
-                            Label("Reconnect", systemImage: "qrcode.viewfinder")
-                        }
+                        Button { showSettings = true } label: { Label("Your details and voice", systemImage: "slider.horizontal.3") }
+                        Button { showOpeners = true } label: { Label("Message openers", systemImage: "text.bubble") }
+                        Button { Task { await model.sync() } } label: { Label(syncLine, systemImage: "arrow.clockwise") }
+                        Divider()
+                        Button(action: onReconnect) { Label("Reconnect", systemImage: "qrcode.viewfinder") }
                         Button {
                             let base = Credentials.baseURL.hasSuffix("/")
                                 ? String(Credentials.baseURL.dropLast()) : Credentials.baseURL
@@ -766,26 +790,22 @@ private struct HomeView: View {
                             Task { await model.signOut(); onSignedOut() }
                         } label: { Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right") }
                     } label: {
-                        Image(systemName: "line.3.horizontal")
+                        Image(systemName: "ellipsis.circle")
                     }
                 }
             }
             .tint(Palette.brand)
-            .task { week = try? await HaliaAPI.current.myWeek(days: weekDays)
-                    birthdays = (try? await HaliaAPI.current.birthdays()) ?? []
-                    appointments = (try? await HaliaAPI.current.appointments(days: 90)) ?? [] }
-            .refreshable { await model.sync(); week = try? await HaliaAPI.current.myWeek(days: weekDays)
-                           birthdays = (try? await HaliaAPI.current.birthdays()) ?? []
-                           appointments = (try? await HaliaAPI.current.appointments(days: 90)) ?? [] }
+            .task { await loadDay() }
+            .refreshable { await model.sync(); await loadDay() }
         }
         .sheet(item: $openAppt) { appt in
-            AppointmentView(appt: appt) {
-                appointments = (try? await HaliaAPI.current.appointments(days: 90)) ?? []
-            }
+            AppointmentView(appt: appt) { await loadDay() }
         }
+        .sheet(item: $reach) { it in ReachSheet(item: it) { await loadDay() } }
         .sheet(isPresented: $showSettings) { DeskSettingsView(model: model) }
         .sheet(isPresented: $showBurst) { BurstView(model: model) }
         .sheet(isPresented: $showOpeners) { OpenersEditor() }
+        .sheet(isPresented: $showMonth) { MonthView() }
         .fullScreenCover(isPresented: $showCapture) {
             CaptureView { note, cid in captureNote = note; captureId = cid; followedUp = false }
         }
@@ -823,74 +843,217 @@ private struct HomeView: View {
         }
     }
 
-    private func apptLine(_ a: HaliaAPI.Appointment) -> String {
-
-        let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime]
-
-        let g = ISO8601DateFormatter(); g.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        let d = f.date(from: a.when ?? "") ?? g.date(from: a.when ?? "")
-
-        let df = DateFormatter(); df.dateFormat = "EEE d MMM, HH:mm"
-
-        var s = d.map { df.string(from: $0) } ?? (a.when ?? "")
-
-        if let p = a.place, !p.isEmpty { s += " · " + p }
-
-        if let n = a.seat_name, !n.isEmpty { s += " · " + n }
-
-        return s
-
+    private func loadDay() async {
+        async let a = HaliaAPI.current.appointments(days: 14)
+        async let b = HaliaAPI.current.birthdays()
+        async let t = HaliaAPI.current.today()
+        appointments = (try? await a) ?? []
+        birthdays = (try? await b) ?? []
+        todos = (try? await t)?.items ?? []
+        loaded = true
     }
 
-    private func icsFile(_ ics: String, id: String) -> URL? {
-
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("halia-\(id).ics")
-
-        return (try? ics.data(using: .utf8)?.write(to: url)) != nil ? url : nil
-
-    }
-
-    private func weekdayLine(_ b: HaliaAPI.Birthday) -> String {
-        let n = b.in_days ?? 0
-        let when = n == 0 ? "Today" : (n == 1 ? "Tomorrow" : "In \(n) days")
-        return when + (b.date.map { " \u{00b7} " + String($0.suffix(5)).replacingOccurrences(of: "-", with: "/") } ?? "")
-    }
-
-    private func weekStat(_ value: String, _ label: String) -> some View {
-        VStack(spacing: 3) {
-            Text(value).font(.system(size: 24, weight: .semibold, design: .rounded))
-                .foregroundStyle(.primary)
-            Text(label).font(.caption).foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    /// A Settings-style row: tinted icon tile, title, subtitle, chevron via List.
-    private func navRow(_ title: String, _ sub: String, icon: String, tint: Color,
-                        action: @escaping () -> Void) -> some View {
+    private func tile(_ title: String, _ symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 30, height: 30)
-                    .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(tint))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).foregroundStyle(.primary)
-                    Text(sub).font(.footnote).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.tertiary)
+            VStack(alignment: .leading, spacing: 10) {
+                Image(systemName: symbol).font(.system(size: 17, weight: .medium)).foregroundColor(Palette.brand)
+                Text(title).font(.system(size: 13.5, weight: .semibold)).foregroundColor(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Palette.card))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.line, lineWidth: 1))
         }
+        .buttonStyle(.plain)
     }
 
-
+    private func apptLine(_ a: HaliaAPI.Appointment) -> String {
+        let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime]
+        let g = ISO8601DateFormatter(); g.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let d = f.date(from: a.when ?? "") ?? g.date(from: a.when ?? "")
+        let df = DateFormatter(); df.dateFormat = "EEE d MMM, HH:mm"
+        var s = d.map { df.string(from: $0) } ?? (a.when ?? "")
+        if let p = a.place, !p.isEmpty { s += " · " + p }
+        if let n = a.seat_name, !n.isEmpty { s += " · " + n }
+        return s
+    }
 }
 
+/// A person from the day's list, and a message for them, written and sent from here. The draft is
+/// Halia's, the sending is the associate's own app, and the contact is marked once it has gone.
+private struct ReachSheet: View {
+    let item: ReachItem
+    let onDone: () async -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft = ""
+    @State private var phone: String?
+    @State private var email: String?
+    @State private var busy = true
+    @State private var note: String?
+    @State private var marked = false
+
+    private var instruction: String {
+        switch item.kind {
+        case .birthday: return "Wish them a warm, personal happy birthday. Short, no offers."
+        case .order: return "Thank them personally for a recent purchase."
+        case .quiet: return "A gentle, warm message to reconnect after a quiet spell."
+        case .appointment: return "Confirm you are looking forward to their visit."
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(spacing: 12) {
+                        Image(systemName: item.symbol).font(.system(size: 16, weight: .medium)).foregroundColor(Palette.brand)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.name).font(serif(22)).foregroundColor(Palette.ink)
+                            Text(item.why).font(.system(size: 13.5)).foregroundColor(Palette.soft)
+                        }
+                        Spacer()
+                        GradeChip(grade: item.grade)
+                    }
+                    if busy {
+                        HaliaLoadingRow(label: "Writing")
+                    } else {
+                        TextEditor(text: $draft)
+                            .font(.system(size: 15))
+                            .frame(minHeight: 170)
+                            .padding(10)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.line, lineWidth: 1))
+                        VStack(spacing: 8) {
+                            if let p = phone, !p.isEmpty {
+                                LuxeButtonWide("Send on WhatsApp") { open("https://wa.me/\(digits(p))?text=\(enc(draft))") }
+                                LuxeButtonWide("Send in Messages", filled: false) { open("sms:\(p)&body=\(enc(draft))") }
+                            }
+                            if let e = email, !e.isEmpty {
+                                LuxeButtonWide("Send by email", filled: phone == nil) { open("mailto:\(e)?body=\(enc(draft))") }
+                            }
+                            LuxeButtonWide("Copy", filled: false) { Clipboard.put(draft); note = "Copied." }
+                        }
+                        if let cid = item.cid, !cid.isEmpty {
+                            Button {
+                                marked = true
+                                Task { _ = try? await HaliaAPI.current.logContacted(cid: cid, clientName: item.name, reason: "Reached from the desk") }
+                            } label: {
+                                Text(marked ? "Marked as contacted" : "Mark as contacted")
+                                    .font(.system(size: 13.5, weight: .semibold)).foregroundColor(marked ? Palette.faint : Palette.brand)
+                            }
+                            .disabled(marked)
+                        }
+                        if let note { Text(note).font(.system(size: 13)).foregroundColor(Palette.soft) }
+                    }
+                }
+                .padding(20)
+            }
+            .background(PaperBackground())
+            .navigationTitle("")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { Task { await onDone() }; dismiss() }.font(.system(size: 15, weight: .semibold))
+                }
+            }
+            .tint(Palette.brand)
+            .task { await prepare() }
+        }
+    }
+
+    private func prepare() async {
+        guard let cid = item.cid, !cid.isEmpty else { busy = false; return }
+        let ref = ClientRef(kind: .cid, value: cid)
+        async let look = HaliaAPI.current.lookup(ref)
+        async let text = HaliaAPI.current.draft(ref, channel: "whatsapp", instruction: instruction, thread: nil)
+        if let l = try? await look { phone = l.phone; email = l.email }
+        if let d = try? await text, let t = d.draft, !t.isEmpty { draft = t }
+        else if let first = item.name.split(separator: " ").first { draft = "Dear \(first),\n\n" }
+        busy = false
+    }
+
+    private func enc(_ s: String) -> String { s.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "" }
+    private func digits(_ s: String) -> String { s.filter { $0.isNumber } }
+    private func open(_ s: String) {
+        Clipboard.put(draft)
+        guard let url = URL(string: s) else { note = "Copied instead. Paste it in."; return }
+        UIApplication.shared.open(url, options: [:]) { ok in
+            DispatchQueue.main.async { note = ok ? nil : "Could not open that app. Copied instead, paste it in." }
+        }
+    }
+}
+
+private struct LuxeButtonWide: View {
+    let title: String
+    var filled = true
+    let action: () -> Void
+    init(_ title: String, filled: Bool = true, action: @escaping () -> Void) { self.title = title; self.filled = filled; self.action = action }
+    var body: some View {
+        Button(action: action) {
+            Text(title).font(.system(size: 15, weight: .semibold))
+                .foregroundColor(filled ? .white : Palette.brand)
+                .frame(maxWidth: .infinity).padding(.vertical, 13)
+                .background(RoundedRectangle(cornerRadius: 12).fill(filled ? Palette.brand : Color.white))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(filled ? Palette.brand : Palette.line, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// The associate's numbers, out of the way of the day: contacts, captures, conversions, revenue.
+private struct MonthView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var week: HaliaAPI.Week?
+    @State private var days = 30
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Picker("Period", selection: $days) {
+                        Text("Week").tag(7); Text("Month").tag(30); Text("Year").tag(365)
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: days) { _, _ in Task { week = try? await HaliaAPI.current.myWeek(days: days) } }
+                    if let me = week?.me, week?.available == true {
+                        HStack(spacing: 10) {
+                            stat("\(me.contacts ?? 0)", "contacted")
+                            stat("\(me.captures ?? 0)", "added")
+                            stat("\(me.conversions ?? 0)", "bought after")
+                        }
+                        if (me.revenue ?? 0) > 0 || (me.contacts ?? 0) > 0 {
+                            Text("£\(me.revenue ?? 0) from clients you reached, "
+                                 + "\(Int(((me.rate ?? 0) * 100).rounded()))% bought within two weeks.")
+                                .font(.system(size: 14)).foregroundColor(Palette.soft)
+                        } else {
+                            Text("Nothing yet. Clients you reach and add show here.")
+                                .font(.system(size: 14)).foregroundColor(Palette.soft)
+                        }
+                    } else {
+                        HaliaLoadingRow(label: "Adding up")
+                    }
+                }
+                .padding(20)
+            }
+            .background(PaperBackground())
+            .navigationTitle("Your month")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
+            .tint(Palette.brand)
+            .task { week = try? await HaliaAPI.current.myWeek(days: days) }
+        }
+    }
+
+    private func stat(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value).font(.system(size: 26, weight: .semibold)).foregroundColor(Palette.ink)
+            Text(label).font(.system(size: 12)).foregroundColor(Palette.soft)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 16)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Palette.card))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.line, lineWidth: 1))
+    }
+}
 
 // MARK: - The guided burst
 
@@ -1265,7 +1428,7 @@ private struct DeskSettingsView: View {
                     Section { Text(s).font(.footnote).foregroundStyle(.secondary) }
                 }
             }
-            .navigationTitle("Your desk")
+            .navigationTitle("Your details and voice")
             .navigationBarTitleDisplayMode(.inline)
             .tint(Palette.brand)
             .toolbar {

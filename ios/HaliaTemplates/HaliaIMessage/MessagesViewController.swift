@@ -81,7 +81,7 @@ private struct CompactView: View {
         Button(action: expand) {
             HStack(spacing: 8) {
                 Image(systemName: "square.grid.2x2")
-                Text("Open your desk").fontWeight(.semibold)
+                Text("Open Halia").fontWeight(.semibold)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
