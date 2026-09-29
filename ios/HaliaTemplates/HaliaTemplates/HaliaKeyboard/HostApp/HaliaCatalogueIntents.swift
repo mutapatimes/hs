@@ -59,7 +59,7 @@ struct BuildCatalogueIntent: AppIntent {
         guard !r.url.isEmpty, let link = URL(string: r.url) else {
             throw HaliaIntentError(message: "None of your saved products are in this store's catalogue.")
         }
-        UIPasteboard.general.string = r.url
+        Clipboard.put(r.url)
         let who = client.isEmpty ? "" : " for \(client)"
         return .result(value: link,
             dialog: "Catalogue ready\(who) with \(r.resolved) piece\(r.resolved == 1 ? "" : "s"), link copied.")
@@ -90,7 +90,7 @@ struct SendProductIntent: AppIntent {
         guard !r.url.isEmpty, let link = URL(string: r.url) else {
             throw HaliaIntentError(message: "That product isn't in this store's catalogue.")
         }
-        UIPasteboard.general.string = r.url
+        Clipboard.put(r.url)
         return .result(value: link, dialog: "Link ready, copied to send.")
     }
 }

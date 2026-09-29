@@ -55,6 +55,16 @@ final class RootModel: ObservableObject {
         } catch {
             status = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             isError = true
+            if case HaliaAPIError.unauthorized? = error as? HaliaAPIError {
+                // The seat was revoked, signed out elsewhere or left idle: drop the dead token
+                // and everything synced under it, so the keyboard stops offering the book.
+                Credentials.clear()
+                TemplateStore.save([])
+                DirectoryStore.clear()
+                BurstStore.clear()
+                await CallDirectory.refresh()
+                token = ""; templates = []; seatName = ""; signedIn = false
+            }
         }
         busy = false
     }
@@ -1099,7 +1109,7 @@ private struct BurstView: View {
                         } label: {
                             HStack { Spacer(); Text("Send on \(q.channelWord)").fontWeight(.semibold); Spacer() }
                         }
-                        Button("Copy") { UIPasteboard.general.string = draft; note = "Copied." }
+                        Button("Copy") { Clipboard.put(draft); note = "Copied." }
                         Button("Sent, next") { advance(sent: true) }
                         Button("Skip") { advance(sent: false) }
                     }
@@ -1128,7 +1138,7 @@ private struct BurstView: View {
     }
 
     private func open(_ it: BurstStore.Item, _ q: BurstStore.Queue) {
-        UIPasteboard.general.string = draft            // always leave the text, in case open is blocked
+        Clipboard.put(draft)            // always leave the text, in case open is blocked
         let body = draft.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let url: URL? = {
             switch q.channel {

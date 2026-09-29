@@ -1196,10 +1196,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         guard g.state == .began else { return }
         guard let ip = table.indexPathForRow(at: g.location(in: table)) else { return }
         if mode == .templates, ip.row < filtered.count {
-            UIPasteboard.general.string = filtered[ip.row].ready(firstName: currentFirstName, greeting: includeGreeting, signoff: includeSignoff)
+            Clipboard.put(filtered[ip.row].ready(firstName: currentFirstName, greeting: includeGreeting, signoff: includeSignoff))
             flash("Copied ✓")
         } else if mode == .saved, ip.row < savedItems.count {
-            UIPasteboard.general.string = savedItems[ip.row].url
+            Clipboard.put(savedItems[ip.row].url)
             flash("Copied ✓")
         }
     }
@@ -1360,7 +1360,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 if let img = UIImage(data: data) {
-                    UIPasteboard.general.image = img
+                    Clipboard.put(image: img)
                     flash("Image copied. Long-press the chat and tap Paste to send it.")
                 } else { shareProductLink(p) }
             } catch { shareProductLink(p) }

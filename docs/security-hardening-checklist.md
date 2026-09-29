@@ -105,6 +105,17 @@ Each of these is enforced in code and pinned by a test, so it stays true as the 
   `_ext_rate`): the client book is served a page at a time, the caller-ID directory a few times a
   day, a burst a dozen times an hour. A token that leaves the building is worth a page of names, not
   the book.
+- A seat token ends when the person signs out on any device, and lapses on its own after ninety
+  days unused ([store.py](../halia/store.py) `signout_seat`, `SEAT_IDLE_DAYS`). The seat stays on
+  the team; a manager's re-issue is the way back in. Every client forgets a token the moment Halia
+  answers 401.
+- The extension reaches only haliascore.com, sends no cookies and caches nothing; the options page
+  never shows a stored token and never writes one to synced storage.
+- On iOS the token sits in the Keychain, readable after first unlock and bound to that device, so
+  it is in no backup and moves to no other phone. Requests go through a session with no cache and
+  no cookie jar. The shared container is excluded from backups. Copied messages are for that device
+  only and expire in minutes, so Universal Clipboard carries no client's message to a Mac. The app
+  switcher shows a cover, not the book.
 
 **AI drafting**
 - One shared weekly budget per store across every AI call, counted before the call so a failed

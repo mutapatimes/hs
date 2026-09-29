@@ -287,6 +287,10 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+# A seat token that has not been used for this long stops authenticating.
+SEAT_IDLE_DAYS = 90
+
+
 def month_key(when: datetime | None = None) -> str:
     """Calendar month bucket, 'YYYY-MM' in UTC."""
     when = when or datetime.now(timezone.utc)
@@ -675,11 +679,15 @@ class ShopStore(_DB):
                   "WHERE id = :id", {"th": token_hash, "nm": (name or "")[:80], "id": seat_id})
 
     def seat_for_token(self, token_hash: str) -> dict | None:
-        """Resolve a seat token to {shop, seat_id, name, role}, excluding revoked seats."""
+        """Resolve a seat token to {shop, seat_id, name, role}, excluding revoked seats and seats
+        that have not been used for SEAT_IDLE_DAYS: a laptop left in a drawer stops working by
+        itself, and the manager's re-issue is one click."""
         self._seat_cols()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=SEAT_IDLE_DAYS)).isoformat(timespec="seconds")
         row = self._run(
-            "SELECT id, shop, name, role FROM seats WHERE token_hash = :th AND revoked_at IS NULL",
-            {"th": token_hash}, fetch="one")
+            "SELECT id, shop, name, role FROM seats WHERE token_hash = :th AND revoked_at IS NULL "
+            "AND COALESCE(last_seen_at, created_at, '9') > :cut",
+            {"th": token_hash, "cut": cutoff}, fetch="one")
         return ({"shop": row["shop"], "seat_id": row["id"], "name": row["name"],
                  "role": row["role"] or "associate"} if row else None)
 
@@ -734,8 +742,11 @@ class ShopStore(_DB):
             {"at": _now(), "id": seat_id, "cut": cutoff})
 
     def signout_seat(self, seat_id: str) -> None:
-        """Device-side sign-out: age the seat so it reads inactive (the manager's revoke is the hard kill)."""
-        self._run("UPDATE seats SET last_seen_at = NULL WHERE id = :id", {"id": seat_id})
+        """Device-side sign-out: the seat reads inactive and its token stops authenticating, so a
+        copy of it kept anywhere is worthless from this moment. The seat itself stays on the team;
+        the manager's re-issue gives the person a fresh sign-in."""
+        self._run("UPDATE seats SET last_seen_at = NULL, token_hash = :dead WHERE id = :id",
+                  {"id": seat_id, "dead": "signedout:" + secrets.token_hex(24)})
 
     def active_seat_count(self, shop: str, days: int = 30) -> int:
         """Non-revoked seats seen within the window — the meter for per-head billing (used later)."""

@@ -15,7 +15,7 @@ enum HaliaAPIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .badURL:         return "That Halia address does not look right."
-        case .unauthorized:   return "Token not recognised. Generate a new one in Halia, Settings."
+        case .unauthorized:   return "Your sign-in has ended. Ask your manager for a fresh one in Halia."
         case .http(let c):
             if c == 402 { return "This store needs a plan for the extension and keyboard." }
             if c == 403 { return "Halia refused that request." }
@@ -33,6 +33,18 @@ struct HaliaAPI {
 
     /// Build the composer's client from the App Group credentials.
     static var current: HaliaAPI { HaliaAPI(baseURL: Credentials.baseURL, token: Credentials.token) }
+
+    /// A session that writes nothing to disk: no response cache, no cookie jar. The token header
+    /// is the whole credential, and a client's details never sit in a cache file on the phone.
+    private static let session: URLSession = {
+        let c = URLSessionConfiguration.ephemeral
+        c.urlCache = nil
+        c.httpCookieStorage = nil
+        c.httpShouldSetCookies = false
+        c.requestCachePolicy = .reloadIgnoringLocalCacheData
+        c.timeoutIntervalForRequest = 20
+        return URLSession(configuration: c)
+    }()
 
     // MARK: Templates (host app, on sync)
 
@@ -756,7 +768,7 @@ struct HaliaAPI {
         req.timeoutInterval = 20
 
         do {
-            let (data, resp) = try await URLSession.shared.data(for: req)
+            let (data, resp) = try await Self.session.data(for: req)
             guard let http = resp as? HTTPURLResponse else { throw HaliaAPIError.decode }
             if http.statusCode == 401 { throw HaliaAPIError.unauthorized }
             guard (200..<300).contains(http.statusCode) else { throw HaliaAPIError.http(http.statusCode) }

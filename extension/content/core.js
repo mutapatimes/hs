@@ -31,7 +31,7 @@
   }
   const friendly = {
     "no-token": "Add your Halia token in the extension options to start.",
-    "unauthorized": "Your Halia token is not recognised. Re-generate it in Settings.",
+    "unauthorized": "Your sign-in has ended. Open Halia and connect again.",
     "network": "Could not reach Halia. Check the address in the options.",
     "http-402": "This store needs a plan for the extension. Open Halia to choose one.",
     "http-403": "Halia refused that request.",

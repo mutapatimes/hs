@@ -45,10 +45,22 @@ async function hfetch(url, init, ms) {
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), ms || 20000);
   try {
-    return await fetch(url, Object.assign({}, init, { signal: c.signal }));
+    // Client data never lands in the HTTP cache, and no cookie rides along: the token is the
+    // whole credential.
+    return await fetch(url, Object.assign({ cache: "no-store", credentials: "omit" }, init, { signal: c.signal }));
   } finally {
     clearTimeout(t);
   }
+}
+
+// Halia no longer recognises the token: the seat was revoked, signed out elsewhere, or left idle
+// too long. Forget it here at once, so the toolbar asks for a fresh sign-in instead of retrying
+// with a dead credential.
+async function unauthorized() {
+  try {
+    await chrome.storage.local.remove(["haliaToken", "haliaName", "haliaBurst", "seenEvents"]);
+  } catch (e) { /* storage unavailable: the next call fails the same way */ }
+  return { error: "unauthorized" };
 }
 
 // A failed call carries WHY: the status, plus Halia's own message when it sent one, so the
@@ -75,7 +87,7 @@ async function lookup(query) {
   } catch (e) {
     return { error: "network" };
   }
-  if (res.status === 401) return { error: "unauthorized" };
+  if (res.status === 401) return unauthorized();
   if (res.status === 422) return { error: "bad-query" };
   if (!res.ok) return await httpError(res);
   try {
@@ -224,7 +236,7 @@ async function context() {
   } catch (e) {
     return { error: "network" };
   }
-  if (res.status === 401) return { error: "unauthorized" };
+  if (res.status === 401) return unauthorized();
   if (!res.ok) return await httpError(res);
   try {
     return await res.json();
@@ -310,7 +322,7 @@ async function products(q, filters) {
   } catch (e) {
     return { error: "network" };
   }
-  if (res.status === 401) return { error: "unauthorized" };
+  if (res.status === 401) return unauthorized();
   if (!res.ok) return await httpError(res);
   try {
     return await res.json();
@@ -331,7 +343,7 @@ async function clients(q) {
   } catch (e) {
     return { error: "network" };
   }
-  if (res.status === 401) return { error: "unauthorized" };
+  if (res.status === 401) return unauthorized();
   if (!res.ok) return await httpError(res);
   try {
     return await res.json();
@@ -401,7 +413,7 @@ async function action(body) {
   } catch (e) {
     return { error: "network" };
   }
-  if (res.status === 401) return { error: "unauthorized" };
+  if (res.status === 401) return unauthorized();
   if (!res.ok) {
     let detail = "";
     try { detail = (await res.json()).detail || ""; } catch (e) { /* ignore */ }
@@ -427,7 +439,7 @@ async function draft(body) {
   } catch (e) {
     return { error: "network" };
   }
-  if (res.status === 401) return { error: "unauthorized" };
+  if (res.status === 401) return unauthorized();
   if (!res.ok) return await httpError(res);
   try {
     return await res.json();
@@ -450,7 +462,7 @@ async function brief(body) {
   } catch (e) {
     return { error: "network" };
   }
-  if (res.status === 401) return { error: "unauthorized" };
+  if (res.status === 401) return unauthorized();
   if (!res.ok) return await httpError(res);
   try {
     return await res.json();
@@ -473,7 +485,7 @@ async function post(path, body, ms) {
   } catch (e) {
     return { error: "network" };
   }
-  if (res.status === 401) return { error: "unauthorized" };
+  if (res.status === 401) return unauthorized();
   if (!res.ok) return await httpError(res);
   try {
     return await res.json();

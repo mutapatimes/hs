@@ -811,6 +811,29 @@ def test_signout_makes_seat_inactive(env):
     assert client.post("/v1/extension/signout",
                        headers={"X-Halia-Ext-Token": ivy["token"]}).status_code == 200
     assert client.get("/v1/seats", cookies={COOKIE: tok}).json()["count"] == 0
+    # Sign-out is final for that token: a copy kept anywhere no longer opens anything.
+    assert client.get("/v1/extension/context",
+                      headers={"X-Halia-Ext-Token": ivy["token"]}).status_code == 401
+    # The seat is still on the team, and a re-issue signs the person back in.
+    seats = client.get("/v1/seats", cookies={COOKIE: tok}).json()["seats"]
+    assert any(s["name"] == "Ivy" and not s.get("revoked") for s in seats)
+    fresh = client.post(f"/v1/seats/{ivy['seat_id']}/reissue", cookies={COOKIE: tok}).json()
+    assert client.get("/v1/extension/context",
+                      headers={"X-Halia-Ext-Token": fresh["token"]}).status_code == 200
+
+
+def test_a_seat_left_idle_for_a_season_stops_authenticating(env):
+    from datetime import datetime, timedelta, timezone
+    client, store, tok = env
+    ivy = client.post("/v1/seats", json={"name": "Ivy"}, cookies={COOKIE: tok}).json()
+    h = {"X-Halia-Ext-Token": ivy["token"]}
+    assert client.get("/v1/extension/context", headers=h).status_code == 200
+    old = (datetime.now(timezone.utc) - timedelta(days=91)).isoformat(timespec="seconds")
+    store._run("UPDATE seats SET last_seen_at = :at WHERE id = :id", {"at": old, "id": ivy["seat_id"]})
+    assert client.get("/v1/extension/context", headers=h).status_code == 401
+    # A seat never used but created recently still works on its first day.
+    store._run("UPDATE seats SET last_seen_at = NULL WHERE id = :id", {"id": ivy["seat_id"]})
+    assert client.get("/v1/extension/context", headers=h).status_code == 200
 
 
 # ── polish what the associate typed ─────────────────────────────────────────
@@ -1065,7 +1088,8 @@ def test_client_data_needs_a_plan_but_sign_in_and_profile_stay_open(env, monkeyp
     sh = {"X-Halia-Ext-Token": seat_tok}
     assert client.post("/v1/extension/profile", json={"name": "Sarah", "title": "Client Advisor"}, headers=sh).status_code == 200
     assert client.post("/v1/extension/signout", headers=sh).status_code == 200
-    assert client.post("/v1/extension/lookup", json={"email": "grace@x.com"}, headers=sh).status_code == 402
+    # Sign-out ends the token itself, before any plan check.
+    assert client.post("/v1/extension/lookup", json={"email": "grace@x.com"}, headers=sh).status_code == 401
 
 
 def test_lookup_carries_recent_orders_for_the_toolbar(env):

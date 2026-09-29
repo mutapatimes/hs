@@ -324,7 +324,7 @@ struct ShareRootView: View {
     }
 
     private func send(_ ch: Channel) {
-        UIPasteboard.general.string = draft            // always leave the text, in case open is blocked
+        Clipboard.put(draft)            // always leave the text, in case open is blocked
         let body = draft.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let url: URL? = {
             switch ch {
@@ -451,7 +451,7 @@ struct ShareRootView: View {
     }
 
     private func copyDraft() {
-        UIPasteboard.general.string = draft
+        Clipboard.put(draft)
         copied = true
         Task { await markContacted() }   // copying is the fallback send when there's no number or email on file
     }

@@ -290,3 +290,37 @@ def test_the_extension_connect_bridge_trusts_only_halias_own_page():
     assert '"haliaBurst", "seenEvents"' in bg                             # sign-out empties the queue
     block = next(c for c in manifest["content_scripts"] if "content/connect.js" in c["js"])
     assert block["matches"] == ["https://haliascore.com/*"] and not block.get("all_frames")
+
+
+def test_the_extension_reaches_only_halia_and_forgets_a_dead_token():
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parents[1] / "extension"
+    manifest = json.loads((root / "manifest.json").read_text())
+    bg = (root / "background.js").read_text()
+    options = (root / "options.js").read_text()
+    html = (root / "options.html").read_text()
+    assert manifest["host_permissions"] == ["https://haliascore.com/*"]  # no dev hosts in the shipped build
+    # Every 401 drops the token: the one literal left is inside the helper itself.
+    assert bg.count("return unauthorized();") >= 8 and bg.count('{ error: "unauthorized" }') == 1
+    assert 'cache: "no-store", credentials: "omit"' in bg
+    for call in options.split("chrome.storage.sync.set(")[1:]:
+        assert "haliaToken" not in call.split(")")[0]                        # nothing syncs the token
+    assert 'chrome.storage.local.set({ haliaToken: t' in options              # a pasted token stays local
+    assert '$("token").value = ""' in options and 'id="token" type="password"' in html
+
+
+def test_a_signed_out_seat_token_is_dead_and_an_idle_one_lapses(tmp_path):
+    from datetime import datetime, timedelta, timezone
+    from halia.api.tenant_auth import hash_token
+    from halia.store import SEAT_IDLE_DAYS, ShopStore
+    store = ShopStore(db_path=tmp_path / "s.db")
+    seat = store.create_seat("shopx", "Ivy", hash_token("tok-1"))
+    assert store.seat_for_token(hash_token("tok-1"))["seat_id"] == seat
+    store.signout_seat(seat)
+    assert store.seat_for_token(hash_token("tok-1")) is None
+    assert any(s["id"] == seat for s in store.list_seats("shopx"))            # still on the team
+    store.rotate_seat_token(seat, hash_token("tok-2"))
+    assert store.seat_for_token(hash_token("tok-2"))["seat_id"] == seat
+    stale = (datetime.now(timezone.utc) - timedelta(days=SEAT_IDLE_DAYS + 1)).isoformat(timespec="seconds")
+    store._run("UPDATE seats SET last_seen_at = :at WHERE id = :id", {"at": stale, "id": seat})
+    assert store.seat_for_token(hash_token("tok-2")) is None

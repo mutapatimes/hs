@@ -987,7 +987,7 @@
     const e = r && r.error;
     if (r && r.detail) return r.detail;                 // Halia said why
     if (e === "no-token") return "Add your Halia token in the options to use this.";
-    if (e === "unauthorized") return "Your token is not recognised. Re-generate it in Settings.";
+    if (e === "unauthorized") return "Your sign-in has ended. Open Halia and connect again.";
     if (e === "http-402") return "This store needs a plan for the extension. Open Halia to choose one.";
     if (e === "network") return "Could not reach Halia. Check the address in the options.";
     return "Could not read that just now. Please try again.";

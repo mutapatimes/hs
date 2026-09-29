@@ -20,9 +20,9 @@ function setMode(settled) {
 
 async function load() {
   const { haliaBase, haliaToken, haliaName } = await chrome.storage.local.get(["haliaBase", "haliaToken", "haliaName"]);
-  const { radarOff, lookupEverywhere } = await chrome.storage.sync.get(
-    ["haliaBase", "haliaToken", "haliaName", "radarOff", "lookupEverywhere"]);
-  $("token").value = haliaToken || "";
+  const { radarOff, lookupEverywhere } = await chrome.storage.sync.get(["radarOff", "lookupEverywhere"]);
+  // The stored token is never written back onto the page: the field is for pasting a new one.
+  $("token").value = "";
   $("base").value = haliaBase || DEFAULT_BASE;
   const sl = $("supportlink");
   if (sl) sl.href = (haliaBase || DEFAULT_BASE).replace(/\/+$/, "") + "/contact?chat=open";
@@ -35,14 +35,19 @@ async function load() {
   if (haliaToken) setStatus($("connstatus"), "Connected ✓", true);
 }
 
+// Preferences sync across the associate's browsers; the token and the name stay on this device.
 async function persist() {
-  const base = ($("base").value.trim() || DEFAULT_BASE).replace(/\/+$/, "");
-  await chrome.storage.sync.set({
-    haliaToken: $("token").value.trim(),
-    haliaBase: base,
-    haliaName: $("name").value.trim().slice(0, 80),
-    radarOff: !$("radar").checked,
-  });
+  await chrome.storage.local.set({ haliaName: $("name").value.trim().slice(0, 80) });
+  await chrome.storage.sync.set({ radarOff: !$("radar").checked });
+}
+
+// A pasted token goes straight into device-local storage and leaves the field.
+async function storePasted() {
+  const t = $("token").value.trim();
+  if (!t) return false;
+  await chrome.storage.local.set({ haliaToken: t, haliaBase: DEFAULT_BASE });
+  $("token").value = "";
+  return true;
 }
 
 function ask(query) {
@@ -59,7 +64,7 @@ async function test() {
   setStatus($("status"), "Testing…", true);
   // A harmless lookup: a valid token returns found:false for an unknown address; a bad token 401s.
   const r = await ask({ email: "connection-check@halia.invalid" });
-  if (r && r.error === "unauthorized") return setStatus($("status"), "Token not recognised", false);
+  if (r && r.error === "unauthorized") return setStatus($("status"), "Your sign-in has ended. Connect again from Halia.", false);
   if (r && r.error === "no-token") return setStatus($("status"), "Connect first", false);
   if (r && r.error === "network") return setStatus($("status"), "Could not reach Halia", false);
   return setStatus($("status"), "Connected", true);
@@ -74,9 +79,8 @@ $("openhalia").onclick = () => {
 
 // The dashboard bridge stores the token in the background; move forward the moment it lands.
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "sync" || !changes.haliaToken) return;
+  if (area !== "local" || !changes.haliaToken) return;
   const v = changes.haliaToken.newValue || "";
-  $("token").value = v;
   if (changes.haliaName && changes.haliaName.newValue) $("name").value = changes.haliaName.newValue;
   setStatus($("connstatus"), v ? "Connected ✓" : "", true);
   if (v && document.body.className === "wizard" && step === 1) showStep(2);
@@ -85,6 +89,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // the token fallback: save, prove it works, then continue
 $("tokenconnect").onclick = async () => {
   await persist();
+  if (!(await storePasted())) return setStatus($("connstatus"), "Paste the token first", false);
   setStatus($("connstatus"), "Checking…", true);
   const r = await ask({ email: "connection-check@halia.invalid" });
   if (r && (r.error === "unauthorized" || r.error === "no-token"))
@@ -114,7 +119,6 @@ async function signOut() {
 }
 $("test").onclick = test;
 $("signout").onclick = signOut;
-$("base").onchange = persist;
 $("name").onchange = () => { persist(); saveProfile(); };
 ["pemail", "ptitle", "psignoff"].forEach((id) => { const el = $(id); if (el) el.onchange = saveProfile; });
 

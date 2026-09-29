@@ -5,6 +5,10 @@
 // permission. Set the SAME group id on both targets under Signing & Capabilities > App Groups,
 // and put that exact id here.
 import Foundation
+#if canImport(UIKit)
+import UIKit
+import UniformTypeIdentifiers
+#endif
 
 enum AppGroup {
     /// CHANGE THIS to your own App Group id and set it on both targets. Must match exactly.
@@ -20,7 +24,7 @@ enum AppGroup {
         static let templates = "halia.templates.json"
         static let storeInfo = "halia.storeinfo.json"
         static let baseURL   = "halia.baseURL"
-        static let token     = "halia.token"
+        static let token     = "halia.token"         // legacy slot; the token now lives in the Keychain
         static let name      = "halia.name"          // the signed-in seat's name (for "Signed in as …")
         static let syncedAt  = "halia.syncedAt"
         static let directory = "halia.directory.json"   // VIP caller-ID list for the Call Directory ext
@@ -29,7 +33,39 @@ enum AppGroup {
         static let hours     = "halia.hours.json"        // when the shop is open, from /context
         static let burst     = "halia.burst.json"        // a burst in progress, shared with the keyboard + Messages
     }
+
+    /// Everything in the shared box is a copy of what Halia holds (templates, the caller-ID list,
+    /// a burst in progress) and is re-synced on demand, so none of it belongs in a backup of the
+    /// phone. Called once by the host app at launch; the attribute sticks to the container.
+    static func excludeFromBackup() {
+        guard var url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: identifier) else { return }
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? url.setResourceValues(values)
+    }
 }
+
+#if canImport(UIKit)
+/// Client messages and links go to the clipboard so the associate can paste them into a chat.
+/// They are marked for this device only, so Universal Clipboard does not carry a client's name
+/// and message onto a Mac or iPad, and they expire after a few minutes.
+enum Clipboard {
+    static let lifetime: TimeInterval = 10 * 60
+
+    private static var options: [UIPasteboard.OptionsKey: Any] {
+        [.localOnly: true, .expirationDate: Date().addingTimeInterval(lifetime)]
+    }
+
+    static func put(_ text: String) {
+        UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: text]], options: options)
+    }
+
+    static func put(image: UIImage) {
+        guard let data = image.pngData() else { return }
+        UIPasteboard.general.setItems([[UTType.png.identifier: data]], options: options)
+    }
+}
+#endif
 
 /// A guided burst in progress: one template rendered per chosen client, sent by the associate
 /// from their own apps, one at a time. The host app writes it, the keyboard and the Messages app
