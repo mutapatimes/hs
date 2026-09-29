@@ -146,32 +146,34 @@ struct ShareRootView: View {
                 Text(r?.name ?? query).font(.system(size: 20, weight: .semibold))
                 Spacer()
             }
-            if let latent = r?.latent, !latent.isEmpty {
-                Text("\(latent) potential").font(.system(size: 13)).foregroundColor(.secondary)
-            }
-            if let action = r?.action, !action.isEmpty {
-                Text(action).font(.system(size: 14, weight: .medium)).foregroundColor(green)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if let cart = r?.cart, let count = cart.count, count > 0 {
-                Text("Open basket · \(count) item\(count == 1 ? "" : "s")")
-                    .font(.system(size: 13, weight: .medium)).foregroundColor(green)
-            }
-            if let reasons = r?.reasons, !reasons.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("WHY THIS CLIENT SURFACED")
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.secondary).kerning(0.5)
-                    ForEach(reasons.prefix(4), id: \.self) { why in
-                        HStack(alignment: .top, spacing: 8) {
-                            Text("·").foregroundColor(green).bold()
-                            Text(why).font(.system(size: 13)).foregroundColor(.primary)
-                        }
-                    }
+            HStack(spacing: 8) {
+                if let latent = r?.latent, !latent.isEmpty {
+                    Text("\(latent) potential").font(.system(size: 13)).foregroundColor(.secondary)
+                }
+                if let cart = r?.cart, let count = cart.count, count > 0 {
+                    Text("Open basket · \(count) item\(count == 1 ? "" : "s")")
+                        .font(.system(size: 12, weight: .semibold)).foregroundColor(green)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(green.opacity(0.10)))
                 }
             }
-
-            Divider()
+            if let action = r?.action, !action.isEmpty {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Next move").font(.system(size: 12)).foregroundColor(.secondary)
+                    Text(action).font(.system(size: 15)).foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             if draft.isEmpty { composeButtons } else { draftBlock }
+            if draft.isEmpty, let reasons = r?.reasons, !reasons.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Why").font(.system(size: 12)).foregroundColor(.secondary)
+                    ForEach(reasons.prefix(3), id: \.self) { why in
+                        Text(why).font(.system(size: 13)).foregroundColor(.secondary)
+                    }
+                }
+                .padding(.top, 4)
+            }
             if !status.isEmpty {
                 Text(status).font(.system(size: 12.5)).foregroundColor(.secondary)
             }
@@ -189,20 +191,19 @@ struct ShareRootView: View {
 
     // MARK: compose
 
+    /// One thing to press, then the rest in a row.
     private var composeButtons: some View {
         VStack(spacing: 10) {
-            actionButton(busyKind == "reply" ? "Drafting…" : "Draft a reply", filled: true) {
+            actionButton(busyKind == "reply" ? "Writing…" : "Write the reply", filled: true) {
                 Task { await makeDraft() }
             }
-            if let cart = result?.cart, (cart.count ?? 0) > 0, !(cart.url ?? "").isEmpty {
-                actionButton(busyKind == "nudge" ? "Writing…" : "Nudge basket", filled: false) {
-                    Task { await makeNudge() }
+            HStack(spacing: 8) {
+                sendButton("Templates", system: "text.quote") { pickingTemplate = true }
+                sendButton(busyKind == "look" ? "Choosing…" : "Pieces", system: "bag") { Task { await makeLookbook() } }
+                if let cart = result?.cart, (cart.count ?? 0) > 0, !(cart.url ?? "").isEmpty {
+                    sendButton(busyKind == "nudge" ? "Writing…" : "Basket", system: "basket") { Task { await makeNudge() } }
                 }
             }
-            actionButton(busyKind == "look" ? "Curating…" : "Send a lookbook", filled: false) {
-                Task { await makeLookbook() }
-            }
-            actionButton("Choose a template", filled: false) { pickingTemplate = true }
         }
         .disabled(busy)
         .opacity(busy ? 0.6 : 1)
@@ -219,8 +220,6 @@ struct ShareRootView: View {
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(.separator), lineWidth: 0.5))
                 .onChange(of: draft) { _, _ in copied = false; sendResult = "" }   // edited text is stale
-            Text("Tap to edit before you send.")
-                .font(.system(size: 11.5)).foregroundColor(.secondary)
             HStack(spacing: 10) {
                 if rawNumber != nil {
                     sendButton("WhatsApp", system: "message.fill") { send(.whatsapp) }
@@ -487,7 +486,6 @@ struct ShareRootView: View {
                         Text("Preparing the link…").font(.system(size: 14)).foregroundColor(.secondary)
                     }
                 } else if !productLink.isEmpty {
-                    Text("OPENER").font(.system(size: 10, weight: .semibold)).foregroundColor(.secondary).kerning(0.5)
                     openerChips
                     draftBlock
                 }

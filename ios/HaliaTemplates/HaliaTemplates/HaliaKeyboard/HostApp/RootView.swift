@@ -1331,7 +1331,7 @@ private struct BurstView: View {
         draft = q.current?.body ?? ""
         if sent {
             Task { try? await HaliaAPI.current.logContacted(
-                cid: it.cid, clientName: it.name, reason: "Burst: \(q.template) via \(q.channelWord)", quiet: true) }
+                cid: it.cid, clientName: it.name, reason: "Sent \(q.template) on \(q.channelWord)", quiet: true) }
         }
     }
 
@@ -1487,6 +1487,7 @@ private struct DeskSettingsView: View {
                 sample = r.sample ?? sample
             }
             if !name.isEmpty { Credentials.name = name; model.seatName = name }
+            MyCard.adopt(name: name, email: email, title: title, signoff: signoff)
             status = "Saved."
         } catch {
             status = (error as? LocalizedError)?.errorDescription ?? "Could not save that"
@@ -1719,6 +1720,7 @@ private struct CaptureView: View {
     @State private var notes = ""
     @State private var emailUpdates = false
     @State private var smsUpdates = false
+    @State private var more = false
     @State private var saving = false
     @State private var errorText: String?
     @State private var emailSuggestion: String?
@@ -1749,14 +1751,13 @@ private struct CaptureView: View {
         .interactiveDismissDisabled(true)
     }
 
+    /// Essentials first: a name and one way to reach them, and what they are happy to receive.
+    /// Everything else sits behind one "More about you" row, for the client who wants to give it.
     private var form: some View {
         Form {
             Section {
                 TextField("First name", text: $first).textContentType(.givenName)
                 TextField("Last name", text: $last).textContentType(.familyName)
-                TextField("Company", text: $company).textContentType(.organizationName)
-            }
-            Section {
                 TextField("Phone", text: $phone)
                     .textContentType(.telephoneNumber).keyboardType(.phonePad)
                 TextField("Email", text: $email)
@@ -1771,30 +1772,29 @@ private struct CaptureView: View {
                             .font(.footnote.weight(.semibold))
                     }
                 }
-                TextField("Birthday", text: $birthday)
-            } footer: {
-                Text("The birthday is for a treat on the day.")
-            }
-            Section {
-                TextField("Street address", text: $address).textContentType(.streetAddressLine1)
-                TextField("Postcode", text: $postcode).textContentType(.postalCode)
-                TextField("City", text: $city).textContentType(.addressCity)
-                TextField("Country", text: $country).textContentType(.countryName)
-            } header: {
-                Text("Delivery address")
-            } footer: {
-                Text("For gifts, deliveries and invitations to private events.")
-            }
-            Section("Preferences") {
-                TextField("Sizes", text: $sizes)
-                TextField("Likes and interests", text: $preferences)
-                TextField("Notes", text: $notes)
             }
             Section {
                 Toggle("Email me about new arrivals and events", isOn: $emailUpdates)
                 Toggle("Text me occasionally", isOn: $smsUpdates)
             } footer: {
                 Text("Kept by the store for personal service.")
+            }
+            Section {
+                DisclosureGroup(isExpanded: $more) {
+                    TextField("Birthday", text: $birthday)
+                    TextField("Company", text: $company).textContentType(.organizationName)
+                    TextField("Street address", text: $address).textContentType(.streetAddressLine1)
+                    TextField("Postcode", text: $postcode).textContentType(.postalCode)
+                    TextField("City", text: $city).textContentType(.addressCity)
+                    TextField("Country", text: $country).textContentType(.countryName)
+                    TextField("Sizes", text: $sizes)
+                    TextField("Likes and interests", text: $preferences)
+                    TextField("Anything else", text: $notes)
+                } label: {
+                    Text("More about you").foregroundColor(.primary)
+                }
+            } footer: {
+                Text(more ? "The birthday is for a treat on the day. The address is for gifts, deliveries and invitations." : "")
             }
             if let errorText {
                 Section { Text(errorText).foregroundColor(.red).font(.footnote) }
@@ -1980,15 +1980,24 @@ private struct MyCard: Codable {
                                                         title: c.title, signoff: c.signoff) }
     }
 
-    /// Fill empty fields from the seat's server profile (the manager may have set them).
+    /// The seat's server profile is the one place the associate's name, position, email and
+    /// sign-off are edited (Your details and voice). This copy follows it; only the phone number,
+    /// which the card and the WhatsApp code need and the profile does not hold, lives here alone.
     static func prefillFromServer() async {
         guard let p = try? await HaliaAPI.current.fetchProfile() else { return }
-        var c = load(); var changed = false
-        if c.name.isEmpty, let v = p.name, !v.isEmpty { c.name = v; changed = true }
-        if c.email.isEmpty, let v = p.email, !v.isEmpty { c.email = v; changed = true }
-        if c.title.isEmpty, let v = p.title, !v.isEmpty { c.title = v; changed = true }
-        if c.signoff.isEmpty, p.default_signoff == false, let v = p.signoff, !v.isEmpty { c.signoff = v; changed = true }
-        if changed { c.save() }
+        var c = load()
+        if let v = p.name, !v.isEmpty { c.name = v }
+        if let v = p.email, !v.isEmpty { c.email = v }
+        if let v = p.title, !v.isEmpty { c.title = v }
+        c.signoff = (p.default_signoff == true) ? "" : (p.signoff ?? c.signoff)
+        c.save()
+    }
+
+    /// Keep the on-device copy in step after a save on the details screen.
+    static func adopt(name: String, email: String, title: String, signoff: String) {
+        var c = load()
+        c.name = name; c.email = email; c.title = title; c.signoff = signoff
+        c.save()
     }
 
     var firstName: String { name.split(separator: " ").first.map(String.init) ?? name }
@@ -2100,15 +2109,9 @@ private struct CaptureToolsView: View {
                 }
 
                 Section {
-                    TextField("Your name", text: $card.name)
-                    TextField("Role, e.g. Client advisor", text: $card.title)
-                    TextField("Phone", text: $card.phone).keyboardType(.phonePad)
-                    TextField("Email", text: $card.email)
-                        .keyboardType(.emailAddress).autocapitalization(.none)
-                    TextField("Sign-off, e.g. Warm regards, Sarah", text: $card.signoff, axis: .vertical)
-                        .lineLimit(1...3)
-                } header: { Text("Your details") } footer: {
-                    Text("Your name and position sign every draft. Kept with your sign-in, and on this device for the card and the WhatsApp QR.")
+                    TextField("Your phone number", text: $card.phone).keyboardType(.phonePad)
+                } footer: {
+                    Text("For the WhatsApp code and your card. Your name and position are under Your details and voice.")
                 }
             }
             .navigationTitle("Capture tools")
@@ -2118,13 +2121,10 @@ private struct CaptureToolsView: View {
                     Button("Done") { card.save(); dismiss() }.fontWeight(.semibold)
                 }
             }
-            .onChange(of: card.name) { _ in card.save(); writeVcard() }
-            .onChange(of: card.title) { _ in card.save(); writeVcard() }
             .onChange(of: card.phone) { _ in card.save(); writeVcard() }
-            .onChange(of: card.email) { _ in card.save(); writeVcard() }
-            .onChange(of: card.signoff) { _ in card.save() }
-            .onDisappear { card.syncToServer() }
             .task {
+                await MyCard.prefillFromServer()
+                card = MyCard.load()
                 writeVcard()
                 captureURL = try? await HaliaAPI.current.captureLink()
                 lineId = (try? await HaliaAPI.current.lineId()) ?? ""

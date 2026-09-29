@@ -96,7 +96,7 @@ extension Notification.Name {
 
 struct DeskView: View {
     @StateObject private var model: DeskModel
-    @State private var tab = Tab.pieces
+    @State private var tab = Tab.templates
     @State private var hasBurst = BurstStore.load()?.current != nil
 
     enum Tab: Hashable { case templates, pieces, draft, book, burst }
@@ -110,12 +110,12 @@ struct DeskView: View {
             ClientBar(model: model)
             Divider()
             TabView(selection: $tab) {
-                PiecesTab(model: model)
-                    .tabItem { Label("Pieces", systemImage: "square.grid.2x2") }.tag(Tab.pieces)
                 TemplatesTab(model: model)
                     .tabItem { Label("Templates", systemImage: "text.quote") }.tag(Tab.templates)
                 DraftTab(model: model)
-                    .tabItem { Label("Draft", systemImage: "sparkles") }.tag(Tab.draft)
+                    .tabItem { Label("Write", systemImage: "pencil.line") }.tag(Tab.draft)
+                PiecesTab(model: model)
+                    .tabItem { Label("Pieces", systemImage: "bag") }.tag(Tab.pieces)
                 BookTab(model: model)
                     .tabItem { Label("Book", systemImage: "calendar") }.tag(Tab.book)
                 if hasBurst {
@@ -169,7 +169,7 @@ struct BurstTab: View {
                     Button {
                         model.send(draft)
                         Task { try? await HaliaAPI.current.logContacted(
-                            cid: it.cid, clientName: it.name, reason: "Burst: \(q.template) via Messages", quiet: true) }
+                            cid: it.cid, clientName: it.name, reason: "Sent \(q.template) from Messages", quiet: true) }
                         advance(sent: true)
                     } label: { HStack { Spacer(); Text("Insert").fontWeight(.semibold); Spacer() } }
                     Button("Skip") { advance(sent: false) }
