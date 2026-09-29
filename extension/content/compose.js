@@ -242,7 +242,7 @@
         </div>
         ${templates === "busy" ? `<div class="muted">Loading your templates…</div>`
           : templates === "err" ? `<div class="muted">Couldn't load your templates. Check the extension is connected.</div>`
-          : !list.length ? `<div class="muted">Add outreach templates in Halia → Settings → Templates.</div>`
+          : !list.length ? `<div class="muted">Add templates in Halia, under Settings.</div>`
           : `<input class="s" data-a="tsearch" placeholder="Search templates" value="${esc(tplQuery)}">
              <div class="tlist">${groups.length
                ? groups.map((g) => `<div class="tcat">${esc(g.cat)}</div>` +

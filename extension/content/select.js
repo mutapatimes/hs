@@ -119,11 +119,10 @@
   }
 
   const FRIENDLY = {
-    "no-token": "Add your Halia token in the extension options first.",
+    "no-token": "Connect this browser from Halia first.",
     "unauthorized": "Your sign-in has ended. Open Halia and connect again.",
     "network": "Could not reach Halia.",
-    "http-402": "This store needs a plan for the extension.",
-    "no-token ": "Add your Halia token in the extension options first."
+    "http-402": "This store needs a plan for the toolbar."
   };
 
   function lookup(text, query, rect) {
@@ -150,13 +149,13 @@
         <div class="body"><div class="muted">${esc(FRIENDLY[r.error] || "Something went wrong.")}</div></div>`;
     } else if (!r || !r.found) {
       card.innerHTML = `<div class="top"><span class="nm">${esc(text)}</span>${close}</div>
-        <div class="body"><div class="muted">No signal for this one in your book yet.</div></div>`;
+        <div class="body"><div class="muted">Not in your book yet.</div></div>`;
     } else {
       const name = r.name || text;
       const sub = r.hidden ? "Hidden VIC" : (r.tier || "");
       const reason = (r.reasons && r.reasons[0]) || r.reco || r.action || "";
       const bits = [];
-      if (r.latent) bits.push(`<div class="kv"><b>Latent</b> ${esc(String(r.latent))}</div>`);
+      if (r.latent) bits.push(`<div class="kv"><b>Potential</b> ${esc(String(r.latent))}</div>`);
       if (r.spend) bits.push(`<div class="kv"><b>Spend</b> £${Number(r.spend).toLocaleString()}</div>`);
       const acts = [];
       if (r.dashboard) acts.push(`<a class="btn primary" href="${esc(r.dashboard)}" target="_blank" rel="noopener">Open in Halia</a>`);

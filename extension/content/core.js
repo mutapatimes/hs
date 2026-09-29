@@ -30,10 +30,10 @@
       "n:" + (id.name || "")].join("|");
   }
   const friendly = {
-    "no-token": "Add your Halia token in the extension options to start.",
+    "no-token": "Connect this browser from Halia to start.",
     "unauthorized": "Your sign-in has ended. Open Halia and connect again.",
-    "network": "Could not reach Halia. Check the address in the options.",
-    "http-402": "This store needs a plan for the extension. Open Halia to choose one.",
+    "network": "Could not reach Halia. Check your connection.",
+    "http-402": "This store needs a plan for the toolbar. Open Halia to choose one.",
     "http-403": "Halia refused that request.",
     "http-429": "Too many requests just now. A moment, then try again."
   };

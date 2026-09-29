@@ -68,7 +68,7 @@
 
   function dotColor(g) {
     const t = String(g.grade || "").toUpperCase();
-    return t[0] === "A" ? "#1F564A" : t[0] === "B" ? "#55606b" : "#8a8271";
+    return t[0] === "A" ? "#1F564A" : t[0] === "B" ? "#55606b" : "#8a8a8a";
   }
   function listRows() { return document.querySelectorAll('#pane-side div[role="listitem"]'); }
   function rowName(row) {
@@ -87,9 +87,9 @@
     dot.dataset.g = String(g.grade);
     dot.textContent = g.grade;
     dot.title = "Halia grade " + g.grade + (g.play === "sleeping" ? " · gone quiet" : "");
-    dot.style.cssText = "display:inline-block;min-width:15px;height:14px;line-height:14px;" +
-      "text-align:center;font:700 9px Arial,sans-serif;color:#fff;margin-right:5px;padding:0 3px;" +
-      "border-radius:0;vertical-align:middle;background:" + dotColor(g);
+    dot.style.cssText = "display:inline-block;min-width:18px;height:16px;line-height:16px;" +
+      "text-align:center;font:700 12px ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif;color:#fff;margin-right:5px;padding:0 3px;" +
+      "border-radius:5px;vertical-align:middle;background:" + dotColor(g);
     s.parentNode.insertBefore(dot, s);
   }
   function applyKnown() {

@@ -10,11 +10,11 @@ chrome.runtime.sendMessage({ type: "halia:config" }, (c) => {
     return;
   }
   if (c.hasToken) {
-    state.textContent = "Watching for clients on " + c.base.replace(/^https?:\/\//, "") + ".";
+    state.textContent = "Connected. Open a chat, an email or an order and the card appears.";
     state.className = "state ok";
     dot.classList.add("ok");
   } else {
-    state.textContent = "Not connected yet. Open Halia, on the web or from your Shopify admin's Apps menu, and press Connect this browser in Settings.";
+    state.textContent = "Not connected yet. Open Halia and press Connect this browser, under Settings.";
     state.className = "state bad";
     const open = document.getElementById("open");
     open.textContent = "Open Halia →";

@@ -20,6 +20,7 @@ _JS_DIR = Path(__file__).parent / "js"
 _HARNESS = _JS_DIR / "thread_reader_smoke.js"
 _WA_HARNESS = _JS_DIR / "whatsapp_reader_smoke.js"
 _SHAPE_HARNESS = _JS_DIR / "shape_smoke.js"
+_TOOLBAR_HARNESS = _JS_DIR / "toolbar_smoke.js"
 
 
 def _enabled() -> bool:
@@ -112,3 +113,15 @@ def test_the_house_shaping_rules_behave(  # noqa: D103
     out = _run(_SHAPE_HARNESS)
     assert out["total"] >= 15
     assert out["failed"] == [], out["failed"]
+
+
+def test_the_toolbar_renders_every_view_and_inserts_into_the_chat():
+    """extension/ui/badge.js, driven end to end in jsdom: one person and one move on the home view,
+    then Reply, Templates, Book, Sell, More, Team, Several clients, search, share, sign-out. Every
+    path that hands text to the chat must reach the inserter, nothing may throw, and the card keeps
+    to its rules: no native dialogs, no type under 12px, nothing that animates on its own."""
+    out = _run(_TOOLBAR_HARNESS)
+    assert out["errors"] == [], out["errors"]
+    failed = [k for k, v in out["checks"].items() if v is False]
+    assert failed == [], failed
+    assert out["inserted"] >= 7

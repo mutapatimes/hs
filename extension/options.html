@@ -11,10 +11,8 @@
     .wrap { max-width: 520px; margin: 0 auto; padding: 48px 24px 64px; }
     .mark { color: #1F564A; font-size: 24px; line-height: 1; }
     @media (prefers-reduced-motion: no-preference) {
-      .mark { animation: breathe 3.4s ease-in-out infinite; }
-      @keyframes breathe { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
-      .step.on { animation: rise .35s cubic-bezier(.2,.7,.2,1) both; }
-      @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+      .step.on { animation: rise .3s cubic-bezier(.2,.7,.2,1) both; }
+      @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     }
     .top { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
     .top h1 { font-size: 17px; margin: 0; font-weight: 650; }
@@ -153,10 +151,10 @@
     <section class="card settledonly">
       <h2>Getting started</h2>
       <ol class="steps">
-        <li>Open a customer or order in your store admin, a chat in WhatsApp Web, or an email in Gmail.</li>
-        <li>The Halia card appears in the corner with their grade, why, and the next move.</li>
-        <li>Pick a template, or let it draft the reply.</li>
-        <li>On your own store, open the <b>Share</b> tab and send the page to a client.</li>
+        <li>Open a chat in WhatsApp Web, an email in Gmail, or a customer in your store admin.</li>
+        <li>The card slides in from the right with who they are and the next move.</li>
+        <li>Press <b>Write the reply</b>, or pick a template, and insert it into the chat.</li>
+        <li>Search your book from the top of the card for anyone else.</li>
       </ol>
       <div style="margin-top:12px;border-top:1px solid #e3e3e3;padding-top:12px">
         <a id="supportlink" href="https://haliascore.com/contact?chat=open" target="_blank" rel="noopener"

@@ -13,19 +13,9 @@
     .sp { flex: 1; }
     .dot { width: 7px; height: 7px; border-radius: 50%; background: #8a8a8a; }
     .dot.ok { background: #2e7d5b; }
-    .head::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
-      background: linear-gradient(90deg, transparent 15%, #1F564A 40%, #6FBFA0 50%, #1F564A 60%, transparent 85%);
-      background-size: 240% 100%; opacity: 0; transition: opacity .25s ease; }
-    .head.checking::after { opacity: 1; }
-    @media (prefers-reduced-motion: no-preference) {
-      .mark { animation: breathe 3.4s ease-in-out infinite; }
-      .head.checking::after { animation: scan 1.5s linear infinite; }
-      @keyframes breathe { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
-      @keyframes scan { from { background-position: 130% 0; } to { background-position: -130% 0; } }
-    }
     .body { padding: 14px 16px 16px; }
-    p.lede { font-size: 12px; color: #616161; line-height: 1.5; margin: 0 0 12px; }
-    .state { font-size: 12px; line-height: 1.45; padding: 8px 10px; border: 1px solid #e3e3e3; border-radius: 8px;
+    p.lede { font-size: 12.5px; color: #616161; line-height: 1.5; margin: 0 0 12px; }
+    .state { font-size: 12.5px; line-height: 1.45; padding: 8px 10px; border: 1px solid #e3e3e3; border-radius: 8px;
       background: #fff; margin-bottom: 12px; }
     .state.ok { border-color: #cfe0d8; color: #1F564A; }
     .state.bad { border-color: #e6cfc9; color: #a2453b; }
@@ -43,10 +33,10 @@
     <span class="dot" id="dot"></span>
   </div>
   <div class="body">
-    <p class="lede">Client grades, reasons and the next move, right where you work: store admin, WhatsApp Web, Gmail.</p>
+    <p class="lede">Who a client is and the next move, beside every chat, email and order.</p>
     <div id="state" class="state">Checking…</div>
     <button id="open">Open settings</button>
-    <a id="support" href="#" style="display:block;text-align:center;margin-top:10px;font-size:11.5px;color:#616161;text-decoration:none">Support &middot; live chat</a>
+    <a id="support" href="#" style="display:block;text-align:center;margin-top:10px;font-size:12px;color:#616161;text-decoration:none">Support &middot; live chat</a>
   </div>
   <script src="popup.js"></script>
 </body>
