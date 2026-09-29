@@ -180,6 +180,13 @@ function ensureMenu() {
 chrome.runtime.onInstalled.addListener(ensureMenu);
 chrome.runtime.onStartup.addListener(ensureMenu);
 
+// A fresh install opens the set-up page, so the first thing an associate sees is "Connect", not an
+// empty card on the next page they open. The popup's own connect path also lands there, so name,
+// position and sign-off get set on the way in.
+chrome.runtime.onInstalled.addListener((d) => {
+  if (d && d.reason === "install") { try { chrome.runtime.openOptionsPage(); } catch (e) { /* ignore */ } }
+});
+
 function queryFor(text) {
   const t = (text || "").trim();
   if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(t)) return { email: t };

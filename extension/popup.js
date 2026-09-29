@@ -17,11 +17,8 @@ chrome.runtime.sendMessage({ type: "halia:config" }, (c) => {
     state.textContent = "Not connected yet. Open Halia and press Connect this browser, under Settings.";
     state.className = "state bad";
     const open = document.getElementById("open");
-    open.textContent = "Open Halia →";
-    open.onclick = () => {
-      chrome.tabs.create({ url: (c.base || "https://haliascore.com").replace(/\/$/, "") + "/app" });
-      window.close();
-    };
+    open.textContent = "Set up Halia";
+    open.onclick = () => { chrome.runtime.openOptionsPage(); window.close(); };
     return;
   }
 });
