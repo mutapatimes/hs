@@ -6,11 +6,12 @@
 import Foundation
 
 struct ClientRef: Equatable {
-    enum Kind: String { case email, phone, name }
+    /// `cid` is a client chosen from the book by name, so the lookup is exact rather than a search.
+    enum Kind: String { case email, phone, name, cid }
     let kind: Kind
     let value: String
 
-    /// The JSON body the /lookup and /draft endpoints expect: {"email": …} / {"phone": …} / {"name": …}.
+    /// The JSON body the /lookup and /draft endpoints expect: {"email": …} / {"phone": …} / {"name": …} / {"cid": …}.
     var body: [String: String] { [kind.rawValue: value] }
 
     /// A best-effort first name from a copied full name, used only until a real lookup returns one.

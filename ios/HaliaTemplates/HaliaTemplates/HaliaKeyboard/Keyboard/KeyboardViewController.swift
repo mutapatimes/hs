@@ -1,34 +1,31 @@
 // Target membership: KEYBOARD EXTENSION ONLY.
 //
-// The Halia composer. It helps an associate send a personal, on-voice message to a VIP without
-// leaving WhatsApp. No grade here on purpose: the point is the message.
+// The Halia composer. It helps an associate send a personal, on-voice message to a client without
+// leaving WhatsApp. Two rows above the content: who the message is for, and five things to do.
 //
-// Layers:
-//   1. Offline (no Full Access): synced templates, one tap to insert. House catalogue via the
-//      {catalog_link} template.
-//   2. With Full Access: copy the client's name or number, tap "Use copied client". Then templates
-//      fill with their real name; the intent chips draft a personal message; "Reply" drafts a reply
-//      to a message you copied; a draft can be refined (warmer / shorter / more formal) before it
-//      goes in; "Suggest pieces" recommends products as a branded catalogue link; and "Mark
-//      contacted" logs the outreach to the shared team pipeline.
+//   Client bar   "Who is it for?" — type a name and pick from the book, or paste a name or number.
+//   Actions      Write · Reply · Pieces · Book · More
+//   Content      the templates list by default; a draft to read before it goes in; a shelf of pieces;
+//                the days and times for a visit; the longer list of tools behind More.
 //
-// It never reads the WhatsApp screen. The client, and any message being replied to, are only what
-// you copy.
+// Offline (no Full Access) the synced templates still insert with one tap. It never reads the
+// screen: the client, and any message being replied to, are only what the associate types or copies.
 import UIKit
 
 @MainActor
 final class KeyboardViewController: UIInputViewController, UITableViewDataSource, UITableViewDelegate,
                                     UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
 
-    private enum Mode { case templates, suggestions, draft, products, saved, book, burst }
-    private enum Audience { case client, team }   // write to the client, or to the team about them
+    private enum Mode { case templates, write, draft, pieces, saved, book, more, several, name }
 
     private struct SuggestRow { let id, title, why: String; let price: String?; var on: Bool }
+    private struct MoreRow { let title: String; let detail: String?; let symbol: String; let action: () -> Void }
 
     // Halia palette
     private let brand = UIColor(red: 0.12, green: 0.34, blue: 0.29, alpha: 1) // #1F564A
     private let tint  = UIColor(red: 0.90, green: 0.94, blue: 0.92, alpha: 1) // #E6EFEB
-    private let paper = UIColor(red: 0.945, green: 0.945, blue: 0.945, alpha: 1) // #F1F1F1, the admin grey
+    private let paper = UIColor(red: 0.945, green: 0.945, blue: 0.945, alpha: 1) // #F1F1F1
+    private let line  = UIColor(red: 0.89, green: 0.89, blue: 0.89, alpha: 1)    // #E3E3E3
 
     private let intents: [(String, String)] = [
         ("Hello", "Send a warm, personal hello to reconnect."),
@@ -37,6 +34,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ("Follow up", "Follow up warmly on their recent visit or order."),
         ("Thank you", "Thank them personally for a recent purchase."),
         ("Win-back", "A gentle, warm message to reconnect after a quiet spell."),
+        ("Offer a time", "Offer a private appointment at the boutique this week. Ask which day and "
+                         + "time would suit them. Do not name specific times or dates yourself."),
     ]
     private let refinements: [(String, String)] = [
         ("Warmer", "Rewrite it warmer and more personal."),
@@ -46,33 +45,30 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     // State
     private var mode: Mode = .templates
-    private var burstQueue: BurstStore.Queue?              // a burst the host app prepared, if one is running
-    private var savedItems: [SavedItemsStore.Item] = []   // products saved while browsing (via App Intents)
-    private var audience: Audience = .client
+    private var burstQueue: BurstStore.Queue?
+    private var savedItems: [SavedItemsStore.Item] = []
     private var draftIsHandoff = false
     private var currentRef: ClientRef?
     private var clientName: String?
     private var clientCid: String?
-    private var clientEmail: String?   // goes on the calendar invite, and prefills a selection
+    private var clientEmail: String?
     private var clientPhone: String?
     private var statusText: String?
     private var busy = false
     private var statusLoading = false
-    private var loadStart: Date?
-    private var elapsedTimer: Timer?
-    private weak var elapsedLabel: UILabel?
-    private var draftShownAnimated = false
     private var lastInserted: String?
-    private var lastReplacement: (original: String, polished: String)?   // Polish: Undo restores what was typed
-    private var polishedText: String?                                     // last polished message, for Adjust
-    private var pendingOccasion: (label: String, date: String, cid: String)?   // Remember found a date
-    private var bookDay: Date?                        // the day chosen in Book mode
-    private var bookMinutes: Int?                     // minutes past midnight for the chosen time
+    private var lastReplacement: (original: String, polished: String)?
+    private var polishedText: String?
+    private var pendingOccasion: (label: String, date: String, cid: String)?
+    private var bookDay: Date?
+    private var bookMinutes: Int?
     private var undoClearTask: Task<Void, Never>?
+    private var nameQuery = ""                         // the name being typed for a lookup
+    private var nameWork: DispatchWorkItem?
+    private var nameHits: [HaliaAPI.Client] = []
+    private var nameSearching = false
+    private var showingSuggestions = false             // in Pieces: Halia's picks, over the shelf
 
-    // Whether an inserted template carries its greeting ("Dear …,") and sign-off ("Warm regards, …").
-    // Mid-conversation you usually want neither, so these are toggles in the action row. Persisted in
-    // the App Group so the choice sticks between chats. Default on.
     private var includeGreeting: Bool {
         get { (AppGroup.defaults.object(forKey: "halia.kb.greeting") as? Bool) ?? true }
         set { AppGroup.defaults.set(newValue, forKey: "halia.kb.greeting") }
@@ -84,28 +80,27 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private var suggestions: [SuggestRow] = []
     private var products: [HaliaAPI.Product] = []
     private var productCartBase: String?
-    // The view being browsed in Products: a collection and a size, the ids of everything they
-    // match (so a whole shelf can be sent as one selection), and the filters to choose from.
     private var prodCollection: String?
     private var prodSize: String?
     private var prodViewIds: [String] = []
     private var prodCollections: [String] = []
     private var prodSizes: [String] = []
-    private var searchQuery = ""              // the live product-search text, typed on the in-keyboard keys
-    private var searchWork: DispatchWorkItem? // debounces live search as you type
+    private var searchQuery = ""
+    private var searchWork: DispatchWorkItem?
     private var draftText = ""
-    private var draftEnglish: String?                 // the reply in English when it is in the client's language
-    private var briefSummary: String?                 // one line on where things stand (brief only)
+    private var draftEnglish: String?
+    private var briefSummary: String?
     private var briefUrgency: String?
     private var briefActions: [HaliaAPI.BriefAction] = []
     private var lastThread: [[String: String]]?
-    private var cartUrl: String?         // the client's open basket (recovery link), if any
+    private var cartUrl: String?
     private var cartCount: Int?
-    private var pendingCartUrl: String?  // append this recovery link when the current draft is inserted
+    private var pendingCartUrl: String?
 
     private var templates: [Template] = []
     private var categories: [String] = []
     private var selectedCategory: String?
+    private var moreRows: [MoreRow] = []
 
     // Views
     private let clientBar = UIStackView()
@@ -115,7 +110,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private let chipsScroll = UIScrollView()
     private let chipsStack = UIStackView()
     private var chipsHeight: NSLayoutConstraint!
-    private let confirmBar = UIView()         // Book sits under both pill rows, not among the times
+    private let confirmBar = UIView()
     private var confirmHeight: NSLayoutConstraint!
     private let table = UITableView(frame: .zero, style: .plain)
     private let draftView = UITextView()
@@ -132,12 +127,13 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }()
     private let emptyLabel = UILabel()
     private let cellID = "cell"
-    private let bottomBar = UIView()          // holds either the control row or the search keyboard
+    private let bottomBar = UIView()
     private var bottomBarHeight: NSLayoutConstraint!
-    private var bottomBarMode: Mode?          // only rebuild the bottom bar when the mode changes
-    private var kbHeight: NSLayoutConstraint! // the keyboard's overall height (taller while searching)
-    private static let baseHeight: CGFloat = 384   // resting height; more room for the template list
-    private static let searchHeight: CGFloat = 540 // Products mode: keys plus results
+    private enum BottomKind { case control, keys }
+    private var bottomBarKind: BottomKind?
+    private var kbHeight: NSLayoutConstraint!
+    private static let baseHeight: CGFloat = 384
+    private static let keysHeight: CGFloat = 540
 
     private var filtered: [Template] {
         guard let c = selectedCategory else { return templates }
@@ -146,10 +142,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         return templates.filter { $0.category == c }
     }
 
-    // "For them": the server ranks the merchant's templates for the client just looked up
-    // (a birthday this week, an open basket, gone quiet, a first order, a live season moment).
-    // Shown first and selected automatically, so the right note is one tap, never a scroll.
-    private static let forThemCat = "\u{2726} For them"
+    // "For them": the server ranks the merchant's templates for the client just looked up. Shown
+    // first and selected automatically, so the right note is one tap, never a scroll.
+    private static let forThemCat = "\u{0}for-them"
+    private static let recentCat = "\u{0}recent"
     private var suggestedNames: [String] = []
     private var suggestedTemplates: [Template] {
         suggestedNames.compactMap { n in templates.first { $0.name == n } }
@@ -161,9 +157,6 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         rebuildChips()
         table.reloadData()
     }
-
-    // Recent templates: the associate's go-to messages, one tap away (on-device recency, App Group).
-    private static let recentCat = "\u{2605} Recent"
     private var recentTemplates: [Template] {
         (AppGroup.defaults.stringArray(forKey: "halia.recentTemplateIds") ?? [])
             .compactMap { id in templates.first { $0.id == id } }
@@ -181,6 +174,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         return p.isEmpty ? nil : p
     }
     private var selectedCount: Int { suggestions.filter { $0.on }.count }
+    private var hasClient: Bool { currentRef != nil }
 
     // MARK: - Lifecycle
 
@@ -213,63 +207,54 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     // MARK: - Refresh
 
     private func reload() {
-        // Synced client templates plus the merchant's store-info snippets, which ride along as a
-        // "Store info" category and insert exactly like any template.
         templates = TemplateStore.load() + StoreInfoStore.asTemplates()
         burstQueue = BurstStore.load()
-        if mode == .burst && burstQueue == nil { mode = .templates }
+        if mode == .several && burstQueue == nil { mode = .templates }
         var seen = Set<String>()
         categories = templates.map { $0.category }.filter { seen.insert($0).inserted }.sorted()
-        if let c = selectedCategory, c != Self.recentCat, !categories.contains(c) { selectedCategory = nil }
+        if let c = selectedCategory, c != Self.recentCat, c != Self.forThemCat, !categories.contains(c) { selectedCategory = nil }
+        if mode == .more { moreRows = buildMoreRows() }
         rebuildClientBar()
         rebuildActionRow()
         rebuildChips()
         rebuildConfirmBar()
         rebuildBottomBar()
+
         let showDraft = (mode == .draft)
-        let showTemplateList = (mode == .templates && audience == .client)
-        let showGrid = ((mode == .products || mode == .saved) && !products.isEmpty)
+        let showGrid = ((mode == .pieces && !showingSuggestions) || mode == .saved) && !products.isEmpty
+        let showTable = mode == .templates || (mode == .pieces && showingSuggestions)
+            || (mode == .saved && products.isEmpty) || mode == .more || mode == .name
         draftView.isHidden = !showDraft
         draftView.attributedText = draftAttributed()
-        if showDraft && !draftShownAnimated {
-            draftShownAnimated = true
-            if !UIAccessibility.isReduceMotionEnabled {
-                draftView.alpha = 0
-                draftView.transform = CGAffineTransform(translationX: 0, y: 10)
-                UIView.animate(withDuration: 0.4, delay: 0, options: [.curveEaseOut]) {
-                    self.draftView.alpha = 1; self.draftView.transform = .identity
-                }
-            }
-        } else if !showDraft {
-            draftShownAnimated = false
-            draftView.alpha = 1; draftView.transform = .identity
-        }
         grid.isHidden = !showGrid
-        table.isHidden = !(mode == .suggestions || (mode == .saved && products.isEmpty) || showTemplateList)
+        table.isHidden = !showTable
 
-        if mode == .book {
-            emptyLabel.text = bookSummary()
+        switch mode {
+        case .book:
+            emptyLabel.text = bookSummary(); emptyLabel.isHidden = false
+        case .several:
+            emptyLabel.text = burstSummary(); emptyLabel.isHidden = false
+        case .write:
+            emptyLabel.text = hasClient ? "What kind of message?" : "Say who it is for first."
             emptyLabel.isHidden = false
-        } else if mode == .burst {
-            emptyLabel.text = burstSummary()
-            emptyLabel.isHidden = false
-        } else if mode == .products {
-            emptyLabel.text = hasFullAccess
-                ? "No products to show. Connect in the Halia app, and note product search needs a Shopify store with published, in-stock items."
-                : "Turn on Full Access in Settings to browse and search products."
-            emptyLabel.isHidden = !products.isEmpty || busy
-        } else if mode == .templates && audience == .team {
-            emptyLabel.text = currentRef == nil
-                ? "Team mode. Look up a client, then tap Handoff to write a note for a colleague."
-                : "Tap Handoff to write a note about them for a colleague."
-            emptyLabel.isHidden = false
-        } else if mode == .templates && audience == .client && templates.isEmpty {
-            emptyLabel.text = "Open the Halia app and tap Connect to sync your templates."
-            emptyLabel.isHidden = false
-        } else {
+        case .pieces:
+            if showingSuggestions { emptyLabel.isHidden = true }
+            else {
+                emptyLabel.text = hasFullAccess ? "Nothing here. Try another word, or clear the filters."
+                    : "Turn on Full Access in Settings to browse pieces."
+                emptyLabel.isHidden = !products.isEmpty || busy
+            }
+        case .name:
+            emptyLabel.text = nameQuery.isEmpty ? "Type their name, or paste a name or number."
+                : (nameSearching ? "Looking…" : "No one by that name in your book.")
+            emptyLabel.isHidden = !nameHits.isEmpty
+        case .templates:
+            emptyLabel.text = "Open the Halia app and connect to bring your templates here."
+            emptyLabel.isHidden = !templates.isEmpty
+        default:
             emptyLabel.isHidden = true
         }
-        grid.reloadData()   // always, so the collection view's item count never lags behind products
+        grid.reloadData()
         table.reloadData()
     }
 
@@ -297,66 +282,144 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             clientBar.addArrangedSubview(mutedLabel("Turn on Full Access in Settings to personalise"))
             return
         }
-        // The Client / Team toggle is always present, so you can switch audience any time.
-        clientBar.addArrangedSubview(audiencePill("Client", active: audience == .client) { [weak self] in self?.setAudience(.client) })
-        clientBar.addArrangedSubview(audiencePill("Team", active: audience == .team) { [weak self] in self?.setAudience(.team) })
         if lastInserted != nil {
-            clientBar.addArrangedSubview(pillButton("⤺ Undo", filled: false) { [weak self] in self?.undoInsert() })
+            clientBar.addArrangedSubview(pillButton("Undo", symbol: "arrow.uturn.backward", filled: false) { [weak self] in self?.undoInsert() })
         }
-        // A burst the host app prepared: the next client is one tap away, whichever chat is open.
-        if mode != .burst, let q = burstQueue, q.current != nil {
-            clientBar.addArrangedSubview(pillButton("Burst \(q.index + 1) of \(q.items.count)", filled: true) { [weak self] in
-                guard let self else { return }; self.mode = .burst; self.reload()
+        if mode != .several, let q = burstQueue, q.current != nil {
+            clientBar.addArrangedSubview(pillButton("Several · \(q.index + 1) of \(q.items.count)", symbol: "person.2", filled: true) { [weak self] in
+                guard let self else { return }; self.mode = .several; self.reload()
             })
         }
-
         if let s = statusText {
-            if statusLoading {
-                clientBar.addArrangedSubview(PixelLoader())
-                let sh = ShimmerLabel()
-                sh.text = s
-                sh.font = .systemFont(ofSize: 13.5, weight: .medium)
-                sh.textColor = .label
-                clientBar.addArrangedSubview(sh)
-                let el = mutedLabel("0.0s")
-                el.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-                el.textColor = .tertiaryLabel
-                elapsedLabel = el
-                clientBar.addArrangedSubview(el)
-            } else {
-                clientBar.addArrangedSubview(mutedLabel(s))
-            }
+            if statusLoading { clientBar.addArrangedSubview(PixelLoader()) }
+            let l = mutedLabel(s)
+            l.textColor = statusLoading ? .label : .secondaryLabel
+            clientBar.addArrangedSubview(l)
             return
         }
-        if currentRef == nil {
-            clientBar.addArrangedSubview(
-                pillButton("＋ Use copied client", filled: true) { [weak self] in self?.useCopiedClient() })
+        if mode == .name {
+            clientBar.addArrangedSubview(fieldView(text: nameQuery, placeholder: "Who is it for?", symbol: "person.crop.circle") { [weak self] in
+                self?.leaveNameMode()
+            })
+            return
+        }
+        guard hasClient else {
+            let b = fieldView(text: "", placeholder: "Who is it for?", symbol: "person.crop.circle", clear: nil)
+            b.addAction(UIAction { [weak self] _ in self?.enterNameMode() }, for: .touchUpInside)
+            clientBar.addArrangedSubview(b)
             return
         }
         let label = mutedLabel("For \(clientName ?? currentRef?.value ?? "client")")
         label.textColor = brand
         label.font = .systemFont(ofSize: 14, weight: .semibold)
         clientBar.addArrangedSubview(label)
-        clientBar.addArrangedSubview(iconButton("arrow.clockwise") { [weak self] in self?.useCopiedClient() })
         clientBar.addArrangedSubview(iconButton("xmark") { [weak self] in self?.clearClient() })
     }
 
-    private func setAudience(_ a: Audience) {
-        guard a != audience else { return }
-        audience = a
-        mode = .templates; suggestions = []; draftText = ""; pendingCartUrl = nil
-        reload()
+    /// The name field on the client bar: a rounded box that shows what has been typed so far.
+    private func fieldView(text: String, placeholder: String, symbol: String, clear: (() -> Void)?) -> UIButton {
+        let b = UIButton(type: .system)
+        var c = UIButton.Configuration.plain()
+        c.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .medium))
+        c.imagePadding = 7
+        c.baseForegroundColor = text.isEmpty ? .secondaryLabel : .label
+        c.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
+        c.background.backgroundColor = .systemBackground
+        c.background.cornerRadius = 12
+        c.background.strokeColor = line
+        c.background.strokeWidth = 1
+        var t = AttributedString(text.isEmpty ? placeholder : text)
+        t.font = .systemFont(ofSize: 14, weight: text.isEmpty ? .regular : .semibold)
+        c.attributedTitle = t
+        b.configuration = c
+        b.contentHorizontalAlignment = .leading
+        b.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        if let clear {
+            let x = UIButton(type: .system)
+            x.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+            x.tintColor = .tertiaryLabel
+            x.translatesAutoresizingMaskIntoConstraints = false
+            x.addAction(UIAction { _ in clear() }, for: .touchUpInside)
+            b.addSubview(x)
+            NSLayoutConstraint.activate([
+                x.trailingAnchor.constraint(equalTo: b.trailingAnchor, constant: -8),
+                x.centerYAnchor.constraint(equalTo: b.centerYAnchor),
+                x.widthAnchor.constraint(equalToConstant: 28),
+            ])
+        }
+        return b
+    }
+
+    // MARK: - Who is it for (typed, picked from the book, or pasted)
+
+    private func enterNameMode() {
+        guard hasFullAccess else { flash("Turn on Full Access in Settings"); return }
+        nameQuery = ""; nameHits = []
+        mode = .name; setStatus(nil); reload()
+    }
+
+    private func leaveNameMode() {
+        nameWork?.cancel(); nameQuery = ""; nameHits = []
+        mode = .templates; reload()
+    }
+
+    private func typeName(_ s: String) { nameQuery += s; afterNameEdit() }
+    private func deleteName() { guard !nameQuery.isEmpty else { return }; nameQuery.removeLast(); afterNameEdit() }
+    private func afterNameEdit() {
+        rebuildClientBar()
+        nameWork?.cancel()
+        let q = nameQuery.trimmingCharacters(in: .whitespaces)
+        nameSearching = !q.isEmpty
+        let work = DispatchWorkItem { [weak self] in self?.runNameSearch(q) }
+        nameWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+    }
+
+    private func runNameSearch(_ q: String) {
+        guard mode == .name else { return }
+        guard !q.isEmpty else { nameHits = []; nameSearching = false; reload(); return }
+        Task {
+            do {
+                let hits = try await HaliaAPI.current.clients(q: q)
+                guard mode == .name, q == nameQuery.trimmingCharacters(in: .whitespaces) else { return }
+                nameHits = hits
+            } catch { nameHits = [] }
+            nameSearching = false
+            reload()
+        }
+    }
+
+    /// Return on the name keys: the first match, else look the typed name up as written.
+    private func findTypedName() {
+        if let first = nameHits.first { pick(first); return }
+        let q = nameQuery.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return }
+        adopt(ClientRef(kind: .name, value: q), name: q)
+    }
+
+    private func pick(_ c: HaliaAPI.Client) {
+        let ref = c.cid.map { ClientRef(kind: .cid, value: $0) } ?? ClientRef(kind: .name, value: c.name)
+        clientEmail = c.email; clientPhone = c.phone
+        adopt(ref, name: c.name)
     }
 
     private func useCopiedClient() {
         guard hasFullAccess else { flash("Turn on Full Access in Settings"); return }
         guard let ref = ClientClassifier.classify(UIPasteboard.general.string ?? "") else {
-            flash("Copy the client's name or number, then tap again"); return
+            flash("Copy their name or number first"); return
         }
+        adopt(ref, name: ref.kind == .name ? ref.value : nil)
+    }
+
+    /// Make this the client on the bar, then fill in what the book knows about them.
+    private func adopt(_ ref: ClientRef, name: String?) {
+        nameWork?.cancel(); nameQuery = ""; nameHits = []
         currentRef = ref
-        clientName = ref.kind == .name ? ref.value : nil
-        clientCid = nil; clientEmail = nil; clientPhone = nil; cartUrl = nil; cartCount = nil
-        mode = .templates; suggestions = []; draftText = ""
+        clientName = name
+        clientCid = ref.kind == .cid ? ref.value : nil
+        if ref.kind != .cid { clientEmail = nil; clientPhone = nil }
+        cartUrl = nil; cartCount = nil
+        mode = .templates; suggestions = []; draftText = ""; showingSuggestions = false
         setStatus("Looking up…", loading: true)
         Task {
             do {
@@ -365,9 +428,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 if let e = res.email, !e.isEmpty { clientEmail = e }
                 if let ph = res.phone, !ph.isEmpty { clientPhone = ph }
                 applySuggestions(res.suggested)
-                clientCid = res.cid
+                if let cid = res.cid, !cid.isEmpty { clientCid = cid }
                 if let u = res.cart?.url, !u.isEmpty { cartUrl = u; cartCount = res.cart?.count }
-            } catch { /* keep the copied ref; personalisation still works by name */ }
+            } catch { /* keep the ref; personalisation still works by name */ }
             setStatus(nil); reload()
         }
     }
@@ -375,11 +438,17 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func clearClient() {
         currentRef = nil; clientName = nil; clientCid = nil; clientEmail = nil; clientPhone = nil; cartUrl = nil; cartCount = nil
         applySuggestions(nil)
-        mode = .templates; suggestions = []; draftText = ""; pendingCartUrl = nil
+        mode = .templates; suggestions = []; draftText = ""; pendingCartUrl = nil; showingSuggestions = false
         setStatus(nil); reload()
     }
 
-    // MARK: - Action row (varies by mode)
+    /// Needs a client: go and ask who, rather than doing nothing.
+    private func requireClient() -> Bool {
+        if hasClient { return true }
+        enterNameMode(); return false
+    }
+
+    // MARK: - Action row
 
     private func buildActionRow() {
         configureScroll(actionScroll, stack: actionStack)
@@ -392,30 +461,71 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ])
     }
 
+    private func setActions(_ show: Bool) {
+        actionHeight.constant = show ? 46 : 0
+        actionScroll.isHidden = !show
+    }
+
+    private func back(_ title: String = "Back") -> UIButton {
+        pillButton(title, symbol: "chevron.left", filled: false) { [weak self] in self?.backToTemplates() }
+    }
+
     private func rebuildActionRow() {
         actionStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
         switch mode {
-        case .suggestions:
-            actionHeight.constant = 46; actionScroll.isHidden = false
-            actionStack.addArrangedSubview(pillButton("‹ Templates", filled: false) { [weak self] in self?.backToTemplates() })
-            actionStack.addArrangedSubview(pillButton("Send catalogue (\(selectedCount))", filled: true) { [weak self] in self?.sendCatalogue() })
-            actionStack.addArrangedSubview(pillButton("Pay in chat (\(selectedCount))", filled: false) { [weak self] in self?.sendCartLink() })
+        case .templates:
+            guard hasFullAccess else { setActions(false); return }
+            setActions(true)
+            actionStack.addArrangedSubview(pillButton("Write", symbol: "pencil.line", filled: true) { [weak self] in self?.enterWrite() })
+            actionStack.addArrangedSubview(pillButton("Reply", symbol: "arrowshape.turn.up.left", filled: false) { [weak self] in self?.replyToCopied() })
+            actionStack.addArrangedSubview(pillButton("Pieces", symbol: "bag", filled: false) { [weak self] in self?.enterPieces() })
+            actionStack.addArrangedSubview(pillButton("Book", symbol: "calendar", filled: false) { [weak self] in self?.enterBook() })
+            actionStack.addArrangedSubview(pillButton("More", symbol: "ellipsis", filled: false) { [weak self] in self?.enterMore() })
+
+        case .write:
+            setActions(true)
+            actionStack.addArrangedSubview(back())
+            for (label, instruction) in intents {
+                actionStack.addArrangedSubview(pillButton(label, filled: false) { [weak self] in
+                    self?.startDraft(instruction: instruction, thread: nil)
+                })
+            }
 
         case .draft:
-            actionHeight.constant = 46; actionScroll.isHidden = false
-            actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
-            actionStack.addArrangedSubview(pillButton("Insert", filled: true) { [weak self] in self?.insertDraft() })
+            setActions(true)
+            actionStack.addArrangedSubview(back())
+            actionStack.addArrangedSubview(pillButton("Insert", symbol: "text.insert", filled: true) { [weak self] in self?.insertDraft() })
             for (label, mod) in refinements {
                 actionStack.addArrangedSubview(pillButton(label, filled: false) { [weak self] in self?.refine(mod) })
             }
 
-        case .book:
-            actionHeight.constant = 46; actionScroll.isHidden = false
-            actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
-            if bookDay != nil && bookTimes.isEmpty {
-                actionStack.addArrangedSubview(mutedLabel("Closed that day"))
+        case .pieces:
+            setActions(true)
+            if showingSuggestions {
+                actionStack.addArrangedSubview(pillButton("Shelf", symbol: "chevron.left", filled: false) { [weak self] in
+                    guard let self else { return }; self.showingSuggestions = false; self.reload()
+                })
+                actionStack.addArrangedSubview(pillButton("Send as catalogue (\(selectedCount))", symbol: "link", filled: true) { [weak self] in self?.sendCatalogue() })
+                actionStack.addArrangedSubview(pillButton("Pay link (\(selectedCount))", symbol: "creditcard", filled: false) { [weak self] in self?.sendCartLink() })
+            } else {
+                actionStack.addArrangedSubview(back())
+                actionStack.addArrangedSubview(searchFieldView())
+                if hasClient {
+                    actionStack.addArrangedSubview(pillButton("For \(currentFirstName ?? "them")", symbol: "sparkles", filled: true) { [weak self] in self?.suggestPieces() })
+                }
             }
+
+        case .saved:
+            setActions(true)
+            actionStack.addArrangedSubview(back())
+            actionStack.addArrangedSubview(pillButton("Send as catalogue (\(savedItems.count))", symbol: "link", filled: true) { [weak self] in self?.buildCatalogueFromSaved() })
+            actionStack.addArrangedSubview(pillButton("Pay link", symbol: "creditcard", filled: false) { [weak self] in self?.buildCartLinkFromSaved() })
+            actionStack.addArrangedSubview(pillButton("Clear", filled: false) { [weak self] in self?.clearSaved() })
+
+        case .book:
+            setActions(true)
+            actionStack.addArrangedSubview(back())
+            if bookDay != nil && bookTimes.isEmpty { actionStack.addArrangedSubview(mutedLabel("Closed that day")) }
             for slot in bookTimes {
                 actionStack.addArrangedSubview(togglePill(Self.timeLabel(slot), on: bookMinutes == slot) { [weak self] in
                     guard let self else { return }
@@ -424,103 +534,74 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 })
             }
 
-        case .products:
-            actionHeight.constant = 46; actionScroll.isHidden = false
-            actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
-            actionStack.addArrangedSubview(searchFieldView())
+        case .more:
+            setActions(true)
+            actionStack.addArrangedSubview(back())
 
-        case .burst:
-            actionHeight.constant = 46; actionScroll.isHidden = false
-            actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
+        case .several:
+            setActions(true)
+            actionStack.addArrangedSubview(back())
             if burstQueue?.current != nil {
-                actionStack.addArrangedSubview(pillButton("Insert", filled: true) { [weak self] in self?.burstInsert() })
+                actionStack.addArrangedSubview(pillButton("Insert", symbol: "text.insert", filled: true) { [weak self] in self?.burstInsert() })
                 actionStack.addArrangedSubview(pillButton("Skip", filled: false) { [weak self] in self?.burstSkip() })
             } else {
                 actionStack.addArrangedSubview(pillButton("Done", filled: true) { [weak self] in self?.burstDone() })
             }
 
-        case .saved:
-            actionHeight.constant = 46; actionScroll.isHidden = false
-            actionStack.addArrangedSubview(pillButton("‹ Back", filled: false) { [weak self] in self?.backToTemplates() })
-            actionStack.addArrangedSubview(pillButton("Build catalogue (\(savedItems.count))", filled: true) { [weak self] in self?.buildCatalogueFromSaved() })
-            actionStack.addArrangedSubview(pillButton("💳 Pay in chat", filled: false) { [weak self] in self?.buildCartLinkFromSaved() })
-            actionStack.addArrangedSubview(pillButton("Clear", filled: false) { [weak self] in self?.clearSaved() })
-
-        case .templates:
-            let base = hasFullAccess && (statusText == nil)
-            let clientShow = (currentRef != nil) && base
-            let savedN = SavedItemsStore.count
-            let showToggles = base && audience == .client && !templates.isEmpty
-            let show = showToggles || clientShow || (savedN > 0 && base) || (base && audience == .client)
-            actionHeight.constant = show ? 46 : 0; actionScroll.isHidden = !show
-            guard show else { return }
-            // Greeting / sign-off switches: once you are mid-chat you rarely want either.
-            if showToggles {
-                actionStack.addArrangedSubview(togglePill("Dear", on: includeGreeting) { [weak self] in
-                    guard let self else { return }; self.includeGreeting.toggle(); self.rebuildActionRow()
-                })
-                actionStack.addArrangedSubview(togglePill("Sign-off", on: includeSignoff) { [weak self] in
-                    guard let self else { return }; self.includeSignoff.toggle(); self.rebuildActionRow()
-                })
-            }
-            // Polish what the associate typed, with or without a client on the bar.
-            if base && audience == .client {
-                actionStack.addArrangedSubview(pillButton("Polish", filled: false) { [weak self] in self?.polishTyped() })
-                if polishedText != nil {
-                    actionStack.addArrangedSubview(pillButton("Adjust", filled: false) { [weak self] in self?.adjustPolished() })
-                }
-            }
-            // The keyboard is the hub: products saved while browsing (via App Intents) land here.
-            if savedN > 0 && hasFullAccess {
-                actionStack.addArrangedSubview(pillButton("🛍 Saved (\(savedN))", filled: false) { [weak self] in self?.enterSaved() })
-            }
-            guard clientShow else { return }
-
-            if audience == .team {
-                // Team mode: compose a note ABOUT the client, for a colleague.
-                actionStack.addArrangedSubview(pillButton("↗ Handoff", filled: true) { [weak self] in self?.handoff() })
-                if clientCid != nil {
-                    actionStack.addArrangedSubview(pillButton("Mark contacted", filled: false) { [weak self] in self?.markContacted() })
-                }
-                return
-            }
-
-            // Client mode: compose a message TO the client.
-            if cartUrl != nil {
-                let n = (cartCount ?? 0) > 0 ? " (\(cartCount!))" : ""
-                actionStack.addArrangedSubview(pillButton("🧺 Nudge basket\(n)", filled: true) { [weak self] in self?.nudgeBasket() })
-            }
-            actionStack.addArrangedSubview(pillButton("✦ Suggest pieces", filled: true) { [weak self] in self?.suggestPieces() })
-            actionStack.addArrangedSubview(pillButton("↩ Reply", filled: false) { [weak self] in self?.replyToCopied() })
-            actionStack.addArrangedSubview(pillButton("Remember", filled: false) { [weak self] in self?.rememberCopied() })
-            if clientCid != nil {
-                actionStack.addArrangedSubview(pillButton("Book a visit", filled: false) { [weak self] in self?.enterBook() })
-            }
-            actionStack.addArrangedSubview(pillButton("Offer a time", filled: false) { [weak self] in
-                self?.startDraft(instruction: "Offer a private appointment at the boutique this week. Ask which day and "
-                                 + "time would suit them. Do not name specific times or dates yourself.", thread: nil)
-            })
-            if let occ = pendingOccasion {
-                actionStack.addArrangedSubview(pillButton("Follow up that week", filled: true) { [weak self] in self?.followUpOccasion(occ) })
-            }
-            if clientCid != nil {
-                actionStack.addArrangedSubview(pillButton("Mark contacted", filled: false) { [weak self] in self?.markContacted() })
-            }
-            let lead = mutedLabel("Draft:")
-            lead.font = .systemFont(ofSize: 12, weight: .semibold)
-            actionStack.addArrangedSubview(lead)
-            for (label, instruction) in intents {
-                actionStack.addArrangedSubview(pillButton(label, filled: false) { [weak self] in
-                    self?.startDraft(instruction: instruction, thread: nil)
-                })
-            }
+        case .name:
+            setActions(true)
+            actionStack.addArrangedSubview(pillButton("Paste a name or number", symbol: "doc.on.clipboard", filled: false) { [weak self] in self?.useCopiedClient() })
         }
+    }
+
+    private func enterWrite() {
+        guard requireClient() else { return }
+        mode = .write; reload()
+    }
+
+    // MARK: - More: the longer list of tools
+
+    private func enterMore() {
+        mode = .more; reload()
+    }
+
+    private func buildMoreRows() -> [MoreRow] {
+        var rows: [MoreRow] = []
+        rows.append(MoreRow(title: "Polish what I typed", detail: "Rewrites the message in the house voice", symbol: "wand.and.stars") { [weak self] in self?.polishTyped() })
+        if polishedText != nil {
+            rows.append(MoreRow(title: "Adjust the polish", detail: "Warmer, shorter or more formal", symbol: "slider.horizontal.3") { [weak self] in self?.adjustPolished() })
+        }
+        if hasClient {
+            rows.append(MoreRow(title: "Remember what they said", detail: "Copy their message first; it goes on their record", symbol: "bookmark") { [weak self] in self?.rememberCopied() })
+            if cartUrl != nil {
+                let n = (cartCount ?? 0) > 0 ? " · \(cartCount!) item\(cartCount == 1 ? "" : "s")" : ""
+                rows.append(MoreRow(title: "Nudge their basket", detail: "They left something at checkout" + n, symbol: "basket") { [weak self] in self?.nudgeBasket() })
+            }
+            if let occ = pendingOccasion {
+                rows.append(MoreRow(title: "Follow up before the \(occ.label)", detail: occ.date, symbol: "bell") { [weak self] in self?.followUpOccasion(occ) })
+            }
+            if clientCid != nil {
+                rows.append(MoreRow(title: "Mark as contacted", detail: "So the team sees who is looking after them", symbol: "checkmark.circle") { [weak self] in self?.markContacted() })
+            }
+            rows.append(MoreRow(title: "Note for the team", detail: "A short handover about them, for a colleague", symbol: "person.2") { [weak self] in self?.handoff() })
+        }
+        let savedN = SavedItemsStore.count
+        if savedN > 0 {
+            rows.append(MoreRow(title: "Saved pieces", detail: "\(savedN) saved while browsing", symbol: "bag") { [weak self] in self?.enterSaved() })
+        }
+        rows.append(MoreRow(title: "Greeting", detail: includeGreeting ? "On. Templates open with “Dear …,”" : "Off. Templates start mid-conversation", symbol: includeGreeting ? "checkmark.square" : "square") { [weak self] in
+            guard let self else { return }; self.includeGreeting.toggle(); self.reload()
+        })
+        rows.append(MoreRow(title: "Sign-off", detail: includeSignoff ? "On. Templates end with your sign-off" : "Off. Templates end on the message", symbol: includeSignoff ? "checkmark.square" : "square") { [weak self] in
+            guard let self else { return }; self.includeSignoff.toggle(); self.reload()
+        })
+        return rows
     }
 
     // MARK: - Team handoff (a note ABOUT the client, for a colleague; never says "hidden VIP")
 
     private func handoff() {
-        guard currentRef != nil else { flash("Look up a client first"); return }
+        guard requireClient() else { return }
         startDraft(instruction:
             "Write a SHORT internal note for a colleague, not a message to the client. Say who this "
             + "client is, what they want, and the next step, so a teammate can help. Colleague-to-"
@@ -528,8 +609,6 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             thread: nil, handoff: true)
     }
 
-    /// Hard guarantee the internal note never carries Halia's internal grade language, whatever the
-    /// model returns.
     private func scrubInternal(_ text: String) -> String {
         var out = text
         for phrase in ["hidden vip", "hidden vic"] {
@@ -540,8 +619,6 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         return out
     }
 
-    /// The draft as shown: an optional muted summary line above, the reply, and when the reply is
-    /// in the client's language, its English underneath. Only the reply is ever inserted.
     private func draftAttributed() -> NSAttributedString {
         let body: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 15), .foregroundColor: UIColor.label]
         let muted: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 13), .foregroundColor: UIColor.secondaryLabel]
@@ -556,14 +633,14 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         return out
     }
 
-    // MARK: - Draft (personal message, previewed before it goes in)
+    // MARK: - Draft (personal message, read before it goes in)
 
     private func startDraft(instruction: String, thread: [[String: String]]?,
                             cartUrl: String? = nil, handoff: Bool = false) {
         guard let ref = currentRef, !busy else { return }
-        pendingCartUrl = cartUrl   // appended to the message only when this draft is inserted
+        pendingCartUrl = cartUrl
         draftIsHandoff = handoff
-        busy = true; setStatus(handoff ? "Writing note…" : "Drafting…", loading: true)
+        busy = true; setStatus(handoff ? "Writing the note…" : "Writing…", loading: true)
         Task {
             do {
                 let res = try await HaliaAPI.current.draft(ref, channel: handoff ? "internal" : "whatsapp",
@@ -574,7 +651,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                     draftText = handoff ? scrubInternal(d) : d
                     draftEnglish = handoff ? nil : res.english
                     lastThread = thread; mode = .draft; setStatus(nil)
-                } else { setStatus("No draft came back") }
+                } else { setStatus("Nothing came back. Try again.") }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
@@ -592,13 +669,11 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func replyToCopied() {
         guard hasFullAccess else { flash("Turn on Full Access in Settings"); return }
+        guard requireClient() else { return }
         let msg = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !msg.isEmpty else { flash("Copy the client's message, then tap Reply"); return }
+        guard !msg.isEmpty else { flash("Copy their message first, then tap Reply"); return }
         let thread = [["from": "them", "text": msg]]
-        guard let ref = currentRef, !busy else {
-            startDraft(instruction: "Reply warmly and personally to their latest message.", thread: thread)
-            return
-        }
+        guard let ref = currentRef, !busy else { return }
         busy = true; setStatus("Reading…", loading: true)
         Task {
             do {
@@ -609,7 +684,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                     briefSummary = res.summary; briefUrgency = res.urgency; briefActions = res.actions ?? []
                     lastThread = thread; pendingCartUrl = nil; draftIsHandoff = false
                     mode = .draft; setStatus(nil)
-                } else { setStatus("No reply came back") }
+                } else { setStatus("Nothing came back. Try again.") }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
@@ -617,17 +692,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
-    // MARK: - Book a visit (agree a time in the chat, book it, send them the invite)
+    // MARK: - Book a visit
 
-    /// Half-hourly slots the shop is actually open for on the chosen day, as minutes past
-    /// midnight. A store that has set no hours keeps the old 09:00-19:00; a day it is shut offers
-    /// nothing rather than pretending.
-    private var bookTimes: [Int] {
-        HoursStore.slots(on: bookDay ?? Date())
-    }
-
-    /// How far ahead a visit can be set. A season's worth, so a client passing through in two
-    /// months can be booked in the chat rather than promised a follow-up.
+    private var bookTimes: [Int] { HoursStore.slots(on: bookDay ?? Date()) }
     private static let bookDays = 90
 
     private static func timeLabel(_ minutes: Int) -> String {
@@ -638,7 +705,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         if offset == 0 { return "Today" }
         if offset == 1 { return "Tomorrow" }
         let f = DateFormatter()
-        f.dateFormat = offset < 7 ? "EEE d" : "d MMM"   // a weekday reads as this week; past that, a date
+        f.dateFormat = offset < 7 ? "EEE d" : "d MMM"
         return f.string(from: day)
     }
 
@@ -650,7 +717,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     private func enterBook() {
-        guard clientCid != nil else { flash("Look up a client first"); return }
+        guard requireClient() else { return }
+        guard clientCid != nil else { flash("They are not in your book yet"); return }
         bookDay = nil; bookMinutes = nil
         mode = .book; setStatus(nil); reload()
     }
@@ -670,7 +738,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                                                                      clientEmail: clientEmail ?? "")
                 if let msg = res.links?.message, !msg.isEmpty {
                     mode = .templates; bookDay = nil; bookMinutes = nil
-                    insertUndoable(msg)            // the client's line, with their calendar link
+                    insertUndoable(msg)
                     setStatus(nil); flash("Booked")
                 } else { setStatus("Could not book that time") }
             } catch {
@@ -680,13 +748,13 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
-    // MARK: - Remember (what the client said about themselves, into their record in the store)
+    // MARK: - Remember
 
     private func rememberCopied() {
         guard hasFullAccess else { flash("Turn on Full Access in Settings"); return }
         guard let ref = currentRef, !busy else { return }
         let msg = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !msg.isEmpty else { flash("Copy the client's message, then tap Remember"); return }
+        guard !msg.isEmpty else { flash("Copy their message first"); return }
         busy = true; setStatus("Saving…", loading: true)
         Task {
             do {
@@ -700,11 +768,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
-            busy = false; reload()
+            busy = false; mode = .templates; reload()
         }
     }
 
-    /// Monday of the week before the occasion, as YYYY-MM-DD.
     private func weekBefore(_ iso: String) -> String {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
         guard let d = f.date(from: iso) else { return iso }
@@ -719,7 +786,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         Task {
             do {
                 try await HaliaAPI.current.captureFollowUp(customerId: occ.cid, note: "\(occ.label) on \(occ.date)", due: due)
-                pendingOccasion = nil; flash("Follow-up set"); reload()
+                pendingOccasion = nil; flash("Follow-up set"); mode = .templates; reload()
             } catch { flash("Could not reach Halia") }
         }
     }
@@ -728,7 +795,6 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         briefSummary = nil; briefUrgency = nil; briefActions = []; draftEnglish = nil
     }
 
-    /// The brief's next moves, mapped onto what the keyboard can already do.
     private func briefPills() -> [UIButton] {
         var out: [UIButton] = []
         if let u = briefUrgency, !u.isEmpty { out.append(togglePill(u.capitalized, on: true) {}) }
@@ -737,15 +803,15 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             let kind = a.kind ?? "", label = (a.label ?? "").lowercased()
             var pill: UIButton?
             if kind == "contacted", clientCid != nil, seen.insert("contacted").inserted {
-                pill = pillButton("Mark contacted", filled: false) { [weak self] in self?.markContacted() }
+                pill = pillButton("Mark as contacted", filled: false) { [weak self] in self?.markContacted() }
             } else if kind == "catalogue", seen.insert("catalogue").inserted {
-                pill = pillButton("Send catalogue", filled: false) { [weak self] in self?.suggestPieces() }
+                pill = pillButton("Pieces for them", filled: false) { [weak self] in self?.suggestPieces() }
             } else if kind == "pipeline", let cid = clientCid, seen.insert("pipeline").inserted {
                 let note = a.label ?? "Follow up"
                 pill = pillButton("Follow up", filled: false) { [weak self] in self?.followUp(cid: cid, note: note) }
             } else if kind == "advice", label.contains("basket") || label.contains("checkout"), cartUrl != nil,
                       seen.insert("basket").inserted {
-                pill = pillButton("Nudge basket", filled: false) { [weak self] in self?.nudgeBasket() }
+                pill = pillButton("Nudge their basket", filled: false) { [weak self] in self?.nudgeBasket() }
             }
             if let p = pill { out.append(p) }
         }
@@ -762,29 +828,37 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func refine(_ modifier: String) {
         guard mode == .draft, !busy, !draftText.isEmpty else { return }
         startDraft(instruction: modifier + " Current draft to adjust: " + draftText,
-                   thread: lastThread, cartUrl: pendingCartUrl, handoff: draftIsHandoff)   // keep basket link + handoff scrub across refines
+                   thread: lastThread, cartUrl: pendingCartUrl, handoff: draftIsHandoff)
     }
 
     private func insertDraft() {
         guard !draftText.isEmpty else { return }
         var text = draftText
-        if let url = pendingCartUrl, !url.isEmpty { text += "\n\n" + url }   // a basket nudge carries the recovery link
+        if let url = pendingCartUrl, !url.isEmpty { text += "\n\n" + url }
         insertUndoable(text)
         mode = .templates; draftText = ""; lastThread = nil; pendingCartUrl = nil; clearBrief(); reload()
     }
 
-    // MARK: - Suggestions
+    // MARK: - Pieces: the shelf, and Halia's picks for this client
+
+    private func enterPieces() {
+        guard hasFullAccess else { flash("Turn on Full Access in Settings to browse pieces"); return }
+        mode = .pieces; products = []; searchQuery = ""; showingSuggestions = false
+        prodCollection = nil; prodSize = nil; prodViewIds = []
+        reload()
+        runProductSearch("")
+    }
 
     private func suggestPieces() {
         guard let ref = currentRef, !busy else { return }
-        busy = true; setStatus("Finding pieces…", loading: true)
+        busy = true; setStatus("Choosing pieces…", loading: true)
         Task {
             do {
                 let picks = try await HaliaAPI.current.suggest(ref, instruction: "")
                 suggestions = picks.map { SuggestRow(id: $0.productId, title: $0.title,
                                                      why: $0.why, price: $0.priceText, on: true) }
-                if suggestions.isEmpty { setStatus("No suggestions right now") }
-                else { mode = .suggestions; setStatus(nil) }
+                if suggestions.isEmpty { setStatus("Nothing stood out for them. Browse the shelf instead.") }
+                else { mode = .pieces; showingSuggestions = true; setStatus(nil) }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
@@ -794,15 +868,15 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func sendCatalogue() {
         let ids = suggestions.filter { $0.on }.map { $0.id }
-        guard !ids.isEmpty else { flash("Pick at least one piece"); return }
+        guard !ids.isEmpty else { flash("Tick at least one piece"); return }
         guard !busy else { return }
-        busy = true; setStatus("Making a catalogue…", loading: true)
+        busy = true; setStatus("Making the catalogue…", loading: true)
         Task {
             do {
                 let url = try await HaliaAPI.current.catalogue(productIds: ids, name: clientName,
                                                                email: clientEmail ?? "", phone: clientPhone ?? "")
                 insertUndoable(url)
-                mode = .templates; suggestions = []; setStatus(nil)
+                mode = .templates; suggestions = []; showingSuggestions = false; setStatus(nil)
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
@@ -810,12 +884,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
-    /// The whole view, as one selection for the client. The link carries at most 40 pieces, which
-    /// is what the server offers back, so this never silently drops half a shelf.
     private func sendViewAsSelection() {
-        guard !prodViewIds.isEmpty else { flash("Nothing in this view"); return }
+        guard !prodViewIds.isEmpty else { flash("Nothing on this shelf"); return }
         guard !busy else { return }
-        busy = true; setStatus("Making a selection…", loading: true)
+        busy = true; setStatus("Making the selection…", loading: true)
         Task {
             do {
                 let url = try await HaliaAPI.current.catalogue(productIds: prodViewIds, name: clientName,
@@ -831,14 +903,14 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     private func sendCartLink() {
         let ids = suggestions.filter { $0.on }.map { $0.id }
-        guard !ids.isEmpty else { flash("Pick at least one piece"); return }
+        guard !ids.isEmpty else { flash("Tick at least one piece"); return }
         guard !busy else { return }
-        busy = true; setStatus("Making a pay link…", loading: true)
+        busy = true; setStatus("Making the pay link…", loading: true)
         Task {
             do {
                 let url = try await HaliaAPI.current.cartLink(productIds: ids)
                 insertUndoable(url)
-                mode = .templates; suggestions = []; setStatus(nil)
+                mode = .templates; suggestions = []; showingSuggestions = false; setStatus(nil)
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
@@ -849,50 +921,45 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func backToTemplates() {
         clearBrief()
         mode = .templates; suggestions = []; products = []; draftText = ""; pendingCartUrl = nil
-        bookDay = nil; bookMinutes = nil
+        bookDay = nil; bookMinutes = nil; showingSuggestions = false
         searchQuery = ""; searchWork?.cancel(); reload()
     }
 
-    // MARK: - Saved products (the hub) — what App Intents saved while browsing, shown in the keyboard.
+    // MARK: - Saved pieces (what App Intents saved while browsing)
 
     private func enterSaved() {
         savedItems = SavedItemsStore.load()
         products = []; productCartBase = nil
         mode = .saved
-        reload()                                       // show the text list at once…
-        if !AppGroup.defaults.bool(forKey: "halia.savedHint") {   // one-time discoverability hint
+        reload()
+        if !AppGroup.defaults.bool(forKey: "halia.savedHint") {
             AppGroup.defaults.set(true, forKey: "halia.savedHint")
-            flash("Tap to send · long-press to remove")
+            flash("Tap to send, hold to remove")
         }
         guard hasFullAccess, !savedItems.isEmpty else { return }
         let urls = savedItems.map { $0.url }
         Task {
             do {
                 let (prods, base) = try await HaliaAPI.current.productsFromUrls(urls)
-                guard mode == .saved else { return }   // …then the image grid takes over
+                guard mode == .saved else { return }
                 products = prods; productCartBase = base
                 reload()
-            } catch { /* keep the text list on a resolve failure */ }
+            } catch { /* keep the text list */ }
         }
     }
 
-    /// Turn the saved shortlist into one catalogue link and drop it in the chat.
     private func buildCatalogueFromSaved() {
         let urls = savedItems.map { $0.url }
         guard !urls.isEmpty else { flash("Nothing saved yet"); return }
         guard hasFullAccess else { flash("Turn on Full Access to build a catalogue"); return }
         guard !busy else { return }
-        busy = true; setStatus("Building a catalogue…", loading: true)
+        busy = true; setStatus("Making the catalogue…", loading: true)
         Task {
             do {
                 let r = try await HaliaAPI.current.catalogueFromUrls(urls: urls, name: clientName ?? "",
                                                                      email: clientEmail ?? "", phone: clientPhone ?? "")
-                if r.url.isEmpty {
-                    setStatus("None of your saved items are in this store")
-                } else {
-                    insertUndoable(r.url)
-                    mode = .templates; setStatus(nil); flash("Catalogue inserted ✓")
-                }
+                if r.url.isEmpty { setStatus("None of the saved pieces are in this store") }
+                else { insertUndoable(r.url); mode = .templates; setStatus(nil); flash("Catalogue inserted") }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
@@ -900,22 +967,17 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
-    /// Turn the saved shortlist into a Shopify /cart link so the client can pay in the chat.
     private func buildCartLinkFromSaved() {
         let urls = savedItems.map { $0.url }
         guard !urls.isEmpty else { flash("Nothing saved yet"); return }
         guard hasFullAccess else { flash("Turn on Full Access to make a pay link"); return }
         guard !busy else { return }
-        busy = true; setStatus("Making a pay link…", loading: true)
+        busy = true; setStatus("Making the pay link…", loading: true)
         Task {
             do {
                 let url = try await HaliaAPI.current.cartLinkFromUrls(urls: urls)
-                if url.isEmpty {
-                    setStatus("None of your saved items can be bought right now")
-                } else {
-                    insertUndoable(url)
-                    mode = .templates; setStatus(nil); flash("Pay link inserted ✓")
-                }
+                if url.isEmpty { setStatus("None of the saved pieces can be bought right now") }
+                else { insertUndoable(url); mode = .templates; setStatus(nil); flash("Pay link inserted") }
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
@@ -930,7 +992,6 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         reload()
     }
 
-    /// A readable name for a saved product: its page title if we have one, else the handle.
     private func savedDisplayName(_ it: SavedItemsStore.Item) -> String {
         if let t = it.title, !t.trimmingCharacters(in: .whitespaces).isEmpty { return t }
         let path = it.url.split(separator: "?").first.map(String.init) ?? it.url
@@ -939,18 +1000,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         return name.isEmpty ? it.url : name.capitalized
     }
 
-    // MARK: - Products (a live, searchable image library of the store's catalogue)
+    // MARK: - Product search (live, from the keys)
 
-    private func enterProducts() {
-        mode = .products; products = []; searchQuery = ""
-        prodCollection = nil; prodSize = nil; prodViewIds = []
-        reload()
-        runProductSearch("")   // browse the whole catalogue straight away, like a media library
-    }
-
-    /// Debounced live search: fired from the in-keyboard keys as the associate types.
     private func afterSearchEdit() {
-        rebuildActionRow()      // refresh the search-field display immediately
+        rebuildActionRow()
         searchWork?.cancel()
         let q = searchQuery
         let work = DispatchWorkItem { [weak self] in self?.runProductSearch(q) }
@@ -963,8 +1016,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func clearSearch() { searchQuery = ""; afterSearchEdit() }
 
     private func runProductSearch(_ q: String) {
-        guard !busy else { return }   // a fetch is in flight; its completion re-runs for the latest text
-        busy = true; setStatus(q.isEmpty ? "Loading products…" : "Searching…", loading: true)
+        guard !busy else { return }
+        busy = true; setStatus(q.isEmpty ? "Loading the shelf…" : "Searching…", loading: true)
         Task {
             do {
                 let view = try await HaliaAPI.current.searchProducts(
@@ -973,25 +1026,18 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                 prodViewIds = view.ids
                 if !view.collections.isEmpty { prodCollections = view.collections }
                 if !view.sizes.isEmpty { prodSizes = view.sizes }
-                if view.products.isEmpty {
-                    setStatus(q.isEmpty && prodCollection == nil && prodSize == nil
-                              ? nil : "Nothing in this view")
-                } else { setStatus(nil) }
+                setStatus(nil)
                 rebuildChips()
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
             busy = false; reload()
-            if mode == .products && searchQuery != q { runProductSearch(searchQuery) }   // catch up to newer typing
+            if mode == .pieces && searchQuery != q { runProductSearch(searchQuery) }
         }
     }
 
-    // MARK: - Log contacted
+    // MARK: - Several clients, from inside the chat
 
-    // MARK: - The burst, from inside the chat
-
-    /// What the associate needs to see before Insert: who this step is for, where they stand, and
-    /// the message itself. The keyboard cannot switch chats, so it says so.
     private func burstSummary() -> String {
         guard let q = burstQueue else { return "" }
         guard let it = q.current else {
@@ -1000,7 +1046,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         var lines = ["\(q.index + 1) of \(q.items.count) · \(it.name)" + (it.grade.isEmpty ? "" : " · \(it.grade)"),
                      it.consentLine]
         if let w = it.warnLine { lines.append(w) }
-        lines.append("Open their chat, then Insert. Insert logs the contact.")
+        lines.append("Open their chat, then Insert. Insert marks them as contacted.")
         lines.append("")
         lines.append(it.body)
         return lines.joined(separator: "\n")
@@ -1013,7 +1059,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         BurstStore.save(q); burstQueue = q
         if hasFullAccess {
             Task { try? await HaliaAPI.current.logContacted(
-                cid: it.cid, clientName: it.name, reason: "Burst: \(q.template) via keyboard", quiet: true) }
+                cid: it.cid, clientName: it.name, reason: "Sent \(q.template) from the keyboard", quiet: true) }
         }
         flash(q.current == nil ? "Inserted, that was the last" : "Inserted, next")
         reload()
@@ -1036,23 +1082,23 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     private func markContacted() {
-        guard let cid = clientCid else { flash("Look up the client first"); return }
+        guard let cid = clientCid else { flash("They are not in your book yet"); return }
         guard !busy else { return }
-        busy = true; setStatus("Logging…", loading: true)
+        busy = true; setStatus("Marking…", loading: true)
         Task {
             do {
                 _ = try await HaliaAPI.current.logContacted(cid: cid, clientName: clientName,
-                                                            reason: "Messaged via Halia")
-                busy = false; flash("Logged ✓")
+                                                            reason: "Messaged from the keyboard")
+                busy = false; flash("Marked as contacted")
             } catch {
                 busy = false
-                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not log")
+                setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
-            reload()
+            mode = .templates; reload()
         }
     }
 
-    // MARK: - Category chips
+    // MARK: - Chips (categories, days, the shelf's filters)
 
     private func buildChips() {
         configureScroll(chipsScroll, stack: chipsStack)
@@ -1065,8 +1111,6 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ])
     }
 
-    /// A row of its own under the day and time pills, so Book is a decision rather than one more
-    /// pill to scroll past on the time row.
     private func buildConfirmBar() {
         confirmBar.translatesAutoresizingMaskIntoConstraints = false
         confirmBar.backgroundColor = .clear
@@ -1086,7 +1130,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         confirmHeight.constant = ready ? 50 : 0
         confirmBar.isHidden = !ready
         guard ready else { return }
-        let b = pillButton("Book", filled: true) { [weak self] in self?.confirmBooking() }
+        let b = pillButton("Book", symbol: "calendar.badge.checkmark", filled: true) { [weak self] in self?.confirmBooking() }
         b.translatesAutoresizingMaskIntoConstraints = false
         confirmBar.addSubview(b)
         NSLayoutConstraint.activate([
@@ -1097,11 +1141,16 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ])
     }
 
+    private func setChips(_ show: Bool) {
+        chipsHeight.constant = show ? 44 : 0
+        chipsScroll.isHidden = !show
+    }
+
     private func rebuildChips() {
         chipsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        if mode == .book {                                       // pick the day here, the time above
-            chipsHeight.constant = 44
-            chipsScroll.isHidden = false
+        switch mode {
+        case .book:
+            setChips(true)
             let cal = Calendar.current
             for offset in 0..<Self.bookDays {
                 guard let day = cal.date(byAdding: .day, value: offset, to: cal.startOfDay(for: Date())) else { continue }
@@ -1114,16 +1163,12 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                     self.rebuildConfirmBar(); self.reload()
                 })
             }
-            return
-        }
-        if mode == .products {                    // narrow the range, or send the whole of it
-            chipsHeight.constant = 44
-            chipsScroll.isHidden = false
+        case .pieces where !showingSuggestions:
+            setChips(true)
             if !prodViewIds.isEmpty {
-                chipsStack.addArrangedSubview(
-                    pillButton("Send all \(prodViewIds.count)", filled: true) { [weak self] in
-                        self?.sendViewAsSelection()
-                    })
+                chipsStack.addArrangedSubview(pillButton("Send all \(prodViewIds.count)", symbol: "link", filled: true) { [weak self] in
+                    self?.sendViewAsSelection()
+                })
             }
             for c in prodCollections.prefix(40) {
                 chipsStack.addArrangedSubview(togglePill(c, on: prodCollection == c) { [weak self] in
@@ -1139,32 +1184,28 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
                     self.rebuildChips(); self.runProductSearch(self.searchQuery)
                 })
             }
-            return
-        }
-        if mode == .draft {                                      // a brief shows its moves here
+        case .draft:
             let pills = briefPills()
-            chipsHeight.constant = pills.isEmpty ? 0 : 44
-            chipsScroll.isHidden = pills.isEmpty
+            setChips(!pills.isEmpty)
             pills.forEach { chipsStack.addArrangedSubview($0) }
-            return
+        case .templates:
+            setChips(!templates.isEmpty)
+            guard !templates.isEmpty else { return }
+            if !suggestedTemplates.isEmpty {
+                chipsStack.addArrangedSubview(chip(title: "For \(currentFirstName ?? "them")", value: Self.forThemCat, symbol: "sparkles"))
+            }
+            if !recentTemplates.isEmpty {
+                chipsStack.addArrangedSubview(chip(title: "Recent", value: Self.recentCat, symbol: "clock"))
+            }
+            chipsStack.addArrangedSubview(chip(title: "All", value: nil, symbol: nil))
+            for c in categories { chipsStack.addArrangedSubview(chip(title: c, value: c, symbol: nil)) }
+        default:
+            setChips(false)
         }
-        let show = (mode == .templates && audience == .client)   // categories are for client templates
-        chipsHeight.constant = show ? 44 : 0
-        chipsScroll.isHidden = !show
-        guard show else { return }
-        chipsStack.addArrangedSubview(pillButton("🔍 Products", filled: true) { [weak self] in self?.enterProducts() })
-        if !suggestedTemplates.isEmpty {
-            chipsStack.addArrangedSubview(chip(title: Self.forThemCat, value: Self.forThemCat))
-        }
-        if !recentTemplates.isEmpty {
-            chipsStack.addArrangedSubview(chip(title: Self.recentCat, value: Self.recentCat))
-        }
-        chipsStack.addArrangedSubview(chip(title: "All", value: nil))
-        for c in categories { chipsStack.addArrangedSubview(chip(title: c, value: c)) }
     }
 
-    private func chip(title: String, value: String?) -> UIButton {
-        pillButton(title, filled: value == selectedCategory) { [weak self] in
+    private func chip(title: String, value: String?, symbol: String?) -> UIButton {
+        pillButton(title, symbol: symbol, filled: value == selectedCategory) { [weak self] in
             self?.selectedCategory = value
             self?.rebuildChips()
             self?.table.reloadData()
@@ -1187,20 +1228,20 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             table.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
         let lp = UILongPressGestureRecognizer(target: self, action: #selector(handleTableLongPress(_:)))
-        lp.minimumPressDuration = 0.45                 // long-press a template to copy it instead of insert
+        lp.minimumPressDuration = 0.45
         table.addGestureRecognizer(lp)
     }
 
-    /// Long-press a template row to copy it to the clipboard (to paste elsewhere) rather than insert.
+    /// Hold a template to copy it instead of inserting it.
     @objc private func handleTableLongPress(_ g: UILongPressGestureRecognizer) {
         guard g.state == .began else { return }
         guard let ip = table.indexPathForRow(at: g.location(in: table)) else { return }
         if mode == .templates, ip.row < filtered.count {
             Clipboard.put(filtered[ip.row].ready(firstName: currentFirstName, greeting: includeGreeting, signoff: includeSignoff))
-            flash("Copied ✓")
+            flash("Copied")
         } else if mode == .saved, ip.row < savedItems.count {
             Clipboard.put(savedItems[ip.row].url)
-            flash("Copied ✓")
+            flash("Copied")
         }
     }
 
@@ -1228,7 +1269,6 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         emptyLabel.textAlignment = .center
         emptyLabel.textColor = .secondaryLabel
         emptyLabel.font = .systemFont(ofSize: 14)
-        emptyLabel.text = "Open the Halia app and tap Connect to sync your templates."
         emptyLabel.isHidden = true
         view.addSubview(emptyLabel)
         NSLayoutConstraint.activate([
@@ -1240,7 +1280,13 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        mode == .suggestions ? suggestions.count : (mode == .saved ? savedItems.count : filtered.count)
+        switch mode {
+        case .pieces: return showingSuggestions ? suggestions.count : 0
+        case .saved: return savedItems.count
+        case .more: return moreRows.count
+        case .name: return nameHits.count
+        default: return filtered.count
+        }
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -1249,44 +1295,61 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         cell.textLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
         cell.detailTextLabel?.textColor = .secondaryLabel
         cell.detailTextLabel?.numberOfLines = 1
+        cell.accessoryType = .none
+        cell.imageView?.tintColor = brand
 
-        if mode == .suggestions {
+        switch mode {
+        case .pieces:
             let s = suggestions[indexPath.row]
             cell.textLabel?.text = s.title
             cell.detailTextLabel?.text = [s.price, s.why].compactMap { $0 }.joined(separator: "  ·  ")
             cell.accessoryType = s.on ? .checkmark : .none
-        } else if mode == .saved {
+        case .saved:
             let it = savedItems[indexPath.row]
             cell.textLabel?.text = savedDisplayName(it)
             cell.detailTextLabel?.text = it.url
-            cell.accessoryType = .none
-        } else {
+        case .more:
+            let r = moreRows[indexPath.row]
+            cell.textLabel?.text = r.title
+            cell.detailTextLabel?.text = r.detail
+            cell.imageView?.image = UIImage(systemName: r.symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .medium))
+        case .name:
+            let c = nameHits[indexPath.row]
+            cell.textLabel?.text = c.name
+            cell.detailTextLabel?.text = c.grade.isEmpty ? nil : "Grade \(c.grade)"
+        default:
             let t = filtered[indexPath.row]
             cell.textLabel?.text = t.name
             cell.detailTextLabel?.text = t.preview
-            cell.accessoryType = .none
         }
         return cell
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        if mode == .suggestions {
+        switch mode {
+        case .pieces:
+            guard indexPath.row < suggestions.count else { return }
             suggestions[indexPath.row].on.toggle()
             tableView.reloadRows(at: [indexPath], with: .none)
             rebuildActionRow()
-        } else if mode == .saved {
-            insertUndoable(savedItems[indexPath.row].url); flash("Link inserted ✓")
-        } else {
+        case .saved:
+            insertUndoable(savedItems[indexPath.row].url); flash("Link inserted")
+        case .more:
+            guard indexPath.row < moreRows.count else { return }
+            moreRows[indexPath.row].action()
+        case .name:
+            guard indexPath.row < nameHits.count else { return }
+            pick(nameHits[indexPath.row])
+        default:
             let t = filtered[indexPath.row]
             insertUndoable(t.ready(firstName: currentFirstName, greeting: includeGreeting, signoff: includeSignoff))
             recordRecentTemplate(t.id)
-            rebuildChips()                                     // a "Recent" chip may now exist
+            rebuildChips()
             if selectedCategory == Self.recentCat { table.reloadData() }
         }
     }
 
-    /// Swipe-to-remove on the Saved link list (the fallback when a store's images can't be read).
     func tableView(_ tableView: UITableView,
                    trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         guard mode == .saved, indexPath.row < savedItems.count else { return nil }
@@ -1301,7 +1364,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         return UISwipeActionsConfiguration(actions: [remove])
     }
 
-    // MARK: - Product grid (collection view)
+    // MARK: - Product grid
 
     private func buildGrid() {
         grid.dataSource = self
@@ -1315,11 +1378,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             grid.bottomAnchor.constraint(equalTo: table.bottomAnchor),
         ])
         let lp = UILongPressGestureRecognizer(target: self, action: #selector(handleGridLongPress(_:)))
-        lp.minimumPressDuration = 0.45                 // long-press a Saved card to remove it
+        lp.minimumPressDuration = 0.45
         grid.addGestureRecognizer(lp)
     }
 
-    /// Long-press a card in the Saved grid to prune it from the shortlist (no effect in search mode).
     @objc private func handleGridLongPress(_ g: UILongPressGestureRecognizer) {
         guard g.state == .began, mode == .saved else { return }
         guard let ip = grid.indexPathForItem(at: g.location(in: grid)), ip.item < products.count else { return }
@@ -1328,7 +1390,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         savedItems = SavedItemsStore.load()
         if products.isEmpty && savedItems.isEmpty { mode = .templates }
         reload()
-        flash("Removed ✓")
+        flash("Removed")
     }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -1337,11 +1399,11 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ProductCell.id, for: indexPath) as! ProductCell
-        guard indexPath.item < products.count else { return cell }   // stale layout mid data-change
+        guard indexPath.item < products.count else { return cell }
         let p = products[indexPath.item]
         cell.cap.text = p.title
-        let token = indexPath.item + 1                     // guards against cell reuse
-        cell.img.image = nil                               // avoid a recycled cell flashing the old photo
+        let token = indexPath.item + 1
+        cell.img.image = nil
         cell.img.tag = token
         if let url = p.imageURL { ThumbnailLoader.shared.load(url, into: cell.img, token: token) }
         return cell
@@ -1350,40 +1412,37 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard indexPath.item < products.count else { return }
         let p = products[indexPath.item]
-        // Tapping a product copies its actual image to the clipboard so the associate can paste the
-        // photo straight into the chat. A keyboard cannot attach a file itself, so this is the one
-        // extra gesture (paste). If there is no image, fall back to sharing the shoppable link.
+        // A keyboard cannot attach a file, so the photo goes to the clipboard for one paste.
         guard let url = p.imageURL else { shareProductLink(p); return }
-        guard hasFullAccess else { flash("Turn on Full Access to send product images"); return }
-        setStatus("Copying image…", loading: true)
+        guard hasFullAccess else { flash("Turn on Full Access to send photos"); return }
+        setStatus("Copying the photo…", loading: true)
         Task {
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 if let img = UIImage(data: data) {
                     Clipboard.put(image: img)
-                    flash("Image copied. Long-press the chat and tap Paste to send it.")
+                    flash("Photo copied. Hold the chat and tap Paste to send it.")
                 } else { shareProductLink(p) }
             } catch { shareProductLink(p) }
         }
     }
 
-    /// Fallback when there is no usable image: drop the shoppable product link in the chat instead.
     private func shareProductLink(_ p: HaliaAPI.Product) {
         if let link = p.shareLink(cartBase: productCartBase), !link.isEmpty {
-            insertUndoable(link); flash("Link shared ✓")
+            insertUndoable(link); flash("Link inserted")
         } else {
-            flash("Nothing to send for that product")
+            flash("Nothing to send for that piece")
         }
     }
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
         let cols: CGFloat = 3
-        let w = floor((collectionView.bounds.width - 24 - 8 * (cols - 1)) / cols)   // 12+12 insets, 8pt gaps
+        let w = floor((collectionView.bounds.width - 24 - 8 * (cols - 1)) / cols)
         return CGSize(width: max(60, w), height: max(60, w) + 20)
     }
 
-    // MARK: - Bottom bar (a control row everywhere, a live search keyboard in Products)
+    // MARK: - Bottom bar (a control row, or letter keys that type into a field of ours)
 
     private func buildBottomBar() {
         bottomBar.translatesAutoresizingMaskIntoConstraints = false
@@ -1399,22 +1458,24 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         rebuildBottomBar()
     }
 
-    /// In Products the bottom bar becomes a full keyboard that types into the search box, so the
-    /// catalogue filters live, and the whole keyboard grows taller to fit both keys and results.
+    private var wantsKeys: Bool { mode == .name || (mode == .pieces && !showingSuggestions) }
+
     private func rebuildBottomBar() {
-        guard bottomBarMode != mode else { return }   // only rebuild on a real mode change
-        bottomBarMode = mode
+        let kind: BottomKind = wantsKeys ? .keys : .control
+        guard bottomBarKind != kind || (kind == .keys && bottomBarModeBuilt != mode) else { return }
+        bottomBarKind = kind; bottomBarModeBuilt = mode
         bottomBar.subviews.forEach { $0.removeFromSuperview() }
-        if mode == .products {
+        if kind == .keys {
             bottomBarHeight.constant = 198
-            kbHeight?.constant = Self.searchHeight
-            buildSearchKeyboard(into: bottomBar)
+            kbHeight?.constant = Self.keysHeight
+            buildLetterKeys(into: bottomBar)
         } else {
             bottomBarHeight.constant = 50
             kbHeight?.constant = Self.baseHeight
             buildControlRow(into: bottomBar)
         }
     }
+    private var bottomBarModeBuilt: Mode?
 
     private func buildControlRow(into bar: UIView) {
         let row = UIStackView()
@@ -1425,9 +1486,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         row.layoutMargins = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
         bar.addSubview(row)
 
-        let globe = key("🌐") { [weak self] in self?.advanceToNextInputMode() }
+        let globe = key(symbol: "globe") { [weak self] in self?.advanceToNextInputMode() }
         let space = key("space") { [weak self] in self?.textDocumentProxy.insertText(" ") }
-        let del   = key("⌫")    { [weak self] in self?.textDocumentProxy.deleteBackward() }
+        let del   = key(symbol: "delete.left") { [weak self] in self?.textDocumentProxy.deleteBackward() }
         let ret   = key("return") { [weak self] in self?.textDocumentProxy.insertText("\n") }
         [globe, del, ret].forEach { $0.widthAnchor.constraint(equalToConstant: 64).isActive = true }
         [globe, space, del, ret].forEach { row.addArrangedSubview($0) }
@@ -1440,13 +1501,13 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ])
     }
 
-    // A compact lowercase keyboard whose keys type into the product search, not the chat.
-    private func buildSearchKeyboard(into bar: UIView) {
+    /// Letter keys that type into our own field (a name, or the shelf search), never into the chat.
+    private func buildLetterKeys(into bar: UIView) {
         let col = UIStackView(arrangedSubviews: [
             keyRow("qwertyuiop"),
             keyRow("asdfghjkl"),
             keyRow("zxcvbnm"),
-            searchFunctionRow(),
+            functionRow(),
         ])
         col.axis = .vertical
         col.spacing = 6
@@ -1463,6 +1524,9 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         ])
     }
 
+    private func typeKey(_ s: String) { if mode == .name { typeName(s) } else { typeSearch(s) } }
+    private func deleteKey() { if mode == .name { deleteName() } else { deleteSearch() } }
+
     private func keyRow(_ letters: String) -> UIStackView {
         let s = UIStackView()
         s.axis = .horizontal
@@ -1470,56 +1534,38 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         s.distribution = .fillEqually
         for ch in letters {
             let letter = String(ch)
-            s.addArrangedSubview(key(letter) { [weak self] in self?.typeSearch(letter) })
+            s.addArrangedSubview(key(letter) { [weak self] in self?.typeKey(letter) })
         }
         return s
     }
 
-    private func searchFunctionRow() -> UIStackView {
+    private func functionRow() -> UIStackView {
         let s = UIStackView()
         s.axis = .horizontal
         s.spacing = 5
         s.distribution = .fill
-        let globe = key("🌐") { [weak self] in self?.advanceToNextInputMode() }
-        let space = key("space") { [weak self] in self?.typeSearch(" ") }
-        let del   = key("⌫")    { [weak self] in self?.deleteSearch() }
+        let globe = key(symbol: "globe") { [weak self] in self?.advanceToNextInputMode() }
+        let space = key("space") { [weak self] in self?.typeKey(" ") }
+        let del   = key(symbol: "delete.left") { [weak self] in self?.deleteKey() }
         globe.widthAnchor.constraint(equalToConstant: 58).isActive = true
         del.widthAnchor.constraint(equalToConstant: 58).isActive = true
         [globe, space, del].forEach { s.addArrangedSubview($0) }
+        if mode == .name {
+            let find = key("Find") { [weak self] in self?.findTypedName() }
+            find.widthAnchor.constraint(equalToConstant: 64).isActive = true
+            find.backgroundColor = brand
+            find.setTitleColor(.white, for: .normal)
+            s.addArrangedSubview(find)
+        }
         return s
     }
 
-    /// The prominent search box shown at the top of Products; reflects what you type, with a clear ✕.
+    /// The shelf's search box on the action row: what has been typed, with a clear control.
     private func searchFieldView() -> UIView {
-        let box = UIView()
-        box.backgroundColor = .systemBackground
-        box.layer.cornerRadius = 12
-        box.layer.borderWidth = 1
-        box.layer.borderColor = brand.withAlphaComponent(0.25).cgColor
-        let mag = UILabel(); mag.text = "🔍"; mag.font = .systemFont(ofSize: 13)
-        let q = UILabel()
-        q.text = searchQuery.isEmpty ? "Search products" : searchQuery
-        q.textColor = searchQuery.isEmpty ? .secondaryLabel : .label
-        q.font = .systemFont(ofSize: 14, weight: .medium)
-        let row = UIStackView(arrangedSubviews: [mag, q])
-        row.axis = .horizontal; row.spacing = 6; row.alignment = .center
-        row.translatesAutoresizingMaskIntoConstraints = false
-        box.addSubview(row)
-        NSLayoutConstraint.activate([
-            row.leadingAnchor.constraint(equalTo: box.leadingAnchor, constant: 12),
-            row.trailingAnchor.constraint(lessThanOrEqualTo: box.trailingAnchor, constant: -12),
-            row.centerYAnchor.constraint(equalTo: box.centerYAnchor),
-            box.widthAnchor.constraint(greaterThanOrEqualToConstant: 210),
-            box.heightAnchor.constraint(equalToConstant: 34),
-        ])
-        if !searchQuery.isEmpty {
-            let clr = UIButton(type: .system)
-            clr.setTitle("✕", for: .normal)
-            clr.setTitleColor(.secondaryLabel, for: .normal)
-            clr.titleLabel?.font = .systemFont(ofSize: 14, weight: .bold)
-            clr.addAction(UIAction { [weak self] _ in self?.clearSearch() }, for: .touchUpInside)
-            row.addArrangedSubview(clr)
-        }
+        let box = fieldView(text: searchQuery, placeholder: "Search the shelf", symbol: "magnifyingglass",
+                            clear: searchQuery.isEmpty ? nil : { [weak self] in self?.clearSearch() })
+        box.isUserInteractionEnabled = !searchQuery.isEmpty
+        box.widthAnchor.constraint(greaterThanOrEqualToConstant: 200).isActive = true
         return box
     }
 
@@ -1548,28 +1594,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
     private func setStatus(_ s: String?, loading: Bool = false) {
         statusText = s
         statusLoading = loading && (s != nil)
-        if statusLoading {
-            if loadStart == nil { loadStart = Date() }
-            startElapsedTimer()
-        } else {
-            loadStart = nil
-            stopElapsedTimer()
-        }
         rebuildClientBar()
         rebuildActionRow()
-    }
-
-    private func startElapsedTimer() {
-        guard elapsedTimer == nil else { return }
-        elapsedTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self, let start = self.loadStart else { return }
-            let t = Date().timeIntervalSince(start)
-            self.elapsedLabel?.text = t < 60 ? String(format: "%.1fs", t)
-                : String(format: "%dm %.0fs", Int(t) / 60, t.truncatingRemainder(dividingBy: 60))
-        }
-    }
-    private func stopElapsedTimer() {
-        elapsedTimer?.invalidate(); elapsedTimer = nil
     }
 
     private func flash(_ s: String) {
@@ -1580,7 +1606,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         }
     }
 
-    /// Insert content into the chat and offer a brief Undo, in case the wrong thing went in.
+    /// Insert into the chat and offer Undo for a moment, in case the wrong thing went in.
     private func insertUndoable(_ text: String) {
         guard !text.isEmpty else { return }
         textDocumentProxy.insertText(text)
@@ -1588,7 +1614,7 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         rebuildClientBar()
         undoClearTask?.cancel()
         undoClearTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            try? await Task.sleep(nanoseconds: 8_000_000_000)
             guard let self = self, !Task.isCancelled else { return }
             self.lastInserted = nil
             self.rebuildClientBar()
@@ -1599,10 +1625,10 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         guard let t = lastInserted else { return }
         for _ in 0..<t.count { textDocumentProxy.deleteBackward() }
         if let r = lastReplacement, r.polished == t {
-            textDocumentProxy.insertText(r.original)   // Polish undone: what they typed comes back
+            textDocumentProxy.insertText(r.original)
             lastReplacement = nil; polishedText = nil
             lastInserted = nil; undoClearTask?.cancel(); rebuildClientBar(); rebuildActionRow()
-            flash("Restored")
+            flash("Restored what you typed")
             return
         }
         lastInserted = nil
@@ -1610,10 +1636,8 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         flash("Removed")
     }
 
-    // MARK: - Polish (the associate's own typed message, rewritten in the house voice)
+    // MARK: - Polish (the associate's own message, in the house voice)
 
-    /// The whole text field, not just the part iOS hands us. documentContextBeforeInput is
-    /// truncated for long text, so walk the cursor to the end, then back in chunks, then forward again.
     private func readWholeField() -> String {
         let proxy = textDocumentProxy
         var guardCount = 0
@@ -1649,19 +1673,17 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
             } catch {
                 setStatus((error as? LocalizedError)?.errorDescription ?? "Could not reach Halia")
             }
-            busy = false; reload()
+            busy = false; mode = .templates; reload()
         }
     }
 
-    /// Replace the field's content and keep the original for Undo.
     private func replaceUndoable(original: String, with polished: String) {
-        _ = readWholeField()   // leaves the cursor at the end
+        _ = readWholeField()
         for _ in 0..<min(original.count, 4000) { textDocumentProxy.deleteBackward() }
         lastReplacement = (original, polished)
         insertUndoable(polished)
     }
 
-    /// Warmer / Shorter / More formal on the polished message, through the draft screen.
     private func adjustPolished() {
         guard let t = polishedText, !t.isEmpty else { return }
         draftText = t; lastThread = nil; pendingCartUrl = nil; draftIsHandoff = false
@@ -1673,38 +1695,36 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         l.text = text
         l.font = .systemFont(ofSize: 13.5)
         l.textColor = .secondaryLabel
+        l.numberOfLines = 1
         l.setContentHuggingPriority(.defaultLow, for: .horizontal)
         return l
     }
 
-    private func pillButton(_ title: String, filled: Bool, action: @escaping () -> Void) -> UIButton {
+    /// A pill: a short title, an optional symbol before it, filled when it is the main thing to do.
+    private func pillButton(_ title: String, symbol: String? = nil, filled: Bool, action: @escaping () -> Void) -> UIButton {
         let b = UIButton(type: .system)
-        b.setTitle(title, for: .normal)
-        b.titleLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
-        b.setTitleColor(filled ? .white : brand, for: .normal)
-        b.backgroundColor = filled ? brand : tint
-        b.layer.cornerRadius = 12
-        b.contentEdgeInsets = UIEdgeInsets(top: 7, left: 14, bottom: 7, right: 14)
+        var c = UIButton.Configuration.filled()
+        c.baseBackgroundColor = filled ? brand : tint
+        c.baseForegroundColor = filled ? .white : brand
+        c.cornerStyle = .fixed
+        c.background.cornerRadius = 12
+        c.contentInsets = NSDirectionalEdgeInsets(top: 7, leading: 13, bottom: 7, trailing: 13)
+        var t = AttributedString(title)
+        t.font = .systemFont(ofSize: 13, weight: .semibold)
+        c.attributedTitle = t
+        if let symbol {
+            c.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
+            c.imagePadding = 5
+        }
+        b.configuration = c
         b.addAction(UIAction { _ in action() }, for: .touchUpInside)
         return b
     }
 
-    /// A pill that reads as on/off: filled with a check when on, a dimmed outline when off.
+    /// A pill that reads as on or off.
     private func togglePill(_ title: String, on: Bool, action: @escaping () -> Void) -> UIButton {
-        let b = pillButton(on ? "\(title) ✓" : title, filled: on, action: action)
-        if !on { b.alpha = 0.65 }
-        return b
-    }
-
-    private func audiencePill(_ title: String, active: Bool, action: @escaping () -> Void) -> UIButton {
-        let b = UIButton(type: .system)
-        b.setTitle(title, for: .normal)
-        b.titleLabel?.font = .systemFont(ofSize: 12, weight: .semibold)
-        b.setTitleColor(active ? .white : brand, for: .normal)
-        b.backgroundColor = active ? brand : tint
-        b.layer.cornerRadius = 12
-        b.contentEdgeInsets = UIEdgeInsets(top: 6, left: 11, bottom: 6, right: 11)
-        b.addAction(UIAction { _ in action() }, for: .touchUpInside)
+        let b = pillButton(title, symbol: on ? "checkmark" : nil, filled: on, action: action)
+        if !on { b.alpha = 0.7 }
         return b
     }
 
@@ -1722,6 +1742,16 @@ final class KeyboardViewController: UIInputViewController, UITableViewDataSource
         b.setTitle(title, for: .normal)
         b.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
         b.setTitleColor(.label, for: .normal)
+        b.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.9)
+        b.layer.cornerRadius = 8
+        b.addAction(UIAction { _ in action() }, for: .touchUpInside)
+        return b
+    }
+
+    private func key(symbol: String, action: @escaping () -> Void) -> UIButton {
+        let b = UIButton(type: .system)
+        b.setImage(UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)), for: .normal)
+        b.tintColor = .label
         b.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.9)
         b.layer.cornerRadius = 8
         b.addAction(UIAction { _ in action() }, for: .touchUpInside)
