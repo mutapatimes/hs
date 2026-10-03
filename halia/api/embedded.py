@@ -192,6 +192,41 @@ def _error_reason(exc: BaseException) -> str:
     return _html.escape((kind + (": " + detail if detail else ""))[:240])
 
 
+_SHOP_RE = __import__("re").compile(r"^[a-z0-9][a-z0-9-]*\.myshopify\.com$")
+
+
+def _admin_shop(request: Request) -> str:
+    """The shop an admin-frame load names (?shop=…&host=…, embedded=1 or an id_token), validated
+    as a myshopify domain so it can be echoed into a frame policy; '' for anything else."""
+    qp = request.query_params
+    shop = (qp.get("shop") or "").strip().lower()
+    if not _SHOP_RE.match(shop):
+        return ""
+    return shop if (qp.get("host") or qp.get("embedded") == "1" or qp.get("id_token")) else ""
+
+
+def _bootstrap(request: Request, shop: str, exc: BaseException) -> HTMLResponse:
+    """Shopify does not always hand over a session token on the very first load after an install,
+    and a stale one can arrive on a reload. First pass: load App Bridge for this shop's app, ask it
+    for a fresh token and reload with it. Second pass: show the reason, inside the frame, so a bad
+    credential reads as a sentence rather than a refused connection."""
+    qp = request.query_params
+    head = _head(shop, "")
+    if not qp.get("id_token") and qp.get("retried") != "1":
+        body = ("<!doctype html><html><head>" + head + "</head>"
+                "<body style='font:15px system-ui;padding:40px;color:#1c1b18'><p>Opening Halia…</p>"
+                "<script>(async function(){try{var t=await shopify.idToken();var u=new URL(location.href);"
+                "u.searchParams.set('id_token',t);u.searchParams.set('retried','1');location.replace(u.toString());}"
+                "catch(e){document.body.innerHTML='<p>Halia could not get a sign-in from Shopify. Reload the page.</p>';}})();"
+                "</script></body></html>")
+    else:
+        body = _error_page(head, _error_reason(exc))
+    resp = HTMLResponse(body)
+    resp.headers["Content-Security-Policy"] = _csp(shop)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 def _error_page(head: str, why: str = "") -> str:
     return (
         "<!doctype html><html><head>" + head + "</head>"
@@ -216,7 +251,12 @@ def register(app) -> None:
         try:
             session_token = token_for_request(request)
             shop = verify_session_token(session_token)
-        except Exception:
+        except Exception as exc:
+            # Inside the admin frame but without a token we can verify: ask App Bridge for one and
+            # come back, or say why. Never the marketing page, which may not be framed.
+            inside = _admin_shop(request)
+            if inside:
+                return _bootstrap(request, inside, exc)
             # public visitor → the marketing site for whichever brand this host serves; a store's
             # own client domain shows nothing at its root, so a client never meets Halia there.
             from halia.brands import is_known_host
