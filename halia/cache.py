@@ -14,19 +14,22 @@ import os
 import threading
 import time
 
-# A scored book is fresh for TTL_SECONDS. Past that it is stale: still served at once, while a
-# new pull runs behind the page, until STALE_SECONDS, when it leaves memory for good. A large
-# store takes minutes to pull, and nobody should meet the scoring screen twice in a morning.
+# The policy, as published: a scored book is held in memory while the store is in use and
+# released within an hour of its last use; never written to disk. "Fresh" for TTL_SECONDS after
+# scoring, then served stale once while a new pull runs behind the page; evicted IDLE_SECONDS
+# after the last real use (a page or an API read), whatever its age. The hourly warm-up only
+# re-scores stores opened in the last WARM_HOURS, and its freshness check does not count as use.
 TTL_SECONDS = int(os.environ.get("HALIA_CACHE_TTL", "3600"))
-STALE_SECONDS = int(os.environ.get("HALIA_CACHE_STALE", str(12 * 3600)))
+IDLE_SECONDS = int(os.environ.get("HALIA_CACHE_IDLE", "3600"))
+WARM_HOURS = int(os.environ.get("HALIA_WARM_HOURS", "12"))
 
 
 class ResultsCache:
     """Per-shop {results, payload, orders} held in RAM with a short TTL."""
 
-    def __init__(self, ttl: int = TTL_SECONDS, stale: int = STALE_SECONDS):
+    def __init__(self, ttl: int = TTL_SECONDS, idle: int = IDLE_SECONDS):
         self.ttl = ttl
-        self.stale = max(stale, ttl)
+        self.idle = idle
         self._data: dict[str, dict] = {}
         self._alerts: dict[str, list] = {}   # per-shop recent high-grade order alerts (RAM)
         self._lock = threading.Lock()
@@ -48,32 +51,48 @@ class ResultsCache:
         with self._lock:
             now = time.monotonic()
             self._data[shop] = {"results": results, "payload": payload, "orders": orders,
-                                "expires": now + self.ttl, "evict": now + self.stale}
+                                "expires": now + self.ttl, "evict": now + self.idle}
+
+    def _live(self, shop: str, now: float) -> dict | None:
+        """The entry if it has not passed its idle eviction; drops it if it has. Lock held."""
+        entry = self._data.get(shop)
+        if not entry:
+            return None
+        if now > entry.get("evict", entry["expires"]):
+            self._data.pop(shop, None)
+            return None
+        return entry
 
     def get(self, shop: str) -> dict | None:
-        """Return the fresh entry for a shop, or None if absent or past its TTL. A stale entry
-        stays in memory for get_stale until its eviction time."""
+        """The fresh entry for a shop, or None if absent, idle too long, or past its TTL. A hit is
+        a use: it keeps the book in memory for another idle window."""
         with self._lock:
-            entry = self._data.get(shop)
-            if not entry:
-                return None
             now = time.monotonic()
-            if now > entry.get("evict", entry["expires"]):
-                self._data.pop(shop, None)
+            entry = self._live(shop, now)
+            if entry is None:
                 return None
+            entry["evict"] = max(entry["evict"], now + self.idle)
             return entry if now <= entry["expires"] else None
 
     def get_stale(self, shop: str) -> dict | None:
-        """The last scored book, fresh or not, so a page can show it while a new pull runs; None
-        once it has been evicted or was never there."""
+        """The last scored book, fresh or not, so a page can show it while a new pull runs. A hit
+        is a use. None once idle has evicted it or it was never there."""
         with self._lock:
-            entry = self._data.get(shop)
-            if not entry:
-                return None
-            if time.monotonic() > entry.get("evict", entry["expires"]):
-                self._data.pop(shop, None)
-                return None
+            now = time.monotonic()
+            entry = self._live(shop, now)
+            if entry is not None:
+                entry["evict"] = max(entry["evict"], now + self.idle)
             return entry
+
+    def peek(self, shop: str) -> str | None:
+        """'fresh', 'stale' or None, without counting as a use. For the warm-up, whose checks must
+        never keep a book alive by themselves."""
+        with self._lock:
+            now = time.monotonic()
+            entry = self._live(shop, now)
+            if entry is None:
+                return None
+            return "fresh" if now <= entry["expires"] else "stale"
 
     # ── memoised derived text (a written client summary) ──────────────────────
     # Kept inside the shop's own entry so it inherits the same TTL and the same eviction: when the

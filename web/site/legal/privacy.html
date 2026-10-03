@@ -42,7 +42,7 @@ process, the little we store, the lawful bases we rely on, and the rights you ha
 website, our application, and the scoring service we provide to retailers.</p>
 
 <div class="note"><b>The short version.</b> When a merchant connects their store, Halia reads their
-customers, scores them in memory, and discards them within minutes. We do not copy a merchant's
+customers, scores them in memory, holds the result only while the store is in use, and releases it within an hour of the last use. We do not copy a merchant's
 customer database onto our servers. The only things we store are a merchant's own account details and
 an encrypted, read-only key. We never sell personal data, never share it with other brands, and never
 use a merchant's customer data to train models or for advertising.</div>
@@ -108,8 +108,9 @@ address, telephone number, billing and shipping address (including postcode and 
 order counts and dates, currency, and payment method. We may also read or derive non-sensitive signals
 from this data, such as whether an email is a work or free address, or whether a postcode falls in a
 recognised high-value area.</p>
-<p>This data is processed transiently to produce a score. It is held in volatile memory for the duration
-of a scoring run, typically a few minutes, and is then discarded. It is not written to any Halia
+<p>This data is processed transiently to produce a score. It is held in volatile memory while the store is
+in use: refreshed hourly for up to twelve hours after the store last opened Halia, and released within an hour
+of its last use. A restart of the service clears it. It is not written to any Halia
 database, data warehouse, log of personal data, or long-term store. We do not build a standing profile
 of any individual on our systems. For real-time order alerts, a single incoming order is scored in
 memory and the alert is sent, after which the order data is discarded in the same way.</p>
@@ -208,8 +209,9 @@ public.</li>
 subprocessors do not receive a standing copy of it.</p>
 
 <div class="note"><b>Why the list is short.</b> Halia is zero-retention: a merchant's customers are
-read in memory, scored, and discarded within minutes. We do not copy a merchant's customer database
-onto our servers, so our sub-processors never receive a standing copy of it. The providers below
+read in memory, scored, held only while the store is in use and released within an hour of its last use.
+We do not copy a merchant's customer database onto our servers, so our sub-processors never receive a
+standing copy of it. The providers below
 support our own operation (hosting, billing, email), not a warehouse of your customers.</div>
 
 <table>
@@ -295,7 +297,7 @@ measures appropriate to the risk.</p>
 <h2 id="retention">16. How long we keep data</h2>
 <table>
 <tr><th>Data</th><th>Retention</th></tr>
-<tr><td>Merchant customer data used for scoring</td><td>Not retained; held in memory only and discarded within minutes</td></tr>
+<tr><td>Merchant customer data used for scoring</td><td>Not retained; held in memory only while the store is in use, for at most twelve hours after it last opened Halia, and released within an hour of its last use</td></tr>
 <tr><td>Merchant account data and encrypted secrets</td><td>Kept while the account is active; deleted on disconnection or request, subject to legal duties</td></tr>
 <tr><td>Billing and tax records</td><td>Kept for the period required by law</td></tr>
 <tr><td>Marketing and enquiry records</td><td>Kept until you unsubscribe or ask us to delete them, plus a short record of the request</td></tr>

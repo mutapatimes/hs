@@ -603,20 +603,21 @@ def _start_sync(shop: str, notify: bool = False) -> None:
     threading.Thread(target=_run, daemon=True).start()
 
 
-def warm_books(hours: int = 24) -> dict:
-    """Score, in the background, every store opened in the last `hours` (or newly installed) whose
-    book is not fresh in memory. Run a few seconds after every start, because a restart empties
-    the RAM cache, and on the hourly run, which keeps books fresh. A merchant then opens a scored
-    book rather than the scoring screen, whatever we deployed in the meantime."""
+def warm_books(hours: int | None = None) -> dict:
+    """Score, in the background, every store opened in the last `hours` (WARM_HOURS by default,
+    or newly installed) whose book is not fresh in memory. Run a few seconds after every start,
+    because a restart empties the RAM cache, and on the hourly run, which keeps books fresh while
+    a store is in use. The check is a peek, not a use, so warming never extends a book's life on
+    its own: a store nobody opens falls out of the window and its book leaves memory."""
     from halia.api.shopify_auth import shop_store
-    from halia.cache import cache
+    from halia.cache import WARM_HOURS, cache
     started: list[str] = []
     try:
-        shops = shop_store().recently_opened_shops(hours)
+        shops = shop_store().recently_opened_shops(hours if hours is not None else WARM_HOURS)
     except Exception:  # noqa: BLE001
         return {"warmed": started, "error": True}
     for shop in shops:
-        if cache.get(shop) is None:
+        if cache.peek(shop) != "fresh":
             _start_sync(shop)
             started.append(shop)
     if started:

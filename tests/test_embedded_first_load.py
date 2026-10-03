@@ -109,7 +109,7 @@ def test_a_stale_book_is_served_at_once_and_refreshed_behind_the_page(monkeypatc
     import halia.api.onboarding as ob
     from halia.cache import ResultsCache
     client = _client(monkeypatch)
-    c = ResultsCache(ttl=0, stale=3600)                      # everything is stale the moment it lands
+    c = ResultsCache(ttl=0, idle=3600)                       # everything is stale the moment it lands
     c.set(SHOP, [], {"data": [{"name": "x"}], "segments": {}, "orders": [], "landscape": {},
                       "platform": "shopify", "stat_scored": "1", "stat_latent": "", "stat_count": "1",
                       "stat_avgspend": "", "stat_toptier": "", "full_history": True, "masked": False,

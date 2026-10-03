@@ -65,8 +65,9 @@ process the data for its own purposes, and will not sell the data.
 
 ## 6. Zero retention
 
-Halia is designed for data minimisation. Customer and order records are processed in memory and
-discarded within minutes (five minutes by default). Scores, grades, reasons, outreach records and
+Halia is designed for data minimisation. Customer and order records are processed in memory and held
+only while the Controller's store is in use: the scored book is refreshed hourly for up to twelve hours
+after the store last opened Halia and released within one hour of its last use, and never written to disk. Scores, grades, reasons, outreach records and
 appointments are written back into the Controller's own platform as tags and metafields on the
 customer record, where the Controller controls them. Halia's own database holds the Controller's
 account, settings, encrypted platform credentials, and aggregate counts only; it holds no customer
@@ -152,7 +153,7 @@ allows for audits, subject to reasonable notice and confidentiality.
 | Item | Detail |
 | --- | --- |
 | Subject matter | Scoring the Controller's customers for potential value and supporting the Controller's team's personal outreach |
-| Duration | For the term of the Controller's subscription; customer data held in memory for at most five minutes per scoring run |
+| Duration | For the term of the Controller's subscription; customer data held in volatile memory only while the store is in use, for at most twelve hours after it last opened Halia, and released within one hour of its last use |
 | Nature | Reading customer and order records; scoring in memory; matching against public-register reference tables (Section 3.1); writing grades, reasons, outreach records and appointments to the customer record in the Controller's platform; drafting message text at the team's request |
 | Purpose | Identifying and serving high-value clients through personal attention; never pricing, credit, eligibility or refusal |
 | Data subjects | The Controller's customers and prospective customers; the Controller's staff |

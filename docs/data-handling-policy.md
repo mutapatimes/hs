@@ -28,7 +28,9 @@ to start if the public tree carries a real export. A leak cannot be committed, m
 
 ## 3. Halia's server retains no customer record
 
-Customer and order data are processed in memory, held at most five minutes, and released. Results
+Customer and order data are processed in memory, held only while the store is in use (refreshed hourly
+for up to twelve hours after the store last opened Halia, released within an hour of the last use, and
+cleared by any restart), and never written to disk. Results
 are written into the merchant's own store. Halia's database holds merchants, staff, encrypted
 credentials and aggregate counters.
 
