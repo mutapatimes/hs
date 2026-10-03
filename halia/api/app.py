@@ -50,8 +50,22 @@ from halia import datavault as _datavault, logredact as _logredact  # noqa: E402
 _datavault.assert_public_tree_clean()
 _logredact.install()
 
+from contextlib import asynccontextmanager as _asynccontextmanager  # noqa: E402
+
+
+@_asynccontextmanager
+async def _lifespan(_app):
+    # Runs once the server is up. The warm-up is defined at the end of this module and looked up
+    # by name here, so it sees the fully registered app.
+    try:
+        _warm_books_after_start()  # noqa: F821 — defined below, resolved at start-up
+    except Exception:  # noqa: BLE001 — warming is a courtesy, never a crash
+        pass
+    yield
+
+
 app = FastAPI(title="Halia", version="1.0", summary="Hidden-VIC scoring — embedded Shopify app",
-              docs_url="/api/docs", openapi_url="/api/openapi.json")
+              docs_url="/api/docs", openapi_url="/api/openapi.json", lifespan=_lifespan)
 
 # The POS UI extension calls this backend cross-origin from the Shopify POS webview.
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -816,6 +830,3 @@ def _warm_books_after_start() -> None:
         except Exception:  # noqa: BLE001 — warming is a courtesy, never a crash
             pass
     _threading.Thread(target=_run, daemon=True).start()
-
-
-app.add_event_handler("startup", _warm_books_after_start)
