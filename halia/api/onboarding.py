@@ -603,6 +603,27 @@ def _start_sync(shop: str, notify: bool = False) -> None:
     threading.Thread(target=_run, daemon=True).start()
 
 
+def warm_books(hours: int = 24) -> dict:
+    """Score, in the background, every store opened in the last `hours` (or newly installed) whose
+    book is not fresh in memory. Run a few seconds after every start, because a restart empties
+    the RAM cache, and on the hourly run, which keeps books fresh. A merchant then opens a scored
+    book rather than the scoring screen, whatever we deployed in the meantime."""
+    from halia.api.shopify_auth import shop_store
+    from halia.cache import cache
+    started: list[str] = []
+    try:
+        shops = shop_store().recently_opened_shops(hours)
+    except Exception:  # noqa: BLE001
+        return {"warmed": started, "error": True}
+    for shop in shops:
+        if cache.get(shop) is None:
+            _start_sync(shop)
+            started.append(shop)
+    if started:
+        print(f"[halia] warming {len(started)} book(s): {', '.join(started)}", flush=True)
+    return {"warmed": started}
+
+
 def _connect_form(error: str = "", values: dict | None = None) -> str:
     v = values or {}
     code_field = ""

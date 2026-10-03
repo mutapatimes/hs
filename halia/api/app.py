@@ -797,3 +797,25 @@ from halia.api import outlook_addon as _outlook_addon  # noqa: E402
 _outlook_addon.register(app)
 insight.register(app)
 feedback.register(app)
+
+
+# A restart empties the RAM cache. A few seconds after every start, score the stores that were
+# opened in the last day again, in the background, so the first person to open one meets their
+# book and not the scoring screen. Skipped under the test runner, which has no stores to warm.
+def _warm_books_after_start() -> None:
+    import sys as _sys2
+    import threading as _threading
+    if "pytest" in _sys2.modules:
+        return
+
+    def _run():
+        _time.sleep(3)
+        try:
+            from halia.api.onboarding import warm_books
+            warm_books()
+        except Exception:  # noqa: BLE001 — warming is a courtesy, never a crash
+            pass
+    _threading.Thread(target=_run, daemon=True).start()
+
+
+app.add_event_handler("startup", _warm_books_after_start)

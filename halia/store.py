@@ -798,6 +798,31 @@ class ShopStore(_DB):
         self._add_column("tenants", "last_open_at", "TEXT")
         self._run("UPDATE tenants SET last_open_at = :at WHERE shop = :shop", {"at": _now(), "shop": shop})
 
+    def touch_shop_open(self, shop: str) -> None:
+        """The merchant opened the embedded app. Read back by the warm-up, so a restart does not
+        cost the next person to open the store the whole scoring run."""
+        self._add_column("shops", "last_open_at", "TEXT")
+        self._run("UPDATE shops SET last_open_at = :at WHERE shop = :shop", {"at": _now(), "shop": shop})
+
+    def recently_opened_shops(self, hours: int = 24, installed_days: int = 7) -> list[str]:
+        """The stores worth having scored and ready: opened in the last `hours`, or installed in
+        the last `installed_days` (a new store is being looked at even before anyone has opened it
+        since this column existed)."""
+        self._add_column("shops", "last_open_at", "TEXT")
+        self._add_column("tenants", "last_open_at", "TEXT")
+        now = datetime.now(timezone.utc)
+        cut = (now - timedelta(hours=hours)).isoformat(timespec="seconds")
+        inst = (now - timedelta(days=installed_days)).isoformat(timespec="seconds")
+        out: list[str] = []
+        rows = self._run("SELECT shop FROM shops WHERE (last_open_at IS NOT NULL AND last_open_at > :cut) "
+                         "OR (installed_at IS NOT NULL AND installed_at > :inst)",
+                         {"cut": cut, "inst": inst}, fetch="all") or []
+        out += [r["shop"] for r in rows]
+        rows = self._run("SELECT shop FROM tenants WHERE last_open_at IS NOT NULL AND last_open_at > :cut",
+                         {"cut": cut}, fetch="all") or []
+        out += [r["shop"] for r in rows]
+        return list(dict.fromkeys(out))
+
     def tenant_last_open(self, shop: str) -> str | None:
         self._add_column("tenants", "last_open_at", "TEXT")
         row = self._run("SELECT last_open_at FROM tenants WHERE shop = :shop", {"shop": shop}, fetch="one")

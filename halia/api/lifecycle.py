@@ -106,4 +106,9 @@ def register(app) -> None:
             out["seat_billing_stripe"] = billing.run_stripe_seat_billing()
         except Exception:  # noqa: BLE001
             out["seat_billing_stripe"] = {"error": True}
+        try:
+            from halia.api.onboarding import warm_books
+            out["warm"] = warm_books()
+        except Exception:  # noqa: BLE001
+            out["warm"] = {"error": True}
         return JSONResponse(out)

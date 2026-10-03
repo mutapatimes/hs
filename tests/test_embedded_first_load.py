@@ -123,3 +123,26 @@ def test_a_stale_book_is_served_at_once_and_refreshed_behind_the_page(monkeypatc
     assert "Scoring your customers" not in r.text or "SYNC_RUNNING=false" in r.text.replace(" ", "")
     assert started == [SHOP]                                   # the refresh runs behind the page
     assert c.get(SHOP) is None and c.get_stale(SHOP) is not None
+
+
+def test_recently_opened_stores_are_warmed_when_their_book_is_not_in_memory(monkeypatch, tmp_path):
+    """After a restart the cache is empty. The warm-up scores the stores opened in the last day
+    and the newly installed ones, and leaves alone a store whose book is already fresh."""
+    import halia.api.onboarding as ob
+    from halia.cache import ResultsCache
+    from halia.store import ShopStore
+    st = ShopStore(db_path=tmp_path / "w.db")
+    st.save_shop("fresh.myshopify.com", "tok"); st.touch_shop_open("fresh.myshopify.com")
+    st.save_shop("cold.myshopify.com", "tok"); st.touch_shop_open("cold.myshopify.com")
+    st.save_shop("new.myshopify.com", "tok")                       # installed today, never opened
+    st.save_shop("old.myshopify.com", "tok")
+    st._run("UPDATE shops SET installed_at = '2020-01-01T00:00:00+00:00' WHERE shop = 'old.myshopify.com'")
+    assert set(st.recently_opened_shops()) == {"fresh.myshopify.com", "cold.myshopify.com", "new.myshopify.com"}
+    c = ResultsCache(ttl=3600)
+    c.set("fresh.myshopify.com", [], {"data": []}, {})
+    monkeypatch.setattr("halia.api.shopify_auth.shop_store", lambda: st)
+    monkeypatch.setattr("halia.cache.cache", c)
+    started = []
+    monkeypatch.setattr(ob, "_start_sync", lambda s, notify=False: started.append(s))
+    out = ob.warm_books()
+    assert sorted(out["warmed"]) == sorted(started) == ["cold.myshopify.com", "new.myshopify.com"]

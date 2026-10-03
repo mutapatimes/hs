@@ -117,6 +117,7 @@ def _note_open(shop: str) -> None:
     try:
         st = shop_store()
         st.touch_tenant(shop)
+        st.touch_shop_open(shop)
         from halia.api.settings import settings_for
         s = settings_for(shop)
         if not s.get("account_email"):
