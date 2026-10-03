@@ -96,3 +96,27 @@ def test_sync_state_restarts_a_run_lost_to_a_restart(monkeypatch):
     started.clear()
     client.get("/v1/sync/state", params={"id_token": "t"})
     assert started == []
+
+
+def test_a_stale_book_is_served_at_once_and_refreshed_behind_the_page(monkeypatch):
+    """Past its freshness the book stays in memory. The embedded entry shows it immediately and
+    starts a pull in the background, instead of sending the merchant back to the scoring screen
+    for the whole of a large store's pull."""
+    from halia.api import embedded as emb
+    import halia.api.onboarding as ob
+    from halia.cache import ResultsCache
+    client = _client(monkeypatch)
+    c = ResultsCache(ttl=0, stale=3600)                      # everything is stale the moment it lands
+    c.set(SHOP, [], {"data": [{"name": "x"}], "segments": {}, "orders": [], "landscape": {},
+                      "platform": "shopify", "stat_scored": "1", "stat_latent": "", "stat_count": "1",
+                      "stat_avgspend": "", "stat_toptier": "", "full_history": True, "masked": False,
+                      "locked_count": 0, "locked_latent": "", "sync_running": False, "order_window": None,
+                      "sync_diag": {}, "order_cap": {}}, {})
+    monkeypatch.setattr(emb, "cache", c)
+    started = []
+    monkeypatch.setattr(ob, "_start_sync", lambda s, notify=False: started.append(s))
+    r = client.get("/", params={"id_token": "t"})
+    assert r.status_code == 200
+    assert "Scoring your customers" not in r.text or "SYNC_RUNNING=false" in r.text.replace(" ", "")
+    assert started == [SHOP]                                   # the refresh runs behind the page
+    assert c.get(SHOP) is None and c.get_stale(SHOP) is not None

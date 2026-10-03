@@ -270,6 +270,14 @@ def register(app) -> None:
         _note_who(shop, session_token)
         try:
             entry = cache.get(shop)
+            if entry is None:
+                # Past its freshness but still in memory: show it now and pull again behind the
+                # page, rather than putting a merchant back on the scoring screen.
+                stale = cache.get_stale(shop)
+                if stale is not None:
+                    from halia.api.onboarding import _start_sync as _refresh
+                    _refresh(shop)
+                    entry = stale
             from halia.api.onboarding import _stale_mask
             if entry is not None and _stale_mask(shop, entry):
                 from halia.api.onboarding import _start_sync as _resync

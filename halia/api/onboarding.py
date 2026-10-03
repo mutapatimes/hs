@@ -579,15 +579,15 @@ def _start_sync(shop: str, notify: bool = False) -> None:
         try:
             entry = data.sync_tenant(shop)
             _set_status(shop, "done")
-            rows = ((entry or {}).get("payload") or {}).get("data") or []
+            payload = (entry or {}).get("payload") or {}
+            rows = [r for r in (payload.get("data") or []) if not r.get("known")]   # the potential VICs
             grades = {}
             for r in rows:
                 grades[str(r.get("grade") or "?")] = grades.get(str(r.get("grade") or "?"), 0) + 1
             split = ", ".join(f"{g} {grades[g]}" for g in ("A*", "A", "B", "C") if grades.get(g))
-            hidden = sum(1 for r in rows if not r.get("known"))
-            print(f"[halia] sync {shop}: {len(rows)} customers scored"
-                  f"{' (' + split + '; ' + str(hidden) + ' not yet known to the store as VIPs)' if rows else ''}"
-                  f" in {time.time() - t0:.0f}s", flush=True)
+            print(f"[halia] sync {shop}: {payload.get('stat_scored') or len(rows)} customers scored, "
+                  f"{len(rows)} potential VICs{' (' + split + ')' if split else ''} "
+                  f"in {time.time() - t0:.0f}s", flush=True)
             if notify and shop not in _NOTIFIED:
                 _NOTIFIED.add(shop)
                 _send_ready_email(shop, entry)
