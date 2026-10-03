@@ -573,14 +573,21 @@ def _start_sync(shop: str, notify: bool = False) -> None:
     _set_status(shop, "running")
 
     def _run():
+        # One line per sync, so "sync <shop>" in the host's log search answers whether a store's
+        # book was scored, how big it is and how long it took. Counts and seconds only, no names.
+        t0 = time.time()
         try:
             entry = data.sync_tenant(shop)
             _set_status(shop, "done")
+            n = len(((entry or {}).get("payload") or {}).get("data") or [])
+            print(f"[halia] sync {shop}: {n} customers scored in {time.time() - t0:.0f}s", flush=True)
             if notify and shop not in _NOTIFIED:
                 _NOTIFIED.add(shop)
                 _send_ready_email(shop, entry)
         except Exception as exc:  # noqa: BLE001
             traceback.print_exc()  # stack only - never customer data
+            print(f"[halia] sync {shop} failed after {time.time() - t0:.0f}s: "
+                  f"{type(exc).__name__}: {str(exc)[:160]}", flush=True)
             _set_status(shop, "error", str(exc)[:200])
         finally:
             with _LOCK:
