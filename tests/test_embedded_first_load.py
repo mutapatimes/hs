@@ -55,3 +55,24 @@ def test_warm_cache_renders_the_real_dashboard(monkeypatch):
     r = _client(monkeypatch).get("/")
     assert r.status_code == 200 and "const SYNC_RUNNING = false;" in r.text
     cache.clear()
+
+
+def test_an_admin_frame_load_without_a_usable_token_is_framed_not_refused(monkeypatch):
+    """Inside the Shopify admin with no token we can verify, the answer must still be a page the
+    admin may frame: first a bootstrap that asks App Bridge for a token, then, with a token that
+    still fails, the reason in a sentence. Never the marketing page, which forbids framing."""
+    from fastapi.testclient import TestClient
+    from halia.api.app import app
+    c = TestClient(app)
+    base = "/?shop=htown-store.myshopify.com&host=YWRtaW4&embedded=1"
+    r = c.get(base)
+    assert r.status_code == 200
+    assert "frame-ancestors https://htown-store.myshopify.com https://admin.shopify.com" in r.headers["content-security-policy"]
+    assert "shopify.idToken()" in r.text
+    r2 = c.get(base + "&id_token=not.a.token&retried=1")
+    assert r2.status_code == 200
+    assert "admin.shopify.com" in r2.headers["content-security-policy"]
+    assert "Couldn't load your scores" in r2.text and "Invalid session token" in r2.text
+    # A made-up shop never reaches the frame policy.
+    r3 = c.get("/?shop=evil.example.com&embedded=1")
+    assert "frame-ancestors 'none'" in r3.headers["content-security-policy"]

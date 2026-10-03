@@ -62,6 +62,12 @@ backend as everything else.
    HALIA_SHOPIFY_CUSTOM_APPS=brand-a.myshopify.com=id:secret,brand-b.myshopify.com=id:secret
    ```
 
+   Both halves must be the real values: the client ID is 32 characters of letters and digits,
+   the secret starts `shpss_`. The server ignores an entry that still carries a placeholder such
+   as `CLIENT_ID` and logs a line saying so, and the connect page then shows no one-click card for
+   that store. Check the card appears at `/connect` before you send the link, and do the install
+   on a quiet day, never in the minutes before a demo.
+
    Redeploy so it takes effect.
 6. Send the client either the install link (Distribution → **Generate link**) or simply
    `https://haliascore.com/connect`. The wizard recognises their store and shows them the

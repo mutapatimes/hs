@@ -143,17 +143,28 @@ HALIA_SHOPIFY_APP_LIVE = (os.environ.get("HALIA_SHOPIFY_APP_LIVE") or "").strip(
 def _parse_custom_apps(raw: str) -> dict[str, tuple[str, str]]:
     """'shop.myshopify.com=client_id:client_secret,other.myshopify.com=id2:secret2' ->
     {shop_domain: (client_id, client_secret)}. Malformed entries are skipped, never fatal."""
+    import logging as _logging
+    import re as _re
     out: dict[str, tuple[str, str]] = {}
     for part in (raw or "").split(","):
         if "=" not in part:
             continue
         domain, creds = part.split("=", 1)
-        domain = domain.strip().lower()
+        # A pasted "https://shop.myshopify.com" means the bare domain.
+        domain = _re.sub(r"^https?://", "", domain.strip().lower()).rstrip("/")
         if ":" not in creds or not domain.endswith(".myshopify.com"):
             continue
-        cid, secret = creds.split(":", 1)
-        if cid.strip() and secret.strip():
-            out[domain] = (cid.strip(), secret.strip())
+        cid, secret = (s.strip() for s in creds.split(":", 1))
+        # A Shopify client id is 32 hex characters and a secret starts "shpss_". Anything else is a
+        # placeholder left in from the runbook ("CLIENT_ID", "THE_SECRET") or a slip, and a store
+        # mapped to it would install and then fail its first load. Refuse it loudly, here, instead.
+        if not _re.fullmatch(r"[0-9a-f]{32}", cid) or not _re.fullmatch(r"shpss_[0-9a-f]{32}", secret):
+            _logging.getLogger("halia").error(
+                "HALIA_SHOPIFY_CUSTOM_APPS: entry for %s is not a real client id and secret "
+                "(got id %r, secret %s); ignoring it", domain, cid[:12],
+                "of the wrong shape" if secret else "missing")
+            continue
+        out[domain] = (cid, secret)
     return out
 
 

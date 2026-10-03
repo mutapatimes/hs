@@ -275,3 +275,16 @@ def test_stored_client_id_drives_later_credentials_and_refresh(tmp_path, monkeyp
         return 200, {"access_token": "b"}
     shopify_auth.refresh_offline_token(shop, "r", transport=fake_post)
     assert captured["body"]["client_id"] == BRIDGE_KEY
+
+
+def test_a_half_filled_bridge_app_entry_is_refused_at_startup():
+    """The runbook's template line left in place ("CLIENT_ID", "THE_SECRET") used to parse as a
+    real mapping, so the store installed and then failed its first load in front of a client.
+    Now only a 32-hex client id with a shpss_ secret counts; a pasted https:// prefix is tidied."""
+    from halia.config import _parse_custom_apps
+    good_id, good_secret = "789e33d79085dadb695bcfbdc1e79a3a", "shpss_" + "b" * 32
+    assert _parse_custom_apps(f"htown-store.myshopify.com=CLIENT_ID:{good_secret}") == {}
+    assert _parse_custom_apps(f"htown-store.myshopify.com={good_id}:THE_SECRET") == {}
+    assert _parse_custom_apps(f"htown-store.myshopify.com={good_id}:{good_secret[6:]}") == {}   # prefix dropped
+    assert _parse_custom_apps(f"https://glen.myshopify.com={good_id}:{good_secret}, htown-store.myshopify.com={good_id}:{good_secret}") == {
+        "glen.myshopify.com": (good_id, good_secret), "htown-store.myshopify.com": (good_id, good_secret)}
