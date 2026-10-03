@@ -135,16 +135,49 @@ def http_transport(
     return _call
 
 
+# Shopify meters the Admin API by query cost from a bucket that refills at a fixed rate (1,000
+# points refilling at 50 a second on a standard plan). A page of customers with their orders
+# costs most of that bucket, so a big store is throttled on nearly every page by design. A
+# throttled run is never a failure, only a wait: a store with one busy app alongside Halia is
+# the normal case, not the edge. The budget for one page is generous in time and firm in total.
+_THROTTLE_MAX_WAIT = 600.0        # seconds a single page may spend waiting on the bucket
+
+
+def _throttle_wait(payload: dict, attempt: int) -> float:
+    """How long to wait before retrying a throttled query. Shopify says in the error how much the
+    query costs, how much is available now and how fast it refills, so the wait can be exact
+    (plus a little) rather than a guess; the guess remains for a reply without those numbers."""
+    cost = (payload.get("extensions") or {}).get("cost") or {}
+    status = cost.get("throttleStatus") or {}
+    need, avail, rate = cost.get("requestedQueryCost"), status.get("currentlyAvailable"), status.get("restoreRate")
+    try:
+        if need and rate and avail is not None:
+            return min(max((float(need) - float(avail)) / float(rate) + 0.5, 1.0), 60.0)
+    except (TypeError, ValueError, ZeroDivisionError):
+        pass
+    return min(2.0 ** attempt, 30.0)
+
+
 def _run(transport: Transport, query: str, variables: dict, retries: int, _sleep=time.sleep) -> dict:
-    """Run one query, backing off and retrying on Shopify's THROTTLED errors."""
-    delay = 1.0
-    for _ in range(max(1, retries)):
+    """Run one query. A throttled reply waits for the cost bucket and tries again, for as long as
+    _THROTTLE_MAX_WAIT allows in total; ``retries`` is the floor on attempts (kept for callers)
+    and any other error raises at once."""
+    attempt, waited = 0, 0.0
+    while True:
         payload = transport(query, variables)
         errors = payload.get("errors")
         if errors:
             if _is_throttled(errors):
+                cost = (payload.get("extensions") or {}).get("cost") or {}
+                need, cap = cost.get("requestedQueryCost"), (cost.get("throttleStatus") or {}).get("maximumAvailable")
+                if need and cap and float(need) > float(cap):
+                    raise ShopifyError(f"Query costs {need} points, more than this store's {cap} limit")
+                attempt += 1
+                delay = _throttle_wait(payload, attempt)
+                if attempt >= max(1, retries) and waited + delay > _THROTTLE_MAX_WAIT:
+                    raise ShopifyError(f"Still throttled after {int(waited)}s of waiting")
                 _sleep(delay)
-                delay = min(delay * 2, 30)
+                waited += delay
                 continue
             if _is_auth_error(errors):
                 raise ShopifyAuthError(json.dumps(errors)[:500])
@@ -153,7 +186,6 @@ def _run(transport: Transport, query: str, variables: dict, retries: int, _sleep
         if data is None:
             raise ShopifyError("Shopify response had no 'data'")
         return data
-    raise ShopifyError("Exhausted retries (still throttled)")
 
 
 def fetch_customer_nodes(

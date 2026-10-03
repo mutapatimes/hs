@@ -182,3 +182,31 @@ def test_throttling_is_retried_then_succeeds():
         transport, retries=3, _sleep=lambda _s: None
     )
     assert len(orders) == 1 and calls["n"] == 2
+
+
+def test_a_throttled_page_waits_for_the_bucket_instead_of_giving_up():
+    """A big store is throttled on nearly every page by design. The retry must read Shopify's own
+    cost numbers, wait exactly long enough, and keep going well past the old five attempts; only
+    a query that can never fit the bucket, or ten minutes of waiting, is a failure."""
+    from scoring import shopify_fetch
+    throttled = {"errors": [{"message": "Throttled", "extensions": {"code": "THROTTLED"}}],
+                 "extensions": {"cost": {"requestedQueryCost": 900,
+                                         "throttleStatus": {"maximumAvailable": 1000, "currentlyAvailable": 100, "restoreRate": 50}}}}
+    calls = {"n": 0}; slept = []
+
+    def transport(query, variables):
+        calls["n"] += 1
+        return throttled if calls["n"] <= 12 else {"data": {"ok": True}}
+
+    assert shopify_fetch._run(transport, "q", {}, retries=5, _sleep=slept.append) == {"ok": True}
+    assert calls["n"] == 13
+    assert all(abs(s - 16.5) < 0.01 for s in slept)          # (900 - 100) / 50 + 0.5, from Shopify's numbers
+
+    too_big = {"errors": [{"extensions": {"code": "THROTTLED"}}],
+               "extensions": {"cost": {"requestedQueryCost": 1400, "throttleStatus": {"maximumAvailable": 1000, "currentlyAvailable": 1000, "restoreRate": 50}}}}
+    with pytest.raises(shopify_fetch.ShopifyError, match="more than this store"):
+        shopify_fetch._run(lambda q, v: too_big, "q", {}, retries=5, _sleep=lambda s: None)
+
+    forever = {"errors": [{"extensions": {"code": "THROTTLED"}}]}
+    with pytest.raises(shopify_fetch.ShopifyError, match="Still throttled"):
+        shopify_fetch._run(lambda q, v: forever, "q", {}, retries=5, _sleep=lambda s: None)
