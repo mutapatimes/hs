@@ -321,10 +321,16 @@ def register(app) -> None:
     def sync_state(shop: str = Depends(require_shop)) -> dict:
         """Where the background scoring got to: running / done / error, plus whether the book
         is in memory now (the SPA polls this on first load and reloads on ready)."""
-        from halia.api.onboarding import sync_status
+        from halia.api.onboarding import _start_sync, sync_status
         st = sync_status(shop)
-        return {"state": st.get("state"), "error": st.get("error", ""),
-                "ready": cache.get(shop) is not None}
+        ready = cache.get(shop) is not None
+        # A deploy or a restart in the middle of a run loses the run and its progress: the screen
+        # would poll an "idle" answer for ever. Nothing in memory and nothing running means start
+        # again, so the page that is already waiting gets its book on the next poll.
+        if not ready and st.get("state") in ("idle", None):
+            _start_sync(shop)
+            st = sync_status(shop)
+        return {"state": st.get("state"), "error": st.get("error", ""), "ready": ready}
 
     @app.post("/v1/sync")
     def sync_now(request: Request, shop: str = Depends(require_shop)):

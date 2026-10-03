@@ -76,3 +76,23 @@ def test_an_admin_frame_load_without_a_usable_token_is_framed_not_refused(monkey
     # A made-up shop never reaches the frame policy.
     r3 = c.get("/?shop=evil.example.com&embedded=1")
     assert "frame-ancestors 'none'" in r3.headers["content-security-policy"]
+
+
+def test_sync_state_restarts_a_run_lost_to_a_restart(monkeypatch):
+    """The scoring screen polls /v1/sync/state. After a deploy mid-run the status is gone and the
+    book is not in memory; the poll must start a fresh run rather than answer idle for ever."""
+    from halia.api import embedded as emb
+    import halia.api.onboarding as ob
+    client = _client(monkeypatch)
+    started = []
+    monkeypatch.setattr(ob, "_start_sync", lambda s, notify=False: started.append(s))
+    monkeypatch.setattr(ob, "sync_status", lambda s: {"state": "idle", "error": "", "ts": 0})
+    monkeypatch.setattr(emb.cache, "get", lambda s: None)
+    r = client.get("/v1/sync/state", params={"id_token": "t"})
+    assert r.status_code == 200 and r.json()["ready"] is False
+    assert started == [SHOP]
+    # With the book in memory nothing is started: the page reloads into the dashboard.
+    monkeypatch.setattr(emb.cache, "get", lambda s: {"payload": {}})
+    started.clear()
+    client.get("/v1/sync/state", params={"id_token": "t"})
+    assert started == []
