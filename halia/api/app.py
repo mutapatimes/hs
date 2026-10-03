@@ -156,7 +156,8 @@ if "pytest" not in _sys.modules and not _ACCESS_LOG.handlers:   # quiet during t
     _ACCESS_LOG.addHandler(_h)
     _ACCESS_LOG.setLevel(_logging.INFO)
 
-_ACCESS_PATHS = ("/v1/extension/", "/v1/sync", "/app")
+_ACCESS_PATHS = ("/v1/extension/", "/v1/sync", "/app/")
+_ACCESS_EXACT = ("/app", "/v1/sync")
 
 
 def _access_ref(request) -> str:
@@ -169,7 +170,8 @@ def _access_ref(request) -> str:
 @app.middleware("http")
 async def _access_log_mw(request, call_next):
     path = request.url.path
-    if request.method != "OPTIONS" and any(path.startswith(p) for p in _ACCESS_PATHS):
+    # The app routes themselves, never a look-alike path a scanner tries (/appsettings.json).
+    if request.method != "OPTIONS" and (path in _ACCESS_EXACT or any(path.startswith(p) for p in _ACCESS_PATHS)):
         ip = request.client.host if request.client else "?"
         _ACCESS_LOG.info("data-access path=%s method=%s ref=%s ip=%s",
                          path, request.method, _access_ref(request), ip)
