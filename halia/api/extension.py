@@ -1929,7 +1929,7 @@ def register(app) -> None:
         retention: an opaque id and a date, gone on restart; the worst a restart costs is one
         duplicate line). Unknown addresses are ignored and never created. No Slack broadcast,
         deliberately: the capture and pick alerts are events, but every outgoing email is not."""
-        from datetime import date
+        from datetime import datetime as _dt, timezone as _tz
 
         auth = _resolve_ext(x_halia_ext_token)
         shop = auth.shop
@@ -1944,14 +1944,14 @@ def register(app) -> None:
             cid = resp.get("cid")
             if not (resp.get("found") and cid):
                 continue
-            key = (shop, auth.seat_id or "", str(cid), date.today().isoformat())
+            key = (shop, auth.seat_id or "", str(cid), _dt.now(_tz.utc).date().isoformat())
             if key in _EMAILED:
                 continue
             try:
                 from halia.api.board import _sink, _write_soft, append_activity, load_pipe
                 sink = _sink(shop)
                 pipe = load_pipe(sink.get_metafield(cid, "pipeline"))
-                today = date.today().isoformat()
+                today = _dt.now(_tz.utc).date().isoformat()
                 if any(a.get("action") == "contacted" and str(a.get("at") or "")[:10] == today
                        and (a.get("actor_id") or "") == (auth.seat_id or "")
                        for a in pipe.get("activity") or []):
@@ -1967,7 +1967,7 @@ def register(app) -> None:
         if logged:
             data.record_activity(shop, "extension_contacted", logged)
         if len(_EMAILED) > 5000:                       # bound the RAM, keep today's keys working
-            today = date.today().isoformat()
+            today = _dt.now(_tz.utc).date().isoformat()
             for k in [k for k in _EMAILED if k[3] != today]:
                 _EMAILED.pop(k, None)
         return {"logged": logged}
