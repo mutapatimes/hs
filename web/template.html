@@ -5519,8 +5519,15 @@ if(!DATA.length && SYNC_RUNNING){
     const clk=load.querySelector("#scoreClock");
     const iv=setInterval(()=>{const s=(Date.now()-t0)/1000;
       clk.textContent=s<60?s.toFixed(1)+"s":Math.floor(s/60)+"m "+(s%60).toFixed(1)+"s";},100);
+    // The address still carries the token Shopify issued minutes ago, and tokens last a minute.
+    // Reload with a fresh one from App Bridge, so the finished book opens first time.
+    const freshReload=()=>{
+      const go=(t)=>{ try{ const u=new URL(location.href); if(t) u.searchParams.set("id_token",t); u.searchParams.delete("retried"); location.replace(u.toString()); }catch(e){ location.reload(); } };
+      try{ if(window.shopify&&shopify.idToken){ shopify.idToken().then(go,()=>go(null)); return; } }catch(e){}
+      go(null);
+    };
     const poll=()=>fetch("/v1/sync/state").then(r=>r.json()).then(d=>{
-      if(d.ready||d.state==="done"){ clearInterval(iv); location.reload(); return; }
+      if(d.ready||d.state==="done"){ clearInterval(iv); freshReload(); return; }
       if(d.state==="error"){ clearInterval(iv); load.remove(); btn.style.display=""; btn.textContent="Scoring stalled, try again"; return; }
       setTimeout(poll,2000);
     }).catch(()=>setTimeout(poll,3000));

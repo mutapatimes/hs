@@ -69,6 +69,9 @@ def test_an_admin_frame_load_without_a_usable_token_is_framed_not_refused(monkey
     assert r.status_code == 200
     assert "frame-ancestors https://htown-store.myshopify.com https://admin.shopify.com" in r.headers["content-security-policy"]
     assert "shopify.idToken()" in r.text
+    # A stale token in the address (the scoring screen's reload, minutes later) is refreshed too.
+    r1 = c.get(base + "&id_token=stale.token.here")
+    assert r1.status_code == 200 and "shopify.idToken()" in r1.text
     r2 = c.get(base + "&id_token=not.a.token&retried=1")
     assert r2.status_code == 200
     assert "admin.shopify.com" in r2.headers["content-security-policy"]

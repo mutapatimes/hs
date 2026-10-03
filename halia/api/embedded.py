@@ -212,7 +212,9 @@ def _bootstrap(request: Request, shop: str, exc: BaseException) -> HTMLResponse:
     credential reads as a sentence rather than a refused connection."""
     qp = request.query_params
     head = _head(shop, "")
-    if not qp.get("id_token") and qp.get("retried") != "1":
+    # Missing or stale alike: a token in the address can be minutes old after the scoring screen
+    # reloads, and Shopify's last sixty seconds. One fresh token from App Bridge settles both.
+    if qp.get("retried") != "1":
         body = ("<!doctype html><html><head>" + head + "</head>"
                 "<body style='font:15px system-ui;padding:40px;color:#1c1b18'><p>Opening Halia…</p>"
                 "<script>(async function(){try{var t=await shopify.idToken();var u=new URL(location.href);"
