@@ -475,6 +475,32 @@ def test_www_and_dotted_forms_comp_the_same_tenant(client, monkeypatch):
     assert billing.is_paid("glennorah.co.uk") is True
 
 
+def test_comping_a_store_unmasks_its_book_at_once_without_scoring_again(client, monkeypatch):
+    """The unmasked book sits beside the masked one in the same RAM entry, so the comp lands on
+    the next load: no scoring screen, no second pull of the store."""
+    import halia.config as hcfg
+    from halia.api import onboarding
+    from build_mvp import mask_payload
+    c, store = client
+    _enable(monkeypatch)
+    tok = _tenant(store)
+    full = {"segments": {}, "data": [{"id": "C-1", "name": "Zelda Quantock", "grade": "A", "latent": 1}], "orders": [],
+            "stat_scored": "1", "stat_latent": "£1", "stat_count": "1", "stat_avgspend": "£1", "stat_toptier": "1"}
+    cache.set("shopx", [], mask_payload(full), {}, full=full)
+    started = []
+    monkeypatch.setattr(onboarding, "_start_sync", lambda shop, notify=False: started.append(shop))
+    monkeypatch.setattr(hcfg, "HALIA_FREE_SHOPS", {"shopx"})
+    monkeypatch.setattr("halia.console_config.console_setting", lambda key, env=None: env)
+    try:
+        c.cookies.set(COOKIE, tok)
+        r = c.get("/app")
+        assert r.status_code == 200 and started == []
+        assert "const MASKED = false" in r.text and "Zelda Quantock" in r.text
+        assert not cache.get("shopx")["payload"].get("masked")      # swapped in place, stays unmasked
+    finally:
+        cache.evict("shopx")
+
+
 def test_masked_book_rescoring_once_the_store_is_comped(client, monkeypatch):
     import halia.config as hcfg
     from halia.api import onboarding

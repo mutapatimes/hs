@@ -954,12 +954,16 @@ setTimeout(poll,1500);
 
 
 def _stale_mask(shop: str, entry: dict) -> bool:
-    """True when the cached book is masked but the store is now paid or comped (the mask is
-    applied at scoring time, so a plan change or a comp needs one more scoring run)."""
+    """The cached book is masked but the store is now paid or comped. The unmasked book is kept
+    in the same entry, so it is swapped in here, in place, and False comes back: nothing more to
+    do. True only when there is no unmasked book to swap in, so the store needs scoring again."""
     try:
         from halia.api import billing
+        from halia.cache import cache
         payload = (entry or {}).get("payload") or {}
-        return bool(payload.get("masked")) and billing.is_paid(shop)
+        if not payload.get("masked") or not billing.is_paid(shop):
+            return False
+        return not cache.unmask(shop)
     except Exception:  # noqa: BLE001
         return False
 

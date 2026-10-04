@@ -225,12 +225,6 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None, 
     payload = dashboard_payload(scored, _history(orders), shop, benchmarks, raw_orders=orders,
                                 carts_by_customer=carts, platform=platform, store_url=store_url,
                                 consent_by_customer=_consent(orders))
-    # The free scan shows the whole book scored but not who anyone is: identities are withheld
-    # server-side until the tenant is on a plan.
-    from halia.api import billing
-    if not billing.is_paid(shop):
-        from build_mvp import mask_payload
-        payload = mask_payload(payload)
     # Store Concierge desk: the clienteling view (pure RFM, no scoring) rides along in the same
     # RAM cache. Computed from the customer frame we already built, so no extra fetch. The hosted
     # route serves this instead of the wealth dashboard for storeconcierge-brand tenants.
@@ -240,7 +234,15 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None, 
     payload["order_window"] = order_window   # 60 when Shopify only shares recent orders (scope not granted)
     payload["sync_diag"] = sync_diag or {}
     payload["order_cap"] = order_cap(shop)
-    cache.set(shop, results, payload, _order_index(orders))
+    # The free scan shows the whole book scored but not who anyone is: identities are withheld
+    # server-side until the tenant is on a plan. The unmasked book stays beside it in the same
+    # RAM entry, so a comp or a plan unmasks on the next load instead of after another scoring run.
+    from halia.api import billing
+    full = payload
+    if not billing.is_paid(shop):
+        from build_mvp import mask_payload
+        payload = mask_payload(full)
+    cache.set(shop, results, payload, _order_index(orders), full=full)
     entry = cache.get(shop)
 
     # Console-dashboard activity: one scan, N customers scanned, M hidden VICs surfaced. Aggregate

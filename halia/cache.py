@@ -47,11 +47,29 @@ class ResultsCache:
         with self._lock:
             return list(self._alerts.get(shop, []))
 
-    def set(self, shop: str, results: list, payload: dict, orders: dict) -> None:
+    def set(self, shop: str, results: list, payload: dict, orders: dict,
+            full: dict | None = None) -> None:
+        """``full`` is the unmasked book when ``payload`` is the free-scan (masked) view of it, so
+        a comp or a plan can take effect at once rather than after another scoring run. The scored
+        results and orders in the same entry are already unmasked, so this widens nothing."""
         with self._lock:
             now = time.monotonic()
             self._data[shop] = {"results": results, "payload": payload, "orders": orders,
+                                "full": full if full is not None else payload,
                                 "expires": now + self.ttl, "evict": now + self.idle}
+
+    def unmask(self, shop: str) -> bool:
+        """Swap the unmasked book in for a masked one, in place, so anyone holding the entry sees
+        it. True when done; False when there is no entry or no unmasked book to swap in."""
+        with self._lock:
+            entry = self._live(shop, time.monotonic())
+            if entry is None:
+                return False
+            full = entry.get("full")
+            if not full or not (entry.get("payload") or {}).get("masked") or full.get("masked"):
+                return False
+            entry["payload"] = full
+            return True
 
     def _live(self, shop: str, now: float) -> dict | None:
         """The entry if it has not passed its idle eviction; drops it if it has. Lock held."""
