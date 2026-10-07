@@ -164,3 +164,17 @@ def test_data_consent_side_map_is_keyed_by_customer_and_empty_for_rest_shapes():
     assert _consent(shopify) == {"gid://shopify/Customer/1": {"email": "subscribed", "sms": "unknown"}}
     woo = [{"customer": {"id": 5, "email": "a@b.com"}}]      # WooCommerce carries no consent
     assert _consent(woo) == {}
+
+
+def test_sale_date_is_processed_at_when_shopify_has_it():
+    """An order imported when a brand moved to Shopify (or seeded into a development store) is
+    created on the import day; processedAt is the day of the sale, and that is what Last Shopped,
+    gone-quiet and the campaign windows must read. Without it, createdAt stands in."""
+    order = dict(SAMPLE_CUSTOMER["orders"]["nodes"][1], processedAt="2007-03-05T09:00:00Z")
+    rest = order_node_to_rest(order, SAMPLE_CUSTOMER)
+    assert rest["created_at"] == "2007-03-05T09:00:00Z"
+    assert rest["processed_at"] == "2007-03-05T09:00:00Z" and rest["imported_at"] == "2008-01-10T11:00:00Z"
+    rows = orders_to_customers([rest])
+    assert str(rows.iloc[0]["Last Shopped"]).startswith("2007-03-05")
+    plain = order_node_to_rest(SAMPLE_CUSTOMER["orders"]["nodes"][1], SAMPLE_CUSTOMER)
+    assert plain["created_at"] == "2008-01-10T11:00:00Z" and plain["processed_at"] is None

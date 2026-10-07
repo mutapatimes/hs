@@ -37,6 +37,7 @@ _CUSTOMER_NODE = """
           id
           name
           createdAt
+          processedAt
           displayFinancialStatus
           displayFulfillmentStatus
           cancelledAt
@@ -239,7 +240,13 @@ def order_node_to_rest(order: dict, customer: dict) -> dict:
         "order_name": order.get("name"),   # the friendly number, e.g. "#1001" (not the gid)
         "email": customer.get("email"),
         "phone": customer.get("phone"),
-        "created_at": order.get("createdAt"),
+        # The sale date. Shopify sets createdAt itself, so an order imported when a brand moved
+        # to Shopify (or seeded into a development store) is "created" on the import day; processedAt
+        # carries the day the sale really happened. Everything downstream (last shopped, gone quiet,
+        # campaign windows, the orders view) reads created_at, so it is the sale date here.
+        "created_at": order.get("processedAt") or order.get("createdAt"),
+        "processed_at": order.get("processedAt"),
+        "imported_at": order.get("createdAt"),
         # Order status -> powers the dashboard Orders view (shared with WooCommerce).
         "financial_status": str(order.get("displayFinancialStatus") or "").lower(),
         "fulfillment_status": str(order.get("displayFulfillmentStatus") or "").lower(),
