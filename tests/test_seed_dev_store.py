@@ -43,7 +43,7 @@ def test_run_skips_existing_and_creates_the_rest(monkeypatch):
     def transport(query, variables):
         calls.append((query, variables))
         if query.startswith("query"):
-            return {"customers": {"nodes": [{"id": "gid://c/1"}] if variables["q"] == 'email:"old@x.com"' else []}}
+            return {"customers": {"nodes": [{"id": "gid://c/1", "numberOfOrders": 1}] if variables["q"] == 'email:"old@x.com"' else []}}
         if "customerCreate" in query:
             return {"customerCreate": {"customer": {"id": "gid://c/9"}, "userErrors": []}}
         return {"orderCreate": {"order": {"id": "gid://o/1", "name": "#1"}, "userErrors": []}}
