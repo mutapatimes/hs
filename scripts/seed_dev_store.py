@@ -380,18 +380,34 @@ def _phone_error(errs) -> bool:
                for e in errs or [])
 
 
-def _create_orders(transport, cid, email, orders, stats, sleep, log) -> int:
+# Development stores accept at most 5 new orders a minute, so orders are spaced 12.5 s apart and
+# a "Too many attempts" answer waits a minute and tries the same order again.
+ORDER_GAP = 12.5
+_last_order = [0.0]
+
+
+def _create_orders(transport, cid, email, orders, stats, sleep, log, gap=None) -> int:
     from scoring.shopify_fetch import _run
+    gap = ORDER_GAP if gap is None else gap
     made = 0
     for o in orders:
-        r = _run(transport, ORDER, {"order": {**o, "customerId": cid},
-                                    "options": {"inventoryBehaviour": "BYPASS", "sendReceipt": False}}, 3)["orderCreate"]
-        if r.get("userErrors"):
-            stats["errors"] += 1
-            log(f"  {email} order: {r['userErrors']}")
-        else:
-            made += 1
-        time.sleep(sleep)
+        for attempt in range(6):
+            wait = _last_order[0] + gap - time.monotonic()
+            if wait > 0:
+                time.sleep(wait)
+            _last_order[0] = time.monotonic()
+            r = _run(transport, ORDER, {"order": {**o, "customerId": cid},
+                                        "options": {"inventoryBehaviour": "BYPASS", "sendReceipt": False}}, 3)["orderCreate"]
+            errs = r.get("userErrors") or []
+            if errs and any("too many attempts" in str(e.get("message", "")).lower() for e in errs) and attempt < 5:
+                time.sleep(65 if gap else 0)
+                continue
+            if errs:
+                stats["errors"] += 1
+                log(f"  {email} order: {errs}")
+            else:
+                made += 1
+            break
     return made
 
 
@@ -399,7 +415,7 @@ class _Denied(Exception):
     pass
 
 
-def run(transport, plans: list[dict], sleep: float = 0.35, log=print) -> dict:
+def run(transport, plans: list[dict], sleep: float = 0.35, log=print, gap: float | None = None) -> dict:
     from scoring.shopify_fetch import _run
     stats = {"customers": 0, "skipped": 0, "orders": 0, "errors": 0}
     denied = 0
@@ -412,16 +428,17 @@ def run(transport, plans: list[dict], sleep: float = 0.35, log=print) -> dict:
         email = p["customer"]["email"]
         try:
             found = _run(transport, FIND, {"q": f'email:"{email}"'}, 3)["customers"]["nodes"]
-            if found and int(found[0].get("numberOfOrders") or 0) > 0:
+            have = int(found[0].get("numberOfOrders") or 0) if found else 0
+            if found and have >= len(p["orders"]):
                 stats["skipped"] += 1
                 continue
             if found:
-                # Created on an earlier run that stopped before its orders: finish it.
+                # Created on an earlier run that stopped before all its orders: finish it.
                 cid = found[0]["id"]
                 stats["skipped"] += 1
-                stats["orders"] += _create_orders(transport, cid, email, p["orders"], stats, sleep, log)
-                log(f"+ {email}: {len(p['orders'])} order(s), customer already there")
-                time.sleep(sleep)
+                n = _create_orders(transport, cid, email, p["orders"][have:], stats, sleep, log, gap)
+                stats["orders"] += n
+                log(f"+ {email}: {n} more order(s), customer already there")
                 continue
             d = _run(transport, CREATE, {"input": p["customer"]}, 3)["customerCreate"]
             if d.get("userErrors") and _phone_error(d["userErrors"]) and "phone" in p["customer"]:
@@ -434,8 +451,9 @@ def run(transport, plans: list[dict], sleep: float = 0.35, log=print) -> dict:
                 continue
             cid = d["customer"]["id"]
             stats["customers"] += 1
-            stats["orders"] += _create_orders(transport, cid, email, p["orders"], stats, sleep, log)
-            log(f"+ {email}: {len(p['orders'])} order(s)")
+            n = _create_orders(transport, cid, email, p["orders"], stats, sleep, log, gap)
+            stats["orders"] += n
+            log(f"+ {email}: {n} order(s)  [{stats['customers'] + stats['skipped']}/{len(plans)}]")
         except Exception as exc:  # noqa: BLE001
             stats["errors"] += 1
             if "protected-customer-data" in str(exc) or "not approved to access the Customer" in str(exc):

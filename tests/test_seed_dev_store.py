@@ -50,7 +50,7 @@ def test_run_skips_existing_and_creates_the_rest(monkeypatch):
     monkeypatch.setattr("scoring.shopify_fetch._run", lambda t, q, v, r: t(q, v))
     plans = seed.plan([{"Name": "Old One", "EMAIL_ADDR": "old@x.com", "Spent": 100},
                        {"Name": "New One", "EMAIL_ADDR": "new@x.com", "Spent": 500, "Count of CUST_ID": 2}])
-    stats = seed.run(transport, plans, sleep=0, log=lambda *a: None)
+    stats = seed.run(transport, plans, sleep=0, log=lambda *a: None, gap=0)
     assert stats == {"customers": 1, "skipped": 1, "orders": 2, "errors": 0}
     order_calls = [v for q, v in calls if "orderCreate" in q]
     assert order_calls[0]["order"]["customerId"] == "gid://c/9" and order_calls[0]["options"]["sendReceipt"] is False
@@ -69,7 +69,7 @@ def test_a_rejected_phone_is_dropped_not_fatal(monkeypatch):
         return {"orderCreate": {"order": {"id": "gid://o/1"}, "userErrors": []}}
     monkeypatch.setattr("scoring.shopify_fetch._run", lambda t, q, v, r: t(q, v))
     plans = seed.plan([{"Name": "New One", "EMAIL_ADDR": "new@x.com", "PHONE": "+44 7000 000000", "Spent": 500}])
-    stats = seed.run(transport, plans, sleep=0, log=lambda *a: None)
+    stats = seed.run(transport, plans, sleep=0, log=lambda *a: None, gap=0)
     assert stats["customers"] == 1 and stats["errors"] == 0 and len(creates) == 2 and "phone" not in creates[1]
 
 
@@ -163,7 +163,7 @@ def test_a_customer_left_without_orders_gets_them_on_the_rerun(monkeypatch):
         raise AssertionError("must not create the customer twice")
     monkeypatch.setattr("scoring.shopify_fetch._run", lambda t, q, v, r: t(q, v))
     plans = seed.plan([{"Name": "Half Done", "EMAIL_ADDR": "half@x.com", "Spent": 600, "Count of CUST_ID": 2}])
-    stats = seed.run(transport, plans, sleep=0, log=lambda *a: None)
+    stats = seed.run(transport, plans, sleep=0, log=lambda *a: None, gap=0)
     assert made == ["gid://c/5", "gid://c/5"] and stats["orders"] == 2 and stats["customers"] == 0
 
 
@@ -175,5 +175,23 @@ def test_stops_early_when_shopify_denies_customer_data(monkeypatch):
     monkeypatch.setattr("scoring.shopify_fetch._run", lambda t, q, v, r: t(q, v))
     rows = [{"Name": f"P {i}", "EMAIL_ADDR": f"p{i}@x.com", "Spent": 100} for i in range(20)]
     lines = []
-    seed.run(transport, seed.plan(rows), sleep=0, log=lines.append)
+    seed.run(transport, seed.plan(rows), sleep=0, log=lines.append, gap=0)
     assert len(calls) == 3 and "Protected customer data" in lines[-1]
+
+
+def test_rate_limited_orders_are_retried_and_missing_ones_filled(monkeypatch):
+    tries = {"n": 0}
+    made = []
+    def transport(query, variables):
+        if query.startswith("query"):
+            return {"customers": {"nodes": [{"id": "gid://c/5", "numberOfOrders": 1}]}}
+        tries["n"] += 1
+        if tries["n"] == 1:
+            return {"orderCreate": {"order": None, "userErrors": [{"field": None, "message": "Too many attempts. Please try again later."}]}}
+        made.append(variables["order"]["processedAt"][:10])
+        return {"orderCreate": {"order": {"id": "gid://o/1"}, "userErrors": []}}
+    monkeypatch.setattr("scoring.shopify_fetch._run", lambda t, q, v, r: t(q, v))
+    plans = seed.plan([{"Name": "Part Done", "EMAIL_ADDR": "part@x.com", "Spent": 900, "Count of CUST_ID": 3,
+                        "Last Shopped": "2026-08-01"}], NOW)
+    stats = seed.run(transport, plans, sleep=0, log=lambda *a: None, gap=0)
+    assert made == ["2026-06-17", "2026-05-03"] and stats["orders"] == 2 and stats["errors"] == 0
