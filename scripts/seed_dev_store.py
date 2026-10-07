@@ -4,10 +4,18 @@ dashboard has a real, two-year, graded book to score for demos and for app revie
 
 Everything created is synthetic and tagged halia-sample, so it can be wiped with --wipe.
 
-Needs a token with write_customers, write_orders and write_products on the DEV store: in its admin
-go to Settings → Apps and sales channels → Develop apps → create one, grant those scopes, install,
-copy the Admin API access token. Halia's own app token deliberately lacks the write scopes. Keep
-the token in the shell only (SHOPIFY_SHOP / SHOPIFY_ADMIN_TOKEN); never in the repo.
+Needs write_customers, write_orders and write_products on the DEV store. Two ways in:
+
+  * Dev Dashboard (current Shopify): create an app manually ("Seeder"), give it those Admin API
+    scopes, release it and install it on the dev store. Then run with the app's client id and
+    secret (SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET): the seeder swaps them for an access token
+    with Shopify's client-credentials grant, which works for an app installed on a store in the
+    same organisation.
+  * Older admins: Settings → Apps and sales channels → Develop apps → create, grant the scopes,
+    install, copy the Admin API access token (SHOPIFY_ADMIN_TOKEN).
+
+Halia's own app token deliberately lacks the write scopes. Credentials live in the shell only
+(with SHOPIFY_SHOP); never in the repo.
 
     # 1. the catalogue (12 products with images, served from haliascore.com/img)
     .venv/bin/python scripts/seed_dev_store.py --products
@@ -438,12 +446,26 @@ def wipe(transport, sleep: float = 0.2, log=print) -> dict:
     return stats
 
 
+def client_credentials_token(shop: str, client_id: str, client_secret: str) -> str:
+    """An Admin API access token for a Dev Dashboard app installed on this store (24h life)."""
+    import requests
+    r = requests.post(f"https://{shop}/admin/oauth/access_token",
+                      data={"grant_type": "client_credentials", "client_id": client_id,
+                            "client_secret": client_secret}, timeout=30)
+    if r.status_code != 200:
+        sys.exit(f"token exchange failed ({r.status_code}): {r.text[:300]}\n"
+                 "Is the app installed on this store, with the write scopes, and released?")
+    return r.json()["access_token"]
+
+
 def main() -> None:
     import pandas as pd
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--shop", default=os.environ.get("SHOPIFY_SHOP"))
     ap.add_argument("--token", default=os.environ.get("SHOPIFY_ADMIN_TOKEN"))
+    ap.add_argument("--client-id", default=os.environ.get("SHOPIFY_CLIENT_ID"))
+    ap.add_argument("--client-secret", default=os.environ.get("SHOPIFY_CLIENT_SECRET"))
     ap.add_argument("--source", default="sample_data/synthetic_100k.xlsx")
     ap.add_argument("--mix", help='rows per grade, e.g. "A1:40,A:80,B:280,none:1100"')
     ap.add_argument("--seed", type=int, default=7)
@@ -458,8 +480,11 @@ def main() -> None:
     a = ap.parse_args()
 
     def need_store():
+        if a.shop and not a.token and a.client_id and a.client_secret:
+            a.token = client_credentials_token(a.shop, a.client_id, a.client_secret)
         if not (a.shop and a.token):
-            sys.exit("--shop and --token (write_customers + write_orders + write_products) are required")
+            sys.exit("--shop plus either --token or --client-id/--client-secret "
+                     "(write_customers + write_orders + write_products) are required")
         from scoring.shopify_fetch import http_transport
         return http_transport(a.shop, a.token)
 

@@ -8,9 +8,9 @@ It is for screen-share demos and for app review. Nobody in it exists.
 
 1. Partner Dashboard → Stores → Add store → Development store. Name "Maison Aurelle", purpose
    "test an app", a London address, GBP. No Plus features needed.
-2. In the new store's admin: Settings → Apps and sales channels → Develop apps → "Seeder".
+2. Dev Dashboard → Create app → manually → "Seeder" (or, in older admins, the store's Settings → Apps and sales channels → Develop apps).
    Admin API scopes: write_customers, write_orders, write_products, read_customers, read_products.
-   Install it and copy the Admin API access token. It lives in the shell for the seeding run and
+   Release it and install it on the dev store; the seeder takes the app's client id and secret (SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET) and gets its own token. They live in the shell for the seeding run and
    nowhere else; delete the Seeder app once the store is built.
 3. From the repo, with `SHOPIFY_SHOP=<store>.myshopify.com` and `SHOPIFY_ADMIN_TOKEN=shpat_…`:
 
