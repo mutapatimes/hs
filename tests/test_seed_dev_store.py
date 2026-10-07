@@ -150,3 +150,30 @@ def test_wipe_deletes_orders_before_customers(monkeypatch):
     monkeypatch.setattr("scoring.shopify_fetch._run", lambda t, q, v, r: t(q, v))
     stats = seed.wipe(transport, sleep=0, log=lambda *a: None)
     assert seen == ["orderDelete", "customerDelete"] and stats["orders"] == 1 and stats["customers"] == 1
+
+
+def test_a_customer_left_without_orders_gets_them_on_the_rerun(monkeypatch):
+    made = []
+    def transport(query, variables):
+        if query.startswith("query"):
+            return {"customers": {"nodes": [{"id": "gid://c/5", "numberOfOrders": 0}]}}
+        if "orderCreate" in query:
+            made.append(variables["order"]["customerId"])
+            return {"orderCreate": {"order": {"id": "gid://o/1"}, "userErrors": []}}
+        raise AssertionError("must not create the customer twice")
+    monkeypatch.setattr("scoring.shopify_fetch._run", lambda t, q, v, r: t(q, v))
+    plans = seed.plan([{"Name": "Half Done", "EMAIL_ADDR": "half@x.com", "Spent": 600, "Count of CUST_ID": 2}])
+    stats = seed.run(transport, plans, sleep=0, log=lambda *a: None)
+    assert made == ["gid://c/5", "gid://c/5"] and stats["orders"] == 2 and stats["customers"] == 0
+
+
+def test_stops_early_when_shopify_denies_customer_data(monkeypatch):
+    calls = []
+    def transport(query, variables):
+        calls.append(query)
+        raise RuntimeError("This app is not approved to access the Customer object. See protected-customer-data")
+    monkeypatch.setattr("scoring.shopify_fetch._run", lambda t, q, v, r: t(q, v))
+    rows = [{"Name": f"P {i}", "EMAIL_ADDR": f"p{i}@x.com", "Spent": 100} for i in range(20)]
+    lines = []
+    seed.run(transport, seed.plan(rows), sleep=0, log=lines.append)
+    assert len(calls) == 3 and "Protected customer data" in lines[-1]

@@ -54,7 +54,7 @@ IMG_BASE = "https://haliascore.com/img/"
 TIERS_CACHE = Path("output/synthetic_tiers.csv")
 PLAIN_DOMAINS = ("gmail.com", "gmail.com", "gmail.com", "icloud.com", "btinternet.com")
 
-FIND = """query($q: String!) { customers(first: 1, query: $q) { nodes { id email } } }"""
+FIND = """query($q: String!) { customers(first: 1, query: $q) { nodes { id email numberOfOrders } } }"""
 CREATE = """mutation($input: CustomerInput!) {
   customerCreate(input: $input) { customer { id } userErrors { field message } } }"""
 ORDER = """mutation($order: OrderCreateOrderInput!, $options: OrderCreateOptionsInput) {
@@ -380,15 +380,48 @@ def _phone_error(errs) -> bool:
                for e in errs or [])
 
 
+def _create_orders(transport, cid, email, orders, stats, sleep, log) -> int:
+    from scoring.shopify_fetch import _run
+    made = 0
+    for o in orders:
+        r = _run(transport, ORDER, {"order": {**o, "customerId": cid},
+                                    "options": {"inventoryBehaviour": "BYPASS", "sendReceipt": False}}, 3)["orderCreate"]
+        if r.get("userErrors"):
+            stats["errors"] += 1
+            log(f"  {email} order: {r['userErrors']}")
+        else:
+            made += 1
+        time.sleep(sleep)
+    return made
+
+
+class _Denied(Exception):
+    pass
+
+
 def run(transport, plans: list[dict], sleep: float = 0.35, log=print) -> dict:
     from scoring.shopify_fetch import _run
     stats = {"customers": 0, "skipped": 0, "orders": 0, "errors": 0}
+    denied = 0
     for p in plans:
+        if denied >= 3:
+            log("Stopped: Shopify refuses this app access to customer data. In the Partner Dashboard,\n"
+                "open the app → API access requests → Protected customer data access, fill in the\n"
+                "form (name, email, phone, address), save, then run the same command again.")
+            break
         email = p["customer"]["email"]
         try:
             found = _run(transport, FIND, {"q": f'email:"{email}"'}, 3)["customers"]["nodes"]
-            if found:
+            if found and int(found[0].get("numberOfOrders") or 0) > 0:
                 stats["skipped"] += 1
+                continue
+            if found:
+                # Created on an earlier run that stopped before its orders: finish it.
+                cid = found[0]["id"]
+                stats["skipped"] += 1
+                stats["orders"] += _create_orders(transport, cid, email, p["orders"], stats, sleep, log)
+                log(f"+ {email}: {len(p['orders'])} order(s), customer already there")
+                time.sleep(sleep)
                 continue
             d = _run(transport, CREATE, {"input": p["customer"]}, 3)["customerCreate"]
             if d.get("userErrors") and _phone_error(d["userErrors"]) and "phone" in p["customer"]:
@@ -401,19 +434,15 @@ def run(transport, plans: list[dict], sleep: float = 0.35, log=print) -> dict:
                 continue
             cid = d["customer"]["id"]
             stats["customers"] += 1
-            for o in p["orders"]:
-                r = _run(transport, ORDER, {"order": {**o, "customerId": cid},
-                                            "options": {"inventoryBehaviour": "BYPASS", "sendReceipt": False}}, 3)["orderCreate"]
-                if r.get("userErrors"):
-                    stats["errors"] += 1
-                    log(f"  {email} order: {r['userErrors']}")
-                else:
-                    stats["orders"] += 1
-                time.sleep(sleep)
+            stats["orders"] += _create_orders(transport, cid, email, p["orders"], stats, sleep, log)
             log(f"+ {email}: {len(p['orders'])} order(s)")
         except Exception as exc:  # noqa: BLE001
             stats["errors"] += 1
-            log(f"  {email}: {exc}")
+            if "protected-customer-data" in str(exc) or "not approved to access the Customer" in str(exc):
+                denied += 1
+                log(f"  {email}: no access to customer data")
+            else:
+                log(f"  {email}: {exc}")
         time.sleep(sleep)
     return stats
 
