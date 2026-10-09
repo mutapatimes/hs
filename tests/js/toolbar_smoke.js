@@ -177,6 +177,15 @@ let sr, $, body, text, click;
     const back = $('[data-a="back"]'); if (back) click('[data-a="back"]');
     return ok;
   });
+  step("instagram-handle-says-there", () => {
+    P.setClient({ notfound: true, name: "sam.okafor_" });
+    const t = $('[data-q="templates"]'); if (t) click('[data-q="templates"]');
+    const it = $('[data-ti="1"]'); if (it) click('[data-ti="1"]');
+    const pv = $(".prev");
+    const ok = !!pv && /Hi there, happy birthday/.test(pv.textContent);
+    const back = $('[data-a="back"]'); if (back) click('[data-a="back"]');
+    return ok;
+  });
   step("number-only-chat-says-there", () => {
     P.setClient({ notfound: true, name: "+44 7700 900123" });
     const t = $('[data-q="templates"]'); if (t) click('[data-q="templates"]');

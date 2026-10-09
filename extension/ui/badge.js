@@ -279,7 +279,12 @@
   // Templates greet by the client's name, or, for someone not in the book, by the name the
   // chat itself shows (the WhatsApp/LINE header, the Gmail recipient), so an invite to a friend
   // still reads "hey Sam". Only a bare number falls back to "there".
-  function chatFirst() { const n = first(client && !client.data && client.name); return /^[+\d(]/.test(n) ? "" : n.replace(/[^\p{L}\p{M}'-]/gu, ""); }
+  function chatFirst() {
+    const full = String((client && !client.data && client.name) || "").trim();
+    // A bare number, or an Instagram-style handle (one word with . _ or digits), is not a name.
+    if (!full || /^[+\d(]/.test(full) || (!/\s/.test(full) && /[._\d@]/.test(full))) return "";
+    return first(full).replace(/[^\p{L}\p{M}'-]/gu, "");
+  }
   function activeFirst() { return first(activeName()) || chatFirst() || "there"; }
   function activeDetails() {
     const d = (client && client.data) || {};
