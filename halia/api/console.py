@@ -493,6 +493,7 @@ _NAV = [
     ("outreach", "/console/outreach", "Outreach"),
     ("milestones", "/console/milestones", "Milestones"),
     ("readiness", "/console/readiness", "Readiness"),
+    ("templates", "/console/templates", "Templates"),
     ("content", "/admin", "Content"),
     ("blog", "/admin/blog", "Blog"),
     ("team", "/console/team", "Team"),
@@ -1181,6 +1182,43 @@ def _render_team(note: str = "") -> str:
     return _shell("team", "Team", body, subtitle="Who can sign in")
 
 
+# ── client template packs ────────────────────────────────────────────────────────
+def import_template_pack(shop: str, pack, store=None) -> dict:
+    """Put a pack of message templates at the top of a client's own list. Read-modify-write on the
+    raw settings blob, so every other setting is kept as it is. A pack template replaces an
+    existing one with the same name; the rest of the list follows unchanged."""
+    import json as _json
+    from halia.api.settings import _clean_templates
+    st = store or shop_store()
+    raw = st.get_settings_raw(shop)
+    data = _json.loads(raw) if raw else {}
+    new = _clean_templates(pack if isinstance(pack, list) else (pack or {}).get("templates"))
+    names = {t["name"].strip().lower() for t in new}
+    kept = [t for t in (data.get("email_templates") or [])
+            if isinstance(t, dict) and str(t.get("name") or "").strip().lower() not in names]
+    if not data.get("email_templates"):
+        # A store that never saved its own list is reading the house defaults: keep them below.
+        from halia.api.settings import settings_for
+        kept = [t for t in (settings_for(shop).get("email_templates") or [])
+                if str(t.get("name") or "").strip().lower() not in names]
+    data["email_templates"] = new + kept
+    st.save_settings(shop, _json.dumps(data))
+    return {"added": len(new), "total": len(data["email_templates"])}
+
+
+def _render_templates(note: str = "") -> str:
+    st = shop_store()
+    shops = sorted({t["shop"] for t in (st.all_tenants() or [])} | set(st.all_shops() or []))
+    opts = "".join(f"<option>{_html.escape(s)}</option>" for s in shops)
+    msg = f"<p class=sub>{_html.escape(note)}</p>" if note else ""
+    body = (msg + "<div class=card><form method=post action=/console/templates/import>"
+            "<label>Client store<br><select name=shop required>" + opts + "</select></label><br><br>"
+            "<label>Template pack (JSON: a list of name, category, subject, body)<br>"
+            "<textarea name=pack rows=18 style='width:100%;font:13px monospace' required></textarea></label><br><br>"
+            "<button class=btn type=submit>Add to the top of their templates</button></form></div>")
+    return _shell("templates", "Templates", body, subtitle="Load a template pack into a client's store")
+
+
 # ── routes ───────────────────────────────────────────────────────────────────────
 def register(app) -> None:
 
@@ -1229,6 +1267,23 @@ def register(app) -> None:
         if not _console_ok(request):
             return HTMLResponse(_login_form())
         return None
+
+    @app.get("/console/templates", response_class=HTMLResponse)
+    def console_templates(request: Request):
+        return _gate(request) or HTMLResponse(_render_templates(request.query_params.get("note") or ""))
+
+    @app.post("/console/templates/import")
+    def console_templates_import(request: Request, shop: str = Form(""), pack: str = Form("")):
+        if not _console_ok(request):
+            raise HTTPException(403, "Not signed in.")
+        import json as _json
+        try:
+            parsed = _json.loads(pack)
+        except ValueError as exc:
+            return RedirectResponse("/console/templates?note=" + _q(f"That pack is not valid JSON: {exc}"), status_code=303)
+        out = import_template_pack(shop.strip(), parsed)
+        return RedirectResponse("/console/templates?note=" + _q(
+            f"Added {out['added']} templates to {shop}. They now have {out['total']}."), status_code=303)
 
     @app.get("/console/team", response_class=HTMLResponse)
     def console_team(request: Request):

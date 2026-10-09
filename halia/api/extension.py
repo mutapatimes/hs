@@ -67,7 +67,7 @@ def _templates(shop: str, first_name, catalog=None, sender: str | None = None) -
     sender = sender if sender else (s.get("sender_name") or "")
     cat = catalog if catalog is not None else _catalog_link(shop)
     out = []
-    for t in (s.get("email_templates") or [])[:60]:
+    for t in (s.get("email_templates") or [])[:150]:
         out.append({"name": t.get("name", ""),
                     "category": t.get("category", "") or "General",
                     "subject": _fill(t.get("subject", ""), first_name, sender, cat),
