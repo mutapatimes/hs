@@ -169,6 +169,23 @@ let sr, $, body, text, click;
   });
   step("unpin", () => { click('[data-a="unpin"]'); return /Open a chat or an email/.test(text()); });
   step("notfound", () => { P.setClient({ notfound: true, name: "Bob Ray" }); return /Not in your book yet/.test(text()); });
+  step("notfound-template-uses-chat-name", () => {
+    const t = $('[data-q="templates"]'); if (t) click('[data-q="templates"]');
+    const it = $('[data-ti="1"]'); if (it) click('[data-ti="1"]');
+    const pv = $(".prev");
+    const ok = !!pv && /Hi Bob, happy birthday/.test(pv.textContent);
+    const back = $('[data-a="back"]'); if (back) click('[data-a="back"]');
+    return ok;
+  });
+  step("number-only-chat-says-there", () => {
+    P.setClient({ notfound: true, name: "+44 7700 900123" });
+    const t = $('[data-q="templates"]'); if (t) click('[data-q="templates"]');
+    const it = $('[data-ti="1"]'); if (it) click('[data-ti="1"]');
+    const pv = $(".prev");
+    const ok = !!pv && /Hi there, happy birthday/.test(pv.textContent);
+    const back = $('[data-a="back"]'); if (back) click('[data-a="back"]');
+    return ok;
+  });
   step("error", () => { P.setClient({ error: "Could not reach Halia." }); return /Could not reach Halia/.test(text()); });
   step("share", () => {
     P.setClient(null);

@@ -276,7 +276,11 @@
   function first(name) { const n = String(name || "").trim(); return n ? n.split(/\s+/)[0] : ""; }
   function activeCid() { return client && client.data && client.data.cid; }
   function activeName() { return (client && client.data && client.data.name) || ""; }
-  function activeFirst() { return first(activeName()) || "there"; }
+  // Templates greet by the client's name, or, for someone not in the book, by the name the
+  // chat itself shows (the WhatsApp/LINE header, the Gmail recipient), so an invite to a friend
+  // still reads "hey Sam". Only a bare number falls back to "there".
+  function chatFirst() { const n = first(client && !client.data && client.name); return /^[+\d(]/.test(n) ? "" : n.replace(/[^\p{L}\p{M}'-]/gu, ""); }
+  function activeFirst() { return first(activeName()) || chatFirst() || "there"; }
   function activeDetails() {
     const d = (client && client.data) || {};
     return { name: d.name || "", email: d.email || "", phone: d.phone || "" };
