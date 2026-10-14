@@ -27,7 +27,8 @@ from halia.api.shopify_auth import get_valid_token, require_shop, shop_store
 
 _CREATE = """
 mutation CreateSub($name:String!,$returnUrl:URL!,$test:Boolean,$lineItems:[AppSubscriptionLineItemInput!]!){
-  appSubscriptionCreate(name:$name, returnUrl:$returnUrl, test:$test, lineItems:$lineItems){
+  appSubscriptionCreate(name:$name, returnUrl:$returnUrl, test:$test, lineItems:$lineItems,
+                        replacementBehavior:APPLY_IMMEDIATELY){
     userErrors{ field message }
     confirmationUrl
     appSubscription{ id status }
@@ -88,6 +89,20 @@ def active_subscription(shop: str) -> dict | None:
     return subs[0] if subs else None
 
 
+def _active_subs_strict(shop: str) -> list[dict]:
+    """Every ACTIVE subscription on the shop, read live. Raises when Shopify cannot be asked, so a
+    plan change never reports success it cannot confirm."""
+    data = _gql(shop, _ACTIVE_SUBS, {})
+    subs = (((data or {}).get("currentAppInstallation") or {}).get("activeSubscriptions") or [])
+    return [s for s in subs if s.get("status") == "ACTIVE"]
+
+
+def shopify_catalogue() -> list[dict]:
+    """The plans a Shopify merchant can take themselves: every card is a Shopify charge (or Free).
+    A custom-priced plan is arranged off the listing, so it is never shown as a card here."""
+    return [p for p in plans.public_catalogue() if not p.get("custom")]
+
+
 def _current_plan_key(shop: str) -> str:
     """Map the live Shopify subscription back to a plan key; 'free' when there is none."""
     sub = active_subscription(shop)
@@ -97,7 +112,7 @@ def _current_plan_key(shop: str) -> str:
     for p in plans.public_catalogue():
         if p["name"].strip().lower() == name or p["key"] == name:
             return p["key"]
-    return "free"
+    return "paid"          # live but unrecognised: still a paid plan, so Free stays one click away
 
 
 def plan_key_for(shop: str) -> str:
@@ -254,16 +269,16 @@ def register(app) -> None:
         current = _current_plan_key(shop) if shopify else "free"
         in_use = shop_store().active_seat_count(shop) if shopify else 0
         return {
-            "plans": plans.public_catalogue(),
+            "plans": shopify_catalogue() if shopify else plans.public_catalogue(),
             "current": current,
             "shopify": shopify,          # Shopify Billing only applies to a Shopify tenant
             "test": bool(config.SHOPIFY_BILLING_TEST),
             "currency": plans.CURRENCY,
             "seatPrice": plans.SEAT_PRICE,
             "seatsInUse": in_use,
-            "seatsIncluded": plans.included_seats(current),
-            "extraSeats": plans.extra_seats(current, in_use),
-            "seatOverage": plans.seat_overage(current, in_use),
+            "seatsIncluded": plans.included_seats(current) if plans.plan(current) else None,
+            "extraSeats": plans.extra_seats(current, in_use) if plans.plan(current) else 0,
+            "seatOverage": plans.seat_overage(current, in_use) if plans.plan(current) else 0,
             "seatCap": plans.SEAT_CAP,
             "seatBilling": _seat_state(shop) if shopify else {},
         }
@@ -323,12 +338,19 @@ def register(app) -> None:
                                      "from the Billing panel in Settings.")
         if not _token(shop):
             raise HTTPException(400, "Shopify billing is only available inside the Shopify app.")
-        sub = active_subscription(shop)
-        if not sub:
-            shop_store().set_billing(shop, "canceled")
-            return {"ok": True, "current": "free"}
-        data = _gql(shop, _CANCEL, {"id": sub["id"]})
-        _user_errors(data, "appSubscriptionCancel")
+        try:
+            live = _active_subs_strict(shop)
+        except Exception:  # noqa: BLE001
+            raise HTTPException(502, "Shopify did not answer just now. Try again in a moment.")
+        for sub in live:                      # every live charge, not just the first
+            data = _gql(shop, _CANCEL, {"id": sub["id"]})
+            _user_errors(data, "appSubscriptionCancel")
+        try:
+            left = _active_subs_strict(shop)
+        except Exception:  # noqa: BLE001
+            left = []
+        if left:
+            raise HTTPException(502, "Shopify still shows an active plan. Try again in a moment.")
         shop_store().set_billing(shop, "canceled")
         from halia.api.billing import on_billing_change
         on_billing_change(shop, "canceled")

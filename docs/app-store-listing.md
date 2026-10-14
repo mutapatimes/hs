@@ -65,7 +65,6 @@ secondary: Marketing and conversion).
 | Discovery | £150 | Smaller premium brands, up to 15k customers |
 | Signal | £500 | Established brands, 15k–75k customers |
 | Atelier | £1,200 | Large houses / high volume, 75k+ customers |
-| Maison | Custom | Groups and largest houses, multi-brand |
 
 Billed through Shopify Billing (recurring app charges, `EVERY_30_DAYS`), already implemented in
 [halia/api/billing_shopify.py]. The App Store requires Shopify Billing for charges, this is met.
@@ -137,8 +136,9 @@ In the code, verified:
       ([docs/listing-assets/]). Privacy, security, FAQ and terms pages live on haliascore.com.
 
 In the Partner Dashboard and on Render, yours:
-- [ ] **Pricing section**: enter every plan from the table above, currency GBP, custom pricing on
-      for Maison. The review paused on this (1.2.1).
+- [ ] **Pricing section**: enter the four plans from the table above (Free scan, Discovery,
+      Signal, Atelier), currency GBP, custom pricing OFF, no Maison card. Reviews paused on this
+      (1.2.1, then 1.2.3 on 2026-10-14).
 - [ ] **Testing instructions**: paste the block from docs/listing-assets/review-instructions.md
       and add a review mailbox you check daily.
 - [ ] **Screencast**: re-record from docs/listing-assets/screencast-script.md, English, under

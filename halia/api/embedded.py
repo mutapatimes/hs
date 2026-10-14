@@ -33,10 +33,16 @@ _HEAD = (
     "var b=document.createElement('button');b.id='halia-refresh';"
     "b.textContent='\\u21bb Refresh scores';b.onclick=function(){{"
     "b.disabled=true;b.textContent='Refreshing\\u2026';"
-    "fetch('/v1/sync',{{method:'POST'}}).then(function(r){{return r.json()}})"
-    ".then(function(){{location.reload()}})"
-    ".catch(function(){{b.textContent='Refresh failed';b.disabled=false}})}};"
-    "document.body.appendChild(b)}});</script>"
+    "fetch('/v1/sync',{{method:'POST'}}).then(function(r){{if(!r.ok)throw r;return r.json()}})"
+    ".then(function(){{haliaFreshReload()}})"
+    ".catch(function(){{b.textContent='Try again';b.disabled=false}})}};"
+    "document.body.appendChild(b)}});"
+    # Every reload inside the admin goes through App Bridge for a fresh sign-in, so an address
+    # carrying a minutes-old token never reaches the server as the merchant's next page.
+    "window.haliaFreshReload=function(){{try{{shopify.idToken().then(function(t){{"
+    "var u=new URL(location.href);u.searchParams.set('id_token',t);u.searchParams.delete('retried');"
+    "u.searchParams.delete('fresh');location.replace(u.toString())}},function(){{location.reload()}})}}"
+    "catch(e){{location.reload()}}}};</script>"
 )
 
 # App Bridge admin sidebar nav. The app name (rendered by Shopify) links home -> "/" (Overview),
@@ -211,15 +217,24 @@ def _bootstrap(request: Request, shop: str, exc: BaseException) -> HTMLResponse:
     and a stale one can arrive on a reload. First pass: load App Bridge for this shop's app, ask it
     for a fresh token and reload with it. Second pass: show the reason, inside the frame, so a bad
     credential reads as a sentence rather than a refused connection."""
+    import time as _time
     qp = request.query_params
     head = _head(shop, "")
-    # Missing or stale alike: a token in the address can be minutes old after the scoring screen
-    # reloads, and Shopify's last sixty seconds. One fresh token from App Bridge settles both.
-    if qp.get("retried") != "1":
+    # Missing, stale or refused alike: a token in the address can be minutes old after a reload,
+    # and Shopify's last sixty seconds. One fresh token from App Bridge settles all three. The
+    # address remembers when that last happened (fresh=<server time>); a second failure within a
+    # few seconds is a real fault, and the page says what it is rather than asking again.
+    try:
+        recent = 0 <= _time.time() - float(qp.get("fresh") or 0) < 20
+    except ValueError:
+        recent = False
+    if not recent:
+        now = int(_time.time())
         body = ("<!doctype html><html><head>" + head + "</head>"
                 "<body style='font:15px system-ui;padding:40px;color:#1c1b18'><p>Opening Halia…</p>"
                 "<script>(async function(){try{var t=await shopify.idToken();var u=new URL(location.href);"
-                "u.searchParams.set('id_token',t);u.searchParams.set('retried','1');location.replace(u.toString());}"
+                "u.searchParams.set('id_token',t);u.searchParams.delete('retried');"
+                f"u.searchParams.set('fresh','{now}');location.replace(u.toString());}}"
                 "catch(e){document.body.innerHTML='<p>Halia could not get a sign-in from Shopify. Reload the page.</p>';}})();"
                 "</script></body></html>")
     else:
@@ -235,8 +250,9 @@ def _error_page(head: str, why: str = "") -> str:
         "<!doctype html><html><head>" + head + "</head>"
         "<body style='font:15px system-ui;padding:40px;color:#1c1b18'>"
         "<h2>Couldn't load your scores</h2>"
-        "<p style='color:#6b675e;max-width:540px'>Halia could not fetch from Shopify just now. "
-        "Press <b>Refresh scores</b> (top right) to try again.</p>"
+        "<p style='color:#6b675e;max-width:540px'>Halia could not fetch from Shopify just now.</p><p>"
+        "<button onclick='haliaFreshReload()' style='font:600 14px system-ui;padding:9px 16px;"
+        "border:1px solid #1f564a;background:#1f564a;color:#fff;cursor:pointer'>Try again</button></p>"
         + (f"<p style='color:#8e1f0b;font:13px ui-monospace,Menlo,monospace;max-width:640px'>{why}</p>" if why else "")
         + "</body></html>"
     )
@@ -297,7 +313,15 @@ def register(app) -> None:
                 # Always exchange afresh here: a cold load is exactly when a stored token may be
                 # dead (the app was uninstalled and reinstalled, as the review store did), and the
                 # background sync has no session token of its own to self-heal with. One fast call.
-                ensure_offline_token(shop, session_token, force=True)
+                try:
+                    ensure_offline_token(shop, session_token, force=True)
+                except Exception as exc:  # noqa: BLE001
+                    from halia.api.shopify_auth import get_valid_token
+                    if not get_valid_token(shop):
+                        # Shopify refused this sign-in (stale by a few seconds, or issued before a
+                        # reinstall): ask App Bridge for a fresh one and come straight back.
+                        print(f"[halia] token exchange refused for {shop}, re-signing: {type(exc).__name__}")
+                        return _bootstrap(request, shop, exc)
                 _start_sync(shop)
                 body = render_payload(_pending_payload(), head_extra=head, body_extra=_NAV_MENU)
             else:

@@ -595,12 +595,29 @@ def _start_sync(shop: str, notify: bool = False) -> None:
             traceback.print_exc()  # stack only - never customer data
             print(f"[halia] sync {shop} failed after {time.time() - t0:.0f}s: "
                   f"{type(exc).__name__}: {str(exc)[:160]}", flush=True)
-            _set_status(shop, "error", str(exc)[:200])
+            _set_status(shop, "error", sync_error_text(exc))
         finally:
             with _LOCK:
                 _SYNCING.discard(shop)
 
     threading.Thread(target=_run, daemon=True).start()
+
+
+def sync_error_text(exc: BaseException) -> str:
+    """What the merchant reads when scoring fails: a sentence about their store, never a stack
+    or Shopify's raw JSON."""
+    raw = str(exc)
+    low = raw.lower()
+    if "access_denied" in low or "not approved to access" in low or "protected-customer-data" in low:
+        return ("Shopify has not given Halia access to customer details on this store yet. "
+                "Approve Halia's access in the app's settings in your Shopify admin, then press Re-score.")
+    if "token exchange" in low or "invalid_subject_token" in low or "401" in low or "unauthorized" in low:
+        return "Halia's sign-in to this store has lapsed. Reopen Halia from your Shopify admin, then press Re-score."
+    if "throttl" in low or "too many" in low:
+        return "Shopify asked Halia to slow down. Scoring will finish shortly; press Re-score if it has not."
+    if "timed out" in low or "timeout" in low or "connection" in low:
+        return "Shopify did not answer in time. Press Re-score to try again."
+    return "Scoring did not finish. Press Re-score to try again."
 
 
 def warm_books(hours: int | None = None) -> dict:

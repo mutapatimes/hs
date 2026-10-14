@@ -72,7 +72,12 @@ def test_an_admin_frame_load_without_a_usable_token_is_framed_not_refused(monkey
     # A stale token in the address (the scoring screen's reload, minutes later) is refreshed too.
     r1 = c.get(base + "&id_token=stale.token.here")
     assert r1.status_code == 200 and "shopify.idToken()" in r1.text
-    r2 = c.get(base + "&id_token=not.a.token&retried=1")
+    # An old address that was re-signed long ago (a reload minutes later) is re-signed again.
+    r_old = c.get(base + "&id_token=not.a.token&retried=1&fresh=1000")
+    assert r_old.status_code == 200 and "shopify.idToken()" in r_old.text
+    # Re-signed seconds ago and still refused: a real fault, so the reason, not another loop.
+    import time as _t
+    r2 = c.get(base + f"&id_token=not.a.token&fresh={int(_t.time())}")
     assert r2.status_code == 200
     assert "admin.shopify.com" in r2.headers["content-security-policy"]
     assert "Couldn't load your scores" in r2.text and "Invalid session token" in r2.text
@@ -146,3 +151,23 @@ def test_recently_opened_stores_are_warmed_when_their_book_is_not_in_memory(monk
     monkeypatch.setattr(ob, "_start_sync", lambda s, notify=False: started.append(s))
     out = ob.warm_books()
     assert sorted(out["warmed"]) == sorted(started) == ["cold.myshopify.com", "new.myshopify.com"]
+
+
+def test_a_refused_token_exchange_re_signs_instead_of_showing_shopifys_400(monkeypatch):
+    """Shopify answers a session token a few seconds past its life with HTTP 400. On the first
+    load that must send the merchant back through App Bridge for a fresh one, never print the 400."""
+    from fastapi import HTTPException
+    from fastapi.testclient import TestClient
+    from halia.api import embedded as emb
+    from halia.api import shopify_auth
+    from halia.api.app import app
+    from halia.cache import cache
+    monkeypatch.setattr(emb, "verify_session_token", lambda tok: "fresh-store.myshopify.com")
+    def refused(shop, tok, force=False):
+        raise HTTPException(401, "Token exchange failed (HTTP 400): {'error': 'invalid_subject_token'}")
+    monkeypatch.setattr(shopify_auth, "ensure_offline_token", refused)
+    monkeypatch.setattr(shopify_auth, "get_valid_token", lambda shop: None)
+    cache.evict("fresh-store.myshopify.com")
+    r = TestClient(app).get("/?shop=fresh-store.myshopify.com&host=YWRtaW4&embedded=1&id_token=a.b.c")
+    assert r.status_code == 200 and "shopify.idToken()" in r.text
+    assert "HTTP 400" not in r.text and "Couldn't load your scores" not in r.text

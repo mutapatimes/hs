@@ -49,7 +49,8 @@ def test_status_lists_catalogue_and_defaults_to_free(api, monkeypatch):
     c, _, _ = api
     monkeypatch.setattr(billing_shopify, "active_subscription", lambda shop: None)
     j = c.get("/v1/plans/status").json()
-    assert [p["key"] for p in j["plans"]] == ["free", "discovery", "signal", "atelier", "maison"]
+    # Every card a Shopify merchant sees can be taken through Shopify: no custom-priced card.
+    assert [p["key"] for p in j["plans"]] == ["free", "discovery", "signal", "atelier"]
     assert j["current"] == "free" and j["shopify"] is True and j["test"] is True
 
 
@@ -110,13 +111,64 @@ def test_activate_without_active_sub_never_downgrades(api, monkeypatch):
 
 def test_cancel_downgrades_to_free(api, monkeypatch):
     c, store, _ = api
-    monkeypatch.setattr(billing_shopify, "active_subscription",
-                        lambda shop: {"id": "gid://s/9", "name": "Signal", "status": "ACTIVE"})
-    monkeypatch.setattr(billing_shopify, "_gql",
-                        lambda *a: {"appSubscriptionCancel": {"userErrors": []}})
+    live = [{"id": "gid://s/9", "name": "Signal", "status": "ACTIVE"}]
+    cancelled = []
+    def fake_gql(shop, query, variables):
+        if "appSubscriptionCancel" in query:
+            cancelled.append(variables["id"]); live.clear()
+            return {"appSubscriptionCancel": {"userErrors": []}}
+        return {"currentAppInstallation": {"activeSubscriptions": list(live)}}
+    monkeypatch.setattr(billing_shopify, "_gql", fake_gql)
     r = c.post("/v1/plans/cancel")
-    assert r.status_code == 200 and r.json()["current"] == "free"
+    assert r.status_code == 200 and r.json()["current"] == "free" and cancelled == ["gid://s/9"]
     assert store.get_billing("shopx")["status"] == "canceled"
+
+
+def test_cancel_never_claims_free_when_shopify_cannot_be_asked(api, monkeypatch):
+    c, store, _ = api
+    store.set_billing("shopx", "active", None, "gid://s/9")
+    def boom(*a):
+        raise RuntimeError("Shopify down")
+    monkeypatch.setattr(billing_shopify, "_gql", boom)
+    r = c.post("/v1/plans/cancel")
+    assert r.status_code == 502 and store.get_billing("shopx")["status"] == "active"
+
+
+def test_cancel_reports_a_plan_shopify_still_shows(api, monkeypatch):
+    c, store, _ = api
+    store.set_billing("shopx", "active", None, "gid://s/9")
+    def fake_gql(shop, query, variables):
+        if "appSubscriptionCancel" in query:
+            return {"appSubscriptionCancel": {"userErrors": []}}
+        return {"currentAppInstallation": {"activeSubscriptions": [{"id": "gid://s/9", "status": "ACTIVE"}]}}
+    monkeypatch.setattr(billing_shopify, "_gql", fake_gql)
+    assert c.post("/v1/plans/cancel").status_code == 502
+    assert store.get_billing("shopx")["status"] == "active"
+
+
+def test_cancel_clears_every_live_charge(api, monkeypatch):
+    c, _, _ = api
+    live = [{"id": "gid://s/1", "status": "ACTIVE"}, {"id": "gid://s/2", "status": "ACTIVE"}]
+    cancelled = []
+    def fake_gql(shop, query, variables):
+        if "appSubscriptionCancel" in query:
+            cancelled.append(variables["id"]); live[:] = [x for x in live if x["id"] != variables["id"]]
+            return {"appSubscriptionCancel": {"userErrors": []}}
+        return {"currentAppInstallation": {"activeSubscriptions": list(live)}}
+    monkeypatch.setattr(billing_shopify, "_gql", fake_gql)
+    assert c.post("/v1/plans/cancel").status_code == 200 and cancelled == ["gid://s/1", "gid://s/2"]
+
+
+def test_plan_switch_replaces_the_old_charge_immediately():
+    assert "replacementBehavior:APPLY_IMMEDIATELY" in billing_shopify._CREATE
+
+
+def test_unrecognised_live_plan_still_offers_free(api, monkeypatch):
+    c, _, _ = api
+    monkeypatch.setattr(billing_shopify, "active_subscription",
+                        lambda shop: {"id": "gid://s/3", "name": "Legacy plan", "status": "ACTIVE"})
+    j = c.get("/v1/plans/status").json()
+    assert j["current"] == "paid"           # not "free", so the Free card keeps its Switch button
 
 
 def test_current_plan_reflects_active_subscription(api, monkeypatch):
@@ -124,3 +176,10 @@ def test_current_plan_reflects_active_subscription(api, monkeypatch):
     monkeypatch.setattr(billing_shopify, "active_subscription",
                         lambda shop: {"id": "gid://s/2", "name": "Atelier", "status": "ACTIVE"})
     assert c.get("/v1/plans/status").json()["current"] == "atelier"
+
+
+def test_sync_errors_read_as_sentences():
+    from halia.api.onboarding import sync_error_text
+    denied = RuntimeError('[{"message":"This app is not approved to access the Customer object.","extensions":{"code":"ACCESS_DENIED"}}]')
+    assert sync_error_text(denied).startswith("Shopify has not given Halia access to customer details")
+    assert "{" not in sync_error_text(RuntimeError("400 Client Error: Bad Request for url: https://x/graphql.json"))

@@ -77,7 +77,7 @@ def seat_terms(shop: str) -> dict:
     comped = shop in _free_shops()
     p = plans.plan(key) or {}
     inc = plans.included_seats(key)
-    return {"key": key, "name": p.get("name") or key, "comped": comped,
+    return {"key": key, "name": p.get("name") or ("Paid plan" if key == "paid" else key), "comped": comped,
             "metered": inc is not None and not comped, "included": inc,
             "free": key == "free" and not comped, "freeSeats": FREE_SEATS,
             "seatPrice": plans.SEAT_PRICE, "seats": len(shop_store().list_seats(shop))}

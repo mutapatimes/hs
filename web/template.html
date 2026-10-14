@@ -1646,8 +1646,11 @@ function drMatch(state, ms){
   const fl=drFloor(state.mode);
   return fl ? ms>=fl.getTime() : true;
 }
+// Inside the Shopify admin a reload re-signs through App Bridge, so the next page never carries a
+// minutes-old sign-in; anywhere else it is a plain reload.
+function haliaReload(){ if(window.haliaFreshReload) window.haliaFreshReload(); else location.reload(); }
 function upgradePrompt(){
-  if(MASKED){ openSettings("billing"); return; }
+  if(MASKED || PLATFORM==="shopify"){ openSettings("billing"); return; }   // Shopify merchants pay through Shopify only
   toast("Full client history is on the paid plan.");
   fetch("/v1/checkout",{method:"POST"}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.url)location.href=d.url;}).catch(()=>{});
 }
@@ -3041,7 +3044,7 @@ function shopifySubscribe(key,btn){
       if(!ok||!d.confirmationUrl) throw new Error((d&&d.detail)||"Couldn't start checkout.");
       // Shopify's approval page can't be framed in the admin iframe: navigate the TOP window to it.
       window.open(d.confirmationUrl,"_top");
-    }).catch(e=>{ toast("Billing error: "+e.message); if(btn){ btn.disabled=false; btn.textContent="Choose plan →"; } });
+    }).catch(e=>{ toast("Billing error: "+e.message); if(btn){ btn.disabled=false; btn.textContent="Try again →"; } });
 }
 async function shopifyCancelPlan(){
   if(!await haliaConfirm("Cancel your plan and move to Free?",{ok:"Cancel plan",cancel:"Keep plan"})) return;
@@ -3055,9 +3058,8 @@ function planCardCta(p,d){
     // Shopify tenant: subscribe through the Shopify Billing API (a button, wired by wireShopifyCtas).
     const cur=d.current||"free";
     if(p.key===cur) return `<span class="pl-cta cur">Current plan</span>`;
-    if(p.custom) return `<a class="pl-cta ghost" href="mailto:hello@haliascore.com?subject=Halia%20Maison%20plan">Talk to us →</a>`;
     if(p.key==="free") return `<button class="pl-cta ghost" data-splan="free">Switch to Free →</button>`;
-    return `<button class="pl-cta" data-splan="${esc(p.key)}">Choose ${esc(p.name)} →</button>`;
+    return `<button class="pl-cta" data-splan="${esc(p.key)}">${cur==="free"?"Choose":"Switch to"} ${esc(p.name)} →</button>`;
   }
   // Stripe Checkout can't be framed inside Shopify admin, so every paid CTA is an anchor that
   // opens the Stripe Payment Link in a NEW TAB. Free is the default plan; Maison is a conversation.
@@ -4984,12 +4986,12 @@ function openSettings(page){
     if(capply) capply.onclick=()=>{capply.disabled=true;capply.textContent="Calibrating…";
       fetch("/v1/calibrate",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
         if(!ok)throw new Error(d.detail||"failed");
-        toast("Calibrated to your store. Refreshing…");setTimeout(()=>location.reload(),800);
+        toast("Calibrated to your store. Refreshing…");setTimeout(()=>haliaReload(),800);
       }).catch(e=>{toast("Calibration failed: "+e.message);capply.disabled=false;capply.textContent="Apply calibration";});
     };
     const creset=document.getElementById("calibReset");
     if(creset) creset.onclick=()=>{creset.disabled=true;
-      fetch("/v1/calibrate",{method:"DELETE"}).then(()=>{toast("Reset to default weights. Refreshing…");setTimeout(()=>location.reload(),800);})
+      fetch("/v1/calibrate",{method:"DELETE"}).then(()=>{toast("Reset to default weights. Refreshing…");setTimeout(()=>haliaReload(),800);})
         .catch(e=>{toast("Reset failed: "+e.message);creset.disabled=false;});
     };
     // Outcome-based calibration (from associate feedback precision).
@@ -5023,7 +5025,7 @@ function openSettings(page){
     if(fbapply) fbapply.onclick=()=>{fbapply.disabled=true;fbapply.textContent="Calibrating…";
       fetch("/v1/calibrate/feedback",{method:"POST"}).then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{
         if(!ok)throw new Error(d.detail||"failed");
-        toast("Calibrated from your feedback. Refreshing…");setTimeout(()=>location.reload(),800);
+        toast("Calibrated from your feedback. Refreshing…");setTimeout(()=>haliaReload(),800);
       }).catch(e=>{toast("Calibration failed: "+e.message);fbapply.disabled=false;fbapply.textContent="Apply from feedback";});
     };
     document.getElementById("saveSettings").onclick=()=>{
@@ -5052,7 +5054,7 @@ function openSettings(page){
       const b=document.getElementById("saveSettings");b.disabled=true;b.textContent="Saving…";
       fetch("/v1/settings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})
         .then(r=>r.json().then(d=>({ok:r.ok,d}))).then(({ok,d})=>{if(!ok)throw new Error(d.detail||"failed");
-          toast("Saved. Refreshing…"); setTimeout(()=>location.reload(),600);
+          toast("Saved. Refreshing…"); setTimeout(()=>haliaReload(),600);
         })
         .catch(e=>{toast("Save failed: "+e.message);b.disabled=false;b.textContent="Save changes";});
     };
@@ -5471,7 +5473,7 @@ function showFirstRun(){
       <p id="firstRunErr" style="color:#8e1f0b;font-size:12.5px;margin-top:14px;display:none"></p>`);
     wrap.appendChild(box);
     const btn=document.getElementById("firstRunSync");
-    if(btn) btn.onclick=()=>{btn.disabled=true;btn.textContent="Scoring…";fetch("/v1/sync",{method:"POST"}).then(r=>r.json()).then(()=>location.reload()).catch(()=>{btn.disabled=false;btn.textContent="Re-score";});};
+    if(btn) btn.onclick=()=>{btn.disabled=true;btn.textContent="Scoring…";fetch("/v1/sync",{method:"POST"}).then(r=>{if(!r.ok)throw r;return r.json();}).then(()=>haliaReload()).catch(()=>{btn.disabled=false;btn.textContent="Re-score";});};
     fetch("/v1/sync/state").then(r=>r.json()).then(d=>{const e=document.getElementById("firstRunErr");if(e&&d&&d.error){e.textContent=d.error;e.style.display="";}}).catch(()=>{});
   } else {
     box.innerHTML=shell(`
@@ -5497,7 +5499,7 @@ function showFirstRun(){
       const clk=load.querySelector("#scoreClock");
       const iv=setInterval(()=>{const s=(Date.now()-t0)/1000;
         clk.textContent=s<60?s.toFixed(1)+"s":Math.floor(s/60)+"m "+(s%60).toFixed(1)+"s";},100);
-      fetch("/v1/sync",{method:"POST"}).then(r=>r.json()).then(()=>location.reload())
+      fetch("/v1/sync",{method:"POST"}).then(r=>{if(!r.ok)throw r;return r.json();}).then(()=>haliaReload())
         .catch(()=>{clearInterval(iv);load.remove();btn.style.display="";btn.textContent="Sync failed, retry";});};
   }
 }
@@ -5522,7 +5524,7 @@ if(!DATA.length && SYNC_RUNNING){
     // The address still carries the token Shopify issued minutes ago, and tokens last a minute.
     // Reload with a fresh one from App Bridge, so the finished book opens first time.
     const freshReload=()=>{
-      const go=(t)=>{ try{ const u=new URL(location.href); if(t) u.searchParams.set("id_token",t); u.searchParams.delete("retried"); location.replace(u.toString()); }catch(e){ location.reload(); } };
+      const go=(t)=>{ try{ const u=new URL(location.href); if(t) u.searchParams.set("id_token",t); u.searchParams.delete("retried"); u.searchParams.delete("fresh"); location.replace(u.toString()); }catch(e){ location.reload(); } };
       try{ if(window.shopify&&shopify.idToken){ shopify.idToken().then(go,()=>go(null)); return; } }catch(e){}
       go(null);
     };
