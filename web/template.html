@@ -1060,6 +1060,9 @@
         <label>City
           <select id="fCity"><option value="all">All</option></select>
         </label>
+        <label id="fChanWrap" style="display:none">Store or online
+          <select id="fChan"><option value="all">All</option><option value="store">Store</option><option value="online">Online</option><option value="both">Both</option></select>
+        </label>
         <label>Min signals
           <select id="fMin"><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option></select>
         </label>
@@ -1427,6 +1430,19 @@ let sortKey = "score";
 let sortDir = "desc";            // "desc" (default) or "asc"; toggles when a sort column is re-clicked
 let query = "";
 let gradeFilter = "all";
+let chanFilter = "all";
+// Store or online client, by the house rule in Settings (mirrors halia/channels.py label()).
+const CH_NAME = {store:"Store", online:"Online", both:"Both"};
+function chLabel(c){
+  const s = c && c.channel; if(!s) return null;
+  const rule = (typeof SETTINGS!=="undefined" && SETTINGS.channel_rule) || "first";
+  const both = (typeof SETTINGS!=="undefined" && SETTINGS.channel_both!=null) ? +SETTINGS.channel_both : 25;
+  const share = +s.storeShare || 0;
+  if(both && s.storeOrders && s.onlineOrders && Math.min(share, 100-share) >= both) return "both";
+  if(rule==="recent") return s.last;
+  if(rule==="spend") return share===50 ? s.first : (share>50 ? "store" : "online");
+  return s.first;
+}
 let cityFilter = "all";
 let minSignals = 1;
 let areaFilter = "";            // postcode area (e.g. "SW"), set by clicking the map
@@ -1506,6 +1522,8 @@ function renderChips(){
   cities.forEach(ct=>{ const o=document.createElement("option"); o.value=ct; o.textContent=ct; sel.appendChild(o); });
 })();
 document.getElementById("fGrade").onchange=e=>{gradeFilter=e.target.value;page=1;renderRows();};
+document.getElementById("fChan").onchange=e=>{chanFilter=e.target.value;page=1;renderRows();};
+if(DATA.some(c=>c.channel)) document.getElementById("fChanWrap").style.display="";
 document.getElementById("fCity").onchange=e=>{cityFilter=e.target.value;page=1;renderRows();};
 document.getElementById("fMin").onchange=e=>{minSignals=+e.target.value;page=1;renderRows();};
 document.getElementById("fSort").onchange=e=>{sortKey=e.target.value;sortDir="desc";page=1;setSort();};
@@ -1724,13 +1742,14 @@ function visible(){
     const segOk = activeSegs.size===0 || c.signals.some(s=>activeSegs.has(s.seg));
     const qOk = clientMatches(c, query);
     const gradeOk = gradeFilter==="all" || c.grade===gradeFilter;
+    const chanOk = chanFilter==="all" || chLabel(c)===chanFilter;
     const cityOk = cityFilter==="all" || c.city===cityFilter;
     const areaOk = !areaFilter || c.area===areaFilter;
     const minOk = c.count >= minSignals;
     // The Gone quiet play is ABOUT clients outside any recent window, so it sets its own
     // time semantics; the date range applies to every other view of the list.
     const dateOk = playFilter==="sleeping" || drMatch(CDATE, c.lastSort ? c.lastSort*1000 : null);
-    return playOk && segOk && qOk && gradeOk && cityOk && areaOk && minOk && dateOk;
+    return playOk && segOk && qOk && gradeOk && chanOk && cityOk && areaOk && minOk && dateOk;
   });
   list.sort((a,b)=>{
     let d;
@@ -1807,7 +1826,7 @@ function renderRows(){
       <div class="money latent spend-cell">
         <div class="big">${gbpK(c.latent)}</div><div class="lbl">latent · ${gbp(c.spend)} now</div>
       </div>
-      <div class="last-cell">${c.last||""}</div>
+      <div class="last-cell">${c.last||""}${chLabel(c)?`<div class="lbl">${CH_NAME[chLabel(c)]} client</div>`:""}</div>
       <div class="go"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
     </div>`;
   }).join("");
@@ -3676,6 +3695,27 @@ function evidenceHTML(signals){
   }).join("");
 }
 
+function chanBlock(c){
+  const s=c.channel, lab=chLabel(c), when=d=>d?fmtDay(d):"";
+  const tot=(s.storeSpend||0)+(s.onlineSpend||0);
+  const bar=tot?`<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--line);margin:10px 0 8px">
+      <div style="width:${s.storeShare}%;background:var(--brand)"></div></div>`:"";
+  const facts=[
+    `First shopped ${s.first==="store"?"in store":"online"}${s.firstDate?` · ${when(s.firstDate)}`:""}`,
+    `Latest order ${s.last==="store"?"in store":"online"}${s.lastDate?` · ${when(s.lastDate)}`:""}`,
+    s.store?`Store: ${esc(s.store)}`:"",
+    s.associate?`Looked after by ${esc(s.associate)}`:"",
+  ].filter(Boolean);
+  return `<div class="dlabel">${CH_NAME[lab]||"Store or online"} client</div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:22px">
+      <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px">
+        <span><b>${gbp(s.storeSpend)}</b> in store · ${s.storeOrders} order${s.storeOrders===1?"":"s"}</span>
+        <span><b>${gbp(s.onlineSpend)}</b> online · ${s.onlineOrders} order${s.onlineOrders===1?"":"s"}</span></div>
+      ${bar}
+      <div style="display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--soft)">${facts.map(f=>`<span>${f}</span>`).join("")}</div>
+    </div>`;
+}
+function fmtDay(d){ try{ return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}); }catch(e){ return d; } }
 function openDrawer(id){
   if(MASKED){ upgradePrompt(); return; }
   const c=DATA.find(x=>x.id===id);
@@ -3706,6 +3746,8 @@ function openDrawer(id){
         <div class="dcard"><div class="k">Latent value</div><div class="v">${gbpK(c.latent)}</div></div>
         <div class="dcard"><div class="k">Spend now</div><div class="v">${gbp(c.spend)}</div></div>
       </div>
+
+      ${c.channel?chanBlock(c):""}
 
       ${c.cart?`
       <div class="dlabel">Open basket</div>
@@ -4006,6 +4048,7 @@ function loadSettings(){
     CATALOG_URL=s.catalog_url||"";
     if(s.ai_drafting) showAskBar();   // ask-in-plain-English needs a key on the server
     vipMaybeAsk();                   // ask about their client services, once, after connecting
+    if(DATA.some(c=>c.channel)) renderRows();   // store or online labels follow the house rule
     return SETTINGS;
   }).catch(()=>SETTINGS);
 }
@@ -4270,6 +4313,20 @@ function openSettings(page){
           <div style="${H}">Potential-VIC spend threshold (£)</div>
           <p style="${P}">Clients who spend below this and show wealth signals are surfaced as potential VICs. Saving re-scores your store.</p>
           <input id="setThreshold" type="number" min="0" value="${esc(SETTINGS.vic_threshold)}" style="width:200px;${I}">
+        </div>
+
+        <div style="${C}">
+          <div style="${H}">Store or online client</div>
+          <div class="sgrid3" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div><div style="${LBL}">A client belongs to</div>
+              <select id="setChanRule" style="width:100%;${I}">
+                <option value="first"${(SETTINGS.channel_rule||"first")==="first"?" selected":""}>The channel of their first order</option>
+                <option value="spend"${SETTINGS.channel_rule==="spend"?" selected":""}>The channel with most of their spend</option>
+                <option value="recent"${SETTINGS.channel_rule==="recent"?" selected":""}>The channel of their latest order</option>
+              </select></div>
+            <div><div style="${LBL}">Both, when each channel has at least (% of spend)</div>
+              <input id="setChanBoth" type="number" min="0" max="50" value="${esc(SETTINGS.channel_both!=null?SETTINGS.channel_both:25)}" style="width:100%;${I}"></div>
+          </div>
         </div>
 
         <div style="${C}">
@@ -5048,6 +5105,8 @@ function openSettings(page){
         hours:readHours(),
         line_id:(document.getElementById("setLineId")||{}).value||"",
         ai_enabled:(function(b){return b?b.checked:SETTINGS.ai_enabled!==false;})(document.getElementById("setAiEnabled")),
+        channel_rule:(document.getElementById("setChanRule")||{}).value||SETTINGS.channel_rule||"first",
+        channel_both:(function(b){return b&&b.value!==""?+b.value:(SETTINGS.channel_both!=null?SETTINGS.channel_both:25);})(document.getElementById("setChanBoth")),
         ...(document.querySelector("[data-voice]")?{voice:(function(){const v={};document.querySelectorAll("[data-voice]").forEach(r=>v[r.dataset.voice]=+r.value);v.language=(document.getElementById("voiceLang")||{}).value||"en";return v;})()}:(SETTINGS.voice?{voice:SETTINGS.voice}:{})),
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),
         order_templates:Object.fromEntries(OSTAT.map(st=>[st,(otmpl[st]||[]).filter(t=>(t.name||"").trim()&&(t.body||"").trim())]))};

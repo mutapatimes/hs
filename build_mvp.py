@@ -351,6 +351,11 @@ def _band(last_sort: int, now_ts: float) -> str:
     return "lapsed"
 
 
+def _channel_summary(rows):
+    from halia.channels import summary
+    return summary(rows)
+
+
 def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float,
             orders_by_customer: dict | None = None, shop: str | None = None,
             benchmarks: dict | None = None, carts_by_customer: dict | None = None,
@@ -394,6 +399,9 @@ def _client(i: int, row: pd.Series, seg_labels: dict[str, str], store_aov: float
         "known": known,   # True = a proven £5k+ client appended for the Gone quiet play
                           # (kept out of the default hidden-VIC lists and counts)
         "orders": (orders_by_customer or {}).get(str(cid), []),
+        # Store or online: the facts (first and last channel, spend and orders in each, their
+        # store, the associate on their store sales). The label is the house rule, in Settings.
+        "channel": _channel_summary((orders_by_customer or {}).get(str(cid), [])),
         "cart": (carts_by_customer or {}).get(str(cid)),   # open basket (abandoned checkout), if any
         "consent": (consent_by_customer or {}).get(str(cid)),   # {email, sms} marketing consent, or None
         "adminUrl": _admin_url(shop, cid, platform, store_url),   # deep link into the merchant's own admin

@@ -111,6 +111,14 @@ def _history(orders: list[dict]) -> dict:
         utm = _order_utm(o)
         if utm:                                   # keep the payload lean: only when present
             row["utm"] = utm
+        from halia.channels import channel_of
+        ch = channel_of(o)
+        if ch:                                    # store or online; absent on other platforms
+            row["ch"] = ch
+            if ch == "store" and o.get("location_name"):
+                row["loc"] = str(o["location_name"])[:60]
+            if o.get("staff_name"):
+                row["staff"] = str(o["staff_name"])[:60]
         by.setdefault(str(cid), []).append(row)
     for rows in by.values():
         rows.sort(key=lambda r: r["date"], reverse=True)

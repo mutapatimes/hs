@@ -198,22 +198,31 @@ def fetch_customer_nodes(
 
     ``max_pages`` caps the pull (useful for a dry-run); None means all pages.
     """
+    from scoring.shopify_graphql import with_store_fields
     cursor: str | None = None
     pages = 0
     journey = _journey_on()
-    query = CUSTOMERS_QUERY_JOURNEY if journey else CUSTOMERS_QUERY
+    rich = True               # the store and associate on each sale, while Shopify shares them
+
+    def _query():
+        q = CUSTOMERS_QUERY_JOURNEY if journey else CUSTOMERS_QUERY
+        return with_store_fields(q) if rich else q
+
     while True:
-        try:
-            data = _run(transport, query, {"cursor": cursor}, retries, _sleep)
-        except (ShopifyError, ShopifyAuthError):
-            # The journey (UTM) field is scope-gated and cost-heavy. If Shopify rejects it, drop
-            # attribution and keep the sync alive on the plain query rather than failing the pull.
-            if journey and query is CUSTOMERS_QUERY_JOURNEY:
-                journey = False
-                query = CUSTOMERS_QUERY
-                data = _run(transport, query, {"cursor": cursor}, retries, _sleep)
-            else:
-                raise
+        while True:
+            try:
+                data = _run(transport, _query(), {"cursor": cursor}, retries, _sleep)
+                break
+            except (ShopifyError, ShopifyAuthError):
+                # Optional fields are plan- or scope-gated. If Shopify rejects them, drop them one
+                # at a time (store and associate first, then UTM attribution) and keep the sync
+                # alive on the plain query rather than failing the pull.
+                if rich:
+                    rich = False
+                elif journey:
+                    journey = False
+                else:
+                    raise
         conn = data["customers"]
         yield from conn["nodes"]
         pages += 1

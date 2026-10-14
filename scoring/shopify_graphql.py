@@ -38,6 +38,7 @@ _CUSTOMER_NODE = """
           name
           createdAt
           processedAt
+          sourceName
           displayFinancialStatus
           displayFulfillmentStatus
           cancelledAt
@@ -50,6 +51,15 @@ _CUSTOMER_NODE = """
         }
       }
 """
+
+# The store and the associate on each sale. Shopify shares these only on some plans and scopes, so
+# they ride in a variant of the query the fetch tries first and drops if Shopify refuses it.
+_RICH_FIELDS = "sourceName\n          retailLocation { name }\n          staffMember { name }"
+
+
+def with_store_fields(node: str) -> str:
+    return node.replace("sourceName", _RICH_FIELDS, 1)
+
 
 # Paged pull for the initial backfill / refresh (cursor on the customers conn).
 CUSTOMERS_QUERY = (
@@ -245,6 +255,11 @@ def order_node_to_rest(order: dict, customer: dict) -> dict:
         # carries the day the sale really happened. Everything downstream (last shopped, gone quiet,
         # campaign windows, the orders view) reads created_at, so it is the sale date here.
         "created_at": order.get("processedAt") or order.get("createdAt"),
+        # Where the sale was placed: Shopify's source ("pos", "web", "shopify_draft_order", …),
+        # the store for a point-of-sale order, and the associate who made it, when shared.
+        "source_name": order.get("sourceName"),
+        "location_name": (order.get("retailLocation") or {}).get("name"),
+        "staff_name": (order.get("staffMember") or {}).get("name"),
         "processed_at": order.get("processedAt"),
         "imported_at": order.get("createdAt"),
         # Order status -> powers the dashboard Orders view (shared with WooCommerce).

@@ -13,6 +13,8 @@ customers is unaffected).
 from __future__ import annotations
 
 import json
+
+from halia import channels as _channels
 import re
 from typing import Any
 
@@ -360,6 +362,10 @@ def settings_for(shop: str) -> dict:
         # Which product this tenant is: "halia" (the wealth engine) or "storeconcierge" (the
         # clienteling desk, no scoring). Drives which dashboard the hosted route serves.
         "brand": (d.get("brand") or "halia"),
+        # Store or online client: the house rule (first order / larger share of spend / latest
+        # order) and the share of spend each channel needs for a client to count as both.
+        "channel_rule": _channels.clean_rule(d.get("channel_rule")),
+        "channel_both": _channels.clean_both(d.get("channel_both", _channels.DEFAULT_BOTH)),
         "vic_threshold": d.get("vic_threshold", default_threshold),
         "sender_name": d.get("sender_name", ""),
         "email_templates": _with_new_defaults(d.get("email_templates"), d.get("vip_profile")),
@@ -602,6 +608,9 @@ def register(app) -> None:
                                if "signal_weights" in payload else existing.get("signal_weights")),
             "capture_alerts": bool(payload.get("capture_alerts",
                                                existing.get("capture_alerts", True))),
+            "channel_rule": _channels.clean_rule(payload.get("channel_rule", existing.get("channel_rule"))),
+            "channel_both": _channels.clean_both(payload.get("channel_both",
+                                                             existing.get("channel_both", _channels.DEFAULT_BOTH))),
         }
         # Settings the UI never sends but other features persist in this blob: carry them
         # forward, or a routine settings save silently destroys them (capture_slug would break
