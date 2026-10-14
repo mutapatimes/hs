@@ -4327,6 +4327,8 @@ function openSettings(page){
             <div><div style="${LBL}">Both, when each channel has at least (% of spend)</div>
               <input id="setChanBoth" type="number" min="0" max="50" value="${esc(SETTINGS.channel_both!=null?SETTINGS.channel_both:25)}" style="width:100%;${I}"></div>
           </div>
+          <div style="margin-top:14px"><div style="${LBL}">Also count as store (your till's sales channel names, comma separated)</div>
+            <input id="setStoreSources" placeholder="lightspeed, boutique" value="${esc((SETTINGS.store_sources||[]).join(", "))}" style="width:100%;${I}"></div>
         </div>
 
         <div style="${C}">
@@ -5106,6 +5108,7 @@ function openSettings(page){
         line_id:(document.getElementById("setLineId")||{}).value||"",
         ai_enabled:(function(b){return b?b.checked:SETTINGS.ai_enabled!==false;})(document.getElementById("setAiEnabled")),
         channel_rule:(document.getElementById("setChanRule")||{}).value||SETTINGS.channel_rule||"first",
+        store_sources:(function(b){return b?b.value:(SETTINGS.store_sources||[]);})(document.getElementById("setStoreSources")),
         channel_both:(function(b){return b&&b.value!==""?+b.value:(SETTINGS.channel_both!=null?SETTINGS.channel_both:25);})(document.getElementById("setChanBoth")),
         ...(document.querySelector("[data-voice]")?{voice:(function(){const v={};document.querySelectorAll("[data-voice]").forEach(r=>v[r.dataset.voice]=+r.value);v.language=(document.getElementById("voiceLang")||{}).value||"en";return v;})()}:(SETTINGS.voice?{voice:SETTINGS.voice}:{})),
         email_templates:tmpl.filter(t=>(t.name||"").trim()&&(t.body||"").trim()),

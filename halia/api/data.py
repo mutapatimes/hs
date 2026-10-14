@@ -71,7 +71,7 @@ def _consent(orders: list[dict]) -> dict:
     return by
 
 
-def _history(orders: list[dict]) -> dict:
+def _history(orders: list[dict], store_sources=()) -> dict:
     """CUST_ID -> [{date, amount, items, titles?, utm?}], newest first (per-client order history).
 
     ``titles`` are the products on that order. They were previously read for their quantity and
@@ -112,7 +112,7 @@ def _history(orders: list[dict]) -> dict:
         if utm:                                   # keep the payload lean: only when present
             row["utm"] = utm
         from halia.channels import channel_of
-        ch = channel_of(o)
+        ch = channel_of(o, store_sources)
         if ch:                                    # store or online; absent on other platforms
             row["ch"] = ch
             if ch == "store" and o.get("location_name"):
@@ -230,7 +230,7 @@ def _finalize(shop: str, scored, orders: list[dict], carts: dict | None = None, 
     if platform == "woocommerce":
         creds = shop_store().get_woocommerce(shop)
         store_url = (creds or {}).get("store_url") or ""
-    payload = dashboard_payload(scored, _history(orders), shop, benchmarks, raw_orders=orders,
+    payload = dashboard_payload(scored, _history(orders, s.get("store_sources") or ()), shop, benchmarks, raw_orders=orders,
                                 carts_by_customer=carts, platform=platform, store_url=store_url,
                                 consent_by_customer=_consent(orders))
     # Store Concierge desk: the clienteling view (pure RFM, no scoring) rides along in the same

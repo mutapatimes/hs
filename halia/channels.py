@@ -26,12 +26,27 @@ DEFAULT_RULE = "first"
 DEFAULT_BOTH = 25          # % of spend each channel needs before a client counts as both
 
 
-def channel_of(order: dict) -> str | None:
-    """'store', 'online', or None when the order says nothing about where it was placed."""
+def channel_of(order: dict, store_sources=()) -> str | None:
+    """'store', 'online', or None when the order says nothing about where it was placed.
+    ``store_sources`` are the house's own extra store channels (a third-party till such as
+    Lightspeed reports its own source name), set in Settings."""
     src = str(order.get("source_name") or "").strip().lower()
     if not src:
         return None
-    return "store" if src in STORE_SOURCES else "online"
+    extra = {str(x).strip().lower() for x in (store_sources or ()) if str(x).strip()}
+    return "store" if (src in STORE_SOURCES or src in extra) else "online"
+
+
+def clean_sources(v) -> list[str]:
+    """A comma- or line-separated list of sales channel names, lower-cased, at most 20."""
+    import re
+    items = v if isinstance(v, (list, tuple)) else re.split(r"[,\n]+", str(v or ""))
+    out = []
+    for x in items:
+        x = str(x).strip().lower()[:60]
+        if x and x not in out:
+            out.append(x)
+    return out[:20]
 
 
 def summary(rows: list[dict] | None) -> dict | None:

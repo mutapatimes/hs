@@ -366,6 +366,7 @@ def settings_for(shop: str) -> dict:
         # order) and the share of spend each channel needs for a client to count as both.
         "channel_rule": _channels.clean_rule(d.get("channel_rule")),
         "channel_both": _channels.clean_both(d.get("channel_both", _channels.DEFAULT_BOTH)),
+        "store_sources": _channels.clean_sources(d.get("store_sources")),   # extra store channels
         "vic_threshold": d.get("vic_threshold", default_threshold),
         "sender_name": d.get("sender_name", ""),
         "email_templates": _with_new_defaults(d.get("email_templates"), d.get("vip_profile")),
@@ -611,6 +612,7 @@ def register(app) -> None:
             "channel_rule": _channels.clean_rule(payload.get("channel_rule", existing.get("channel_rule"))),
             "channel_both": _channels.clean_both(payload.get("channel_both",
                                                              existing.get("channel_both", _channels.DEFAULT_BOTH))),
+            "store_sources": _channels.clean_sources(payload.get("store_sources", existing.get("store_sources"))),
         }
         # Settings the UI never sends but other features persist in this blob: carry them
         # forward, or a routine settings save silently destroys them (capture_slug would break

@@ -98,3 +98,12 @@ def test_house_rule_saves_and_reads_back(monkeypatch, tmp_path):
         assert settings_for("shopx")["channel_rule"] == "spend"
     finally:
         app.dependency_overrides.pop(require_manager, None)
+
+
+def test_the_houses_own_till_counts_as_store():
+    assert channels.channel_of({"source_name": "Lightspeed"}, ["lightspeed"]) == "store"
+    assert channels.channel_of({"source_name": "lightspeed"}) == "online"
+    assert channels.clean_sources("Lightspeed, boutique\nlightspeed") == ["lightspeed", "boutique"]
+    rows = _history([{"customer": {"id": 1}, "source_name": "boutique", "created_at": "2025-01-01", "total_price": "90"}],
+                    store_sources=["boutique"])
+    assert rows["1"][0]["ch"] == "store"
