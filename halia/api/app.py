@@ -292,10 +292,7 @@ import hashlib as _hashlib  # noqa: E402
 import hmac as _hmac  # noqa: E402
 from fastapi.responses import RedirectResponse as _Redirect  # noqa: E402
 
-# /studio is the founders' pitch teleprompter and recorder: the same gate, served bare (no chat
-# bubble or analytics over the script) and allowed the camera and microphone, which every other
-# page on the site is denied.
-_DECKS = ("pitch", "present", "present-brands", "studio")
+_DECKS = ("pitch", "present", "present-brands")
 _DECK_COOKIE = "halia_deck"
 _NOINDEX = {"X-Robots-Tag": "noindex, nofollow"}
 
@@ -366,10 +363,6 @@ async def _deck_handler(request: Request) -> _HTML:
             resp.headers.update(_NOINDEX)
             return resp
         return _HTML(_deck_gate(path), headers=_NOINDEX)
-    if name == "studio":
-        return _HTML((_SITE_DIR / "studio.html").read_text(encoding="utf-8"),
-                     headers={**_NOINDEX, "Cache-Control": "no-store",
-                              "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(), payment=()"})
     resp = _serve_page(name)
     resp.headers.update(_NOINDEX)
     return resp
@@ -378,6 +371,18 @@ async def _deck_handler(request: Request) -> _HTML:
 for _name in _DECKS:
     app.add_api_route(f"/{_name}", _deck_handler, methods=["GET", "POST"],
                       include_in_schema=False, response_class=_HTML)
+
+
+# /studio is the founders' pitch teleprompter and recorder. Open by link, never indexed, served
+# bare (no chat bubble or analytics over the script) and allowed the camera and microphone,
+# which every other page on the site is denied.
+def _studio() -> _HTML:
+    return _HTML((_SITE_DIR / "studio.html").read_text(encoding="utf-8"),
+                 headers={**_NOINDEX, "Cache-Control": "no-store",
+                          "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(), payment=()"})
+
+
+app.add_api_route("/studio", _studio, methods=["GET"], include_in_schema=False, response_class=_HTML)
 
 
 # The connection guides are public — they aid discovery and reveal nothing about how Halia scores.
