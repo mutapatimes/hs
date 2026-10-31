@@ -87,3 +87,21 @@ def test_password_entry_lands_on_the_shareable_link():
     c = TestClient(app)
     r = c.post("/present", data={"pw": _deck_password()}, follow_redirects=False)
     assert r.headers["location"] == f"/present?k={_deck_token()}"
+
+
+def test_studio_is_gated_then_served_bare_with_the_camera_allowed():
+    """The founders' teleprompter and recorder sits behind the same gate. Once open it is served
+    without the site's chat bubble or analytics (nothing may sit over the script), with the
+    camera and microphone allowed, which every other page on the site denies."""
+    c = TestClient(app)
+    r = c.get("/studio")
+    assert r.status_code == 200 and "This briefing is private" in r.text
+    assert "Record a take" not in r.text
+    c.post("/studio", data={"pw": PW}, follow_redirects=False)
+    r2 = c.get("/studio")
+    assert r2.status_code == 200 and "Record a take" in r2.text and "Halia knows your next VIP" in r2.text
+    assert "camera=(self)" in r2.headers["permissions-policy"] and "microphone=(self)" in r2.headers["permissions-policy"]
+    assert r2.headers.get("x-robots-tag") == "noindex, nofollow" and r2.headers.get("cache-control") == "no-store"
+    assert "goatcounter" not in r2.text.lower() and "halia-chat" not in r2.text
+    # every other page keeps the camera shut
+    assert "camera=()" in client.get("/security").headers["permissions-policy"]
