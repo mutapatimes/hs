@@ -126,7 +126,9 @@ def test_heroes_score_as_their_stories_say():
 
 
 def test_first_order_hero_is_a_fresh_top_grade_from_one_hundred_pounds():
-    # The YC demo client: one £100 order placed an hour ago, scored A* on the account's facts alone.
+    # The YC demo client: one £100 order placed an hour ago, a village address and a plain-looking
+    # email, scored A* on facts nobody would notice by eye (a named property, the area's home
+    # values, an own-name domain, a landline, the housekeeper on the delivery line).
     from scoring.combine import score_customers
     rows = seed.load_heroes("scripts/demo_hero_first_order.json", NOW)
     assert rows[0]["Last Shopped"] == "2026-08-28T23:00:00+00:00" and "hours_ago" not in rows[0]
@@ -135,8 +137,12 @@ def test_first_order_hero_is_a_fresh_top_grade_from_one_hundred_pounds():
     assert plans[0]["orders"][0]["processedAt"] == "2026-08-28T23:00:00+00:00"
     assert plans[0]["orders"][0]["lineItems"][0]["priceSet"]["shopMoney"]["amount"] == "100.00"
     df = pd.DataFrame(rows); df["CUST_ID"] = range(len(df))
-    tiers, surfaced = seed.grade_series(score_customers(df))
+    scored = score_customers(df)
+    tiers, surfaced = seed.grade_series(scored)
     assert (tiers.iloc[0], bool(surfaced.iloc[0])) == ("A1", True)
+    reasons = scored.loc[0, "reasons"]
+    assert 'Named property: "The Old Rectory"' in reasons and "Custom domain" in reasons
+    assert "Work email" not in reasons and "HNWI postcode" not in reasons   # nothing obvious
 
 
 def test_catalogue_is_twelve_priced_products_with_public_images():

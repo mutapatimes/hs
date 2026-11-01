@@ -15,7 +15,7 @@ def test_named_estates_fire():
     out = _flag(["The Old Rectory, Church Lane", "Whitfield Manor", "Bletchingley Grange",
                  "The Old Vicarage", "Stanmore Priory"])
     assert out[nh.FLAG_COL].all()
-    assert out.loc[0, nh.REASON_COL] == 'Named property: "The Old Rectory"'
+    assert out.loc[0, nh.REASON_COL] == '"The Old Rectory"'      # combine.py adds the label once
 
 
 def test_prefix_form_chalet_villa_chateau():

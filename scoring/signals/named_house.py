@@ -125,7 +125,7 @@ def flag_named_house(df: pd.DataFrame, keywords=None) -> pd.DataFrame:
             if matched:
                 break
         flags.append(matched is not None)
-        reasons.append(f'Named property: "{matched}"' if matched else None)
+        reasons.append(f'"{matched}"' if matched else None)
     out[FLAG_COL] = flags
     out[REASON_COL] = reasons
     return out
