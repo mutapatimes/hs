@@ -125,6 +125,20 @@ def test_heroes_score_as_their_stories_say():
     assert all("days_ago" not in r for r in rows) and rows[1]["Last Shopped"] == "2025-06-25"
 
 
+def test_first_order_hero_is_a_fresh_top_grade_from_one_hundred_pounds():
+    # The YC demo client: one £100 order placed an hour ago, scored A* on the account's facts alone.
+    from scoring.combine import score_customers
+    rows = seed.load_heroes("scripts/demo_hero_first_order.json", NOW)
+    assert rows[0]["Last Shopped"] == "2026-08-28T23:00:00+00:00" and "hours_ago" not in rows[0]
+    plans = seed.plan(rows, NOW)
+    assert len(plans[0]["orders"]) == 1
+    assert plans[0]["orders"][0]["processedAt"] == "2026-08-28T23:00:00+00:00"
+    assert plans[0]["orders"][0]["lineItems"][0]["priceSet"]["shopMoney"]["amount"] == "100.00"
+    df = pd.DataFrame(rows); df["CUST_ID"] = range(len(df))
+    tiers, surfaced = seed.grade_series(score_customers(df))
+    assert (tiers.iloc[0], bool(surfaced.iloc[0])) == ("A1", True)
+
+
 def test_catalogue_is_twelve_priced_products_with_public_images():
     pp = seed.product_payloads()
     assert len(pp) == 12 and len({p["product"]["title"] for p in pp}) == 12

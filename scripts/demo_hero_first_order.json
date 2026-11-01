@@ -1,0 +1,18 @@
+[
+ {
+  "Name": "Henry Ashcombe",
+  "EMAIL_ADDR": "henry.ashcombe@goldmansachs.com",
+  "PHONE": "+44 20 7946 0199",
+  "Spent": 100,
+  "Count of CUST_ID": 1,
+  "hours_ago": 1,
+  "LATEST_BILLING_ADDRESS1": "The Knightsbridge Apartments, 199 Knightsbridge",
+  "LATEST_BILLING_ADDRESS3": "London",
+  "LATEST_BILLING_ADDRESS4": "United Kingdom",
+  "LATEST_BILLING_ZIP": "SW7 1RH",
+  "LATEST_SHIPPING_ADDRESS1": "The Knightsbridge Apartments, 199 Knightsbridge",
+  "LATEST_SHIPPING_ADDRESS3": "London",
+  "LATEST_SHIPPING_ADDRESS4": "United Kingdom",
+  "LATEST_SHIPPING_ZIP": "SW7 1RH"
+ }
+]

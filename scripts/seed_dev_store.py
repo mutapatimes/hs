@@ -142,10 +142,16 @@ def address(row: dict) -> dict | None:
 
 def _when(row: dict, now: datetime) -> datetime:
     last = _s(row.get("Last Shopped"))
-    try:
-        when = datetime.fromisoformat(last[:10]).replace(tzinfo=timezone.utc) if last else now
-    except ValueError:
-        when = now
+    when = now
+    # A date (the usual case, midnight UTC) or a full timestamp (an order placed an hour ago).
+    for text in (last, last[:10]):
+        try:
+            when = datetime.fromisoformat(text) if text else now
+            break
+        except ValueError:
+            continue
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
     return min(when, now)
 
 
@@ -315,12 +321,15 @@ def polish_emails(rows: list[dict], seed: int = 7) -> list[dict]:
 
 
 def load_heroes(path: str | Path, now: datetime) -> list[dict]:
-    """Hand-written clients for the demo clicks. Each may give days_ago instead of Last Shopped."""
+    """Hand-written clients for the demo clicks. Each may give days_ago, or hours_ago for an order
+    that has only just come in, instead of Last Shopped."""
     rows = json.loads(Path(path).read_text())
     out = []
     for r in rows:
         r = dict(r)
-        if "days_ago" in r:
+        if "hours_ago" in r:
+            r["Last Shopped"] = (now - timedelta(hours=float(r.pop("hours_ago")))).isoformat(timespec="seconds")
+        elif "days_ago" in r:
             r["Last Shopped"] = (now - timedelta(days=int(r.pop("days_ago")))).strftime("%Y-%m-%d")
         out.append(r)
     return out
