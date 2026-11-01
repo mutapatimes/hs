@@ -87,17 +87,3 @@ def test_password_entry_lands_on_the_shareable_link():
     c = TestClient(app)
     r = c.post("/present", data={"pw": _deck_password()}, follow_redirects=False)
     assert r.headers["location"] == f"/present?k={_deck_token()}"
-
-
-def test_studio_is_open_by_link_served_bare_with_the_camera_allowed(monkeypatch):
-    """The founders' teleprompter and recorder: no password, never indexed, served without the
-    site's chat bubble or analytics (nothing may sit over the script), with the camera and
-    microphone allowed, which every other page on the site denies."""
-    monkeypatch.delenv("HALIA_DECK_PASSWORD", raising=False)
-    r = client.get("/studio")
-    assert r.status_code == 200 and "Record a take" in r.text and "Halia knows your next VIP" in r.text
-    assert "camera=(self)" in r.headers["permissions-policy"] and "microphone=(self)" in r.headers["permissions-policy"]
-    assert r.headers.get("x-robots-tag") == "noindex, nofollow" and r.headers.get("cache-control") == "no-store"
-    assert "goatcounter" not in r.text.lower()
-    assert "/studio" not in client.get("/sitemap.xml").text
-    assert "camera=()" in client.get("/security").headers["permissions-policy"]

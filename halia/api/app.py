@@ -373,18 +373,6 @@ for _name in _DECKS:
                       include_in_schema=False, response_class=_HTML)
 
 
-# /studio is the founders' pitch teleprompter and recorder. Open by link, never indexed, served
-# bare (no chat bubble or analytics over the script) and allowed the camera and microphone,
-# which every other page on the site is denied.
-def _studio() -> _HTML:
-    return _HTML((_SITE_DIR / "studio.html").read_text(encoding="utf-8"),
-                 headers={**_NOINDEX, "Cache-Control": "no-store",
-                          "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(), payment=()"})
-
-
-app.add_api_route("/studio", _studio, methods=["GET"], include_in_schema=False, response_class=_HTML)
-
-
 # The connection guides are public — they aid discovery and reveal nothing about how Halia scores.
 # The product playbook (docs/using-halia: grades, signals, latent value) stays sign-in gated so the
 # how-we-score guidance isn't handed to the public / competitors.
