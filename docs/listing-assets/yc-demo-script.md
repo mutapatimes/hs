@@ -1,7 +1,7 @@
 # YC demo video: the first-order story on Maison Aurelle
 
 A Loom screen recording, three minutes, on the Maison Aurelle development store. The spine of it is
-one client: Nina Halloran, a new customer with a single £100 order. To the eye she is
+one client, with six more behind her (below): Nina Halloran, a new customer with a single £100 order. To the eye she is
 nothing special: an ordinary-looking email, a village address in Wiltshire. The engine grades her
 A* on facts nobody would notice by eye:
 
@@ -13,6 +13,22 @@ A* on facts nobody would notice by eye:
 
 No work email, no prime London postcode: nothing an associate would spot unaided. That is the
 point of the demo.
+
+## The supporting cast
+
+Six more small first orders, seeded from `scripts/demo_heroes_subtle.json` the same way. Each hides a
+different kind of fact. Under Clients, filter Potential and sort newest first to see them together.
+
+| Client | Order | What the associate sees | What the engine sees | Grade |
+|---|---|---|---|---|
+| Oliver Brandt | £140 | A gmail address, a flat in Hammersmith, delivery "c/o Signature Flight Support, Farnborough Airport" | Farnborough is a private jet terminal; the order is marked c/o | A* |
+| Sophie Laurent | £95 | An outlook address, delivery to Clapham, billing to "Greyfriars Nominees Limited, PO Box 58, Douglas" | A nominee company at an offshore PO box, in a high-value jurisdiction | A* |
+| Hannah Price | £120 | An icloud address, Southampton, delivery to "M/Y Alcyone, Berth 12, Ocean Village Marina" | M/Y is a motor yacht; delivery to a berth | A* |
+| Tom Whitfield | £90 | A Cotswolds cottage, billing "Whitfield Settlement, c/o Rathbones Trust Company" | Paid through a trust company; an own-name domain (whitfield.family) | A* |
+| Luca Marchetti | £85 | A gmail address, a flat in Cambridge | The phone on the order is the same as Celeste Marchetti's, a £38,400 client: the same household | B |
+| Daniel Reyes | £110 | A house in Godalming | An INSEAD alumni mailbox | B |
+
+The B grades are deliberate: a modest flag beside the A*s shows the grades mean something.
 
 ## Setting up the client
 
@@ -47,16 +63,17 @@ on the Shopify page itself.
 
 | Time | Screen | Words |
 |---|---|---|
-| 0:00 | The Shopify admin with Halia open (Apps, Halia, Overview) | Halia plugs into the systems a luxury brand already runs: Shopify, the email tool, the sales team's phones. For this demo I'll show its core value: spotting potential VIPs from their very first order. |
+| 0:00 | The Shopify admin with Halia open (Apps, Halia, Overview) | Halia plugs into the systems a luxury brand already runs. For this demo I'll show its core value: spotting potential VIPs from their very first order. |
 | 0:14 | Shopify admin, Orders. Top row: Nina Halloran, £100.00 | Imagine this is Dior's Shopify admin. A new customer has just placed a one hundred pound order. |
 | 0:22 | Click the customer. One order, a village address, a plain email, no tags, no notes | There's no purchase history, and nothing here stands out: an ordinary email, a village in Wiltshire. Nothing would flag her for VIP attention. Without a timely, personal follow-up, Dior may never build a relationship with her, and she may never come back. |
 | 0:42 | The same customer with Halia on. The grade, then read the reasons off the screen | With Halia, the same customer now carries a score, and the reasons behind it. None of them are obvious on their own. Her email is on her own domain. The house is a named property, in a postcode where homes sell at the top of the market. The number is a landline, and the order is marked for the housekeeper. Small facts. Together, they say potential VIP. |
-| 1:08 | Draft with Halia. The note appears. Then Mark as contacted | From here the associate acts straight away. Halia drafts the first note in the brand's own voice, she sends it from her own phone, and marks the client as contacted, so the team sees who is looking after her. |
-| 1:25 | Halia Overview. The whole book, potential VIPs counted, latent value | Now zoom out. This is the same engine over the whole client book. Every client scored, the potential VIPs counted, and the latent value: what those clients could be worth if they were looked after like the top clients already are. |
-| 1:43 | Plays, Gone quiet. Open Imogen Castellane | Halia also watches existing clients. Imogen spent three thousand pounds over three orders, then went quiet fourteen months ago. Her grade says she can spend far more. Nobody noticed, because nobody was counting. Halia puts her at the top of today's list, with one next move. |
-| 2:05 | Clients. The store or online filter, then a store client's drawer | Luxury houses care who a client belongs to. Halia tells store clients from online clients, from the brand's own orders: where they first bought, where most of their spend sits, and which associate looks after them in the boutique. So the person who knows the client is the one who follows up. |
-| 2:27 | Settings, what Halia holds | And the part these brands ask about first. Halia reads from Shopify, scores in memory while the store is in use, and stores nothing. No client list ever leaves the brand. |
-| 2:40 | Back to Nina's drawer, or the Clients list | As little as one percent of customers can account for up to half of revenue, so finding them early matters. Halia finds potential VIPs before their spending history makes it obvious. Halia knows your next VIP before you do. |
+| 1:08 | Clients, Potential, newest first. Oliver Brandt, Sophie Laurent, Tom Whitfield | She isn't a one-off. Oliver's order ships to a private jet terminal. Sophie's bill goes to a nominee company on the Isle of Man. Tom pays through a trust. On the order page, each one looks like any other small order. |
+| 1:24 | Draft with Halia. The note appears. Then Mark as contacted | The associate acts straight away. Halia drafts the first note in the brand's own voice, she sends it from her own phone, and marks the client as contacted, so the team sees who is looking after her. |
+| 1:40 | Halia Overview. The whole book, potential VIPs counted, latent value | Now zoom out. This is the same engine over the whole client book. Every client scored, the potential VIPs counted, and the latent value: what those clients could be worth, looked after like the top clients already are. |
+| 1:57 | Plays, Gone quiet. Open Imogen Castellane | Halia also watches existing clients. Imogen spent three thousand pounds over three orders, then went quiet fourteen months ago. Her grade says she can spend far more. Nobody noticed, because nobody was counting. Halia puts her at the top of today's list, with one next move. |
+| 2:18 | Clients. The store or online filter, then a store client's drawer | Luxury houses care who a client belongs to. Halia tells store clients from online clients, from the brand's own orders: where they first bought, where most of their spend sits, and which associate looks after them in the boutique. |
+| 2:36 | Settings, what Halia holds | And the part these brands ask about first. Halia reads from Shopify, scores in memory while the store is in use, and stores nothing. No client list ever leaves the brand. |
+| 2:47 | Back to Nina's drawer, or the Clients list | As little as one percent of customers can account for up to half of revenue, so finding them early matters. Halia finds potential VIPs before their spending history makes it obvious. Halia knows your next VIP before you do. |
 
 The teleprompter version of this script carries the screen cue above each block. The store or
 online shot needs `boutique` under Settings, Scoring, "Also count as store" on Maison Aurelle, so

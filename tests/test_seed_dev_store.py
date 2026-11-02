@@ -145,6 +145,25 @@ def test_first_order_hero_is_a_fresh_top_grade_from_one_hundred_pounds():
     assert "Work email" not in reasons and "HNWI postcode" not in reasons   # nothing obvious
 
 
+def test_subtle_heroes_each_hide_a_different_signal():
+    # Small first orders that read as ordinary on the order page; each carries one kind of fact an
+    # associate would not recognise. Scored beside Celeste so the shared household phone counts.
+    from scoring.combine import score_customers
+    rows = seed.load_heroes("scripts/demo_heroes_subtle.json", NOW) + seed.load_heroes("scripts/demo_heroes.json", NOW)
+    df = pd.DataFrame(rows); df["CUST_ID"] = range(len(df))
+    scored = score_customers(df)
+    tiers, surfaced = seed.grade_series(scored)
+    got = {n: (t, bool(s), r) for n, t, s, r in zip(df["Name"], tiers, surfaced, scored["reasons"])}
+    assert got["Oliver Brandt"][:2] == ("A1", True) and "private jet" in got["Oliver Brandt"][2]
+    assert got["Sophie Laurent"][:2] == ("A1", True) and "offshore PO box" in got["Sophie Laurent"][2]
+    assert got["Hannah Price"][:2] == ("A1", True) and "marina" in got["Hannah Price"][2]
+    assert got["Tom Whitfield"][:2] == ("A1", True) and "trust company" in got["Tom Whitfield"][2]
+    assert got["Luca Marchetti"][:2] == ("B", True) and "Shared phone" in got["Luca Marchetti"][2]
+    assert got["Daniel Reyes"][:2] == ("B", True) and "INSEAD" in got["Daniel Reyes"][2]
+    for n in ("Oliver Brandt", "Sophie Laurent", "Hannah Price", "Tom Whitfield"):
+        assert "Work email" not in got[n][2] and "HNWI postcode" not in got[n][2]
+
+
 def test_catalogue_is_twelve_priced_products_with_public_images():
     pp = seed.product_payloads()
     assert len(pp) == 12 and len({p["product"]["title"] for p in pp}) == 12

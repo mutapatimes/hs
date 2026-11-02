@@ -40,6 +40,9 @@ It is for screen-share demos and for app review. Nobody in it exists.
 | Rafael Okonkwo-Hale | B | One order, six days ago, paid mailbox. The fresh play: follow up while it is warm. |
 | Celeste Marchetti | proven | £38,400 over nine orders. The engine agrees she is a VIC; she is not hidden, she is the benchmark. |
 | Theo Lindqvist | B | £420, one order, one mild signal. What a modest flag looks like, so the top grades mean something. |
+| Nina Halloran | A* | £100, one order. A village address and a plain email; a named property in a high-value postcode, an own-name domain, a landline, the housekeeper on the delivery line. The first-order story. |
+| Oliver Brandt, Sophie Laurent, Hannah Price, Tom Whitfield | A* | Small first orders that look ordinary: delivery to a private jet terminal, billing via a nominee company offshore, delivery to a yacht berth, payment through a trust. See docs/listing-assets/yc-demo-script.md. |
+| Luca Marchetti, Daniel Reyes | B | The same phone as Celeste Marchetti's house account; an INSEAD alumni mailbox. |
 
 Search by surname in the dashboard or the toolbar.
 
