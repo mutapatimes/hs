@@ -36,7 +36,7 @@ jobs:
       - name: System libraries
         run: sudo apt-get update && sudo apt-get install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0
       - name: Python dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
       - name: JS test dependencies (jsdom smoke)
         run: cd tests/js && npm install --no-audit --no-fund
       - name: Tests
