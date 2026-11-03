@@ -257,6 +257,22 @@ def _consent_of(row: dict | None) -> dict:
     return {"email": c.get("email") or "unknown", "sms": c.get("sms") or "unknown"}
 
 
+def _channel_of(shop: str, row: dict) -> Optional[dict]:
+    """Store or online client, under the house rule, with the facts an associate acts on: the
+    label, their store and who looks after them. None when no order carries a channel."""
+    s = (row or {}).get("channel")
+    if not s:
+        return None
+    from halia import channels
+    from halia.api.settings import settings_for
+    st = settings_for(shop)
+    label = channels.label(s, st.get("channel_rule") or channels.DEFAULT_RULE,
+                           st.get("channel_both", channels.DEFAULT_BOTH))
+    if not label:
+        return None
+    return {"label": label, "store": s.get("store"), "associate": s.get("associate")}
+
+
 def _resp_from_row(shop: str, row: dict) -> dict:
     """The lookup response built from a warm payload client row (has latent, reasons, reco)."""
     play = _play_of(row)
@@ -277,6 +293,7 @@ def _resp_from_row(shop: str, row: dict) -> dict:
         "spend": row.get("spend"),
         "ordersCount": row.get("ordersCount"),
         "last": row.get("last"),
+        "channel": _channel_of(shop, row),
         # What they have actually bought, newest first: the toolbar shows this instead of a
         # latent-value figure, which means nothing beside a live chat.
         "orders": [{"date": o.get("date"), "amount": o.get("amount"), "items": o.get("items"),

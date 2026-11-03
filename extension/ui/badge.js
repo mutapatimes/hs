@@ -588,7 +588,10 @@
       return;
     }
     const d = client.data || {};
-    const facts = [d.ordersCount != null ? d.ordersCount + " order" + (d.ordersCount === 1 ? "" : "s") : null,
+    const ch = d.channel || {};
+    const facts = [ch.label ? ({ store: "Store", online: "Online", both: "Store and online" }[ch.label] || "") + " client" : null,
+      ch.associate ? "looked after by " + ch.associate : null,
+      d.ordersCount != null ? d.ordersCount + " order" + (d.ordersCount === 1 ? "" : "s") : null,
       d.spend != null ? money(d.spend) : null, d.last ? "last " + d.last : null].filter(Boolean).join(" · ");
     const h = d.cid ? contactHist[d.cid] : null;
     let cue = "";

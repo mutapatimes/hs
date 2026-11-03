@@ -92,6 +92,20 @@ def test_lookup_by_email_returns_grade_reasons_latent_play_templates(env):
     assert d["adminUrl"].startswith("https://shopx")
 
 
+def test_lookup_carries_the_store_or_online_label_under_the_house_rule(env):
+    client, store, tok = env
+    ext = _ext_token(client, tok)
+    ch = {"first": "store", "last": "online", "storeShare": 85, "storeOrders": 2, "onlineOrders": 1,
+          "store": "Sloane Street", "associate": "Marie Dupont"}
+    _seed([_row(channel=ch), _row(cid="c2", email="plain@x.com")])
+    d = client.post("/v1/extension/lookup", json={"email": "grace@x.com"},
+                    headers={"X-Halia-Ext-Token": ext}).json()
+    assert d["channel"] == {"label": "store", "store": "Sloane Street", "associate": "Marie Dupont"}
+    d2 = client.post("/v1/extension/lookup", json={"email": "plain@x.com"},
+                     headers={"X-Halia-Ext-Token": ext}).json()
+    assert d2["found"] is True and d2["channel"] is None
+
+
 def test_lookup_by_cid_and_gid_forms(env):
     client, store, tok = env
     ext = _ext_token(client, tok)
