@@ -2,7 +2,8 @@ pandas>=2.0
 openpyxl>=3.1
 pytest>=8.0
 requests>=2.33.0  # Shopify Admin API client (scoring/shopify_fetch.py); floor patches known CVEs
-fastapi>=0.110    # halia.api — the query-interface HTTP service
+fastapi>=0.142    # halia.api — the query-interface HTTP service. Floor = the host (Render) line, so a
+starlette>=1.7    # local install cannot pass tests on the pre-lifespan API that production rejects.
 python-multipart>=0.0.27  # parse the self-service /connect onboarding form; floor patches multipart DoS CVEs
 uvicorn>=0.29     # ASGI server to run halia.api.app
 httpx>=0.27       # FastAPI TestClient + sink HTTP calls
@@ -19,6 +20,4 @@ sentry-sdk>=2.0   # error tracking; idle without SENTRY_DSN
 # fixed versions need Python >=3.10 — production and CI both run 3.11 (see Dockerfile).
 urllib3>=2.7.0    # via requests; HTTP CVE fixes
 click>=8.3.3      # via uvicorn; CVE fix
-# NOTE: starlette (via fastapi) also has an advisory whose fix (1.1.0) is a major bump coupled to
-# a newer FastAPI; deferred to a coordinated FastAPI upgrade rather than pinned blindly here.
 nh3>=0.2

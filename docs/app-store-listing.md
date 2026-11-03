@@ -43,6 +43,7 @@ What you get:
 • Where you work: a toolbar for WhatsApp Web, Gmail, store admin, and Shopify POS.
 • Branded catalogues and pay-in-chat links your clients recognise as yours.
 • A clienteling pipeline and campaign tracking, so outreach becomes revenue you can measure.
+• Shopify Flow ready: grades and plays land as customer tags and a metafield, so your own automations fire the moment a client is worth a word.
 • Private by design: Halia keeps the score, your customers' data stays yours.
 
 Built for premium and luxury houses who serve people, not segments.
@@ -51,7 +52,7 @@ Built for premium and luxury houses who serve people, not segments.
 **Primary category:** Store management → Customer analytics (confirm against Shopify's current list;
 secondary: Marketing and conversion).
 
-**Works with:** Shopify POS, WhatsApp Web, Gmail, Slack, Klaviyo, Mailchimp.
+**Works with:** Shopify POS, Shopify Flow, WhatsApp Web, Gmail, Slack, Klaviyo, Mailchimp.
 
 **Languages:** English.
 
