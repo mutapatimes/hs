@@ -24,6 +24,17 @@ takeover) — not how dramatic they sound.
   Keep a `git-secrets`/`gitleaks` pre-commit sweep to keep it that way.
 - ✅ **Rate limiting** — per-IP limits on the auth/scoring/onboarding endpoints ([app.py](../halia/api/app.py)
   `_rate_limited`), returning 429 on abuse.
+- ⚙ **Shopify API IP allow-list (Fall '26 Editions).** Each Dev Dashboard app can restrict Admin
+  API calls to named IPs. Set the Render service's static outbound IPs (service → Connect →
+  Outbound IP addresses) on the public app and on every bridge app, so a leaked or stolen token is
+  refused from anywhere but our servers. Never on the Seeder app (it runs from a laptop; delete it
+  instead). If a local run or a CLI deploy starts failing with 403, this is the first suspect.
+- ✅ **Expiring tokens on every app** — a Shopify App Store listing requirement from January 2027.
+  Verified 2026-11-03: every Admin API caller goes through `get_valid_token` /
+  `ensure_offline_token` ([shopify_auth.py](../halia/api/shopify_auth.py)); the exchange asks
+  `expiring=1` and refreshes with the stored refresh token, for the public app and the bridge apps
+  alike (the app is picked from the session token's `aud`, then the shop's stored client id). The
+  only direct `get_token` reads are "is this shop connected" booleans.
 - ✅ **No customer data in logs or disk (hosted path)** — verified: `/v1/export` builds CSV in an
   in-memory buffer, no temp files, and `traceback.print_exc()` sites are stack-only. Keep it so:
   never log a customer row or a token; don't attach request bodies to error context.
